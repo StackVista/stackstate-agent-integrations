@@ -26,6 +26,8 @@ clear-caches:
     key: "stackstate-agent-integrations-build-cache"
     paths:
       - venv
+  when: manual
+  stage: build
   before_script: []
   script:
     - rm -rf venv || true
