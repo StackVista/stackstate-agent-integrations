@@ -1,0 +1,4 @@
+include README.md
+include requirements.in
+include requirements.txt
+graft stackstate_test_libs

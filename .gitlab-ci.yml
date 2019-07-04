@@ -1,0 +1,56 @@
+image: stackstate/stackstate-agent-integrations-runner:latest
+
+stages:
+  - build
+  - test
+
+before_script:
+  - source .gitlab-scripts/setup_env.sh
+
+deps:
+  stage: build
+  cache:
+    key: "stackstate-agent-integrations-build-cache"
+    paths:
+      - venv
+  script:
+    - source $CI_PROJECT_DIR/.gitlab-scripts/load_deps.sh
+  artifacts:
+    paths:
+      - venv
+    expire_in: 1 week
+
+clear-caches:
+  cache:
+    policy: push
+    key: "stackstate-agent-integrations-build-cache"
+    paths:
+      - venv
+  before_script: []
+  script:
+    - rm -rf venv || true
+
+.test: &test
+  stage: test
+  script:
+    - stsdev test --cov ${CHECK}
+    - stsdev test ${CHECK} --bench || true
+
+test_stackstate_checks_base:
+  stage: test
+  variables:
+    CHECK: "stackstate_checks_base"
+    PYTHON3: "true"
+  script:
+    - stsdev dep verify
+    - stsdev manifest verify --include-extras
+    - stsdev metadata verify
+    - stsdev test --cov ${CHECK}
+    - stsdev test ${CHECK} --bench || true
+
+test_stackstate_checks_dev:
+  variables:
+    CHECK: "stackstate_checks_dev"
+    PYTHON3: "true"
+  <<: *test
+  
