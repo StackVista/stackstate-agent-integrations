@@ -2,7 +2,8 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 
-# pylint: disable=E0401
+# flake8: noqa
+
 """
 A lightweight Python WMI module wrapper built on top of `pywin32` and `win32com` extensions.
 
@@ -26,7 +27,7 @@ from copy import deepcopy
 
 import pythoncom
 import pywintypes
-from six import iteritems, string_types
+from six import iteritems, string_types, with_metaclass
 from six.moves import zip
 from win32com.client import Dispatch
 
@@ -59,12 +60,10 @@ class ProviderArchitectureMeta(type):
         return provider in cls._AVAILABLE_PROVIDER_ARCHITECTURES
 
 
-class ProviderArchitecture(object):
+class ProviderArchitecture(with_metaclass(ProviderArchitectureMeta, object)):
     """
     Enumerate WMI Provider Architectures.
     """
-    __metaclass__ = ProviderArchitectureMeta
-
     # Available Provider Architecture(s)
     DEFAULT = 0
     _32BIT = 32

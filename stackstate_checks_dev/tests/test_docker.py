@@ -3,9 +3,12 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import os
 
+import pytest
+
 from stackstate_checks.dev.docker import compose_file_active, docker_run
 from stackstate_checks.dev.subprocess import run_command
 
+pytestmark = [pytest.mark.docker]
 HERE = os.path.dirname(os.path.abspath(__file__))
 DOCKER_DIR = os.path.join(HERE, 'docker')
 

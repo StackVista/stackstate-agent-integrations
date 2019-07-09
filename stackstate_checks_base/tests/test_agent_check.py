@@ -1,23 +1,103 @@
+# -*- coding: utf-8 -*-
+
 # (C) Datadog, Inc. 2018
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
+import mock
 import pytest
+from six import PY3
 
 from stackstate_checks.checks import AgentCheck
 
 
-@pytest.fixture
-def aggregator():
-    from stackstate_checks.stubs import aggregator
-    aggregator.reset()
-    return aggregator
-
-
 def test_instance():
     """
-    Simply assert the class can be insantiated
+    Simply assert the class can be instantiated
     """
     AgentCheck()
+    # rely on default
+    check = AgentCheck()
+    assert check.init_config == {}
+    assert check.instances == []
+
+    # pass dict for 'init_config', a list for 'instances'
+    init_config = {'foo': 'bar'}
+    instances = [{'bar': 'baz'}]
+    check = AgentCheck(init_config=init_config, instances=instances)
+    assert check.init_config == {'foo': 'bar'}
+    assert check.instances == [{'bar': 'baz'}]
+
+
+def test_load_config():
+    assert AgentCheck.load_config("raw_foo: bar") == {'raw_foo': 'bar'}
+
+
+def test_log_critical_error():
+    check = AgentCheck()
+
+    with pytest.raises(NotImplementedError):
+        check.log.critical('test')
+
+
+class TestMetricNormalization:
+    def test_default(self):
+        check = AgentCheck()
+        metric_name = u'Klüft inför på fédéral'
+        normalized_metric_name = b'Kluft_infor_pa_federal'
+
+        assert check.normalize(metric_name) == normalized_metric_name
+
+    def test_fix_case(self):
+        check = AgentCheck()
+        metric_name = u'Klüft inför på fédéral'
+        normalized_metric_name = b'kluft_infor_pa_federal'
+
+        assert check.normalize(metric_name, fix_case=True) == normalized_metric_name
+
+    def test_prefix(self):
+        check = AgentCheck()
+        metric_name = u'metric'
+        prefix = u'some'
+        normalized_metric_name = b'some.metric'
+
+        assert check.normalize(metric_name, prefix=prefix) == normalized_metric_name
+
+    def test_prefix_bytes(self):
+        check = AgentCheck()
+        metric_name = u'metric'
+        prefix = b'some'
+        normalized_metric_name = b'some.metric'
+
+        assert check.normalize(metric_name, prefix=prefix) == normalized_metric_name
+
+    def test_prefix_unicode_metric_bytes(self):
+        check = AgentCheck()
+        metric_name = b'metric'
+        prefix = u'some'
+        normalized_metric_name = b'some.metric'
+
+        assert check.normalize(metric_name, prefix=prefix) == normalized_metric_name
+
+    def test_underscores_redundant(self):
+        check = AgentCheck()
+        metric_name = u'a_few__redundant___underscores'
+        normalized_metric_name = b'a_few_redundant_underscores'
+
+        assert check.normalize(metric_name) == normalized_metric_name
+
+    def test_underscores_at_ends(self):
+        check = AgentCheck()
+        metric_name = u'_some_underscores_'
+        normalized_metric_name = b'some_underscores'
+
+        assert check.normalize(metric_name) == normalized_metric_name
+
+    def test_underscores_and_dots(self):
+        check = AgentCheck()
+        metric_name = u'some_.dots._and_._underscores'
+        normalized_metric_name = b'some.dots.and.underscores'
+
+        assert check.normalize(metric_name) == normalized_metric_name
 
 
 class TestMetrics:
@@ -50,8 +130,10 @@ class TestServiceChecks:
         check.service_check("testservicecheck", AgentCheck.OK, tags=None, message="")
         aggregator.assert_service_check("testservicecheck", status=AgentCheck.OK)
 
-        check.service_check("testservicecheckwithhostname", AgentCheck.OK, tags=["foo", "bar"], hostname="testhostname", message="a message")
-        aggregator.assert_service_check("testservicecheckwithhostname", status=AgentCheck.OK, tags=["foo", "bar"], hostname="testhostname", message="a message")
+        check.service_check("testservicecheckwithhostname", AgentCheck.OK, tags=["foo", "bar"], hostname="testhostname",
+                            message="a message")
+        aggregator.assert_service_check("testservicecheckwithhostname", status=AgentCheck.OK, tags=["foo", "bar"],
+                                        hostname="testhostname", message="a message")
 
         check.service_check("testservicecheckwithnonemessage", AgentCheck.OK, message=None)
         aggregator.assert_service_check("testservicecheckwithnonemessage", status=AgentCheck.OK, )
@@ -63,34 +145,72 @@ class TestTags:
         tag = 'default:string'
         tags = [tag]
 
-        normalized_tags = check._normalize_tags(tags, None)
-        normalized_tag = normalized_tags[0]
-
-        assert normalized_tags is not tags
-        assert normalized_tag == tag.encode('utf-8')
-
-    def test_bytes_string(self):
-        check = AgentCheck()
-        tag = b'bytes:string'
-        tags = [tag]
-
-        normalized_tags = check._normalize_tags(tags, None)
+        normalized_tags = check._normalize_tags_type(tags, None)
         normalized_tag = normalized_tags[0]
 
         assert normalized_tags is not tags
         # Ensure no new allocation occurs
         assert normalized_tag is tag
 
+    def test_bytes_string(self):
+        check = AgentCheck()
+        tag = b'bytes:string'
+        tags = [tag]
+
+        normalized_tags = check._normalize_tags_type(tags, None)
+        normalized_tag = normalized_tags[0]
+
+        assert normalized_tags is not tags
+
+        if PY3:
+            assert normalized_tag == tag.decode('utf-8')
+        else:
+            # Ensure no new allocation occurs
+            assert normalized_tag is tag
+
     def test_unicode_string(self):
         check = AgentCheck()
         tag = u'unicode:string'
         tags = [tag]
 
-        normalized_tags = check._normalize_tags(tags, None)
+        normalized_tags = check._normalize_tags_type(tags, None)
         normalized_tag = normalized_tags[0]
 
         assert normalized_tags is not tags
-        assert normalized_tag == tag.encode('utf-8')
+
+        if PY3:
+            # Ensure no new allocation occurs
+            assert normalized_tag is tag
+        else:
+            assert normalized_tag == tag.encode('utf-8')
+
+    def test_unicode_device_name(self):
+        check = AgentCheck()
+        tags = []
+        device_name = u'unicode_string'
+
+        normalized_tags = check._normalize_tags_type(tags, device_name)
+        normalized_device_tag = normalized_tags[0]
+
+        assert isinstance(normalized_device_tag, str if PY3 else bytes)
+
+    def test_duplicated_device_name(self):
+        check = AgentCheck()
+        tags = []
+        device_name = 'foo'
+        check._normalize_tags_type(tags, device_name)
+        normalized_tags = check._normalize_tags_type(tags, device_name)
+        assert len(normalized_tags) == 1
+
+    def test__to_bytes(self):
+        if PY3:
+            pytest.skip('Method only exists on Python 2')
+        check = AgentCheck()
+        assert isinstance(check._to_bytes(b"tag:foo"), bytes)
+        assert isinstance(check._to_bytes(u"tag:☣"), bytes)
+        in_str = mock.MagicMock(side_effect=Exception)
+        in_str.encode.side_effect = Exception
+        assert check._to_bytes(in_str) is None
 
 
 class LimitedCheck(AgentCheck):
@@ -98,6 +218,20 @@ class LimitedCheck(AgentCheck):
 
 
 class TestLimits():
+    def test_context_uid(self, aggregator):
+        check = LimitedCheck()
+
+        # Test stability of the hash against tag ordering
+        uid = check._context_uid(aggregator.GAUGE, "test.metric", ["one", "two"], None)
+        assert uid == check._context_uid(aggregator.GAUGE, "test.metric", ["one", "two"], None)
+        assert uid == check._context_uid(aggregator.GAUGE, "test.metric", ["two", "one"], None)
+
+        # Test all fields impact the hash
+        assert uid != check._context_uid(aggregator.RATE, "test.metric", ["one", "two"], None)
+        assert uid != check._context_uid(aggregator.GAUGE, "test.metric2", ["one", "two"], None)
+        assert uid != check._context_uid(aggregator.GAUGE, "test.metric", ["two"], None)
+        assert uid != check._context_uid(aggregator.GAUGE, "test.metric", ["one", "two"], "host")
+
     def test_metric_limit_gauges(self, aggregator):
         check = LimitedCheck()
         assert check.get_warnings() == []

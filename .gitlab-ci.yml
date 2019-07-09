@@ -37,6 +37,8 @@ clear-caches:
   script:
     - stsdev test --cov ${CHECK}
     - stsdev test ${CHECK} --bench || true
+      # [BS] we skip this until https://github.com/PyCQA/pylint/pull/2681/commits/253e5d05e3943d3bc8e4470804a138cb20049548 lands in pylint stable version
+      # - if [ -n "$PYTHON3" ]; then stsdev validate py3 ${CHECK}; fi
 
 test_stackstate_checks_base:
   stage: test
@@ -44,9 +46,11 @@ test_stackstate_checks_base:
     CHECK: "stackstate_checks_base"
     PYTHON3: "true"
   script:
-    - stsdev dep verify
-    - stsdev manifest verify --include-extras
-    - stsdev metadata verify
+    - stsdev validate config
+    - stsdev validate dep
+    - stsdev validate manifest --include-extras
+    - stsdev validate metadata
+    - stsdev validate service-checks
     - stsdev test --cov ${CHECK}
     - stsdev test ${CHECK} --bench || true
 

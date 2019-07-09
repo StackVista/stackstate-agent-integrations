@@ -78,6 +78,8 @@ class TestCheckCommandOutput:
 
 
 class TestCheckDockerLogs:
+    pytestmark = [pytest.mark.docker]
+
     def test_no_matches(self):
         compose_file = os.path.join(DOCKER_DIR, 'test_default.yaml')
         run_command(['docker-compose', '-f', compose_file, 'down'])

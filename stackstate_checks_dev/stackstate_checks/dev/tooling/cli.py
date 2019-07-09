@@ -6,7 +6,7 @@ import os
 import click
 
 from .commands import ALL_COMMANDS
-from .commands.utils import CONTEXT_SETTINGS, echo_success, echo_waiting, echo_warning
+from .commands.console import CONTEXT_SETTINGS, echo_success, echo_waiting, echo_warning
 from .config import CONFIG_FILE, config_file_exists, load_config, restore_config
 from .constants import set_root
 from ..compat import PermissionError
@@ -14,12 +14,13 @@ from ..utils import dir_exists
 
 
 @click.group(context_settings=CONTEXT_SETTINGS, invoke_without_command=True)
-@click.option('--repo', '-r', help='Location of `stackstate-agent-integrations`.')
+@click.option('--integrations', '-i', help='Work on `stackstate-agent-integrations`.')
+@click.option('--core', '-c', is_flag=True, help='Work on `stackstate-agent`.')
 @click.option('--here', '-x', is_flag=True, help='Work on the current location.')
 @click.option('--quiet', '-q', is_flag=True)
 @click.version_option()
 @click.pass_context
-def stsdev(ctx, repo, here, quiet):
+def stsdev(ctx, integrations, core, here, quiet):
     if not quiet and not config_file_exists():
         echo_waiting(
             'No config file found, creating one with default settings now...'
@@ -39,7 +40,7 @@ def stsdev(ctx, repo, here, quiet):
 
     ctx.obj = config
 
-    root = os.path.expanduser(config.get('repo', repo))
+    root = os.path.expanduser(core if core else config.get('integrations', integrations))
     if here or not dir_exists(root):
         if not here and not quiet:
             echo_warning(

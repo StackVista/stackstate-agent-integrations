@@ -10,24 +10,16 @@ from stackstate_checks.stubs import aggregator
 try:
     from stackstate_checks.checks.win.winpdh import WinPDHCounter, SINGLE_INSTANCE_KEY
 
-    # for reasons unknown, flake8 says that pdh_mocks_fixture is unused, even though
-    # it's used below.  noqa to suppress that error.
-    from stackstate_test_libs.win.pdh_mocks import pdh_mocks_fixture, initialize_pdh_tests  # noqa: F401
-    from stackstate_test_libs.win.pdh_mocks import pdh_mocks_fixture_bad_perf_strings  # noqa: F401
-
-except:  # noqa: E722
+    from datadog_test_libs.win.pdh_mocks import (
+        initialize_pdh_tests, pdh_mocks_fixture_bad_perf_strings, pdh_mocks_fixture
+    )
+except ImportError:
     import platform
 
     if platform.system() != 'Windows':
         pass
 
 from .utils import requires_windows
-
-
-@pytest.fixture
-def Aggregator():
-    aggregator.reset()
-    return aggregator
 
 
 '''
@@ -38,8 +30,8 @@ the interface to the OS API.
 '''
 
 
-@requires_windows  # noqa: F811
-def test_winpdhcounter_bad_strings_english(pdh_mocks_fixture_bad_perf_strings):  # noqa: F811
+@requires_windows
+def test_winpdhcounter_bad_strings_english(pdh_mocks_fixture_bad_perf_strings):  # noqa F811
     initialize_pdh_tests()
     counter = WinPDHCounter('System', 'Processor Queue Length', logger)
 
@@ -48,7 +40,7 @@ def test_winpdhcounter_bad_strings_english(pdh_mocks_fixture_bad_perf_strings): 
     assert SINGLE_INSTANCE_KEY in vals
 
 
-@requires_windows  # noqa: F811
+@requires_windows
 def test_winpdhcounter_throws_on_bad_input(pdh_mocks_fixture):  # noqa: F811
     initialize_pdh_tests()
     with pytest.raises(AttributeError):
@@ -58,7 +50,7 @@ def test_winpdhcounter_throws_on_bad_input(pdh_mocks_fixture):  # noqa: F811
         WinPDHCounter('System', 'PProcessor Queue Length', logger)
 
 
-@requires_windows  # noqa: F811
+@requires_windows
 def test_winpdhcounter_throws_on_bad_input_with_bad_strings(pdh_mocks_fixture_bad_perf_strings):  # noqa: F811
     initialize_pdh_tests()
     with pytest.raises(AttributeError):
@@ -68,7 +60,7 @@ def test_winpdhcounter_throws_on_bad_input_with_bad_strings(pdh_mocks_fixture_ba
         WinPDHCounter('System', 'PProcessor Queue Length', logger)
 
 
-@requires_windows  # noqa: F811
+@requires_windows
 def test_winpdhcounter_bad_strings_not_english(pdh_mocks_fixture_bad_perf_strings):  # noqa: F811
     WinPDHCounter._use_en_counter_names = False
     WinPDHCounter.pdh_counter_dict = defaultdict(list)
@@ -83,7 +75,7 @@ def test_winpdhcounter_bad_strings_not_english(pdh_mocks_fixture_bad_perf_string
         WinPDHCounter('System', 'Processor Queue Length', logger)
 
 
-@requires_windows  # noqa: F811
+@requires_windows
 def test_winpdhcounter_non_english(pdh_mocks_fixture):  # noqa: F811
     WinPDHCounter._use_en_counter_names = False
     WinPDHCounter.pdh_counter_dict = defaultdict(list)

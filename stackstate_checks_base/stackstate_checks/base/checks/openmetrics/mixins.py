@@ -169,7 +169,8 @@ class OpenMetricsScraperMixin(object):
 
         # In combination to label_as_hostname, allows to add a common suffix to the hostnames
         # submitted. This can be used for instance to discriminate hosts between clusters.
-        config['label_to_hostname_suffix'] = instance.get('label_to_hostname_suffix', default_instance.get('label_to_hostname_suffix', None))
+        config['label_to_hostname_suffix'] = instance.get('label_to_hostname_suffix',
+                                                          default_instance.get('label_to_hostname_suffix', None))
 
         # Add a 'health' service check for the prometheus endpoint
         config['health_service_check'] = is_affirmative(instance.get('health_service_check',
@@ -188,12 +189,16 @@ class OpenMetricsScraperMixin(object):
         # The path to the trusted CA used for generating custom certificates
         config['ssl_ca_cert'] = instance.get('ssl_ca_cert', default_instance.get('ssl_ca_cert', None))
 
+        # Whether or not to validate SSL certificates
+        config['ssl_verify'] = is_affirmative(instance.get('ssl_verify', default_instance.get('ssl_verify', True)))
+
         # Extra http headers to be sent when polling endpoint
         config['extra_headers'] = default_instance.get('extra_headers', {})
         config['extra_headers'].update(instance.get('extra_headers', {}))
 
         # Timeout used during the network request
-        config['prometheus_timeout'] = instance.get('prometheus_timeout', default_instance.get('prometheus_timeout', 10))
+        config['prometheus_timeout'] = instance.get('prometheus_timeout',
+                                                    default_instance.get('prometheus_timeout', 10))
 
         # Authentication used when polling endpoint
         config['username'] = instance.get('username', default_instance.get('username', None))
@@ -201,6 +206,9 @@ class OpenMetricsScraperMixin(object):
 
         # Custom tags that will be sent with each metric
         config['custom_tags'] = instance.get('tags', [])
+
+        # Additional tags to be sent with each metric
+        config['_metric_tags'] = []
 
         # List of strings to filter the input text payload on. If any line contains
         # one of these strings, it will be filtered out before being parsed.
@@ -287,37 +295,49 @@ class OpenMetricsScraperMixin(object):
             self.process_metric(metric, scraper_config, metric_transformers=metric_transformers)
 
     def _store_labels(self, metric, scraper_config):
-        scraper_config['label_joins']
         # If targeted metric, store labels
         if metric.name in scraper_config['label_joins']:
             matching_label = scraper_config['label_joins'][metric.name]['label_to_match']
             for sample in metric.samples:
-                labels_list = []
+                # metadata-only metrics that are used for label joins are always equal to 1
+                # this is required for metrics where all combinations of a state are sent
+                # but only the active one is set to 1 (others are set to 0)
+                # example: kube_pod_status_phase in kube-state-metrics
+                if sample[self.SAMPLE_VALUE] != 1:
+                    continue
+                label_dict = dict()
                 matching_value = None
                 for label_name, label_value in iteritems(sample[self.SAMPLE_LABELS]):
                     if label_name == matching_label:
                         matching_value = label_value
                     elif label_name in scraper_config['label_joins'][metric.name]['labels_to_get']:
-                        labels_list.append((label_name, label_value))
+                        label_dict[label_name] = label_value
                 try:
-                    scraper_config['_label_mapping'][matching_label][matching_value] = labels_list
+                    if scraper_config['_label_mapping'][matching_label].get(matching_value):
+                        scraper_config['_label_mapping'][matching_label][matching_value].update(label_dict)
+                    else:
+                        scraper_config['_label_mapping'][matching_label][matching_value] = label_dict
                 except KeyError:
                     if matching_value is not None:
-                        scraper_config['_label_mapping'][matching_label] = {matching_value: labels_list}
+                        scraper_config['_label_mapping'][matching_label] = {matching_value: label_dict}
 
     def _join_labels(self, metric, scraper_config):
         # Filter metric to see if we can enrich with joined labels
         if scraper_config['label_joins']:
             for sample in metric.samples:
-                for label_name in scraper_config['_watched_labels'].intersection(set(sample[self.SAMPLE_LABELS].keys())):
+                watched_labels = scraper_config['_watched_labels'].intersection(set(sample[self.SAMPLE_LABELS].keys()))
+                for label_name in watched_labels:
                     # Set this label value as active
                     if label_name not in scraper_config['_active_label_mapping']:
                         scraper_config['_active_label_mapping'][label_name] = {}
                     scraper_config['_active_label_mapping'][label_name][sample[self.SAMPLE_LABELS][label_name]] = True
                     # If mapping found add corresponding labels
                     try:
-                        for label_tuple in scraper_config['_label_mapping'][label_name][sample[self.SAMPLE_LABELS][label_name]]:
-                            sample[self.SAMPLE_LABELS][label_tuple[0]] = label_tuple[1]
+                        for name, val in (
+                            iteritems(scraper_config['_label_mapping'][label_name][sample[self.SAMPLE_LABELS]
+                                                                                   [label_name]])
+                        ):
+                            sample[self.SAMPLE_LABELS][name] = val
                     except KeyError:
                         pass
 
@@ -343,7 +363,7 @@ class OpenMetricsScraperMixin(object):
             return
 
         try:
-            self._submit(scraper_config['metrics_mapper'][metric.name], metric, scraper_config)
+            self.submit_openmetric(scraper_config['metrics_mapper'][metric.name], metric, scraper_config)
         except KeyError:
             if metric_transformers is not None:
                 if metric.name in metric_transformers:
@@ -354,7 +374,8 @@ class OpenMetricsScraperMixin(object):
                     except Exception as err:
                         self.log.warning("Error handling metric: {} - error: {}".format(metric.name, err))
                 else:
-                    self.log.debug("Unable to handle metric: {0} - error: No handler function named '{0}' defined".format(metric.name))
+                    self.log.debug("Unable to handle metric: {0} - error: "
+                                   "No handler function named '{0}' defined".format(metric.name))
             else:
                 # build the wildcard list if first pass
                 if scraper_config['_metrics_wildcards'] is None:
@@ -363,7 +384,7 @@ class OpenMetricsScraperMixin(object):
                 # try matching wildcard (generic check)
                 for wildcard in scraper_config['_metrics_wildcards']:
                     if fnmatchcase(metric.name, wildcard):
-                        self._submit(metric.name, metric, scraper_config)
+                        self.submit_openmetric(metric.name, metric, scraper_config)
 
     def poll(self, scraper_config, headers=None):
         """
@@ -383,7 +404,9 @@ class OpenMetricsScraperMixin(object):
         # Should we send a service check for when we make a request
         health_service_check = scraper_config['health_service_check']
         service_check_name = '{}{}'.format(scraper_config['namespace'], '.prometheus.health')
-        service_check_tags = scraper_config['custom_tags'] + ['endpoint:' + endpoint]
+        service_check_tags = ['endpoint:{}'.format(endpoint)]
+        service_check_tags.extend(scraper_config['custom_tags'])
+
         try:
             response = self.send_request(endpoint, scraper_config, headers)
         except requests.exceptions.SSLError:
@@ -431,12 +454,16 @@ class OpenMetricsScraperMixin(object):
                 cert = (scraper_config['ssl_cert'], scraper_config['ssl_private_key'])
             else:
                 cert = scraper_config['ssl_cert']
-        verify = True
+
+        verify = scraper_config['ssl_verify']
+        # TODO: deprecate use as `ssl_verify` boolean
+        if scraper_config['ssl_ca_cert'] is False:
+            verify = False
+
         if isinstance(scraper_config['ssl_ca_cert'], string_types):
             verify = scraper_config['ssl_ca_cert']
-        elif scraper_config['ssl_ca_cert'] is False:
+        elif verify is False:
             disable_warnings(InsecureRequestWarning)
-            verify = False
 
         # Determine the authentication settings
         username = scraper_config['username']
@@ -452,7 +479,7 @@ class OpenMetricsScraperMixin(object):
         """
         return self._get_hostname(None, sample, scraper_config)
 
-    def _submit(self, metric_name, metric, scraper_config, hostname=None):
+    def submit_openmetric(self, metric_name, metric, scraper_config, hostname=None):
         """
         For each sample in the metric, report it as a gauge with all labels as tags
         except if a labels dict is passed, in which case keys are label names we'll extract
@@ -492,12 +519,14 @@ class OpenMetricsScraperMixin(object):
         """
         If hostname is None, look at label_to_hostname setting
         """
-        if (hostname is None and scraper_config['label_to_hostname'] is not None and
-                scraper_config['label_to_hostname'] in sample[self.SAMPLE_LABELS]):
-                hostname = sample[self.SAMPLE_LABELS][scraper_config['label_to_hostname']]
-                suffix = scraper_config['label_to_hostname_suffix']
-                if suffix is not None:
-                    hostname += suffix
+        if (
+            hostname is None and scraper_config['label_to_hostname'] is not None and
+            scraper_config['label_to_hostname'] in sample[self.SAMPLE_LABELS]
+        ):
+            hostname = sample[self.SAMPLE_LABELS][scraper_config['label_to_hostname']]
+            suffix = scraper_config['label_to_hostname_suffix']
+            if suffix is not None:
+                hostname += suffix
 
         return hostname
 
@@ -513,14 +542,17 @@ class OpenMetricsScraperMixin(object):
             custom_hostname = self._get_hostname(hostname, sample, scraper_config)
             if sample[self.SAMPLE_NAME].endswith("_sum"):
                 tags = self._metric_tags(metric_name, val, sample, scraper_config, hostname=custom_hostname)
-                self.gauge("{}.{}.sum".format(scraper_config['namespace'], metric_name), val, tags=tags, hostname=custom_hostname)
+                self.gauge("{}.{}.sum".format(scraper_config['namespace'], metric_name), val, tags=tags,
+                           hostname=custom_hostname)
             elif sample[self.SAMPLE_NAME].endswith("_count"):
                 tags = self._metric_tags(metric_name, val, sample, scraper_config, hostname=custom_hostname)
-                self.gauge("{}.{}.count".format(scraper_config['namespace'], metric_name), val, tags=tags, hostname=custom_hostname)
+                self.gauge("{}.{}.count".format(scraper_config['namespace'], metric_name), val, tags=tags,
+                           hostname=custom_hostname)
             else:
                 sample[self.SAMPLE_LABELS]["quantile"] = float(sample[self.SAMPLE_LABELS]["quantile"])
                 tags = self._metric_tags(metric_name, val, sample, scraper_config, hostname=custom_hostname)
-                self.gauge("{}.{}.quantile".format(scraper_config['namespace'], metric_name), val, tags=tags, hostname=custom_hostname)
+                self.gauge("{}.{}.quantile".format(scraper_config['namespace'], metric_name), val, tags=tags,
+                           hostname=custom_hostname)
 
     def _submit_gauges_from_histogram(self, metric_name, metric, scraper_config, hostname=None):
         """
@@ -534,24 +566,29 @@ class OpenMetricsScraperMixin(object):
             custom_hostname = self._get_hostname(hostname, sample, scraper_config)
             if sample[self.SAMPLE_NAME].endswith("_sum"):
                 tags = self._metric_tags(metric_name, val, sample, scraper_config, hostname)
-                self.gauge("{}.{}.sum".format(scraper_config['namespace'], metric_name), val, tags=tags, hostname=custom_hostname)
+                self.gauge("{}.{}.sum".format(scraper_config['namespace'], metric_name), val, tags=tags,
+                           hostname=custom_hostname)
             elif sample[self.SAMPLE_NAME].endswith("_count"):
                 tags = self._metric_tags(metric_name, val, sample, scraper_config, hostname)
-                self.gauge("{}.{}.count".format(scraper_config['namespace'], metric_name), val, tags=tags, hostname=custom_hostname)
+                self.gauge("{}.{}.count".format(scraper_config['namespace'], metric_name), val, tags=tags,
+                           hostname=custom_hostname)
             elif (scraper_config['send_histograms_buckets'] and sample[self.SAMPLE_NAME].endswith("_bucket") and
                     "Inf" not in sample[self.SAMPLE_LABELS]["le"]):
                 sample[self.SAMPLE_LABELS]["le"] = float(sample[self.SAMPLE_LABELS]["le"])
                 tags = self._metric_tags(metric_name, val, sample, scraper_config, hostname)
-                self.gauge("{}.{}.count".format(scraper_config['namespace'], metric_name), val, tags=tags, hostname=custom_hostname)
+                self.gauge("{}.{}.count".format(scraper_config['namespace'], metric_name), val, tags=tags,
+                           hostname=custom_hostname)
 
     def _metric_tags(self, metric_name, val, sample, scraper_config, hostname=None):
         custom_tags = scraper_config['custom_tags']
         _tags = list(custom_tags)
+        _tags.extend(scraper_config['_metric_tags'])
         for label_name, label_value in iteritems(sample[self.SAMPLE_LABELS]):
             if label_name not in scraper_config['exclude_labels']:
                 tag_name = scraper_config['labels_mapper'].get(label_name, label_name)
                 _tags.append('{}:{}'.format(tag_name, label_value))
-        return self._finalize_tags_to_submit(_tags, metric_name, val, sample, custom_tags=custom_tags, hostname=hostname)
+        return self._finalize_tags_to_submit(_tags, metric_name, val, sample, custom_tags=custom_tags,
+                                             hostname=hostname)
 
     def _is_value_valid(self, val):
         return not (isnan(val) or isinf(val))

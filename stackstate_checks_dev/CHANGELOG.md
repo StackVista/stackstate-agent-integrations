@@ -1,4 +1,93 @@
-##### Rename to stackstate_checks_dev
+## Apply patches up to 6.10.1 / 2019-07-09
+
+## 0.18.0 / 2019-02-18
+
+* [Added] Add util to get the directory of current file. See [#3135](https://github.com/DataDog/integrations-core/pull/3135).
+* [Fixed] Update e2e start help text for extras integrations. See [#3133](https://github.com/DataDog/integrations-core/pull/3133).
+* [Fixed] Fix e2e package install order. See [#3092](https://github.com/DataDog/integrations-core/pull/3092).
+* [Added] Add command to build package wheel. See [#3067](https://github.com/DataDog/integrations-core/pull/3067).
+* [Added] Add datadog-checks-downloader. See [#3026](https://github.com/DataDog/integrations-core/pull/3026).
+* [Added] Add `local` E2E . See [#3064](https://github.com/DataDog/integrations-core/pull/3064).
+* [Added] Add command to show changes based on commit date. See [#3063](https://github.com/DataDog/integrations-core/pull/3063).
+* [Added] Add e2e command to restart the agent. See [#3054](https://github.com/DataDog/integrations-core/pull/3054).
+* [Added] Upgrade pytest-benchmark. See [#2934](https://github.com/DataDog/integrations-core/pull/2934).
+* [Added] Add description length metadata validation. See [#2923](https://github.com/DataDog/integrations-core/pull/2923).
+* [Added] Allow uploading of any Datadog python package. See [#2907](https://github.com/DataDog/integrations-core/pull/2907).
+* [Added] Upgrade pytest plugins. See [#2884](https://github.com/DataDog/integrations-core/pull/2884).
+
+## 0.17.0 / 2019-01-07
+
+* [Added] Use standalone py3 validation. See [#2854][1].
+* [Fixed] Fix root folder name when running 'validate' commands on integrations-extras. See [#2879][2].
+* [Fixed] Pin pytest because of a regression in pytest-benchmark. See [#2878][3].
+
+## 0.16.0 / 2018-12-22
+
+* [Added] Remove requirements.txt from check template. See [#2816][4].
+* [Added] Add ability to log warnings during pytest. See [#2764][5].
+* [Fixed] Fix agent_changelog command. See [#2808][6].
+* [Added] Update templates for new integrations. See [#2794][7].
+* [Added] Add python3 compatibility validation. See [#2736][8].
+* [Added] Validate checks dependencies against the embedded environment. See [#2746][9].
+* [Added] Add constant to check if platform is Linux. See [#2782][10].
+* [Fixed] Do not consider empty string as a version change. See [#2771][11].
+* [Changed] Rename `ddev release freeze` to `ddev release agent_req_file`, refactor commands code. See [#2765][12].
+* [Added] Add validation for configuration files. See [#2759][13].
+* [Added] Add ability to pass state to e2e tear down. See [#2724][14].
+* [Added] Add ability to use dev version of base package for e2e. See [#2689][15].
+
+## 0.15.1 / 2018-11-30
+
+* [Fixed] Handle unreleased checks for agent reqs validation. See [#2664][16].
+
+## 0.15.0 / 2018-11-27
+
+* [Added] Added Watt units to metadata validation. See [#2645][17].
+* [Added] Added Heap and Volume units to metadata validation. See [#2647][18].
+* [Fixed] Gently handle Yubikey exceptions. See [#2641][19].
+* [Added] Added validation step for the agent-requirements file. See [#2642][20].
+
+## 0.14.1 / 2018-11-22
+
+* [Fixed] Increase gpg timeout to give time to developers to interact with Yubikeys. See [#2613][21].
+* [Fixed] Fix requirements-agent-release.txt updating. See [#2617][22].
+
+## 0.14.0 / 2018-11-16
+
+* [Added] Support agent repo. See [#2600][23].
+* [Added] Improve trello releasing. See [#2599][24].
+* [Added] Refactor validations under `validate` command. See [#2593][25].
+* [Added] Upgrade docker-compose and requests. See [#2503][26].
+* [Added] Disable pytest output capturing when debugging. See [#2502][27].
+* [Added] Support specifying type of semver version bumps. See [#2491][28].
+* [Fixed] Fixed off-by-one missing latest release. See [#2478][29].
+* [Added] Fix codecov error on appveyor. See [#2474][30].
+* [Fixed] Use raw string literals when \ is present. See [#2465][31].
+* [Fixed] Improve output of `ddev manifest verify` command. See [#2444][32].
+* [Added] Add service_checks.json files validation. See [#2432][33].
+* [Added] Make all tox envs available to E2E. See [#2457][34].
+* [Added] Ensure new checks include the E2E fixture. See [#2455][35].
+* [Fixed] Handle any clipboard errors for E2E. See [#2454][36].
+* [Added] Prevent misconfigured tox files. See [#2447][37].
+* [Fixed] Add `datadog-` prefix to packages name. See [#2430][38].
+
+## 0.13.0 / 2018-10-17
+
+* [Added] Ensure new checks use editable install of datadog_checks_base for tests. See [#2427][39].
+* [Fixed] Relax e2e config parsing. See [#2416][40].
+* [Fixed] Fix sleep on WaitFor helper. See [#2418][41].
+
+## 0.12.1 / 2018-10-15
+
+* [Fixed] Improve handling of github api errors for trello. See [#2411][42].
+* [Fixed] Make every check's `tests` directory path unique for coverage. See [#2406][43].
+
+## 0.12.0 / 2018-10-15
+
+* [Fixed] Fix trello for issue number in commit message. See [#2408][44].
+* [Added] Support the initial release of integrations. See [#2399][45].
+
+#### Rename to stackstate_checks_dev
 
 # CHANGELOG - Datadog Checks Dev
 

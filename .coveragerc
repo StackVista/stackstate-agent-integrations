@@ -9,11 +9,14 @@ omit =
     */test_bench.py
 
     # These are things that are simply stored in the base package
-    ../stackstate_checks_base/stackstate_checks/checks/libs/*
-    ../stackstate_checks_base/stackstate_checks/checks/win/*
+    ../stackstate_checks_base/stackstate_checks/base/checks/libs/*
+    ../stackstate_checks_base/stackstate_checks/base/checks/win/*
 
     # We will test repo tooling eventually
     ../stackstate_checks_dev/stackstate_checks/dev/tooling/*
+
+    # Vendored dependencies
+    */stackstate_checks/*/vendor/*
 
 [report]
 show_missing = ${STSDEV_COV_MISSING}

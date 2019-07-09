@@ -67,7 +67,9 @@ class WinWMICheck(AgentCheck):
             )
             raise
 
-        return target_class, target_property, [{link_target_class_property: link_source_property}]
+        return (
+            target_class, target_property, [{link_target_class_property: link_source_property}]
+        )
 
     def _raise_on_invalid_tag_query_result(self, sampler, wmi_obj, tag_query):
         """
@@ -252,7 +254,7 @@ class WinWMICheck(AgentCheck):
         """
         Create and cache a WMISampler for the given (class, properties)
         """
-        properties = properties + [tag_by] if tag_by else properties
+        properties = list(properties) + [tag_by] if tag_by else list(properties)
 
         if instance_key not in self.wmi_samplers:
             wmi_sampler = WMISampler(self.log, wmi_class, properties, **kwargs)
@@ -275,7 +277,8 @@ class WinWMICheck(AgentCheck):
         return self.wmi_props[instance_key]
 
 
-def from_time(year=None, month=None, day=None, hours=None, minutes=None, seconds=None, microseconds=None, timezone=None):
+def from_time(year=None, month=None, day=None, hours=None, minutes=None, seconds=None, microseconds=None,
+              timezone=None):
     """Convenience wrapper to take a series of date/time elements and return a WMI time
     of the form `yyyymmddHHMMSS.mmmmmm+UUU`. All elements may be int, string or
     omitted altogether. If omitted, they will be replaced in the output string

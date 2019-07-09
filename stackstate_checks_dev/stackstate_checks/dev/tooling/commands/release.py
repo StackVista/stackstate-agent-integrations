@@ -3,41 +3,42 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import os
 import time
-import json
 from collections import OrderedDict, namedtuple
 from datetime import datetime
 
 import click
-from semver import parse_version_info
+from semver import finalize_version, parse_version_info
 from six import StringIO, iteritems
 
-from .dep import freeze as dep_freeze
-from .utils import (
+from .console import (
     CONTEXT_SETTINGS, abort, echo_failure, echo_info, echo_success, echo_waiting,
     echo_warning
 )
 from ..constants import (
-    AGENT_REQ_FILE, AGENT_V5_ONLY, BETA_PACKAGES, CHANGELOG_TYPE_NONE, NOT_CHECKS, get_root
+    BETA_PACKAGES, CHANGELOG_TYPE_NONE, NOT_CHECKS, VERSION_BUMP,
+    get_root, get_agent_release_requirements
 )
 from ..git import (
-    get_current_branch, parse_pr_numbers, get_commits_since, git_tag, git_commit,
-    git_show_file, git_tag_list
+    get_current_branch, get_commits_since, git_tag, git_commit
 )
-from ..github import from_contributor, get_changelog_types, get_pr, get_pr_from_hash
+from ..github import (
+    from_contributor, get_changelog_types, get_pr, get_pr_from_hash, get_pr_labels,
+    get_pr_milestone, parse_pr_numbers, parse_pr_number
+)
 from ..release import (
     get_agent_requirement_line, get_release_tag_string, update_agent_requirements,
-    update_version_module
+    update_version_module, build_wheel
 )
 from ..trello import TrelloClient
 from ..utils import (
     get_bump_function, get_current_agent_version, get_valid_checks,
-    get_version_string, format_commit_id, parse_pr_number, parse_agent_req_file
+    get_version_string, format_commit_id
 )
 from ...structures import EnvVars
 from ...subprocess import run_command
 from ...utils import (
-    basepath, chdir, ensure_unicode, get_next, remove_path, stream_file_lines,
-    write_file, write_file_lines, read_file
+    basepath, chdir, dir_exists, ensure_unicode, get_next, remove_path, resolve_path, stream_file_lines,
+    write_file
 )
 
 ChangelogEntry = namedtuple('ChangelogEntry', 'number, title, url, author, author_url, from_contributor')
@@ -55,6 +56,37 @@ def validate_version(ctx, param, value):
         return '{}.{}'.format(version_info.major, version_info.minor)
     except ValueError:
         raise click.BadParameter('needs to be in semver format x.y[.z]')
+
+
+def create_trello_card(client, teams, pr_title, pr_url, pr_body):
+    body = u'Pull request: {}\n\n{}'.format(pr_url, pr_body)
+
+    for team in teams:
+        creation_attempts = 3
+        for attempt in range(3):
+            rate_limited, error, response = client.create_card(team, pr_title, body)
+            if rate_limited:
+                wait_time = 10
+                echo_warning(
+                    'Attempt {} of {}: A rate limit in effect, retrying in {} '
+                    'seconds...'.format(attempt + 1, creation_attempts, wait_time)
+                )
+                time.sleep(wait_time)
+            elif error:
+                if attempt + 1 == creation_attempts:
+                    echo_failure('Error: {}'.format(error))
+                    break
+
+                wait_time = 2
+                echo_warning(
+                    'Attempt {} of {}: An error has occurred, retrying in {} '
+                    'seconds...'.format(attempt + 1, creation_attempts, wait_time)
+                )
+                time.sleep(wait_time)
+            else:
+                echo_success('Created card for team {}: '.format(team), nl=False)
+                echo_info(response.json().get('url'))
+                break
 
 
 @click.group(
@@ -291,6 +323,7 @@ def testable(ctx, start_id, agent_version, dry_run):
         options = OrderedDict((
             ('1', 'Integrations'),
             ('2', 'Containers'),
+            ('3', 'Agent'),
             ('s', 'Skip'),
             ('q', 'Quit'),
         ))
@@ -300,6 +333,8 @@ def testable(ctx, start_id, agent_version, dry_run):
             ('2', 'Containers'),
             ('3', 'Logs'),
             ('4', 'Process'),
+            ('5', 'Trace'),
+            ('6', 'Integrations'),
             ('s', 'Skip'),
             ('q', 'Quit'),
         ))
@@ -317,10 +352,36 @@ def testable(ctx, start_id, agent_version, dry_run):
     for i, (commit_hash, commit_subject) in enumerate(diff_data, 1):
         commit_id = parse_pr_number(commit_subject)
         if commit_id:
-            pr_data = get_pr(commit_id, user_config, repo=repo)
+            api_response = get_pr(commit_id, user_config, repo=repo, raw=True)
+            if api_response.status_code == 401:
+                abort('Access denied. Please ensure your GitHub token has correct permissions.')
+            elif api_response.status_code == 403:
+                echo_failure(
+                    'Error getting info for #{}. Please set a GitHub HTTPS '
+                    'token to avoid rate limits.'.format(commit_id)
+                )
+                continue
+            elif api_response.status_code == 404:
+                echo_info('Skipping #{}, not a pull request...'.format(commit_id))
+                continue
+
+            api_response.raise_for_status()
+            pr_data = api_response.json()
         else:
             try:
-                pr_data = get_pr_from_hash(commit_hash, repo, user_config).get('items', [{}])[0]
+                api_response = get_pr_from_hash(commit_hash, repo, user_config, raw=True)
+                if api_response.status_code == 401:
+                    abort('Access denied. Please ensure your GitHub token has correct permissions.')
+                elif api_response.status_code == 403:
+                    echo_failure(
+                        'Error getting info for #{}. Please set a GitHub HTTPS '
+                        'token to avoid rate limits.'.format(commit_id)
+                    )
+                    continue
+
+                api_response.raise_for_status()
+                pr_data = api_response.json()
+                pr_data = pr_data.get('items', [{}])[0]
             # Commit to master
             except IndexError:
                 pr_data = {
@@ -345,10 +406,22 @@ def testable(ctx, start_id, agent_version, dry_run):
                 )
                 continue
 
+        pr_labels = sorted(get_pr_labels(pr_data))
+        if any(label.lower().startswith('documentation') for label in pr_labels):
+            echo_info('Skipping documentation {}.'.format(format_commit_id(commit_id)))
+            continue
+
+        pr_milestone = get_pr_milestone(pr_data)
+
         pr_url = pr_data.get('html_url', 'https://github.com/DataDog/{}/pull/{}'.format(repo, commit_id))
         pr_title = pr_data.get('title', commit_subject)
         pr_author = pr_data.get('user', {}).get('login', '')
         pr_body = pr_data.get('body', '')
+
+        teams = [trello.label_team_map[label] for label in pr_labels if label in trello.label_team_map]
+        if teams:
+            create_trello_card(trello, teams, pr_title, pr_url, pr_body)
+            continue
 
         finished = False
         choice_error = ''
@@ -363,6 +436,13 @@ def testable(ctx, start_id, agent_version, dry_run):
 
             echo_success('Author: ', nl=False, indent=indent)
             echo_info(pr_author)
+
+            echo_success('Labels: ', nl=False, indent=indent)
+            echo_info(', '.join(pr_labels))
+
+            if pr_milestone:
+                echo_success('Milestone: ', nl=False, indent=indent)
+                echo_info(pr_milestone)
 
             # Ensure Unix lines feeds just in case
             echo_info(pr_body.strip('\r'), indent=indent)
@@ -403,35 +483,7 @@ def testable(ctx, start_id, agent_version, dry_run):
                 echo_warning('Exited at {}'.format(format_commit_id(commit_id)))
                 return
             else:
-                creation_attempts = 3
-                for attempt in range(3):
-                    rate_limited, error, response = trello.create_card(
-                        value,
-                        pr_title,
-                        u'Pull request: {}\n\n{}'.format(pr_url, pr_body)
-                    )
-                    if rate_limited:
-                        wait_time = 10
-                        echo_warning(
-                            'Attempt {} of {}: A rate limit in effect, retrying in {} '
-                            'seconds...'.format(attempt + 1, creation_attempts, wait_time)
-                        )
-                        time.sleep(wait_time)
-                    elif error:
-                        if attempt + 1 == creation_attempts:
-                            echo_failure('Error: {}'.format(error))
-                            break
-
-                        wait_time = 2
-                        echo_warning(
-                            'Attempt {} of {}: An error has occurred, retrying in {} '
-                            'seconds...'.format(attempt + 1, creation_attempts, wait_time)
-                        )
-                        time.sleep(wait_time)
-                    else:
-                        echo_success('Created card: ', nl=False)
-                        echo_info(response.json().get('url'))
-                        break
+                create_trello_card(trello, [value], pr_title, pr_url, pr_body)
 
             finished = True
 
@@ -522,9 +574,8 @@ def make(ctx, check, version, initial_release, skip_sign, sign_only):
       - Ensure you did `gpg --import <YOUR_KEY_ID>.gpg.pub`
     """
     # Import lazily since in-toto runs a subprocess to check for gpg2 on load
-    from ..signing import update_link_metadata
+    from ..signing import update_link_metadata, YubikeyException
 
-    root = get_root()
     releasing_all = check == 'all'
 
     valid_checks = get_valid_checks()
@@ -558,6 +609,21 @@ def make(ctx, check, version, initial_release, skip_sign, sign_only):
         if version:
             # sanity check on the version provided
             cur_version = get_version_string(check)
+
+            if version == 'final':
+                # Remove any pre-release metadata
+                version = finalize_version(cur_version)
+            else:
+                # Keep track of intermediate version bumps
+                prev_version = cur_version
+                for method in version.split(','):
+                    # Apply any supported version bumping methods. Chaining is required for going
+                    # from mainline releases to development releases since e.g. x.y.z > x.y.z-rc.A.
+                    # So for an initial bug fix dev release you can do `fix,rc`.
+                    if method in VERSION_BUMP:
+                        version = VERSION_BUMP[method](prev_version)
+                        prev_version = version
+
             p_version = parse_version_info(version)
             p_current = parse_version_info(cur_version)
             if p_version <= p_current:
@@ -598,10 +664,10 @@ def make(ctx, check, version, initial_release, skip_sign, sign_only):
 
         commit_targets = [check]
 
-        # update the global requirements file
+        # update the list of integrations to be shipped with the Agent
         if check not in NOT_CHECKS:
-            commit_targets.append(AGENT_REQ_FILE)
-            req_file = os.path.join(root, AGENT_REQ_FILE)
+            req_file = get_agent_release_requirements()
+            commit_targets.append(os.path.basename(req_file))
             echo_waiting('Updating the Agent requirements file... ', nl=False)
             update_agent_requirements(req_file, check, get_agent_requirement_line(check, version))
             echo_success('success!')
@@ -620,9 +686,11 @@ def make(ctx, check, version, initial_release, skip_sign, sign_only):
     if sign_only or not skip_sign:
         echo_waiting('Updating release metadata...')
         echo_info('Please touch your Yubikey immediately after entering your PIN!')
-        commit_targets = update_link_metadata(checks)
-
-        git_commit(commit_targets, '[Release] Update metadata', force=True)
+        try:
+            commit_targets = update_link_metadata(checks)
+            git_commit(commit_targets, '[Release] Update metadata', force=True)
+        except YubikeyException as e:
+            abort('A problem occurred while signing metadata: {}'.format(e))
 
     # done
     echo_success('All done, remember to push to origin and open a PR to merge these changes on master')
@@ -747,15 +815,52 @@ def changelog(ctx, check, version, old_version, initial, quiet, dry_run):
 
 @release.command(
     context_settings=CONTEXT_SETTINGS,
+    short_help='Build a wheel for a check'
+)
+@click.argument('check')
+@click.option('--sdist', '-s', is_flag=True)
+def build(check, sdist):
+    """Build a wheel for a check as it is on the repo HEAD"""
+    if check in get_valid_checks():
+        check_dir = os.path.join(get_root(), check)
+    else:
+        check_dir = resolve_path(check)
+        if not dir_exists(check_dir):
+            abort('`{}` is not an Agent-based Integration or Python package'.format(check))
+
+        check = basepath(check_dir)
+
+    echo_waiting('Building `{}`...'.format(check))
+
+    dist_dir = os.path.join(check_dir, 'dist')
+    remove_path(dist_dir)
+
+    result = build_wheel(check_dir, sdist)
+    if result.code != 0:
+        abort(result.stdout, result.code)
+
+    echo_info('Build done, wheel file in: {}'.format(dist_dir))
+    echo_success('Success!')
+
+
+@release.command(
+    context_settings=CONTEXT_SETTINGS,
     short_help='Build and upload a check to PyPI'
 )
 @click.argument('check')
+@click.option('--sdist', '-s', is_flag=True)
 @click.option('--dry-run', '-n', is_flag=True)
 @click.pass_context
-def upload(ctx, check, dry_run):
+def upload(ctx, check, sdist, dry_run):
     """Release a specific check to PyPI as it is on the repo HEAD."""
-    if check not in get_valid_checks():
-        abort('Check `{}` is not an Agent-based Integration'.format(check))
+    if check in get_valid_checks():
+        check_dir = os.path.join(get_root(), check)
+    else:
+        check_dir = resolve_path(check)
+        if not dir_exists(check_dir):
+            abort('`{}` is not an Agent-based Integration or Python package'.format(check))
+
+        check = basepath(check_dir)
 
     # retrieve credentials
     pypi_config = ctx.obj.get('pypi', {})
@@ -767,152 +872,12 @@ def upload(ctx, check, dry_run):
     auth_env_vars = {'TWINE_USERNAME': username, 'TWINE_PASSWORD': password}
     echo_waiting('Building and publishing `{}` to PyPI...'.format(check))
 
-    check_dir = os.path.join(get_root(), check)
-    remove_path(os.path.join(check_dir, 'dist'))
-
-    with chdir(check_dir), EnvVars(auth_env_vars):
-        result = run_command('python setup.py bdist_wheel --universal', capture='out')
-        if result.code != 0:
-            abort(result.stdout, result.code)
-
-        echo_waiting('Build done, uploading the package...')
-
+    with EnvVars(auth_env_vars):
+        result = build_wheel(check_dir, sdist)
+        echo_waiting('Uploading the package...')
         if not dry_run:
             result = run_command('twine upload --skip-existing dist{}*'.format(os.path.sep))
             if result.code != 0:
                 abort(code=result.code)
 
     echo_success('Success!')
-
-
-@release.command(
-    context_settings=CONTEXT_SETTINGS,
-    short_help="Update the Agent's release and static dependency files"
-)
-@click.option('--no-deps', is_flag=True, help='Do not create the static dependency file')
-@click.pass_context
-def freeze(ctx, no_deps):
-    """Write the `requirements-agent-release.txt` file at the root of the repo
-    listing all the Agent-based integrations pinned at the version they currently
-    have in HEAD. Also by default will create the Agent's static dependency file.
-    """
-    echo_info('Freezing check releases')
-    checks = get_valid_checks()
-    checks.remove('stackstate_checks_dev')
-
-    entries = []
-    for check in checks:
-        if check in AGENT_V5_ONLY:
-            echo_info('Check `{}` is only shipped with Agent 5, skipping'.format(check))
-            continue
-
-        try:
-            version = get_version_string(check)
-            entries.append('{}\n'.format(get_agent_requirement_line(check, version)))
-        except Exception as e:
-            echo_failure('Error generating line: {}'.format(e))
-            continue
-
-    lines = sorted(entries)
-
-    req_file = os.path.join(get_root(), AGENT_REQ_FILE)
-    write_file_lines(req_file, lines)
-    echo_success('Successfully wrote to `{}`!'.format(req_file))
-
-    if not no_deps:
-        ctx.invoke(dep_freeze)
-
-
-@release.command(
-    context_settings=CONTEXT_SETTINGS,
-    short_help="Provide a list of the updated checks on a given agent version, in changelog form"
-)
-@click.option('--since', help="Initial Agent version", default='6.3.0')
-@click.option('--to', help="Final Agent version")
-@click.option('--output', '-o', help="Path to the changelog file, if omitted contents will be printed to stdout")
-@click.option('--force', '-f', is_flag=True, default=False, help="Replace an existing file")
-def agent_changelog(since, to, output, force):
-    """
-    Generates a markdown file containing the list of checks that changed for a
-    given Agent release. Agent version numbers are derived inspecting tags on
-    `integrations-core` so running this tool might provide unexpected results
-    if the repo is not up to date with the Agent release process.
-
-    If neither `--since` or `--to` are passed (the most common use case), the
-    tool will generate the whole changelog since Agent version 6.3.0
-    (before that point we don't have enough information to build the log).
-    """
-    agent_tags = git_tag_list(r'^\d+\.\d+\.\d+$')
-
-    # default value for --to is the latest tag
-    if not to:
-        to = agent_tags[-1]
-
-    # filter out versions according to the interval [since, to]
-    agent_tags = [t for t in agent_tags if since <= t <= to]
-
-    # reverse so we have descendant order
-    agent_tags = agent_tags[::-1]
-
-    # store the changes in a mapping {agent_version --> {check_name --> current_version}}
-    changes_per_agent = OrderedDict()
-
-    for i in range(1, len(agent_tags)):
-        contents_from = git_show_file(AGENT_REQ_FILE, agent_tags[i-1])
-        catalog_from = parse_agent_req_file(contents_from)
-
-        contents_to = git_show_file(AGENT_REQ_FILE, agent_tags[i])
-        catalog_to = parse_agent_req_file(contents_to)
-
-        version_changes = OrderedDict()
-        changes_per_agent[agent_tags[i]] = version_changes
-
-        for name, ver in catalog_to.iteritems():
-            old_ver = catalog_from.get(name, "")
-            if old_ver != ver:
-                # determine whether major version changed
-                breaking = old_ver.split('.')[0] < ver.split('.')[0]
-                version_changes[name] = (ver, breaking)
-
-    # store the changelog in memory
-    changelog_contents = StringIO()
-
-    # prepare the links
-    agent_changelog_url = 'https://github.com/StackVista/stackstate-agent/blob/master/CHANGELOG.rst#{}'
-    check_changelog_url = 'https://github.com/StackVista/stackstate-agent-integrations/blob/master/{}/CHANGELOG.md'
-
-    # go through all the agent releases
-    for agent, version_changes in iteritems(changes_per_agent):
-        url = agent_changelog_url.format(agent.replace('.', ''))  # Github removes dots from the anchor
-        changelog_contents.write('## StackState Agent version [{}]({})\n\n'.format(agent, url))
-
-        if not version_changes:
-            changelog_contents.write('* There were no integration updates for this version of the Agent.\n\n')
-        else:
-            for name, ver in iteritems(version_changes):
-                # get the "display name" for the check
-                manifest_file = os.path.join(get_root(), name, 'manifest.json')
-                if os.path.exists(manifest_file):
-                    decoded = json.loads(read_file(manifest_file).strip(), object_pairs_hook=OrderedDict)
-                    display_name = decoded.get('display_name')
-                else:
-                    display_name = name
-
-                breaking_notice = " **BREAKING CHANGE** " if ver[1] else ""
-                changelog_url = check_changelog_url.format(name)
-                changelog_contents.write(
-                    '* {} [{}]({}){}\n'.format(display_name, ver[0], changelog_url, breaking_notice)
-                )
-            # add an extra line to separate the release block
-            changelog_contents.write('\n')
-
-    # save the changelog on disk if --output was passed
-    if output:
-        # don't overwrite an existing file
-        if os.path.exists(output) and not force:
-            msg = "Output file {} already exists, run the command again with --force to overwrite"
-            abort(msg.format(output))
-
-        write_file(output, changelog_contents.getvalue())
-    else:
-        echo_info(changelog_contents.getvalue())

@@ -17,4 +17,6 @@ To work on packages in this directory you can run the following:
 
 From this point on the stsdev script is in scope and commands can be ran.
 
+If changes are made to the stsdev, you can use .gitlab-scripts/load_deps.sh
+
 [1]: https://github.com/StackVista/stackstate-agent

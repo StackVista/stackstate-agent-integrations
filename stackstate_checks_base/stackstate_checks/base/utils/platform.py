@@ -91,7 +91,7 @@ class Platform(object):
 
     @staticmethod
     def is_containerized():
-        return 'DOCKER_DD_AGENT' in os.environ
+        return 'DOCKER_STS_AGENT' in os.environ
 
     @staticmethod
     def is_k8s():

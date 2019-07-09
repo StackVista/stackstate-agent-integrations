@@ -8,6 +8,17 @@ try:
 except ImportError:
     from .stubs import datadog_agent
 
+from .utils.common import to_string
+
+# Arbitrary number less than 10 (DEBUG)
+TRACE_LEVEL = 7
+
+
+class AgentLogger(logging.getLoggerClass()):
+    def trace(self, msg, *args, **kwargs):
+        if self.isEnabledFor(TRACE_LEVEL):
+            self._log(TRACE_LEVEL, msg, args, **kwargs)
+
 
 class AgentLogHandler(logging.Handler):
     """
@@ -15,7 +26,11 @@ class AgentLogHandler(logging.Handler):
     log message within the main agent logging system.
     """
     def emit(self, record):
-        msg = "({}:{}) | {}".format(record.filename, record.lineno, self.format(record))
+        msg = "({}:{}) | {}".format(
+            getattr(record, '_filename', record.filename),
+            getattr(record, '_lineno', record.lineno),
+            to_string(self.format(record))
+        )
         datadog_agent.log(msg, record.levelno)
 
 
@@ -28,7 +43,7 @@ LOG_LEVEL_MAP = {
     'WARNING': logging.WARNING,
     'INFO': logging.INFO,
     'DEBUG': logging.DEBUG,
-    'TRACE': logging.DEBUG,
+    'TRACE': TRACE_LEVEL,
 }
 
 
@@ -47,12 +62,14 @@ def init_logging():
     Initialize logging (set up forwarding to Go backend and sane defaults)
     """
     # Forward to Go backend
+    logging.addLevelName(TRACE_LEVEL, 'TRACE')
+    logging.setLoggerClass(AgentLogger)
     rootLogger = logging.getLogger()
     rootLogger.addHandler(AgentLogHandler())
     rootLogger.setLevel(_get_py_loglevel(datadog_agent.get_config('log_level')))
 
     # `requests` (used in a lot of checks) imports `urllib3`, which logs a bunch of stuff at the info level
-    # Therefore, pre-emptively increase the default level of that logger to `WARN`
+    # Therefore, pre emptively increase the default level of that logger to `WARN`
     urllib_logger = logging.getLogger("requests.packages.urllib3")
     urllib_logger.setLevel(logging.WARN)
     urllib_logger.propagate = True

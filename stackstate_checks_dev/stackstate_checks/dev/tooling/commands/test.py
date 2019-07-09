@@ -5,11 +5,11 @@ import os
 
 import click
 
-from .utils import CONTEXT_SETTINGS, abort, echo_info, echo_success, echo_waiting
+from .console import CONTEXT_SETTINGS, abort, echo_info, echo_success, echo_waiting
 from ..constants import get_root
-from ..test import get_tox_envs, pytest_coverage_sources
+from ..testing import construct_pytest_options, get_tox_envs, pytest_coverage_sources
 from ...subprocess import run_command
-from ...utils import chdir, file_exists, remove_path, running_on_ci
+from ...utils import chdir, file_exists, remove_path
 
 
 def display_envs(check_envs):
@@ -51,33 +51,27 @@ def test(checks, style, bench, coverage, cov_missing, enter_pdb, debug, verbose,
         return
 
     root = get_root()
-    testing_on_ci = running_on_ci()
 
-    # Start building pytest command line args
-    pytest_options = '--verbosity={}'.format(verbose or 1)
-
-    if enter_pdb:
-        pytest_options = '--pdb -x {}'.format(pytest_options)
-
-    if debug:
-        pytest_options = '{} --log-level=debug'.format(pytest_options)
-
-    if bench:
-        pytest_options = '{} --benchmark-only --benchmark-cprofile=tottime'.format(pytest_options)
-    else:
-        pytest_options = '{} --benchmark-skip'.format(pytest_options)
-
-    if coverage:
-        pytest_options = '{} {}'.format(
-            pytest_options,
-            '--cov-config=../.coveragerc '
-            '--cov-append '
-            '--cov-report= {}'
-        )
+    pytest_options = construct_pytest_options(
+        verbose=verbose,
+        enter_pdb=enter_pdb,
+        debug=debug,
+        bench=bench,
+        coverage=coverage
+    )
+    coverage_show_missing_lines = str(cov_missing)
 
     test_env_vars = {
-        'TOX_TESTENV_PASSENV': 'STSDEV_COV_MISSING PYTEST_ADDOPTS',
-        'STSDEV_COV_MISSING': str(cov_missing or testing_on_ci),
+        # Environment variables we need tox to pass down
+        'TOX_TESTENV_PASSENV': (
+            # Used in .coveragerc for whether or not to show missing line numbers for coverage
+            'STSDEV_COV_MISSING '
+            # Space-separated list of pytest options
+            'PYTEST_ADDOPTS '
+            # https://docs.docker.com/compose/reference/envvars/
+            'DOCKER_* COMPOSE_*'
+        ),
+        'STSDEV_COV_MISSING': coverage_show_missing_lines,
         'PYTEST_ADDOPTS': pytest_options,
     }
 
@@ -115,7 +109,15 @@ def test(checks, style, bench, coverage, cov_missing, enter_pdb, debug, verbose,
             echo_waiting(wait_text)
             echo_waiting('-' * len(wait_text))
 
-            result = run_command('tox --develop -e {}'.format(','.join(envs)))
+            result = run_command(
+                'tox '
+                # so users won't get failures for our possibly strict CI requirements
+                '--skip-missing-interpreters '
+                # so coverage tracks the real locations instead of .tox virtual envs
+                '--develop '
+                # comma-separated list of environments
+                '-e {}'.format(','.join(envs))
+            )
             if result.code:
                 abort('\nFailed!', code=result.code)
 
@@ -127,16 +129,9 @@ def test(checks, style, bench, coverage, cov_missing, enter_pdb, debug, verbose,
                     if result.code:
                         abort('\nFailed!', code=result.code)
 
-                if testing_on_ci:
-                    result = run_command('coverage xml -i --rcfile=../.coveragerc')
-                    if result.code:
-                        abort('\nFailed!', code=result.code)
-
-                    run_command('codecov -X gcov -F {} -f coverage.xml'.format(check))
-                else:
-                    if not cov_keep:
-                        remove_path('.coverage')
-                        remove_path('coverage.xml')
+                if not cov_keep:
+                    remove_path('.coverage')
+                    remove_path('coverage.xml')
 
         echo_success('\nPassed!')
 

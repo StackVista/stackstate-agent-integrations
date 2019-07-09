@@ -50,7 +50,7 @@ def construct_template_fields(integration_name, **kwargs):
     )
     support_type = 'core'
     test_dev_dep = '-e ../stackstate_checks_dev'
-    tox_base_dep = '../stackstate_checks_base[deps]'
+    tox_base_dep = '-e../stackstate_checks_base[deps]'
 
     config = {
         'author': author,

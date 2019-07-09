@@ -108,7 +108,8 @@ def test_https_proxy_fail():
 
 
 def test_config_no_proxy():
-    with mock.patch('stackstate_checks.checks.AgentCheck._get_requests_proxy', return_value=NO_PROXY_DD_CONFIG_SETTINGS):
+    with mock.patch('stackstate_checks.checks.AgentCheck._get_requests_proxy',
+                    return_value=NO_PROXY_DD_CONFIG_SETTINGS):
         check = AgentCheck()
         proxy_results = check.get_instance_proxy({}, 'uri/health')
         assert 'localhost' in proxy_results['no']

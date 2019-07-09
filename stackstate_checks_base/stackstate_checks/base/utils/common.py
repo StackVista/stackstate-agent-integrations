@@ -1,9 +1,11 @@
 # (C) Datadog, Inc. 2018
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
+from decimal import ROUND_HALF_UP, Decimal
 import os
 import re
 
+from six import PY3
 from six.moves.urllib.parse import urlparse
 
 
@@ -19,13 +21,21 @@ def ensure_unicode(s):
     return s
 
 
+to_string = ensure_unicode if PY3 else ensure_bytes
+
+
+def round_value(value, precision=0, rounding_method=ROUND_HALF_UP):
+    precision = '0.{}'.format('0' * precision)
+    return float(Decimal(str(value)).quantize(Decimal(precision), rounding=rounding_method))
+
+
 def get_docker_hostname():
     return urlparse(os.getenv('DOCKER_HOST', '')).hostname or 'localhost'
 
 
 def pattern_filter(items, whitelist=None, blacklist=None, key=None):
     """This filters `items` by a regular expression `whitelist` and/or
-    `blacklist`, with the `whitelist` taking precedence. An optional `key`
+    `blacklist`, with the `blacklist` taking precedence. An optional `key`
     function can be provided that will be passed each item.
     """
     key = key or __return_self

@@ -4,108 +4,57 @@
 import os
 
 import click
-from six import iteritems, itervalues
+from six import itervalues
 
-from .utils import (
+from .console import (
     CONTEXT_SETTINGS, abort, echo_failure, echo_info, echo_success, echo_waiting, echo_warning
 )
-from ..constants import get_root
-from ..dep import (
-    Package, collect_packages, format_package, read_packages, resolve_requirements, write_packages
+from ..constants import get_root, get_agent_requirements
+from ..requirements import (
+    Package, make_catalog, read_packages, resolve_requirements
 )
-from ...utils import get_next
-
-
-def transform_package_data(packages):
-    return {package.name: package for package in packages}
+from ...utils import write_file_lines
 
 
 def display_package_changes(pre_packages, post_packages, indent=''):
-    pre_packages = transform_package_data(pre_packages)
-    post_packages = transform_package_data(post_packages)
-    pre_packages_set = set(pre_packages)
-    post_packages_set = set(post_packages)
+    """
+    Print packages that've been added, removed or changed
+    """
+    # use package name to determine what's changed
+    pre_package_names = {p.name: p for p in pre_packages}
+    post_package_names = {p.name: p for p in post_packages}
 
-    added = post_packages_set - pre_packages_set
-    removed = pre_packages_set - post_packages_set
-    changed = {
-        package for package in pre_packages_set & post_packages_set
-        if pre_packages[package] != post_packages[package]
-    }
+    added = set(post_package_names.keys()) - set(pre_package_names.keys())
+    removed = set(pre_package_names.keys()) - set(post_package_names.keys())
+    changed_maybe = set(pre_package_names.keys()) & set(post_package_names.keys())
+
+    changed = []
+    for package_name in sorted(changed_maybe):
+        if pre_package_names[package_name] != post_package_names[package_name]:
+            changed.append((pre_package_names[package_name], post_package_names[package_name]))
 
     if not (added or removed or changed):
         echo_info('{}No changes'.format(indent))
 
     if added:
         echo_success('{}Added packages:'.format(indent))
-        for package in sorted(added):
-            echo_info('{}    {}'.format(indent, format_package(post_packages[package])))
+        for package_name in sorted(added):
+            echo_info('{}    {}'.format(indent, post_package_names[package_name]))
 
     if removed:
         echo_failure('{}Removed packages:'.format(indent))
-        for package in sorted(removed):
-            echo_info('{}    {}'.format(indent, format_package(pre_packages[package])))
+        for package_name in sorted(removed):
+            echo_info('{}    {}'.format(indent, pre_package_names[package_name]))
 
     if changed:
         echo_warning('{}Changed packages:'.format(indent))
-        for package in sorted(changed):
-            echo_info('{}    {} -> {}'.format(
-                indent,
-                format_package(pre_packages[package]),
-                format_package(post_packages[package])
-            ))
-
-
-def display_multiple_attributes(attributes, message):
-    echo_failure(message)
-    for attribute, checks in sorted(iteritems(attributes)):
-        if len(checks) == 1:
-            echo_info('    {}: {}'.format(attribute, checks[0]))
-        elif len(checks) == 2:
-            echo_info('    {}: {} and {}'.format(attribute, checks[0], checks[1]))
-        else:
-            remaining = len(checks) - 2
-            echo_info('    {}: {}, {}, and {} other{}'.format(
-                attribute,
-                checks[0],
-                checks[1],
-                remaining,
-                's' if remaining > 1 else ''
-            ))
+        for pre, post in changed:
+            echo_info('{}    {} -> {}'.format(indent, pre, post))
 
 
 @click.group(context_settings=CONTEXT_SETTINGS, short_help='Manage dependencies')
 def dep():
     pass
-
-
-@dep.command(
-    context_settings=CONTEXT_SETTINGS,
-    short_help='Verify the uniqueness of dependency versions across all checks'
-)
-def verify():
-    """Verify the uniqueness of dependency versions across all checks."""
-    all_packages, _ = collect_packages()
-    failed = False
-
-    for package, package_data in sorted(iteritems(all_packages)):
-        versions = package_data['versions']
-        if len(versions) > 1:
-            failed = True
-            display_multiple_attributes(versions, 'Multiple versions found for package `{}`:'.format(package))
-        else:
-            version, checks = get_next(iteritems(versions))
-            if version is None:
-                failed = True
-                echo_failure('Unpinned dependency `{}` in the `{}` check.'.format(package, checks[0]))
-
-        markers = package_data['markers']
-        if len(markers) > 1:
-            failed = True
-            display_multiple_attributes(markers, 'Multiple markers found for package `{}`:'.format(package))
-
-    if failed:
-        abort()
 
 
 @dep.command(
@@ -164,7 +113,7 @@ def pin(package, version, checks, marker, resolving, lazy, quiet):
     pin for via arguments.
     """
     root = get_root()
-    package = package.lower()
+    package_name = package.lower()
     version = version.lower()
 
     for check_name in sorted(os.listdir(root)):
@@ -172,7 +121,7 @@ def pin(package, version, checks, marker, resolving, lazy, quiet):
         resolved_reqs_file = os.path.join(root, check_name, 'requirements.txt')
 
         if os.path.isfile(pinned_reqs_file):
-            pinned_packages = transform_package_data(read_packages(pinned_reqs_file))
+            pinned_packages = {package.name: package for package in read_packages(pinned_reqs_file)}
             if package not in pinned_packages and check_name not in checks:
                 continue
 
@@ -185,11 +134,12 @@ def pin(package, version, checks, marker, resolving, lazy, quiet):
                 echo_info('Check `{}`:'.format(check_name))
 
             if version == 'none':
-                del pinned_packages[package]
+                del pinned_packages[package_name]
             else:
-                pinned_packages[package] = Package(package, version, marker)
+                pinned_packages[package_name] = Package(package_name, version, marker)
 
-            write_packages(itervalues(pinned_packages), pinned_reqs_file)
+            package_list = sorted(itervalues(pinned_packages))
+            write_file_lines(pinned_reqs_file, ('{}\n'.format(package) for package in package_list))
 
             if not quiet:
                 echo_waiting('    Resolving dependencies...')
@@ -211,26 +161,19 @@ def pin(package, version, checks, marker, resolving, lazy, quiet):
 def freeze():
     """Combine all dependencies for the Agent's static environment."""
     echo_waiting('Verifying collected packages...')
-    pinned_packages, errors = collect_packages(verify=True)
+    catalog, errors = make_catalog()
     if errors:
-        abort(errors[0])
+        for error in errors:
+            echo_failure(error)
+        abort()
 
-    root = get_root()
-    static_file = os.path.join(
-        root, 'stackstate_checks_base', 'stackstate_checks', 'base', 'data', 'agent_requirements.in'
-    )
+    static_file = get_agent_requirements()
 
     echo_info('Static file: {}'.format(static_file))
 
     pre_packages = list(read_packages(static_file))
 
-    write_packages(
-        (
-            Package(package, get_next(data['versions']), get_next(data['markers']))
-            for package, data in sorted(iteritems(pinned_packages))
-        ),
-        static_file
-    )
+    catalog.write_packages(static_file)
 
     post_packages = list(read_packages(static_file))
     display_package_changes(pre_packages, post_packages)

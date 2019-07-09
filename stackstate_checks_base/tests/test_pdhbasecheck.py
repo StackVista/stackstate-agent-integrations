@@ -8,20 +8,11 @@ from stackstate_checks.stubs import aggregator
 try:
     from stackstate_checks.checks.win.winpdh_base import PDHBaseCheck
 
-    # for reasons unknown, flake8 says that pdh_mocks_fixture is unused, even though
-    # it's used below.  noqa to suppress that error.
-    from stackstate_test_libs.win.pdh_mocks import pdh_mocks_fixture, initialize_pdh_tests  # noqa: F401
-
-except ImportError:  # noqa: E722
+    from stackstate_test_libs.win.pdh_mocks import initialize_pdh_tests, pdh_mocks_fixture
+except ImportError:
     pass
 
 from .utils import requires_windows
-
-
-@pytest.fixture
-def Aggregator():
-    aggregator.reset()
-    return aggregator
 
 
 DEFAULT_INSTANCE = {'host': '.'}
@@ -38,7 +29,7 @@ MULTI_INSTANCE_COUNTER_WITH_INSTANCES = [
 ]
 
 
-@requires_windows  # noqa: F811
+@requires_windows
 def test_single_instance_counter(Aggregator, pdh_mocks_fixture):  # noqa: F811
     initialize_pdh_tests()
     instance = DEFAULT_INSTANCE
@@ -48,7 +39,7 @@ def test_single_instance_counter(Aggregator, pdh_mocks_fixture):  # noqa: F811
     Aggregator.assert_metric("test.system.mem.available", tags=None, count=1)
 
 
-@requires_windows  # noqa: F811
+@requires_windows
 def test_single_instance_counter_with_instance(Aggregator, pdh_mocks_fixture):  # noqa: F811
     initialize_pdh_tests()
     instance = DEFAULT_INSTANCE
@@ -56,29 +47,29 @@ def test_single_instance_counter_with_instance(Aggregator, pdh_mocks_fixture):  
         PDHBaseCheck("testcheck", {}, {}, [instance], INSTANCE_OF_SINGLE_INSTANCE_COUNTER)
 
 
-@requires_windows  # noqa: F811
+@requires_windows
 def test_multi_instance_counter(Aggregator, pdh_mocks_fixture):  # noqa: F811
     initialize_pdh_tests()
     instance = DEFAULT_INSTANCE
     c = PDHBaseCheck("testcheck", {}, {}, [instance], MULTI_INSTANCE_COUNTER)
     c.check(instance)
     for t in ['instance:0', 'instance:1', 'instance:_Total']:
-        Aggregator.assert_metric("test.processor_time", tags=['%s' % t], count=1)
-    assert Aggregator.metrics_asserted_pct == 100.0
+        aggregator.assert_metric("test.processor_time", tags=['%s' % t], count=1)
+    assert aggregator.metrics_asserted_pct == 100.0
 
 
-@requires_windows  # noqa: F811
+@requires_windows
 def test_multi_instance_counter_specific_instances(Aggregator, pdh_mocks_fixture):  # noqa: F811
     initialize_pdh_tests()
     instance = DEFAULT_INSTANCE
     c = PDHBaseCheck("testcheck", {}, {}, [instance], MULTI_INSTANCE_COUNTER_WITH_INSTANCES)
     c.check(instance)
     for t in ['test.processor_time_0', 'test.processor_time_1']:
-        Aggregator.assert_metric(t, tags=None, count=1)
-    assert Aggregator.metrics_asserted_pct == 100.0
+        aggregator.assert_metric(t, tags=None, count=1)
+    assert aggregator.metrics_asserted_pct == 100.0
 
 
-@requires_windows  # noqa: F811
+@requires_windows
 def test_returns_partial_metrics(Aggregator, pdh_mocks_fixture):  # noqa: F811
     COUNTER_LIST = [
         ["NTDS", None, "LDAP Client Sessions", "active_directory.ldap.client_sessions", "gauge"],
@@ -94,8 +85,8 @@ def test_returns_partial_metrics(Aggregator, pdh_mocks_fixture):  # noqa: F811
     c = PDHBaseCheck("testcheck", {}, {}, [instance], COUNTER_LIST)
     c.check(instance)
 
-    Aggregator.assert_metric("active_directory.ldap.client_sessions", tags=None, count=1)
-    Aggregator.assert_metric("active_directory.ldap.bind_time", tags=None, count=1)
-    Aggregator.assert_metric("active_directory.ldap.successful_binds_persec", tags=None, count=1)
-    Aggregator.assert_metric("active_directory.ldap.searches_persec", tags=None, count=1)
-    assert Aggregator.metrics_asserted_pct == 100.0
+    aggregator.assert_metric("active_directory.ldap.client_sessions", tags=None, count=1)
+    aggregator.assert_metric("active_directory.ldap.bind_time", tags=None, count=1)
+    aggregator.assert_metric("active_directory.ldap.successful_binds_persec", tags=None, count=1)
+    aggregator.assert_metric("active_directory.ldap.searches_persec", tags=None, count=1)
+    assert aggregator.metrics_asserted_pct == 100.0

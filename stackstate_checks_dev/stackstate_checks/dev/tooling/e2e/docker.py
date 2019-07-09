@@ -1,7 +1,11 @@
 # (C) Datadog, Inc. 2018
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
-from .agent import FAKE_API_KEY, get_agent_exe, get_agent_conf_dir, get_rate_flag
+from .agent import (
+    FAKE_API_KEY,
+    get_agent_exe, get_agent_conf_dir,
+    get_rate_flag
+)
 from .config import (
     config_file_name, env_exists, locate_config_dir, locate_config_file, remove_env_data, write_env_data
 )
@@ -9,13 +13,14 @@ from ..constants import get_root
 from ...subprocess import run_command
 from ...utils import path_join
 
-MANIFEST_VERSION_PATTERN = r'agent (\d)'
-
 
 class DockerInterface(object):
-    def __init__(self, check, env, config=None, metadata=None, agent_build=None, api_key=None):
+    ENV_TYPE = 'docker'
+
+    def __init__(self, check, env, base_package=None, config=None, metadata=None, agent_build=None, api_key=None):
         self.check = check
         self.env = env
+        self.base_package = base_package
         self.config = config or {}
         self.metadata = metadata or {}
         self.agent_build = agent_build
@@ -29,6 +34,10 @@ class DockerInterface(object):
     @property
     def check_mount_dir(self):
         return '/home/{}'.format(self.check)
+
+    @property
+    def base_mount_dir(self):
+        return '/home/stackstate_checks_base'
 
     @property
     def agent_command(self):
@@ -60,6 +69,12 @@ class DockerInterface(object):
         ]
         run_command(command, capture=True, check=True)
 
+    def update_base_package(self):
+        command = [
+            'docker', 'exec', self.container_name, 'pip', 'install', '-e', self.base_mount_dir
+        ]
+        run_command(command, capture=True, check=True)
+
     def update_agent(self):
         if self.agent_build:
             run_command(['docker', 'pull', self.agent_build], capture=True, check=True)
@@ -84,12 +99,24 @@ class DockerInterface(object):
                 # The chosen tag
                 self.agent_build
             ]
+
+            if self.base_package:
+                # Mount the check directory
+                command.append('-v')
+                command.append('{}:{}'.format(self.base_package, self.base_mount_dir))
+
+            # The chosen tag
+            command.append(self.agent_build)
+
             return run_command(command, capture=True)
 
     def stop_agent(self):
         # Only error for exit code if config actually exists
         run_command(['docker', 'stop', self.container_name], capture=True, check=self.exists())
         run_command(['docker', 'rm', self.container_name], capture=True, check=self.exists())
+
+    def restart_agent(self):
+        return run_command(['docker', 'restart', self.container_name], capture=True)
 
 
 def get_docker_networks():

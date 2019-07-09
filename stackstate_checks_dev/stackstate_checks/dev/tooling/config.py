@@ -25,8 +25,12 @@ SECRET_KEYS = {
 }
 
 DEFAULT_CONFIG = OrderedDict([
-    ('repo', os.path.join('~', 'stackstate', 'stackstate-agent-integrations')),
-    ('agent', 'stackstate/stackstate-agent-2:latest'),
+    ('integrations', os.path.join('~', 'stackvista', 'stackstate-agent-integrations')),
+    ('core', os.path.join('~', 'stackvista', 'stackstate-agent')),
+    ('agent', OrderedDict((
+      ('docker', 'stackstate/stackstate-agent-2:latest'),
+      ('local', 'latest')
+    ))),
     ('sts_api_key', os.getenv('STS_API_KEY')),
     ('github', OrderedDict((
         ('user', ''),

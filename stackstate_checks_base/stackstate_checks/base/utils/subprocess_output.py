@@ -19,10 +19,12 @@ except ImportError:
         from ..stubs._util import subprocess_output
         from ..stubs._util import SubprocessOutputEmptyError  # noqa
 
+from .. import ensure_unicode
+
 log = logging.getLogger(__name__)
 
 
-def get_subprocess_output(command, log, raise_on_empty_output=True):
+def get_subprocess_output(command, log, raise_on_empty_output=True, log_debug=True):
     """
     Run the given subprocess command and return its output. Raise an Exception
     if an error occurs.
@@ -35,6 +37,7 @@ def get_subprocess_output(command, log, raise_on_empty_output=True):
     :param logging.Logger log: The log object to use
     :param bool raise_on_empty_output: Whether to raise a SubprocessOutputEmptyError exception when
                                        the subprocess doesn't output anything to its stdout.
+    :param bool log_debug: Whether to enable debug logging of full command.
     :returns: The stdout contents, stderr contents and status code of the command
     :rtype: tuple(str, str, int)
     """
@@ -47,11 +50,21 @@ def get_subprocess_output(command, log, raise_on_empty_output=True):
         for arg in command:
             cmd_args.append(arg)
     else:
-        raise TypeError("command must be a sequence or string")
+        raise TypeError('command must be a sequence or string')
 
-    log.debug("Running get_subprocess_output with cmd: %s", cmd_args)
+    if log_debug:
+        log.debug('Running get_subprocess_output with cmd: {}'.format(cmd_args))
+
     out, err, returncode = subprocess_output(cmd_args, raise_on_empty_output)
-    log.debug("get_subprocess_output with cmd %s returned (len(out): %d ; len(err): %d ; returncode: %d)", cmd_args,
-              len(out), len(err), returncode)
 
-    return (out, err, returncode)
+    log.debug(
+        'get_subprocess_output returned '
+        '(len(out): {} ; len(err): {} ; returncode: {})'.format(
+            len(out), len(err), returncode
+        )
+    )
+
+    out = ensure_unicode(out) if out is not None else None
+    err = ensure_unicode(err) if err is not None else None
+
+    return out, err, returncode
