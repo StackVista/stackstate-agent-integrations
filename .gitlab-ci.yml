@@ -59,4 +59,16 @@ test_stackstate_checks_dev:
     CHECK: "stackstate_checks_dev"
     PYTHON3: "true"
   <<: *test
-  
+
+test_mysql:
+  variables:
+    CHECK: "mysql"
+    PYTHON3: "true"
+  <<: *test
+
+test_postgres:
+  variables:
+    CHECK: "postgres"
+    PYTHON3: "true"
+  <<: *test
+

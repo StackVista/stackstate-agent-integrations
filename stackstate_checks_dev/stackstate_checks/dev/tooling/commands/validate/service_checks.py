@@ -15,7 +15,6 @@ from ....compat import JSONDecodeError
 from ....utils import file_exists, read_file
 
 REQUIRED_ATTRIBUTES = {
-    'agent_version',
     'check',
     'description',
     'groups',
@@ -63,19 +62,6 @@ def service_checks():
                 for attr in sorted(REQUIRED_ATTRIBUTES - attrs):
                     file_failed = True
                     display_queue.append((echo_failure, '  Attribute `{}` is required'.format(attr)))
-
-                # agent_version
-                agent_version = service_check.get('agent_version')
-                version_parts = parse_version_parts(agent_version)
-                if len(version_parts) != 3:
-                    file_failed = True
-
-                    if not agent_version:
-                        output = '  required non-null string: agent_version'
-                    else:
-                        output = '  invalid `agent_version`: {}'.format(agent_version)
-
-                    display_queue.append((echo_failure, output))
 
                 # check
                 check = service_check.get('check')
