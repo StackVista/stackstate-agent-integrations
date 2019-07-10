@@ -3,7 +3,6 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import click
 
-from .agent_reqs import agent_reqs
 from .config import config
 from .dep import dep
 from .manifest import manifest
@@ -13,7 +12,6 @@ from .py3 import py3
 from ..console import CONTEXT_SETTINGS
 
 ALL_COMMANDS = (
-    agent_reqs,
     config,
     dep,
     manifest,
