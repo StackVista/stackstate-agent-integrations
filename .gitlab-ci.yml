@@ -17,13 +17,6 @@ stages:
 linux_deps:
   <<: *linux_env
   stage: build
-  variables:
-    DOCKER_HOST: tcp://docker:2375/
-    DOCKER_DRIVER: overlay2
-  services:
-    - name: docker:dind
-      ## Overriding the docker sock because we also mount it
-      entrypoint: ["dockerd-entrypoint.sh", "/usr/local/bin/dockerd", "--host=tcp://0.0.0.0:2375" ]
   cache:
     key: "stackstate-agent-integrations-build-cache"
     paths:
@@ -79,7 +72,9 @@ clear-win-caches:
   dependencies:
     - linux_deps
   services:
-    - docker:dind
+    - name: docker:dind
+      ## Overriding the docker sock because we also mount it
+      entrypoint: ["dockerd-entrypoint.sh", "/usr/local/bin/dockerd", "--host=tcp://0.0.0.0:2375" ]
   script:
     - stsdev test --cov ${CHECK}
     - stsdev test ${CHECK} --bench || true
