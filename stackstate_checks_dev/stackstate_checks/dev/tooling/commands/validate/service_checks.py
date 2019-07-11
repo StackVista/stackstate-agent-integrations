@@ -10,7 +10,6 @@ from six import string_types
 
 from ..console import CONTEXT_SETTINGS, abort, echo_failure, echo_info, echo_success
 from ...constants import get_root
-from ...utils import parse_version_parts
 from ....compat import JSONDecodeError
 from ....utils import file_exists, read_file
 

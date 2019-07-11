@@ -112,13 +112,27 @@ test_postgres:
     PYTHON3: "true"
   <<: *linux_test
 
-test_integrations_win:
+.windows_test: &windows_test
   stage: test
   dependencies:
     - win_deps
   script:
-    - stsdev test -c stackstate_checks_base stackstate_checks_dev wmi_check
+    - stsdev test -c ${CHECK}
   tags:
     - sts_windows
   <<: *windows_env
 
+test_stackstate_checks_dev_win:
+  variables:
+    CHECK: "stackstate_checks_dev"
+  <<: *windows_test
+
+test_stackstate_checks_base_win:
+  variables:
+    CHECK: "stackstate_checks_base"
+  <<: *windows_test
+
+test_wmi_check:
+  variables:
+    CHECK: "wmi_check"
+  <<: *windows_test
