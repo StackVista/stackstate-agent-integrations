@@ -15,6 +15,7 @@ stages:
     - call .gitlab-scripts/windows_setup_env.cmd
 
 linux_deps:
+  <<: *linux_env
   stage: build
   cache:
     key: "stackstate-agent-integrations-build-cache"
@@ -26,9 +27,9 @@ linux_deps:
     paths:
       - venv
     expire_in: 1 week
-  <<: *linux_env
 
 win_deps:
+  <<: *windows_env
   stage: build
   cache:
     key: "stackstate-agent-integrations-windows-build-cache"
@@ -40,7 +41,6 @@ win_deps:
     paths:
       - venv
     expire_in: 1 week
-  <<: *windows_env
 
 clear-caches:
   cache:
@@ -67,6 +67,7 @@ clear-win-caches:
     - sts_windows
 
 .linux_test: &linux_test
+  <<: *linux_env
   stage: test
   dependencies:
     - linux_deps
@@ -77,7 +78,6 @@ clear-win-caches:
     - stsdev test ${CHECK} --bench || true
       # [BS] we skip this until https://github.com/PyCQA/pylint/pull/2681/commits/253e5d05e3943d3bc8e4470804a138cb20049548 lands in pylint stable version
       # - if [ -n "$PYTHON3" ]; then stsdev validate py3 ${CHECK}; fi
-  <<: *linux_env
 
 test_stackstate_checks_base:
   <<: *linux_test
@@ -118,7 +118,6 @@ test_postgres:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
-  <<: *linux_test
 
 .windows_test: &windows_test
   <<: *windows_env
@@ -131,7 +130,7 @@ test_postgres:
     - sts_windows
 
 test_stackstate_checks_dev_win:
-  <<: *windows_env
+  <<: *windows_test
   variables:
     CHECK: "stackstate_checks_dev:py27-default,stackstate_checks_dev:flake8"
 
