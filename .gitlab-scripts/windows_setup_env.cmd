@@ -1,0 +1,14 @@
+set WIN_CI_PROJECT_DIR=%CD%
+set WORKON_HOME=%WIN_CI_PROJECT_DIR%
+
+set
+
+dir
+
+IF EXIST %WORKON_HOME%\venv GOTO VENV_EXIST
+call mkvirtualenv venv
+:VENV_EXIST
+
+echo call %WORKON_HOME%\venv\Scripts\activate.bat
+call %WORKON_HOME%\venv\Scripts\activate.bat
+
