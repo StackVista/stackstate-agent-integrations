@@ -4,10 +4,17 @@ stages:
   - build
   - test
 
-before_script:
-  - source .gitlab-scripts/setup_env.sh
+.linux_env: &linux_env
+  before_script:
+    - source .gitlab-scripts/setup_env.sh
 
-deps:
+.windows_env: &windows_env
+  tags:
+    - sts_windows
+  before_script:
+    - call .gitlab-scripts/windows_setup_env.cmd
+
+linux_deps:
   stage: build
   cache:
     key: "stackstate-agent-integrations-build-cache"
@@ -19,6 +26,21 @@ deps:
     paths:
       - venv
     expire_in: 1 week
+  <<: *linux_env
+
+win_deps:
+  stage: build
+  cache:
+    key: "stackstate-agent-integrations-windows-build-cache"
+    paths:
+      - venv
+  script:
+    - call .gitlab-scripts/windows_load_env.cmd
+  artifacts:
+    paths:
+      - venv
+    expire_in: 1 week
+  <<: *windows_env
 
 clear-caches:
   cache:
@@ -28,20 +50,37 @@ clear-caches:
       - venv
   when: manual
   stage: build
-  before_script: []
   script:
     - rm -rf venv || true
 
-.test: &test
+clear-win-caches:
+  cache:
+    policy: push
+    key: "stackstate-agent-integrations-windows-build-cache"
+    paths:
+      - venv
+  when: manual
+  stage: build
+  script:
+    - "if exist %WIN_CI_PROJECT_DIR%\\venv rd /s/q %WIN_CI_PROJECT_DIR%\\venv"
+  tags:
+    - sts_windows
+
+.linux_test: &linux_test
   stage: test
+  dependencies:
+    - linux_deps
   script:
     - stsdev test --cov ${CHECK}
     - stsdev test ${CHECK} --bench || true
       # [BS] we skip this until https://github.com/PyCQA/pylint/pull/2681/commits/253e5d05e3943d3bc8e4470804a138cb20049548 lands in pylint stable version
       # - if [ -n "$PYTHON3" ]; then stsdev validate py3 ${CHECK}; fi
+  <<: *linux_env
 
 test_stackstate_checks_base:
   stage: test
+  dependencies:
+    - deps
   variables:
     CHECK: "stackstate_checks_base"
     PYTHON3: "true"
@@ -53,22 +92,33 @@ test_stackstate_checks_base:
     - stsdev validate service-checks
     - stsdev test --cov ${CHECK}
     - stsdev test ${CHECK} --bench || true
+  <<: *linux_test
 
 test_stackstate_checks_dev:
   variables:
     CHECK: "stackstate_checks_dev"
     PYTHON3: "true"
-  <<: *test
+  <<: *linux_test
 
 test_mysql:
   variables:
     CHECK: "mysql"
     PYTHON3: "true"
-  <<: *test
+  <<: *linux_test
 
 test_postgres:
   variables:
     CHECK: "postgres"
     PYTHON3: "true"
-  <<: *test
+  <<: *linux_test
+
+test_integrations_win:
+  stage: test
+  dependencies:
+    - win_deps
+  script:
+    - stsdev test -c stackstate_checks_base stackstate_checks_dev wmi_check
+  tags:
+    - sts_windows
+  <<: *windows_env
 

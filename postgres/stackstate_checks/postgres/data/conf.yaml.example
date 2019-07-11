@@ -79,10 +79,6 @@ instances:
 #        tags:
 #          - tester:postgresql
 
-#    /!\ DEPRECATION: Please use custom_queries instead of the now deprecated custom_metrics.
-#    Please visit our FAQ article for a guide on collecting custom metrics from PostgreSQL:
-#    https://docs.datadoghq.com/integrations/faq/postgres-custom-metric-collection-explained/
-#
 #    custom_metrics:
 #    - # Londiste 3 replication lag
 #      descriptors:

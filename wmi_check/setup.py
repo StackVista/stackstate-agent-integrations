@@ -1,17 +1,15 @@
 # (C) Datadog, Inc. 2018
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
-
 from setuptools import setup
-from codecs import open
+from codecs import open  # To use a consistent encoding
 from os import path
 
-
-HERE = path.abspath(path.dirname(__file__))
+HERE = path.dirname(path.abspath(__file__))
 
 # Get version info
 ABOUT = {}
-with open(path.join(HERE, "stackstate_checks", "postgres", "__about__.py")) as f:
+with open(path.join(HERE, 'stackstate_checks', 'wmi_check', '__about__.py')) as f:
     exec(f.read(), ABOUT)
 
 # Get the long description from the README file
@@ -25,18 +23,24 @@ def get_requirements(fpath):
         return f.readlines()
 
 
-CHECKS_BASE_REQ = 'stackstate-checks-base'
+CHECKS_BASE_REQ = 'stackstate_checks_base'
 
 setup(
-    name='stackstate-postgres',
-    version=ABOUT["__version__"],
-    description='The Postgres check',
+    name='stackstate-wmi_check',
+    version=ABOUT['__version__'],
+    description='The WMI check',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    keywords='stackstate agent postgres check',
+    keywords='stackstate agent wmi_check check',
+
+    # The project's main homepage.
     url='https://github.com/StackVista/stackstate-agent-integrations',
+
+    # Author details
     author='StackState',
     author_email='info@stackstate.com',
+
+    # License
     license='BSD',
 
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
@@ -50,7 +54,8 @@ setup(
         'Programming Language :: Python :: 2.7',
     ],
 
-    packages=['stackstate_checks.postgres'],
+    # The package we're going to ship
+    packages=['stackstate_checks.wmi_check'],
 
     # Run-time dependencies
     install_requires=[CHECKS_BASE_REQ],
