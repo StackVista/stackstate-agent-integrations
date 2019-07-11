@@ -5,11 +5,6 @@ stages:
   - test
 
 .linux_env: &linux_env
-  services:
-    - docker:dind
-  variables:
-    DOCKER_HOST: tcp://docker:2375/
-    DOCKER_DRIVER: overlay2
   before_script:
     - source .gitlab-scripts/setup_env.sh
 
@@ -75,6 +70,11 @@ clear-win-caches:
   stage: test
   dependencies:
     - linux_deps
+  variables:
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+  services:
+    - docker:dind
   script:
     - stsdev test --cov ${CHECK}
     - stsdev test ${CHECK} --bench || true
@@ -83,12 +83,11 @@ clear-win-caches:
   <<: *linux_env
 
 test_stackstate_checks_base:
-  stage: test
-  dependencies:
-    - deps
   variables:
     CHECK: "stackstate_checks_base"
     PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
   script:
     - stsdev validate config
     - stsdev validate dep
@@ -103,18 +102,24 @@ test_stackstate_checks_dev:
   variables:
     CHECK: "stackstate_checks_dev"
     PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
   <<: *linux_test
 
 test_mysql:
   variables:
     CHECK: "mysql"
     PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
   <<: *linux_test
 
 test_postgres:
   variables:
     CHECK: "postgres"
     PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
   <<: *linux_test
 
 .windows_test: &windows_test
