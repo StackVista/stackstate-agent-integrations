@@ -283,7 +283,7 @@ def manifest(fix, include_extras):
                     file_failures += 1
                     display_queue.append((echo_failure, '  required non-null string: public_title'))
                 else:
-                    title_start = 'Datadog-'
+                    title_start = 'StackState-'
                     title_end = ' Integration'
                     section_char_set = set(public_title[len(title_start):-len(title_end)].lower())
                     check_name_char_set = set(check_name.lower())
