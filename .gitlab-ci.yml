@@ -118,7 +118,7 @@ test_postgres:
   dependencies:
     - win_deps
   script:
-    - stsdev test -c ${CHECK}
+    - stsdev test -c %CHECK%
   tags:
     - sts_windows
   <<: *windows_env
