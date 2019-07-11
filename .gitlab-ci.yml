@@ -23,7 +23,7 @@ linux_deps:
   services:
     - name: docker:dind
       ## Overriding the docker sock because we also mount it
-      entrypoint: ["dockerd-entrypoint.sh", "sh", "/usr/local/bin/dockerd", "--host=tcp://0.0.0.0:2375" ]
+      entrypoint: ["dockerd-entrypoint.sh", "/usr/local/bin/dockerd", "--host=tcp://0.0.0.0:2375" ]
   cache:
     key: "stackstate-agent-integrations-build-cache"
     paths:
