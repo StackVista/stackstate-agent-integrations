@@ -7,6 +7,7 @@ stages:
 .linux_env: &linux_env
   before_script:
     - source .gitlab-scripts/setup_env.sh
+    - source .gitlab-scripts/set_docker_host_ip.sh
 
 .windows_env: &windows_env
   tags:
