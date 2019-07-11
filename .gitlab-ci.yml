@@ -16,6 +16,8 @@ stages:
 
 linux_deps:
   stage: build
+  services:
+    - mysql:latest
   cache:
     key: "stackstate-agent-integrations-build-cache"
     paths:
