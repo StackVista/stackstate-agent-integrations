@@ -70,9 +70,6 @@ clear-win-caches:
   stage: test
   dependencies:
     - linux_deps
-  variables:
-    DOCKER_HOST: tcp://docker:2375/
-    DOCKER_DRIVER: overlay2
   services:
     - docker:dind
   script:
@@ -83,6 +80,7 @@ clear-win-caches:
   <<: *linux_env
 
 test_stackstate_checks_base:
+  <<: *linux_test
   variables:
     CHECK: "stackstate_checks_base"
     PYTHON3: "true"
@@ -96,25 +94,25 @@ test_stackstate_checks_base:
     - stsdev validate service-checks
     - stsdev test --cov ${CHECK}
     - stsdev test ${CHECK} --bench || true
-  <<: *linux_test
 
 test_stackstate_checks_dev:
+  <<: *linux_test
   variables:
     CHECK: "stackstate_checks_dev"
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
-  <<: *linux_test
 
 test_mysql:
+  <<: *linux_test
   variables:
     CHECK: "mysql"
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
-  <<: *linux_test
 
 test_postgres:
+  <<: *linux_test
   variables:
     CHECK: "postgres"
     PYTHON3: "true"
@@ -123,6 +121,7 @@ test_postgres:
   <<: *linux_test
 
 .windows_test: &windows_test
+  <<: *windows_env
   stage: test
   dependencies:
     - win_deps
@@ -130,19 +129,18 @@ test_postgres:
     - stsdev test -c %CHECK%
   tags:
     - sts_windows
-  <<: *windows_env
 
 test_stackstate_checks_dev_win:
+  <<: *windows_env
   variables:
     CHECK: "stackstate_checks_dev:py27-default,stackstate_checks_dev:flake8"
-  <<: *windows_test
 
 test_stackstate_checks_base_win:
+  <<: *windows_test
   variables:
     CHECK: "stackstate_checks_base"
-  <<: *windows_test
 
 test_wmi_check:
+  <<: *windows_test
   variables:
     CHECK: "wmi_check"
-  <<: *windows_test
