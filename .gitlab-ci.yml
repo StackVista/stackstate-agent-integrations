@@ -5,9 +5,13 @@ stages:
   - test
 
 .linux_env: &linux_env
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
   before_script:
     - source .gitlab-scripts/setup_env.sh
-    - source .gitlab-scripts/set_docker_host_ip.sh
 
 .windows_env: &windows_env
   tags:
@@ -125,7 +129,7 @@ test_postgres:
 
 test_stackstate_checks_dev_win:
   variables:
-    CHECK: "stackstate_checks_dev"
+    CHECK: "stackstate_checks_dev:py27-default,stackstate_checks_dev:flake8"
   <<: *windows_test
 
 test_stackstate_checks_base_win:

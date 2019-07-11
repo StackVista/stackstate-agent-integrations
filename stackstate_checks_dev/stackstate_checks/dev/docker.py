@@ -14,8 +14,7 @@ from .subprocess import run_command
 
 
 def get_docker_hostname():
-    # [BS] Added DOCKER_HOST_IP to make this work inseide our gitlab
-    return urlparse(os.getenv('DOCKER_HOST', '')).hostname or os.getenv('DOCKER_HOST_IP') or 'localhost'
+    return urlparse(os.getenv('DOCKER_HOST', '')).hostname or 'localhost'
 
 
 def get_container_ip(container_id_or_name):
