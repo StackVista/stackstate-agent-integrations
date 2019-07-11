@@ -6,6 +6,15 @@ repository.
 
 # Development
 
+## Adding a check
+
+Add a check according to the designated layout.
+After adding, make sure to run
+
+- stsdev dep freeze
+
+to update the agent_requirements.in file to be used by the stackstate-agent build
+
 ## CI image
 The CI image is built from .gitlab-scripts/image.
 
