@@ -23,7 +23,7 @@ from ...subprocess import run_command
 class LocalAgentInterface(object):
     ENV_TYPE = 'local'
 
-    def __init__(self, check, env, base_package=None, config=None, metadata=None, agent_build=None, api_key=None):
+    def __init__(self, check, env, base_package=None, config=None, metadata=None, agent_build=None, sts_url=None, api_key=None):
         self.check = check
         self.env = env
         self.base_package = base_package
@@ -31,6 +31,7 @@ class LocalAgentInterface(object):
         self.metadata = metadata or {}
         self.agent_build = agent_build
         self.api_key = api_key or FAKE_API_KEY
+        self.sts_url = sts_url
 
         self.config_dir = locate_config_dir(check, env)
         self.config_file = locate_config_file(check, env)

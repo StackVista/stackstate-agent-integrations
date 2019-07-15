@@ -45,7 +45,7 @@ IDX_METRICS = [
 
 
 @pytest.mark.integration
-@pytest.mark.usefixtures('dd_environment')
+@pytest.mark.usefixtures('sts_envvironment')
 def test_relations_metrics(aggregator, pg_instance):
     pg_instance['relations'] = ['persons']
 
@@ -66,7 +66,7 @@ def test_relations_metrics(aggregator, pg_instance):
 
 
 @pytest.mark.integration
-@pytest.mark.usefixtures('dd_environment')
+@pytest.mark.usefixtures('sts_envvironment')
 def test_index_metrics(aggregator, pg_instance):
     pg_instance['relations'] = ['breed']
     pg_instance['dbname'] = 'dogs'

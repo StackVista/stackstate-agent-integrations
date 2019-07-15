@@ -20,7 +20,7 @@ def connect_to_pg():
 
 
 @pytest.fixture(scope='session')
-def dd_environment(e2e_instance):
+def sts_environment(e2e_instance):
     """
     Start a standalone postgres server requiring authentication.
     """

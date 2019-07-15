@@ -17,7 +17,7 @@ from ...utils import path_join
 class DockerInterface(object):
     ENV_TYPE = 'docker'
 
-    def __init__(self, check, env, base_package=None, config=None, metadata=None, agent_build=None, api_key=None):
+    def __init__(self, check, env, base_package=None, config=None, metadata=None, agent_build=None, sts_url=None, api_key=None):
         self.check = check
         self.env = env
         self.base_package = base_package
@@ -25,6 +25,7 @@ class DockerInterface(object):
         self.metadata = metadata or {}
         self.agent_build = agent_build
         self.api_key = api_key or FAKE_API_KEY
+        self.sts_url = sts_url
 
         self.container_name = 'stackstate_{}_{}'.format(self.check, self.env)
         self.config_dir = locate_config_dir(check, env)
@@ -91,13 +92,17 @@ class DockerInterface(object):
                 '--network', 'host',
                 # Agent 6 will simply fail without an API key
                 '-e', 'STS_API_KEY={}'.format(self.api_key),
+                # We still need this trifold, this should be improved
+                '-e', 'STS_STS_URL={}'.format(self.sts_url),
+                # Avoid clashing with an already running agent's CMD port
+                '-e', 'STS_CMD_PORT=4999',
+                # Needs to be explicitly disabled
+                '-e', 'STS_APM_ENABLED=false',
                 # Mount the config directory, not the file, to ensure updates are propagated
                 # https://github.com/moby/moby/issues/15793#issuecomment-135411504
                 '-v', '{}:{}'.format(self.config_dir, get_agent_conf_dir(self.check)),
                 # Mount the check directory
                 '-v', '{}:{}'.format(path_join(get_root(), self.check), self.check_mount_dir),
-                # The chosen tag
-                self.agent_build
             ]
 
             if self.base_package:

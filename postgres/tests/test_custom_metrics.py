@@ -7,7 +7,7 @@ from stackstate_checks.postgres import PostgreSql
 
 
 @pytest.mark.integration
-@pytest.mark.usefixtures('dd_environment')
+@pytest.mark.usefixtures('sts_envvironment')
 def test_custom_metrics(aggregator, pg_instance):
     pg_instance.update({
         'relations': ['persons'],
@@ -27,7 +27,7 @@ def test_custom_metrics(aggregator, pg_instance):
 
 
 @pytest.mark.integration
-@pytest.mark.usefixtures('dd_environment')
+@pytest.mark.usefixtures('sts_envvironment')
 def test_custom_queries(aggregator, pg_instance):
     pg_instance.update({
         'custom_queries': [

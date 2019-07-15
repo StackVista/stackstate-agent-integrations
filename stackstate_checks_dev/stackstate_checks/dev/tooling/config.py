@@ -32,6 +32,7 @@ DEFAULT_CONFIG = OrderedDict([
       ('local', 'latest')
     ))),
     ('sts_api_key', os.getenv('STS_API_KEY')),
+    ('sts_sts_url', os.getenv('STS_STS_URL')),
     ('github', OrderedDict((
         ('user', ''),
         ('token', ''),
