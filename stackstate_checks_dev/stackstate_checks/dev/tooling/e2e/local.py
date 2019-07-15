@@ -23,7 +23,8 @@ from ...subprocess import run_command
 class LocalAgentInterface(object):
     ENV_TYPE = 'local'
 
-    def __init__(self, check, env, base_package=None, config=None, metadata=None, agent_build=None, sts_url=None, api_key=None):
+    def __init__(self, check, env, base_package=None, config=None, metadata=None, agent_build=None, sts_url=None,
+                 api_key=None):
         self.check = check
         self.env = env
         self.base_package = base_package

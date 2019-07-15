@@ -160,8 +160,8 @@ def start(ctx, check, env, agent, dev, base, api_key, sts_url):
             echo_success('success!')
 
     if dev or base:
-      echo_waiting('Restarting agent to use the customer base/check... ', nl=False)
-      environment.restart_agent()
+        echo_waiting('Restarting agent to use the customer base/check... ', nl=False)
+        environment.restart_agent()
 
     click.echo()
 

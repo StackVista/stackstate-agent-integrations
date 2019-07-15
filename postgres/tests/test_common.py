@@ -74,7 +74,7 @@ def check_bgw_metrics(aggregator, expected_tags):
 
 
 @pytest.mark.integration
-@pytest.mark.usefixtures('sts_envvironment')
+@pytest.mark.usefixtures('sts_environment')
 def test_common_metrics(aggregator, check, pg_instance):
     expected_tags = pg_instance['tags'] + ['db:{}'.format(DB_NAME)]
 
@@ -84,7 +84,7 @@ def test_common_metrics(aggregator, check, pg_instance):
 
 
 @pytest.mark.integration
-@pytest.mark.usefixtures('sts_envvironment')
+@pytest.mark.usefixtures('sts_environment')
 def test_common_metrics_without_size(aggregator, check, pg_instance):
     pg_instance['collect_database_size_metrics'] = False
     check.check(pg_instance)
@@ -92,7 +92,7 @@ def test_common_metrics_without_size(aggregator, check, pg_instance):
 
 
 @pytest.mark.integration
-@pytest.mark.usefixtures('sts_envvironment')
+@pytest.mark.usefixtures('sts_environment')
 def test_can_connect_service_check(aggregator, check, pg_instance):
     expected_tags = pg_instance['tags'] + [
         'host:{}'.format(HOST),
@@ -104,7 +104,7 @@ def test_can_connect_service_check(aggregator, check, pg_instance):
 
 
 @pytest.mark.integration
-@pytest.mark.usefixtures('sts_envvironment')
+@pytest.mark.usefixtures('sts_environment')
 def test_schema_metrics(aggregator, check, pg_instance):
     check.check(pg_instance)
 
@@ -114,7 +114,7 @@ def test_schema_metrics(aggregator, check, pg_instance):
 
 
 @pytest.mark.integration
-@pytest.mark.usefixtures('sts_envvironment')
+@pytest.mark.usefixtures('sts_environment')
 def test_connections_metrics(aggregator, check, pg_instance):
     check.check(pg_instance)
 
@@ -124,7 +124,7 @@ def test_connections_metrics(aggregator, check, pg_instance):
 
 
 @pytest.mark.integration
-@pytest.mark.usefixtures('sts_envvironment')
+@pytest.mark.usefixtures('sts_environment')
 def test_locks_metrics(aggregator, check, pg_instance):
     with psycopg2.connect(host=HOST, dbname=DB_NAME, user="postgres") as conn:
         with conn.cursor() as cur:
@@ -136,7 +136,7 @@ def test_locks_metrics(aggregator, check, pg_instance):
 
 
 @pytest.mark.integration
-@pytest.mark.usefixtures('sts_envvironment')
+@pytest.mark.usefixtures('sts_environment')
 def test_activity_metrics(aggregator, check, pg_instance):
     pg_instance['collect_activity_metrics'] = True
     check.check(pg_instance)
