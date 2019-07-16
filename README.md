@@ -6,6 +6,10 @@ repository.
 
 # Development
 
+## Testing
+
+How to setup andvironment and run tests can be found in the .gitlab-ci.yml
+
 ## Adding a check
 
 Add a check according to the designated layout.

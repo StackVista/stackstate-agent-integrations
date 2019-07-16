@@ -31,7 +31,7 @@ from ....utils import dir_exists, file_exists, path_join
 @click.option('--api-key', '-k',
               help='Set the api key. can also be picked up form the STS_API_KEY environment variable')
 @click.option('--sts-url', '-u',
-              help='StackState product url, can also be picked up from STS_TS_URL environment variable')
+              help='StackState product url, can also be picked up from STS_STS_URL environment variable')
 @click.pass_context
 def start(ctx, check, env, agent, dev, base, api_key, sts_url):
     """Start an environment."""
