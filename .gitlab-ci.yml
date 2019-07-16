@@ -4,10 +4,18 @@ stages:
   - build
   - test
 
-before_script:
-  - source .gitlab-scripts/setup_env.sh
+.linux_env: &linux_env
+  before_script:
+    - source .gitlab-scripts/setup_env.sh
 
-deps:
+.windows_env: &windows_env
+  tags:
+    - sts_windows
+  before_script:
+    - call .gitlab-scripts/windows_setup_env.cmd
+
+linux_deps:
+  <<: *linux_env
   stage: build
   cache:
     key: "stackstate-agent-integrations-build-cache"
@@ -15,6 +23,20 @@ deps:
       - venv
   script:
     - source $CI_PROJECT_DIR/.gitlab-scripts/load_deps.sh
+  artifacts:
+    paths:
+      - venv
+    expire_in: 1 week
+
+win_deps:
+  <<: *windows_env
+  stage: build
+  cache:
+    key: "stackstate-agent-integrations-windows-build-cache"
+    paths:
+      - venv
+  script:
+    - call .gitlab-scripts/windows_load_env.cmd
   artifacts:
     paths:
       - venv
@@ -28,12 +50,31 @@ clear-caches:
       - venv
   when: manual
   stage: build
-  before_script: []
   script:
     - rm -rf venv || true
 
-.test: &test
+clear-win-caches:
+  cache:
+    policy: push
+    key: "stackstate-agent-integrations-windows-build-cache"
+    paths:
+      - venv
+  when: manual
+  stage: build
+  script:
+    - "if exist %WIN_CI_PROJECT_DIR%\\venv rd /s/q %WIN_CI_PROJECT_DIR%\\venv"
+  tags:
+    - sts_windows
+
+.linux_test: &linux_test
+  <<: *linux_env
   stage: test
+  dependencies:
+    - linux_deps
+  services:
+    - name: docker:dind
+      ## Overriding the entrypoint to exclude the /var/run/docker.sock because we also mount it
+      entrypoint: ["dockerd-entrypoint.sh", "/usr/local/bin/dockerd", "--host=tcp://0.0.0.0:2375" ]
   script:
     - stsdev test --cov ${CHECK}
     - stsdev test ${CHECK} --bench || true
@@ -41,10 +82,12 @@ clear-caches:
       # - if [ -n "$PYTHON3" ]; then stsdev validate py3 ${CHECK}; fi
 
 test_stackstate_checks_base:
-  stage: test
+  <<: *linux_test
   variables:
     CHECK: "stackstate_checks_base"
     PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
   script:
     - stsdev validate config
     - stsdev validate dep
@@ -55,8 +98,50 @@ test_stackstate_checks_base:
     - stsdev test ${CHECK} --bench || true
 
 test_stackstate_checks_dev:
+  <<: *linux_test
   variables:
     CHECK: "stackstate_checks_dev"
     PYTHON3: "true"
-  <<: *test
-  
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
+test_mysql:
+  <<: *linux_test
+  variables:
+    CHECK: "mysql"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
+test_postgres:
+  <<: *linux_test
+  variables:
+    CHECK: "postgres"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
+.windows_test: &windows_test
+  <<: *windows_env
+  stage: test
+  dependencies:
+    - win_deps
+  script:
+    - stsdev test -c %CHECK%
+  tags:
+    - sts_windows
+
+test_stackstate_checks_dev_win:
+  <<: *windows_test
+  variables:
+    CHECK: "stackstate_checks_dev:py27-default,stackstate_checks_dev:flake8"
+
+test_stackstate_checks_base_win:
+  <<: *windows_test
+  variables:
+    CHECK: "stackstate_checks_base"
+
+test_wmi_check:
+  <<: *windows_test
+  variables:
+    CHECK: "wmi_check"

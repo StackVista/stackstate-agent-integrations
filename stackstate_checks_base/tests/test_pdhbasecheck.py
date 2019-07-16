@@ -30,17 +30,17 @@ MULTI_INSTANCE_COUNTER_WITH_INSTANCES = [
 
 
 @requires_windows
-def test_single_instance_counter(Aggregator, pdh_mocks_fixture):  # noqa: F811
+def test_single_instance_counter(aggregator, pdh_mocks_fixture):  # noqa: F811
     initialize_pdh_tests()
     instance = DEFAULT_INSTANCE
     c = PDHBaseCheck("testcheck", {}, {}, [instance], SINGLE_INSTANCE_COUNTER)
     c.check(instance)
 
-    Aggregator.assert_metric("test.system.mem.available", tags=None, count=1)
+    aggregator.assert_metric("test.system.mem.available", tags=None, count=1)
 
 
 @requires_windows
-def test_single_instance_counter_with_instance(Aggregator, pdh_mocks_fixture):  # noqa: F811
+def test_single_instance_counter_with_instance(aggregator, pdh_mocks_fixture):  # noqa: F811
     initialize_pdh_tests()
     instance = DEFAULT_INSTANCE
     with pytest.raises(AttributeError):
@@ -48,7 +48,7 @@ def test_single_instance_counter_with_instance(Aggregator, pdh_mocks_fixture):  
 
 
 @requires_windows
-def test_multi_instance_counter(Aggregator, pdh_mocks_fixture):  # noqa: F811
+def test_multi_instance_counter(aggregator, pdh_mocks_fixture):  # noqa: F811
     initialize_pdh_tests()
     instance = DEFAULT_INSTANCE
     c = PDHBaseCheck("testcheck", {}, {}, [instance], MULTI_INSTANCE_COUNTER)
@@ -59,7 +59,7 @@ def test_multi_instance_counter(Aggregator, pdh_mocks_fixture):  # noqa: F811
 
 
 @requires_windows
-def test_multi_instance_counter_specific_instances(Aggregator, pdh_mocks_fixture):  # noqa: F811
+def test_multi_instance_counter_specific_instances(aggregator, pdh_mocks_fixture):  # noqa: F811
     initialize_pdh_tests()
     instance = DEFAULT_INSTANCE
     c = PDHBaseCheck("testcheck", {}, {}, [instance], MULTI_INSTANCE_COUNTER_WITH_INSTANCES)
@@ -70,7 +70,7 @@ def test_multi_instance_counter_specific_instances(Aggregator, pdh_mocks_fixture
 
 
 @requires_windows
-def test_returns_partial_metrics(Aggregator, pdh_mocks_fixture):  # noqa: F811
+def test_returns_partial_metrics(aggregator, pdh_mocks_fixture):  # noqa: F811
     COUNTER_LIST = [
         ["NTDS", None, "LDAP Client Sessions", "active_directory.ldap.client_sessions", "gauge"],
         ["NTDS", None, "LDAP Bind Time", "active_directory.ldap.bind_time", "gauge"],

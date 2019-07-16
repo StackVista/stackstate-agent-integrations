@@ -2,7 +2,7 @@
 
 
 @pytest.fixture(scope='session')
-def dd_environment():
+def sts_environment():
     yield
 
 

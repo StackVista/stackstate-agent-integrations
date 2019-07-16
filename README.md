@@ -6,6 +6,30 @@ repository.
 
 # Development
 
+## Testing
+
+How to setup andvironment and run tests can be found in the .gitlab-ci.yml
+
+## Adding a check
+
+Add a check according to the designated layout.
+
+After adding, make sure to run
+
+- stsdev dep freeze
+
+to update the agent_requirements.in file to be used by the stackstate-agent build
+
+## Manual testing
+
+Use the `stsdev env` command to do manual testing. Testing always happens in an environment, to list all environments run
+
+- stsdev env ls mysql
+
+To start testing the check under local development run
+
+- stsdev env start mysql 5.7 --dev
+
 ## CI image
 The CI image is built from .gitlab-scripts/image.
 

@@ -28,8 +28,12 @@ from ....utils import dir_exists, file_exists, path_join
 )
 @click.option('--dev/--prod', help='Whether to use the latest version of a check or what is shipped')
 @click.option('--base', is_flag=True, help='Whether to use the latest version of the base check or what is shipped')
+@click.option('--api-key', '-k',
+              help='Set the api key. can also be picked up form the STS_API_KEY environment variable')
+@click.option('--sts-url', '-u',
+              help='StackState product url, can also be picked up from STS_STS_URL environment variable')
 @click.pass_context
-def start(ctx, check, env, agent, dev, base):
+def start(ctx, check, env, agent, dev, base, api_key, sts_url):
     """Start an environment."""
     if not file_exists(get_tox_file(check)):
         abort('`{}` is not a testable check.'.format(check))
@@ -47,19 +51,27 @@ def start(ctx, check, env, agent, dev, base):
         if not dir_exists(base_package):
             abort('`stackstate_checks_base` directory does not exist.')
 
-    envs = get_available_tox_envs(check, test_only=True)
+    envs = get_available_tox_envs(check, e2e_only=True)
 
     if env not in envs:
         echo_failure('`{}` is not an available environment.'.format(env))
         echo_info('See what is available via `stsdev env ls {}`.'.format(check))
         abort()
 
-    api_key = ctx.obj['sts_api_key']
+    api_key = api_key or ctx.obj['sts_api_key']
     if api_key is None:
         echo_warning(
-            'Environment variable DD_API_KEY does not exist; a well-formatted '
-            'fake API key will be used instead. You can also set the API key '
+            'Environment/parameter variable STS_API_KEY does not exist; a well-formatted '
+            'the default API_KEY will be used instead. You can also set the API key '
             'by doing `stsdev config set sts_api_key`.'
+        )
+
+    sts_url = sts_url or ctx.obj['sts_sts_url']
+    if sts_url is None:
+        sts_url = "http://localhost:7077/stsAgent"
+        echo_warning(
+            'Environment/parameter variable STS_STS_URL does not exist;'
+            ' default to {}'.format(sts_url)
         )
 
     echo_waiting('Setting up environment `{}`... '.format(env), nl=False)
@@ -78,7 +90,7 @@ def start(ctx, check, env, agent, dev, base):
     if isinstance(agent_ver, string_types):
         agent_build = agent_ver
         echo_warning(
-            'Agent fields missing from stsdev config, please update to the latest config, '
+            'Agent field missing from stsdev config, please update to the latest config, '
             'falling back to latest docker image...'
         )
     else:
@@ -97,7 +109,7 @@ def start(ctx, check, env, agent, dev, base):
         stop_environment(check, env, metadata=metadata)
         abort()
 
-    environment = interface(check, env, base_package, config, metadata, agent_build, api_key)
+    environment = interface(check, env, base_package, config, metadata, agent_build, sts_url, api_key)
 
     echo_waiting('Updating `{}`... '.format(agent_build), nl=False)
     environment.update_agent()
@@ -146,6 +158,10 @@ def start(ctx, check, env, agent, dev, base):
         else:
             environment.update_check()
             echo_success('success!')
+
+    if dev or base:
+        echo_waiting('Restarting agent to use the customer base/check... ', nl=False)
+        environment.restart_agent()
 
     click.echo()
 
