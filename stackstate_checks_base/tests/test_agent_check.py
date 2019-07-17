@@ -8,6 +8,7 @@ import pytest
 from six import PY3
 
 from stackstate_checks.checks import AgentCheck
+from stackstate_checks.base.stubs.topology import component, relation
 
 
 def test_instance():
@@ -294,3 +295,86 @@ class TestLimits():
             check.gauge("metric", 0)
         assert len(check.get_warnings()) == 1  # get_warnings resets the array
         assert len(aggregator.metrics("metric")) == 10
+
+
+class TopologyCheck(AgentCheck):
+    def __init__(self, key=None):
+        super(TopologyCheck, self).__init__()
+        self.key = key or {"type": "mytype", "url": "someurl"}
+
+    def get_instance_key(self, instance):
+        return self.key
+
+
+class TestTopology:
+    def test_component(self, topology):
+        check = TopologyCheck()
+        data = {"key": "value", "intlist": [1], "emptykey": None, "nestedobject": {"nestedkey": "nestedValue"}}
+        check.component("my-id", "my-type", data)
+        topology.assert_snapshot(check.check_id, check.key, components=[component("my-id", "my-type", data)])
+
+    def test_relation(self, topology):
+        check = TopologyCheck()
+        data = {"key": "value", "intlist": [1], "emptykey": None, "nestedobject": {"nestedkey": "nestedValue"}}
+        check.relation("source-id", "target-id", "my-type", data)
+        topology.assert_snapshot(check.check_id, check.key,
+                                 relations=[relation("source-id", "target-id", "my-type", data)])
+
+    def test_start_snapshot(self, topology):
+        check = TopologyCheck()
+        check.start_snapshot()
+        topology.assert_snapshot(check.check_id, check.key, start_snapshot=True)
+
+    def test_stop_snapshot(self, topology):
+        check = TopologyCheck()
+        check.stop_snapshot()
+        topology.assert_snapshot(check.check_id, check.key, stop_snapshot=True)
+
+    def test_none_data_ok(self, topology):
+        check = TopologyCheck()
+        check.component("my-id", "my-type", None)
+        topology.assert_snapshot(check.check_id, check.key, components=[component("my-id", "my-type", {})])
+
+    def test_illegal_data(self):
+        check = TopologyCheck()
+        with pytest.raises(ValueError) as e:
+            assert check.component("my-id", "my-type", 1)
+        if PY3:
+            assert str(e.value) == "Got unexpected <class 'int'> for argument data, expected dictionary or None value"
+        else:
+            assert str(e.value) == "Got unexpected <type 'int'> for argument data, expected dictionary or None value"
+
+    def test_illegal_data_value(self):
+        check = TopologyCheck()
+        with pytest.raises(ValueError) as e:
+            assert check.component("my-id", "my-type", {"key": set()})
+        if PY3:
+            assert str(e.value) == """ Got unexpected <class 'set'> for argument data.key, \
+expected string, int, dictionary, list or None value """
+        else:
+            assert str(e.value) == """Got unexpected <type 'set'> for argument data.key, \
+expected string, int, dictionary, list or None value"""
+
+    def test_illegal_instance_key_none(self):
+        check = TopologyCheck()
+        check.key = None
+        with pytest.raises(ValueError) as e:
+            assert check.component("my-id", "my-type", None)
+        if PY3:
+            assert str(e.value) == "Got unexpected <class 'str'> for argument get_instance_key(), expected dictionary"
+        else:
+            assert str(e.value) == "Got unexpected <type 'str'> for argument get_instance_key(), expected dictionary"
+
+    def test_illegal_instance_key_field(self):
+        check = TopologyCheck()
+        check.key = {"bla": "wrong"}
+        with pytest.raises(ValueError) as e:
+            assert check.component("my-id", "my-type", None)
+        assert str(e.value) == "Instance requires a 'type' field of type 'string'"
+
+    def test_illegal_instance_key_field_type(self):
+        check = TopologyCheck()
+        check.key = {"type": "good", "url": 1}
+        with pytest.raises(ValueError) as e:
+            assert check.component("my-id", "my-type", None)
+        assert str(e.value) == "Instance requires a 'url' field of type 'string'"

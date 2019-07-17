@@ -12,7 +12,7 @@ import unicodedata
 import inspect
 
 import yaml
-from six import PY3, iteritems, text_type
+from six import PY3, iteritems, text_type, string_types, integer_types
 
 try:
     import datadog_agent
@@ -29,6 +29,13 @@ try:
 except ImportError:
     from ..stubs import aggregator
     using_stub_aggregator = True
+
+try:
+    import topology
+    using_stub_topology = False
+except ImportError:
+    from ..stubs import topology
+    using_stub_topology = True
 
 from ..config import is_affirmative
 from ..constants import ServiceCheck
@@ -418,6 +425,70 @@ class __AgentCheckPy3(object):
 
         return proxies if proxies else no_proxy_settings
 
+    def get_instance_key(self, instance):
+        raise NotImplementedError
+
+    def _raise_unexpected_type(self, argumentName, value, expected):
+        raise ValueError("Got unexpected {} for argument {}, expected {}".format(type(value), argumentName, expected))
+
+    def _check_is_string(self, argumentName, value):
+        if value is None:
+            raise ValueError("Got None value for argument {}".format(argumentName))
+        elif not isinstance(value, str):
+            self._raise_unexpected_type(self, argumentName, value, "string")
+
+    def _check_struct_value(self, argumentName, value):
+        if value is None or isinstance(value, str) or isinstance(value, int):
+            return
+        elif isinstance(value, dict):
+            for k in value:
+                self._check_struct_value("{}.{}".format(argumentName, k), value[k])
+        elif isinstance(value, list):
+            for idx, val in enumerate(value):
+                self._check_struct_value("{}[{}]".format(argumentName, idx), val)
+        else:
+            self._raise_unexpected_type(argumentName, value, "string, int, dictionary, list or None value")
+
+    def _check_struct(self, argumentName, value):
+        if isinstance(value, dict):
+            self._check_struct_value(argumentName, value)
+        else:
+            self._raise_unexpected_type(argumentName, value, "dictionary or None value")
+
+    def _get_instance_key(self):
+        value = self.get_instance_key(self.instance)
+        if value is None:
+            self._raise_unexpected_type("get_instance_key()", "None", "dictionary")
+        self._check_struct("get_instance_key()", value)
+        if "type" not in value or not isinstance(value["type"], str):
+            raise ValueError("Instance requires a 'type' field of type 'string'")
+        if "url" not in value or not isinstance(value["url"], str):
+            raise ValueError("Instance requires a 'url' field of type 'string'")
+        return value
+
+    def component(self, id, type, data):
+        self._check_is_string("id", id)
+        self._check_is_string("type", type)
+        if data is None:
+            data = {}
+        self._check_struct("data", data)
+        topology.submit_component(self.check_id, self._get_instance_key(), id, type, data)
+
+    def relation(self, source, target, type, data):
+        self._check_is_string("source", source)
+        self._check_is_string("target", target)
+        self._check_is_string("type", type)
+        if data is None:
+            data = {}
+        self._check_struct("data", data)
+        topology.submit_relation(self.check_id, self._get_instance_key(), source, target, type, data)
+
+    def start_snapshot(self):
+        topology.submit_start_snapshot(self.check_id, self._get_instance_key())
+
+    def stop_snapshot(self):
+        topology.submit_stop_snapshot(self.check_id, self._get_instance_key())
+
 
 class __AgentCheckPy2(object):
     """
@@ -565,7 +636,6 @@ class __AgentCheckPy2(object):
                 context = self._context_uid(mtype, name, tags, hostname)
                 if self.metric_limiter.is_reached(context):
                     return
-
         try:
             value = float(value)
         except ValueError:
@@ -706,7 +776,6 @@ class __AgentCheckPy2(object):
         - doesn't mutate the passed list, returns a new list
         """
         normalized_tags = []
-
         if device_name:
             self._log_deprecation("device_name")
             device_tag = self._to_bytes("device:{}".format(device_name))
@@ -802,6 +871,70 @@ class __AgentCheckPy2(object):
             proxies['no'] = proxies.pop('no_proxy')
 
         return proxies if proxies else no_proxy_settings
+
+    def get_instance_key(self, instance):
+        raise NotImplementedError
+
+    def _raise_unexpected_type(self, argumentName, value, expected):
+        raise ValueError("Got unexpected {} for argument {}, expected {}".format(type(value), argumentName, expected))
+
+    def _check_is_string(self, argumentName, value):
+        if value is None:
+            raise ValueError("Got None value for argument {}".format(argumentName))
+        elif not isinstance(value, string_types):
+            self._raise_unexpected_type(self, argumentName, value, "string")
+
+    def _check_struct_value(self, argumentName, value):
+        if value is None or isinstance(value, string_types) or isinstance(value, integer_types):
+            return
+        elif isinstance(value, dict):
+            for k in value:
+                self._check_struct_value("{}.{}".format(argumentName, k), value[k])
+        elif isinstance(value, list):
+            for idx, val in enumerate(value):
+                self._check_struct_value("{}[{}]".format(argumentName, idx), val)
+        else:
+            self._raise_unexpected_type(argumentName, value, "string, int, dictionary, list or None value")
+
+    def _check_struct(self, argumentName, value):
+        if isinstance(value, dict):
+            self._check_struct_value(argumentName, value)
+        else:
+            self._raise_unexpected_type(argumentName, value, "dictionary or None value")
+
+    def _get_instance_key(self):
+        value = self.get_instance_key(self.instance)
+        if value is None:
+            self._raise_unexpected_type("get_instance_key()", "None", "dictionary")
+        self._check_struct("get_instance_key()", value)
+        if "type" not in value or not isinstance(value["type"], string_types):
+            raise ValueError("Instance requires a 'type' field of type 'string'")
+        if "url" not in value or not isinstance(value["url"], string_types):
+            raise ValueError("Instance requires a 'url' field of type 'string'")
+        return value
+
+    def component(self, id, type, data):
+        self._check_is_string("id", id)
+        self._check_is_string("type", type)
+        if data is None:
+            data = {}
+        self._check_struct("data", data)
+        topology.submit_component(self.check_id, self._get_instance_key(), id, type, data)
+
+    def relation(self, source, target, type, data):
+        self._check_is_string("source", source)
+        self._check_is_string("target", target)
+        self._check_is_string("type", type)
+        if data is None:
+            data = {}
+        self._check_struct("data", data)
+        topology.submit_relation(self.check_id, self._get_instance_key(), source, target, type, data)
+
+    def start_snapshot(self):
+        topology.submit_start_snapshot(self.check_id, self._get_instance_key())
+
+    def stop_snapshot(self):
+        topology.submit_stop_snapshot(self.check_id, self._get_instance_key())
 
 
 if PY3:
