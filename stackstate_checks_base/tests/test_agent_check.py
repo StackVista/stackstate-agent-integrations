@@ -349,8 +349,8 @@ class TestTopology:
         with pytest.raises(ValueError) as e:
             assert check.component("my-id", "my-type", {"key": set()})
         if PY3:
-            assert str(e.value) == """ Got unexpected <class 'set'> for argument data.key, \
-expected string, int, dictionary, list or None value """
+            assert str(e.value) == """Got unexpected <class 'set'> for argument data.key, \
+expected string, int, dictionary, list or None value"""
         else:
             assert str(e.value) == """Got unexpected <type 'set'> for argument data.key, \
 expected string, int, dictionary, list or None value"""

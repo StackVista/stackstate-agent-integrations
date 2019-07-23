@@ -37,16 +37,16 @@ class TopologyStub(object):
             self._snapshots[check_id] = snapshot(instance_key)
         return self._snapshots[check_id]
 
-    def submit_component(self, check_id, instance_key, id, type, data):
+    def submit_component(self, check, check_id, instance_key, id, type, data):
         self._ensure_instance(check_id, instance_key)["components"].append(component(id, type, data))
 
-    def submit_relation(self, check_id, instance_key, source_id, target_id, type, data):
+    def submit_relation(self, check, check_id, instance_key, source_id, target_id, type, data):
         self._ensure_instance(check_id, instance_key)["relations"].append(relation(source_id, target_id, type, data))
 
-    def submit_start_snapshot(self, check_id, instance_key):
+    def submit_start_snapshot(self, check, check_id, instance_key):
         self._ensure_instance(check_id, instance_key)["start_snapshot"] = True
 
-    def submit_stop_snapshot(self, check_id, instance_key):
+    def submit_stop_snapshot(self, check, check_id, instance_key):
         self._ensure_instance(check_id, instance_key)["stop_snapshot"] = True
 
     def get_snapshot(self, check_id):

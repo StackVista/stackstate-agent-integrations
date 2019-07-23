@@ -472,7 +472,7 @@ class __AgentCheckPy3(object):
         if data is None:
             data = {}
         self._check_struct("data", data)
-        topology.submit_component(self.check_id, self._get_instance_key(), id, type, data)
+        topology.submit_component(self, self.check_id, self._get_instance_key(), id, type, data)
 
     def relation(self, source, target, type, data):
         self._check_is_string("source", source)
@@ -481,13 +481,13 @@ class __AgentCheckPy3(object):
         if data is None:
             data = {}
         self._check_struct("data", data)
-        topology.submit_relation(self.check_id, self._get_instance_key(), source, target, type, data)
+        topology.submit_relation(self, self.check_id, self._get_instance_key(), source, target, type, data)
 
     def start_snapshot(self):
-        topology.submit_start_snapshot(self.check_id, self._get_instance_key())
+        topology.submit_start_snapshot(self, self.check_id, self._get_instance_key())
 
     def stop_snapshot(self):
-        topology.submit_stop_snapshot(self.check_id, self._get_instance_key())
+        topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key())
 
 
 class __AgentCheckPy2(object):
@@ -919,7 +919,7 @@ class __AgentCheckPy2(object):
         if data is None:
             data = {}
         self._check_struct("data", data)
-        topology.submit_component(self.check_id, self._get_instance_key(), id, type, data)
+        topology.submit_component(self, self.check_id, self._get_instance_key(), id, type, data)
 
     def relation(self, source, target, type, data):
         self._check_is_string("source", source)
@@ -928,13 +928,13 @@ class __AgentCheckPy2(object):
         if data is None:
             data = {}
         self._check_struct("data", data)
-        topology.submit_relation(self.check_id, self._get_instance_key(), source, target, type, data)
+        topology.submit_relation(self, self.check_id, self._get_instance_key(), source, target, type, data)
 
     def start_snapshot(self):
-        topology.submit_start_snapshot(self.check_id, self._get_instance_key())
+        topology.submit_start_snapshot(self, self.check_id, self._get_instance_key())
 
     def stop_snapshot(self):
-        topology.submit_stop_snapshot(self.check_id, self._get_instance_key())
+        topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key())
 
 
 if PY3:
