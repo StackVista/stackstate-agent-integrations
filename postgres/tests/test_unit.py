@@ -245,3 +245,8 @@ def test_malformed_get_custom_queries(check):
                                             "metric_prefix `{}`".format(query_return,
                                                                         malformed_custom_query_column['name'],
                                                                         malformed_custom_query['metric_prefix']))
+
+
+def test_topology_hostname(check):
+    assert check._get_topology_hostname("localhost") == "stubbed.hostname"
+    assert check._get_topology_hostname("myhost") == "myhost"

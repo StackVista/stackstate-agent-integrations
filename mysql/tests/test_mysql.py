@@ -236,7 +236,7 @@ def test__get_server_pid():
 
 
 @pytest.mark.unit
-def test_topology_hostname(topology, instance_basic):
+def test_topology_hostname():
     mysql_check = MySql(common.CHECK_NAME, {}, {})
     assert mysql_check._get_topology_hostname("localhost", common.PORT) == "stubbed.hostname"
     assert mysql_check._get_topology_hostname("myhost", 0) == "stubbed.hostname"

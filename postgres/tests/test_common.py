@@ -143,3 +143,13 @@ def test_activity_metrics(aggregator, check, pg_instance):
 
     for name in ACTIVITY_METRICS:
         aggregator.assert_metric(name, count=1, tags=pg_instance['tags'] + ['db:datadog_test'])
+
+
+@pytest.mark.integration
+@pytest.mark.usefixtures('sts_environment')
+def test_topology(topology, check, pg_instance):
+    check.check(pg_instance)
+
+    topology.assert_snapshot(check.check_id, {"type": "postgresql", "url": "postgresql://postgresql"},
+                             components=[{"id": check._get_topology_hostname(HOST),
+                                          "type": "postgresql", "data": {}}])
