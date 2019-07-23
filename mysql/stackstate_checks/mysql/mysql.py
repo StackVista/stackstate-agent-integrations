@@ -291,6 +291,9 @@ class MySql(AgentCheck):
     def get_library_versions(cls):
         return {'pymysql': pymysql.__version__}
 
+    def get_instance_key(self, instance):
+        return {"type": "mysql", "url": "mysql://mysql"}
+
     def check(self, instance):
         host, port, user, password, mysql_sock, \
             defaults_file, tags, options, queries, ssl, \
@@ -315,6 +318,9 @@ class MySql(AgentCheck):
                 # keeping track of these:
                 self._put_qcache_stats()
 
+                # Topology
+                self._collect_topology(host, db)
+
             except Exception as e:
                 self.log.exception("error!")
                 raise e
@@ -335,6 +341,13 @@ class MySql(AgentCheck):
 
         return (self.host, self.port, user, password, self.mysql_sock,
                 self.defaults_file, tags, options, queries, ssl, connect_timeout, max_custom_queries)
+
+    def _get_topology_hostname(self, host, port):
+        # Use the agent hostname for local host, otherwise use the remote hostname
+        return self.hostname if self._is_localhost(host, port) else host
+
+    def _collect_topology(self, host, db):
+        self.component(self._get_topology_hostname(host, db), "mysql", {})
 
     def _set_qcache_stats(self):
         host_key = self._get_host_key()
@@ -764,10 +777,13 @@ class MySql(AgentCheck):
                          (query, traceback.format_exc()))
             self.log.exception("Error while running %s" % query)
 
+    def _is_localhost(self, host, port):
+        # The server needs to run locally, accessed by TCP or socket
+        return host in ["localhost", "127.0.0.1", "0.0.0.0"] or port == long(0)
+
     def _collect_system_metrics(self, host, db, tags):
         pid = None
-        # The server needs to run locally, accessed by TCP or socket
-        if host in ["localhost", "127.0.0.1", "0.0.0.0"] or db.port == long(0):
+        if self._is_localhost(host, db.port):
             pid = self._get_server_pid(db)
 
         if pid:
