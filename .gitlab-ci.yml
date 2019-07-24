@@ -76,10 +76,10 @@ clear-win-caches:
       ## Overriding the entrypoint to exclude the /var/run/docker.sock because we also mount it
       entrypoint: ["dockerd-entrypoint.sh", "/usr/local/bin/dockerd", "--host=tcp://0.0.0.0:2375" ]
   script:
-    - stsdev test --cov ${CHECK}
-    - stsdev test ${CHECK} --bench || true
+    - checksdev test --cov ${CHECK}
+    - checksdev test ${CHECK} --bench || true
       # [BS] we skip this until https://github.com/PyCQA/pylint/pull/2681/commits/253e5d05e3943d3bc8e4470804a138cb20049548 lands in pylint stable version
-      # - if [ -n "$PYTHON3" ]; then stsdev validate py3 ${CHECK}; fi
+      # - if [ -n "$PYTHON3" ]; then checksdev validate py3 ${CHECK}; fi
 
 test_stackstate_checks_base:
   <<: *linux_test
@@ -89,13 +89,13 @@ test_stackstate_checks_base:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
   script:
-    - stsdev validate config
-    - stsdev validate dep
-    - stsdev validate manifest --include-extras
-    - stsdev validate metadata
-    - stsdev validate service-checks
-    - stsdev test --cov ${CHECK}
-    - stsdev test ${CHECK} --bench || true
+    - checksdev validate config
+    - checksdev validate dep
+    - checksdev validate manifest --include-extras
+    - checksdev validate metadata
+    - checksdev validate service-checks
+    - checksdev test --cov ${CHECK}
+    - checksdev test ${CHECK} --bench || true
 
 test_stackstate_checks_dev:
   <<: *linux_test
@@ -127,7 +127,7 @@ test_postgres:
   dependencies:
     - win_deps
   script:
-    - stsdev test -c %CHECK%
+    - checksdev test -c %CHECK%
   tags:
     - sts_windows
 

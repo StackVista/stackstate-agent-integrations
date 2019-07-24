@@ -41,7 +41,7 @@ def find():
 def show(all_keys):
     """Show the contents of the config file."""
     if not config_file_exists():
-        echo_info('No config file found! Please try `stsdev config restore`.')
+        echo_info('No config file found! Please try `checksdev config restore`.')
     else:
         if all_keys:
             echo_info(read_config_file().rstrip())
@@ -82,7 +82,7 @@ def set_value(ctx, key, value):
     you will be prompted, with the input hidden if it is sensitive.
 
     \b
-    $ stsdev config set github.user foo
+    $ checksdev config set github.user foo
     New setting:
     [github]
     user = "foo"

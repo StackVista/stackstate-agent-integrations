@@ -91,7 +91,7 @@ setup(
     entry_points={
         'pytest11': ['stackstate_checks = stackstate_checks.dev.plugin.plugin'],
         'console_scripts': [
-            'stsdev = stackstate_checks.dev.tooling.cli:stsdev',
+            'checksdev = stackstate_checks.dev.tooling.cli:checksdev',
         ],
     },
 )

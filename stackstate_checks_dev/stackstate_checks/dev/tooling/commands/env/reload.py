@@ -15,20 +15,20 @@ def reload_env(check, env):
     envs = get_configured_envs(check)
     if not envs:
         echo_failure('No active environments found for `{}`.'.format(check))
-        echo_info('See what is available to start via `stsdev env ls {}`.'.format(check))
+        echo_info('See what is available to start via `checksdev env ls {}`.'.format(check))
         abort()
 
     if not env:
         if len(envs) > 1:
             echo_failure('Multiple active environments found for `{}`, please specify one.'.format(check))
-            echo_info('See what is active via `stsdev env ls`.')
+            echo_info('See what is active via `checksdev env ls`.')
             abort()
 
         env = envs[0]
 
     if env not in envs:
         echo_failure('`{}` is not an active environment.'.format(env))
-        echo_info('See what is active via `stsdev env ls`.')
+        echo_info('See what is active via `checksdev env ls`.')
         abort()
 
     environment = create_interface(check, env)

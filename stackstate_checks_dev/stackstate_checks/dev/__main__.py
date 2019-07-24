@@ -3,7 +3,7 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import sys
 
-from .tooling.cli import stsdev
+from .tooling.cli import checksdev
 
 
-sys.exit(stsdev())
+sys.exit(checksdev())

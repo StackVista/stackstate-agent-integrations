@@ -12,7 +12,7 @@ and is available on Linux, macOS, and Windows, and supports Python 2.7/3.5+ and 
 $ pip install "stackstate-checks-dev[cli]"
 ```
 
-At this point there should be a working executable, stsdev, in your PATH. The help flag shortcut -h is available globally.
+At this point there should be a working executable, checksdev, in your PATH. The help flag shortcut -h is available globally.
 
 [5]: https://github.com/StackVista/stackstate-agent
 [6]: https://pypi.org

@@ -89,7 +89,7 @@ def info(endpoint):
 
     \b
     Example:
-    $ stsdev meta prom info :8080/_status/vars
+    $ checksdev meta prom info :8080/_status/vars
     """
     endpoint = sanitize_endpoint(endpoint)
 
@@ -141,7 +141,7 @@ def parse(ctx, endpoint, check, here):
         output_dir = path_join(get_root(), check)
         if not dir_exists(output_dir):
             abort(
-                'Check `{check}` does not exist; try `stsdev create {check}`.'.format(
+                'Check `{check}` does not exist; try `checksdev create {check}`.'.format(
                     check=check
                 )
             )
