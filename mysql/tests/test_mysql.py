@@ -9,6 +9,7 @@ import mock
 import psutil
 import pytest
 
+from stackstate_checks.base import TopologyInstance
 from stackstate_checks.base.utils.platform import Platform
 from stackstate_checks.mysql import MySql
 from . import common, tags, variables
@@ -233,3 +234,21 @@ def test__get_server_pid():
             # the pid should be none but without errors
             assert mysql_check._get_server_pid(None) is None
             assert mysql_check.log.exception.call_count == 0
+
+
+@pytest.mark.unit
+def test_topology_hostname():
+    mysql_check = MySql(common.CHECK_NAME, {}, {})
+    assert mysql_check._get_topology_hostname("localhost", common.PORT) == "stubbed.hostname"
+    assert mysql_check._get_topology_hostname("myhost", 0) == "stubbed.hostname"
+    assert mysql_check._get_topology_hostname("myhost", common.PORT) == "myhost"
+
+
+@pytest.mark.usefixtures('sts_environment')
+def test_topology(topology, instance_basic):
+    mysql_check = MySql(common.CHECK_NAME, {}, {})
+    mysql_check.check(instance_basic)
+
+    topology.assert_snapshot(mysql_check.check_id, TopologyInstance("mysql", "mysql://mysql"),
+                             components=[{"id": mysql_check._get_topology_hostname(common.HOST, common.PORT),
+                                          "type": "mysql", "data": {}}])

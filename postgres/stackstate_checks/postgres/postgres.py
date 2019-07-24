@@ -14,7 +14,7 @@ try:
 except ImportError:
     psycopg2 = None
 
-from stackstate_checks.base import AgentCheck, ConfigurationError, is_affirmative
+from stackstate_checks.base import AgentCheck, ConfigurationError, is_affirmative, TopologyInstance
 
 
 MAX_CUSTOM_RESULTS = 100
@@ -407,6 +407,9 @@ GROUP BY datid, datname
         """
         with PostgreSql._known_servers_lock:
             PostgreSql._known_servers.add((host, port))
+
+    def get_instance_key(self, instance):
+        return TopologyInstance("postgresql", "postgresql://postgresql")
 
     def _get_pg_attrs(self, instance):
         if is_affirmative(instance.get('use_psycopg2', False)):
@@ -1007,6 +1010,13 @@ GROUP BY datid, datname
         self.custom_metrics[key] = custom_metrics
         return custom_metrics
 
+    def _get_topology_hostname(self, host):
+        # Use the agent hostname for local host, otherwise use the remote hostname
+        return self.hostname if host in ["localhost", "127.0.0.1", "0.0.0.0"] else host
+
+    def _collect_topology(self, host):
+        self.component(self._get_topology_hostname(host), "postgresql", {})
+
     def check(self, instance):
         host = instance.get('host', '')
         port = instance.get('port', '')
@@ -1067,6 +1077,8 @@ GROUP BY datid, datname
                                 collect_count_metrics, collect_activity_metrics, collect_database_size_metrics,
                                 collect_default_db, interface_error, programming_error)
             self._get_custom_queries(db, tags, custom_queries, programming_error)
+
+        self._collect_topology(host)
 
         service_check_tags = self._get_service_check_tags(host, port, tags)
         message = u'Established connection to postgres://%s:%s/%s' % (host, port, dbname)

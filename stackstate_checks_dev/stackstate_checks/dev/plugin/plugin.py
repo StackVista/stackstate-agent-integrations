@@ -26,6 +26,23 @@ except ImportError:
         raise ImportError('stackstate-checks-base is not installed!')
 
 
+try:
+    from stackstate_checks.base.stubs import topology as __topology
+
+    @pytest.fixture
+    def topology():
+        """This fixture returns a mocked Agent topology with state cleared."""
+        __topology.reset()
+        return __topology
+
+except ImportError:
+    __topology = None
+
+    @pytest.fixture
+    def topology():
+        raise ImportError('stackstate-checks-base is not installed!')
+
+
 @pytest.fixture(scope='session', autouse=True)
 def sts_environment_runner(request):
     testing_plugin = os.getenv(TESTING_PLUGIN) == 'true'
