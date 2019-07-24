@@ -9,6 +9,7 @@ import mock
 import psutil
 import pytest
 
+from stackstate_checks.base import TopologyInstance
 from stackstate_checks.base.utils.platform import Platform
 from stackstate_checks.mysql import MySql
 from . import common, tags, variables
@@ -248,6 +249,6 @@ def test_topology(topology, instance_basic):
     mysql_check = MySql(common.CHECK_NAME, {}, {})
     mysql_check.check(instance_basic)
 
-    topology.assert_snapshot(mysql_check.check_id, {"type": "mysql", "url": "mysql://mysql"},
+    topology.assert_snapshot(mysql_check.check_id, TopologyInstance("mysql", "mysql://mysql"),
                              components=[{"id": mysql_check._get_topology_hostname(common.HOST, common.PORT),
                                           "type": "mysql", "data": {}}])

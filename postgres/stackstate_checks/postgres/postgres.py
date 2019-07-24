@@ -14,7 +14,7 @@ try:
 except ImportError:
     psycopg2 = None
 
-from stackstate_checks.base import AgentCheck, ConfigurationError, is_affirmative
+from stackstate_checks.base import AgentCheck, ConfigurationError, is_affirmative, TopologyInstance
 
 
 MAX_CUSTOM_RESULTS = 100
@@ -409,7 +409,7 @@ GROUP BY datid, datname
             PostgreSql._known_servers.add((host, port))
 
     def get_instance_key(self, instance):
-        return {"type": "postgresql", "url": "postgresql://postgresql"}
+        return TopologyInstance("postgresql", "postgresql://postgresql")
 
     def _get_pg_attrs(self, instance):
         if is_affirmative(instance.get('use_psycopg2', False)):

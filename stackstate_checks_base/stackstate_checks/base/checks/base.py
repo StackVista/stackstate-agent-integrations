@@ -56,6 +56,27 @@ ONE_PER_CONTEXT_METRIC_TYPES = [
 ]
 
 
+class TopologyInstance(object):
+    """
+    Data structure for defining a topology instance, a unique identifier for a topology source.
+    """
+    def __init__(self, type, url):
+        self.type = type
+        self.url = url
+
+    def toDict(self):
+        return {"type": self.type, "url": self.url}
+
+    def __eq__(self, other):
+        if not isinstance(other, TopologyInstance):
+            return False
+
+        return self.type == other.type and self.url == other.url
+
+    def __hash__(self):
+        return hash((self.type, self.url))
+
+
 class __AgentCheckPy3(object):
     """
     The base class for any Agent based integrations
@@ -459,12 +480,13 @@ class __AgentCheckPy3(object):
         value = self.get_instance_key(self.instance)
         if value is None:
             self._raise_unexpected_type("get_instance_key()", "None", "dictionary")
-        self._check_struct("get_instance_key()", value)
-        if "type" not in value or not isinstance(value["type"], str):
+        if not isinstance(value, TopologyInstance):
+            self._raise_unexpected_type("get_instance_key()", value, "TopologyInstance")
+        if not isinstance(value.type, str):
             raise ValueError("Instance requires a 'type' field of type 'string'")
-        if "url" not in value or not isinstance(value["url"], str):
+        if not isinstance(value.url, str):
             raise ValueError("Instance requires a 'url' field of type 'string'")
-        return value
+        return value.toDict()
 
     def component(self, id, type, data):
         self._check_is_string("id", id)
@@ -906,12 +928,13 @@ class __AgentCheckPy2(object):
         value = self.get_instance_key(self.instance)
         if value is None:
             self._raise_unexpected_type("get_instance_key()", "None", "dictionary")
-        self._check_struct("get_instance_key()", value)
-        if "type" not in value or not isinstance(value["type"], string_types):
+        if not isinstance(value, TopologyInstance):
+            self._raise_unexpected_type("get_instance_key()", value, "TopologyInstance")
+        if not isinstance(value.type, str):
             raise ValueError("Instance requires a 'type' field of type 'string'")
-        if "url" not in value or not isinstance(value["url"], string_types):
+        if not isinstance(value.url, str):
             raise ValueError("Instance requires a 'url' field of type 'string'")
-        return value
+        return value.toDict()
 
     def component(self, id, type, data):
         self._check_is_string("id", id)

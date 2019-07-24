@@ -6,6 +6,7 @@ import os
 import psycopg2
 import pytest
 
+from stackstate_checks.base import TopologyInstance
 from stackstate_checks.postgres import PostgreSql
 from .common import HOST, PORT, DB_NAME
 
@@ -150,6 +151,6 @@ def test_activity_metrics(aggregator, check, pg_instance):
 def test_topology(topology, check, pg_instance):
     check.check(pg_instance)
 
-    topology.assert_snapshot(check.check_id, {"type": "postgresql", "url": "postgresql://postgresql"},
+    topology.assert_snapshot(check.check_id, TopologyInstance("postgresql", "postgresql://postgresql"),
                              components=[{"id": check._get_topology_hostname(HOST),
                                           "type": "postgresql", "data": {}}])

@@ -18,7 +18,7 @@ try:
 except ImportError:
     PSUTIL_AVAILABLE = False
 
-from stackstate_checks.base import AgentCheck, is_affirmative
+from stackstate_checks.base import AgentCheck, is_affirmative, TopologyInstance
 
 if PY3:
     long = int
@@ -292,7 +292,7 @@ class MySql(AgentCheck):
         return {'pymysql': pymysql.__version__}
 
     def get_instance_key(self, instance):
-        return {"type": "mysql", "url": "mysql://mysql"}
+        return TopologyInstance("mysql", "mysql://mysql")
 
     def check(self, instance):
         host, port, user, password, mysql_sock, \

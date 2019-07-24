@@ -7,7 +7,7 @@ import mock
 import pytest
 from six import PY3
 
-from stackstate_checks.checks import AgentCheck
+from stackstate_checks.checks import AgentCheck, TopologyInstance
 from stackstate_checks.base.stubs.topology import component, relation
 
 
@@ -300,7 +300,7 @@ class TestLimits():
 class TopologyCheck(AgentCheck):
     def __init__(self, key=None):
         super(TopologyCheck, self).__init__()
-        self.key = key or {"type": "mytype", "url": "someurl"}
+        self.key = key or TopologyInstance("mytype", "someurl")
 
     def get_instance_key(self, instance):
         return self.key
@@ -365,16 +365,21 @@ expected string, int, dictionary, list or None value"""
         else:
             assert str(e.value) == "Got unexpected <type 'str'> for argument get_instance_key(), expected dictionary"
 
-    def test_illegal_instance_key_field(self):
+    def test_illegal_instance_type(self):
         check = TopologyCheck()
-        check.key = {"bla": "wrong"}
+        check.key = {}
         with pytest.raises(ValueError) as e:
             assert check.component("my-id", "my-type", None)
-        assert str(e.value) == "Instance requires a 'type' field of type 'string'"
+        if PY3:
+            assert str(e.value) == """Got unexpected <class 'dict'> for argument get_instance_key(), \
+expected TopologyInstance"""
+        else:
+            assert str(e.value) == """Got unexpected <type 'dict'> for argument get_instance_key(), \
+expected TopologyInstance"""
 
     def test_illegal_instance_key_field_type(self):
         check = TopologyCheck()
-        check.key = {"type": "good", "url": 1}
+        check.key = TopologyInstance("mytype", 1)
         with pytest.raises(ValueError) as e:
             assert check.component("my-id", "my-type", None)
         assert str(e.value) == "Instance requires a 'url' field of type 'string'"

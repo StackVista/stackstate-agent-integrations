@@ -2,7 +2,7 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 from .__about__ import __version__
-from .checks import AgentCheck
+from .checks import AgentCheck, TopologyInstance
 from .checks.openmetrics import OpenMetricsBaseCheck
 
 from .config import is_affirmative
@@ -24,6 +24,7 @@ except ImportError:
 __all__ = [
     '__version__',
     'AgentCheck',
+    'TopologyInstance',
     'KubeLeaderElectionBaseCheck',
     'OpenMetricsBaseCheck',
     'PDHBaseCheck',
