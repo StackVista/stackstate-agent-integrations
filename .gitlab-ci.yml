@@ -150,7 +150,6 @@ test_wmi_check:
 publish-checks-dev:
   stage: publish
   script:
-    - env
     - source ./.setup-scripts/setup_artifactory_publishing.sh
     - ./.setup-scripts/version.sh > VERSION
     - cd stackstate_checks_dev && python setup.py sdist bdist_wheel upload -r local
