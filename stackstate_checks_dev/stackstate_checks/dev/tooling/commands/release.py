@@ -252,7 +252,7 @@ def changes(ctx, check, dry_run):
 @click.pass_context
 def testable(ctx, start_id, agent_version, dry_run):
     """Create a Trello card for each change that needs to be tested for
-    the next release. Run via `stsdev -x release testable` to force the use
+    the next release. Run via `checksdev -x release testable` to force the use
     of the current directory.
 
     To avoid GitHub's public API rate limits, you need to set
@@ -262,11 +262,11 @@ def testable(ctx, start_id, agent_version, dry_run):
     \b
     To use Trello:
     1. Go to `https://trello.com/app-key` and copy your API key.
-    2. Run `stsdev config set trello.key` and paste your API key.
+    2. Run `checksdev config set trello.key` and paste your API key.
     3. Go to `https://trello.com/1/authorize?key=key&name=name&scope=read,write&expiration=never&response_type=token`,
        where `key` is your API key and `name` is the name to give your token, e.g. ReleaseTestingYourName.
        Authorize access and copy your token.
-    4. Run `stsdev config set trello.token` and paste your token.
+    4. Run `checksdev config set trello.token` and paste your token.
     """
     root = get_root()
     repo = basepath(root)
@@ -867,7 +867,7 @@ def upload(ctx, check, sdist, dry_run):
     username = pypi_config.get('user') or os.getenv('TWINE_USERNAME')
     password = pypi_config.get('pass') or os.getenv('TWINE_PASSWORD')
     if not (username and password):
-        abort('This requires pypi.user and pypi.pass configuration. Please see `stsdev config -h`.')
+        abort('This requires pypi.user and pypi.pass configuration. Please see `checksdev config -h`.')
 
     auth_env_vars = {'TWINE_USERNAME': username, 'TWINE_PASSWORD': password}
     echo_waiting('Building and publishing `{}` to PyPI...'.format(check))

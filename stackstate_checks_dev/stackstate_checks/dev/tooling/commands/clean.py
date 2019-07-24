@@ -60,7 +60,7 @@ def clean(ctx, check, compiled_only, all_matches, force, verbose):
         path = resolve_path(os.path.join(get_root(), check))
         if not dir_exists(path):
             abort(
-                'Directory `{}` does not exist. Be sure to `stsdev config set repo '
+                'Directory `{}` does not exist. Be sure to `checksdev config set repo '
                 'path/to/stackstate-agent-integrations`.'.format(path)
             )
     else:

@@ -1,6 +1,6 @@
 ## Upcoming Changes
 
-* [Added] Include sts-url in stsdev env start
+* [Added] Include sts-url in checksdev env start
 
 ## Apply patches up to 6.10.1 / 2019-07-09
 

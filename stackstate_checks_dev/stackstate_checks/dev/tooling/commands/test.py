@@ -43,7 +43,7 @@ def test(checks, style, bench, coverage, cov_missing, enter_pdb, debug, verbose,
     You can also select specific comma-separated environments to test like so:
 
     \b
-    $ stsdev test mysql:mysql57,maria10130
+    $ checksdev test mysql:mysql57,maria10130
     """
     if list_envs:
         check_envs = get_tox_envs(checks, every=True, sort=True)

@@ -20,7 +20,7 @@ from ..utils import dir_exists
 @click.option('--quiet', '-q', is_flag=True)
 @click.version_option()
 @click.pass_context
-def stsdev(ctx, integrations, core, here, quiet):
+def checksdev(ctx, integrations, core, here, quiet):
     if not quiet and not config_file_exists():
         echo_waiting(
             'No config file found, creating one with default settings now...'
@@ -28,7 +28,7 @@ def stsdev(ctx, integrations, core, here, quiet):
 
         try:
             restore_config()
-            echo_success('Success! Please see `stsdev config`.')
+            echo_success('Success! Please see `checksdev config`.')
         except (IOError, OSError, PermissionError):
             echo_warning(
                 'Unable to create config file located at `{}`. '
@@ -56,4 +56,4 @@ def stsdev(ctx, integrations, core, here, quiet):
 
 
 for command in ALL_COMMANDS:
-    stsdev.add_command(command)
+    checksdev.add_command(command)

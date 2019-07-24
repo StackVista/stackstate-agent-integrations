@@ -55,7 +55,7 @@ def start(ctx, check, env, agent, dev, base, api_key, sts_url):
 
     if env not in envs:
         echo_failure('`{}` is not an available environment.'.format(env))
-        echo_info('See what is available via `stsdev env ls {}`.'.format(check))
+        echo_info('See what is available via `checksdev env ls {}`.'.format(check))
         abort()
 
     api_key = api_key or ctx.obj['sts_api_key']
@@ -63,7 +63,7 @@ def start(ctx, check, env, agent, dev, base, api_key, sts_url):
         echo_warning(
             'Environment/parameter variable STS_API_KEY does not exist; a well-formatted '
             'the default API_KEY will be used instead. You can also set the API key '
-            'by doing `stsdev config set sts_api_key`.'
+            'by doing `checksdev config set sts_api_key`.'
         )
 
     sts_url = sts_url or ctx.obj['sts_sts_url']
@@ -90,7 +90,7 @@ def start(ctx, check, env, agent, dev, base, api_key, sts_url):
     if isinstance(agent_ver, string_types):
         agent_build = agent_ver
         echo_warning(
-            'Agent field missing from stsdev config, please update to the latest config, '
+            'Agent field missing from checksdev config, please update to the latest config, '
             'falling back to latest docker image...'
         )
     else:
@@ -177,7 +177,7 @@ def start(ctx, check, env, agent, dev, base, api_key, sts_url):
     pyperclip.copy(environment.config_file)
 
     echo_success('To run this check, do: ', nl=False)
-    echo_info('stsdev env check {} {}'.format(check, env))
+    echo_info('checksdev env check {} {}'.format(check, env))
 
     echo_success('To stop this check, do: ', nl=False)
-    echo_info('stsdev env stop {} {}'.format(check, env))
+    echo_info('checksdev env stop {} {}'.format(check, env))

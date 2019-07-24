@@ -3,6 +3,6 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import sys
 
-from .cli import stsdev
+from .cli import checksdev
 
-sys.exit(stsdev())
+sys.exit(checksdev())

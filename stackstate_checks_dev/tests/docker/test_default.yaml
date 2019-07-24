@@ -4,7 +4,7 @@ services:
 
   vault:
     image: vault:latest
-    container_name: stsdev_vault
+    container_name: checksdev_vault
     cap_add:
       - IPC_LOCK
     environment:
