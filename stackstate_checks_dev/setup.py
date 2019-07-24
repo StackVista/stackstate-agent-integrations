@@ -9,9 +9,14 @@ from setuptools import setup
 
 HERE = path.dirname(path.abspath(__file__))
 
-def get_version():
-  with open(HERE + '/../VERSION', 'r') as f:
-    return f.read()
+with open(path.join(HERE, 'stackstate_checks', 'dev', '__about__.py'), 'r', encoding='utf-8') as f:
+    for line in f:
+        line = line.strip()
+        if line.startswith('__version__'):
+            VERSION = line.split('=')[1].strip(' \'"')
+            break
+    else:
+        VERSION = '0.0.1'
 
 with open(path.join(HERE, 'README.md'), 'r', encoding='utf-8') as f:
     README = f.read()
@@ -31,7 +36,7 @@ REQUIRES = [
 
 setup(
     name='stackstate_checks_dev',
-    version=get_version(),
+    version=VERSION,
 
     description='The StackState Checks Developer Tools',
     long_description=README,
