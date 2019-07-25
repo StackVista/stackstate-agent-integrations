@@ -782,15 +782,15 @@ class MySql(AgentCheck):
         return host in ["localhost", "127.0.0.1", "0.0.0.0"] or port == long(0)
 
     def _collect_system_metrics(self, host, db, tags):
-        pid = None
-        if self._is_localhost(host, db.port):
-            pid = self._get_server_pid(db)
+        try:
+            pid = None
+            if self._is_localhost(host, db.port):
+                pid = self._get_server_pid(db)
 
-        if pid:
-            self.log.debug("System metrics for mysql w/ pid: %s" % pid)
-            # At last, get mysql cpu data out of psutil or procfs
+            if pid:
+                self.log.debug("System metrics for mysql w/ pid: %s" % pid)
+                # At last, get mysql cpu data out of psutil or procfs
 
-            try:
                 ucpu, scpu = None, None
                 if PSUTIL_AVAILABLE:
                     proc = psutil.Process(pid)
@@ -803,10 +803,9 @@ class MySql(AgentCheck):
                     # should really be system_time
                     self.rate("mysql.performance.kernel_time", scpu, tags=tags)
                     self.rate("mysql.performance.cpu_time", ucpu+scpu, tags=tags)
-
-            except Exception:
-                self.warning("Error while reading mysql (pid: %s) procfs data\n%s"
-                             % (pid, traceback.format_exc()))
+        except Exception:
+            self.warning("Error while reading mysql (pid: %s) procfs data\n%s"
+                         % (pid, traceback.format_exc()))
 
     def _get_pid_file_variable(self, db):
         """
