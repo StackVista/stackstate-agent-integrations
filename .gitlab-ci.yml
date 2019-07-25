@@ -3,16 +3,17 @@ image: stackstate/stackstate-agent-integrations-runner:latest
 stages:
   - build
   - test
+  - publish
 
 .linux_env: &linux_env
   before_script:
-    - source .gitlab-scripts/setup_env.sh
+    - source .setup-scripts/setup_env.sh
 
 .windows_env: &windows_env
   tags:
     - sts_windows
   before_script:
-    - call .gitlab-scripts/windows_setup_env.cmd
+    - call .setup-scripts/windows_setup_env.cmd
 
 linux_deps:
   <<: *linux_env
@@ -22,7 +23,7 @@ linux_deps:
     paths:
       - venv
   script:
-    - source $CI_PROJECT_DIR/.gitlab-scripts/load_deps.sh
+    - source $CI_PROJECT_DIR/.setup-scripts/load_deps.sh
   artifacts:
     paths:
       - venv
@@ -36,7 +37,7 @@ win_deps:
     paths:
       - venv
   script:
-    - call .gitlab-scripts/windows_load_env.cmd
+    - call .setup-scripts/windows_load_env.cmd
   artifacts:
     paths:
       - venv
@@ -145,3 +146,12 @@ test_wmi_check:
   <<: *windows_test
   variables:
     CHECK: "wmi_check"
+
+publish-checks-dev:
+  stage: publish
+  script:
+    - source ./.setup-scripts/setup_artifactory_publishing.sh
+    - export VERSION=`./.setup-scripts/version.sh`
+    - echo "__version__ = \"$VERSION\"" > stackstate_checks_dev/stackstate_checks/dev/__about__.py
+    - cd stackstate_checks_dev && python setup.py sdist bdist_wheel upload -r local
+

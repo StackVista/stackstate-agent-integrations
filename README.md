@@ -31,16 +31,16 @@ To start testing the check under local development run
 - checksdev env start mysql 5.7 --dev
 
 ## CI image
-The CI image is built from .gitlab-scripts/image.
+The CI image is built from .setup-scripts/image.
 
 ## Local setup
 
 To work on packages in this directory you can run the following:
 
-- source .gitlab-scripts/setup_env.sh
+- source .setup-scripts/setup_env.sh
 
 From this point on the checksdev script is in scope and commands can be ran.
 
-If changes are made to the checksdev, you can use .gitlab-scripts/load_deps.sh
+If changes are made to the checksdev, you can use .setup-scripts/load_deps.sh
 
 [1]: https://github.com/StackVista/stackstate-agent
