@@ -10,7 +10,7 @@ HERE = path.abspath(path.dirname(__file__))
 
 # Get version info
 ABOUT = {}
-with open(path.join(HERE, "datadog_checks", "kubelet", "__about__.py")) as f:
+with open(path.join(HERE, "stackstate_checks", "kubelet", "__about__.py")) as f:
     exec(f.read(), ABOUT)
 
 # Get the long description from the README file
@@ -24,20 +24,20 @@ def get_requirements(fpath):
         return f.readlines()
 
 
-CHECKS_BASE_REQ = 'datadog_checks_base >= 6.5.0'
+CHECKS_BASE_REQ = 'stackstate-checks-base'
 
 setup(
-    name='datadog-kubelet',
+    name='stackstate-kubelet',
     version=ABOUT["__version__"],
     description='The Kubelet check',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    keywords='datadog agent kubelet check',
+    keywords='stackstate agent kubelet check',
     # The project's main homepage.
-    url='https://github.com/DataDog/integrations-core',
+    url='https://github.com/StackVista/stackstate-agent-integrations',
     # Author details
-    author='Datadog',
-    author_email='packages@datadoghq.com',
+    author='StackState',
+    author_email='info@stackstate.com',
     # License
     license='New BSD',
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
@@ -51,7 +51,7 @@ setup(
         'Programming Language :: Python :: 2.7',
     ],
     # The package we're going to ship
-    packages=['datadog_checks.kubelet'],
+    packages=['stackstate_checks.kubelet'],
     # Run-time dependencies
     install_requires=[CHECKS_BASE_REQ],
     # Extra files to ship with the wheel package

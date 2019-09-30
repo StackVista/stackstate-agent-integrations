@@ -9,7 +9,7 @@ HERE = path.dirname(path.abspath(__file__))
 
 # Get version info
 ABOUT = {}
-with open(path.join(HERE, 'datadog_checks', 'kubernetes', '__about__.py')) as f:
+with open(path.join(HERE, 'stackstate_checks', 'kubernetes', '__about__.py')) as f:
     exec(f.read(), ABOUT)
 
 # Get the long description from the README file
@@ -23,22 +23,22 @@ def get_requirements(fpath):
         return f.readlines()
 
 
-CHECKS_BASE_REQ = 'datadog_checks_base'
+CHECKS_BASE_REQ = 'stackstate-checks-base'
 
 setup(
-    name='datadog-kubernetes',
+    name='stackstate-kubernetes',
     version=ABOUT['__version__'],
     description='The Kubernetes check',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    keywords='datadog agent kubernetes check',
+    keywords='stackstate agent kubernetes check',
 
     # The project's main homepage.
-    url='https://github.com/DataDog/integrations-core',
+    url='https://github.com/StackVista/stackstate-agent-integrations',
 
     # Author details
-    author='Datadog',
-    author_email='packages@datadoghq.com',
+    author='StackState',
+    author_email='info@stackstate.com',
 
     # License
     license='BSD',
@@ -55,7 +55,7 @@ setup(
     ],
 
     # The package we're going to ship
-    packages=['datadog_checks.kubernetes'],
+    packages=['stackstate_checks.kubernetes'],
 
     # Run-time dependencies
     install_requires=[CHECKS_BASE_REQ],
