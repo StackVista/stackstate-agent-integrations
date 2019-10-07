@@ -182,7 +182,7 @@ class CadvisorScraper(object):
             if pod_list_utils.is_excluded(cid):
                 self.log.debug("Filtering out " + cid)
                 return
-            tags = tagger.tag(replace_container_rt_prefix(cid), tagger.HIGH) or []
+            tags = tagger.get_tags(replace_container_rt_prefix(cid), tagger.HIGH) or []
 
         if not tags:
             self.log.debug("Subcontainer {} doesn't have tags, skipping.".format(subcontainer_id))

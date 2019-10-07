@@ -15,7 +15,7 @@ from stackstate_checks.errors import CheckException
 
 try:
     # this module is only available in agent 6
-    from stackstate_agent import get_clustername
+    from datadog_agent import get_clustername
 except ImportError:
 
     def get_clustername():
