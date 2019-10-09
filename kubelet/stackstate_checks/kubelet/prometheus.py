@@ -286,13 +286,13 @@ class CadvisorPrometheusScraperMixin(object):
                 continue
 
             tags = scraper_config['custom_tags'][:]
-            tags += tagger.get_tags(replace_container_rt_prefix(c_id), tagger.HIGH) or []
+            tags += tagger.get_tags(replace_container_rt_prefix(c_id), 2) or []
 
             # FIXME we are forced to do that because the Kubelet PodList isn't updated
             # for static pods, see https://github.com/kubernetes/kubernetes/pull/59948
             pod = self._get_pod_by_metric_label(sample[self.SAMPLE_LABELS])
             if pod is not None and is_static_pending_pod(pod):
-                tags += tagger.get_tags('kubernetes_pod_uid://%s' % pod["metadata"]["uid"], tagger.HIGH) or []
+                tags += tagger.get_tags('kubernetes_pod_uid://%s' % pod["metadata"]["uid"], 2) or []
                 tags += self._get_kube_container_name(sample[self.SAMPLE_LABELS])
                 tags = list(set(tags))
 
@@ -324,7 +324,7 @@ class CadvisorPrometheusScraperMixin(object):
         for pod_uid, sample in iteritems(samples):
             if '.network.' in metric_name and self._is_pod_host_networked(pod_uid):
                 continue
-            tags = tagger.get_tags('kubernetes_pod_uid://%s' % pod_uid, tagger.HIGH) or []
+            tags = tagger.get_tags('kubernetes_pod_uid://%s' % pod_uid, 2) or []
             tags += scraper_config['custom_tags']
             for label in labels:
                 value = sample[self.SAMPLE_LABELS].get(label)
@@ -355,13 +355,13 @@ class CadvisorPrometheusScraperMixin(object):
                 continue
 
             tags = scraper_config['custom_tags'][:]
-            tags += tagger.get_tags(replace_container_rt_prefix(c_id), tagger.HIGH) or []
+            tags += tagger.get_tags(replace_container_rt_prefix(c_id), 2) or []
 
             # FIXME we are forced to do that because the Kubelet PodList isn't updated
             # for static pods, see https://github.com/kubernetes/kubernetes/pull/59948
             pod = self._get_pod_by_metric_label(sample[self.SAMPLE_LABELS])
             if pod is not None and is_static_pending_pod(pod):
-                tags += tagger.get_tags('kubernetes_pod_uid://%s' % pod["metadata"]["uid"], tagger.HIGH) or []
+                tags += tagger.get_tags('kubernetes_pod_uid://%s' % pod["metadata"]["uid"], 2) or []
                 tags += self._get_kube_container_name(sample[self.SAMPLE_LABELS])
                 tags = list(set(tags))
 
@@ -394,7 +394,7 @@ class CadvisorPrometheusScraperMixin(object):
                 continue
 
             tags = scraper_config['custom_tags'][:]
-            tags += tagger.get_tags(replace_container_rt_prefix(c_id), tagger.HIGH) or []
+            tags += tagger.get_tags(replace_container_rt_prefix(c_id), 2) or []
 
             if m_name:
                 self.gauge(m_name, limit, tags)
