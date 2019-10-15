@@ -8,23 +8,17 @@
   "display_name": "Kubernetes",
   "guid": "eb31452b-d681-4823-87cc-2ef114559edf",
   "is_public": true,
-  "maintainer": "help@datadoghq.com",
+  "maintainer": "info@stackstate.com",
   "manifest_version": "1.0.0",
   "metric_prefix": "kubernetes.",
   "metric_to_check": "kubernetes.cpu.usage.total",
   "name": "kubernetes",
-  "public_title": "Datadog-Kubernetes Integration",
+  "public_title": "StackState-Kubernetes Integration",
   "short_description": "Capture Pod scheduling events, track the status of your Kubelets, and much more.",
   "support": "core",
   "supported_os": [
     "linux",
     "mac_os"
   ],
-  "type": "check",
-  "integration_id": "kubernetes",
-  "assets": {
-    "monitors": {},
-    "dashboards": {},
-    "service_checks": "assets/service_checks.json"
-  }
+  "type": "check"
 }
