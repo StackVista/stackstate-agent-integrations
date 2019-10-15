@@ -1,6 +1,5 @@
 [
     {
-        "agent_version": "5.6.0",
         "check": "kubernetes.kubelet.check.ping",
         "statuses": ["ok", "critical"],
         "integration": "kubernetes",
@@ -9,7 +8,6 @@
         "description": "Returns `CRITICAL` if the Kubelet doesn't respond to Ping. OK, otherwise"
     },
     {
-        "agent_version": "5.6.0",
         "check": "kubernetes.kubelet.check.docker",
         "statuses": ["ok", "critical"],
         "integration": "kubernetes",
@@ -18,7 +16,6 @@
         "description": "Returns `CRITICAL` if the Docker service doesn't run on the Kubelet. OK, otherwise"
     },
     {
-        "agent_version": "5.6.0",
         "check": "kubernetes.kubelet.check.syncloop",
         "statuses": ["ok", "critical"],
         "integration": "kubernetes",
@@ -27,7 +24,6 @@
         "description": "Returns `CRITICAL` if the syncloop health check is down. OK, otherwise"
     },
     {
-        "agent_version": "5.6.0",
         "check": "kubernetes.kubelet.check",
         "statuses": ["ok", "critical"],
         "integration": "kubernetes",
