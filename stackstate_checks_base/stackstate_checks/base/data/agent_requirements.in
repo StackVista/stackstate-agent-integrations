@@ -2,7 +2,7 @@ ddtrace==0.13.0
 kubernetes==8.0.1
 pg8000==1.10.1
 prometheus-client==0.3.0
-protobuf==3.5.1
+protobuf==3.7.0
 psycopg2-binary==2.7.5
 pymysql==0.8.0
 pywin32==224; sys_platform == 'win32'
