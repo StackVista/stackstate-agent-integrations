@@ -414,14 +414,6 @@ class CadvisorPrometheusScraperMixin(object):
 
     def container_cpu_usage_seconds_total(self, metric, scraper_config):
         metric_name = scraper_config['namespace'] + '.cpu.usage.total'
-
-        for i, sample in enumerate(metric.samples):
-            # Replacing the sample tuple to convert cores in nano cores
-            metric.samples[i] = (
-                sample[self.SAMPLE_NAME],
-                sample[self.SAMPLE_LABELS],
-                sample[self.SAMPLE_VALUE] * 10.0 ** 9,
-            )
         self._process_container_metric('rate', metric_name, metric, scraper_config)
 
     def container_cpu_load_average_10s(self, metric, scraper_config):
