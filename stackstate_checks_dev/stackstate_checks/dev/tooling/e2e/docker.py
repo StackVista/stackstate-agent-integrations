@@ -66,6 +66,11 @@ class DockerInterface(object):
         write_env_data(self.check, self.env, self.config, self.metadata)
 
     def update_check(self):
+        command_deps = [
+            'docker', 'exec', self.container_name, 'pip', 'install', '-r', "{}/requirements.in".format(self.check_mount_dir)
+        ]
+        run_command(command_deps, capture=True, check=True)
+
         command = [
             'docker', 'exec', self.container_name, 'pip', 'install', '-e', self.check_mount_dir
         ]
