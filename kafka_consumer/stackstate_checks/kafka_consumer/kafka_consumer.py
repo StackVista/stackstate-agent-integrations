@@ -16,7 +16,7 @@ from kazoo.client import KazooClient
 from kazoo.exceptions import NoNodeError
 from six import iteritems, itervalues, string_types, text_type
 
-from stackstate_checks.base import AgentCheck, is_affirmative
+from stackstate_checks.base import AgentCheck, is_affirmative, TopologyInstance, ConfigurationError
 
 # Kafka Errors
 KAFKA_NO_ERROR = kafka_errors.NoError.errno
@@ -53,6 +53,9 @@ class KafkaCheck(AgentCheck):
         self._zk_last_ts = {}
 
         self.kafka_clients = {}
+
+    def get_instance_key(self, instance):
+        return TopologyInstance("kafka_consumer", "kafka://kafka")
 
     def check(self, instance):
         # For calculating lag, we have to fetch offsets from both kafka and
@@ -319,6 +322,26 @@ class KafkaCheck(AgentCheck):
         if tags is None:
             tags = []
         for (consumer_group, topic, partition), consumer_offset in iteritems(consumer_offsets):
+            # Report all the info to STS
+            consumer_group_id = "urn://consumer_group:{}".format(consumer_group)
+            topic_id = "urn://topic:{}".format(topic)
+            #partition_id = "urn://partition:{}".format(partition)
+
+            self.log.info("Reporting consumer_group {} and topic {}".format(consumer_group_id, topic_id))
+            self.log.info(consumer_group)
+            self.log.info(topic)
+            self.log.info(partition)
+            self.log.info(consumer_offset)
+
+
+            self.component(consumer_group_id, "kafka-consumer_group", {})
+            self.component(topic_id, "kafka-topic", {})
+            #self.component(partition_id, "kafka-partition", {})
+
+            self.relation(consumer_group_id, topic_id, "uses", {})
+            #self.relation(consumer_group_id, topic_id, "uses", {})
+
+
             # Report the consumer group offsets and consumer lag
             if (topic, partition) not in highwater_offsets:
                 self.log.warn("[%s] topic: %s partition: %s was not available in the consumer "
