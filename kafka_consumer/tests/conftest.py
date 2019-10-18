@@ -24,17 +24,25 @@ def sts_environment(e2e_instance):
     """
     Start a kafka cluster and wait for it to be up and running.
     """
-    with docker_run(
-        os.path.join(HERE, 'docker', 'docker-compose.yaml'),
-        conditions=[WaitFor(find_topics, attempts=30, wait=3)],
-        env_vars={
-            # Advertising the hostname doesn't work on docker:dind so we manually
-            # resolve the IP address. This seems to also work outside docker:dind
-            # so we got that goin for us.
-            'KAFKA_HOST': HOST_IP,
-        },
-    ):
-        yield e2e_instance
+    if not os.environ.get('USE_LOCAL_KAFKA'):
+        with docker_run(
+            os.path.join(HERE, 'docker', 'docker-compose.yaml'),
+            conditions=[WaitFor(find_topics, attempts=30, wait=3)],
+            env_vars={
+                # Advertising the hostname doesn't work on docker:dind so we manually
+                # resolve the IP address. This seems to also work outside docker:dind
+                # so we got that goin for us.
+                'KAFKA_HOST': HOST_IP,
+            },
+        ):
+            yield e2e_instance
+    else:
+        yield {
+            'kafka_connect_str': KAFKA_CONNECT_STR,
+            'kafka_consumer_offsets': True,
+            'zk_connect_str': ZK_CONNECT_STR,
+            'monitor_unlisted_consumer_groups': True
+        }
 
 
 @pytest.fixture(scope='session')
