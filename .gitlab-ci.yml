@@ -122,6 +122,14 @@ test_postgres:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
 
+test_kafka_consumer_0.11:
+  <<: *linux_test
+  variables:
+    CHECK: "kafka_consumer:py27-0.11-zk kafka_consumer:py27-0.11-kafka"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
 .windows_test: &windows_test
   <<: *windows_env
   stage: test
