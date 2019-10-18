@@ -266,8 +266,8 @@ class KafkaCheck(AgentCheck):
             self.log.info(consumer_offset)
 
 
-            self.component(consumer_group_id, "kafka-consumer_group", {})
-            self.component(topic_id, "kafka-topic", {})
+            self.component(consumer_group_id, "kafka-consumer_group", { "name": str(consumer_group) })
+            self.component(topic_id, "kafka-topic", { "name": str(topic) })
             #self.component(partition_id, "kafka-partition", {})
 
             self.relation(consumer_group_id, topic_id, "uses", {})
