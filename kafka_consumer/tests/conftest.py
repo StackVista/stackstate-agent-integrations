@@ -54,7 +54,6 @@ def sts_environment(e2e_instance):
         yield {
             'kafka_connect_str': KAFKA_CONNECT_STR,
             'kafka_consumer_offsets': True,
-            'zk_connect_str': ZK_CONNECT_STR,
             'monitor_unlisted_consumer_groups': True
         }
 
