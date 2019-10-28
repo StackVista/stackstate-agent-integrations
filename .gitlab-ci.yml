@@ -106,6 +106,30 @@ test_stackstate_checks_dev:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
 
+test_kubernetes:
+  <<: *linux_test
+  variables:
+    CHECK: "kubernetes"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
+test_kubelet:
+  <<: *linux_test
+  variables:
+    CHECK: "kubelet"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
+test_kubernetes_state:
+  <<: *linux_test
+  variables:
+    CHECK: "kubernetes_state"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
 test_mysql:
   <<: *linux_test
   variables:
