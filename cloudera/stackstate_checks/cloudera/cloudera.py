@@ -15,6 +15,9 @@ class Cloudera(AgentCheck):
     def __init__(self, name, init_config, agentConfig, instances=None):
         AgentCheck.__init__(self, name, init_config, agentConfig, instances)
 
+    def get_instance_key(self, instance):
+        return TopologyInstance("cloudera", "cloudera://cloudera")
+
     def check(self, instance):
         host, port, user, password, api_version, verify_ssl =  self._get_config(instance)
 
@@ -36,7 +39,9 @@ class Cloudera(AgentCheck):
             api_client = cm_client.ApiClient(api_url)
 
             # collect topology
-            self._collect_topology(api_client)
+            # self._collect_topology(api_client)
+
+            self._collect_cluster(api_client)
 
         except ApiException as e:
             self.log.exception("An ApiException occured:- {}".format(str(e)))
@@ -71,11 +76,11 @@ class Cloudera(AgentCheck):
             cluster_api_instance = cm_client.ClustersResourceApi(api_client)
             cluster_api_response = cluster_api_instance.read_clusters(view='summary')
             for cluster_data in cluster_api_response.items:
-                self.component(cluster_data.name, "cluster", cluster_data)
+                self.component(cluster_data.name, "cluster", vars(cluster_data))
                 # List all hosts and make relation with cluster
                 hosts_api_response = cluster_api_instance.list_hosts(cluster_data.name)
                 for host_data in hosts_api_response.items:
-                    self.component(host_data.host_id, 'host', host_data)
+                    self.component(host_data.host_id, 'host', vars(host_data))
                     self.relation(host_data.host_id, cluster_data.name, "hosts", {})
         except ApiException as e:
             print("Exception when calling ClustersResourceApi->read_clusters: %s\n" % e)
