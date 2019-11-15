@@ -48,19 +48,6 @@ class Cloudera(AgentCheck):
             self.log.exception('error!')
             raise e
 
-    def _get_config(self, instance):
-        self.host = instance.get('host', '')
-        self.port = int(instance.get('port', 0))
-        api_version = instance.get('api_version', '')
-        user = instance.get('username', '')
-        password = str(instance.get('password', ''))
-        verify_ssl = instance.get('verify_ssl', False)
-        if not self.host:
-            raise Exception('Cloudera host name is required.')
-        if not user:
-            raise Exception('Cloudera Manager user name is required.')
-        return self.host, self.port, user, password, api_version, verify_ssl
-
     def _collect_topology(self, api_client):
         self._collect_hosts(api_client)
         self._collect_cluster(api_client)
@@ -104,6 +91,19 @@ class Cloudera(AgentCheck):
             self.component(role_data.name, 'role', dict_from_cls(role_data))
             self.relation(service_name, role_data.name, 'has a', {})
 
+    def _get_config(self, instance):
+        self.host = instance.get('host', '')
+        self.port = int(instance.get('port', 0))
+        api_version = instance.get('api_version', '')
+        user = instance.get('username', '')
+        password = str(instance.get('password', ''))
+        verify_ssl = instance.get('verify_ssl', False)
+        if not self.host:
+            raise Exception('Cloudera host name is required.')
+        if not user:
+            raise Exception('Cloudera Manager user name is required.')
+        return self.host, self.port, user, password, api_version, verify_ssl
+
 
 if __name__ == '__main__':
     from stackstate_checks.base.stubs.topology import *
@@ -122,4 +122,3 @@ if __name__ == '__main__':
     snapshot = topology.get_snapshot('')
     pp = PrettyPrinter(indent=2)
     pp.pprint(snapshot)
-
