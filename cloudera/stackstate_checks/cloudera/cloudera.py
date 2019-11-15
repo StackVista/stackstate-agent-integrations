@@ -82,7 +82,7 @@ class Cloudera(AgentCheck):
                 self.component(cluster_data.name, 'cluster', dict_from_cls(cluster_data))
                 hosts_api_response = cluster_api_instance.list_hosts(cluster_data.name)
                 for host_data in hosts_api_response.items:
-                    self.relation(host_data.host_id, cluster_data.name, 'host - cluster', {})
+                    self.relation(host_data.host_id, cluster_data.name, 'hosts', {})
                 self._collect_services(api_client, cluster_data.name)
         except ApiException as e:
             print('Exception when calling ClustersResourceApi->read_clusters: {}'.format(e))
@@ -93,7 +93,7 @@ class Cloudera(AgentCheck):
             resp = services_api_instance.read_services(cluster_name, view='summary')
             for service_data in resp.items:
                 self.component(service_data.name, 'service', dict_from_cls(service_data))
-                self.relation(cluster_name, service_data.name, 'cluster-service', {})
+                self.relation(cluster_name, service_data.name, 'runs', {})
         except ApiException as e:
             print('Exception when calling ClustersResourceApi->read_clusters: {}'.format(e))
 
@@ -102,7 +102,7 @@ class Cloudera(AgentCheck):
         roles_api_response = roles_api_instance.read_roles(cluster_name, service_name, view='summary')
         for role_data in roles_api_response.items:
             self.component(role_data.name, 'role', dict_from_cls(role_data))
-            self.relation(service_name, role_data.name, 'service-role', {})
+            self.relation(service_name, role_data.name, 'has a', {})
 
 
 if __name__ == '__main__':
