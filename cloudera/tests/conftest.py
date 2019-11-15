@@ -4,13 +4,13 @@
 import pytest
 
 
-@pytest.fixture(scope='session')
-def sts_environment():
-    yield
+@pytest.fixture('session')
+def sts_environment(instance_dev):
+    yield instance_dev
 
 
-@pytest.fixture
-def instance():
+@pytest.fixture('session')
+def instance_dev():
     return {
         'host': 'ec2-34-244-15-117.eu-west-1.compute.amazonaws.com',
         'port': '7180',
