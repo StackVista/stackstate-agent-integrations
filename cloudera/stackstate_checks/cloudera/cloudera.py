@@ -2,7 +2,6 @@
 # (C) Datadog, Inc. Patrick Galbraith <patg@patg.net> 2013
 # All rights reserved
 # Licensed under Simplified BSD License (see LICENSE)
-from pprint import PrettyPrinter
 
 import cm_client
 from cm_client.rest import ApiException
@@ -97,28 +96,9 @@ class Cloudera(AgentCheck):
         api_version = instance.get('api_version', '')
         user = instance.get('username', '')
         password = str(instance.get('password', ''))
-        verify_ssl = instance.get('verify_ssl', False)
+        verify_ssl = is_affirmative(instance.get('verify_ssl'))
         if not self.host:
             raise Exception('Cloudera host name is required.')
         if not user:
             raise Exception('Cloudera Manager user name is required.')
         return self.host, self.port, user, password, api_version, verify_ssl
-
-
-if __name__ == '__main__':
-    from stackstate_checks.base.stubs.topology import *
-
-    dev_instance = {
-        'host': 'ec2-34-244-15-117.eu-west-1.compute.amazonaws.com',
-        'port': '7180',
-        'username': 'cloudera',
-        'password': 'v4APBoEqW4',
-        'api_version': 'v18',
-        'verify_ssl': 'False'
-    }
-
-    cloudera_check = Cloudera('test', {}, {})
-    cloudera_check.check(dev_instance)
-    snapshot = topology.get_snapshot('')
-    pp = PrettyPrinter(indent=2)
-    pp.pprint(snapshot)
