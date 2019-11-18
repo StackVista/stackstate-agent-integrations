@@ -6,7 +6,7 @@
 import cm_client
 from cm_client.rest import ApiException
 
-from stackstate_checks.base import AgentCheck, is_affirmative, TopologyInstance
+from stackstate_checks.base import AgentCheck, is_affirmative, TopologyInstance, ConfigurationError
 
 
 def dict_from_cls(cls):
@@ -20,10 +20,20 @@ class Cloudera(AgentCheck):
         AgentCheck.__init__(self, name, init_config, agentConfig, instances)
 
     def get_instance_key(self, instance):
-        return TopologyInstance('cloudera', 'cloudera://cloudera')
+        if 'url' not in instance:
+            raise ConfigurationError('Missing url in topology instance configuration.')
+
+        instance_url = instance['url']
+        return TopologyInstance('cloudera', instance_url)
 
     def check(self, instance):
-        host, port, user, password, api_version, verify_ssl = self._get_config(instance)
+        url, port, user, password, api_version, verify_ssl = self._get_config(instance)
+
+        if not user:
+            raise ConfigurationError('Cloudera Manager user name is required.')
+
+        if not password:
+            raise ConfigurationError('Cloudera Manager user password is required.')
 
         # Configure HTTP basic authorization: basic
         cm_client.configuration.username = user
@@ -32,7 +42,7 @@ class Cloudera(AgentCheck):
             cm_client.configuration.verify_ssl = True
 
         # Construct base URL for API
-        api_url = host + ':' + str(port) + '/api/' + api_version
+        api_url = url + ':' + str(port) + '/api/' + api_version
 
         try:
             api_client = cm_client.ApiClient(api_url)
@@ -91,14 +101,10 @@ class Cloudera(AgentCheck):
             self.relation(service_name, role_data.name, 'has a', {})
 
     def _get_config(self, instance):
-        self.host = instance.get('host', '')
+        self.url = instance.get('url', '')
         self.port = int(instance.get('port', 0))
         api_version = instance.get('api_version', '')
         user = instance.get('username', '')
         password = str(instance.get('password', ''))
         verify_ssl = is_affirmative(instance.get('verify_ssl'))
-        if not self.host:
-            raise Exception('Cloudera host name is required.')
-        if not user:
-            raise Exception('Cloudera Manager user name is required.')
-        return self.host, self.port, user, password, api_version, verify_ssl
+        return self.url, self.port, user, password, api_version, verify_ssl

@@ -1,7 +1,7 @@
 init_config:
 
 instances:
-  - host: localhost
+  - url: localhost
     user: my_username
     pass: my_password
     port: 7180             # Optional

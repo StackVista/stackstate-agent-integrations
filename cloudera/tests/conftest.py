@@ -12,10 +12,9 @@ def sts_environment(instance_dev):
 @pytest.fixture('session')
 def instance_dev():
     return {
-        'host': 'ec2-34-244-15-117.eu-west-1.compute.amazonaws.com',
+        'url': 'http://ec2-34-244-15-117.eu-west-1.compute.amazonaws.com',
         'port': '7180',
         'username': 'cloudera',
         'password': 'v4APBoEqW4',
-        'api_version': 'v18',
-        'verify_ssl': 'False'
+        'api_version': 'v18'
     }
