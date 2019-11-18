@@ -47,8 +47,10 @@ class Cloudera(AgentCheck):
         try:
             api_client = cm_client.ApiClient(api_url)
 
+            self.start_snapshot()
             # collect topology
             self._collect_topology(api_client)
+            self.stop_snapshot()
 
         except ApiException as e:
             self.log.exception('An ApiException occurred:- {}'.format(str(e)))
