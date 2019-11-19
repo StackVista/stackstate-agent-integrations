@@ -6,6 +6,11 @@
 import cm_client
 from cm_client.rest import ApiException
 
+try:
+    from urlparse import urlparse
+except ModuleNotFoundError:
+    from urllib.parse import urlparse
+
 from stackstate_checks.base import AgentCheck, is_affirmative, TopologyInstance, ConfigurationError
 
 
@@ -23,8 +28,8 @@ class Cloudera(AgentCheck):
         if 'url' not in instance:
             raise ConfigurationError('Missing url in topology instance configuration.')
 
-        instance_url = instance['url']
-        return TopologyInstance('cloudera', instance_url)
+        instance_url = urlparse(instance['url']).netloc
+        return TopologyInstance('Cloudera', instance_url)
 
     def check(self, instance):
         url, port, user, password, api_version, verify_ssl = self._get_config(instance)
@@ -47,13 +52,13 @@ class Cloudera(AgentCheck):
         try:
             api_client = cm_client.ApiClient(api_url)
 
-            self.start_snapshot()
             # collect topology
+            self.start_snapshot()
             self._collect_topology(api_client)
             self.stop_snapshot()
 
         except ApiException as e:
-            self.log.exception('An ApiException occurred:- {}'.format(str(e)))
+            self.log.exception('An ApiException occurred: {}'.format(str(e)))
             raise e
         except Exception as e:
             self.log.exception('error!')
