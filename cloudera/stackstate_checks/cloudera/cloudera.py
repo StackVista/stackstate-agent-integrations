@@ -98,14 +98,17 @@ class Cloudera(AgentCheck):
                 self.component(service_data.name, 'service', dict_from_cls(service_data))
                 self.relation(cluster_name, service_data.name, 'runs', {})
         except ApiException as e:
-            print('Exception when calling ClustersResourceApi->read_clusters: {}'.format(e))
+            print('Exception when calling ServicesResourceApi->read_services: {}'.format(e))
 
     def _collect_roles(self, api_client, cluster_name, service_name):
-        roles_api_instance = cm_client.RolesResourceApi(api_client)
-        roles_api_response = roles_api_instance.read_roles(cluster_name, service_name, view='summary')
-        for role_data in roles_api_response.items:
-            self.component(role_data.name, 'role', dict_from_cls(role_data))
-            self.relation(service_name, role_data.name, 'has a', {})
+        try:
+            roles_api_instance = cm_client.RolesResourceApi(api_client)
+            roles_api_response = roles_api_instance.read_roles(cluster_name, service_name, view='summary')
+            for role_data in roles_api_response.items:
+                self.component(role_data.name, 'role', dict_from_cls(role_data))
+                self.relation(service_name, role_data.name, 'has a', {})
+        except ApiException as e:
+            print('Exception when calling RolesResourceApi->read_roles: {}'.format(e))
 
     def _get_config(self, instance):
         self.url = instance.get('url', '')
