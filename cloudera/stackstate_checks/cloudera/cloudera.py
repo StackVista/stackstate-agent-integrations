@@ -14,8 +14,6 @@ except ModuleNotFoundError:
 from stackstate_checks.base import AgentCheck, is_affirmative, TopologyInstance, ConfigurationError
 
 
-def dict_from_cls(cls):
-    return dict((key, str(value)) for (key, value) in cls.__dict__.items())
 
 
 class Cloudera(AgentCheck):
@@ -73,7 +71,7 @@ class Cloudera(AgentCheck):
             host_api_instance = cm_client.HostsResourceApi(api_client)
             host_api_response = host_api_instance.read_hosts(view='summary')
             for host_data in host_api_response.items:
-                self.component(host_data.host_id, 'host', dict_from_cls(host_data))
+                self.component(host_data.host_id, 'host', self.dict_from_cls(host_data))
         except ApiException as e:
             print('Exception when calling ClustersResourceApi->read_hosts: {}'.format(e))
 
@@ -82,7 +80,7 @@ class Cloudera(AgentCheck):
             cluster_api_instance = cm_client.ClustersResourceApi(api_client)
             cluster_api_response = cluster_api_instance.read_clusters(view='summary')
             for cluster_data in cluster_api_response.items:
-                self.component(cluster_data.name, 'cluster', dict_from_cls(cluster_data))
+                self.component(cluster_data.name, 'cluster', self.dict_from_cls(cluster_data))
                 hosts_api_response = cluster_api_instance.list_hosts(cluster_data.name)
                 for host_data in hosts_api_response.items:
                     self.relation(host_data.host_id, cluster_data.name, 'hosts', {})
@@ -95,7 +93,7 @@ class Cloudera(AgentCheck):
             services_api_instance = cm_client.ServicesResourceApi(api_client)
             resp = services_api_instance.read_services(cluster_name, view='summary')
             for service_data in resp.items:
-                self.component(service_data.name, 'service', dict_from_cls(service_data))
+                self.component(service_data.name, 'service', self.dict_from_cls(service_data))
                 self.relation(cluster_name, service_data.name, 'runs', {})
         except ApiException as e:
             print('Exception when calling ServicesResourceApi->read_services: {}'.format(e))
@@ -105,7 +103,7 @@ class Cloudera(AgentCheck):
             roles_api_instance = cm_client.RolesResourceApi(api_client)
             roles_api_response = roles_api_instance.read_roles(cluster_name, service_name, view='summary')
             for role_data in roles_api_response.items:
-                self.component(role_data.name, 'role', dict_from_cls(role_data))
+                self.component(role_data.name, 'role', self.dict_from_cls(role_data))
                 self.relation(service_name, role_data.name, 'has a', {})
         except ApiException as e:
             print('Exception when calling RolesResourceApi->read_roles: {}'.format(e))
@@ -118,3 +116,11 @@ class Cloudera(AgentCheck):
         password = str(instance.get('password', ''))
         verify_ssl = is_affirmative(instance.get('verify_ssl'))
         return self.url, self.port, user, password, api_version, verify_ssl
+
+    def _instance_info(self):
+        return {'Instance': urlparse(self.url).netloc}
+
+    def dict_from_cls(self, cls):
+        data = dict((key, str(value)) for (key, value) in cls.__dict__.items())
+        data.update({'Instance': urlparse(self.url).netloc})
+        return data
