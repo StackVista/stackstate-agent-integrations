@@ -1,22 +1,23 @@
 {
-  "categories": [
-    "data store"
-  ],
-  "creates_events": true,
-  "description": "The Cloudera integration helps to collect topology from Cloudera Manager.",
   "display_name": "Cloudera",
-  "guid": "056bfc7f-4775-4581-9442-502078593d10",
-  "is_public": true,
   "maintainer": "info@stackstate.com",
   "manifest_version": "1.0.0",
-  "name": "Cloudera",
-  "public_title": "StackState-Cloudera Integration",
+  "name": "cloudera",
+  "metric_prefix": "cloudera.",
+  "metric_to_check": "",
+  "creates_events": true,
   "short_description": "Collect topology from Cloudera Manager",
+  "guid": "cc8de279-2dd1-4687-8244-193e7309b774",
   "support": "core",
   "supported_os": [
     "linux",
     "mac_os",
     "windows"
   ],
-  "type": "check"
+  "public_title": "StackState-Cloudera Integration",
+  "categories": [
+    "data store"
+  ],
+  "type": "check",
+  "is_public": true
 }

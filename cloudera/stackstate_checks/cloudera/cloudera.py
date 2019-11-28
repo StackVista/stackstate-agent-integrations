@@ -1,10 +1,10 @@
-# (C) Datadog, Inc. 2018
-# (C) Datadog, Inc. Patrick Galbraith <patg@patg.net> 2013
+# (C) Datadog, Inc. 2019
 # All rights reserved
 # Licensed under Simplified BSD License (see LICENSE)
-
+import time
 import cm_client
 from cm_client.rest import ApiException
+import json
 
 try:
     from urlparse import urlparse
@@ -14,13 +14,15 @@ except ModuleNotFoundError:
 from stackstate_checks.base import AgentCheck, is_affirmative, TopologyInstance, ConfigurationError
 
 
-
-
 class Cloudera(AgentCheck):
-    SERVICE_CHECK_NAME = 'cloudera.can_connect'
+    SERVICE_CHECK_NAME = 'cloudera.check'
+    EVENT_TYPE = 'cloudera.entity_status'
+    EVENT_MESSAGE = '{} status'
 
     def __init__(self, name, init_config, agentConfig, instances=None):
         AgentCheck.__init__(self, name, init_config, agentConfig, instances)
+        self.url = None
+        self.tags = None
 
     def get_instance_key(self, instance):
         if 'url' not in instance:
@@ -30,7 +32,7 @@ class Cloudera(AgentCheck):
         return TopologyInstance('Cloudera', instance_url)
 
     def check(self, instance):
-        url, port, user, password, api_version, verify_ssl = self._get_config(instance)
+        self.url, port, user, password, api_version, verify_ssl = self._get_config(instance)
 
         if not user:
             raise ConfigurationError('Cloudera Manager user name is required.')
@@ -45,7 +47,10 @@ class Cloudera(AgentCheck):
             cm_client.configuration.verify_ssl = True
 
         # Construct base URL for API
-        api_url = url + ':' + str(port) + '/api/' + api_version
+        # TODO what to do when we have no port
+        api_url = self.url + ':' + str(port) + '/api/' + api_version
+
+        self.tags = ['instance_url: {}'.format(self.url)]
 
         try:
             api_client = cm_client.ApiClient(api_url)
@@ -55,12 +60,16 @@ class Cloudera(AgentCheck):
             self._collect_topology(api_client)
             self.stop_snapshot()
 
+            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=self.tags)
         except ApiException as e:
-            self.log.exception('An ApiException occurred: {}'.format(str(e)))
-            raise e
+            error_msg = json.loads(e.body)
+            msg = 'Cloudera check {} failed: {}'.format(e.request_name, error_msg['message'])
+            self.log.error(msg)
+            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, message=msg, tags=self.tags)
         except Exception as e:
-            self.log.exception('error!')
-            raise e
+            msg = 'Cloudera check failed: {}'.format(str(e))
+            self.log.error(msg)
+            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, message=msg, tags=self.tags)
 
     def _collect_topology(self, api_client):
         self._collect_hosts(api_client)
@@ -69,58 +78,76 @@ class Cloudera(AgentCheck):
     def _collect_hosts(self, api_client):
         try:
             host_api_instance = cm_client.HostsResourceApi(api_client)
-            host_api_response = host_api_instance.read_hosts(view='summary')
+            host_api_response = host_api_instance.read_hosts(view='full')
             for host_data in host_api_response.items:
-                self.component(host_data.host_id, 'host', self.dict_from_cls(host_data))
+                self.component(host_data.host_id, 'host', self._dict_from_cls(host_data))
+                self.event(self._create_event_data(host_data.host_id, host_data.entity_status))
         except ApiException as e:
-            print('Exception when calling ClustersResourceApi->read_hosts: {}'.format(e))
+            e.request_name = 'ClustersResourceApi > read_hosts'
+            raise e
 
     def _collect_cluster(self, api_client):
         try:
             cluster_api_instance = cm_client.ClustersResourceApi(api_client)
-            cluster_api_response = cluster_api_instance.read_clusters(view='summary')
+            cluster_api_response = cluster_api_instance.read_clusters(view='full')
             for cluster_data in cluster_api_response.items:
-                self.component(cluster_data.name, 'cluster', self.dict_from_cls(cluster_data))
+                self.component(cluster_data.name, 'cluster', self._dict_from_cls(cluster_data))
+                self.event(self._create_event_data(cluster_data.name, cluster_data.entity_status))
                 hosts_api_response = cluster_api_instance.list_hosts(cluster_data.name)
                 for host_data in hosts_api_response.items:
-                    self.relation(host_data.host_id, cluster_data.name, 'hosts', {})
+                    self.relation(cluster_data.name, host_data.host_id, 'is hosted on', {})
                 self._collect_services(api_client, cluster_data.name)
         except ApiException as e:
-            print('Exception when calling ClustersResourceApi->read_clusters: {}'.format(e))
+            e.request_name = 'ClustersResourceApi > read_clusters'
+            raise e
 
     def _collect_services(self, api_client, cluster_name):
         try:
             services_api_instance = cm_client.ServicesResourceApi(api_client)
-            resp = services_api_instance.read_services(cluster_name, view='summary')
+            resp = services_api_instance.read_services(cluster_name, view='full')
             for service_data in resp.items:
-                self.component(service_data.name, 'service', self.dict_from_cls(service_data))
-                self.relation(cluster_name, service_data.name, 'runs', {})
+                self.component(service_data.name, 'service', self._dict_from_cls(service_data))
+                self.event(self._create_event_data(service_data.name, service_data.entity_status))
+                self.relation(service_data.name, cluster_name, 'runs on', {})
+                self._collect_roles(api_client, cluster_name, service_data.name)
         except ApiException as e:
-            print('Exception when calling ServicesResourceApi->read_services: {}'.format(e))
+            e.request_name = 'ServicesResourceApi > read_services'
+            raise e
 
     def _collect_roles(self, api_client, cluster_name, service_name):
         try:
             roles_api_instance = cm_client.RolesResourceApi(api_client)
-            roles_api_response = roles_api_instance.read_roles(cluster_name, service_name, view='summary')
+            roles_api_response = roles_api_instance.read_roles(cluster_name, service_name, view='full')
             for role_data in roles_api_response.items:
-                self.component(role_data.name, 'role', self.dict_from_cls(role_data))
-                self.relation(service_name, role_data.name, 'has a', {})
+                self.component(role_data.name, 'role', self._dict_from_cls(role_data))
+                self.event(self._create_event_data(role_data.name, role_data.entity_status))
+                self.relation(role_data.name, service_name, 'executes', {})
         except ApiException as e:
-            print('Exception when calling RolesResourceApi->read_roles: {}'.format(e))
+            e.request_name = 'RolesResourceApi > read_roles'
+            raise e
 
-    def _get_config(self, instance):
-        self.url = instance.get('url', '')
-        self.port = int(instance.get('port', 0))
+    @staticmethod
+    def _get_config(instance):
+        url = instance.get('url', '')
+        port = instance.get('port', 0)
         api_version = instance.get('api_version', '')
         user = instance.get('username', '')
         password = str(instance.get('password', ''))
         verify_ssl = is_affirmative(instance.get('verify_ssl'))
-        return self.url, self.port, user, password, api_version, verify_ssl
+        return url, port, user, password, api_version, verify_ssl
 
-    def _instance_info(self):
-        return {'Instance': urlparse(self.url).netloc}
-
-    def dict_from_cls(self, cls):
+    def _dict_from_cls(self, cls):
         data = dict((key, str(value)) for (key, value) in cls.__dict__.items())
-        data.update({'Instance': urlparse(self.url).netloc})
+        data.update({'cloudera-instance': urlparse(self.url).netloc})
         return data
+
+    def _create_event_data(self, name, status):
+        tags = self.tags
+        tags.append('entity_name: {}'.format(name))
+        return {
+            'timestamp': int(time.time()),
+            'source_type_name': self.EVENT_TYPE,
+            'msg_title': self.EVENT_MESSAGE.format(name),
+            'msg_text': status,
+            'tags': tags
+        }
