@@ -15,7 +15,7 @@ from stackstate_checks.base import AgentCheck, is_affirmative, TopologyInstance,
 
 
 class Cloudera(AgentCheck):
-    SERVICE_CHECK_NAME = 'cloudera.check'
+    SERVICE_CHECK_NAME = 'cloudera.can_connect'
     EVENT_TYPE = 'cloudera.entity_status'
     EVENT_MESSAGE = '{} status'
 
@@ -142,12 +142,11 @@ class Cloudera(AgentCheck):
         return data
 
     def _create_event_data(self, name, status):
-        tags = self.tags
-        tags.append('entity_name: {}'.format(name))
         return {
             'timestamp': int(time.time()),
             'source_type_name': self.EVENT_TYPE,
             'msg_title': self.EVENT_MESSAGE.format(name),
+            'host': name,
             'msg_text': status,
-            'tags': tags
+            'tags': self.tags + ['entity_name: {}'.format(name), 'type: {}'.format(self.EVENT_TYPE)]
         }
