@@ -9,22 +9,22 @@
 
 #### Prerequisite Steps:
 
-Execute the following commands on the newly provisioned VM.
+Execute the following commands on the newly provisioned VM.Reboot after execution.
 
 ```bash
-echo "echo never > /sys/kernel/mm/redhat_transparent_hugepage/enabled" >> /etc/rc.local
-echo "echo never >  /sys/kernel/mm/redhat_transparent_hugepage/defrag" >> /etc/rc.local
-echo "vm.swappines = 10" >> /etc/sysctl.conf
-chkconfig iptables off
-chkconfig iptables off
-sed -i 's/SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config
-yum -y install ntp
-chkconfig ntpd on
+$ echo "echo never > /sys/kernel/mm/redhat_transparent_hugepage/enabled" >> /etc/rc.local
+$ echo "echo never >  /sys/kernel/mm/redhat_transparent_hugepage/defrag" >> /etc/rc.local
+$ echo "vm.swappines = 10" >> /etc/sysctl.conf
+$ chkconfig iptables off
+$ chkconfig iptables off
+$ sed -i 's/SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config
+$ yum -y install ntp
+$ chkconfig ntpd on
 ```
 
 #### Install Cloudera Manager:
 
-Download from archive.cloudera.com the installer binary and execute the installer and select the default options on the screen prompt.
+Download from `archive.cloudera.com` the installer binary and execute the installer and select the default options on the screen prompt.
 
 ```bash
 $ yum install -y wget
@@ -39,7 +39,7 @@ sudo service cloudera-scm-server start
 ```
 
 Note the credentials displayed in the popup at the sucessful start of the service.
-In your browser navigate to  http://{instance_fqdn}:7180 and logon with the credentials displayed in the popup to continue the installation . 
+In your browser navigate to  `http://{instance_fqdn}:7180` and logon with the credentials displayed in the popup to continue the installation . 
 
 
 
