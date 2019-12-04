@@ -3,7 +3,7 @@
 
 ## Overview
 
-#### Installation of CLoudera Manager Single Node Cluster:
+#### Installation of Cloudera Manager Single Node Cluster:
 
     Choose a Centos 7 AMI and create an instance with minimum capacity t2.medium.
 
@@ -38,6 +38,7 @@ After installation above start the manager service.
 sudo service cloudera-scm-server start
 ```
 
+Note the credentials displayed in the popup at the sucessful start of the service.
 In your browser navigate to  http://{instance_fqdn}:7180 and logon with the credentials displayed in the popup to continue the installation . 
 
 
