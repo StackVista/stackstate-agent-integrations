@@ -5,7 +5,7 @@
 
 #### Installation of Cloudera Manager Single Node Cluster:
 
-    Choose a Centos 7 AMI and create an instance with minimum capacity t2.medium.
+Choose a Centos 7 AMI and create an instance with minimum capacity t2.medium.
 
 #### Prerequisite Steps:
 
