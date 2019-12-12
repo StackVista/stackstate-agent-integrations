@@ -1,0 +1,10 @@
+{
+    "_items": [
+        {
+            "_host_id": "b5aa7302-3d1c-4b8d-9f7c-3491b4e5ddcf",
+            "_hostname": null,
+            "py/object": "cm_client.models.api_host_ref.ApiHostRef"
+        }
+    ],
+    "py/object": "cm_client.models.api_host_ref_list.ApiHostRefList"
+}
