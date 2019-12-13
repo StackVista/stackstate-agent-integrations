@@ -2,6 +2,7 @@
 # All rights reserved
 # Licensed under Simplified BSD License (see LICENSE)
 import time
+
 import cm_client
 from cm_client.rest import ApiException
 
@@ -162,9 +163,9 @@ class ClouderaClient:
 
     def get_host_api(self):
         try:
-            api_instance = cm_client.HostsResourceApi(self.api_client)
-            response = api_instance.read_hosts(view='full')
-            return response
+            host_api_instance = cm_client.HostsResourceApi(self.api_client)
+            host_api_response = host_api_instance.read_hosts(view='full')
+            return host_api_response
         except ApiException as e:
             e.request_name = 'ClustersResourceApi > read_hosts'
             raise e
@@ -172,8 +173,8 @@ class ClouderaClient:
     def get_service_api(self, cluster_name):
         try:
             services_api_instance = cm_client.ServicesResourceApi(self.api_client)
-            resp = services_api_instance.read_services(cluster_name, view='full')
-            return resp
+            services_api_response = services_api_instance.read_services(cluster_name, view='full')
+            return services_api_response
         except ApiException as e:
             e.request_name = 'ServicesResourceApi > read_services'
             raise e
