@@ -50,7 +50,7 @@ def test_check_collect_cluster(aggregator, instance):
     snapshot = topology.get_snapshot('')
     instance_url = urlparse(instance['url']).netloc
     assert snapshot['instance_key']['url'] == instance_url
-    assert len(snapshot['components']) == 133
-    assert len(snapshot['relations']) == 132
+    assert len(snapshot['components']) == 36
+    assert len(snapshot['relations']) == 57
 
     aggregator.assert_all_metrics_covered()
