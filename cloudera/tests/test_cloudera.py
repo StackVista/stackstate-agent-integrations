@@ -43,7 +43,7 @@ class MockClouderaClient:
 
 
 @patch('stackstate_checks.cloudera.cloudera.ClouderaClient', MockClouderaClient)
-def test_check_collect_cluster(aggregator, instance):
+def test_check_collect_topology(aggregator, instance):
     check = ClouderaCheck('test', {}, {}, instances=[instance])
 
     check.check(instance)
