@@ -1,6 +1,8 @@
 # (C) Datadog, Inc. 2019
 # All rights reserved
 # Licensed under Simplified BSD License (see LICENSE)
+import json
+import logging
 import time
 
 import cm_client
@@ -70,42 +72,30 @@ class ClouderaCheck(AgentCheck):
                     self.relation(role.role_name, hostname, 'is hosted on', {})
 
     def _collect_cluster(self, api_client):
-        try:
-            cluster_api_response = api_client.get_cluster_api()
-            for cluster_data in cluster_api_response.items:
-                data = self._dict_from_cls(cluster_data)
-                data['name'] = cluster_data.display_name
-                data['identifiers'] = ['urn:clouderacluster:/{}'.format(cluster_data.name)]
-                self.component(cluster_data.name, 'cluster', data)
-                self.event(self._create_event_data(cluster_data.name, cluster_data.entity_status))
-                self._collect_services(api_client, cluster_data.name)
-        except ApiException as e:
-            e.request_name = 'ClustersResourceApi > read_clusters'
-            raise e
+        cluster_api_response = api_client.get_cluster_api()
+        for cluster_data in cluster_api_response.items:
+            data = self._dict_from_cls(cluster_data)
+            data['name'] = cluster_data.display_name
+            data['identifiers'] = ['urn:clouderacluster:/{}'.format(cluster_data.name)]
+            self.component(cluster_data.name, 'cluster', data)
+            self.event(self._create_event_data(cluster_data.name, cluster_data.entity_status))
+            self._collect_services(api_client, cluster_data.name)
 
     def _collect_services(self, api_client, cluster_name):
-        try:
-            service_api_response = api_client.get_service_api(cluster_name)
-            for service_data in service_api_response.items:
-                self.component(service_data.name, 'service', self._dict_from_cls(service_data))
-                self.event(self._create_event_data(service_data.name, service_data.entity_status))
-                self.relation(cluster_name, service_data.name, 'runs on', {})
-                self._collect_roles(api_client, cluster_name, service_data.name)
-        except ApiException as e:
-            e.request_name = 'ServicesResourceApi > read_services'
-            raise e
+        service_api_response = api_client.get_service_api(cluster_name)
+        for service_data in service_api_response.items:
+            self.component(service_data.name, 'service', self._dict_from_cls(service_data))
+            self.event(self._create_event_data(service_data.name, service_data.entity_status))
+            self.relation(cluster_name, service_data.name, 'runs on', {})
+            self._collect_roles(api_client, cluster_name, service_data.name)
 
     def _collect_roles(self, api_client, cluster_name, service_name):
-        try:
-            roles_api_response = api_client.get_roles_api(cluster_name, service_name)
-            for role_data in roles_api_response.items:
-                self.component(role_data.name, 'role', self._dict_from_cls(role_data))
-                self.event(self._create_event_data(role_data.name, role_data.entity_status))
-                self.relation(service_name, role_data.name, 'executes', {})
-                self.roles.append(role_data.name)
-        except ApiException as e:
-            e.request_name = 'RolesResourceApi > read_roles'
-            raise e
+        roles_api_response = api_client.get_roles_api(cluster_name, service_name)
+        for role_data in roles_api_response.items:
+            self.component(role_data.name, 'role', self._dict_from_cls(role_data))
+            self.event(self._create_event_data(role_data.name, role_data.entity_status))
+            self.relation(service_name, role_data.name, 'executes', {})
+            self.roles.append(role_data.name)
 
     def _dict_from_cls(self, cls):
         data = dict((key.lstrip('_'), str(value)) for (key, value) in cls.__dict__.items())
@@ -134,6 +124,7 @@ def get_config(instance):
 
 class ClouderaClient:
     def __init__(self, instance):
+        self.log = logging.getLogger(__name__)
         url, user, password, api_version, verify_ssl = get_config(instance)
 
         if not user:
@@ -158,7 +149,7 @@ class ClouderaClient:
             cluster_api_response = cluster_api_instance.read_clusters(view='full')
             return cluster_api_response
         except ApiException as e:
-            e.request_name = 'ClustersResourceApi > read_clusters'
+            self.log.error('ERROR at ClustersResourceApi > read_clusters')
             raise e
 
     def get_host_api(self):
@@ -167,7 +158,7 @@ class ClouderaClient:
             host_api_response = host_api_instance.read_hosts(view='full')
             return host_api_response
         except ApiException as e:
-            e.request_name = 'ClustersResourceApi > read_hosts'
+            self.log.error('ERROR at ClustersResourceApi > read_hosts')
             raise e
 
     def get_service_api(self, cluster_name):
@@ -176,7 +167,7 @@ class ClouderaClient:
             services_api_response = services_api_instance.read_services(cluster_name, view='full')
             return services_api_response
         except ApiException as e:
-            e.request_name = 'ServicesResourceApi > read_services'
+            self.log.error('ERROR at ServicesResourceApi > read_services')
             raise e
 
     def get_roles_api(self, cluster_name, service_name):
@@ -185,5 +176,5 @@ class ClouderaClient:
             roles_api_response = roles_api_instance.read_roles(cluster_name, service_name, view='full')
             return roles_api_response
         except ApiException as e:
-            e.request_name = 'RolesResourceApi > read_roles'
+            self.log.error('ERROR at RolesResourceApi > read_roles')
             raise e
