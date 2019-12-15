@@ -1,7 +1,6 @@
 # (C) Datadog, Inc. 2019
 # All rights reserved
 # Licensed under Simplified BSD License (see LICENSE)
-import json
 import logging
 import time
 
@@ -33,7 +32,7 @@ class ClouderaCheck(AgentCheck):
             raise ConfigurationError('Missing url in topology instance configuration.')
 
         instance_url = urlparse(instance['url']).netloc
-        return TopologyInstance('Cloudera', instance_url)
+        return TopologyInstance(self.INSTANCE_TYPE, instance_url)
 
     def check(self, instance):
         self.url = get_config(instance)[0]
@@ -113,15 +112,6 @@ class ClouderaCheck(AgentCheck):
         }
 
 
-def get_config(instance):
-    url = instance.get('url', '')
-    api_version = instance.get('api_version', '')
-    user = instance.get('username', '')
-    password = str(instance.get('password', ''))
-    verify_ssl = is_affirmative(instance.get('verify_ssl'))
-    return url, user, password, api_version, verify_ssl
-
-
 class ClouderaClient:
     def __init__(self, instance):
         self.log = logging.getLogger(__name__)
@@ -178,3 +168,12 @@ class ClouderaClient:
         except ApiException as e:
             self.log.error('ERROR at RolesResourceApi > read_roles')
             raise e
+
+
+def get_config(instance):
+    url = instance.get('url', '')
+    api_version = instance.get('api_version', '')
+    user = instance.get('username', '')
+    password = str(instance.get('password', ''))
+    verify_ssl = is_affirmative(instance.get('verify_ssl'))
+    return url, user, password, api_version, verify_ssl
