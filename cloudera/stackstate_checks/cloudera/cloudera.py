@@ -53,9 +53,9 @@ class ClouderaCheck(AgentCheck):
         except ApiException as e:
             try:
                 error_msg = json.loads(e.body)
-            except e:
-                error_msg = None
-            msg = 'Status: {} {} - Reason: {}'.format(e.status, e.reason, error_msg['message'])
+                msg = 'Status: {} {} - Reason: {}'.format(e.status, e.reason, error_msg['message'])
+            except ValueError:
+                msg = 'Status: {} {}'.format(e.status, e.reason)
             self.log.error(msg)
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, message=msg, tags=self.tags)
         except Exception as e:
@@ -124,7 +124,7 @@ class ClouderaCheck(AgentCheck):
 class ClouderaClient:
     def __init__(self, instance):
         self.log = logging.getLogger(__name__)
-        url, user, password, api_version, verify_ssl = get_config(instance)
+        self.url, user, password, api_version, verify_ssl = get_config(instance)
 
         if not user:
             raise Exception('Cloudera Manager user name is required.')
@@ -138,7 +138,7 @@ class ClouderaClient:
         cm_client.configuration.verify_ssl = verify_ssl
 
         # Construct base URL for API
-        api_url = '{0}/api/{1}'.format(url, api_version)
+        api_url = '{0}/api/{1}'.format(self.url, api_version)
 
         self.api_client = cm_client.ApiClient(api_url)
 
@@ -148,7 +148,7 @@ class ClouderaClient:
             cluster_api_response = cluster_api_instance.read_clusters(view='full')
             return cluster_api_response
         except ApiException as e:
-            self.log.error('ERROR at ClustersResourceApi > read_clusters')
+            self.log.error('ERROR with ClustersResourceApi > read_clusters at {}'.format(self.url))
             raise e
 
     def get_host_api(self):
@@ -157,7 +157,7 @@ class ClouderaClient:
             host_api_response = host_api_instance.read_hosts(view='full')
             return host_api_response
         except ApiException as e:
-            self.log.error('ERROR at ClustersResourceApi > read_hosts')
+            self.log.error('ERROR with ClustersResourceApi > read_hosts at {}'.format(self.url))
             raise e
 
     def get_service_api(self, cluster_name):
@@ -166,7 +166,7 @@ class ClouderaClient:
             services_api_response = services_api_instance.read_services(cluster_name, view='full')
             return services_api_response
         except ApiException as e:
-            self.log.error('ERROR at ServicesResourceApi > read_services')
+            self.log.error('ERROR with ServicesResourceApi > read_services at {}'.format(self.url))
             raise e
 
     def get_roles_api(self, cluster_name, service_name):
@@ -175,7 +175,7 @@ class ClouderaClient:
             roles_api_response = roles_api_instance.read_roles(cluster_name, service_name, view='full')
             return roles_api_response
         except ApiException as e:
-            self.log.error('ERROR at RolesResourceApi > read_roles')
+            self.log.error('ERROR with RolesResourceApi > read_roles at {}'.format(self.url))
             raise e
 
 
