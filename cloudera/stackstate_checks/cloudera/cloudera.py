@@ -145,7 +145,7 @@ class ClouderaClient:
     def get_cluster_api(self):
         try:
             cluster_api_instance = cm_client.ClustersResourceApi(self.api_client)
-            cluster_api_response = cluster_api_instance.read_clusters(view='full1')
+            cluster_api_response = cluster_api_instance.read_clusters(view='full')
             return cluster_api_response
         except ApiException as e:
             self.log.error('ERROR at ClustersResourceApi > read_clusters')
