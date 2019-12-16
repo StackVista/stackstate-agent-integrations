@@ -1,6 +1,7 @@
 # (C) Datadog, Inc. 2019
 # All rights reserved
 # Licensed under Simplified BSD License (see LICENSE)
+import json
 import logging
 import time
 
@@ -49,8 +50,16 @@ class ClouderaCheck(AgentCheck):
             self.stop_snapshot()
 
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=self.tags)
+        except ApiException as e:
+            try:
+                error_msg = json.loads(e.body)
+            except e:
+                error_msg = None
+            msg = 'Status: {} {} - Reason: {}'.format(e.status, e.reason, error_msg['message'])
+            self.log.error(msg)
+            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, message=msg, tags=self.tags)
         except Exception as e:
-            msg = 'Cloudera check failed: {}'.format(str(e))
+            msg = 'Cloudera check failed: {}'.format(e)
             self.log.error(msg)
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, message=msg, tags=self.tags)
 
@@ -136,7 +145,7 @@ class ClouderaClient:
     def get_cluster_api(self):
         try:
             cluster_api_instance = cm_client.ClustersResourceApi(self.api_client)
-            cluster_api_response = cluster_api_instance.read_clusters(view='full')
+            cluster_api_response = cluster_api_instance.read_clusters(view='full1')
             return cluster_api_response
         except ApiException as e:
             self.log.error('ERROR at ClustersResourceApi > read_clusters')
