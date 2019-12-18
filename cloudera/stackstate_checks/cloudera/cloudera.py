@@ -41,14 +41,11 @@ class ClouderaCheck(AgentCheck):
         self.tags = ['instance_url: {}'.format(self.url)]
         self.roles = []
 
+        # collect topology
+        self.start_snapshot()
         try:
             api_client = ClouderaClient(instance)
-
-            # collect topology
-            self.start_snapshot()
             self._collect_topology(api_client)
-            self.stop_snapshot()
-
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=self.tags)
         except ApiException as e:
             try:
@@ -62,6 +59,8 @@ class ClouderaCheck(AgentCheck):
             msg = 'Cloudera check failed: {}'.format(e)
             self.log.error(msg)
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, message=msg, tags=self.tags)
+        finally:
+            self.stop_snapshot()
 
     def _collect_topology(self, api_client):
         self._collect_cluster(api_client)
