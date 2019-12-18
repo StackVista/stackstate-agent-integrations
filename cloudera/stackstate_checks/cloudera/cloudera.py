@@ -10,7 +10,7 @@ from cm_client.rest import ApiException
 
 try:
     from urlparse import urlparse
-except ModuleNotFoundError:
+except ImportError:
     from urllib.parse import urlparse
 
 from stackstate_checks.base import AgentCheck, is_affirmative, TopologyInstance, ConfigurationError

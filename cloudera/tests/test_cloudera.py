@@ -11,7 +11,7 @@ from stackstate_checks.cloudera import ClouderaCheck
 
 try:
     from urlparse import urlparse
-except ModuleNotFoundError:
+except ImportError:
     from urllib.parse import urlparse
 
 
