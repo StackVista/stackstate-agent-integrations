@@ -122,6 +122,14 @@ test_postgres:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
 
+test_cloudera:
+  <<: *linux_test
+  variables:
+    CHECK: "cloudera"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
 .windows_test: &windows_test
   <<: *windows_env
   stage: test
@@ -146,6 +154,11 @@ test_wmi_check:
   <<: *windows_test
   variables:
     CHECK: "wmi_check"
+
+test_cloudera_win:
+  <<: *windows_test
+  variables:
+    CHECK: "cloudera"
 
 publish-checks-dev:
   stage: publish
