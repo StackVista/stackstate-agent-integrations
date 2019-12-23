@@ -452,32 +452,3 @@ def test_job_counts(aggregator, instance):
     aggregator.assert_metric(
         NAMESPACE + '.job.succeeded', tags=['namespace:default', 'job:hello', 'optional:tag1'], value=4
     )
-
-
-def test_telemetry(aggregator, instance):
-    instance['telemetry'] = True
-
-    check = KubernetesState(CHECK_NAME, {}, {}, [instance])
-    check.poll = mock.MagicMock(return_value=MockResponse(mock_from_file("prometheus.txt"), 'text/plain'))
-
-    endpoint = instance['kube_state_url']
-    scraper_config = check.config_map[endpoint]
-    scraper_config['_text_filter_blacklist'] = ['resourcequota']
-
-    for _ in range(2):
-        check.check(instance)
-    aggregator.assert_metric(NAMESPACE + '.telemetry.payload.size', tags=['optional:tag1'], value=90270.0)
-    aggregator.assert_metric(NAMESPACE + '.telemetry.metrics.processed.count', tags=['optional:tag1'], value=908.0)
-    aggregator.assert_metric(NAMESPACE + '.telemetry.metrics.input.count', tags=['optional:tag1'], value=1282.0)
-    aggregator.assert_metric(NAMESPACE + '.telemetry.metrics.blacklist.count', tags=['optional:tag1'], value=24.0)
-    aggregator.assert_metric(NAMESPACE + '.telemetry.metrics.ignored.count', tags=['optional:tag1'], value=374.0)
-    aggregator.assert_metric(
-        NAMESPACE + '.telemetry.collector.metrics.count',
-        tags=['resource_name:pod', 'resource_namespace:default', 'optional:tag1'],
-        value=540.0,
-    )
-    aggregator.assert_metric(
-        NAMESPACE + '.telemetry.collector.metrics.count',
-        tags=['resource_name:hpa', 'resource_namespace:ns1', 'optional:tag1'],
-        value=8.0,
-    )
