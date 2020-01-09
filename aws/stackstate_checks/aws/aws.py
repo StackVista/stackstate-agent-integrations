@@ -6,21 +6,24 @@ import json
 import logging
 
 import boto3
+import requests
 
 from stackstate_checks.base import AgentCheck, TopologyInstance
 from botocore.config import Config
 
 DEFAULT_BOTO3_RETRIES_COUNT = 50
 
-DEFAULT_BOTO_CONFIG = Config(
+DEFAULT_BOTO3_CONFIG = Config(
     retries=dict(
         max_attempts=DEFAULT_BOTO3_RETRIES_COUNT
     )
 )
 
+TRACES_API_ENDPOINT = 'http://localhost:8126/v0.3/traces'
+
 
 def get_account_id():
-    return boto3.client('sts', config=DEFAULT_BOTO_CONFIG).get_caller_identity().get('Account')
+    return boto3.client('sts', config=DEFAULT_BOTO3_CONFIG).get_caller_identity().get('Account')
 
 
 def get_current_region():
@@ -39,15 +42,14 @@ class AwsCheck(AgentCheck):
         return TopologyInstance(self.INSTANCE_TYPE, self.account_id)
 
     def check(self, instance):
-        self.log.info('Check')
         region = get_current_region()
-        self.log.info(region)
         traces = self.get_xray_traces(region)
+        headers = {'Content-Type': 'application/json'}
+        requests.put(TRACES_API_ENDPOINT, data=json.dumps(traces), headers=headers)
 
     def get_xray_traces(self, region):
         session = boto3.Session(profile_name='sandbox')
-        client = session.client('xray', region_name=region, config=DEFAULT_BOTO_CONFIG)
-        self.log.info(boto3.session.Session().profile_name)
+        client = session.client('xray', region_name=region, config=DEFAULT_BOTO3_CONFIG)
 
         start_time = datetime.datetime.utcnow() - datetime.timedelta(hours=1)
         end_time = datetime.datetime.utcnow()
@@ -67,9 +69,8 @@ class AwsCheck(AgentCheck):
                 for segment in xray_trace['Segments']:
                     segment_documents = [json.loads(segment['Document'])]
                     trace.extend(self.generate_spans(segment_documents, service_name))
-                self.log.info('{} spans in trace {}'.format(len(trace), xray_trace['Id']))
                 traces.append(trace)
-        self.log.info('{} traces'.format(len(traces)))
+
         return traces
 
     def generate_spans(self, segments, service, trace_id=None):
@@ -81,21 +82,21 @@ class AwsCheck(AgentCheck):
                 trace_id = segment['trace_id']
 
             try:
-                resource_name = segment['resource_arn']
+                resource = segment['resource_arn']
             except KeyError:
                 try:
-                    resource_name = segment['aws']['function_arn']
+                    resource = segment['aws']['function_arn']
                 except KeyError:
                     try:
-                        resource_name = segment['aws']['operation']
+                        resource = segment['aws']['operation']
                     except KeyError:
-                        resource_name = segment['name']
+                        resource = segment['name']
 
             span = {
                 'trace_id': trace_id,
                 'span_id': segment['id'],
                 'name': segment['name'],
-                'resource': resource_name,
+                'resource': resource,
                 'service': service,
                 'start': segment['start_time'],
                 'duration': str((end - start) / datetime.timedelta(milliseconds=1))
