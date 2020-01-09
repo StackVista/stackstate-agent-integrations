@@ -8,8 +8,8 @@ import sys
 import mock
 import pytest
 
-from datadog_checks.checks.openmetrics import OpenMetricsBaseCheck
-from datadog_checks.kubelet import KubeletCredentials, PodListUtils, get_pod_by_uid, is_static_pending_pod
+from stackstate_checks.checks.openmetrics import OpenMetricsBaseCheck
+from stackstate_checks.kubelet import KubeletCredentials, PodListUtils, get_pod_by_uid, is_static_pending_pod
 
 from .test_kubelet import mock_from_file
 
@@ -22,7 +22,7 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 
 def test_container_filter(monkeypatch):
     is_excluded = mock.Mock(return_value=False)
-    monkeypatch.setattr('datadog_checks.kubelet.common.is_excluded', is_excluded)
+    monkeypatch.setattr('stackstate_checks.kubelet.common.is_excluded', is_excluded)
 
     long_cid = "docker://a335589109ce5506aa69ba7481fc3e6c943abd23c5277016c92dac15d0f40479"
     ctr_name = "datadog-agent"
@@ -70,7 +70,7 @@ def test_container_filter(monkeypatch):
 
 def test_filter_staticpods(monkeypatch):
     is_excluded = mock.Mock(return_value=True)
-    monkeypatch.setattr('datadog_checks.kubelet.common.is_excluded', is_excluded)
+    monkeypatch.setattr('stackstate_checks.kubelet.common.is_excluded', is_excluded)
 
     pods = json.loads(mock_from_file('pods.json'))
     pod_list_utils = PodListUtils(pods)

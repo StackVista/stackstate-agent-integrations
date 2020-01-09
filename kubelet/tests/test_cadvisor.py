@@ -9,7 +9,7 @@ import pytest
 import requests_mock
 from requests.exceptions import HTTPError
 
-from datadog_checks.kubelet import KubeletCheck
+from stackstate_checks.kubelet import KubeletCheck
 
 from .test_kubelet import EXPECTED_METRICS_COMMON, NODE_SPEC, mock_from_file
 
@@ -27,7 +27,7 @@ def mock_request():
 
 @pytest.fixture
 def tagger():
-    from datadog_checks.base.stubs import tagger
+    from stackstate_checks.base.stubs import tagger
 
     tagger.reset()
     # We filter out slices unknown by the tagger, mock a non-empty taglist

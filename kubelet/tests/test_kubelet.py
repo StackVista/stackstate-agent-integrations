@@ -275,10 +275,10 @@ def test_prometheus_cpu_summed(monkeypatch, aggregator, tagger):
     calls = [
         mock.call(
             'kubernetes.cpu.usage.total',
-            2053640000000.0,
+            2053.64,
             ['kube_container_name:fluentd-gcp', 'kube_deployment:fluentd-gcp-v2.0.10'],
         ),
-        mock.call('kubernetes.cpu.usage.total', 7756358313.0, ['pod_name:demo-app-success-c485bc67b-klj45']),
+        mock.call('kubernetes.cpu.usage.total', 7.756358313, ['pod_name:demo-app-success-c485bc67b-klj45']),
     ]
     check.rate.assert_has_calls(calls, any_order=True)
 
