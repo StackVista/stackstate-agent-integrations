@@ -11,4 +11,9 @@ def sts_environment():
 
 @pytest.fixture
 def instance():
-    return {}
+    return {
+        'aws_access_key_id': 'abc',
+        'aws_secret_access_key': 'cde',
+        'role_arn': 'arn:aws:iam::0123456789:role/OtherRoleName',
+        'region': 'ijk'
+    }
