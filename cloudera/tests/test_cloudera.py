@@ -1,3 +1,6 @@
+# (C) StackState 2020
+# All rights reserved
+# Licensed under a 3-clause BSD style license (see LICENSE)
 import os
 import jsonpickle as jsonpickle
 
