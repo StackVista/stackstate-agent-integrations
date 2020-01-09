@@ -13,3 +13,4 @@ simplejson==3.6.5
 six==1.11.0
 uptime==3.0.1
 uuid==1.30
+zeep==3.4.0

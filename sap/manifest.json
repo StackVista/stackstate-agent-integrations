@@ -1,0 +1,23 @@
+{
+  "display_name": "Sap",
+  "maintainer": "info@stackstate.com",
+  "manifest_version": "1.0.0",
+  "name": "sap",
+  "metric_prefix": "sap.",
+  "metric_to_check": "",
+  "creates_events": false,
+  "short_description": "",
+  "guid": "8b282cc3-df23-449f-b916-be8350b66ee8",
+  "support": "core",
+  "supported_os": [
+    "linux",
+    "mac_os",
+    "windows"
+  ],
+  "public_title": "StackState-SAP Integration",
+  "categories": [
+    ""
+  ],
+  "type": "check",
+  "is_public": false
+}
