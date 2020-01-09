@@ -43,7 +43,7 @@ def construct_template_fields(integration_name, **kwargs):
         'need to install anything else on your server.'.format(check_name_cap=check_name_cap)
     )
     license_header = (
-        '# (C) Datadog, Inc. {year}\n'
+        '# (C) StackState {year}\n'
         '# All rights reserved\n'
         '# Licensed under a 3-clause BSD style license (see LICENSE)\n'
         .format(year=str(datetime.now().year))
