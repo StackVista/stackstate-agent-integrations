@@ -77,13 +77,13 @@ class AwsCheck(AgentCheck):
                 trace = []
                 for segment in xray_trace['Segments']:
                     segment_documents = [json.loads(segment['Document'])]
-                    trace.extend(self._generate_spans(segment_documents, service_name))
+                    trace.extend(self._generate_spans(segment_documents))
                 traces.append(trace)
 
         return traces
 
-    def _generate_spans(self, segments, service, trace_id=None):
-        """Translates X-Ray trace to StackState trace. Sub"""
+    def _generate_spans(self, segments, trace_id=None):
+        """Translates X-Ray trace to StackState trace."""
         spans = []
         for segment in segments:
             start = datetime.datetime.utcfromtimestamp(segment['start_time'])
@@ -97,6 +97,9 @@ class AwsCheck(AgentCheck):
             if not trace_id:
                 trace_id = self._convert_trace_id(segment['trace_id'])
 
+            # TODO: filter traces based on resource type
+
+            # find resource name
             try:
                 resource = segment['resource_arn']
             except KeyError:
@@ -107,6 +110,12 @@ class AwsCheck(AgentCheck):
                         resource = segment['aws']['operation']
                     except KeyError:
                         resource = segment['name']
+
+            # find service name
+            try:
+                service = segment['origin']
+            except KeyError:
+                service = segment['name']
 
             # times format is nanoseconds from the unix epoch
             span = {
@@ -122,13 +131,13 @@ class AwsCheck(AgentCheck):
             try:
                 span['parent_id'] = int(segment['parent_id'], 16)
             except KeyError:
-                # Root of the trace
+                # Root of the trace, so no parent
                 pass
 
             spans.append(span)
 
             if 'subsegments' in segment.keys():
-                spans.extend(self._generate_spans(segment['subsegments'], service, trace_id))
+                spans.extend(self._generate_spans(segment['subsegments'], trace_id))
 
         return spans
 
