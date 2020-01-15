@@ -86,10 +86,10 @@ class AwsCheck(AgentCheck):
             try:
                 service_name = segment['resource_arn']
             except KeyError:
-                try:
-                    service_name = segment['aws']['function_arn']
-                except KeyError:
-                    service_name = segment['name']
+                # try:
+                #     service_name = segment['aws']['function_arn']
+                # except KeyError:
+                service_name = segment['name']
 
             if 'arn:' not in service_name:
                 arn = self._generate_arn(resource_type, segment)
@@ -141,16 +141,20 @@ class AwsCheck(AgentCheck):
         arn:partition:service:region:account-id:resource-type:resource-id
         """
         arn = None
-
         service = None
-        resource_format = None
-        aws_key = None
         resource = None
+        arn_format = None
 
-        if resource_type in ['AWS::Lambda::Function', 'AWS::Lambda', 'Lambda']:
-            service = 'lambda'
-            resource_format = 'function:{}'
-            aws_key = 'function_name'
+        if resource_type in ['AWS::Lambda::Function', 'AWS::Lambda', 'Lambda', 'Overhead', 'Initialization', 'Invocation']:
+            try:
+                arn = segment['aws']['function_arn']
+            except KeyError:
+                service = 'lambda'
+                arn_format = 'arn:aws:{0}:{1}:{2}:function:{3}'
+                try:
+                    resource = segment['aws']['function_name']
+                except KeyError:
+                    arn = segment['aws']['operation']
         elif resource_type == 'AWS::Kinesis::Stream':
             service = 'kinesis_stream'
         elif resource_type == 'AWS::S3::Bucket':
@@ -163,22 +167,18 @@ class AwsCheck(AgentCheck):
             service = 'sqs'
         elif resource_type in ['AWS::DynamoDB::Table', 'AWS::DynamoDB', 'DynamoDB']:
             service = 'dynamodb'
-            resource_format = 'table/{}'
-            aws_key = 'table_name'
+            arn_format = 'arn:aws:{0}:{1}:{2}:table/{3}'
+            try:
+                resource = segment['aws']['table_name']
+            except KeyError:
+                arn = segment['aws']['operation']
         elif resource_type == 'AWS::EC2::Instance':
             service = 'ec2'
         elif resource_type == 'remote':
             service = 'remote'
 
-        if service:
-            try:
-                resource = resource_format.format(segment['aws'][aws_key])
-            except KeyError:
-                pass
-            if resource:
-                arn = 'arn:aws:{0}:{1}:{2}:{3}'.format(service, self.region, self.account_id, resource)
-            else:
-                arn = segment['aws']['operation']
+        if service and resource:
+            arn = arn_format.format(service, self.region, self.account_id, resource)
 
         return arn
 
