@@ -6,7 +6,12 @@ import pytest
 
 @pytest.fixture(scope="session")
 def sts_environment():
-    yield
+    return {
+        "host": "lab-sap-001",
+        "url": "http://localhost",  # docker host gateway
+        "user": "donadm",
+        "pass": "Master01",
+    }
 
 
 @pytest.fixture
