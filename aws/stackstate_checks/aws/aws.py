@@ -200,16 +200,10 @@ class AwsClient:
             self.aws_session_token = role['Credentials']['SessionToken']
 
     def get_account_id(self):
-        return boto3.client('sts', config=DEFAULT_BOTO3_CONFIG,
-                            aws_access_key_id=self.aws_access_key_id,
-                            aws_secret_access_key=self.aws_secret_access_key,
-                            aws_session_token=self.aws_session_token).get_caller_identity().get('Account')
+        return self._get_boto3_client('sts').get_caller_identity().get('Account')
 
     def get_xray_traces(self):
-        xray_client = boto3.client('xray', region_name=self.region, config=DEFAULT_BOTO3_CONFIG,
-                                   aws_access_key_id=self.aws_access_key_id,
-                                   aws_secret_access_key=self.aws_secret_access_key,
-                                   aws_session_token=self.aws_session_token)
+        xray_client = self._get_boto3_client('xray')
 
         # TODO: for development timedelta is 1 hour, it should be 1 minute
         start_time = datetime.datetime.utcnow() - datetime.timedelta(hours=1)
@@ -227,6 +221,12 @@ class AwsClient:
             traces.append(xray_client.batch_get_traces(TraceIds=[trace_summary['Id']]))
 
         return traces
+
+    def _get_boto3_client(self, service_name):
+        return boto3.client(service_name, region_name=self.region, config=DEFAULT_BOTO3_CONFIG,
+                            aws_access_key_id=self.aws_access_key_id,
+                            aws_secret_access_key=self.aws_secret_access_key,
+                            aws_session_token=self.aws_session_token)
 
 
 def dot_reducer(key1, key2):
