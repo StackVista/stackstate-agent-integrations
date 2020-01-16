@@ -141,16 +141,15 @@ class AwsCheck(AgentCheck):
         arn:partition:service:region:account-id:resource-type:resource-id
         """
         arn = None
-        service = None
         resource = None
         arn_format = None
 
-        if resource_type in ['AWS::Lambda::Function', 'AWS::Lambda', 'Lambda', 'Overhead', 'Initialization', 'Invocation']:
+        if resource_type in ['AWS::Lambda::Function', 'AWS::Lambda', 'Lambda', 'Overhead', 'Initialization',
+                             'Invocation']:
             try:
                 arn = segment['aws']['function_arn']
             except KeyError:
-                service = 'lambda'
-                arn_format = 'arn:aws:{0}:{1}:{2}:function:{3}'
+                arn_format = 'arn:aws:lambda:{0}:{1}:function:{2}'
                 try:
                     resource = segment['aws']['function_name']
                 except KeyError:
@@ -166,19 +165,20 @@ class AwsCheck(AgentCheck):
         elif resource_type == 'AWS::SQS::Queue':
             service = 'sqs'
         elif resource_type in ['AWS::DynamoDB::Table', 'AWS::DynamoDB', 'DynamoDB']:
-            service = 'dynamodb'
-            arn_format = 'arn:aws:{0}:{1}:{2}:table/{3}'
+            arn_format = 'arn:aws:dynamodb:{0}:{1}:table/{2}'
             try:
                 resource = segment['aws']['table_name']
             except KeyError:
                 arn = segment['aws']['operation']
         elif resource_type == 'AWS::EC2::Instance':
-            service = 'ec2'
-        elif resource_type == 'remote':
-            service = 'remote'
+            arn_format = 'arn:aws:ec2:{0}:{1}:instance/{2}'
+            try:
+                resource = segment['aws']['ec2']['instance_id']
+            except KeyError:
+                pass
 
-        if service and resource:
-            arn = arn_format.format(service, self.region, self.account_id, resource)
+        if resource:
+            arn = arn_format.format(self.region, self.account_id, resource)
 
         return arn
 
