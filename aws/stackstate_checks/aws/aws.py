@@ -34,6 +34,7 @@ class AwsCheck(AgentCheck):
         self.trace_ids = {}
         self.region = None
         self.account_id = None
+        self.arns = {}
 
     def get_instance_key(self, instance):
         return TopologyInstance(self.INSTANCE_TYPE, self.account_id)
@@ -76,30 +77,26 @@ class AwsCheck(AgentCheck):
             if not trace_id:
                 trace_id = self._convert_trace_id(segment['trace_id'])
 
-            # find resource type
             try:
                 resource_type = segment['origin']
             except KeyError:
                 resource_type = segment['name']
 
-            # find service name
+            try:
+                parent_span_id = int(segment['parent_id'], 16)
+            except KeyError:
+                parent_span_id = parent_id
+
+            # we use Amazon ARN for service name
             try:
                 service_name = segment['resource_arn']
             except KeyError:
-                # try:
-                #     service_name = segment['aws']['function_arn']
-                # except KeyError:
                 service_name = segment['name']
 
             if 'arn:' not in service_name:
-                arn = self._generate_arn(resource_type, segment)
+                arn = self._generate_arn(resource_type, segment, span_id, parent_span_id)
                 if arn:
                     service_name = arn
-
-            try:
-                span_parent_id = int(segment['parent_id'], 16)
-            except KeyError:
-                span_parent_id = parent_id
 
             # times format is nanoseconds from the unix epoch
             span = {
@@ -110,9 +107,10 @@ class AwsCheck(AgentCheck):
                 'service': service_name,
                 'start': int(segment['start_time'] * 1000000000),
                 'duration': int(duration * 1000000000),
-                'parent_id': span_parent_id
+                'parent_id': parent_span_id
             }
 
+            # TODO: flatten segment data and put it in meta dict
             # flatten_all([segment])
 
             self.log.debug(span)
@@ -134,23 +132,22 @@ class AwsCheck(AgentCheck):
             self.trace_ids[aws_trace_id] = trace_id
         return trace_id
 
-    def _generate_arn(self, resource_type, segment):
+    def _generate_arn(self, resource_type, segment, span_id, parent_span_id):
         """Generates ARN on one of the following patterns:
         arn:partition:service:region:account-id:resource-id
         arn:partition:service:region:account-id:resource-type/resource-id
         arn:partition:service:region:account-id:resource-type:resource-id
         """
         arn = None
-        service = None
         resource = None
         arn_format = None
 
-        if resource_type in ['AWS::Lambda::Function', 'AWS::Lambda', 'Lambda', 'Overhead', 'Initialization', 'Invocation']:
+        if resource_type in ['AWS::Lambda::Function', 'AWS::Lambda', 'Lambda', 'Overhead', 'Initialization',
+                             'Invocation']:
             try:
                 arn = segment['aws']['function_arn']
             except KeyError:
-                service = 'lambda'
-                arn_format = 'arn:aws:{0}:{1}:{2}:function:{3}'
+                arn_format = 'arn:aws:lambda:{0}:{1}:function:{2}'
                 try:
                     resource = segment['aws']['function_name']
                 except KeyError:
@@ -166,19 +163,30 @@ class AwsCheck(AgentCheck):
         elif resource_type == 'AWS::SQS::Queue':
             service = 'sqs'
         elif resource_type in ['AWS::DynamoDB::Table', 'AWS::DynamoDB', 'DynamoDB']:
-            service = 'dynamodb'
-            arn_format = 'arn:aws:{0}:{1}:{2}:table/{3}'
+            arn_format = 'arn:aws:dynamodb:{0}:{1}:table/{2}'
             try:
                 resource = segment['aws']['table_name']
             except KeyError:
                 arn = segment['aws']['operation']
         elif resource_type == 'AWS::EC2::Instance':
-            service = 'ec2'
-        elif resource_type == 'remote':
-            service = 'remote'
+            arn_format = 'arn:aws:ec2:{0}:{1}:instance/{2}'
+            try:
+                resource = segment['aws']['ec2']['instance_id']
+            except KeyError:
+                pass
+        else:
+            if segment.get('namespace') == 'local':
+                try:
+                    arn = self.arns[parent_span_id]
+                    self.arns[span_id] = arn
+                except KeyError:
+                    pass
 
-        if service and resource:
-            arn = arn_format.format(service, self.region, self.account_id, resource)
+        if resource:
+            arn = arn_format.format(self.region, self.account_id, resource)
+
+        if arn:
+            self.arns[span_id] = arn
 
         return arn
 
