@@ -92,13 +92,19 @@ class AwsCheck(AgentCheck):
                 service_name = segment['resource_arn']
             except KeyError:
                 service_name = segment['name']
-
             if 'arn:' not in service_name:
                 arn = self._generate_arn(resource_type, segment, span_id, parent_span_id)
                 if arn:
                     service_name = arn
 
-            # times format is nanoseconds from the unix epoch
+            flat_segment = flatten_segment(segment)
+            try:
+                flat_segment['trace_id'] = segment['trace_id']
+            except KeyError:
+                # some segments doesn't have trace_id
+                pass
+
+            # times format is the unix epoch in nanoseconds
             span = {
                 'trace_id': trace_id,
                 'span_id': span_id,
@@ -107,15 +113,13 @@ class AwsCheck(AgentCheck):
                 'service': service_name,
                 'start': int(segment['start_time'] * 1000000000),
                 'duration': int(duration * 1000000000),
-                'parent_id': parent_span_id
+                'parent_id': parent_span_id,
+                'meta': flat_segment
             }
 
-            # TODO: flatten segment data and put it in meta dict
-            # flatten_all([segment])
-
-            self.log.debug(span)
+            # self.log.debug(span)
             pp.pprint(span)
-            # TODO: filter traces based on resource type
+
             spans.append(span)
 
             if 'subsegments' in segment.keys():
@@ -133,7 +137,7 @@ class AwsCheck(AgentCheck):
         return trace_id
 
     def _generate_arn(self, resource_type, segment, span_id, parent_span_id):
-        """Generates ARN on one of the following patterns:
+        """Generates ARN based on one of the following patterns:
         arn:partition:service:region:account-id:resource-id
         arn:partition:service:region:account-id:resource-type/resource-id
         arn:partition:service:region:account-id:resource-type:resource-id
@@ -193,11 +197,11 @@ class AwsCheck(AgentCheck):
 
 class AwsClient:
     def __init__(self, instance):
-        self.aws_session_token = None
         aws_access_key_id = instance.get('aws_access_key_id')
         aws_secret_access_key = instance.get('aws_secret_access_key')
         role_arn = instance.get('role_arn')
         self.region = instance.get('region')
+        self.aws_session_token = None
 
         if aws_secret_access_key and aws_access_key_id and role_arn and self.region:
             sts_client = boto3.client('sts', config=DEFAULT_BOTO3_CONFIG, aws_access_key_id=aws_access_key_id,
@@ -237,16 +241,24 @@ class AwsClient:
                             aws_session_token=self.aws_session_token)
 
 
+def flatten_segment(segment):
+    flat_segment = flatten(segment, dot_reducer)
+    for key, value in flat_segment.items():
+        if key == 'subsegments':
+            ids = []
+            for sub_segment in flat_segment[key]:
+                ids.append(str(int(sub_segment['id'], 16)))
+            flat_segment[key] = ', '.join(ids)
+        else:
+            if isinstance(value, list):
+                flat_segment[key] = ', '.join([str(elem) for elem in value])
+            elif not isinstance(value, str):
+                flat_segment[key] = str(value)
+    return flat_segment
+
+
 def dot_reducer(key1, key2):
     if key1 is None:
         return key2
     else:
         return '{}.{}'.format(key1, key2)
-
-
-def flatten_all(segments):
-    for segment in segments:
-        if 'subsegments' in segment.keys():
-            segment['subsegments'] = flatten_all(segment['subsegments'])
-        segment = flatten(segment, dot_reducer)
-    return segments
