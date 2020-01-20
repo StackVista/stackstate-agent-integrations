@@ -4,13 +4,12 @@
 import datetime
 import json
 import logging
-from pprint import PrettyPrinter
 
 import boto3
 import requests
 import uuid
 from botocore.config import Config
-from flatten_dict import flatten
+import flatten_dict
 
 from stackstate_checks.base import AgentCheck, TopologyInstance
 
@@ -60,11 +59,8 @@ class AwsCheck(AgentCheck):
     def _generate_spans(self, segments, trace_id=None, parent_id=None):
         """Translates X-Ray trace to StackState trace."""
         spans = []
-        pp = PrettyPrinter(indent=2)
 
         for segment in segments:
-            pp.pprint(segment)
-
             span_id = int(segment['id'], 16)
             start = datetime.datetime.utcfromtimestamp(segment['start_time'])
             try:
@@ -117,9 +113,6 @@ class AwsCheck(AgentCheck):
                 'meta': flat_segment
             }
 
-            # self.log.debug(span)
-            pp.pprint(span)
-
             spans.append(span)
 
             if 'subsegments' in segment.keys():
@@ -158,13 +151,18 @@ class AwsCheck(AgentCheck):
                     arn = segment['aws']['operation']
         elif resource_type == 'AWS::Kinesis::Stream':
             service = 'kinesis_stream'
+            # TODO: finish creating Kinesis stream ARN
         elif resource_type == 'AWS::S3::Bucket':
             service = 's3'
+            # TODO: finish creating S3 ARN
         elif resource_type == 'AWS::RDS::DBInstance':
+            # TODO: finish creating RDS ARN
             service = 'rds'
         elif resource_type == 'AWS::SNS::Topic':
+            # TODO: finish creating SNS ARN
             service = 'sns'
         elif resource_type == 'AWS::SQS::Queue':
+            # TODO: finish creating SQS ARN
             service = 'sqs'
         elif resource_type in ['AWS::DynamoDB::Table', 'AWS::DynamoDB', 'DynamoDB']:
             arn_format = 'arn:aws:dynamodb:{0}:{1}:table/{2}'
@@ -217,8 +215,7 @@ class AwsClient:
     def get_xray_traces(self):
         xray_client = self._get_boto3_client('xray')
 
-        # TODO: for development timedelta is 1 hour, it should be 1 minute
-        start_time = datetime.datetime.utcnow() - datetime.timedelta(hours=1)
+        start_time = datetime.datetime.utcnow() - datetime.timedelta(minutes=1)
         end_time = datetime.datetime.utcnow()
         operation_params = {'StartTime': start_time, 'EndTime': end_time}
 
@@ -242,7 +239,7 @@ class AwsClient:
 
 
 def flatten_segment(segment):
-    flat_segment = flatten(segment, dot_reducer)
+    flat_segment = flatten_dict.flatten(segment, dot_reducer)
     for key, value in flat_segment.items():
         if key == 'subsegments':
             ids = []
