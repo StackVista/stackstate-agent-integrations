@@ -33,7 +33,7 @@ class SapCheck(AgentCheck):
         host, url, user, password, tags = self._get_config(instance)
 
         if not (url and user and password):
-            raise Exception("SAP url, user and password are needed.")
+            raise ConfigurationError("Missing 'url', 'user' or 'password' in instance configuration.")
 
         # 1128 is the port of the HostControl
         host_control_url = "{0}:1128/SAPHostControl".format(url)
@@ -70,31 +70,32 @@ class SapCheck(AgentCheck):
 
     def _collect_topology(self, client):
         host_instance_ids = self._collect_hosts(client)
-        self._collect_processes(host_instance_ids)
+        self._collect_host_instances(host_instance_ids)
         self._collect_databases(client)
 
     def _collect_hosts(self, client):
         try:
             # define SAP host control component
-            self.component(self.host, "sap_host", {})
+            self.component(self._host_external_id(), "sap_host", {})
 
             instance_selector_type = client.get_type("ns0:InstanceSelector")
             instance_selector = instance_selector_type(aInstanceStatus="", aHostname=self.host)
 
             host_instances = client.service.ListInstances(instance_selector)
+            # TODO log
             print("host instances: {0}".format(host_instances))
 
             for instance in host_instances:
                 sid = instance.mSid
-                hostname = instance.mHostname.lower()
+                # hostname = instance.mHostname # should be the same as self.host
                 host_instance_id = instance.mSystemNumber
                 sap_version = instance.mSapVersionInfo
 
                 # define SAP host instance component
-                external_id = "%s:%s" % (hostname, host_instance_id)
+                external_id = self._host_instance_external_id(host_instance_id)
                 component_data = {
                     "sid": sid,
-                    "host": hostname,
+                    "host": self.host,
                     "name": sid,
                     "system_number": host_instance_id,
                     "version": sap_version,
@@ -105,7 +106,7 @@ class SapCheck(AgentCheck):
                 # define relation  host instance    -->    host
                 #                              is hosted on
                 source_id = external_id
-                target_id = self.host
+                target_id = self._host_external_id()
                 relation_data = {}
                 self.relation(source_id, target_id, "is hosted on", relation_data)
 
@@ -141,7 +142,7 @@ class SapCheck(AgentCheck):
 
     # Documentation regarding SAPControl Web Service, which describes API of SOAPHostAgent
     # https://www.sap.com/documents/2016/09/0a40e60d-8b7c-0010-82c7-eda71af511fa.html?infl=71bb5841-1684-47b2-af2d-11c623d3660e
-    def _collect_processes(self, host_instance_ids):
+    def _collect_host_instances(self, host_instance_ids):
         for host_instance_id in host_instance_ids:
             # 5xx13 is the port of the HostAgent where xx is the instance_id
             host_instance_agent_url = "{0}:5{1}13/SAPHostAgent".format(self.url, host_instance_id)
@@ -149,7 +150,20 @@ class SapCheck(AgentCheck):
             try:
                 with self._connect(host_instance_agent_url, self.user, self.password) as client:
                     processes = client.service.GetProcessList()
-                    print("host {0} processes: {1}".format(host_instance_id, processes))
+                    print("host instance '{0}' processes: {1}".format(host_instance_id, processes))
+
+                    worker_processes = client.service.ABAPGetWPTable()
+                    print("worker processes on instance '{0}': {1}".format(host_instance_id, worker_processes))
+                    self._collect_worker_free_metrics(host_instance_id, worker_processes)
+
+                    phys_memsize = client.service.ParameterValue(parameter="PHYS_MEMSIZE")  # megabytes
+                    print("host instance '{0}' parameter PHYS_MEMSIZE: {1}".format(host_instance_id, phys_memsize))
+                    self.gauge(
+                        name="phys_memsize",
+                        value=phys_memsize,
+                        tags=["instance_id:{0}".format(host_instance_id)],
+                        hostname=self.host
+                    )
 
                     for process in processes:
                         name = process.name
@@ -161,7 +175,7 @@ class SapCheck(AgentCheck):
                         pid = int(process.pid)
 
                         # define SAP process component
-                        external_id = "%s:%s:%s" % (self.host, host_instance_id, pid)
+                        external_id = self._process_external_id(host_instance_id, pid)
                         component_data = {
                             "name": name,
                             "description": description,
@@ -175,9 +189,9 @@ class SapCheck(AgentCheck):
 
                         # define relation  process  -->  host instance
                         #                         runs on
-                        relation_data = {}
                         source_id = external_id
-                        target_id = "%s:%s" % (self.host, host_instance_id)
+                        target_id = self._host_instance_external_id(host_instance_id)
+                        relation_data = {}
                         self.relation(source_id, target_id, "runs on", relation_data)
 
                         # define process status event
@@ -223,6 +237,21 @@ class SapCheck(AgentCheck):
                     ]
                 })
 
+    def _collect_worker_free_metrics(self, host_instance_id, worker_processes):
+        grouped_workers = {}
+        for worker in worker_processes:
+            grouped_workers[worker.Typ] = grouped_workers.get(worker.Typ, []) + [(worker.Pid, worker.Status)]
+        print("grouped workers: {0}".format(grouped_workers))
+        for worker_type in ["DIA", "BTC"]:
+            typed_workers = grouped_workers.get(worker_type, [])
+            free_typed_workers = [worker for worker in typed_workers if worker[1].lower() == "wait"]
+            self.gauge(
+                name="{0}_workers_free".format(worker_type),
+                value=len(free_typed_workers),
+                tags=["instance_id:{0}".format(host_instance_id)],
+                hostname=self.host
+            )
+
     def _collect_databases(self, client):
         properties_type = client.get_type("ns0:ArrayOfProperty")
         properties = properties_type()
@@ -233,7 +262,7 @@ class SapCheck(AgentCheck):
             # define database component
             database_item = {i.mKey: i.mValue for i in database.mDatabase.item}
             database_name = database_item.get("Database/Name")
-            external_id = "%s:%s" % (self.host, database_name)
+            external_id = self._db_external_id(database_name)
             component_data = {
                 "name": database_name,
                 "type": database_item.get("Database/Type"),
@@ -247,7 +276,7 @@ class SapCheck(AgentCheck):
             # define relation  database    -->    host
             #                          is hosted on
             source_id = external_id
-            target_id = self.host
+            target_id = self._host_external_id()
             relation_data = {}
             self.relation(source_id, target_id, "is hosted on", relation_data)
 
@@ -268,7 +297,7 @@ class SapCheck(AgentCheck):
                 # define database component
                 database_component_item = {i.mKey: i.mValue for i in database_component.mProperties.item}
                 database_component_name = database_component_item.get("Database/ComponentName")
-                database_component_external_id = "%s:%s" % (external_id, database_component_name)
+                database_component_external_id = self._db_component_external_id(database_name, database_component_name)
                 database_component_data = {
                     "name": database_component_name,
                     "database_name": database_name,
@@ -297,3 +326,18 @@ class SapCheck(AgentCheck):
                         "database_component_name:{0}".format(database_component_name)
                     ]
                 })
+
+    def _host_external_id(self):
+        return "urn:host:/{0}".format(self.host)
+
+    def _host_instance_external_id(self, host_instance_id):
+        return "urn:sap:/instance:{0}:{1}".format(self.host, host_instance_id)
+
+    def _process_external_id(self, host_instance_id, pid):
+        return "urn:process:/{0}:{1}:{2}".format(self.host, host_instance_id, pid)
+
+    def _db_external_id(self, database_name):
+        return "urn:db:/{0}:{1}".format(self.host, database_name)
+
+    def _db_component_external_id(self, database_name, database_component_name):
+        return "urn:sap:/db_component:{0}:{1}:{2}".format(self.host, database_name, database_component_name)

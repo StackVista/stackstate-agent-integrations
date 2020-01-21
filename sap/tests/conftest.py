@@ -7,8 +7,8 @@ import pytest
 @pytest.fixture(scope="session")
 def sts_environment():
     return {
-        "host": "lab-sap-001",
-        "url": "http://localhost",  # docker host gateway
+        "host": "LAB-SAP-001",
+        "url": "http://localhost",
         "user": "donadm",
         "pass": "Master01",
     }
@@ -17,8 +17,18 @@ def sts_environment():
 @pytest.fixture
 def instance():
     return {
-        "host": "lab-sap-001",
+        "host": "LAB-SAP-001",
         "url": "http://localhost",
         "user": "donadm",
         "pass": "Master01",
+    }
+
+
+@pytest.fixture
+def instance_empty():
+    return {
+        "host": "",
+        "url": "",
+        "user": "",
+        "pass": "",
     }

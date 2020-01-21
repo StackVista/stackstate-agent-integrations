@@ -1,7 +1,7 @@
 init_config:
 
 instances:
-  - host: lab-sap-001
+  - host: LAB-SAP-001
     url: http://lab-sap-001.lab.hosting.local
     user: my_username
     pass: my_password
