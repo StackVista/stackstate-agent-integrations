@@ -25,6 +25,7 @@ TRACES_API_ENDPOINT = 'http://localhost:8126/v0.3/traces'
 
 
 class AwsCheck(AgentCheck):
+    """Converts AWS X-Ray traces and sends them to Trace Agent."""
     INSTANCE_TYPE = 'aws'
 
     def __init__(self, name, init_config, agentConfig, instances=None):
@@ -43,6 +44,13 @@ class AwsCheck(AgentCheck):
         self.region = aws_client.region
         self.account_id = aws_client.get_account_id()
 
+        traces = self._process_xray_traces(aws_client)
+
+        if traces:
+            self._send_payload(traces)
+
+    def _process_xray_traces(self, aws_client):
+        """Gets AWS X-Ray traces returns them in Trace Agent format."""
         traces = []
         xray_traces_batch = aws_client.get_xray_traces()
         for xray_traces in xray_traces_batch:
@@ -52,9 +60,7 @@ class AwsCheck(AgentCheck):
                     segment_documents = [json.loads(segment['Document'])]
                     trace.extend(self._generate_spans(segment_documents))
                 traces.append(trace)
-
-        headers = {'Content-Type': 'application/json'}
-        requests.put(TRACES_API_ENDPOINT, data=json.dumps(traces), headers=headers)
+        return traces
 
     def _generate_spans(self, segments, trace_id=None, parent_id=None):
         """Translates X-Ray trace to StackState trace."""
@@ -191,6 +197,12 @@ class AwsCheck(AgentCheck):
             self.arns[span_id] = arn
 
         return arn
+
+    @staticmethod
+    def _send_payload(traces):
+        """Sends traces payload to Traces Agent."""
+        headers = {'Content-Type': 'application/json'}
+        requests.put(TRACES_API_ENDPOINT, data=json.dumps(traces), headers=headers)
 
 
 class AwsClient:
