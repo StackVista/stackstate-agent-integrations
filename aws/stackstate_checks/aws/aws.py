@@ -119,6 +119,10 @@ class AwsCheck(AgentCheck):
                 'meta': flat_segment
             }
 
+            # Check if there is error in X-Ray Trace
+            if segment.get('error'):
+                span['error'] = 1
+
             spans.append(span)
 
             if 'subsegments' in segment.keys():
