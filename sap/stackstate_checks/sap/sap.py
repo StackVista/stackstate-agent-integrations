@@ -71,37 +71,38 @@ class SapCheck(AgentCheck):
             print("host instances: {0}".format(host_instances))
 
             instances = {}
-            for instance in host_instances:
-                instance_item = {i.mName: i.mValue for i in instance.mProperties.item}
+            if host_instances:
+                for instance in host_instances:
+                    instance_item = {i.mName: i.mValue for i in instance.mProperties.item}
 
-                sid = instance_item.get("SID")
-                instance_id = instance_item.get("SystemNumber")
-                instance_type = instance_item.get("InstanceType")
-                sap_version = instance_item.get("SapVersionInfo")
-                # TODO log warning
-                # hostname = instance_item.get("Hostname") # should be the same as self.host
+                    sid = instance_item.get("SID")
+                    instance_id = instance_item.get("SystemNumber")
+                    instance_type = instance_item.get("InstanceType")
+                    sap_version = instance_item.get("SapVersionInfo")
+                    # TODO log warning
+                    # hostname = instance_item.get("Hostname") # should be the same as self.host
 
-                # define SAP host instance component
-                external_id = self._host_instance_external_id(instance_id)
-                component_data = {
-                    "sid": sid,
-                    "host": self.host,
-                    "name": sid,
-                    "system_number": instance_id,
-                    "type": instance_type,
-                    "version": sap_version,
-                    "labels": []
-                }
-                self.component(external_id, "sap_instance", component_data)
+                    # define SAP host instance component
+                    external_id = self._host_instance_external_id(instance_id)
+                    component_data = {
+                        "sid": sid,
+                        "host": self.host,
+                        "name": sid,
+                        "system_number": instance_id,
+                        "type": instance_type,
+                        "version": sap_version,
+                        "labels": []
+                    }
+                    self.component(external_id, "sap_instance", component_data)
 
-                # define relation  host instance    -->    host
-                #                              is hosted on
-                source_id = external_id
-                target_id = self._host_external_id()
-                relation_data = {}
-                self.relation(source_id, target_id, "is hosted on", relation_data)
+                    # define relation  host instance    -->    host
+                    #                              is hosted on
+                    source_id = external_id
+                    target_id = self._host_external_id()
+                    relation_data = {}
+                    self.relation(source_id, target_id, "is hosted on", relation_data)
 
-                instances.update({instance_id: instance_type})
+                    instances.update({instance_id: instance_type})
 
             # publish event if we connected successfully to the SAP host control
             self.event({
@@ -247,74 +248,75 @@ class SapCheck(AgentCheck):
         # TODO log
         print("databases: {0}".format(databases))
 
-        for database in databases:
-            # define database component
-            database_item = {i.mKey: i.mValue for i in database.mDatabase.item}
-            database_name = database_item.get("Database/Name")
-            external_id = self._db_external_id(database_name)
-            component_data = {
-                "name": database_name,
-                "type": database_item.get("Database/Type"),
-                "vendor": database_item.get("Database/Vendor"),
-                "host": database_item.get("Database/Host").lower(),
-                "version": database_item.get("Database/Release"),
-                "labels": []
-            }
-            self.component(external_id, "sap_database", component_data)
-
-            # define relation  database    -->    host
-            #                          is hosted on
-            source_id = external_id
-            target_id = self._host_external_id()
-            relation_data = {}
-            self.relation(source_id, target_id, "is hosted on", relation_data)
-
-            # define database status event
-            database_status = database.mStatus
-            self.event({
-                "timestamp": int(time.time()),
-                "source_type_name": "SAP:database state",
-                "msg_title": "Database '{0}' status update.".format(database_name),
-                "host": self.host,
-                "tags": [
-                    "status:{0}".format(database_status),
-                    "database_name:{0}".format(database_name)
-                ]
-            })
-
-            for database_component in database.mComponents.item:
+        if databases:
+            for database in databases:
                 # define database component
-                database_component_item = {i.mKey: i.mValue for i in database_component.mProperties.item}
-                database_component_name = database_component_item.get("Database/ComponentName")
-                database_component_external_id = self._db_component_external_id(database_name, database_component_name)
-                database_component_data = {
-                    "name": database_component_name,
-                    "database_name": database_name,
-                    "description": database_component_item.get("Database/ComponentDescription"),
-                    "host": self.host,
+                database_item = {i.mKey: i.mValue for i in database.mDatabase.item}
+                database_name = database_item.get("Database/Name")
+                external_id = self._db_external_id(database_name)
+                component_data = {
+                    "name": database_name,
+                    "type": database_item.get("Database/Type"),
+                    "vendor": database_item.get("Database/Vendor"),
+                    "host": database_item.get("Database/Host").lower(),
+                    "version": database_item.get("Database/Release"),
                     "labels": []
                 }
-                self.component(database_component_external_id, "sap_database_component", database_component_data)
+                self.component(external_id, "sap_database", component_data)
 
-                # define relation between database component  -->  database
-                #                                           runs on
-                database_component_relation_source_id = database_component_external_id
-                database_component_relation_target_id = external_id
-                database_component_relation_data = {}
-                self.relation(database_component_relation_source_id, database_component_relation_target_id, "runs on",
-                              database_component_relation_data)
+                # define relation  database    -->    host
+                #                          is hosted on
+                source_id = external_id
+                target_id = self._host_external_id()
+                relation_data = {}
+                self.relation(source_id, target_id, "is hosted on", relation_data)
 
-                # define database component status event
+                # define database status event
+                database_status = database.mStatus
                 self.event({
                     "timestamp": int(time.time()),
-                    "source_type_name": "SAP:database component state",
-                    "msg_title": "Database component '{0}' status update.".format(database_component_name),
+                    "source_type_name": "SAP:database state",
+                    "msg_title": "Database '{0}' status update.".format(database_name),
                     "host": self.host,
                     "tags": [
-                        "status:{0}".format(database_component.mStatus),
-                        "database_component_name:{0}".format(database_component_name)
+                        "status:{0}".format(database_status),
+                        "database_name:{0}".format(database_name)
                     ]
                 })
+
+                for database_component in database.mComponents.item:
+                    # define database component
+                    database_component_item = {i.mKey: i.mValue for i in database_component.mProperties.item}
+                    database_component_name = database_component_item.get("Database/ComponentName")
+                    database_component_external_id = self._db_component_external_id(database_name, database_component_name)
+                    database_component_data = {
+                        "name": database_component_name,
+                        "database_name": database_name,
+                        "description": database_component_item.get("Database/ComponentDescription"),
+                        "host": self.host,
+                        "labels": []
+                    }
+                    self.component(database_component_external_id, "sap_database_component", database_component_data)
+
+                    # define relation between database component  -->  database
+                    #                                           runs on
+                    database_component_relation_source_id = database_component_external_id
+                    database_component_relation_target_id = external_id
+                    database_component_relation_data = {}
+                    self.relation(database_component_relation_source_id, database_component_relation_target_id, "runs on",
+                                  database_component_relation_data)
+
+                    # define database component status event
+                    self.event({
+                        "timestamp": int(time.time()),
+                        "source_type_name": "SAP:database component state",
+                        "msg_title": "Database component '{0}' status update.".format(database_component_name),
+                        "host": self.host,
+                        "tags": [
+                            "status:{0}".format(database_component.mStatus),
+                            "database_component_name:{0}".format(database_component_name)
+                        ]
+                    })
 
     def _host_external_id(self):
         return "urn:host:/{0}".format(self.host)
