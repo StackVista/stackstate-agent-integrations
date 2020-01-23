@@ -27,6 +27,7 @@ TRACES_API_ENDPOINT = 'http://localhost:8126/v0.3/traces'
 class AwsCheck(AgentCheck):
     """Converts AWS X-Ray traces and sends them to Trace Agent."""
     INSTANCE_TYPE = 'aws'
+    SERVICE_CHECK_NAME = 'aws.can_connect'
 
     def __init__(self, name, init_config, agentConfig, instances=None):
         AgentCheck.__init__(self, name, init_config, agentConfig, instances)
@@ -34,20 +35,27 @@ class AwsCheck(AgentCheck):
         self.trace_ids = {}
         self.region = None
         self.account_id = None
+        self.tags = None
         self.arns = {}
 
     def get_instance_key(self, instance):
         return TopologyInstance(self.INSTANCE_TYPE, self.account_id)
 
     def check(self, instance):
-        aws_client = AwsClient(instance)
-        self.region = aws_client.region
-        self.account_id = aws_client.get_account_id()
+        try:
+            aws_client = AwsClient(instance)
+            self.region = aws_client.region
+            self.account_id = aws_client.get_account_id()
 
-        traces = self._process_xray_traces(aws_client)
+            traces = self._process_xray_traces(aws_client)
 
-        if traces:
-            self._send_payload(traces)
+            if traces:
+                self._send_payload(traces)
+            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=self.tags)
+        except Exception as e:
+            msg = 'AWS check failed: {}'.format(e)
+            self.log.error(msg)
+            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, message=msg, tags=self.tags)
 
     def _process_xray_traces(self, aws_client):
         """Gets AWS X-Ray traces returns them in Trace Agent format."""
