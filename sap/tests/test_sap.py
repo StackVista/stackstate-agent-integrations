@@ -20,24 +20,24 @@ def test_missing_conf(instance_empty):
         sap_check.check(instance_empty)
 
 
-def test_worker_free_metrics(aggregator, instance):
-    instance_id = "00"
-    with open("./tests/samples/ABAPGetWPTable.json") as f:
-        worker_processes = munchify(json.load(f))
-    sap_check = SapCheck(CHECK_NAME, {}, {}, instances=[instance])
-    sap_check._collect_worker_free_metrics(instance_id, worker_processes)
-
-    expected_tags = ["instance_id:{0}".format(instance_id)]
-    aggregator.assert_metric(
-        name="DIA_workers_free",
-        tags=expected_tags,
-        value=9
-    )
-    aggregator.assert_metric(
-        name="BTC_workers_free",
-        tags=expected_tags,
-        value=3
-    )
+# def test_worker_free_metrics(aggregator, instance):
+#     instance_id = "00"
+#     with open("./tests/samples/ABAPGetWPTable.json") as f:
+#         worker_processes = munchify(json.load(f))
+#     sap_check = SapCheck(CHECK_NAME, {}, {}, instances=[instance])
+#     sap_check._collect_worker_free_metrics(instance_id, worker_processes)
+#
+#     expected_tags = ["instance_id:{0}".format(instance_id)]
+#     aggregator.assert_metric(
+#         name="DIA_workers_free",
+#         tags=expected_tags,
+#         value=9
+#     )
+#     aggregator.assert_metric(
+#         name="BTC_workers_free",
+#         tags=expected_tags,
+#         value=3
+#     )
 
 
 def test_cannot_connect_to_host_control():
