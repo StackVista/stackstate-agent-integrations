@@ -2,13 +2,9 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import time
-from contextlib import contextmanager
-
-from requests import Session
-from requests.auth import HTTPBasicAuth
-from zeep import Client, Transport
 
 from stackstate_checks.base import ConfigurationError, AgentCheck, TopologyInstance
+from .proxy import SapProxy
 
 
 class SapCheck(AgentCheck):
@@ -35,21 +31,17 @@ class SapCheck(AgentCheck):
         if not (url and user and password):
             raise ConfigurationError("Missing 'url', 'user' or 'password' in instance configuration.")
 
-        # 1128 is the port of the HostControl
-        host_control_url = "{0}:1128/SAPHostControl".format(url)
-        # TODO avoid raising any error and catch them as event/service check
-        with self._connect(host_control_url, user, password) as client:
-            try:
-                self.start_snapshot()
+        try:
+            self.start_snapshot()
 
-                self._collect_topology(client)
+            self._collect_topology()
 
-                self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, message="OK", tags=self.tags)
-            except Exception as e:
-                self.log.exception(str(e))
-                self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, message=str(e), tags=self.tags)
-            finally:
-                self.stop_snapshot()
+            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, message="OK", tags=self.tags)
+        except Exception as e:
+            self.log.exception(str(e))
+            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, message=str(e), tags=self.tags)
+        finally:
+            self.stop_snapshot()
 
     def _get_config(self, instance):
         self.host = instance.get("host", "")
@@ -60,44 +52,43 @@ class SapCheck(AgentCheck):
 
         return self.host, self.url, self.user, self.password, self.tags
 
-    @contextmanager
-    def _connect(self, url, user, password):
-        session = Session()
-        session.auth = HTTPBasicAuth(user, password)
-        wsdl_url = "{0}/?wsdl".format(url)
-        client = Client(wsdl_url, transport=Transport(session=session, timeout=10))
-        yield client
+    def _collect_topology(self):
+        # 1128 is the port of the HostControl
+        host_control_url = "{0}:1128/SAPHostControl".format(self.url)
+        host_control_proxy = SapProxy(host_control_url, self.user, self.password)
 
-    def _collect_topology(self, client):
-        host_instance_ids = self._collect_hosts(client)
-        self._collect_host_instances(host_instance_ids)
-        self._collect_databases(client)
+        host_instances = self._collect_hosts(host_control_proxy)
+        self._collect_host_instances(host_instances)
+        self._collect_databases(host_control_proxy)
 
-    def _collect_hosts(self, client):
+    def _collect_hosts(self, host_control_proxy):
         try:
             # define SAP host control component
             self.component(self._host_external_id(), "sap_host", {})
 
-            instance_selector_type = client.get_type("ns0:InstanceSelector")
-            instance_selector = instance_selector_type(aInstanceStatus="", aHostname=self.host)
-
-            host_instances = client.service.ListInstances(instance_selector)
+            host_instances = host_control_proxy.get_sap_instances()
             # TODO log
             print("host instances: {0}".format(host_instances))
 
+            instances = {}
             for instance in host_instances:
-                sid = instance.mSid
-                # hostname = instance.mHostname # should be the same as self.host
-                host_instance_id = instance.mSystemNumber
-                sap_version = instance.mSapVersionInfo
+                instance_item = {i.mName: i.mValue for i in instance.mProperties.item}
+
+                sid = instance_item.get("SID")
+                instance_id = instance_item.get("SystemNumber")
+                instance_type = instance_item.get("InstanceType")
+                sap_version = instance_item.get("SapVersionInfo")
+                # TODO log warning
+                # hostname = instance_item.get("Hostname") # should be the same as self.host
 
                 # define SAP host instance component
-                external_id = self._host_instance_external_id(host_instance_id)
+                external_id = self._host_instance_external_id(instance_id)
                 component_data = {
                     "sid": sid,
                     "host": self.host,
                     "name": sid,
-                    "system_number": host_instance_id,
+                    "system_number": instance_id,
+                    "type": instance_type,
                     "version": sap_version,
                     "labels": []
                 }
@@ -110,7 +101,7 @@ class SapCheck(AgentCheck):
                 relation_data = {}
                 self.relation(source_id, target_id, "is hosted on", relation_data)
 
-                yield host_instance_id
+                instances.update({instance_id: instance_type})
 
             # publish event if we connected successfully to the SAP host control
             self.event({
@@ -124,6 +115,8 @@ class SapCheck(AgentCheck):
                     "host:{0}".format(self.host)
                 ]
             })
+
+            return instances
         except Exception as e:
             self.log.exception(str(e))
 
@@ -142,85 +135,97 @@ class SapCheck(AgentCheck):
 
     # Documentation regarding SAPControl Web Service, which describes API of SOAPHostAgent
     # https://www.sap.com/documents/2016/09/0a40e60d-8b7c-0010-82c7-eda71af511fa.html?infl=71bb5841-1684-47b2-af2d-11c623d3660e
-    def _collect_host_instances(self, host_instance_ids):
-        for host_instance_id in host_instance_ids:
+    def _collect_host_instances(self, host_instances):
+        for instance_id, instance_type in list(host_instances.items()):
             # 5xx13 is the port of the HostAgent where xx is the instance_id
-            host_instance_agent_url = "{0}:5{1}13/SAPHostAgent".format(self.url, host_instance_id)
+            host_instance_agent_url = "{0}:5{1}13/SAPHostAgent".format(self.url, instance_id)
+            # TODO log
             print("instance agent url: {0}".format(host_instance_agent_url))
             try:
-                with self._connect(host_instance_agent_url, self.user, self.password) as client:
-                    processes = client.service.GetProcessList()
-                    print("host instance '{0}' processes: {1}".format(host_instance_id, processes))
+                host_instance_proxy = SapProxy(host_instance_agent_url, self.user, self.password)
+                processes = host_instance_proxy.get_sap_instance_processes()
+                # TODO log
+                print("host instance '{0}' processes: {1}".format(instance_id, processes))
 
-                    worker_processes = client.service.ABAPGetWPTable()
-                    print("worker processes on instance '{0}': {1}".format(host_instance_id, worker_processes))
-                    self._collect_worker_free_metrics(host_instance_id, worker_processes)
+                if instance_type.startswith("ABAP"):
+                    num_free_workers = host_instance_proxy.get_sap_instance_abap_free_workers()
+                    # TODO log
+                    print("number worker processes on instance '{0}': {1}".format(instance_id, num_free_workers))
+                    for worker_type, num_free_worker in list(num_free_workers.items()):
+                        self.gauge(
+                            name="{0}_workers_free".format(worker_type),
+                            value=num_free_worker,
+                            tags=["instance_id:{0}".format(instance_id)],
+                            hostname=self.host
+                        )
 
-                    phys_memsize = client.service.ParameterValue(parameter="PHYS_MEMSIZE")  # megabytes
-                    print("host instance '{0}' parameter PHYS_MEMSIZE: {1}".format(host_instance_id, phys_memsize))
-                    self.gauge(
-                        name="phys_memsize",
-                        value=phys_memsize,
-                        tags=["instance_id:{0}".format(host_instance_id)],
-                        hostname=self.host
-                    )
+                phys_memsize = host_instance_proxy.get_sap_instance_physical_memory()
+                # TODO log
+                print("host instance '{0}' physical memory: {1}".format(instance_id, phys_memsize))
+                self.gauge(
+                    name="phys_memsize",
+                    value=phys_memsize,
+                    tags=["instance_id:{0}".format(instance_id)],
+                    hostname=self.host
+                )
 
-                    for process in processes:
-                        name = process.name
-                        description = process.description
-                        dispstatus = process.dispstatus
-                        textstatus = process.textstatus
-                        starttime = process.starttime
-                        elapsedtime = process.elapsedtime
-                        pid = int(process.pid)
+                for process in processes:
+                    name = process.name
+                    description = process.description
+                    dispstatus = process.dispstatus
+                    textstatus = process.textstatus
+                    starttime = process.starttime
+                    elapsedtime = process.elapsedtime
+                    pid = int(process.pid)
 
-                        # define SAP process component
-                        external_id = self._process_external_id(host_instance_id, pid)
-                        component_data = {
-                            "name": name,
-                            "description": description,
-                            "starttime": starttime,
-                            "elapsedtime": elapsedtime,
-                            "pid": pid,
-                            "host": self.host,
-                            "labels": []
-                        }
-                        self.component(external_id, "sap_process", component_data)
+                    # define SAP process component
+                    # TODO use process name in externalId for process
+                    external_id = self._process_external_id(instance_id, pid)
+                    component_data = {
+                        "name": name,
+                        "description": description,
+                        "starttime": starttime,
+                        "elapsedtime": elapsedtime,
+                        "pid": pid,
+                        "host": self.host,
+                        "labels": []
+                    }
+                    self.component(external_id, "sap_process", component_data)
 
-                        # define relation  process  -->  host instance
-                        #                         runs on
-                        source_id = external_id
-                        target_id = self._host_instance_external_id(host_instance_id)
-                        relation_data = {}
-                        self.relation(source_id, target_id, "runs on", relation_data)
+                    # define relation  process  -->  host instance
+                    #                         runs on
+                    source_id = external_id
+                    target_id = self._host_instance_external_id(instance_id)
+                    relation_data = {}
+                    self.relation(source_id, target_id, "runs on", relation_data)
 
-                        # define process status event
-                        self.event({
-                            "timestamp": int(time.time()),
-                            "source_type_name": "SAP:process state",
-                            "msg_title": "Process pid '{0}' status update.".format(pid),
-                            "msg_text": textstatus,
-                            "host": self.host,
-                            "tags": [
-                                "status:{0}".format(dispstatus),
-                                "pid:{0}".format(pid),
-                                "instance_id:{0}".format(host_instance_id),
-                                "starttime:{0}".format(starttime),
-                            ]
-                        })
-
-                    # publish event if we connected successfully to the SAP host instance
+                    # define process status event
                     self.event({
                         "timestamp": int(time.time()),
-                        "source_type_name": "SAP:host instance",
-                        "msg_title": "Host instance '{0}' status update.".format(host_instance_id),
-                        "msg_text": "",
+                        "source_type_name": "SAP:process state",
+                        "msg_title": "Process pid '{0}' status update.".format(pid),
+                        "msg_text": textstatus,
                         "host": self.host,
                         "tags": [
-                            "status:sap-host-instance-success",
-                            "instance_id:{0}".format(host_instance_id)
+                            "status:{0}".format(dispstatus),
+                            "pid:{0}".format(pid),
+                            "instance_id:{0}".format(instance_id),
+                            "starttime:{0}".format(starttime),
                         ]
                     })
+
+                # publish event if we connected successfully to the SAP host instance
+                self.event({
+                    "timestamp": int(time.time()),
+                    "source_type_name": "SAP:host instance",
+                    "msg_title": "Host instance '{0}' status update.".format(instance_id),
+                    "msg_text": "",
+                    "host": self.host,
+                    "tags": [
+                        "status:sap-host-instance-success",
+                        "instance_id:{0}".format(instance_id)
+                    ]
+                })
             except Exception as e:
                 self.log.exception(str(e))
 
@@ -228,34 +233,18 @@ class SapCheck(AgentCheck):
                 self.event({
                     "timestamp": int(time.time()),
                     "source_type_name": "SAP:host instance",
-                    "msg_title": "Host instance '{0}' status update.".format(host_instance_id),
+                    "msg_title": "Host instance '{0}' status update.".format(instance_id),
                     "msg_text": str(e),
                     "host": self.host,
                     "tags": [
                         "status:sap-host-instance-error",
-                        "instance_id:{0}".format(host_instance_id)
+                        "instance_id:{0}".format(instance_id)
                     ]
                 })
 
-    def _collect_worker_free_metrics(self, host_instance_id, worker_processes):
-        grouped_workers = {}
-        for worker in worker_processes:
-            grouped_workers[worker.Typ] = grouped_workers.get(worker.Typ, []) + [(worker.Pid, worker.Status)]
-        print("grouped workers: {0}".format(grouped_workers))
-        for worker_type in ["DIA", "BTC"]:
-            typed_workers = grouped_workers.get(worker_type, [])
-            free_typed_workers = [worker for worker in typed_workers if worker[1].lower() == "wait"]
-            self.gauge(
-                name="{0}_workers_free".format(worker_type),
-                value=len(free_typed_workers),
-                tags=["instance_id:{0}".format(host_instance_id)],
-                hostname=self.host
-            )
-
-    def _collect_databases(self, client):
-        properties_type = client.get_type("ns0:ArrayOfProperty")
-        properties = properties_type()
-        databases = client.service.ListDatabases(properties)
+    def _collect_databases(self, host_control_proxy):
+        databases = host_control_proxy.get_databases()
+        # TODO log
         print("databases: {0}".format(databases))
 
         for database in databases:
