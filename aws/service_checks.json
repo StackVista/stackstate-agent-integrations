@@ -1,0 +1,10 @@
+[
+    {
+        "integration":"aws",
+        "check": "aws.can_connect",
+        "statuses": ["ok", "critical"],
+        "groups": ["host"],
+        "name": "Can Connect",
+        "description": "Returns `CRITICAL` if the Check is unable to connect to the monitored AWS instance or Trace Agent. Returns `OK` otherwise."
+    }
+]

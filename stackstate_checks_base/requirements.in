@@ -10,3 +10,5 @@ six==1.11.0
 uptime==3.0.1
 uuid==1.30
 PyYAML==3.13
+boto3==1.10.49
+flatten-dict==0.2.0
