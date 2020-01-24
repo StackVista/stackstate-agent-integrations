@@ -1,3 +1,2 @@
 -e ../stackstate_checks_dev
-munch
 requests_mock

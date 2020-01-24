@@ -53,19 +53,26 @@ class SapCheck(AgentCheck):
         return self.host, self.url, self.user, self.password, self.tags
 
     def _collect_topology(self):
-        # 1128 is the port of the HostControl
-        host_control_url = "{0}:1128/SAPHostControl".format(self.url)
-        host_control_proxy = SapProxy(host_control_url, self.user, self.password)
+        host_instances = self._collect_hosts()
+        self._collect_processes(host_instances)
+        self._collect_databases()
 
-        host_instances = self._collect_hosts(host_control_proxy)
-        self._collect_host_instances(host_instances)
-        self._collect_databases(host_control_proxy)
+    def _get_proxy(self, instance_id=None):
+        if not instance_id:
+            # 1128 is the port of the HostControl
+            host_control_url = "{0}:1128/SAPHostControl".format(self.url)
+            return SapProxy(host_control_url, self.user, self.password)
+        else:
+            # 5xx13 is the port of the HostAgent where xx is the instance_id
+            host_instance_agent_url = "{0}:5{1}13/SAPHostAgent".format(self.url, instance_id)
+            return SapProxy(host_instance_agent_url, self.user, self.password)
 
-    def _collect_hosts(self, host_control_proxy):
+    def _collect_hosts(self):
         try:
             # define SAP host control component
             self.component(self._host_external_id(), "sap_host", {})
 
+            host_control_proxy = self._get_proxy()
             host_instances = host_control_proxy.get_sap_instances()
             # TODO log
             print("host instances: {0}".format(host_instances))
@@ -136,14 +143,10 @@ class SapCheck(AgentCheck):
 
     # Documentation regarding SAPControl Web Service, which describes API of SOAPHostAgent
     # https://www.sap.com/documents/2016/09/0a40e60d-8b7c-0010-82c7-eda71af511fa.html?infl=71bb5841-1684-47b2-af2d-11c623d3660e
-    def _collect_host_instances(self, host_instances):
+    def _collect_processes(self, host_instances):
         for instance_id, instance_type in list(host_instances.items()):
-            # 5xx13 is the port of the HostAgent where xx is the instance_id
-            host_instance_agent_url = "{0}:5{1}13/SAPHostAgent".format(self.url, instance_id)
-            # TODO log
-            print("instance agent url: {0}".format(host_instance_agent_url))
             try:
-                host_instance_proxy = SapProxy(host_instance_agent_url, self.user, self.password)
+                host_instance_proxy = self._get_proxy(instance_id)
                 processes = host_instance_proxy.get_sap_instance_processes()
                 # TODO log
                 print("host instance '{0}' processes: {1}".format(instance_id, processes))
@@ -243,7 +246,8 @@ class SapCheck(AgentCheck):
                     ]
                 })
 
-    def _collect_databases(self, host_control_proxy):
+    def _collect_databases(self):
+        host_control_proxy = self._get_proxy()
         databases = host_control_proxy.get_databases()
         # TODO log
         print("databases: {0}".format(databases))
@@ -288,7 +292,10 @@ class SapCheck(AgentCheck):
                     # define database component
                     database_component_item = {i.mKey: i.mValue for i in database_component.mProperties.item}
                     database_component_name = database_component_item.get("Database/ComponentName")
-                    database_component_external_id = self._db_component_external_id(database_name, database_component_name)
+                    database_component_external_id = self._db_component_external_id(
+                        database_name=database_name,
+                        database_component_name=database_component_name
+                    )
                     database_component_data = {
                         "name": database_component_name,
                         "database_name": database_name,
@@ -303,8 +310,12 @@ class SapCheck(AgentCheck):
                     database_component_relation_source_id = database_component_external_id
                     database_component_relation_target_id = external_id
                     database_component_relation_data = {}
-                    self.relation(database_component_relation_source_id, database_component_relation_target_id, "runs on",
-                                  database_component_relation_data)
+                    self.relation(
+                        source=database_component_relation_source_id,
+                        target=database_component_relation_target_id,
+                        type="runs on",
+                        data=database_component_relation_data
+                    )
 
                     # define database component status event
                     self.event({
