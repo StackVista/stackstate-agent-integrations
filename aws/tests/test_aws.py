@@ -4,11 +4,13 @@
 import os
 
 import jsonpickle
+from mock import patch
 
 from stackstate_checks.aws import AwsCheck
 
 AWS_REGION = 'eu-west-1'
 AWS_ACCOUNT = '672574731473'
+
 
 class MockAwsClient():
     def __init__(self, instance):
@@ -37,4 +39,9 @@ def test_traces(aggregator, instance):
     assert len(traces[0]) == 25
     assert len(traces[1]) == 25
 
-    aggregator.assert_all_metrics_covered()
+
+@patch('stackstate_checks.aws.aws.AwsClient', MockAwsClient)
+def test_service_check(aggregator, instance):
+    aws_check = AwsCheck('aws', {}, {})
+    aws_check.check(instance)
+    aggregator.assert_service_check('aws.can_connect', aws_check.CRITICAL)
