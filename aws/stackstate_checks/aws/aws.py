@@ -168,20 +168,25 @@ class AwsCheck(AgentCheck):
                 except KeyError:
                     arn = segment['aws']['operation']
         elif resource_type == 'AWS::Kinesis::Stream':
-            service = 'kinesis_stream'
             # TODO: finish creating Kinesis stream ARN
+            # service = 'kinesis_stream'
+            pass
         elif resource_type == 'AWS::S3::Bucket':
-            service = 's3'
             # TODO: finish creating S3 ARN
+            # service = 's3'
+            pass
         elif resource_type == 'AWS::RDS::DBInstance':
             # TODO: finish creating RDS ARN
-            service = 'rds'
+            # service = 'rds'
+            pass
         elif resource_type == 'AWS::SNS::Topic':
             # TODO: finish creating SNS ARN
-            service = 'sns'
+            # service = 'sns'
+            pass
         elif resource_type == 'AWS::SQS::Queue':
             # TODO: finish creating SQS ARN
-            service = 'sqs'
+            # service = 'sqs'
+            pass
         elif resource_type in ['AWS::DynamoDB::Table', 'AWS::DynamoDB', 'DynamoDB']:
             arn_format = 'arn:aws:dynamodb:{0}:{1}:table/{2}'
             try:
@@ -268,7 +273,7 @@ def flatten_segment(segment):
         if key == 'subsegments':
             ids = []
             for sub_segment in flat_segment[key]:
-                ids.append(str(int(sub_segment['id'], 16)))
+                ids.append(sub_segment['id'])
             flat_segment[key] = ', '.join(ids)
         else:
             if isinstance(value, list):
