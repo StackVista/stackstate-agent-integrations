@@ -70,7 +70,7 @@ class SapCheck(AgentCheck):
     def _collect_hosts(self):
         try:
             # define SAP host control component
-            self.component(self._host_external_id(), "sap_host", {})
+            self.component(self._host_external_id(), "sap_host", {"host": self.host})
 
             host_control_proxy = self._get_proxy()
             host_instances = host_control_proxy.get_sap_instances()
@@ -152,7 +152,8 @@ class SapCheck(AgentCheck):
                 print("host instance '{0}' processes: {1}".format(instance_id, processes))
 
                 if instance_type.startswith("ABAP"):
-                    num_free_workers = host_instance_proxy.get_sap_instance_abap_free_workers()
+                    interesting_workers = ["DIA", "BTC"]
+                    num_free_workers = host_instance_proxy.get_sap_instance_abap_free_workers(interesting_workers)
                     # TODO log
                     print("number worker processes on instance '{0}': {1}".format(instance_id, num_free_workers))
                     for worker_type, num_free_worker in list(num_free_workers.items()):

@@ -44,7 +44,7 @@ class SapProxy(object):
         # GetProcessList() -> process: ns0:ArrayOfOSProcess
         return self.client.service.GetProcessList()
 
-    def get_sap_instance_abap_free_workers(self):
+    def get_sap_instance_abap_free_workers(self, worker_types):
         """Retrieves free workers metric from an ABAP host instance"""
 
         # ABAPGetWPTable() -> workprocess: ns0:ArrayOfWorkProcess
@@ -55,7 +55,7 @@ class SapProxy(object):
             grouped_workers[worker.Typ] = grouped_workers.get(worker.Typ, []) + [(worker.Pid, worker.Status)]
 
         num_free_workers = {}
-        for worker_type in ["DIA", "BTC"]:
+        for worker_type in worker_types:
             typed_workers = grouped_workers.get(worker_type, [])
             free_typed_workers = [worker for worker in typed_workers if worker[1].lower() == "wait"]
             num_free_workers.update({worker_type: len(free_typed_workers)})

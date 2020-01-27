@@ -55,7 +55,7 @@ def test_check_run_no_sap_instances(aggregator, instance):
             start_snapshot=True,
             stop_snapshot=True,
             instance_key=TopologyInstance("sap", "LAB-SAP-001"),
-            components=[{"id": "urn:host:/{0}".format(instance["host"]), "type": "sap_host", "data": {}}])
+            components=[{"id": "urn:host:/LAB-SAP-001", "type": "sap_host", "data": {"host": "LAB-SAP-001"}}])
 
         aggregator.assert_event(
             msg_text="",
@@ -92,7 +92,7 @@ def test_collect_only_hosts(aggregator, instance):
             stop_snapshot=False,
             instance_key=TopologyInstance("sap", "LAB-SAP-001"),
             components=[
-                {"id": "urn:host:/LAB-SAP-001", "type": "sap_host", "data": {}},
+                {"id": "urn:host:/LAB-SAP-001", "type": "sap_host", "data": {"host": "LAB-SAP-001"}},
                 {"id": "urn:sap:/instance:LAB-SAP-001:67",
                  "type": "sap_instance",
                  "data": {"host": "LAB-SAP-001",
