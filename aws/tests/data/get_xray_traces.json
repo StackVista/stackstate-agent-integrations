@@ -124,5 +124,36 @@
       }
     ],
     "UnprocessedTraceIds": []
+  },
+  {
+    "ResponseMetadata": {
+      "HTTPHeaders": {
+        "connection": "keep-alive",
+        "content-length": "1682",
+        "content-type": "application/json",
+        "date": "Mon, 27 Jan 2020 13:31:50 GMT",
+        "x-amzn-requestid": "866abc1a-1f18-4596-b310-4b9cad1fb154"
+      },
+      "HTTPStatusCode": 200,
+      "RequestId": "866abc1a-1f18-4596-b310-4b9cad1fb154",
+      "RetryAttempts": 0
+    },
+    "Traces": [
+      {
+        "Duration": 0.719,
+        "Id": "1-5e2ee613-072e25eaae4ad291a2a909a9",
+        "Segments": [
+          {
+            "Document": "{\"id\":\"7f23cd3d4cee1712\",\"name\":\"test-get\",\"start_time\":1.580131859893E9,\"end_time\":1.580131860612E9,\"error\":true,\"http\":{\"response\":{\"status\":200}},\"aws\":{\"request_id\":\"30fd77f2-01ba-476e-ab1f-1212cc00a5d5\"},\"trace_id\":\"1-5e2ee613-072e25eaae4ad291a2a909a9\",\"origin\":\"AWS::Lambda\",\"resource_arn\":\"arn:aws:lambda:eu-west-1:672574731473:function:test-get\"}",
+            "Id": "7f23cd3d4cee1712"
+          },
+          {
+            "Document": "{\"id\":\"2195e9b43d2beb0c\",\"name\":\"test-get\",\"start_time\":1.5801318605939624E9,\"end_time\":1.5801318606093533E9,\"parent_id\":\"7f23cd3d4cee1712\",\"error\":true,\"aws\":{\"function_arn\":\"arn:aws:lambda:eu-west-1:672574731473:function:test-get\",\"resource_names\":[\"test-get\"],\"account_id\":\"672574731473\"},\"trace_id\":\"1-5e2ee613-072e25eaae4ad291a2a909a9\",\"origin\":\"AWS::Lambda::Function\",\"subsegments\":[{\"id\":\"686f4456c8edf2a9\",\"name\":\"Overhead\",\"start_time\":1.5801318605960038E9,\"end_time\":1.5801318606092553E9,\"aws\":{\"function_arn\":\"arn:aws:lambda:eu-west-1:672574731473:function:test-get\"}},{\"id\":\"02f933c3f2572f2d\",\"name\":\"Invocation\",\"start_time\":1.5801318605943346E9,\"end_time\":1.5801318605959554E9,\"error\":true,\"aws\":{\"function_arn\":\"arn:aws:lambda:eu-west-1:672574731473:function:test-get\"}},{\"id\":\"7fe2407823477c12\",\"name\":\"Initialization\",\"start_time\":1.5801318601577952E9,\"end_time\":1.580131860593066E9,\"aws\":{\"function_arn\":\"arn:aws:lambda:eu-west-1:672574731473:function:test-get\"}}]}",
+            "Id": "2195e9b43d2beb0c"
+          }
+        ]
+      }
+    ],
+    "UnprocessedTraceIds": []
   }
 ]
