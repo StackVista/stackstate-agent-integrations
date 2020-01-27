@@ -1,6 +1,7 @@
 # (C) StackState 2020
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
+import logging
 import time
 
 from stackstate_checks.base import ConfigurationError, AgentCheck, TopologyInstance
@@ -11,13 +12,18 @@ class SapCheck(AgentCheck):
     INSTANCE_TYPE = "sap"
     SERVICE_CHECK_NAME = "sap.can_connect"
 
-    def __init__(self, name, init_config, agentConfig, instances=None):
-        AgentCheck.__init__(self, name, init_config, agentConfig, instances)
+    def __init__(self, name, init_config, instances=None):
+        AgentCheck.__init__(self, name, init_config, instances)
         self.host = None
         self.url = None
         self.user = None
         self.password = None
         self.tags = None
+
+        # `zeep` logs lots of stuff related to wsdl parsing on DEBUG level so we avoid that
+        zeep_logger = logging.getLogger("zeep")
+        zeep_logger.setLevel(logging.WARN)
+        zeep_logger.propagate = True
 
     def get_instance_key(self, instance):
         if "host" not in instance:
@@ -54,7 +60,7 @@ class SapCheck(AgentCheck):
 
     def _collect_topology(self):
         host_instances = self._collect_hosts()
-        self._collect_processes(host_instances)
+        self._collect_instance_processes_and_metrics(host_instances)
         self._collect_databases()
 
     def _get_proxy(self, instance_id=None):
@@ -74,8 +80,7 @@ class SapCheck(AgentCheck):
 
             host_control_proxy = self._get_proxy()
             host_instances = host_control_proxy.get_sap_instances()
-            # TODO log
-            print("host instances: {0}".format(host_instances))
+            self.log.debug("host instances: {0}".format(host_instances))
 
             instances = {}
             if host_instances:
@@ -86,8 +91,7 @@ class SapCheck(AgentCheck):
                     instance_id = instance_item.get("SystemNumber")
                     instance_type = instance_item.get("InstanceType")
                     sap_version = instance_item.get("SapVersionInfo")
-                    # TODO log warning
-                    # hostname = instance_item.get("Hostname") # should be the same as self.host
+                    # hostname = instance_item.get("Hostname") # same as self.host
 
                     # define SAP host instance component
                     external_id = self._host_instance_external_id(instance_id)
@@ -143,19 +147,16 @@ class SapCheck(AgentCheck):
 
     # Documentation regarding SAPControl Web Service, which describes API of SOAPHostAgent
     # https://www.sap.com/documents/2016/09/0a40e60d-8b7c-0010-82c7-eda71af511fa.html?infl=71bb5841-1684-47b2-af2d-11c623d3660e
-    def _collect_processes(self, host_instances):
+    def _collect_instance_processes_and_metrics(self, host_instances):
         for instance_id, instance_type in list(host_instances.items()):
             try:
                 host_instance_proxy = self._get_proxy(instance_id)
-                processes = host_instance_proxy.get_sap_instance_processes()
-                # TODO log
-                print("host instance '{0}' processes: {1}".format(instance_id, processes))
 
                 if instance_type.startswith("ABAP"):
                     interesting_workers = ["DIA", "BTC"]
                     num_free_workers = host_instance_proxy.get_sap_instance_abap_free_workers(interesting_workers)
-                    # TODO log
-                    print("number worker processes on instance '{0}': {1}".format(instance_id, num_free_workers))
+                    self.log.debug("number of worker processes for instance '{0}': {1}".format(
+                        instance_id, num_free_workers))
                     for worker_type, num_free_worker in list(num_free_workers.items()):
                         self.gauge(
                             name="{0}_workers_free".format(worker_type),
@@ -165,8 +166,7 @@ class SapCheck(AgentCheck):
                         )
 
                 phys_memsize = host_instance_proxy.get_sap_instance_physical_memory()
-                # TODO log
-                print("host instance '{0}' physical memory: {1}".format(instance_id, phys_memsize))
+                self.log.debug("host instance '{0}' physical memory: {1}".format(instance_id, phys_memsize))
                 self.gauge(
                     name="phys_memsize",
                     value=phys_memsize,
@@ -174,6 +174,8 @@ class SapCheck(AgentCheck):
                     hostname=self.host
                 )
 
+                processes = host_instance_proxy.get_sap_instance_processes()
+                self.log.debug("host instance '{0}' processes: {1}".format(instance_id, processes))
                 for process in processes:
                     name = process.name
                     description = process.description
@@ -250,8 +252,7 @@ class SapCheck(AgentCheck):
     def _collect_databases(self):
         host_control_proxy = self._get_proxy()
         databases = host_control_proxy.get_databases()
-        # TODO log
-        print("databases: {0}".format(databases))
+        self.log.debug("databases: {0}".format(databases))
 
         if databases:
             for database in databases:

@@ -12,7 +12,7 @@ CHECK_NAME = "sap-test"
 
 
 def test_missing_conf(instance_empty):
-    sap_check = SapCheck(CHECK_NAME, {}, {}, instances=[instance_empty])
+    sap_check = SapCheck(CHECK_NAME, {}, instances=[instance_empty])
     with pytest.raises(ConfigurationError, match=r"Missing.*in instance configuration"):
         sap_check.check(instance_empty)
 
@@ -47,7 +47,7 @@ def test_check_run_no_sap_instances(aggregator, instance):
         m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/HostControl.wsdl"))
         m.post(host_control_url + ".cgi", text=_read_test_file("samples/GetCIMObject-NoResult.xml"))
 
-        sap_check = SapCheck(CHECK_NAME, {}, {}, instances=[instance])
+        sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
         sap_check.check(instance)
 
         topology.assert_snapshot(
@@ -55,7 +55,7 @@ def test_check_run_no_sap_instances(aggregator, instance):
             start_snapshot=True,
             stop_snapshot=True,
             instance_key=TopologyInstance("sap", "LAB-SAP-001"),
-            components=[{"id": "urn:host:/LAB-SAP-001", "type": "sap_host", "data": {"host": "LAB-SAP-001"}}])
+            components=[{"id": "urn:host:/LAB-SAP-001", "type": "sap-host", "data": {"host": "LAB-SAP-001"}}])
 
         aggregator.assert_event(
             msg_text="",
@@ -64,6 +64,8 @@ def test_check_run_no_sap_instances(aggregator, instance):
                 "host:{0}".format(instance["host"])
             ]
         )
+
+        aggregator.all_metrics_asserted()
 
         aggregator.assert_service_check(
             name=SapCheck.SERVICE_CHECK_NAME,
@@ -82,7 +84,7 @@ def test_collect_only_hosts(aggregator, instance):
         m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/HostControl.wsdl"))
         m.post(host_control_url + ".cgi", text=_read_test_file("samples/GetCIMObject.xml"))
 
-        sap_check = SapCheck(CHECK_NAME, {}, {}, instances=[instance])
+        sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
         sap_check._get_config(instance)
         sap_check._collect_hosts()
 
@@ -92,9 +94,9 @@ def test_collect_only_hosts(aggregator, instance):
             stop_snapshot=False,
             instance_key=TopologyInstance("sap", "LAB-SAP-001"),
             components=[
-                {"id": "urn:host:/LAB-SAP-001", "type": "sap_host", "data": {"host": "LAB-SAP-001"}},
+                {"id": "urn:host:/LAB-SAP-001", "type": "sap-host", "data": {"host": "LAB-SAP-001"}},
                 {"id": "urn:sap:/instance:LAB-SAP-001:67",
-                 "type": "sap_instance",
+                 "type": "sap-instance",
                  "data": {"host": "LAB-SAP-001",
                           "labels": [],
                           "name": "CDA",
@@ -103,7 +105,7 @@ def test_collect_only_hosts(aggregator, instance):
                           "type": "Solution Manager Diagnostic Agent",
                           "version": "753, patch 200, changelist 1844229"}},
                 {"id": "urn:sap:/instance:LAB-SAP-001:00",
-                 "type": "sap_instance",
+                 "type": "sap-instance",
                  "data": {"host": "LAB-SAP-001",
                           "labels": [],
                           "name": "DON",
@@ -112,7 +114,7 @@ def test_collect_only_hosts(aggregator, instance):
                           "type": "ABAP Instance",
                           "version": "753, patch 401, changelist 1927964"}},
                 {"id": "urn:sap:/instance:LAB-SAP-001:01",
-                 "type": "sap_instance",
+                 "type": "sap-instance",
                  "data": {"host": "LAB-SAP-001",
                           "labels": [],
                           "name": "DON",
@@ -141,12 +143,12 @@ def test_collect_only_hosts(aggregator, instance):
             msg_text="",
             tags=[
                 "status:sap-host-control-success",
-                "host:{0}".format(instance["host"])
+                "host:LAB-SAP-001"
             ]
         )
 
 
-def test_sap_instance_processes():
+def test_collect_processes_and_metrics(aggregator, instance):
     pass
 
 
@@ -155,7 +157,7 @@ def test_sap_instance_free_worker_metrics():
     pass
 
 
-def test_sap_instance_phisycal_memory_metrics():
+def test_sap_instance_physical_memory_metrics():
     pass
 
 
