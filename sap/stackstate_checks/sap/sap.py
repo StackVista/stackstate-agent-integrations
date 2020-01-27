@@ -152,74 +152,11 @@ class SapCheck(AgentCheck):
             try:
                 host_instance_proxy = self._get_proxy(instance_id)
 
-                if instance_type.startswith("ABAP"):
-                    interesting_workers = ["DIA", "BTC"]
-                    num_free_workers = host_instance_proxy.get_sap_instance_abap_free_workers(interesting_workers)
-                    self.log.debug("number of worker processes for instance '{0}': {1}".format(
-                        instance_id, num_free_workers))
-                    for worker_type, num_free_worker in list(num_free_workers.items()):
-                        self.gauge(
-                            name="{0}_workers_free".format(worker_type),
-                            value=num_free_worker,
-                            tags=["instance_id:{0}".format(instance_id)],
-                            hostname=self.host
-                        )
+                self._collect_processes(instance_id, host_instance_proxy)
 
-                phys_memsize = host_instance_proxy.get_sap_instance_physical_memory()
-                self.log.debug("host instance '{0}' physical memory: {1}".format(instance_id, phys_memsize))
-                self.gauge(
-                    name="phys_memsize",
-                    value=phys_memsize,
-                    tags=["instance_id:{0}".format(instance_id)],
-                    hostname=self.host
-                )
+                self._collect_memory_metric(instance_id, host_instance_proxy)
 
-                processes = host_instance_proxy.get_sap_instance_processes()
-                self.log.debug("host instance '{0}' processes: {1}".format(instance_id, processes))
-                for process in processes:
-                    name = process.name
-                    description = process.description
-                    dispstatus = process.dispstatus
-                    textstatus = process.textstatus
-                    starttime = process.starttime
-                    elapsedtime = process.elapsedtime
-                    pid = int(process.pid)
-
-                    # define SAP process component
-                    # TODO use process name in externalId for process
-                    external_id = self._process_external_id(instance_id, pid)
-                    component_data = {
-                        "name": name,
-                        "description": description,
-                        "starttime": starttime,
-                        "elapsedtime": elapsedtime,
-                        "pid": pid,
-                        "host": self.host,
-                        "labels": []
-                    }
-                    self.component(external_id, "sap-process", component_data)
-
-                    # define relation  process  -->  host instance
-                    #                         runs on
-                    source_id = external_id
-                    target_id = self._host_instance_external_id(instance_id)
-                    relation_data = {}
-                    self.relation(source_id, target_id, "runs on", relation_data)
-
-                    # define process status event
-                    self.event({
-                        "timestamp": int(time.time()),
-                        "source_type_name": "SAP:process state",
-                        "msg_title": "Process pid '{0}' status update.".format(pid),
-                        "msg_text": textstatus,
-                        "host": self.host,
-                        "tags": [
-                            "status:{0}".format(dispstatus),
-                            "pid:{0}".format(pid),
-                            "instance_id:{0}".format(instance_id),
-                            "starttime:{0}".format(starttime),
-                        ]
-                    })
+                self._collect_worker_metrics(instance_id, instance_type, host_instance_proxy)
 
                 # publish event if we connected successfully to the SAP host instance
                 self.event({
@@ -248,6 +185,78 @@ class SapCheck(AgentCheck):
                         "instance_id:{0}".format(instance_id)
                     ]
                 })
+
+    def _collect_processes(self, instance_id, host_instance_proxy):
+        processes = host_instance_proxy.get_sap_instance_processes()
+        self.log.debug("host instance '{0}' processes: {1}".format(instance_id, processes))
+        for process in processes:
+            name = process.name
+            description = process.description
+            dispstatus = process.dispstatus
+            textstatus = process.textstatus
+            starttime = process.starttime
+            elapsedtime = process.elapsedtime
+            pid = int(process.pid)
+
+            # define SAP process component
+            # TODO use process name in externalId for process
+            external_id = self._process_external_id(instance_id, pid)
+            component_data = {
+                "name": name,
+                "description": description,
+                "starttime": starttime,
+                "elapsedtime": elapsedtime,
+                "pid": pid,
+                "host": self.host,
+                "labels": []
+            }
+            self.component(external_id, "sap-process", component_data)
+
+            # define relation  process  -->  host instance
+            #                         runs on
+            source_id = external_id
+            target_id = self._host_instance_external_id(instance_id)
+            relation_data = {}
+            self.relation(source_id, target_id, "runs on", relation_data)
+
+            # define process status event
+            self.event({
+                "timestamp": int(time.time()),
+                "source_type_name": "SAP:process state",
+                "msg_title": "Process pid '{0}' status update.".format(pid),
+                "msg_text": textstatus,
+                "host": self.host,
+                "tags": [
+                    "status:{0}".format(dispstatus),
+                    "pid:{0}".format(pid),
+                    "instance_id:{0}".format(instance_id),
+                    "starttime:{0}".format(starttime),
+                ]
+            })
+
+    def _collect_worker_metrics(self, instance_id, instance_type, host_instance_proxy):
+        if instance_type.startswith("ABAP"):
+            interesting_workers = ["DIA", "BTC"]
+            num_free_workers = host_instance_proxy.get_sap_instance_abap_free_workers(interesting_workers)
+            self.log.debug("number of worker processes for instance '{0}': {1}".format(
+                instance_id, num_free_workers))
+            for worker_type, num_free_worker in list(num_free_workers.items()):
+                self.gauge(
+                    name="{0}_workers_free".format(worker_type),
+                    value=num_free_worker,
+                    tags=["instance_id:{0}".format(instance_id)],
+                    hostname=self.host
+                )
+
+    def _collect_memory_metric(self, instance_id, host_instance_proxy):
+        phys_memsize = host_instance_proxy.get_sap_instance_physical_memory()
+        self.log.debug("host instance '{0}' physical memory: {1}".format(instance_id, phys_memsize))
+        self.gauge(
+            name="phys_memsize",
+            value=phys_memsize,
+            tags=["instance_id:{0}".format(instance_id)],
+            hostname=self.host
+        )
 
     def _collect_databases(self):
         host_control_proxy = self._get_proxy()

@@ -147,17 +147,132 @@ def test_collect_only_hosts(aggregator, instance):
             ]
         )
 
-
-def test_collect_processes_and_metrics(aggregator, instance):
-    pass
+        aggregator.all_metrics_asserted()
 
 
-def test_sap_instance_free_worker_metrics():
+def test_collect_processes(aggregator, instance):
+    # TODO this is needed because the topology retains data across tests
+    topology.reset()
+
+    instance_id = "00"
+    host_agent_url = "http://localhost:50013/"
+    with requests_mock.mock() as m:
+        m.get(host_agent_url + "SAPHostAgent/?wsdl", text=_read_test_file("wsdl/HostAgent.wsdl"))
+        m.post(host_agent_url, text=_read_test_file("samples/GetProcessList.xml"))
+
+        sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
+        sap_check._get_config(instance)
+        sap_check._collect_processes(instance_id, sap_check._get_proxy(instance_id))
+
+        topology.assert_snapshot(
+            check_id=sap_check.check_id,
+            start_snapshot=False,
+            stop_snapshot=False,
+            instance_key=TopologyInstance("sap", "LAB-SAP-001"),
+            components=[
+                {'data': {'description': 'Dispatcher',
+                          'elapsedtime': '119:16:01',
+                          'host': 'LAB-SAP-001',
+                          'labels': [],
+                          'name': 'disp+work.EXE',
+                          'pid': 4392,
+                          'starttime': '2020 01 22 12:52:29'},
+                 'id': 'urn:process:/LAB-SAP-001:00:4392',
+                 'type': 'sap-process'},
+                {'data': {'description': 'IGS Watchdog',
+                          'elapsedtime': '119:16:01',
+                          'host': 'LAB-SAP-001',
+                          'labels': [],
+                          'name': 'igswd.EXE',
+                          'pid': 11088,
+                          'starttime': '2020 01 22 12:52:29'},
+                 'id': 'urn:process:/LAB-SAP-001:00:11088',
+                 'type': 'sap-process'},
+                {'data': {'description': 'Gateway',
+                          'elapsedtime': '119:16:01',
+                          'host': 'LAB-SAP-001',
+                          'labels': [],
+                          'name': 'gwrd',
+                          'pid': 9512,
+                          'starttime': '2020 01 22 12:52:29'},
+                 'id': 'urn:process:/LAB-SAP-001:00:9512',
+                 'type': 'sap-process'},
+                {'data': {'description': 'ICM',
+                          'elapsedtime': '119:16:01',
+                          'host': 'LAB-SAP-001',
+                          'labels': [],
+                          'name': 'icman',
+                          'pid': 6584,
+                          'starttime': '2020 01 22 12:52:29'},
+                 'id': 'urn:process:/LAB-SAP-001:00:6584',
+                 'type': 'sap-process'}
+            ],
+            relations=[
+                {'data': {},
+                 'source_id': 'urn:process:/LAB-SAP-001:00:4392',
+                 'target_id': 'urn:sap:/instance:LAB-SAP-001:00',
+                 'type': 'runs on'},
+                {'data': {},
+                 'source_id': 'urn:process:/LAB-SAP-001:00:11088',
+                 'target_id': 'urn:sap:/instance:LAB-SAP-001:00',
+                 'type': 'runs on'},
+                {'data': {},
+                 'source_id': 'urn:process:/LAB-SAP-001:00:9512',
+                 'target_id': 'urn:sap:/instance:LAB-SAP-001:00',
+                 'type': 'runs on'},
+                {'data': {},
+                 'source_id': 'urn:process:/LAB-SAP-001:00:6584',
+                 'target_id': 'urn:sap:/instance:LAB-SAP-001:00',
+                 'type': 'runs on'}
+            ]
+        )
+
+        aggregator.assert_event(
+            msg_text="Running",
+            tags=[
+                "status:SAPControl-GREEN",
+                "pid:4392",
+                "instance_id:" + instance_id,
+                "starttime:2020 01 22 12:52:29",
+            ]
+        )
+        aggregator.assert_event(
+            msg_text="Running",
+            tags=[
+                "status:SAPControl-GREEN",
+                "pid:11088",
+                "instance_id:" + instance_id,
+                "starttime:2020 01 22 12:52:29",
+            ]
+        )
+        aggregator.assert_event(
+            msg_text="Running",
+            tags=[
+                "status:SAPControl-GREEN",
+                "pid:9512",
+                "instance_id:" + instance_id,
+                "starttime:2020 01 22 12:52:29",
+            ]
+        )
+        aggregator.assert_event(
+            msg_text="Running",
+            tags=[
+                "status:SAPControl-GRAY",
+                "pid:6584",
+                "instance_id:" + instance_id,
+                "starttime:2020 01 22 12:52:29",
+            ]
+        )
+
+        aggregator.all_metrics_asserted()
+
+
+def test_worker_metrics():
     # only ABAP
     pass
 
 
-def test_sap_instance_physical_memory_metrics():
+def test_memory_metric():
     pass
 
 

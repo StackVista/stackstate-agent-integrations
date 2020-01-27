@@ -39,7 +39,7 @@
                 <item>
                     <name>icman</name>
                     <description>ICM</description>
-                    <dispstatus>SAPControl-GREEN</dispstatus>
+                    <dispstatus>SAPControl-GRAY</dispstatus>
                     <textstatus>Running</textstatus>
                     <starttime>2020 01 22 12:52:29</starttime>
                     <elapsedtime>119:16:01</elapsedtime>
