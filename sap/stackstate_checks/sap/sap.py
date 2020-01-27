@@ -70,7 +70,7 @@ class SapCheck(AgentCheck):
     def _collect_hosts(self):
         try:
             # define SAP host control component
-            self.component(self._host_external_id(), "sap_host", {"host": self.host})
+            self.component(self._host_external_id(), "sap-host", {"host": self.host})
 
             host_control_proxy = self._get_proxy()
             host_instances = host_control_proxy.get_sap_instances()
@@ -100,7 +100,7 @@ class SapCheck(AgentCheck):
                         "version": sap_version,
                         "labels": []
                     }
-                    self.component(external_id, "sap_instance", component_data)
+                    self.component(external_id, "sap-instance", component_data)
 
                     # define relation  host instance    -->    host
                     #                              is hosted on
@@ -195,7 +195,7 @@ class SapCheck(AgentCheck):
                         "host": self.host,
                         "labels": []
                     }
-                    self.component(external_id, "sap_process", component_data)
+                    self.component(external_id, "sap-process", component_data)
 
                     # define relation  process  -->  host instance
                     #                         runs on
@@ -267,7 +267,7 @@ class SapCheck(AgentCheck):
                     "version": database_item.get("Database/Release"),
                     "labels": []
                 }
-                self.component(external_id, "sap_database", component_data)
+                self.component(external_id, "sap-database", component_data)
 
                 # define relation  database    -->    host
                 #                          is hosted on
@@ -304,7 +304,7 @@ class SapCheck(AgentCheck):
                         "host": self.host,
                         "labels": []
                     }
-                    self.component(database_component_external_id, "sap_database_component", database_component_data)
+                    self.component(database_component_external_id, "sap-database-component", database_component_data)
 
                     # define relation between database component  -->  database
                     #                                           runs on
