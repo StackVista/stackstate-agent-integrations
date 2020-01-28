@@ -1,8 +1,8 @@
-# Agent Check: Aws
+# Agent Check: AWS
 
 ## Overview
 
-This check monitors [Aws][1] through the Datadog Agent.
+This check monitors [AWS][1] through the StackState Agent.
 
 ## Setup
 
@@ -23,19 +23,19 @@ need to install anything else on your server.
 
 ### Metrics
 
-Aws does not include any metrics.
+AWS does not include any metrics.
 
 ### Service Checks
 
-Aws does not include any service checks.
+AWS does not include any service checks.
 
 ### Events
 
-Aws does not include any events.
+AWS does not include any events.
 
 ### Topology
 
-Aws does not include any topology.
+AWS does not include any topology.
 
 [1]: **LINK_TO_INTEGERATION_SITE**
 [2]: https://github.com/StackVista/stackstate-agent-integrations/blob/master/aws/stackstate_checks/aws/data/conf.yaml.example
