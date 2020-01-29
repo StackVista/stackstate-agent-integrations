@@ -263,7 +263,7 @@ class AwsClient:
                 self.log.info(
                     'Read {}. Start time for X-Ray retrieval period is last retrieval end time: {}'.format(
                         self.cache_file, start_time))
-        except IOError as e:
+        except IOError:
             start_time = datetime.datetime.utcnow() - datetime.timedelta(seconds=self.collection_interval)
             self.log.info(
                 'Cache file {} not found. Start time for X-Ray retrieval period is: {}'.format(self.cache_file,
