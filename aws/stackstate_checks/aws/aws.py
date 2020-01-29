@@ -4,6 +4,9 @@
 import datetime
 import json
 import logging
+import os
+import pickle
+import tempfile
 
 import boto3
 import requests
@@ -23,6 +26,8 @@ DEFAULT_BOTO3_CONFIG = Config(
 
 TRACES_API_ENDPOINT = 'http://localhost:8126/v0.3/traces'
 
+DEFAULT_COLLECTION_INTERVAL = 60
+
 
 class AwsCheck(AgentCheck):
     """Converts AWS X-Ray traces and sends them to Trace Agent."""
@@ -31,7 +36,7 @@ class AwsCheck(AgentCheck):
 
     def __init__(self, name, init_config, agentConfig, instances=None):
         AgentCheck.__init__(self, name, init_config, agentConfig, instances)
-        self.log.setLevel(logging.INFO)
+        self.log.setLevel(logging.DEBUG)
         self.trace_ids = {}
         self.region = None
         self.account_id = None
@@ -43,7 +48,7 @@ class AwsCheck(AgentCheck):
 
     def check(self, instance):
         try:
-            aws_client = AwsClient(instance)
+            aws_client = AwsClient(instance, self.init_config)
             self.region = aws_client.region
             self.account_id = aws_client.get_account_id()
 
@@ -51,6 +56,8 @@ class AwsCheck(AgentCheck):
 
             if traces:
                 self._send_payload(traces)
+
+            aws_client.write_cache_file()
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=self.tags)
         except Exception as e:
             msg = 'AWS check failed: {}'.format(e)
@@ -223,12 +230,18 @@ class AwsCheck(AgentCheck):
 
 
 class AwsClient:
-    def __init__(self, instance):
+    def __init__(self, instance, config):
+        self.log = logging.getLogger(__name__)
+        self.log.setLevel(logging.INFO)
+
         aws_access_key_id = instance.get('aws_access_key_id')
         aws_secret_access_key = instance.get('aws_secret_access_key')
         role_arn = instance.get('role_arn')
         self.region = instance.get('region')
         self.aws_session_token = None
+        self.collection_interval = config.get('min_collection_interval', DEFAULT_COLLECTION_INTERVAL)
+        self.cache_file = config.get('cache_file', os.path.join(tempfile.gettempdir(), 'sts_agent_aws_check_end_time'))
+        self.last_end_time = None
 
         if aws_secret_access_key and aws_access_key_id and role_arn and self.region:
             sts_client = boto3.client('sts', config=DEFAULT_BOTO3_CONFIG, aws_access_key_id=aws_access_key_id,
@@ -244,10 +257,22 @@ class AwsClient:
     def get_xray_traces(self):
         xray_client = self._get_boto3_client('xray')
 
-        start_time = datetime.datetime.utcnow() - datetime.timedelta(minutes=1)
-        end_time = datetime.datetime.utcnow()
-        operation_params = {'StartTime': start_time, 'EndTime': end_time}
+        try:
+            with open(self.cache_file, 'rb') as file:
+                start_time = pickle.load(file)
+                self.log.info(
+                    'Read {}. Start time for X-Ray retrieval period is last retrieval end time: {}'.format(
+                        self.cache_file, start_time))
+        except IOError as e:
+            start_time = datetime.datetime.utcnow() - datetime.timedelta(seconds=self.collection_interval)
+            self.log.info(
+                'Cache file {} not found. Start time for X-Ray retrieval period is: {}'.format(self.cache_file,
+                                                                                               start_time))
 
+        operation_params = {
+            'StartTime': start_time,
+            'EndTime': datetime.datetime.utcnow()
+        }
         trace_summaries = []
         traces = []
 
@@ -258,6 +283,8 @@ class AwsClient:
         for trace_summary in trace_summaries:
             traces.append(xray_client.batch_get_traces(TraceIds=[trace_summary['Id']]))
 
+        self.last_end_time = operation_params['EndTime']
+
         return traces
 
     def _get_boto3_client(self, service_name):
@@ -265,6 +292,11 @@ class AwsClient:
                             aws_access_key_id=self.aws_access_key_id,
                             aws_secret_access_key=self.aws_secret_access_key,
                             aws_session_token=self.aws_session_token)
+
+    def write_cache_file(self):
+        with open(self.cache_file, 'wb') as file:
+            pickle.dump(self.last_end_time, file)
+            self.log.info('Writen X-Ray retrieval end time {} to {}'.format(self.last_end_time, self.cache_file))
 
 
 def flatten_segment(segment):
