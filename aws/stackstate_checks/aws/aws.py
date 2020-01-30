@@ -246,17 +246,7 @@ class AwsClient:
     def get_xray_traces(self):
         xray_client = self._get_boto3_client('xray')
 
-        try:
-            with open(self.cache_file, 'rb') as file:
-                start_time = pickle.load(file)
-                self.log.info(
-                    'Read {}. Start time for X-Ray retrieval period is last retrieval end time: {}'.format(
-                        self.cache_file, start_time))
-        except IOError:
-            start_time = datetime.datetime.utcnow() - datetime.timedelta(seconds=self.collection_interval)
-            self.log.info(
-                'Cache file {} not found. Start time for X-Ray retrieval period is: {}'.format(self.cache_file,
-                                                                                               start_time))
+        start_time = self.get_last_request_end_time()
 
         operation_params = {
             'StartTime': start_time,
@@ -276,6 +266,21 @@ class AwsClient:
 
         return traces
 
+    def get_last_request_end_time(self):
+        try:
+            with open(self.cache_file, 'rb') as file:
+                last_end_time = file.read()
+                start_time = datetime.datetime.utcfromtimestamp(float(last_end_time))
+                self.log.info(
+                    'Read {}. Start time for X-Ray retrieval period is last retrieval end time: {}'.format(
+                        self.cache_file, start_time))
+        except IOError:
+            start_time = datetime.datetime.utcnow() - datetime.timedelta(seconds=self.collection_interval)
+            self.log.info(
+                'Cache file {} not found. Start time for X-Ray retrieval period is: {}'.format(self.cache_file,
+                                                                                               start_time))
+        return start_time
+
     def _get_boto3_client(self, service_name):
         return boto3.client(service_name, region_name=self.region, config=DEFAULT_BOTO3_CONFIG,
                             aws_access_key_id=self.aws_access_key_id,
@@ -283,9 +288,10 @@ class AwsClient:
                             aws_session_token=self.aws_session_token)
 
     def write_cache_file(self):
-        with open(self.cache_file, 'wb') as file:
-            pickle.dump(self.last_end_time, file)
-            self.log.info('Writen X-Ray retrieval end time {} to {}'.format(self.last_end_time, self.cache_file))
+        with open(self.cache_file, 'w') as file:
+            end_timestamp = (self.last_end_time - datetime.datetime.utcfromtimestamp(0)).total_seconds()
+            file.write(str(end_timestamp))
+            self.log.info('Writen X-Ray retrieval end time {} to {}'.format(end_timestamp, self.cache_file))
 
 
 def flatten_segment(segment):

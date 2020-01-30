@@ -1,12 +1,14 @@
 # (C) StackState, Inc. 2020
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
+import datetime
 import os
 
 import jsonpickle
 from mock import patch
 
 from stackstate_checks.aws import AwsCheck
+from stackstate_checks.aws.aws import AwsClient
 
 AWS_REGION = 'eu-west-1'
 AWS_ACCOUNT = '672574731473'
@@ -26,7 +28,7 @@ class MockAwsClient():
         return AWS_ACCOUNT
 
 
-def test_traces(aggregator, instance):
+def test_traces():
     check = AwsCheck('test', {}, {})
     aws_client = MockAwsClient({})
     check.region = aws_client.region
@@ -60,6 +62,15 @@ def test_error_trace():
     assert len(spans) == 5
     assert spans[0]['error'] == 1
     assert spans[1]['error'] == 1
+
+
+def test_end_time():
+    client = AwsClient({}, {})
+    time1 = datetime.datetime.utcnow() - datetime.timedelta(seconds=60)
+    client.last_end_time = time1
+    client.write_cache_file()
+    time2 = client.get_last_request_end_time()
+    assert time1 == time2
 
 
 def get_file(file_name):

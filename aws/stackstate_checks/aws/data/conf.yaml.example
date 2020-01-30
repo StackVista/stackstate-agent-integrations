@@ -1,6 +1,6 @@
 init_config:
     # optional
-    # cache_file: '/var/tmp/sts_agent_aws_check.json'
+    # cache_file: '/opt/stackstate-agent/tmp'
 
 instances:
   # mandatory AWS credentials and config
