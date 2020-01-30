@@ -14,7 +14,7 @@ import uuid
 from botocore.config import Config
 import flatten_dict
 
-from stackstate_checks.base import AgentCheck, TopologyInstance
+from stackstate_checks.base import AgentCheck, TopologyInstance, is_affirmative
 
 DEFAULT_BOTO3_RETRIES_COUNT = 50
 
@@ -94,10 +94,7 @@ class AwsCheck(AgentCheck):
             if not trace_id:
                 trace_id = self._convert_trace_id(segment['trace_id'])
 
-            try:
-                resource_type = segment['origin']
-            except KeyError:
-                resource_type = segment['name']
+            resource_type = segment.get('origin', segment.get('name'))
 
             try:
                 parent_span_id = int(segment['parent_id'], 16)
@@ -105,21 +102,13 @@ class AwsCheck(AgentCheck):
                 parent_span_id = parent_id
 
             # we use Amazon ARN for service name
-            try:
-                service_name = segment['resource_arn']
-            except KeyError:
-                service_name = segment['name']
+            service_name = segment.get('resource_arn', segment.get('name'))
             if 'arn:' not in service_name:
                 arn = self._generate_arn(resource_type, segment, span_id, parent_span_id)
                 if arn:
                     service_name = arn
 
             flat_segment = flatten_segment(segment)
-            try:
-                flat_segment['trace_id'] = segment['trace_id']
-            except KeyError:
-                # some segments doesn't have trace_id
-                pass
 
             # times format is the unix epoch in nanoseconds
             span = {
@@ -135,7 +124,7 @@ class AwsCheck(AgentCheck):
             }
 
             # Check if there is error in X-Ray Trace
-            if segment.get('error'):
+            if is_affirmative(segment.get('error')):
                 span['error'] = 1
 
             spans.append(span)
@@ -239,7 +228,7 @@ class AwsClient:
         role_arn = instance.get('role_arn')
         self.region = instance.get('region')
         self.aws_session_token = None
-        self.collection_interval = config.get('min_collection_interval', DEFAULT_COLLECTION_INTERVAL)
+        self.collection_interval = instance.get('min_collection_interval', DEFAULT_COLLECTION_INTERVAL)
         self.cache_file = config.get('cache_file', os.path.join(tempfile.gettempdir(), 'sts_agent_aws_check_end_time'))
         self.last_end_time = None
 

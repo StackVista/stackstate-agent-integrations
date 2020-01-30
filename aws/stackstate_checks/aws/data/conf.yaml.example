@@ -1,6 +1,4 @@
 init_config:
-    # mandatory
-    min_collection_interval: 60
     # optional
     # cache_file: '/var/tmp/sts_agent_aws_check.json'
 
@@ -10,4 +8,6 @@ instances:
     aws_secret_access_key: 'cde'
     role_arn: 'arn:aws:iam::0123456789:role/RoleName'
     region: 'ijk'
+    # optional
+    # min_collection_interval: 60
 
