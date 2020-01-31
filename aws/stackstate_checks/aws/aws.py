@@ -275,7 +275,6 @@ class AwsClient:
         try:
             with open(self.cache_file, 'r') as file:
                 last_end_time = file.read()
-                print('Read timestamp: ', float(last_end_time))
                 start_time = datetime.datetime.utcfromtimestamp(float(last_end_time))
                 self.log.info(
                     'Read {}. Start time for X-Ray retrieval period is last retrieval end time: {}'.format(
@@ -290,8 +289,7 @@ class AwsClient:
     def write_cache_file(self):
         with open(self.cache_file, 'w') as file:
             end_timestamp = (self.last_end_time - datetime.datetime.utcfromtimestamp(0)).total_seconds()
-            print('Timestamp for writing: ' + str(end_timestamp))
-            file.write(str(end_timestamp))
+            file.write('{:f}'.format(end_timestamp))
             self.log.info('Writen X-Ray retrieval end time {} to {}'.format(self.last_end_time, self.cache_file))
 
 
