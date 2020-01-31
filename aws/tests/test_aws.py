@@ -69,7 +69,7 @@ def test_end_time():
     time1 = datetime.datetime.utcnow() - datetime.timedelta(seconds=60)
     client.last_end_time = time1
     client.write_cache_file()
-    time2 = client.get_last_request_end_time()
+    time2 = client._get_last_request_end_time()
     assert time1 == time2
 
 

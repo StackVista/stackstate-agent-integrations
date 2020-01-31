@@ -245,7 +245,7 @@ class AwsClient:
     def get_xray_traces(self):
         xray_client = self._get_boto3_client('xray')
 
-        start_time = self.get_last_request_end_time()
+        start_time = self._get_last_request_end_time()
 
         operation_params = {
             'StartTime': start_time,
@@ -271,7 +271,7 @@ class AwsClient:
                             aws_secret_access_key=self.aws_secret_access_key,
                             aws_session_token=self.aws_session_token)
 
-    def get_last_request_end_time(self):
+    def _get_last_request_end_time(self):
         try:
             with open(self.cache_file, 'r') as file:
                 last_end_time = file.read()
