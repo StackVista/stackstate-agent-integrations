@@ -5,14 +5,13 @@ import datetime
 import json
 import logging
 import os
-import pickle
 import tempfile
 
 import boto3
+import flatten_dict
 import requests
 import uuid
 from botocore.config import Config
-import flatten_dict
 
 from stackstate_checks.base import AgentCheck, TopologyInstance, is_affirmative
 
@@ -266,10 +265,17 @@ class AwsClient:
 
         return traces
 
+    def _get_boto3_client(self, service_name):
+        return boto3.client(service_name, region_name=self.region, config=DEFAULT_BOTO3_CONFIG,
+                            aws_access_key_id=self.aws_access_key_id,
+                            aws_secret_access_key=self.aws_secret_access_key,
+                            aws_session_token=self.aws_session_token)
+
     def get_last_request_end_time(self):
         try:
-            with open(self.cache_file, 'rb') as file:
+            with open(self.cache_file, 'r') as file:
                 last_end_time = file.read()
+                print('Read timestamp: ', float(last_end_time))
                 start_time = datetime.datetime.utcfromtimestamp(float(last_end_time))
                 self.log.info(
                     'Read {}. Start time for X-Ray retrieval period is last retrieval end time: {}'.format(
@@ -281,17 +287,12 @@ class AwsClient:
                                                                                                start_time))
         return start_time
 
-    def _get_boto3_client(self, service_name):
-        return boto3.client(service_name, region_name=self.region, config=DEFAULT_BOTO3_CONFIG,
-                            aws_access_key_id=self.aws_access_key_id,
-                            aws_secret_access_key=self.aws_secret_access_key,
-                            aws_session_token=self.aws_session_token)
-
     def write_cache_file(self):
         with open(self.cache_file, 'w') as file:
             end_timestamp = (self.last_end_time - datetime.datetime.utcfromtimestamp(0)).total_seconds()
+            print('Timestamp for writing: ' + str(end_timestamp))
             file.write(str(end_timestamp))
-            self.log.info('Writen X-Ray retrieval end time {} to {}'.format(end_timestamp, self.cache_file))
+            self.log.info('Writen X-Ray retrieval end time {} to {}'.format(self.last_end_time, self.cache_file))
 
 
 def flatten_segment(segment):
