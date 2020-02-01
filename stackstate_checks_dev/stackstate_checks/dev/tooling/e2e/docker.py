@@ -4,7 +4,7 @@
 from .agent import (
     FAKE_API_KEY,
     get_agent_exe, get_agent_conf_dir,
-    get_rate_flag
+    get_rate_flag, get_log_level_flag
 )
 from .config import (
     config_file_name, env_exists, locate_config_dir, locate_config_file, remove_env_data, write_env_data
@@ -12,6 +12,7 @@ from .config import (
 from ..constants import get_root
 from ...subprocess import run_command
 from ...utils import path_join
+from ..commands.console import echo_info
 
 
 class DockerInterface(object):
@@ -48,12 +49,14 @@ class DockerInterface(object):
             get_agent_exe()
         )
 
-    def run_check(self, capture=False, rate=False):
-        command = '{} check {}{}'.format(
+    def run_check(self, capture=False, rate=False, log_level=None):
+        command = '{} check {}{}{}'.format(
             self.agent_command,
             self.check,
-            ' {}'.format(get_rate_flag()) if rate else ''
+            ' {}'.format(get_rate_flag()) if rate else '',
+            ' {} {}'.format(get_log_level_flag(), log_level) if log_level else '',
         )
+        echo_info("\nCommand used for running the check: '{0}'\n".format(command))
         return run_command(command, capture=capture)
 
     def exists(self):
@@ -66,6 +69,10 @@ class DockerInterface(object):
         write_env_data(self.check, self.env, self.config, self.metadata)
 
     def update_check(self):
+        command_deps = [
+            'docker', 'exec', self.container_name, 'pip', 'install', '-r', "{}/requirements.in".format(self.check_mount_dir)
+        ]
+        run_command(command_deps, capture=True, check=True)
         command = [
             'docker', 'exec', self.container_name, 'pip', 'install', '-e', self.check_mount_dir
         ]
@@ -99,6 +106,8 @@ class DockerInterface(object):
                 '-e', 'STS_CMD_PORT=4999',
                 # Needs to be explicitly disabled
                 '-e', 'STS_APM_ENABLED=false',
+                # Enable debugging level
+                '-e', 'STS_LOG_LEVEL=DEBUG',
                 # Mount the config directory, not the file, to ensure updates are propagated
                 # https://github.com/moby/moby/issues/15793#issuecomment-135411504
                 '-v', '{}:{}'.format(self.config_dir, get_agent_conf_dir(self.check)),
@@ -114,6 +123,7 @@ class DockerInterface(object):
             # The chosen tag
             command.append(self.agent_build)
 
+            echo_info("\nCommand used to start the agent env: '{0}'\n".format(command))
             return run_command(command, capture=True)
 
     def stop_agent(self):
