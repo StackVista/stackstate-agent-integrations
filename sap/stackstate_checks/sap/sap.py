@@ -292,6 +292,7 @@ class SapCheck(AgentCheck):
                     "timestamp": int(time.time()),
                     "source_type_name": "SAP:database state",
                     "msg_title": "Database '{0}' status update.".format(database_name),
+                    "msg_text": "",
                     "host": self.host,
                     "tags": [
                         "status:{0}".format(database_status),
@@ -333,6 +334,7 @@ class SapCheck(AgentCheck):
                         "timestamp": int(time.time()),
                         "source_type_name": "SAP:database component state",
                         "msg_title": "Database component '{0}' status update.".format(database_component_name),
+                        "msg_text": "",
                         "host": self.host,
                         "tags": [
                             "status:{0}".format(database_component.mStatus),
