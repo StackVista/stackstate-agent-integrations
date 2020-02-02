@@ -70,7 +70,8 @@ class DockerInterface(object):
 
     def update_check(self):
         command_deps = [
-            'docker', 'exec', self.container_name, 'pip', 'install', '-r', "{}/requirements.in".format(self.check_mount_dir)
+            'docker', 'exec', self.container_name, 'pip', 'install', '-r',
+            "{}/requirements.in".format(self.check_mount_dir)
         ]
         run_command(command_deps, capture=True, check=True)
         command = [
