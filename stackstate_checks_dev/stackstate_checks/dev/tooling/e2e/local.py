@@ -9,7 +9,7 @@ from .agent import (
     FAKE_API_KEY,
     get_agent_conf_dir, get_agent_exe, get_agent_pip_install,
     get_agent_service_cmd,
-    get_rate_flag
+    get_rate_flag, get_log_level_flag
 )
 from .config import (
     config_file_name, locate_config_dir, locate_config_file, write_env_data, remove_env_data
@@ -18,6 +18,7 @@ from .platform import LINUX, MAC, WINDOWS
 from ..constants import get_root
 from ...utils import ON_MACOS, ON_WINDOWS, ON_LINUX, path_join, file_exists
 from ...subprocess import run_command
+from ..commands.console import echo_info
 
 
 class LocalAgentInterface(object):
@@ -82,12 +83,14 @@ class LocalAgentInterface(object):
         if file_exists(backup_conf_file):
             move(backup_conf_file, check_conf_file)
 
-    def run_check(self, capture=False, rate=False):
-        command = '{} check {}{}'.format(
+    def run_check(self, capture=False, rate=False, log_level=None):
+        command = '{} check {}{}{}'.format(
             self.agent_command,
             self.check,
-            ' {}'.format(get_rate_flag()) if rate else ''
+            ' {}'.format(get_rate_flag()) if rate else '',
+            ' {} {}'.format(get_log_level_flag(), log_level) if log_level else '',
         )
+        echo_info("\nCommand used for running the check: '{0}'\n".format(command))
         return run_command(command, capture=capture)
 
     def update_check(self):

@@ -14,6 +14,10 @@ def get_rate_flag():
     return '--check-rate'
 
 
+def get_log_level_flag():
+    return '--log-level'
+
+
 def get_agent_exe(platform='linux'):
     if platform == 'windows':
         return r"C:\Program Files\StackState\StackState Agent\embedded\agent.exe"
