@@ -4,8 +4,6 @@
 # This file will pull in deps when a test is ran without the deps job having ran first.
 # This happens when using the ./run_gitlab_local.sh script
 
-set -x
-
 export INTEGRATIONS_DIR_TMP=${CI_PROJECT_DIR:-"."}
 
 VENV_PATH=$INTEGRATIONS_DIR_TMP/venv
@@ -19,5 +17,3 @@ else
 fi
 
 unset INTEGRATIONS_DIR_TMP
-
-set +x

@@ -8,9 +8,9 @@ import sys
 import mock
 import pytest
 
-from datadog_checks.kubelet import KubeletCheck
-from datadog_checks.kubelet.common import PodListUtils
-from datadog_checks.kubelet.prometheus import CadvisorPrometheusScraperMixin
+from stackstate_checks.kubelet import KubeletCheck
+from stackstate_checks.kubelet.common import PodListUtils
+from stackstate_checks.kubelet.prometheus import CadvisorPrometheusScraperMixin
 
 # Skip the whole tests module on Windows
 pytestmark = pytest.mark.skipif(sys.platform == 'win32', reason='tests for linux only')
@@ -39,7 +39,7 @@ def check():
 @pytest.fixture
 def cadvisor_scraper(check):
     with mock.patch(
-        'datadog_checks.kubelet.kubelet.KubeletCheck.retrieve_pod_list',
+        'stackstate_checks.kubelet.kubelet.KubeletCheck.retrieve_pod_list',
         return_value=json.loads(mock_from_file('podlist_containerd.json')),
     ):
         check.pod_list = check.retrieve_pod_list()

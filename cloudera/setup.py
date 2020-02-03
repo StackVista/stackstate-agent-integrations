@@ -1,4 +1,4 @@
-# (C) Datadog, Inc. 2019
+# (C) StackState 2019
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 from codecs import open  # To use a consistent encoding

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This check monitors [{check_name_cap}][1] through the Datadog Agent.
+This check monitors [{check_name_cap}][1] through the StackState Agent.
 
 ## Setup
 
