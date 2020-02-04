@@ -51,10 +51,26 @@ Run tests:
 You can also select specific comma-separated environments to test like so:
 
     $ checksdev test <check_name>:<env1>,<env2>
+    
+## Run a check
+
+First create an agent environment:
+
+    $ checksdev env start <check_name> <env1>
+    
+then you can run just once the check as you would do with a real agent:
+
+    $ checksdev env check <check_name> <env1> [-l DEBUG]
+    
+uou can optionally pass a log level parameter, if not passed logging is disabled. 
 
 ## CI image
 
 The CI image is built from `.setup-scripts/image`.
+
+### Improve this
+
+If you find anything missing in this README please amend it! :)
 
 
 [1]: https://github.com/StackVista/stackstate-agent

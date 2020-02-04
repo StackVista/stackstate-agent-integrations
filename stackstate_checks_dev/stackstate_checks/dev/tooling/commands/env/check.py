@@ -15,7 +15,8 @@ from ...e2e import create_interface, get_configured_envs
 @click.argument('check')
 @click.argument('env', required=False)
 @click.option('--rate', '-r', is_flag=True)
-def check_run(check, env, rate):
+@click.option('--log-level', '-l')
+def check_run(check, env, rate, log_level):
     """Run an Agent check."""
     envs = get_configured_envs(check)
     if not envs:
@@ -38,6 +39,6 @@ def check_run(check, env, rate):
 
     environment = create_interface(check, env)
 
-    environment.run_check(rate=rate)
+    environment.run_check(rate=rate, log_level=log_level)
     echo_success('Note: ', nl=False)
     echo_info('If some metrics are missing, you may want to try again with the -r / --rate flag.')
