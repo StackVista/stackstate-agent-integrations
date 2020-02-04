@@ -1,0 +1,2 @@
+boto3==1.10.49
+flatten-dict==0.2.0

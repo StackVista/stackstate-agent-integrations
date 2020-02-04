@@ -1,0 +1,23 @@
+{
+  "display_name": "AWS",
+  "maintainer": "info@stackstate.com",
+  "manifest_version": "1.0.0",
+  "name": "aws",
+  "metric_prefix": "aws.",
+  "metric_to_check": "",
+  "creates_events": false,
+  "short_description": "Collect AWS X-Ray Traces and sends them to Trace Agent",
+  "guid": "025c20d6-08d2-4119-b80f-0e3ab8b7745b",
+  "support": "core",
+  "supported_os": [
+    "linux",
+    "mac_os",
+    "windows"
+  ],
+  "public_title": "StackState-AWS X-Ray Trace Integration",
+  "categories": [
+    "traces"
+  ],
+  "type": "check",
+  "is_public": false
+}
