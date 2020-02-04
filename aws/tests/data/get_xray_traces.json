@@ -1,0 +1,159 @@
+[
+  {
+    "ResponseMetadata": {
+      "HTTPHeaders": {
+        "connection": "keep-alive",
+        "content-length": "9412",
+        "content-type": "application/json",
+        "date": "Wed, 22 Jan 2020 14:54:37 GMT",
+        "x-amzn-requestid": "97dbcfdf-6c19-4640-a3bb-45218741b690"
+      },
+      "HTTPStatusCode": 200,
+      "RequestId": "97dbcfdf-6c19-4640-a3bb-45218741b690",
+      "RetryAttempts": 0
+    },
+    "Traces": [
+      {
+        "Duration": 1.086,
+        "Id": "1-5e2860fc-aabdc27d7ba9bf71664b75af",
+        "Segments": [
+          {
+            "Document": "{\"id\":\"0dfc43a213f03e6a\",\"name\":\"test-get\",\"start_time\":1.579704572495E9,\"end_time\":1.579704573533E9,\"parent_id\":\"066577889bc76215\",\"http\":{\"response\":{\"status\":200}},\"aws\":{\"request_id\":\"d9f3bd36-d3f4-49f3-823f-c1125f77b9a4\"},\"trace_id\":\"1-5e2860fc-aabdc27d7ba9bf71664b75af\",\"origin\":\"AWS::Lambda\",\"resource_arn\":\"arn:aws:lambda:eu-west-1:672574731473:function:test-get\"}",
+            "Id": "0dfc43a213f03e6a"
+          },
+          {
+            "Document": "{\"id\":\"5e940cfd4919316b\",\"name\":\"test-get\",\"start_time\":1.579704572506668E9,\"end_time\":1.5797045735310016E9,\"parent_id\":\"0dfc43a213f03e6a\",\"aws\":{\"function_arn\":\"arn:aws:lambda:eu-west-1:672574731473:function:test-get\",\"resource_names\":[\"test-get\"],\"account_id\":\"672574731473\"},\"trace_id\":\"1-5e2860fc-aabdc27d7ba9bf71664b75af\",\"origin\":\"AWS::Lambda::Function\",\"subsegments\":[{\"id\":\"639556c5b719d9a9\",\"name\":\"Overhead\",\"start_time\":1.5797045734740057E9,\"end_time\":1.5797045735309072E9,\"aws\":{\"function_arn\":\"arn:aws:lambda:eu-west-1:672574731473:function:test-get\"}},{\"id\":\"8059bbb04b8fb57e\",\"name\":\"Invocation\",\"start_time\":1.5797045725067255E9,\"end_time\":1.5797045734739654E9,\"aws\":{\"function_arn\":\"arn:aws:lambda:eu-west-1:672574731473:function:test-get\"},\"subsegments\":[{\"id\":\"9450ee2b25a19349\",\"name\":\"add_item_to_books_table\",\"start_time\":1.5797045731505609E9,\"end_time\":1.579704573473233E9,\"annotations\":{\"add_item_to_books_table\":\"Item writen\"},\"namespace\":\"local\",\"subsegments\":[{\"id\":\"322d962d85019b89\",\"name\":\"DynamoDB\",\"start_time\":1.5797045734124146E9,\"end_time\":1.579704573471261E9,\"http\":{\"response\":{\"status\":200}},\"aws\":{\"operation\":\"BatchWriteItem\",\"region\":\"eu-west-1\",\"request_id\":\"5VUDP3R5638I9FSA67H40OEQLJVV4KQNSO5AEMVJF66Q9ASUAAJG\",\"table_names\":null},\"namespace\":\"aws\"},{\"id\":\"8d38c1df560317c0\",\"name\":\"DynamoDB\",\"start_time\":1.5797045732139206E9,\"end_time\":1.5797045734117465E9,\"http\":{\"response\":{\"status\":200}},\"aws\":{\"operation\":\"Query\",\"region\":\"eu-west-1\",\"request_id\":\"6HROKQF29DNI3G4O1UU68TLEG3VV4KQNSO5AEMVJF66Q9ASUAAJG\",\"table_name\":\"Books\",\"resource_names\":[\"Books\"]},\"namespace\":\"aws\"}]},{\"id\":\"ec9eebe3a2d43c89\",\"name\":\"Lambda\",\"start_time\":1.5797045725927317E9,\"end_time\":1.5797045731475937E9,\"http\":{\"response\":{\"status\":200}},\"aws\":{\"function_name\":\"test-delete\",\"invocation_type\":\"RequestResponse\",\"operation\":\"Invoke\",\"region\":\"eu-west-1\",\"request_id\":\"b2866004-f0da-45ae-aa30-7100b711e790\",\"status_code\":200,\"resource_names\":[\"test-delete\"]},\"namespace\":\"aws\"},{\"id\":\"a9a1cb2d7bc14f5c\",\"name\":\"list_lambdas\",\"start_time\":1.5797045725104382E9,\"end_time\":1.5797045725923898E9,\"annotations\":{\"list_lambdas\":\"num of functions 8\"},\"namespace\":\"local\",\"subsegments\":[{\"id\":\"1e6930571429f549\",\"name\":\"Lambda\",\"start_time\":1.5797045725105283E9,\"end_time\":1.5797045725916834E9,\"http\":{\"response\":{\"status\":200}},\"aws\":{\"operation\":\"ListFunctions\",\"region\":\"eu-west-1\",\"request_id\":\"585ca870-7ecd-4a0d-b0eb-8bca91645456\"},\"namespace\":\"aws\"}]}]}]}",
+            "Id": "5e940cfd4919316b"
+          },
+          {
+            "Document": "{\"id\":\"7d7ced4f4a277964\",\"name\":\"test-delete\",\"start_time\":1.5797045726704507E9,\"end_time\":1.5797045731449525E9,\"parent_id\":\"0470450426da4047\",\"aws\":{\"function_arn\":\"arn:aws:lambda:eu-west-1:672574731473:function:test-delete\",\"resource_names\":[\"test-delete\"],\"account_id\":\"672574731473\"},\"trace_id\":\"1-5e2860fc-aabdc27d7ba9bf71664b75af\",\"origin\":\"AWS::Lambda::Function\",\"subsegments\":[{\"id\":\"45c99804d0494840\",\"name\":\"Overhead\",\"start_time\":1.5797045731444237E9,\"end_time\":1.5797045731449094E9,\"aws\":{\"function_arn\":\"arn:aws:lambda:eu-west-1:672574731473:function:test-delete\"}},{\"id\":\"3f26a0b9787d2e9b\",\"name\":\"Invocation\",\"start_time\":1.5797045726705022E9,\"end_time\":1.5797045731443717E9,\"aws\":{\"function_arn\":\"arn:aws:lambda:eu-west-1:672574731473:function:test-delete\"},\"subsegments\":[{\"id\":\"ba4dd0a3278b1465\",\"name\":\"delete_item_from_table\",\"start_time\":1.5797045727041814E9,\"end_time\":1.5797045730873425E9,\"annotations\":{\"delete_item_from_table\":\"item deleted\"},\"namespace\":\"local\",\"subsegments\":[{\"id\":\"fc27f903aad76385\",\"name\":\"DynamoDB\",\"start_time\":1.5797045730252552E9,\"end_time\":1.579704573085058E9,\"http\":{\"response\":{\"status\":200}},\"aws\":{\"operation\":\"DeleteItem\",\"region\":\"eu-west-1\",\"request_id\":\"G22NF61PAPFHLR5FOUQFS5ES23VV4KQNSO5AEMVJF66Q9ASUAAJG\",\"table_name\":\"Books\",\"resource_names\":[\"Books\"]},\"namespace\":\"aws\"},{\"id\":\"7f2760431bee7edf\",\"name\":\"DynamoDB\",\"start_time\":1.5797045728255653E9,\"end_time\":1.5797045730245535E9,\"http\":{\"response\":{\"status\":200}},\"aws\":{\"operation\":\"Query\",\"region\":\"eu-west-1\",\"request_id\":\"CG6V223TAF9DF6BKGKHF70VKRVVV4KQNSO5AEMVJF66Q9ASUAAJG\",\"table_name\":\"Books\",\"resource_names\":[\"Books\"]},\"namespace\":\"aws\"}]}]}]}",
+            "Id": "7d7ced4f4a277964"
+          },
+          {
+            "Document": "{\"id\":\"0470450426da4047\",\"name\":\"test-delete\",\"start_time\":1.579704572664E9,\"end_time\":1.579704573146E9,\"parent_id\":\"ec9eebe3a2d43c89\",\"http\":{\"response\":{\"status\":200}},\"aws\":{\"request_id\":\"b2866004-f0da-45ae-aa30-7100b711e790\"},\"trace_id\":\"1-5e2860fc-aabdc27d7ba9bf71664b75af\",\"origin\":\"AWS::Lambda\",\"resource_arn\":\"arn:aws:lambda:eu-west-1:672574731473:function:test-delete\"}",
+            "Id": "0470450426da4047"
+          },
+          {
+            "Document": "{\"id\":\"87e1ed8be53152da\",\"name\":\"custom-lambda-api-gw\",\"start_time\":1.5797045724475791E9,\"end_time\":1.5797045735331235E9,\"aws\":{\"ec2\":{\"availability_zone\":\"eu-west-1b\",\"instance_id\":\"i-0ecdbad010a1feb14\"},\"xray\":{\"sdk\":\"X-Ray for Python\",\"sdk_version\":\"2.4.2\"}},\"service\":{\"runtime\":\"CPython\",\"runtime_version\":\"3.6.8\"},\"trace_id\":\"1-5e2860fc-aabdc27d7ba9bf71664b75af\",\"origin\":\"AWS::EC2::Instance\",\"subsegments\":[{\"id\":\"f4f3d45ef9edb1ff\",\"name\":\"calling test-get lambda\",\"start_time\":1.5797045724478717E9,\"end_time\":1.5797045735330837E9,\"namespace\":\"local\",\"subsegments\":[{\"id\":\"066577889bc76215\",\"name\":\"Lambda\",\"start_time\":1.5797045724479516E9,\"end_time\":1.5797045735326095E9,\"http\":{\"response\":{\"status\":200}},\"aws\":{\"function_name\":\"test-get\",\"invocation_type\":\"RequestResponse\",\"operation\":\"Invoke\",\"region\":\"eu-west-1\",\"request_id\":\"d9f3bd36-d3f4-49f3-823f-c1125f77b9a4\",\"status_code\":200,\"resource_names\":[\"test-get\"]},\"namespace\":\"aws\"}]}]}",
+            "Id": "87e1ed8be53152da"
+          },
+          {
+            "Document": "{\"id\":\"3093d8cb3066d147\",\"name\":\"DynamoDB\",\"start_time\":1.5797045734124146E9,\"end_time\":1.579704573471261E9,\"parent_id\":\"322d962d85019b89\",\"inferred\":true,\"http\":{\"response\":{\"status\":200}},\"aws\":{\"operation\":\"BatchWriteItem\",\"region\":\"eu-west-1\",\"request_id\":\"5VUDP3R5638I9FSA67H40OEQLJVV4KQNSO5AEMVJF66Q9ASUAAJG\",\"table_names\":null},\"trace_id\":\"1-5e2860fc-aabdc27d7ba9bf71664b75af\",\"origin\":\"AWS::DynamoDB\"}",
+            "Id": "3093d8cb3066d147"
+          },
+          {
+            "Document": "{\"id\":\"05d5f0413f1ac4e7\",\"name\":\"DynamoDB\",\"start_time\":1.5797045732139206E9,\"end_time\":1.5797045734117465E9,\"parent_id\":\"8d38c1df560317c0\",\"inferred\":true,\"http\":{\"response\":{\"status\":200}},\"aws\":{\"operation\":\"Query\",\"region\":\"eu-west-1\",\"request_id\":\"6HROKQF29DNI3G4O1UU68TLEG3VV4KQNSO5AEMVJF66Q9ASUAAJG\",\"table_name\":\"Books\",\"resource_names\":[\"Books\"]},\"trace_id\":\"1-5e2860fc-aabdc27d7ba9bf71664b75af\",\"origin\":\"AWS::DynamoDB::Table\"}",
+            "Id": "05d5f0413f1ac4e7"
+          },
+          {
+            "Document": "{\"id\":\"30aa51b30191a862\",\"name\":\"Lambda\",\"start_time\":1.5797045725105283E9,\"end_time\":1.5797045725916834E9,\"parent_id\":\"1e6930571429f549\",\"inferred\":true,\"http\":{\"response\":{\"status\":200}},\"aws\":{\"operation\":\"ListFunctions\",\"region\":\"eu-west-1\",\"request_id\":\"585ca870-7ecd-4a0d-b0eb-8bca91645456\"},\"trace_id\":\"1-5e2860fc-aabdc27d7ba9bf71664b75af\",\"origin\":\"AWS::Lambda\"}",
+            "Id": "30aa51b30191a862"
+          },
+          {
+            "Document": "{\"id\":\"067fa6e40c056e7b\",\"name\":\"DynamoDB\",\"start_time\":1.5797045730252552E9,\"end_time\":1.579704573085058E9,\"parent_id\":\"fc27f903aad76385\",\"inferred\":true,\"http\":{\"response\":{\"status\":200}},\"aws\":{\"operation\":\"DeleteItem\",\"region\":\"eu-west-1\",\"request_id\":\"G22NF61PAPFHLR5FOUQFS5ES23VV4KQNSO5AEMVJF66Q9ASUAAJG\",\"table_name\":\"Books\",\"resource_names\":[\"Books\"]},\"trace_id\":\"1-5e2860fc-aabdc27d7ba9bf71664b75af\",\"origin\":\"AWS::DynamoDB::Table\"}",
+            "Id": "067fa6e40c056e7b"
+          },
+          {
+            "Document": "{\"id\":\"2920627520ae2c5e\",\"name\":\"DynamoDB\",\"start_time\":1.5797045728255653E9,\"end_time\":1.5797045730245535E9,\"parent_id\":\"7f2760431bee7edf\",\"inferred\":true,\"http\":{\"response\":{\"status\":200}},\"aws\":{\"operation\":\"Query\",\"region\":\"eu-west-1\",\"request_id\":\"CG6V223TAF9DF6BKGKHF70VKRVVV4KQNSO5AEMVJF66Q9ASUAAJG\",\"table_name\":\"Books\",\"resource_names\":[\"Books\"]},\"trace_id\":\"1-5e2860fc-aabdc27d7ba9bf71664b75af\",\"origin\":\"AWS::DynamoDB::Table\"}",
+            "Id": "2920627520ae2c5e"
+          }
+        ]
+      }
+    ],
+    "UnprocessedTraceIds": []
+  },
+  {
+    "ResponseMetadata": {
+      "HTTPHeaders": {
+        "connection": "keep-alive",
+        "content-length": "9402",
+        "content-type": "application/json",
+        "date": "Wed, 22 Jan 2020 14:54:37 GMT",
+        "x-amzn-requestid": "d1f65aeb-7f9c-4d1b-abc3-6f6edbc1ac00"
+      },
+      "HTTPStatusCode": 200,
+      "RequestId": "d1f65aeb-7f9c-4d1b-abc3-6f6edbc1ac00",
+      "RetryAttempts": 0
+    },
+    "Traces": [
+      {
+        "Duration": 0.945,
+        "Id": "1-5e286100-3f158e2c1cc900ee6cd0b318",
+        "Segments": [
+          {
+            "Document": "{\"id\":\"27d6a255f6eceddb\",\"name\":\"test-delete\",\"start_time\":1.579704576678E9,\"end_time\":1.579704577086E9,\"parent_id\":\"f18fa2aa86b29793\",\"http\":{\"response\":{\"status\":200}},\"aws\":{\"request_id\":\"d8edb234-fefa-46e5-8298-8f6b544c8b91\"},\"trace_id\":\"1-5e286100-3f158e2c1cc900ee6cd0b318\",\"origin\":\"AWS::Lambda\",\"resource_arn\":\"arn:aws:lambda:eu-west-1:672574731473:function:test-delete\"}",
+            "Id": "27d6a255f6eceddb"
+          },
+          {
+            "Document": "{\"id\":\"26f83a548a3c7f1d\",\"name\":\"test-get\",\"start_time\":1.579704576575E9,\"end_time\":1.579704577493E9,\"parent_id\":\"33d84a8d7ded0d54\",\"http\":{\"response\":{\"status\":200}},\"aws\":{\"request_id\":\"083a064d-962a-4cf7-8a9a-5ab4bed1647f\"},\"trace_id\":\"1-5e286100-3f158e2c1cc900ee6cd0b318\",\"origin\":\"AWS::Lambda\",\"resource_arn\":\"arn:aws:lambda:eu-west-1:672574731473:function:test-get\"}",
+            "Id": "26f83a548a3c7f1d"
+          },
+          {
+            "Document": "{\"id\":\"4b6d7cbb0144c83c\",\"name\":\"test-get\",\"start_time\":1.5797045765793872E9,\"end_time\":1.5797045774909983E9,\"parent_id\":\"26f83a548a3c7f1d\",\"aws\":{\"function_arn\":\"arn:aws:lambda:eu-west-1:672574731473:function:test-get\",\"resource_names\":[\"test-get\"],\"account_id\":\"672574731473\"},\"trace_id\":\"1-5e286100-3f158e2c1cc900ee6cd0b318\",\"origin\":\"AWS::Lambda::Function\",\"subsegments\":[{\"id\":\"b79c36cf7b036bf1\",\"name\":\"Overhead\",\"start_time\":1.5797045774707696E9,\"end_time\":1.579704577490931E9,\"aws\":{\"function_arn\":\"arn:aws:lambda:eu-west-1:672574731473:function:test-get\"}},{\"id\":\"ac104d66b041889f\",\"name\":\"Invocation\",\"start_time\":1.5797045765794353E9,\"end_time\":1.5797045774707143E9,\"aws\":{\"function_arn\":\"arn:aws:lambda:eu-west-1:672574731473:function:test-get\"},\"subsegments\":[{\"id\":\"f18fa2aa86b29793\",\"name\":\"Lambda\",\"start_time\":1.5797045766709507E9,\"end_time\":1.5797045770871568E9,\"http\":{\"response\":{\"status\":200}},\"aws\":{\"function_name\":\"test-delete\",\"invocation_type\":\"RequestResponse\",\"operation\":\"Invoke\",\"region\":\"eu-west-1\",\"request_id\":\"d8edb234-fefa-46e5-8298-8f6b544c8b91\",\"status_code\":200,\"resource_names\":[\"test-delete\"]},\"namespace\":\"aws\"},{\"id\":\"0accf27bd1c2c1ff\",\"name\":\"add_item_to_books_table\",\"start_time\":1.5797045770906389E9,\"end_time\":1.5797045774515026E9,\"annotations\":{\"add_item_to_books_table\":\"Item writen\"},\"namespace\":\"local\",\"subsegments\":[{\"id\":\"066c5046c569faee\",\"name\":\"DynamoDB\",\"start_time\":1.5797045773505323E9,\"end_time\":1.5797045774113522E9,\"http\":{\"response\":{\"status\":200}},\"aws\":{\"operation\":\"BatchWriteItem\",\"region\":\"eu-west-1\",\"request_id\":\"HV9HFBM2E0ADJBPNHTLI6GUF4BVV4KQNSO5AEMVJF66Q9ASUAAJG\",\"table_names\":null},\"namespace\":\"aws\"},{\"id\":\"a63ae565ed81e040\",\"name\":\"DynamoDB\",\"start_time\":1.5797045771904283E9,\"end_time\":1.57970457734985E9,\"http\":{\"response\":{\"status\":200}},\"aws\":{\"operation\":\"Query\",\"region\":\"eu-west-1\",\"request_id\":\"CG88M37LHMVLVR6BSUM1RKS68NVV4KQNSO5AEMVJF66Q9ASUAAJG\",\"table_name\":\"Books\",\"resource_names\":[\"Books\"]},\"namespace\":\"aws\"}]},{\"id\":\"063c93121391ac6f\",\"name\":\"list_lambdas\",\"start_time\":1.5797045765805023E9,\"end_time\":1.579704576670306E9,\"annotations\":{\"list_lambdas\":\"num of functions 8\"},\"namespace\":\"local\",\"subsegments\":[{\"id\":\"397ea07c7181b425\",\"name\":\"Lambda\",\"start_time\":1.579704576580585E9,\"end_time\":1.5797045766572747E9,\"http\":{\"response\":{\"status\":200}},\"aws\":{\"operation\":\"ListFunctions\",\"region\":\"eu-west-1\",\"request_id\":\"097b7907-c4d7-4ea7-9e3b-e315094bfa15\"},\"namespace\":\"aws\"}]}]}]}",
+            "Id": "4b6d7cbb0144c83c"
+          },
+          {
+            "Document": "{\"id\":\"5a8fcb134b2da84d\",\"name\":\"test-delete\",\"start_time\":1.5797045766842911E9,\"end_time\":1.579704577084667E9,\"parent_id\":\"27d6a255f6eceddb\",\"aws\":{\"function_arn\":\"arn:aws:lambda:eu-west-1:672574731473:function:test-delete\",\"resource_names\":[\"test-delete\"],\"account_id\":\"672574731473\"},\"trace_id\":\"1-5e286100-3f158e2c1cc900ee6cd0b318\",\"origin\":\"AWS::Lambda::Function\",\"subsegments\":[{\"id\":\"c314a46063cddc39\",\"name\":\"Invocation\",\"start_time\":1.5797045766843336E9,\"end_time\":1.5797045770651033E9,\"aws\":{\"function_arn\":\"arn:aws:lambda:eu-west-1:672574731473:function:test-delete\"},\"subsegments\":[{\"id\":\"0875ada1a29e3c90\",\"name\":\"delete_item_from_table\",\"start_time\":1.5797045766852949E9,\"end_time\":1.5797045770447307E9,\"annotations\":{\"delete_item_from_table\":\"item deleted\"},\"namespace\":\"local\",\"subsegments\":[{\"id\":\"35d7bd5c23cc12c7\",\"name\":\"DynamoDB\",\"start_time\":1.5797045768044121E9,\"end_time\":1.579704576945274E9,\"http\":{\"response\":{\"status\":200}},\"aws\":{\"operation\":\"Query\",\"region\":\"eu-west-1\",\"request_id\":\"AE1TU9MF8SQRS0DEAFHF30D4DJVV4KQNSO5AEMVJF66Q9ASUAAJG\",\"table_name\":\"Books\",\"resource_names\":[\"Books\"]},\"namespace\":\"aws\"},{\"id\":\"952c138a97d860b7\",\"name\":\"DynamoDB\",\"start_time\":1.579704576945922E9,\"end_time\":1.579704577010694E9,\"http\":{\"response\":{\"status\":200}},\"aws\":{\"operation\":\"DeleteItem\",\"region\":\"eu-west-1\",\"request_id\":\"Q9DUF28POGSLQ7NJL3PIE5GJK7VV4KQNSO5AEMVJF66Q9ASUAAJG\",\"table_name\":\"Books\",\"resource_names\":[\"Books\"]},\"namespace\":\"aws\"}]}]},{\"id\":\"dd2a197b50f69ac4\",\"name\":\"Overhead\",\"start_time\":1.5797045770651462E9,\"end_time\":1.5797045770846038E9,\"aws\":{\"function_arn\":\"arn:aws:lambda:eu-west-1:672574731473:function:test-delete\"}}]}",
+            "Id": "5a8fcb134b2da84d"
+          },
+          {
+            "Document": "{\"id\":\"a5d604736f095b2a\",\"name\":\"custom-lambda-api-gw\",\"start_time\":1.579704576547832E9,\"end_time\":1.5797045774931278E9,\"aws\":{\"ec2\":{\"availability_zone\":\"eu-west-1b\",\"instance_id\":\"i-0ecdbad010a1feb14\"},\"xray\":{\"sdk\":\"X-Ray for Python\",\"sdk_version\":\"2.4.2\"}},\"service\":{\"runtime\":\"CPython\",\"runtime_version\":\"3.6.8\"},\"trace_id\":\"1-5e286100-3f158e2c1cc900ee6cd0b318\",\"origin\":\"AWS::EC2::Instance\",\"subsegments\":[{\"id\":\"f20a3680c52b4a04\",\"name\":\"calling test-get lambda\",\"start_time\":1.5797045765481308E9,\"end_time\":1.5797045774930985E9,\"namespace\":\"local\",\"subsegments\":[{\"id\":\"33d84a8d7ded0d54\",\"name\":\"Lambda\",\"start_time\":1.5797045765482054E9,\"end_time\":1.5797045774926355E9,\"http\":{\"response\":{\"status\":200}},\"aws\":{\"function_name\":\"test-get\",\"invocation_type\":\"RequestResponse\",\"operation\":\"Invoke\",\"region\":\"eu-west-1\",\"request_id\":\"083a064d-962a-4cf7-8a9a-5ab4bed1647f\",\"status_code\":200,\"resource_names\":[\"test-get\"]},\"namespace\":\"aws\"}]}]}",
+            "Id": "a5d604736f095b2a"
+          },
+          {
+            "Document": "{\"id\":\"390f567d1e236c9f\",\"name\":\"DynamoDB\",\"start_time\":1.5797045773505323E9,\"end_time\":1.5797045774113522E9,\"parent_id\":\"066c5046c569faee\",\"inferred\":true,\"http\":{\"response\":{\"status\":200}},\"aws\":{\"operation\":\"BatchWriteItem\",\"region\":\"eu-west-1\",\"request_id\":\"HV9HFBM2E0ADJBPNHTLI6GUF4BVV4KQNSO5AEMVJF66Q9ASUAAJG\",\"table_names\":null},\"trace_id\":\"1-5e286100-3f158e2c1cc900ee6cd0b318\",\"origin\":\"AWS::DynamoDB\"}",
+            "Id": "390f567d1e236c9f"
+          },
+          {
+            "Document": "{\"id\":\"047053b91c8c8775\",\"name\":\"DynamoDB\",\"start_time\":1.5797045771904283E9,\"end_time\":1.57970457734985E9,\"parent_id\":\"a63ae565ed81e040\",\"inferred\":true,\"http\":{\"response\":{\"status\":200}},\"aws\":{\"operation\":\"Query\",\"region\":\"eu-west-1\",\"request_id\":\"CG88M37LHMVLVR6BSUM1RKS68NVV4KQNSO5AEMVJF66Q9ASUAAJG\",\"table_name\":\"Books\",\"resource_names\":[\"Books\"]},\"trace_id\":\"1-5e286100-3f158e2c1cc900ee6cd0b318\",\"origin\":\"AWS::DynamoDB::Table\"}",
+            "Id": "047053b91c8c8775"
+          },
+          {
+            "Document": "{\"id\":\"1d4ae1e82d33d248\",\"name\":\"Lambda\",\"start_time\":1.579704576580585E9,\"end_time\":1.5797045766572747E9,\"parent_id\":\"397ea07c7181b425\",\"inferred\":true,\"http\":{\"response\":{\"status\":200}},\"aws\":{\"operation\":\"ListFunctions\",\"region\":\"eu-west-1\",\"request_id\":\"097b7907-c4d7-4ea7-9e3b-e315094bfa15\"},\"trace_id\":\"1-5e286100-3f158e2c1cc900ee6cd0b318\",\"origin\":\"AWS::Lambda\"}",
+            "Id": "1d4ae1e82d33d248"
+          },
+          {
+            "Document": "{\"id\":\"10678229022308b4\",\"name\":\"DynamoDB\",\"start_time\":1.5797045768044121E9,\"end_time\":1.579704576945274E9,\"parent_id\":\"35d7bd5c23cc12c7\",\"inferred\":true,\"http\":{\"response\":{\"status\":200}},\"aws\":{\"operation\":\"Query\",\"region\":\"eu-west-1\",\"request_id\":\"AE1TU9MF8SQRS0DEAFHF30D4DJVV4KQNSO5AEMVJF66Q9ASUAAJG\",\"table_name\":\"Books\",\"resource_names\":[\"Books\"]},\"trace_id\":\"1-5e286100-3f158e2c1cc900ee6cd0b318\",\"origin\":\"AWS::DynamoDB::Table\"}",
+            "Id": "10678229022308b4"
+          },
+          {
+            "Document": "{\"id\":\"31f3639f16d7c38e\",\"name\":\"DynamoDB\",\"start_time\":1.579704576945922E9,\"end_time\":1.579704577010694E9,\"parent_id\":\"952c138a97d860b7\",\"inferred\":true,\"http\":{\"response\":{\"status\":200}},\"aws\":{\"operation\":\"DeleteItem\",\"region\":\"eu-west-1\",\"request_id\":\"Q9DUF28POGSLQ7NJL3PIE5GJK7VV4KQNSO5AEMVJF66Q9ASUAAJG\",\"table_name\":\"Books\",\"resource_names\":[\"Books\"]},\"trace_id\":\"1-5e286100-3f158e2c1cc900ee6cd0b318\",\"origin\":\"AWS::DynamoDB::Table\"}",
+            "Id": "31f3639f16d7c38e"
+          }
+        ]
+      }
+    ],
+    "UnprocessedTraceIds": []
+  },
+  {
+    "ResponseMetadata": {
+      "HTTPHeaders": {
+        "connection": "keep-alive",
+        "content-length": "1682",
+        "content-type": "application/json",
+        "date": "Mon, 27 Jan 2020 13:31:50 GMT",
+        "x-amzn-requestid": "866abc1a-1f18-4596-b310-4b9cad1fb154"
+      },
+      "HTTPStatusCode": 200,
+      "RequestId": "866abc1a-1f18-4596-b310-4b9cad1fb154",
+      "RetryAttempts": 0
+    },
+    "Traces": [
+      {
+        "Duration": 0.719,
+        "Id": "1-5e2ee613-072e25eaae4ad291a2a909a9",
+        "Segments": [
+          {
+            "Document": "{\"id\":\"7f23cd3d4cee1712\",\"name\":\"test-get\",\"start_time\":1.580131859893E9,\"end_time\":1.580131860612E9,\"error\":true,\"http\":{\"response\":{\"status\":200}},\"aws\":{\"request_id\":\"30fd77f2-01ba-476e-ab1f-1212cc00a5d5\"},\"trace_id\":\"1-5e2ee613-072e25eaae4ad291a2a909a9\",\"origin\":\"AWS::Lambda\",\"resource_arn\":\"arn:aws:lambda:eu-west-1:672574731473:function:test-get\"}",
+            "Id": "7f23cd3d4cee1712"
+          },
+          {
+            "Document": "{\"id\":\"2195e9b43d2beb0c\",\"name\":\"test-get\",\"start_time\":1.5801318605939624E9,\"end_time\":1.5801318606093533E9,\"parent_id\":\"7f23cd3d4cee1712\",\"error\":true,\"aws\":{\"function_arn\":\"arn:aws:lambda:eu-west-1:672574731473:function:test-get\",\"resource_names\":[\"test-get\"],\"account_id\":\"672574731473\"},\"trace_id\":\"1-5e2ee613-072e25eaae4ad291a2a909a9\",\"origin\":\"AWS::Lambda::Function\",\"subsegments\":[{\"id\":\"686f4456c8edf2a9\",\"name\":\"Overhead\",\"start_time\":1.5801318605960038E9,\"end_time\":1.5801318606092553E9,\"aws\":{\"function_arn\":\"arn:aws:lambda:eu-west-1:672574731473:function:test-get\"}},{\"id\":\"02f933c3f2572f2d\",\"name\":\"Invocation\",\"start_time\":1.5801318605943346E9,\"end_time\":1.5801318605959554E9,\"error\":true,\"aws\":{\"function_arn\":\"arn:aws:lambda:eu-west-1:672574731473:function:test-get\"}},{\"id\":\"7fe2407823477c12\",\"name\":\"Initialization\",\"start_time\":1.5801318601577952E9,\"end_time\":1.580131860593066E9,\"aws\":{\"function_arn\":\"arn:aws:lambda:eu-west-1:672574731473:function:test-get\"}}]}",
+            "Id": "2195e9b43d2beb0c"
+          }
+        ]
+      }
+    ],
+    "UnprocessedTraceIds": []
+  }
+]

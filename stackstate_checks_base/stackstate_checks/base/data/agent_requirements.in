@@ -1,5 +1,7 @@
+boto3==1.10.49
 cm-client==33.0.0
 ddtrace==0.13.0
+flatten-dict==0.2.0
 kubernetes==8.0.1
 pg8000==1.10.1
 prometheus-client==0.3.0

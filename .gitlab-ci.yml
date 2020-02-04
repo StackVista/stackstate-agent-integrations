@@ -154,6 +154,14 @@ test_cloudera:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
 
+test_aws:
+  <<: *linux_test
+  variables:
+    CHECK: "aws"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
 .windows_test: &windows_test
   <<: *windows_env
   stage: test
@@ -183,6 +191,11 @@ test_cloudera_win:
   <<: *windows_test
   variables:
     CHECK: "cloudera"
+
+test_aws_win:
+  <<: *windows_test
+  variables:
+    CHECK: "aws"
 
 publish-checks-dev:
   stage: publish

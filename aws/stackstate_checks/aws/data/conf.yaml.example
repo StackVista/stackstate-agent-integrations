@@ -1,0 +1,13 @@
+init_config:
+    # optional
+    # cache_file: '/opt/stackstate-agent/tmp'
+
+instances:
+  # mandatory AWS credentials and config
+  - aws_access_key_id: 'abc'
+    aws_secret_access_key: 'cde'
+    role_arn: 'arn:aws:iam::0123456789:role/RoleName'
+    region: 'ijk'
+    # optional
+    # min_collection_interval: 60
+
