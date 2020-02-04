@@ -1,0 +1,10 @@
+init_config:
+
+instances:
+  - host: LAB-SAP-001
+    url: http://lab-sap-001.lab.hosting.local
+    user: my_username
+    pass: my_password
+    # tags:                  # Optional
+    #   - optional_tag1
+    #   - optional_tag2

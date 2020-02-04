@@ -1,0 +1,23 @@
+{
+  "display_name": "SAP",
+  "maintainer": "info@stackstate.com",
+  "manifest_version": "1.0.0",
+  "name": "sap",
+  "metric_prefix": "sap.",
+  "metric_to_check": "",
+  "creates_events": true,
+  "short_description": "Collect topology from Cloudera Manager",
+  "guid": "8b282cc3-df23-449f-b916-be8350b66ee8",
+  "support": "core",
+  "supported_os": [
+    "linux",
+    "mac_os",
+    "windows"
+  ],
+  "public_title": "StackState-SAP Integration",
+  "categories": [
+    "sap"
+  ],
+  "type": "check",
+  "is_public": true
+}

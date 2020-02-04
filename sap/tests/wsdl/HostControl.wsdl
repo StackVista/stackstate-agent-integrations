@@ -1,0 +1,2113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions name="SAPHostControl"
+             targetNamespace="urn:SAPHostControl"
+             xmlns:tns="urn:SAPHostControl"
+             xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"
+             xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+             xmlns:SAPHostControl="urn:SAPHostControl"
+             xmlns:SOAP="http://schemas.xmlsoap.org/wsdl/soap/"
+             xmlns:MIME="http://schemas.xmlsoap.org/wsdl/mime/"
+             xmlns:DIME="http://schemas.xmlsoap.org/ws/2002/04/dime/wsdl/"
+             xmlns:WSDL="http://schemas.xmlsoap.org/wsdl/"
+             xmlns="http://schemas.xmlsoap.org/wsdl/">
+
+    <types>
+
+        <schema targetNamespace="urn:SAPHostControl"
+                xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"
+                xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/"
+                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                xmlns:SAPHostControl="urn:SAPHostControl"
+                xmlns="http://www.w3.org/2001/XMLSchema"
+                elementFormDefault="unqualified"
+                attributeFormDefault="unqualified">
+            <import namespace="http://schemas.xmlsoap.org/soap/encoding/"/>
+            <simpleType name="OperationCode">
+                <restriction base="xsd:string">
+                    <enumeration value="OPERATION-START"/>
+                    <enumeration value="OPERATION-STOP"/>
+                    <enumeration value="OPERATION-RESTART"/>
+                    <enumeration value="OPERATION-LAST"/>
+                </restriction>
+            </simpleType>
+            <simpleType name="ServiceType">
+                <restriction base="xsd:string">
+                    <enumeration value="T-DB"/>
+                    <enumeration value="T-DB-SERVICE"/>
+                    <enumeration value="T-INSTANCE-SERVICE"/>
+                    <enumeration value="T-LAST"/>
+                </restriction>
+            </simpleType>
+            <simpleType name="InstanceStatus">
+                <restriction base="xsd:string">
+                    <enumeration value="S-INSTALLED"/>
+                    <enumeration value="S-RUNNING"/>
+                    <enumeration value="S-STOPPED"/>
+                    <enumeration value="S-LAST"/>
+                </restriction>
+            </simpleType>
+            <simpleType name="InstanceOptionsFlags">
+                <restriction base="xsd:string">
+                    <enumeration value="O-INSTANCE"/>
+                    <enumeration value="O-SERVICE"/>
+                    <enumeration value="O-PREHOOK"/>
+                    <enumeration value="O-POSTHOOK"/>
+                    <enumeration value="O-CLEANUP"/>
+                    <enumeration value="O-FORCE"/>
+                    <enumeration value="O-ERRORHOOK"/>
+                    <enumeration value="O-SERVICEONLY"/>
+                    <enumeration value="O-LASTOPTION"/>
+                </restriction>
+            </simpleType>
+            <simpleType name="DatabaseStatus">
+                <restriction base="xsd:string">
+                    <enumeration value="SAPHostControl-DB-UNKNOWN"/>
+                    <enumeration value="SAPHostControl-DB-STOPPED"/>
+                    <enumeration value="SAPHostControl-DB-STOPPING"/>
+                    <enumeration value="SAPHostControl-DB-RUNNING"/>
+                    <enumeration value="SAPHostControl-DB-STARTING"/>
+                    <enumeration value="SAPHostControl-DB-WARNING"/>
+                    <enumeration value="SAPHostControl-DB-INSERVICE"/>
+                    <enumeration value="SAPHostControl-DB-ERROR"/>
+                    <enumeration value="SAPHostControl-DB-LAST"/>
+                </restriction>
+            </simpleType>
+            <simpleType name="ACOperationCode">
+                <restriction base="xsd:string">
+                    <enumeration value="AC-OP-MOUNT"/>
+                    <enumeration value="AC-OP-UMOUNT"/>
+                    <enumeration value="AC-OP-IFUP"/>
+                    <enumeration value="AC-OP-IFDOWN"/>
+                    <enumeration value="AC-OP-LAST"/>
+                </restriction>
+            </simpleType>
+            <simpleType name="CancelOperationType">
+                <restriction base="xsd:string">
+                    <enumeration value="O-HARD"/>
+                    <enumeration value="O-SOFT"/>
+                    <enumeration value="O-LAST"/>
+                </restriction>
+            </simpleType>
+            <simpleType name="ExecuteOutsideDiscoveryFlags">
+                <restriction base="xsd:string">
+                    <enumeration value="OD-COMPUTERSYSTEM"/>
+                    <enumeration value="OD-DATABASE"/>
+                    <enumeration value="OD-SMDAGENT"/>
+                    <enumeration value="OD-MSIIS"/>
+                    <enumeration value="OD-SAPHOSTAGENT"/>
+                    <enumeration value="OD-XMLFROMCFG"/>
+                    <enumeration value="OD-EXECUTESLDREG"/>
+                    <enumeration value="OD-VERBOSE"/>
+                    <enumeration value="OD-CLEANUP"/>
+                    <enumeration value="OD-DATABASE-HANA"/>
+                    <enumeration value="OD-LAST"/>
+                </restriction>
+            </simpleType>
+            <simpleType name="ExecuteOutsideDiscoveryStatus">
+                <restriction base="xsd:string">
+                    <enumeration value="OD-CFG-AUTO"/>
+                    <enumeration value="OD-CFG-ENABLED"/>
+                    <enumeration value="OD-CFG-DISABLED"/>
+                    <enumeration value="OD-CFG-LAST"/>
+                </restriction>
+            </simpleType>
+            <simpleType name="ConfigureOutsideDiscoveryDestinationOptions">
+                <restriction base="xsd:string">
+                    <enumeration value="OD-DEST-CFG-SET"/>
+                    <enumeration value="OD-DEST-CFG-REMOVE"/>
+                    <enumeration value="OD-DEST-CFG-LIST"/>
+                    <enumeration value="OD-DEST-CFG-LAST"/>
+                </restriction>
+            </simpleType>
+            <simpleType name="ConnectionToTargetProtocol">
+                <restriction base="xsd:string">
+                    <enumeration value="PROT-HTTPS-ONLY"/>
+                    <enumeration value="PROT-HTTP-ONLY"/>
+                    <enumeration value="PROT-HTTP-FALLBACK"/>
+                    <enumeration value="PROT-LAST"/>
+                </restriction>
+            </simpleType>
+            <complexType name="ArrayOfString">
+                <sequence>
+                    <element name="item" type="xsd:string" minOccurs="0" maxOccurs="100000" nillable="true"/>
+                </sequence>
+            </complexType>
+            <complexType name="ArrayOfInstanceOptionsFlags">
+                <sequence>
+                    <element name="item" type="SAPHostControl:InstanceOptionsFlags" minOccurs="0" maxOccurs="100" nillable="true"/>
+                </sequence>
+            </complexType>
+            <complexType name="ArrayOfExecuteOutsideDiscoveryFlags">
+                <sequence>
+                    <element name="item" type="SAPHostControl:ExecuteOutsideDiscoveryFlags" minOccurs="0" maxOccurs="100" nillable="true"/>
+                </sequence>
+            </complexType>
+            <complexType name="SAPInstance">
+                <sequence>
+                    <element name="mSid" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                    <element name="mHostname" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                    <element name="mSystemNumber" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                    <element name="mSapVersionInfo" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                </sequence>
+            </complexType>
+            <complexType name="SAPControlInstance">
+                <complexContent>
+                    <extension base="SAPHostControl:SAPInstance">
+                        <sequence>
+                            <element name="mStartProfilePath" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                            <element name="mUsername" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                            <element name="mPassword" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                        </sequence>
+                    </extension>
+                </complexContent>
+            </complexType>
+            <complexType name="ArrayOfSAPInstance">
+                <sequence>
+                    <element name="item" type="SAPHostControl:SAPInstance" minOccurs="0" maxOccurs="1000" nillable="true"/>
+                </sequence>
+            </complexType>
+            <complexType name="InstanceSelector">
+                <sequence>
+                    <element name="aInstanceStatus" type="SAPHostControl:InstanceStatus" minOccurs="1" maxOccurs="1"/>
+                    <element name="aHostname" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                </sequence>
+            </complexType>
+            <complexType name="ServiceIdentifier">
+                <sequence>
+                    <element name="mIdentifier" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                </sequence>
+            </complexType>
+            <complexType name="TargetService">
+                <sequence>
+                    <element name="mServiceType" type="SAPHostControl:ServiceType" minOccurs="1" maxOccurs="1"/>
+                    <element name="mServiceIdentifier" type="SAPHostControl:ServiceIdentifier" minOccurs="1" maxOccurs="1"/>
+                </sequence>
+            </complexType>
+            <complexType name="InstanceServiceOperation">
+                <sequence>
+                    <element name="mOperationCode" type="SAPHostControl:OperationCode" minOccurs="1" maxOccurs="1"/>
+                    <element name="mTargetService" type="SAPHostControl:TargetService" minOccurs="1" maxOccurs="1"/>
+                </sequence>
+            </complexType>
+            <complexType name="ACOperationArguments">
+                <sequence>
+                    <element name="mArgumentsName" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                    <element name="mArgumentsValue" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                </sequence>
+            </complexType>
+            <complexType name="ArrayOfACOperationArguments">
+                <sequence>
+                    <element name="item" type="SAPHostControl:ACOperationArguments" minOccurs="0" maxOccurs="100" nillable="true"/>
+                </sequence>
+            </complexType>
+            <complexType name="ACOperation">
+                <sequence>
+                    <element name="mOperationCode" type="SAPHostControl:ACOperationCode" minOccurs="1" maxOccurs="1"/>
+                    <element name="mOperationArguments" type="SAPHostControl:ArrayOfACOperationArguments" minOccurs="1" maxOccurs="1" nillable="false"/>
+                </sequence>
+            </complexType>
+            <complexType name="ArrayOfACOperation">
+                <sequence>
+                    <element name="item" type="SAPHostControl:ACOperation" minOccurs="0" maxOccurs="100" nillable="true"/>
+                </sequence>
+            </complexType>
+            <complexType name="Property">
+                <sequence>
+                    <element name="mKey" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                    <element name="mValue" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                </sequence>
+            </complexType>
+            <complexType name="ArrayOfProperty">
+                <sequence>
+                    <element name="item" type="SAPHostControl:Property" minOccurs="0" maxOccurs="100000" nillable="true"/>
+                </sequence>
+            </complexType>
+            <complexType name="CIMAttribute">
+                <sequence>
+                    <element name="mName" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                    <element name="mType" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                    <element name="mValue" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                </sequence>
+            </complexType>
+            <complexType name="ArrayOfCIMAttribute">
+                <sequence>
+                    <element name="item" type="SAPHostControl:CIMAttribute" minOccurs="0" maxOccurs="unbounded" nillable="true"/>
+                </sequence>
+            </complexType>
+            <complexType name="CIMObject">
+                <sequence>
+                    <element name="mProperties" type="SAPHostControl:ArrayOfCIMAttribute" minOccurs="0" maxOccurs="1" nillable="true"/>
+                    <element name="mMembers" type="SAPHostControl:ArrayOfCIMObject" minOccurs="0" maxOccurs="1" nillable="true"/>
+                </sequence>
+            </complexType>
+            <complexType name="ArrayOfCIMObject">
+                <sequence>
+                    <element name="item" type="SAPHostControl:CIMObject" minOccurs="0" maxOccurs="unbounded" nillable="true"/>
+                </sequence>
+            </complexType>
+            <complexType name="ResponseMessage">
+                <sequence>
+                    <element name="mMessageKey" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                    <element name="mMessageValue" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                </sequence>
+            </complexType>
+            <complexType name="ArrayOfResponseMessages">
+                <sequence>
+                    <element name="item" type="SAPHostControl:ResponseMessage" minOccurs="0" maxOccurs="unbounded" nillable="true"/>
+                </sequence>
+            </complexType>
+            <complexType name="ACOSPrepException">
+                <sequence>
+                    <element name="mACOSPrepExceptionInfo" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                    <element name="mResponseMessages" type="SAPHostControl:ArrayOfResponseMessages" minOccurs="0" maxOccurs="1" nillable="true"/>
+                </sequence>
+            </complexType>
+            <complexType name="DatabaseComponent">
+                <sequence>
+                    <element name="mProperties" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    <element name="mStatus" type="SAPHostControl:DatabaseStatus" minOccurs="1" maxOccurs="1"/>
+                </sequence>
+            </complexType>
+            <complexType name="ArrayOfDatabaseComponent">
+                <sequence>
+                    <element name="item" type="SAPHostControl:DatabaseComponent" minOccurs="0" maxOccurs="unbounded" nillable="true"/>
+                </sequence>
+            </complexType>
+            <complexType name="Database">
+                <sequence>
+                    <element name="mStatus" type="SAPHostControl:DatabaseStatus" minOccurs="1" maxOccurs="1"/>
+                    <element name="mDatabase" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    <element name="mComponents" type="SAPHostControl:ArrayOfDatabaseComponent" minOccurs="1" maxOccurs="1" nillable="false"/>
+                </sequence>
+            </complexType>
+            <complexType name="ArrayOfDatabase">
+                <sequence>
+                    <element name="item" type="SAPHostControl:Database" minOccurs="0" maxOccurs="unbounded" nillable="true"/>
+                </sequence>
+            </complexType>
+            <complexType name="DatabaseSystemInstance">
+                <sequence>
+                    <element name="mStatus" type="SAPHostControl:DatabaseStatus" minOccurs="1" maxOccurs="1"/>
+                    <element name="mInstance" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    <element name="mProperties" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    <element name="mComponents" type="SAPHostControl:ArrayOfDatabaseComponent" minOccurs="1" maxOccurs="1" nillable="false"/>
+                </sequence>
+            </complexType>
+            <complexType name="ArrayOfDatabaseSystemInstance">
+                <sequence>
+                    <element name="item" type="SAPHostControl:DatabaseSystemInstance" minOccurs="0" maxOccurs="unbounded" nillable="true"/>
+                </sequence>
+            </complexType>
+            <complexType name="DatabaseSystem">
+                <sequence>
+                    <element name="mStatus" type="SAPHostControl:DatabaseStatus" minOccurs="1" maxOccurs="1"/>
+                    <element name="mDatabase" type="SAPHostControl:ArrayOfProperty" minOccurs="0" maxOccurs="1" nillable="true"/>
+                    <element name="mProperties" type="SAPHostControl:ArrayOfProperty" minOccurs="0" maxOccurs="1" nillable="true"/>
+                    <element name="mSharedComponents" type="SAPHostControl:ArrayOfDatabaseComponent" minOccurs="0" maxOccurs="1" nillable="true"/>
+                    <element name="mInstances" type="SAPHostControl:ArrayOfDatabaseSystemInstance" minOccurs="0" maxOccurs="1" nillable="true"/>
+                    <element name="mReplicatedSystems" type="SAPHostControl:ArrayOfDatabaseSystem" minOccurs="0" maxOccurs="1" nillable="true"/>
+                </sequence>
+            </complexType>
+            <complexType name="ArrayOfDatabaseSystem">
+                <sequence>
+                    <element name="item" type="SAPHostControl:DatabaseSystem" minOccurs="0" maxOccurs="unbounded" nillable="true"/>
+                </sequence>
+            </complexType>
+            <!-- fault element -->
+            <element name="OperationException">
+                <complexType>
+                    <sequence>
+                        <element name="mFaultCode" type="xsd:long" minOccurs="1" maxOccurs="1"/>
+                        <element name="mMessage" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                        <element name="mOperationID" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                        <element name="mResponseMessages" type="SAPHostControl:ArrayOfResponseMessages" minOccurs="0" maxOccurs="1" nillable="true"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <complexType name="OperationOptions">
+                <sequence>
+                    <element name="mTimeout" type="xsd:long" minOccurs="1" maxOccurs="1"/>
+                    <element name="mOptions" type="SAPHostControl:ArrayOfInstanceOptionsFlags" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    <element name="mSoftTimeout" type="xsd:long" minOccurs="1" maxOccurs="1" default="0"/>
+                    <element name="mProperties" type="SAPHostControl:ArrayOfProperty" minOccurs="0" maxOccurs="1" nillable="true"/>
+                </sequence>
+            </complexType>
+            <complexType name="OperationResult">
+                <sequence>
+                    <element name="mOperationID" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                    <element name="mOperationResults" type="SAPHostControl:ArrayOfResponseMessages" minOccurs="1" maxOccurs="1" nillable="false"/>
+                </sequence>
+            </complexType>
+            <complexType name="HostAgentConfiguration">
+                <sequence>
+                    <element name="target" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                    <element name="name" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                    <element name="properties" type="SAPHostControl:ArrayOfProperty" minOccurs="0" maxOccurs="1" nillable="true"/>
+                    <element name="configuration" type="SAPHostControl:ArrayOfString" minOccurs="1" maxOccurs="1" nillable="false"/>
+                </sequence>
+            </complexType>
+            <complexType name="ArrayOfHostAgentConfiguration">
+                <sequence>
+                    <element name="item" type="SAPHostControl:HostAgentConfiguration" minOccurs="0" maxOccurs="100" nillable="true"/>
+                </sequence>
+            </complexType>
+            <complexType name="OutsideDiscoveryDestination">
+                <sequence>
+                    <element name="name" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                    <element name="host" type="xsd:string" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    <element name="port" type="xsd:int" minOccurs="1" maxOccurs="1" default="-1"/>
+                    <element name="username" type="xsd:string" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    <element name="password" type="xsd:string" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    <element name="useSSL" type="xsd:boolean" minOccurs="1" maxOccurs="1" default="false"/>
+                    <element name="properties" type="SAPHostControl:ArrayOfProperty" minOccurs="0" maxOccurs="1" nillable="true"/>
+                </sequence>
+            </complexType>
+            <complexType name="ArrayOfOutsideDiscoveryDestination">
+                <sequence>
+                    <element name="item" type="SAPHostControl:OutsideDiscoveryDestination" minOccurs="0" maxOccurs="10" nillable="true"/>
+                </sequence>
+            </complexType>
+            <complexType name="OutsideDiscoveryConfiguration">
+                <sequence>
+                    <element name="flags" type="SAPHostControl:ArrayOfExecuteOutsideDiscoveryFlags" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    <element name="status" type="SAPHostControl:ExecuteOutsideDiscoveryStatus" minOccurs="1" maxOccurs="1" default="OD-CFG-AUTO"/>
+                    <element name="frequency" type="xsd:int" minOccurs="1" maxOccurs="1" default="720"/>
+                    <element name="destinations" type="SAPHostControl:ArrayOfOutsideDiscoveryDestination" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    <element name="arguments" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                </sequence>
+            </complexType>
+            <!-- operation request element -->
+            <element name="ListInstances">
+                <complexType>
+                    <sequence>
+                        <element name="aSelector" type="SAPHostControl:InstanceSelector" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="ListInstancesResponse">
+                <complexType>
+                    <sequence>
+                        <element name="aInstances" type="SAPHostControl:ArrayOfSAPInstance" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="StartInstance">
+                <complexType>
+                    <sequence>
+                        <element name="aInstance" type="SAPHostControl:SAPInstance" minOccurs="1" maxOccurs="1"/>
+                        <element name="aOptions" type="SAPHostControl:OperationOptions" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="StartInstanceResponse">
+                <complexType>
+                    <sequence>
+                        <element name="response" type="SAPHostControl:OperationResult" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="StopInstance">
+                <complexType>
+                    <sequence>
+                        <element name="aInstance" type="SAPHostControl:SAPInstance" minOccurs="1" maxOccurs="1"/>
+                        <element name="aOptions" type="SAPHostControl:OperationOptions" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="StopInstanceResponse">
+                <complexType>
+                    <sequence>
+                        <element name="response" type="SAPHostControl:OperationResult" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="RegisterInstanceService">
+                <complexType>
+                    <sequence>
+                        <element name="aInstance" type="SAPHostControl:SAPControlInstance" minOccurs="1" maxOccurs="1"/>
+                        <element name="aOptions" type="SAPHostControl:OperationOptions" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="RegisterInstanceServiceResponse">
+                <complexType>
+                    <sequence>
+                        <element name="response" type="SAPHostControl:OperationResult" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="UnregisterInstanceService">
+                <complexType>
+                    <sequence>
+                        <element name="aInstance" type="SAPHostControl:SAPControlInstance" minOccurs="1" maxOccurs="1"/>
+                        <element name="aOptions" type="SAPHostControl:OperationOptions" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="UnregisterInstanceServiceResponse">
+                <complexType>
+                    <sequence>
+                        <element name="response" type="SAPHostControl:OperationResult" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="CallServiceOperation">
+                <complexType>
+                    <sequence>
+                        <element name="aOperation" type="SAPHostControl:InstanceServiceOperation" minOccurs="1" maxOccurs="1"/>
+                        <element name="aOptions" type="SAPHostControl:OperationOptions" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="CallServiceOperationResponse">
+                <complexType>
+                    <sequence>
+                        <element name="response" type="SAPHostControl:OperationResult" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="ACOSPrepare">
+                <complexType>
+                    <sequence>
+                        <element name="aOperation" type="SAPHostControl:ArrayOfACOperation" minOccurs="1" maxOccurs="1" nillable="false"/>
+                        <element name="aOptions" type="SAPHostControl:OperationOptions" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="ACOSPrepareResponse">
+                <complexType>
+                    <sequence>
+                        <element name="result" type="SAPHostControl:OperationResult" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="GetOperationResults">
+                <complexType>
+                    <sequence>
+                        <element name="aOperationID" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                        <element name="aOptions" type="SAPHostControl:OperationOptions" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="GetOperationResponse">
+                <complexType>
+                    <sequence>
+                        <element name="result" type="SAPHostControl:OperationResult" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="CancelOperation">
+                <complexType>
+                    <sequence>
+                        <element name="aOperationID" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                        <element name="aType" type="SAPHostControl:CancelOperationType" minOccurs="1" maxOccurs="1"/>
+                        <element name="aOptions" type="SAPHostControl:OperationOptions" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="CancelOperationResponse">
+                <complexType>
+                    <sequence>
+                        <element name="result" type="SAPHostControl:OperationResult" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="IsOperationFinished">
+                <complexType>
+                    <sequence>
+                        <element name="aOperationID" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="IsOperationFinishedResponse">
+                <complexType>
+                    <sequence>
+                        <element name="IsFinished" type="xsd:boolean" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="ExecuteOperation">
+                <complexType>
+                    <sequence>
+                        <element name="aOperation" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                        <element name="aArguments" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                        <element name="aOptions" type="SAPHostControl:OperationOptions" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="ExecuteOperationResponse">
+                <complexType>
+                    <sequence>
+                        <element name="result" type="SAPHostControl:OperationResult" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="GetCIMObject">
+                <complexType>
+                    <sequence>
+                        <element name="aArguments" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="GetCIMObjectResponse">
+                <complexType>
+                    <sequence>
+                        <element name="result" type="SAPHostControl:ArrayOfCIMObject" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="GetComputerSystem">
+                <complexType>
+                    <sequence>
+                        <element name="aArguments" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="GetComputerSystemResponse">
+                <complexType>
+                    <sequence>
+                        <element name="result" type="SAPHostControl:CIMObject" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="ListDatabases">
+                <complexType>
+                    <sequence>
+                        <element name="aArguments" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="ListDatabasesResponse">
+                <complexType>
+                    <sequence>
+                        <element name="result" type="SAPHostControl:ArrayOfDatabase" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="GetDatabaseStatus">
+                <complexType>
+                    <sequence>
+                        <element name="aArguments" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="GetDatabaseStatusResponse">
+                <complexType>
+                    <sequence>
+                        <element name="result" type="SAPHostControl:ArrayOfDatabaseComponent" minOccurs="1" maxOccurs="1" nillable="false"/>
+                        <element name="status" type="SAPHostControl:DatabaseStatus" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="StartDatabase">
+                <complexType>
+                    <sequence>
+                        <element name="aArguments" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                        <element name="aOptions" type="SAPHostControl:OperationOptions" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="StartDatabaseResponse">
+                <complexType>
+                    <sequence>
+                        <element name="result" type="SAPHostControl:OperationResult" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="StopDatabase">
+                <complexType>
+                    <sequence>
+                        <element name="aArguments" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                        <element name="aOptions" type="SAPHostControl:OperationOptions" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="StopDatabaseResponse">
+                <complexType>
+                    <sequence>
+                        <element name="result" type="SAPHostControl:OperationResult" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="AttachDatabase">
+                <complexType>
+                    <sequence>
+                        <element name="aArguments" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                        <element name="aOptions" type="SAPHostControl:OperationOptions" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="AttachDatabaseResponse">
+                <complexType>
+                    <sequence>
+                        <element name="result" type="SAPHostControl:OperationResult" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="DetachDatabase">
+                <complexType>
+                    <sequence>
+                        <element name="aArguments" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                        <element name="aOptions" type="SAPHostControl:OperationOptions" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="DetachDatabaseResponse">
+                <complexType>
+                    <sequence>
+                        <element name="result" type="SAPHostControl:OperationResult" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="GetDatabaseProperties">
+                <complexType>
+                    <sequence>
+                        <element name="aArguments" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="GetDatabasePropertiesResponse">
+                <complexType>
+                    <sequence>
+                        <element name="result" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="SetDatabaseProperty">
+                <complexType>
+                    <sequence>
+                        <element name="aArguments" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                        <element name="aOptions" type="SAPHostControl:OperationOptions" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="SetDatabasePropertyResponse">
+                <complexType>
+                    <sequence>
+                        <element name="result" type="SAPHostControl:OperationResult" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="LiveDatabaseUpdate">
+                <complexType>
+                    <sequence>
+                        <element name="aArguments" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                        <element name="aOptions" type="SAPHostControl:OperationOptions" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="LiveDatabaseUpdateResponse">
+                <complexType>
+                    <sequence>
+                        <element name="result" type="SAPHostControl:OperationResult" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="PrepareDatabaseCopy">
+                <complexType>
+                    <sequence>
+                        <element name="aArguments" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                        <element name="aOptions" type="SAPHostControl:OperationOptions" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="PrepareDatabaseCopyResponse">
+                <complexType>
+                    <sequence>
+                        <element name="result" type="SAPHostControl:OperationResult" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="FinalizeDatabaseCopy">
+                <complexType>
+                    <sequence>
+                        <element name="aArguments" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                        <element name="aOptions" type="SAPHostControl:OperationOptions" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="FinalizeDatabaseCopyResponse">
+                <complexType>
+                    <sequence>
+                        <element name="result" type="SAPHostControl:OperationResult" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="ListDatabaseSystems">
+                <complexType>
+                    <sequence>
+                        <element name="aArguments" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="ListDatabaseSystemsResponse">
+                <complexType>
+                    <sequence>
+                        <element name="result" type="SAPHostControl:ArrayOfDatabaseSystem" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="GetDatabaseSystemStatus">
+                <complexType>
+                    <sequence>
+                        <element name="aArguments" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="GetDatabaseSystemStatusResponse">
+                <complexType>
+                    <sequence>
+                        <element name="result" type="SAPHostControl:DatabaseSystem" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="ExecuteDatabaseOperation">
+                <complexType>
+                    <sequence>
+                        <element name="aArguments" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                        <element name="aOptions" type="SAPHostControl:OperationOptions" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="ExecuteDatabaseOperationResponse">
+                <complexType>
+                    <sequence>
+                        <element name="operationResults" type="SAPHostControl:OperationResult" minOccurs="1" maxOccurs="1"/>
+                        <element name="CIMObjects" type="SAPHostControl:ArrayOfCIMObject" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="ExecuteInstallationProcedure">
+                <complexType>
+                    <sequence>
+                        <element name="arguments" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                        <element name="options" type="SAPHostControl:OperationOptions" minOccurs="1" maxOccurs="1"/>
+                        <element name="parameterContainer" type="SAPHostControl:ArrayOfString" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="ExecuteInstallationProcedureResponse">
+                <complexType>
+                    <sequence>
+                        <element name="result" type="SAPHostControl:OperationResult" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="ExecuteUpgradeProcedure">
+                <complexType>
+                    <sequence>
+                        <element name="arguments" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                        <element name="options" type="SAPHostControl:OperationOptions" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="ExecuteUpgradeProcedureResponse">
+                <complexType>
+                    <sequence>
+                        <element name="result" type="SAPHostControl:OperationResult" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="DeployConfiguration">
+                <complexType>
+                    <sequence>
+                        <element name="configurations" type="SAPHostControl:ArrayOfHostAgentConfiguration" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="DeployConfigurationResponse">
+                <complexType>
+                    <sequence>
+                        <element name="result" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="RequestLogonFile">
+                <complexType>
+                    <sequence>
+                        <element name="user" type="xsd:string" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="RequestLogonFileResponse">
+                <complexType>
+                    <sequence>
+                        <element name="filename" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="AddIpAddress">
+                <complexType>
+                    <sequence>
+                        <element name="aInterfaceName" type="xsd:string" minOccurs="1" maxOccurs="1" nillable="false"/>
+                        <element name="aAddress" type="xsd:string" minOccurs="1" maxOccurs="1" nillable="false"/>
+                        <element name="aAddressFamily" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                        <element name="aAddressProperties" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="AddIpAddressResponse">
+                <complexType>
+                    <sequence>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="RemoveIpAddress">
+                <complexType>
+                    <sequence>
+                        <element name="aInterfaceName" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                        <element name="aAddress" type="xsd:string" minOccurs="1" maxOccurs="1" nillable="false"/>
+                        <element name="aAddressFamily" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="RemoveIpAddressResponse">
+                <complexType>
+                    <sequence>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="GetIpAddressProperties">
+                <complexType>
+                    <sequence>
+                        <element name="aInterfaceName" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                        <element name="aAddress" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                        <element name="aAddressFamily" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="GetIpAddressPropertiesResponse">
+                <complexType>
+                    <sequence>
+                        <element name="result" type="SAPHostControl:ArrayOfCIMObject" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="MoveIpAddress">
+                <complexType>
+                    <sequence>
+                        <element name="aInterfaceName" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                        <element name="aAddress" type="xsd:string" minOccurs="1" maxOccurs="1" nillable="false"/>
+                        <element name="aAddressFamily" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                        <element name="aTargetHost" type="xsd:string" minOccurs="1" maxOccurs="1" nillable="false"/>
+                        <element name="aTargetUser" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                        <element name="aTargetPassword" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                        <element name="aTargetInterfaceName" type="xsd:string" minOccurs="1" maxOccurs="1" nillable="false"/>
+                        <element name="aConnectionToTarget" type="SAPHostControl:ConnectionToTargetProtocol" minOccurs="0" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="MoveIpAddressResponse">
+                <complexType>
+                    <sequence>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="DetectManagedObjects">
+                <complexType>
+                    <sequence>
+                        <element name="aManifestPath" type="xsd:string" minOccurs="0" maxOccurs="1" nillable="true"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="DetectManagedObjectsResponse">
+                <complexType>
+                    <sequence>
+                        <element name="result" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="DeployManagedObjectsFromSAR">
+                <complexType>
+                    <sequence>
+                        <element name="aSARPath" type="xsd:string" minOccurs="1" maxOccurs="1" nillable="false"/>
+                        <element name="aTargetDir" type="xsd:string" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="DeployManagedObjectsFromSARResponse">
+                <complexType>
+                    <sequence>
+                        <element name="result" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="ExecuteOutsideDiscovery">
+                <complexType>
+                    <sequence>
+                        <element name="mOptions" type="SAPHostControl:ArrayOfExecuteOutsideDiscoveryFlags" minOccurs="1" maxOccurs="1" nillable="false"/>
+                        <element name="aArguments" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="ExecuteOutsideDiscoveryResponse">
+                <complexType>
+                    <sequence>
+                        <element name="result" type="SAPHostControl:ArrayOfCIMObject" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="ConfigureOutsideDiscoveryPath">
+                <complexType>
+                    <sequence>
+                        <element name="aArguments" type="SAPHostControl:ArrayOfProperty" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="AddOutsideDiscoveryPathResponse">
+                <complexType>
+                    <sequence>
+                        <element name="result" type="SAPHostControl:ArrayOfCIMObject" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="ConfigureOutsideDiscovery">
+                <complexType>
+                    <sequence>
+                        <element name="configuration" type="SAPHostControl:OutsideDiscoveryConfiguration" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="ConfigureOutsideDiscoveryResponse">
+                <complexType>
+                    <sequence>
+                        <element name="result" type="SAPHostControl:CIMObject" minOccurs="1" maxOccurs="1"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="ConfigureOutsideDiscoveryDestination">
+                <complexType>
+                    <sequence>
+                        <element name="option" type="SAPHostControl:ConfigureOutsideDiscoveryDestinationOptions" minOccurs="1" maxOccurs="1"/>
+                        <element name="destinations" type="SAPHostControl:ArrayOfOutsideDiscoveryDestination" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="ConfigureOutsideDiscoveryDestinationResponse">
+                <complexType>
+                    <sequence>
+                        <element name="result" type="SAPHostControl:ArrayOfOutsideDiscoveryDestination" minOccurs="1" maxOccurs="1" nillable="false"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation request element -->
+            <element name="ReloadConfiguration">
+                <complexType>
+                    <sequence>
+                    </sequence>
+                </complexType>
+            </element>
+            <!-- operation response element -->
+            <element name="ReloadConfigurationResponse">
+                <complexType>
+                    <sequence>
+                    </sequence>
+                </complexType>
+            </element>
+        </schema>
+
+    </types>
+
+    <message name="ListInstancesRequest">
+        <part name="parameters" element="SAPHostControl:ListInstances"/>
+    </message>
+
+    <message name="ListInstancesResponse">
+        <part name="parameters" element="SAPHostControl:ListInstancesResponse"/>
+    </message>
+
+    <message name="StartInstanceRequest">
+        <part name="parameters" element="SAPHostControl:StartInstance"/>
+    </message>
+
+    <message name="StartInstanceResponse">
+        <part name="parameters" element="SAPHostControl:StartInstanceResponse"/>
+    </message>
+
+    <message name="StopInstanceRequest">
+        <part name="parameters" element="SAPHostControl:StopInstance"/>
+    </message>
+
+    <message name="StopInstanceResponse">
+        <part name="parameters" element="SAPHostControl:StopInstanceResponse"/>
+    </message>
+
+    <message name="RegisterInstanceServiceRequest">
+        <part name="parameters" element="SAPHostControl:RegisterInstanceService"/>
+    </message>
+
+    <message name="RegisterInstanceServiceResponse">
+        <part name="parameters" element="SAPHostControl:RegisterInstanceServiceResponse"/>
+    </message>
+
+    <message name="UnregisterInstanceServiceRequest">
+        <part name="parameters" element="SAPHostControl:UnregisterInstanceService"/>
+    </message>
+
+    <message name="UnregisterInstanceServiceResponse">
+        <part name="parameters" element="SAPHostControl:UnregisterInstanceServiceResponse"/>
+    </message>
+
+    <message name="CallServiceOperationRequest">
+        <part name="parameters" element="SAPHostControl:CallServiceOperation"/>
+    </message>
+
+    <message name="CallServiceOperationResponse">
+        <part name="parameters" element="SAPHostControl:CallServiceOperationResponse"/>
+    </message>
+
+    <message name="ACOSPrepareRequest">
+        <part name="parameters" element="SAPHostControl:ACOSPrepare"/>
+    </message>
+
+    <message name="ACOSPrepareResponse">
+        <part name="parameters" element="SAPHostControl:ACOSPrepareResponse"/>
+    </message>
+
+    <message name="GetOperationResultsRequest">
+        <part name="parameters" element="SAPHostControl:GetOperationResults"/>
+    </message>
+
+    <message name="GetOperationResponse">
+        <part name="parameters" element="SAPHostControl:GetOperationResponse"/>
+    </message>
+
+    <message name="CancelOperationRequest">
+        <part name="parameters" element="SAPHostControl:CancelOperation"/>
+    </message>
+
+    <message name="CancelOperationResponse">
+        <part name="parameters" element="SAPHostControl:CancelOperationResponse"/>
+    </message>
+
+    <message name="IsOperationFinishedRequest">
+        <part name="parameters" element="SAPHostControl:IsOperationFinished"/>
+    </message>
+
+    <message name="IsOperationFinishedResponse">
+        <part name="parameters" element="SAPHostControl:IsOperationFinishedResponse"/>
+    </message>
+
+    <message name="ExecuteOperationRequest">
+        <part name="parameters" element="SAPHostControl:ExecuteOperation"/>
+    </message>
+
+    <message name="ExecuteOperationResponse">
+        <part name="parameters" element="SAPHostControl:ExecuteOperationResponse"/>
+    </message>
+
+    <message name="GetCIMObjectRequest">
+        <part name="parameters" element="SAPHostControl:GetCIMObject"/>
+    </message>
+
+    <message name="GetCIMObjectResponse">
+        <part name="parameters" element="SAPHostControl:GetCIMObjectResponse"/>
+    </message>
+
+    <message name="GetComputerSystemRequest">
+        <part name="parameters" element="SAPHostControl:GetComputerSystem"/>
+    </message>
+
+    <message name="GetComputerSystemResponse">
+        <part name="parameters" element="SAPHostControl:GetComputerSystemResponse"/>
+    </message>
+
+    <message name="ListDatabasesRequest">
+        <part name="parameters" element="SAPHostControl:ListDatabases"/>
+    </message>
+
+    <message name="ListDatabasesResponse">
+        <part name="parameters" element="SAPHostControl:ListDatabasesResponse"/>
+    </message>
+
+    <message name="GetDatabaseStatusRequest">
+        <part name="parameters" element="SAPHostControl:GetDatabaseStatus"/>
+    </message>
+
+    <message name="GetDatabaseStatusResponse">
+        <part name="parameters" element="SAPHostControl:GetDatabaseStatusResponse"/>
+    </message>
+
+    <message name="StartDatabaseRequest">
+        <part name="parameters" element="SAPHostControl:StartDatabase"/>
+    </message>
+
+    <message name="StartDatabaseResponse">
+        <part name="parameters" element="SAPHostControl:StartDatabaseResponse"/>
+    </message>
+
+    <message name="StopDatabaseRequest">
+        <part name="parameters" element="SAPHostControl:StopDatabase"/>
+    </message>
+
+    <message name="StopDatabaseResponse">
+        <part name="parameters" element="SAPHostControl:StopDatabaseResponse"/>
+    </message>
+
+    <message name="AttachDatabaseRequest">
+        <part name="parameters" element="SAPHostControl:AttachDatabase"/>
+    </message>
+
+    <message name="AttachDatabaseResponse">
+        <part name="parameters" element="SAPHostControl:AttachDatabaseResponse"/>
+    </message>
+
+    <message name="DetachDatabaseRequest">
+        <part name="parameters" element="SAPHostControl:DetachDatabase"/>
+    </message>
+
+    <message name="DetachDatabaseResponse">
+        <part name="parameters" element="SAPHostControl:DetachDatabaseResponse"/>
+    </message>
+
+    <message name="GetDatabasePropertiesRequest">
+        <part name="parameters" element="SAPHostControl:GetDatabaseProperties"/>
+    </message>
+
+    <message name="GetDatabasePropertiesResponse">
+        <part name="parameters" element="SAPHostControl:GetDatabasePropertiesResponse"/>
+    </message>
+
+    <message name="SetDatabasePropertyRequest">
+        <part name="parameters" element="SAPHostControl:SetDatabaseProperty"/>
+    </message>
+
+    <message name="SetDatabasePropertyResponse">
+        <part name="parameters" element="SAPHostControl:SetDatabasePropertyResponse"/>
+    </message>
+
+    <message name="LiveDatabaseUpdateRequest">
+        <part name="parameters" element="SAPHostControl:LiveDatabaseUpdate"/>
+    </message>
+
+    <message name="LiveDatabaseUpdateResponse">
+        <part name="parameters" element="SAPHostControl:LiveDatabaseUpdateResponse"/>
+    </message>
+
+    <message name="PrepareDatabaseCopyRequest">
+        <part name="parameters" element="SAPHostControl:PrepareDatabaseCopy"/>
+    </message>
+
+    <message name="PrepareDatabaseCopyResponse">
+        <part name="parameters" element="SAPHostControl:PrepareDatabaseCopyResponse"/>
+    </message>
+
+    <message name="FinalizeDatabaseCopyRequest">
+        <part name="parameters" element="SAPHostControl:FinalizeDatabaseCopy"/>
+    </message>
+
+    <message name="FinalizeDatabaseCopyResponse">
+        <part name="parameters" element="SAPHostControl:FinalizeDatabaseCopyResponse"/>
+    </message>
+
+    <message name="ListDatabaseSystemsRequest">
+        <part name="parameters" element="SAPHostControl:ListDatabaseSystems"/>
+    </message>
+
+    <message name="ListDatabaseSystemsResponse">
+        <part name="parameters" element="SAPHostControl:ListDatabaseSystemsResponse"/>
+    </message>
+
+    <message name="GetDatabaseSystemStatusRequest">
+        <part name="parameters" element="SAPHostControl:GetDatabaseSystemStatus"/>
+    </message>
+
+    <message name="GetDatabaseSystemStatusResponse">
+        <part name="parameters" element="SAPHostControl:GetDatabaseSystemStatusResponse"/>
+    </message>
+
+    <message name="ExecuteDatabaseOperationRequest">
+        <part name="parameters" element="SAPHostControl:ExecuteDatabaseOperation"/>
+    </message>
+
+    <message name="ExecuteDatabaseOperationResponse">
+        <part name="parameters" element="SAPHostControl:ExecuteDatabaseOperationResponse"/>
+    </message>
+
+    <message name="ExecuteInstallationProcedureRequest">
+        <part name="parameters" element="SAPHostControl:ExecuteInstallationProcedure"/>
+    </message>
+
+    <message name="ExecuteInstallationProcedureResponse">
+        <part name="parameters" element="SAPHostControl:ExecuteInstallationProcedureResponse"/>
+    </message>
+
+    <message name="ExecuteUpgradeProcedureRequest">
+        <part name="parameters" element="SAPHostControl:ExecuteUpgradeProcedure"/>
+    </message>
+
+    <message name="ExecuteUpgradeProcedureResponse">
+        <part name="parameters" element="SAPHostControl:ExecuteUpgradeProcedureResponse"/>
+    </message>
+
+    <message name="DeployConfigurationRequest">
+        <part name="parameters" element="SAPHostControl:DeployConfiguration"/>
+    </message>
+
+    <message name="DeployConfigurationResponse">
+        <part name="parameters" element="SAPHostControl:DeployConfigurationResponse"/>
+    </message>
+
+    <message name="RequestLogonFileRequest">
+        <part name="parameters" element="SAPHostControl:RequestLogonFile"/>
+    </message>
+
+    <message name="RequestLogonFileResponse">
+        <part name="parameters" element="SAPHostControl:RequestLogonFileResponse"/>
+    </message>
+
+    <message name="AddIpAddressRequest">
+        <part name="parameters" element="SAPHostControl:AddIpAddress"/>
+    </message>
+
+    <message name="AddIpAddressResponse">
+        <part name="parameters" element="SAPHostControl:AddIpAddressResponse"/>
+    </message>
+
+    <message name="RemoveIpAddressRequest">
+        <part name="parameters" element="SAPHostControl:RemoveIpAddress"/>
+    </message>
+
+    <message name="RemoveIpAddressResponse">
+        <part name="parameters" element="SAPHostControl:RemoveIpAddressResponse"/>
+    </message>
+
+    <message name="GetIpAddressPropertiesRequest">
+        <part name="parameters" element="SAPHostControl:GetIpAddressProperties"/>
+    </message>
+
+    <message name="GetIpAddressPropertiesResponse">
+        <part name="parameters" element="SAPHostControl:GetIpAddressPropertiesResponse"/>
+    </message>
+
+    <message name="MoveIpAddressRequest">
+        <part name="parameters" element="SAPHostControl:MoveIpAddress"/>
+    </message>
+
+    <message name="MoveIpAddressResponse">
+        <part name="parameters" element="SAPHostControl:MoveIpAddressResponse"/>
+    </message>
+
+    <message name="DetectManagedObjectsRequest">
+        <part name="parameters" element="SAPHostControl:DetectManagedObjects"/>
+    </message>
+
+    <message name="DetectManagedObjectsResponse">
+        <part name="parameters" element="SAPHostControl:DetectManagedObjectsResponse"/>
+    </message>
+
+    <message name="DeployManagedObjectsFromSARRequest">
+        <part name="parameters" element="SAPHostControl:DeployManagedObjectsFromSAR"/>
+    </message>
+
+    <message name="DeployManagedObjectsFromSARResponse">
+        <part name="parameters" element="SAPHostControl:DeployManagedObjectsFromSARResponse"/>
+    </message>
+
+    <message name="ExecuteOutsideDiscoveryRequest">
+        <part name="parameters" element="SAPHostControl:ExecuteOutsideDiscovery"/>
+    </message>
+
+    <message name="ExecuteOutsideDiscoveryResponse">
+        <part name="parameters" element="SAPHostControl:ExecuteOutsideDiscoveryResponse"/>
+    </message>
+
+    <message name="ConfigureOutsideDiscoveryPathRequest">
+        <part name="parameters" element="SAPHostControl:ConfigureOutsideDiscoveryPath"/>
+    </message>
+
+    <message name="AddOutsideDiscoveryPathResponse">
+        <part name="parameters" element="SAPHostControl:AddOutsideDiscoveryPathResponse"/>
+    </message>
+
+    <message name="ConfigureOutsideDiscoveryRequest">
+        <part name="parameters" element="SAPHostControl:ConfigureOutsideDiscovery"/>
+    </message>
+
+    <message name="ConfigureOutsideDiscoveryResponse">
+        <part name="parameters" element="SAPHostControl:ConfigureOutsideDiscoveryResponse"/>
+    </message>
+
+    <message name="ConfigureOutsideDiscoveryDestinationRequest">
+        <part name="parameters" element="SAPHostControl:ConfigureOutsideDiscoveryDestination"/>
+    </message>
+
+    <message name="ConfigureOutsideDiscoveryDestinationResponse">
+        <part name="parameters" element="SAPHostControl:ConfigureOutsideDiscoveryDestinationResponse"/>
+    </message>
+
+    <message name="ReloadConfigurationRequest">
+        <part name="parameters" element="SAPHostControl:ReloadConfiguration"/>
+    </message>
+
+    <message name="ReloadConfigurationResponse">
+        <part name="parameters" element="SAPHostControl:ReloadConfigurationResponse"/>
+    </message>
+
+    <message name="OperationExceptionFault">
+        <part name="fault" element="SAPHostControl:OperationException"/>
+    </message>
+
+    <portType name="SAPHostControlInterface">
+        <operation name="ListInstances">
+            <documentation>Return the list of all installed SAP Instances Installed / Running (see InstanceStatus) on the current host. If an hostname is defined in InstanceSelector, only the instances using this host as SAPLOCALHOST are considered.</documentation>
+            <input message="tns:ListInstancesRequest"/>
+            <output message="tns:ListInstancesResponse"/>
+        </operation>
+        <operation name="StartInstance">
+            <documentation>// Start the instance specified by aInstance. If a timeout (see OperationOptions) is defined the operation will wait until this expired, and return the operationID. The result of this operation could be retrived using GetOperationResults. If timeout is 0 the operation will be executed asynchronously.If the timeout is -1 the operation will be executed synchronously.</documentation>
+            <input message="tns:StartInstanceRequest"/>
+            <output message="tns:StartInstanceResponse"/>
+            <fault name="OperationException" message="tns:OperationExceptionFault"/>
+        </operation>
+        <operation name="StopInstance">
+            <documentation>// Stop the instance specified by aInstance. If a timeout (see OperationOptions) is defined the operation will wait until this expired, and return the operationID. The result of this operation could be retrived using GetOperationResults. If timeout is 0 the operation will be executed asynchronously.If the timeout is -1 the operation will be executed synchronously.</documentation>
+            <input message="tns:StopInstanceRequest"/>
+            <output message="tns:StopInstanceResponse"/>
+            <fault name="OperationException" message="tns:OperationExceptionFault"/>
+        </operation>
+        <operation name="RegisterInstanceService">
+            <documentation>// Register an SAP instance start service. For timout handling and how to retrive results refer to the StartInstance method. Mandatory arguments are: on UNIX: SID, Instance number and hostname (SAPLOCALHOST of the instance), on Windows: all member variables of SAPControlInstance.</documentation>
+            <input message="tns:RegisterInstanceServiceRequest"/>
+            <output message="tns:RegisterInstanceServiceResponse"/>
+            <fault name="OperationException" message="tns:OperationExceptionFault"/>
+        </operation>
+        <operation name="UnregisterInstanceService">
+            <documentation>// Unregister an SAP instance start service.  For timout handling and how to retrive results refer to the StartInstance method.  Mandatory arguments are: SID, Instance number and hostname (SAPLOCALHOST of the instance).</documentation>
+            <input message="tns:UnregisterInstanceServiceRequest"/>
+            <output message="tns:UnregisterInstanceServiceResponse"/>
+            <fault name="OperationException" message="tns:OperationExceptionFault"/>
+        </operation>
+        <operation name="CallServiceOperation">
+            <documentation>//Call the specified operation. Supported operations are START, STOP, RESTART (see InstanceServiceOperation). Supported target for the operation are DB[Database], DB_SERVICE [Database Service or Listner], Instance Service [sapstartsrv].If a timeout (see OperationOptions) is defined the operation will wait until this expired, and return the operationID. The result of this operation could be retrived using GetOperationResults. If timeout is 0 the operation will be executed asynchronously. If the timeout is -1 the operation will be executed synchronously.</documentation>
+            <input message="tns:CallServiceOperationRequest"/>
+            <output message="tns:CallServiceOperationResponse"/>
+            <fault name="OperationException" message="tns:OperationExceptionFault"/>
+        </operation>
+        <operation name="ACOSPrepare">
+            <documentation>//</documentation>
+            <input message="tns:ACOSPrepareRequest"/>
+            <output message="tns:ACOSPrepareResponse"/>
+            <fault name="OperationException" message="tns:OperationExceptionFault"/>
+        </operation>
+        <operation name="GetOperationResults">
+            <documentation>//Return the results of the operation identified by aOperationID. If a timeout is specified (see aOption) the method will wait until the timout expired and returns the currently results, withouth cancelling the operation. If timeout is 0 the method will return immediately.If the timeout is -1 the operation will be executed synchronously.</documentation>
+            <input message="tns:GetOperationResultsRequest"/>
+            <output message="tns:GetOperationResponse"/>
+            <fault name="OperationException" message="tns:OperationExceptionFault"/>
+        </operation>
+        <operation name="CancelOperation">
+            <documentation>//Cancel a previously started operation. The operation is identified by the aOperationID, and could be canceled using the aType O_SOFT (continue if timeout expired) or O_HARD (kill if timeout expired).</documentation>
+            <input message="tns:CancelOperationRequest"/>
+            <output message="tns:CancelOperationResponse"/>
+            <fault name="OperationException" message="tns:OperationExceptionFault"/>
+        </operation>
+        <operation name="IsOperationFinished">
+            <documentation>//Returns true if the operation is finished. The operation is identified by aOperationID.</documentation>
+            <input message="tns:IsOperationFinishedRequest"/>
+            <output message="tns:IsOperationFinishedResponse"/>
+        </operation>
+        <operation name="ExecuteOperation">
+            <documentation>//Execute a predefined SAPHostControl operation.</documentation>
+            <input message="tns:ExecuteOperationRequest"/>
+            <output message="tns:ExecuteOperationResponse"/>
+            <fault name="OperationException" message="tns:OperationExceptionFault"/>
+        </operation>
+        <operation name="GetCIMObject">
+            <documentation>.</documentation>
+            <input message="tns:GetCIMObjectRequest"/>
+            <output message="tns:GetCIMObjectResponse"/>
+        </operation>
+        <operation name="GetComputerSystem">
+            <documentation>.</documentation>
+            <input message="tns:GetComputerSystemRequest"/>
+            <output message="tns:GetComputerSystemResponse"/>
+        </operation>
+        <operation name="ListDatabases">
+            <documentation>Service definition of function SAPHostControl__ListDatabases</documentation>
+            <input message="tns:ListDatabasesRequest"/>
+            <output message="tns:ListDatabasesResponse"/>
+        </operation>
+        <operation name="GetDatabaseStatus">
+            <documentation>//Get the status of the database specified in aArguments. The database must be specified by the following properties: "Database/Name" [mandatory], "Database/Type" (ada|sap|db6|mss|ora...) [mandatory], "Database/InstanceName", "Database/Host", "Database/Username" (DB administration user) [mandatory for Datatbase/Type=ada|sap|db6 (db6 only on Windows)], "Database/Password" (same as Database/Username). On success status contains the overall status of the database. result contains the components of the database and their status. A database component is described by the properties "Database/ComponentName" and "Database/ComponentDescription" which are filled into the properties array mProperties of the database component. A textual description of the component status, "Database/ComponentStatusDescription", will also be filled into the poperties array.</documentation>
+            <input message="tns:GetDatabaseStatusRequest"/>
+            <output message="tns:GetDatabaseStatusResponse"/>
+        </operation>
+        <operation name="StartDatabase">
+            <documentation>//Start the database specified in aArguments. The database must be specified as described in SAPHostControl__GetDatabaseStatus. If the network service (e.g. the xserver process in case of MaxDB) should also be started add the O_SERVICE flag to aOptions.mOptions. In case a pre-operation and/or post-operation hook command is to be executed add the flag(s) O_PREHOOK and O_POSTHOOK respectively to aOptions.mOptions. To specify an operation timeout set aOption.mTimeout. The operation will wait until the specified value is expired, and return the operationID. The result of this operation could be retrived using GetOperationResults. If the timeout value is "0" the operation will be executed asynchronously. If the timeout value is "-1" the operation will be executed synchronously.</documentation>
+            <input message="tns:StartDatabaseRequest"/>
+            <output message="tns:StartDatabaseResponse"/>
+            <fault name="OperationException" message="tns:OperationExceptionFault"/>
+        </operation>
+        <operation name="StopDatabase">
+            <documentation>//Stop the database specified in aArguments. The database must be specified as described in SAPHostControl__GetDatabaseStatus. Add the flag O_SERVICE to aOptions.mOptions if the network service (e.g. the xserver process in case of MaxDB) should also be stopped. To perform a database shutdown even if users are still logged on, add the O_FORCE flag to aOptions.mOptions. For timeout and pre/post hook handling refer to SAPHostControl__StartDatabase.</documentation>
+            <input message="tns:StopDatabaseRequest"/>
+            <output message="tns:StopDatabaseResponse"/>
+            <fault name="OperationException" message="tns:OperationExceptionFault"/>
+        </operation>
+        <operation name="AttachDatabase">
+            <documentation>//Attach the database specified in aArguments. The database must be specified as described in SAPHostControl__GetDatabaseStatus. For timeout and pre/post hook handling refer to SAPHostControl__StartDatabase.</documentation>
+            <input message="tns:AttachDatabaseRequest"/>
+            <output message="tns:AttachDatabaseResponse"/>
+            <fault name="OperationException" message="tns:OperationExceptionFault"/>
+        </operation>
+        <operation name="DetachDatabase">
+            <documentation>//Detach the database specified in aArguments. The database must be specified as described in SAPHostControl__GetDatabaseStatus. For timeout and pre/post hook handling refer to SAPHostControl__StartDatabase.</documentation>
+            <input message="tns:DetachDatabaseRequest"/>
+            <output message="tns:DetachDatabaseResponse"/>
+            <fault name="OperationException" message="tns:OperationExceptionFault"/>
+        </operation>
+        <operation name="GetDatabaseProperties">
+            <documentation>//Get properties of the database specified in aArguments. The database must be specified as described in SAPHostControl__GetDatabaseStatus.</documentation>
+            <input message="tns:GetDatabasePropertiesRequest"/>
+            <output message="tns:GetDatabasePropertiesResponse"/>
+        </operation>
+        <operation name="SetDatabaseProperty">
+            <documentation>//Set a database property. The database must be specified as described in SAPHostControl__GetDatabaseStatus. The property to be set must be specified by the arguments "Database/PropertyName" and "Database/PropertyValue".</documentation>
+            <input message="tns:SetDatabasePropertyRequest"/>
+            <output message="tns:SetDatabasePropertyResponse"/>
+        </operation>
+        <operation name="LiveDatabaseUpdate">
+            <documentation>//Update the database specified in aArguments. The database must be specified as described in SAPHostControl__GetDatabaseStatus. Add the argument "LiveUpdate/MethodName" to specify the update step [mandatory]. Valid values are: "Extract", "Check", "Prepare", "Undo", "Execute", "Cleanup". The extract step expects the following further arguments: "LiveUpdate/SourcePath" [mandatory] (source path of the .SAR archive), "LiveUpdate/TargetPath" (destination path to extract the archive). On success result.mOperationResults contains "LiveUpdate/TargetPath" which points to the actual path where the archive was extracted to. The other steps expect the "LiveUpdate/SourcePath" [mandatory] argument (which is the destination path of the extract step). For timeout handling refer to SAPHostControl__StartDatabase.</documentation>
+            <input message="tns:LiveDatabaseUpdateRequest"/>
+            <output message="tns:LiveDatabaseUpdateResponse"/>
+            <fault name="OperationException" message="tns:OperationExceptionFault"/>
+        </operation>
+        <operation name="PrepareDatabaseCopy">
+            <documentation>// Prepare the database for performing a file system based point-in-time copy (snapshot). Preparation may involve putting the database in a specific operation mode that allows the creation of a copy that can be recovered into an consistent state. The database must be specified in aArguments as described in SAPHostControl__GetDatabaseStatus. To specify the copy method add argument Database/CopyMethod. Valid values are "Offline" (copying will be performed while the database is shutdown), "Online" (copying will be performed while the database is online, depending on the database system I/O operations will be suspended) and "Auto" (copy method is selected based on the current database status). Set argument Database/DoStateChange=true to bring the database into the status according to the specified copy method. Add argument Database/ConfigurationDirectory to specify the directory that will be used for storing the meta information required to attach and recover the database copy.  For timeout handling refer to SAPHostControl__StartDatabase.</documentation>
+            <input message="tns:PrepareDatabaseCopyRequest"/>
+            <output message="tns:PrepareDatabaseCopyResponse"/>
+            <fault name="OperationException" message="tns:OperationExceptionFault"/>
+        </operation>
+        <operation name="FinalizeDatabaseCopy">
+            <documentation>// Finishing the database copy. The database must be specified in aArguments as described in SAPHostControl__GetDatabaseStatus. The "Database/CopyMethod" and "Database/ConfigurationDirectory" arguments must be specified as described in SAPHostControl__PrepareDatabaseCopy. For timeout handling refer to SAPHostControl__StartDatabase.</documentation>
+            <input message="tns:FinalizeDatabaseCopyRequest"/>
+            <output message="tns:FinalizeDatabaseCopyResponse"/>
+            <fault name="OperationException" message="tns:OperationExceptionFault"/>
+        </operation>
+        <operation name="ListDatabaseSystems">
+            <documentation>Service definition of function SAPHostControl__ListDatabaseSystems</documentation>
+            <input message="tns:ListDatabaseSystemsRequest"/>
+            <output message="tns:ListDatabaseSystemsResponse"/>
+        </operation>
+        <operation name="GetDatabaseSystemStatus">
+            <documentation>// Get the status of the database system specified in aArguments. The database system must be specified by the mandatory properties: "Database/Name" and "Database/Type" (ada|sap|db6|mss|ora...). Optional properties are "Database/InstanceName", "Database/Username" (DB administration user) and "Database/Password". On success result.mStatus contains the overall status of the database system. result.mInstances contains all DatabaseSystemInstance(s). DatabaseSystemInstance.mStatus contains the instance status. DatabaseSystemInstance.mInstance contains properties that specify the instance. Valid properties are "Database/InstanceName" and "Database/Host". The DatabaseSystemInstance.mComponents contains the instance components. These components depend on the database type. Refer to GetDatabaseStatus for a general description of components. result.mSharedComponents contains the components shared between all instances (if available). Shared components depened on the database type. result.mReplicatedSystems contains the information about the replicated systems (if available). If argument Database/Properties=true is provided result.mProperties contains the properties of the database system and result.mInstances[].mProperties contains the properties of the database system instances.</documentation>
+            <input message="tns:GetDatabaseSystemStatusRequest"/>
+            <output message="tns:GetDatabaseSystemStatusResponse"/>
+        </operation>
+        <operation name="ExecuteDatabaseOperation">
+            <documentation>//Execute the predefined database operation specified by the mandatory argument Database/OperationName. The database must be specified as described in SAPHostControl__GetDatabaseStatus. For timeout and pre/post hook handling refer to SAPHostControl__StartDatabase. Arguments of the predefined database operation (not prefixed with "Database/") can also be specified in aArguments.   </documentation>
+            <input message="tns:ExecuteDatabaseOperationRequest"/>
+            <output message="tns:ExecuteDatabaseOperationResponse"/>
+            <fault name="OperationException" message="tns:OperationExceptionFault"/>
+        </operation>
+        <operation name="ExecuteInstallationProcedure">
+            <documentation>//Call the SAPInstallation procedure in background. The location of the installation must be specified as a property called SOURCE_INSTALLATION_PATH. Additionally the property PRODID specify the SAPInst product ID to be installed, and is mandatory. The argument parameterContainer should contains the content of an xml file line based, specifyng the SAPInst inifile.xml which contains the settings SAPInst would use to installed the required software.</documentation>
+            <input message="tns:ExecuteInstallationProcedureRequest"/>
+            <output message="tns:ExecuteInstallationProcedureResponse"/>
+            <fault name="OperationException" message="tns:OperationExceptionFault"/>
+        </operation>
+        <operation name="ExecuteUpgradeProcedure">
+            <documentation>Service definition of function SAPHostControl__ExecuteUpgradeProcedure</documentation>
+            <input message="tns:ExecuteUpgradeProcedureRequest"/>
+            <output message="tns:ExecuteUpgradeProcedureResponse"/>
+            <fault name="OperationException" message="tns:OperationExceptionFault"/>
+        </operation>
+        <operation name="DeployConfiguration">
+            <documentation>// Deploy HostAgent configurations. The configuration file is specified as name , and the target member, specify the type of the configuration to be deployed.</documentation>
+            <input message="tns:DeployConfigurationRequest"/>
+            <output message="tns:DeployConfigurationResponse"/>
+        </operation>
+        <operation name="RequestLogonFile">
+            <documentation>Returns a logon file for local authentication.</documentation>
+            <input message="tns:RequestLogonFileRequest"/>
+            <output message="tns:RequestLogonFileResponse"/>
+        </operation>
+        <operation name="AddIpAddress">
+            <documentation>//Add IP (v4 or v6) address from the network interface</documentation>
+            <input message="tns:AddIpAddressRequest"/>
+            <output message="tns:AddIpAddressResponse"/>
+        </operation>
+        <operation name="RemoveIpAddress">
+            <documentation>//Remove IP (v4 or v6) address from the network interface</documentation>
+            <input message="tns:RemoveIpAddressRequest"/>
+            <output message="tns:RemoveIpAddressResponse"/>
+        </operation>
+        <operation name="GetIpAddressProperties">
+            <documentation>//Get information about IP (v4 or v6) address from the network interface</documentation>
+            <input message="tns:GetIpAddressPropertiesRequest"/>
+            <output message="tns:GetIpAddressPropertiesResponse"/>
+        </operation>
+        <operation name="MoveIpAddress">
+            <documentation>//Move IP (v4 or v6) address to the host aTargetHost</documentation>
+            <input message="tns:MoveIpAddressRequest"/>
+            <output message="tns:MoveIpAddressResponse"/>
+        </operation>
+        <operation name="DetectManagedObjects">
+            <documentation>Service definition of function SAPHostControl__DetectManagedObjects</documentation>
+            <input message="tns:DetectManagedObjectsRequest"/>
+            <output message="tns:DetectManagedObjectsResponse"/>
+        </operation>
+        <operation name="DeployManagedObjectsFromSAR">
+            <documentation>Service definition of function SAPHostControl__DeployManagedObjectsFromSAR</documentation>
+            <input message="tns:DeployManagedObjectsFromSARRequest"/>
+            <output message="tns:DeployManagedObjectsFromSARResponse"/>
+        </operation>
+        <operation name="ExecuteOutsideDiscovery">
+            <documentation>.</documentation>
+            <input message="tns:ExecuteOutsideDiscoveryRequest"/>
+            <output message="tns:ExecuteOutsideDiscoveryResponse"/>
+        </operation>
+        <operation name="ConfigureOutsideDiscoveryPath">
+            <documentation>.</documentation>
+            <input message="tns:ConfigureOutsideDiscoveryPathRequest"/>
+            <output message="tns:AddOutsideDiscoveryPathResponse"/>
+        </operation>
+        <operation name="ConfigureOutsideDiscovery">
+            <documentation>.</documentation>
+            <input message="tns:ConfigureOutsideDiscoveryRequest"/>
+            <output message="tns:ConfigureOutsideDiscoveryResponse"/>
+        </operation>
+        <operation name="ConfigureOutsideDiscoveryDestination">
+            <documentation>.</documentation>
+            <input message="tns:ConfigureOutsideDiscoveryDestinationRequest"/>
+            <output message="tns:ConfigureOutsideDiscoveryDestinationResponse"/>
+        </operation>
+        <operation name="ReloadConfiguration">
+            <documentation>.</documentation>
+            <input message="tns:ReloadConfigurationRequest"/>
+            <output message="tns:ReloadConfigurationResponse"/>
+        </operation>
+    </portType>
+
+    <binding name="SAPHostControl" type="tns:SAPHostControlInterface">
+        <SOAP:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+        <operation name="ListInstances">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+        </operation>
+        <operation name="StartInstance">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+            <fault name="OperationException">
+                <SOAP:fault name="OperationException" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="StopInstance">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+            <fault name="OperationException">
+                <SOAP:fault name="OperationException" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="RegisterInstanceService">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+            <fault name="OperationException">
+                <SOAP:fault name="OperationException" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="UnregisterInstanceService">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+            <fault name="OperationException">
+                <SOAP:fault name="OperationException" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="CallServiceOperation">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+            <fault name="OperationException">
+                <SOAP:fault name="OperationException" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="ACOSPrepare">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+            <fault name="OperationException">
+                <SOAP:fault name="OperationException" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="GetOperationResults">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+            <fault name="OperationException">
+                <SOAP:fault name="OperationException" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="CancelOperation">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+            <fault name="OperationException">
+                <SOAP:fault name="OperationException" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="IsOperationFinished">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+        </operation>
+        <operation name="ExecuteOperation">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+            <fault name="OperationException">
+                <SOAP:fault name="OperationException" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="GetCIMObject">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+        </operation>
+        <operation name="GetComputerSystem">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+        </operation>
+        <operation name="ListDatabases">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+        </operation>
+        <operation name="GetDatabaseStatus">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+        </operation>
+        <operation name="StartDatabase">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+            <fault name="OperationException">
+                <SOAP:fault name="OperationException" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="StopDatabase">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+            <fault name="OperationException">
+                <SOAP:fault name="OperationException" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="AttachDatabase">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+            <fault name="OperationException">
+                <SOAP:fault name="OperationException" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="DetachDatabase">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+            <fault name="OperationException">
+                <SOAP:fault name="OperationException" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="GetDatabaseProperties">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+        </operation>
+        <operation name="SetDatabaseProperty">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+        </operation>
+        <operation name="LiveDatabaseUpdate">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+            <fault name="OperationException">
+                <SOAP:fault name="OperationException" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="PrepareDatabaseCopy">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+            <fault name="OperationException">
+                <SOAP:fault name="OperationException" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="FinalizeDatabaseCopy">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+            <fault name="OperationException">
+                <SOAP:fault name="OperationException" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="ListDatabaseSystems">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+        </operation>
+        <operation name="GetDatabaseSystemStatus">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+        </operation>
+        <operation name="ExecuteDatabaseOperation">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+            <fault name="OperationException">
+                <SOAP:fault name="OperationException" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="ExecuteInstallationProcedure">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+            <fault name="OperationException">
+                <SOAP:fault name="OperationException" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="ExecuteUpgradeProcedure">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+            <fault name="OperationException">
+                <SOAP:fault name="OperationException" use="literal"/>
+            </fault>
+        </operation>
+        <operation name="DeployConfiguration">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+        </operation>
+        <operation name="RequestLogonFile">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+        </operation>
+        <operation name="AddIpAddress">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+        </operation>
+        <operation name="RemoveIpAddress">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+        </operation>
+        <operation name="GetIpAddressProperties">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+        </operation>
+        <operation name="MoveIpAddress">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+        </operation>
+        <operation name="DetectManagedObjects">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+        </operation>
+        <operation name="DeployManagedObjectsFromSAR">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+        </operation>
+        <operation name="ExecuteOutsideDiscovery">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+        </operation>
+        <operation name="ConfigureOutsideDiscoveryPath">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+        </operation>
+        <operation name="ConfigureOutsideDiscovery">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+        </operation>
+        <operation name="ConfigureOutsideDiscoveryDestination">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+        </operation>
+        <operation name="ReloadConfiguration">
+            <SOAP:operation soapAction=""/>
+            <input>
+                <SOAP:body use="literal"/>
+            </input>
+            <output>
+                <SOAP:body use="literal"/>
+            </output>
+        </operation>
+    </binding>
+
+    <service name="SAPHostControl">
+        <documentation>The SAPHostControl support a group of Host specific operations like : Start / Stop an SAP System; Start/Stop a Database; Mount / Unmount of filesystems; Activate/Deactivate ip addresses.</documentation>
+        <port name="SAPHostControl" binding="tns:SAPHostControl">
+            <SOAP:address location="http://localhost:1128/SAPHostControl.cgi"/>
+        </port>
+    </service>
+
+</definitions>
