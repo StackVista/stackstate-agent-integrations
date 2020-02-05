@@ -10,7 +10,7 @@ HERE = path.dirname(path.abspath(__file__))
 
 # Get version info
 ABOUT = {}
-with open(path.join(HERE, 'stackstate_checks', 'aws', '__about__.py')) as f:
+with open(path.join(HERE, 'stackstate_checks', 'aws_xray', '__about__.py')) as f:
     exec(f.read(), ABOUT)
 
 # Get the long description from the README file
@@ -22,12 +22,12 @@ CHECKS_BASE_REQ = 'stackstate-checks-base'
 
 
 setup(
-    name='stackstate-aws',
+    name='stackstate-aws-xray',
     version=ABOUT['__version__'],
-    description='The Aws check',
+    description='The AWS X-Ray check',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    keywords='stackstate agent aws check',
+    keywords='stackstate agent aws xray check',
 
     # The project's main homepage.
     url='https://github.com/StackVista/stackstate-agent-integrations',
@@ -52,7 +52,7 @@ setup(
     ],
 
     # The package we're going to ship
-    packages=['stackstate_checks.aws'],
+    packages=['stackstate_checks.aws_xray'],
 
     # Run-time dependencies
     install_requires=[CHECKS_BASE_REQ],

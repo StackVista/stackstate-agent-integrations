@@ -1,2 +1,2 @@
-# CHANGELOG - Aws
+# CHANGELOG - AWS X-Ray
 

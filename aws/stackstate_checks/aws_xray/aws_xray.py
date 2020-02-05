@@ -31,7 +31,7 @@ DEFAULT_COLLECTION_INTERVAL = 60
 class AwsCheck(AgentCheck):
     """Converts AWS X-Ray traces and sends them to Trace Agent."""
     INSTANCE_TYPE = 'aws'
-    SERVICE_CHECK_NAME = 'aws.can_connect'
+    SERVICE_CHECK_NAME = 'aws_xray.can_connect'
 
     def __init__(self, name, init_config, agentConfig, instances=None):
         AgentCheck.__init__(self, name, init_config, agentConfig, instances)
