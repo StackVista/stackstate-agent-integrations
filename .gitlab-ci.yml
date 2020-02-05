@@ -154,10 +154,10 @@ test_cloudera:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
 
-test_aws:
+test_aws_xray:
   <<: *linux_test
   variables:
-    CHECK: "aws"
+    CHECK: "aws_xray"
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
@@ -200,10 +200,10 @@ test_cloudera_win:
   variables:
     CHECK: "cloudera"
 
-test_aws_win:
+test_aws_xray_win:
   <<: *windows_test
   variables:
-    CHECK: "aws"
+    CHECK: "aws_xray"
 
 publish-checks-dev:
   stage: publish

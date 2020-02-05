@@ -1,7 +1,7 @@
 [
     {
-        "integration":"aws",
-        "check": "aws.can_connect",
+        "integration":"aws_xray",
+        "check": "aws_xray.can_connect",
         "statuses": ["ok", "critical"],
         "groups": ["host"],
         "name": "Can Connect",

@@ -7,8 +7,8 @@ import os
 import jsonpickle
 from mock import patch
 
-from stackstate_checks.aws import AwsCheck
-from stackstate_checks.aws.aws import AwsClient
+from stackstate_checks.aws_xray import AwsCheck
+from stackstate_checks.aws_xray.aws_xray import AwsClient
 
 AWS_REGION = 'eu-west-1'
 AWS_ACCOUNT = '672574731473'
@@ -41,11 +41,11 @@ def test_traces():
     assert len(traces[2]) == 5
 
 
-@patch('stackstate_checks.aws.aws.AwsClient', MockAwsClient)
+@patch('stackstate_checks.aws_xray.aws_xray.AwsClient', MockAwsClient)
 def test_service_check(aggregator, instance):
     aws_check = AwsCheck('test', {}, {})
     aws_check.check(instance)
-    aggregator.assert_service_check('aws.can_connect', aws_check.CRITICAL)
+    aggregator.assert_service_check('aws_xray.can_connect', aws_check.CRITICAL)
 
 
 def test_span_generation():

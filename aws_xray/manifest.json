@@ -1,9 +1,9 @@
 {
-  "display_name": "AWS",
+  "display_name": "AWS X-Ray",
   "maintainer": "info@stackstate.com",
   "manifest_version": "1.0.0",
-  "name": "aws",
-  "metric_prefix": "aws.",
+  "name": "aws_xray",
+  "metric_prefix": "aws_xray.",
   "metric_to_check": "",
   "creates_events": false,
   "short_description": "Collect AWS X-Ray Traces and sends them to Trace Agent",
