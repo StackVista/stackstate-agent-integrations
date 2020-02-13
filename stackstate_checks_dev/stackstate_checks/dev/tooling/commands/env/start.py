@@ -22,11 +22,10 @@ from ....utils import dir_exists, file_exists, path_join
 )
 @click.argument('check')
 @click.argument('env')
-@click.option(
-    '--agent', '-a', default='stackstate/stackstate-agent-2:latest',
-    help=('The agent build to use e.g. a Docker image like `stackstate/stackstate-agent-2:latest`.')
-)
-@click.option('--dev/--prod', help='Whether to use the latest version of a check or what is shipped')
+@click.option('--agent', '-a', default='stackstate/stackstate-agent-2:latest', show_default=True,
+              help='The docker image of the agent to use')
+@click.option('--dev/--prod', default=True, show_default=True,
+              help='Use the latest version of a check (or else what is shipped with the agent package)')
 @click.option('--base', is_flag=True, help='Whether to use the latest version of the base check or what is shipped')
 @click.option('--api-key', '-k',
               help='Set the api key. can also be picked up form the STS_API_KEY environment variable')

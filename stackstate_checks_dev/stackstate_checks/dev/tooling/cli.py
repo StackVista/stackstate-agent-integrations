@@ -39,6 +39,7 @@ def checksdev(ctx, integrations, core, here, quiet):
     config = load_config()
 
     ctx.obj = config
+    ctx.max_content_width = 160
 
     root = os.path.expanduser(core if core else config.get('integrations', integrations))
     if here or not dir_exists(root):
