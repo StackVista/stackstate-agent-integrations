@@ -1,0 +1,13 @@
+init_config:
+    # run every 5 minute
+    min_collection_interval: 300
+
+instances:
+  - hostip: 34.244.241.169
+    domain: stackstate
+    username: administrator
+    password: 7hVlj5lVGZw3NqSIIa6zbvU)A=3GuaZX
+    auth_mode: Network
+    streams:
+      - name: SQL
+        class: Microsoft.SQLServer.Generic.Presentation.ServerRolesGroup
