@@ -40,7 +40,7 @@ Use the `checksdev env` command to do manual testing. Testing always happens in 
 
 To start testing the check under local development run:
 
-    $ checksdev env start mysql 5.7 --dev
+    $ checksdev env start mysql 5.7
 
 ## Automated testing
 
