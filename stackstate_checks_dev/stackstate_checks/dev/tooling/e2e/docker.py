@@ -124,7 +124,7 @@ class DockerInterface(object):
             # The chosen tag
             command.append(self.agent_build)
 
-            echo_info("\nCommand used to start the agent env: '{0}'\n".format(command))
+            echo_info("\nCommand used to start the agent env: '{0}'\n".format(" ".join(command)))
             return run_command(command, capture=True)
 
     def stop_agent(self):
