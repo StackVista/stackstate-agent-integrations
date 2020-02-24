@@ -1,0 +1,23 @@
+{
+  "display_name": "VSphere",
+  "maintainer": "info@stackstate.com",
+  "manifest_version": "1.0.0",
+  "name": "vpshere",
+  "metric_prefix": "vsphere.",
+  "metric_to_check": "",
+  "creates_events": true,
+  "short_description": "Collect topology from Vsphere Vcenter",
+  "guid": "8b282cc3-df23-449f-b916-be8350b66ee8",
+  "support": "core",
+  "supported_os": [
+    "linux",
+    "mac_os",
+    "windows"
+  ],
+  "public_title": "StackState-VSphere Integration",
+  "categories": [
+    "vsphere"
+  ],
+  "type": "check",
+  "is_public": true
+}
