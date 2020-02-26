@@ -1,5 +1,4 @@
 # stdlib
-import os
 import unittest
 
 # 3p
@@ -52,6 +51,7 @@ class VsphereCategory(CategoryModel):
         self.description = "stackstate category"
         self.id = id
         super(VsphereCategory, self).__init__(self.id, self.name, self.description)
+
 
 class MockedMOR(Mock):
     """
@@ -330,7 +330,6 @@ class TestvSphereUnit(unittest.TestCase):
         server_mock.configure_mock(**{'RetrieveContent.return_value': content_mock})
         self.check._get_server_instance = MagicMock(return_value=server_mock)
 
-
         # Discover hosts and virtual machines
         discover_mor(instance, tags, include_regexes, include_only_marked)
 
@@ -365,7 +364,7 @@ class TestvSphereUnit(unittest.TestCase):
             name="vm4", spec="vm", subset=True,
             tags=[
                 u"toto", u"vsphere_folder:folder1", u"vsphere_datacenter:datacenter2",
-                u"vsphere_compute:compute_resource2",u"vsphere_cluster:compute_resource2",
+                u"vsphere_compute:compute_resource2", u"vsphere_cluster:compute_resource2",
                 u"vsphere_host:host3", u"vsphere_type:vm"
             ]
         )
@@ -385,9 +384,12 @@ class TestVsphereTopo(unittest.TestCase):
         config = MockedMOR(guestId='ubuntu64Guest', guestFullName='Ubuntu Linux (64-bit)', hardware=vm_config_hardware)
 
         datastore = MockedMOR(spec='Datastore', _moId="54183927-04f91918-a72a-6805ca147c55", name="WDC1TB")
-        virtualmachine = MockedMOR(spec="VirtualMachine", name="Ubuntu", datastore=[datastore], config=config, _moId="vm-12")
-        host = MockedMOR(spec="HostSystem", name="localhost.localdomain", datastore=[datastore], vm=[virtualmachine], _moId="host-1")
-        computeresource = MockedMOR(spec="ComputeResource", name="localhost", datastore=[datastore], host=[host], _moId="cr-1")
+        virtualmachine = MockedMOR(spec="VirtualMachine", name="Ubuntu", datastore=[datastore], config=config,
+                                   _moId="vm-12")
+        host = MockedMOR(spec="HostSystem", name="localhost.localdomain", datastore=[datastore], vm=[virtualmachine],
+                         _moId="host-1")
+        computeresource = MockedMOR(spec="ComputeResource", name="localhost", datastore=[datastore], host=[host],
+                                    _moId="cr-1")
         clustercomputeresource = MockedMOR(spec="ClusterComputeResource", name="local",
                                            datastore=[datastore], host=[host], _moId="ccr-12")
 
@@ -692,9 +694,11 @@ class TestVsphereTopo(unittest.TestCase):
         self.check._is_excluded = MagicMock(return_value=True)
 
         instance = {'name': 'vsphere_mock', 'host': 'test-esxi'}
-        topo_items = {'datastores': [], 'clustercomputeresource': [], 'computeresource': [], 'hosts': [], 'datacenters':
-            [], 'vms': [{'hostname': 'Ubuntu', 'topo_tags': {'topo_type': 'vsphere-VirtualMachine',
-                 'name': 'Ubuntu', 'datastore': '54183927-04f91918-a72a-6805ca147c55'}, 'mor_type': 'vm'}]}
+        topo_items = {'datastores': [], 'clustercomputeresource': [], 'computeresource': [], 'hosts': [],
+                      'datacenters': [], 'vms': [{'hostname': 'Ubuntu',
+                                                 'topo_tags': {'topo_type': 'vsphere-VirtualMachine', 'name': 'Ubuntu',
+                                                               'datastore': '54183927-04f91918-a72a-6805ca147c55'},
+                                                  'mor_type': 'vm'}]}
         self.check.get_topologyitems_sync = MagicMock(return_value=topo_items)
         self.check.collect_topology(instance)
         snapshot = topology.get_snapshot(self.check.check_id)
@@ -712,11 +716,14 @@ class TestVsphereTopo(unittest.TestCase):
 
         self.check._is_excluded = MagicMock(return_value=True)
 
-        topo_items = {"datastores": [{'mor_type': 'datastore','topo_tags': {'accessible': True, 'topo_type':
-            'vsphere-Datastore', 'capacity': 999922073600, 'name': 'WDC1TB', 'url':
-            '/vmfs/volumes/54183927-04f91918-a72a-6805ca147c55', 'type': 'VMFS', 'vms': ['UBUNTU_SECURE', 'W-NodeBox',
-            'NAT', 'Z_CONTROL_MONITORING (.151)', 'LEXX (.40)', 'parrot']}}], "vms": [], 'clustercomputeresource': [],
-            'computeresource': [], 'hosts': [], 'datacenters': []}
+        topo_items = {"datastores": [{'mor_type': 'datastore',
+                                      'topo_tags': {'accessible': True, 'topo_type': 'vsphere-Datastore',
+                                                    'capacity': 999922073600, 'name': 'WDC1TB',
+                                                    'url': '/vmfs/volumes/54183927-04f91918-a72a-6805ca147c55',
+                                                    'type': 'VMFS', 'vms': ['UBUNTU_SECURE', 'W-NodeBox',
+                                                                            'NAT', 'Z_CONTROL_MONITORING (.151)',
+                                                                            'LEXX (.40)', 'parrot']}}], "vms": [],
+                      'clustercomputeresource': [], 'computeresource': [], 'hosts': [], 'datacenters': []}
 
         instance = {'name': 'vsphere_mock', 'host': 'test-esxi'}
         self.check.get_topologyitems_sync = MagicMock(return_value=topo_items)

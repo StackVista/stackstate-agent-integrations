@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from hashlib import md5
 try:
     from Queue import Empty, Queue
-except:
+except ImportError:
     from queue import Empty, Queue
 import re
 import ssl
@@ -56,6 +56,7 @@ RESOURCE_TYPE_MAP = {
     'computeresource': vim.ComputeResource
 }
 
+
 class VSPHERE_COMPONENT_TYPE:
     VM = "vsphere-VirtualMachine"
     DATACENTER = "vsphere-Datacenter"
@@ -63,6 +64,7 @@ class VSPHERE_COMPONENT_TYPE:
     DATASTORE = "vsphere-Datastore"
     CLUSTERCOMPUTERESOURCE = "vsphere-ClusterComputeResource"
     COMPUTERESOURCE = "vsphere-ComputeResource"
+
 
 class VSPHERE_RELATION_TYPE:
     VM_HOST = 'vsphere-vm-is-hosted-on'
@@ -77,6 +79,7 @@ class VSPHERE_RELATION_TYPE:
     CLUSTERCOMPUTERESOURCE_DATACENTER = 'vsphere-clustercomputeresource-is-located-on'
     COMPUTERESOURCE_DATACENTER = 'vsphere-computeresources-is-located-on'
 
+
 class TOPOLOGY_LAYERS:
     DATASTORE = 'VSphere Datastores'
     HOST = 'VSphere Hosts'
@@ -84,8 +87,10 @@ class TOPOLOGY_LAYERS:
     COMPUTERESOURCE = 'VSphere Compute Resources'
     DATACENTER = 'VSphere Datacenter'
 
+
 def add_label_pair(label_list, key, value):
     label_list.append("{0}:{1}".format(key, value))
+
 
 # Time after which we reap the jobs that clog the queue
 # TODO: use it
@@ -167,7 +172,8 @@ class VSphereEvent(object):
 
     def transform_vmbeinghotmigratedevent(self):
         self.payload["msg_title"] = u"VM {0} is being migrated".format(self.raw_event.vm.name)
-        self.payload["msg_text"] = u"{user} has launched a hot migration of this virtual machine:\n".format(user=self.raw_event.userName)
+        self.payload["msg_text"] = u"{user} has launched a hot migration of this virtual machine:\n".\
+            format(user=self.raw_event.userName)
         changes = []
         pre_host = self.raw_event.host.name
         new_host = self.raw_event.destHost.name
@@ -261,10 +267,8 @@ class VSphereEvent(object):
         )
         self.payload['alert_type'] = TO_ALERT_TYPE[trans_after]
         self.payload['event_object'] = get_agg_key(self.raw_event)
-        self.payload['msg_text'] = u"""vCenter monitor status changed on this alarm, it was {before} and it's now {after}.""".format(
-            before=trans_before,
-            after=trans_after
-        )
+        self.payload['msg_text'] = "vCenter monitor status changed on this alarm, it was {before} and it's now " \
+                                   "{after}.".format(before=trans_before, after=trans_after)
         self.payload['host'] = host_name
         return self.payload
 
@@ -332,7 +336,8 @@ class VSphereEvent(object):
         self.payload["msg_title"] = u"VM {0} configuration has been changed".format(self.raw_event.vm.name)
         self.payload["msg_text"] = u"{user} saved the new configuration:\n@@@\n".format(user=self.raw_event.userName)
         # Add lines for configuration change don't show unset, that's hacky...
-        config_change_lines = [line for line in self.raw_event.configSpec.__repr__().splitlines() if 'unset' not in line]
+        config_change_lines = [line for line in self.raw_event.configSpec.__repr__().splitlines()
+                               if 'unset' not in line]
         self.payload["msg_text"] += u"\n".join(config_change_lines)
         self.payload["msg_text"] += u"\n@@@"
         self.payload['host'] = self.raw_event.vm.name
@@ -381,13 +386,11 @@ class VSphereCheck(AgentCheck):
             self.cache_times[i_key] = {
                 MORLIST: {
                     LAST: 0,
-                    INTERVAL: init_config.get('refresh_morlist_interval',
-                                    REFRESH_MORLIST_INTERVAL)
+                    INTERVAL: init_config.get('refresh_morlist_interval', REFRESH_MORLIST_INTERVAL)
                 },
                 METRICS_METADATA: {
                     LAST: 0,
-                    INTERVAL: init_config.get('refresh_metrics_metadata_interval',
-                                    REFRESH_METRICS_METADATA_INTERVAL)
+                    INTERVAL: init_config.get('refresh_metrics_metadata_interval', REFRESH_METRICS_METADATA_INTERVAL)
                 }
             }
 
@@ -514,30 +517,27 @@ class VSphereCheck(AgentCheck):
                 # Object returned by SmartConnect is a ServerInstance
                 #   https://www.vmware.com/support/developer/vc-sdk/visdk2xpubs/ReferenceGuide/vim.ServiceInstance.html
                 server_instance = connect.SmartConnect(
-                    host = instance.get('host'),
-                    user = instance.get('username'),
-                    pwd = instance.get('password'),
-                    sslContext = context if not ssl_verify or ssl_capath else None
+                    host=instance.get('host'),
+                    user=instance.get('username'),
+                    pwd=instance.get('password'),
+                    sslContext=context if not ssl_verify or ssl_capath else None
                 )
             except Exception as e:
                 err_msg = "Connection to %s failed: %s" % (instance.get('host'), e)
                 self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL,
-                        tags=service_check_tags, message=err_msg)
+                                   tags=service_check_tags, message=err_msg)
                 raise Exception(err_msg)
-
             self.server_instances[i_key] = server_instance
 
         # Test if the connection is working
         try:
             self.server_instances[i_key].RetrieveContent()
-            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK,
-                    tags=service_check_tags)
+            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=service_check_tags)
         except Exception as e:
             err_msg = "Connection to %s died unexpectedly: %s" % (instance.get('host'), e)
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL,
-                    tags=service_check_tags, message=err_msg)
+                               tags=service_check_tags, message=err_msg)
             raise Exception(err_msg)
-
         return self.server_instances[i_key]
 
     def _compute_needed_metrics(self, instance, available_metrics):
@@ -579,11 +579,10 @@ class VSphereCheck(AgentCheck):
                 continue
 
             for mor in mor_by_mor_name.itervalues():
-                if mor['hostname']: # some mor's have a None hostname
+                if mor['hostname']:  # some mor's have a None hostname
                     external_host_tags.append((mor['hostname'], {SOURCE_TYPE: mor['tags']}))
 
         return external_host_tags
-
 
     def _discover_mor(self, instance, tags, regexes=None, include_only_marked=False):
         """
@@ -627,7 +626,6 @@ class VSphereCheck(AgentCheck):
                     tags.extend(tag)
 
             return tags
-
 
         def _get_all_objs(content, vimtype, regexes=None, include_only_marked=False, tags=[]):
             """
@@ -692,7 +690,6 @@ class VSphereCheck(AgentCheck):
             build_resource_registry,
             args=(instance, tags, regexes, include_only_marked)
         )
-
 
     @staticmethod
     def _is_excluded(obj, regexes, include_only_marked):
@@ -765,9 +762,9 @@ class VSphereCheck(AgentCheck):
         """ Process one item of the self.morlist_raw list by querying the available
         metrics for this MOR and then putting it in self.morlist
         """
-        ### <TEST-INSTRUMENTATION>
+        # <TEST-INSTRUMENTATION>
         t = Timer()
-        ### </TEST-INSTRUMENTATION>
+        # </TEST-INSTRUMENTATION>
         i_key = self._instance_key(instance)
         server_instance = self._get_server_instance(instance)
         perfManager = server_instance.content.perfManager
@@ -793,9 +790,9 @@ class VSphereCheck(AgentCheck):
 
         self.morlist[i_key][mor_name]['last_seen'] = time.time()
 
-        ### <TEST-INSTRUMENTATION>
+        # <TEST-INSTRUMENTATION>
         self.histogram('stackstate.agent.vsphere.morlist_process_atomic.time', t.total())
-        ### </TEST-INSTRUMENTATION>
+        # </TEST-INSTRUMENTATION>
 
     def _cache_morlist_process(self, instance):
         """ Empties the self.morlist_raw by popping items and running asynchronously
@@ -810,7 +807,7 @@ class VSphereCheck(AgentCheck):
 
         processed = 0
         for resource_type in RESOURCE_TYPE_MAP:
-            for i in xrange(batch_size):
+            for i in range(batch_size):
                 try:
                     mor = self.morlist_raw[i_key][resource_type].pop()
                     self.pool.apply_async(self._cache_morlist_process_atomic, args=(instance, mor))
@@ -842,9 +839,9 @@ class VSphereCheck(AgentCheck):
         """ Get from the server instance, all the performance counters metadata
         meaning name/group/description... attached with the corresponding ID
         """
-        ### <TEST-INSTRUMENTATION>
+        # <TEST-INSTRUMENTATION>
         t = Timer()
-        ### </TEST-INSTRUMENTATION>
+        # </TEST-INSTRUMENTATION>
 
         i_key = self._instance_key(instance)
         self.log.info("Warming metrics metadata cache for instance {0}".format(i_key))
@@ -854,9 +851,9 @@ class VSphereCheck(AgentCheck):
         new_metadata = {}
         for counter in perfManager.perfCounter:
             d = dict(
-                name = "%s.%s" % (counter.groupInfo.key, counter.nameInfo.key),
-                unit = counter.unitInfo.key,
-                instance_tag = 'instance'  # FIXME: replace by what we want to tag!
+                name="%s.%s" % (counter.groupInfo.key, counter.nameInfo.key),
+                unit=counter.unitInfo.key,
+                instance_tag='instance'  # FIXME: replace by what we want to tag!
             )
             new_metadata[counter.key] = d
         self.cache_times[i_key][METRICS_METADATA][LAST] = time.time()
@@ -865,9 +862,9 @@ class VSphereCheck(AgentCheck):
         # Reset metadata
         self.metrics_metadata[i_key] = new_metadata
 
-        ### <TEST-INSTRUMENTATION>
+        # <TEST-INSTRUMENTATION>
         self.histogram('stackstate.agent.vsphere.metric_metadata_collection.time', t.total())
-        ### </TEST-INSTRUMENTATION>
+        # </TEST-INSTRUMENTATION>
 
     def _transform_value(self, instance, counter_id, value):
         """ Given the counter_id, look up for the metrics metadata to check the vsphere
@@ -886,9 +883,9 @@ class VSphereCheck(AgentCheck):
     def _collect_metrics_atomic(self, instance, mor):
         """ Task that collects the metrics listed in the morlist for one MOR
         """
-        ### <TEST-INSTRUMENTATION>
+        # <TEST-INSTRUMENTATION>
         t = Timer()
-        ### </TEST-INSTRUMENTATION>
+        # </TEST-INSTRUMENTATION>
 
         i_key = self._instance_key(instance)
         server_instance = self._get_server_instance(instance)
@@ -924,7 +921,7 @@ class VSphereCheck(AgentCheck):
                 value = self._transform_value(instance, result.id.counterId, result.value[0])
 
                 tags = ['instance:%s' % instance_name]
-                if not mor['hostname']: # no host tags available
+                if not mor['hostname']:  # no host tags available
                     tags.extend(mor['tags'])
 
                 # vsphere "rates" should be submitted as gauges (rate is
@@ -936,9 +933,9 @@ class VSphereCheck(AgentCheck):
                     tags=['instance:%s' % instance_name]
                 )
 
-        ### <TEST-INSTRUMENTATION>
+        # <TEST-INSTRUMENTATION>
         self.histogram('stackstate.agent.vsphere.metric_colection.time', t.total())
-        ### </TEST-INSTRUMENTATION>
+        # </TEST-INSTRUMENTATION>
 
     def collect_metrics(self, instance):
         """ Calls asynchronously _collect_metrics_atomic on all MORs, as the
@@ -958,7 +955,6 @@ class VSphereCheck(AgentCheck):
             if mor['mor_type'] == 'vm':
                 vm_count += 1
             if 'metrics' not in mor or not mor['metrics']:
-                # self.log.debug("Skipping entity %s collection because we didn't cache its metrics yet" % mor['hostname'])
                 continue
 
             self.pool.apply_async(self._collect_metrics_atomic, args=(instance, mor))
@@ -1232,7 +1228,6 @@ class VSphereCheck(AgentCheck):
             password=instance.get('password'),
             session=session)
 
-
     def get_topologyitems_sync(self, instance):
         server_instance = self._get_server_instance(instance)
         self.vsphere_client_connect(instance)
@@ -1266,7 +1261,7 @@ class VSphereCheck(AgentCheck):
 
         return TopologyInstance(self.INSTANCE_TYPE, instance["host"])
 
-    def collect_topology(self,instance):
+    def collect_topology(self, instance):
 
         def build_id(vsphere_url, object_type, object_name):
             return "urn:vsphere:/{0}/{1}/{2}".format(vsphere_url, object_type, object_name)
@@ -1372,9 +1367,9 @@ class VSphereCheck(AgentCheck):
     def check(self, instance):
         if not self.pool_started:
             self.start_pool()
-        ### <TEST-INSTRUMENTATION>
+        # <TEST-INSTRUMENTATION>
         self.gauge('stackstate.agent.vsphere.queue_size', self.pool._workq.qsize(), tags=['instant:initial'])
-        ### </TEST-INSTRUMENTATION>
+        # </TEST-INSTRUMENTATION>
 
         # First part: make sure our object repository is neat & clean
         if self._should_cache(instance, METRICS_METADATA):
@@ -1404,6 +1399,6 @@ class VSphereCheck(AgentCheck):
             self.stop_pool()
             raise Exception("One thread in the pool crashed, check the logs")
 
-        ### <TEST-INSTRUMENTATION>
+        # <TEST-INSTRUMENTATION>
         self.gauge('stackstate.agent.vsphere.queue_size', self.pool._workq.qsize(), tags=['instant:final'])
-        ### </TEST-INSTRUMENTATION>
+        # </TEST-INSTRUMENTATION>
