@@ -1,10 +1,12 @@
 # stdlib
 import os
+import unittest
 
 # 3p
 from mock import Mock, MagicMock
 from pyVmomi import vim  # pylint: disable=E0611
 import simplejson as json
+import pytest
 
 
 import requests
@@ -15,10 +17,10 @@ from vmware.vapi.stdlib.client.factories import StubConfigurationFactory
 from vmware.vapi.vsphere.client import StubFactory
 from com.vmware.cis.tagging_client import TagModel, CategoryModel
 
-# datadog
-from tests.checks.common import AgentCheckTest, Fixtures
+from stackstate_checks.vsphere import VSphereCheck
+from stackstate_checks.base.stubs import topology
 
-FIXTURE_DIR = os.path.join(os.path.dirname(__file__), 'ci')
+CHECK_NAME = "vsphere-test"
 
 
 def vsphere_client():
@@ -157,7 +159,7 @@ def create_topology(topology_json):
         """
         parsed_topology = {}
 
-        for field, value in topology_desc.iteritems():
+        for field, value in topology_desc.items():
             parsed_value = value
             if isinstance(value, dict):
                 parsed_value = rec_build(value)
@@ -170,7 +172,7 @@ def create_topology(topology_json):
         mor = MockedMOR(**parsed_topology)
 
         # set parent
-        for field, value in topology_desc.iteritems():
+        for field, value in topology_desc.items():
             if isinstance(parsed_topology[field], list):
                 for m in parsed_topology[field]:
                     if isinstance(m, MockedMOR):
@@ -180,11 +182,12 @@ def create_topology(topology_json):
 
         return mor
 
-    return rec_build(json.loads(Fixtures.read_file(topology_json, sdk_dir=FIXTURE_DIR)))
+    with open("./tests/data/" + topology_json, "r") as f:
+        return rec_build(json.load(f))
 
 
-
-class TestvSphereUnit(AgentCheckTest):
+@pytest.mark.usefixtures("instance")
+class TestvSphereUnit(unittest.TestCase):
     """
     Unit tests for vSphere AgentCheck.
     """
@@ -200,7 +203,7 @@ class TestvSphereUnit(AgentCheckTest):
         if spec:
             mor_list = self.check.morlist_raw[instance_name][spec]
         else:
-            mor_list = [mor for _, mors in self.check.morlist_raw[instance_name].iteritems() for mor in mors]
+            mor_list = [mor for _, mors in self.check.morlist_raw[instance_name].items() for mor in mors]
 
         for mor in mor_list:
             if name is not None and name != mor['hostname']:
@@ -232,14 +235,13 @@ class TestvSphereUnit(AgentCheckTest):
         """
         # Initialize
         config = {}
-        self.load_check(config)
+        self.check = VSphereCheck(CHECK_NAME, config, instances=[self.instance])
 
         # Disable threading
         self.check.pool = Mock(apply_async=lambda func, args: func(*args))
 
         # Create a container for MORs
         self.check.morlist_raw = {}
-
 
     def test_exclude_host(self):
         """
@@ -369,7 +371,8 @@ class TestvSphereUnit(AgentCheckTest):
         )
 
 
-class TestVsphereTopo(AgentCheckTest):
+@pytest.mark.usefixtures("instance")
+class TestVsphereTopo(unittest.TestCase):
 
     CHECK_NAME = "vsphere"
 
@@ -411,12 +414,20 @@ class TestVsphereTopo(AgentCheckTest):
         content_mock = MagicMock(viewManager=viewmanager_mock)
         return content_mock
 
+    def setUp(self):
+        """
+        Initialize and patch the check, i.e.
+        * disable threading
+        * create a unique container for MORs independent of the instance key
+        """
+        # Initialize
+        config = {}
+        self.check = VSphereCheck(CHECK_NAME, config, instances=[self.instance])
+
     def test_vsphere_vms(self):
         """
         Test if the vsphere_vms returns the VM list and labels
         """
-        config = {}
-        self.load_check(config)
         self.check._is_excluded = MagicMock(return_value=False)
 
         # get the client
@@ -454,8 +465,6 @@ class TestVsphereTopo(AgentCheckTest):
         """
         Test if the vsphere_datacenter returns the datacenter list
         """
-        config = {}
-        self.load_check(config)
         self.check._is_excluded = MagicMock(return_value=False)
 
         # mock the CategoryModel and TagModel for response
@@ -493,8 +502,6 @@ class TestVsphereTopo(AgentCheckTest):
         """
         Test if the vsphere_datastores returns the datastores list
         """
-        config = {}
-        self.load_check(config)
         self.check._is_excluded = MagicMock(return_value=False)
 
         # get the client
@@ -525,8 +532,6 @@ class TestVsphereTopo(AgentCheckTest):
         """
         Test if the vsphere_hosts returns the hosts list
         """
-        config = {}
-        self.load_check(config)
         self.check._is_excluded = MagicMock(return_value=False)
 
         # mock the CategoryModel and TagModel for response
@@ -566,8 +571,6 @@ class TestVsphereTopo(AgentCheckTest):
         """
         Test if the vsphere_clustercomputeresources returns the cluster list
         """
-        config = {}
-        self.load_check(config)
         self.check._is_excluded = MagicMock(return_value=False)
 
         # get the client
@@ -597,8 +600,6 @@ class TestVsphereTopo(AgentCheckTest):
         """
         Test if the vsphere_computeresources returns the computeresource list
         """
-        config = {}
-        self.load_check(config)
         self.check._is_excluded = MagicMock(return_value=False)
 
         # get the client
@@ -628,8 +629,7 @@ class TestVsphereTopo(AgentCheckTest):
         """
         Test if the vsphere_vms_regex returns the empty VM list
         """
-        config = {}
-        self.load_check(config)
+        self.check._is_excluded = MagicMock(return_value=True)
 
         content_mock = self.mock_content("vm")
         regex = {"vm_include": "host12"}
@@ -642,8 +642,6 @@ class TestVsphereTopo(AgentCheckTest):
         Test if it returns the topology items and tags for VM
         """
         instance = {'name': 'vsphere_mock', 'host': "ESXi"}
-        config = {}
-        self.load_check(config)
         self.check._is_excluded = MagicMock(return_value=False)
 
         server_mock = MagicMock()
@@ -688,57 +686,57 @@ class TestVsphereTopo(AgentCheckTest):
         """
         Test the component collection from the topology for VirtualMachine
         """
-        config = {}
-        self.load_check(config)
+        # TODO this is needed because the topology retains data across tests
+        topology.reset()
+
+        self.check._is_excluded = MagicMock(return_value=True)
+
         instance = {'name': 'vsphere_mock', 'host': 'test-esxi'}
         topo_items = {'datastores': [], 'clustercomputeresource': [], 'computeresource': [], 'hosts': [], 'datacenters':
             [], 'vms': [{'hostname': 'Ubuntu', 'topo_tags': {'topo_type': 'vsphere-VirtualMachine',
                  'name': 'Ubuntu', 'datastore': '54183927-04f91918-a72a-6805ca147c55'}, 'mor_type': 'vm'}]}
         self.check.get_topologyitems_sync = MagicMock(return_value=topo_items)
         self.check.collect_topology(instance)
-        topo_instances = self.check.get_topology_instances()
+        snapshot = topology.get_snapshot(self.check.check_id)
 
         # Check if the returned topology contains 1 component
-        self.assertEqual(len(topo_instances), 1)
-        self.assertEqual(len(topo_instances[0]['components']), 1)
-        self.assertEqual(topo_instances[0]['components'][0]['externalId'],
-                         'urn:vsphere:/test-esxi/vsphere-VirtualMachine/Ubuntu')
+        self.assertEqual(len(snapshot['components']), 1)
+        self.assertEqual(snapshot['components'][0]['id'], 'urn:vsphere:/test-esxi/vsphere-VirtualMachine/Ubuntu')
 
     def test_collect_topology_comp_relations(self):
         """
         Test the collection of components and relations from the topology for Datastore
         """
+        # TODO this is needed because the topology retains data across tests
+        topology.reset()
+
+        self.check._is_excluded = MagicMock(return_value=True)
+
         topo_items = {"datastores": [{'mor_type': 'datastore','topo_tags': {'accessible': True, 'topo_type':
-            'vsphere-Datastore', 'capacity': 999922073600L, 'name': 'WDC1TB', 'url':
+            'vsphere-Datastore', 'capacity': 999922073600, 'name': 'WDC1TB', 'url':
             '/vmfs/volumes/54183927-04f91918-a72a-6805ca147c55', 'type': 'VMFS', 'vms': ['UBUNTU_SECURE', 'W-NodeBox',
             'NAT', 'Z_CONTROL_MONITORING (.151)', 'LEXX (.40)', 'parrot']}}], "vms": [], 'clustercomputeresource': [],
             'computeresource': [], 'hosts': [], 'datacenters': []}
 
-        config = {}
-        self.load_check(config)
         instance = {'name': 'vsphere_mock', 'host': 'test-esxi'}
         self.check.get_topologyitems_sync = MagicMock(return_value=topo_items)
         self.check.collect_topology(instance)
-        topo_instances = self.check.get_topology_instances()
+        snapshot = topology.get_snapshot(self.check.check_id)
+        print(snapshot)
 
         # Check if the returned topology contains 1 component
-        self.assertEqual(len(topo_instances), 1)
-        self.assertEqual(len(topo_instances[0]['components']), 1)
-        self.assertEqual(topo_instances[0]['components'][0]['externalId'],
-                         'urn:vsphere:/test-esxi/vsphere-Datastore/WDC1TB')
+        self.assertEqual(len(snapshot['components']), 1)
+        self.assertEqual(snapshot['components'][0]['id'], 'urn:vsphere:/test-esxi/vsphere-Datastore/WDC1TB')
 
         # Check if the returned topology contains 6 relations for 6 VMs
-        self.assertEqual(len(topo_instances[0]['relations']), 6)
-        self.assertEqual(topo_instances[0]['relations'][0]['type']['name'], 'vsphere-vm-uses-datastore')
+        self.assertEqual(len(snapshot['relations']), 6)
+        self.assertEqual(snapshot['relations'][0]['type'], 'vsphere-vm-uses-datastore')
 
     def test_get_topologyitems_with_vm_regexes(self):
         """
         Test if it returns the vm as per filter config
         """
         instance = {'name': 'vsphere_mock', 'host': "ESXi", "vm_include_only_regex": "VM"}
-        config = {}
-        self.load_check(config)
-        # self.check._is_excluded = MagicMock(return_value=False)
 
         server_mock = MagicMock()
         server_mock.configure_mock(**{'RetrieveContent.return_value': self.mock_content("vm")})
@@ -755,9 +753,6 @@ class TestVsphereTopo(AgentCheckTest):
         Test if it returns the hosts as per filter config
         """
         instance = {'name': 'vsphere_mock', 'host': "ESXi", "host_include_only_regex": "localhost"}
-        config = {}
-        self.load_check(config)
-        # self.check._is_excluded = MagicMock(return_value=False)
 
         server_mock = MagicMock()
         server_mock.configure_mock(**{'RetrieveContent.return_value': self.mock_content("host")})

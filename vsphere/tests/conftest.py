@@ -14,14 +14,15 @@ def sts_environment():
     }
 
 
-@pytest.fixture
-def instance():
-    return {
+@pytest.fixture(scope="class")
+def instance(request):
+    cfg = {
         "host": "192.168.0.106",
         "name": "vcenter-main",
         "username": "administrator@vsphere.local",
         "password": "test123"
     }
+    request.cls.instance = cfg
 
 
 @pytest.fixture

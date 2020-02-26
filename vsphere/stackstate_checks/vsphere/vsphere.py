@@ -6,7 +6,10 @@
 # stdlib
 from datetime import datetime, timedelta
 from hashlib import md5
-from Queue import Empty, Queue
+try:
+    from Queue import Empty, Queue
+except:
+    from queue import Empty, Queue
 import re
 import ssl
 import time
@@ -22,7 +25,7 @@ from com.vmware.vapi.std_client import DynamicID
 
 # project
 from stackstate_checks.base.config import _is_affirmative
-from stackstate_checks.base.checks import AgentCheck, TopologyInstance, ConfigurationError
+from stackstate_checks.base import AgentCheck, TopologyInstance, ConfigurationError
 from stackstate_checks.base.checks.libs.thread_pool import Pool
 from stackstate_checks.base.checks.libs.vmware.basic_metrics import BASIC_METRICS
 from stackstate_checks.base.checks.libs.vmware.all_metrics import ALL_METRICS
@@ -360,8 +363,8 @@ class VSphereCheck(AgentCheck):
     SERVICE_CHECK_NAME = 'vcenter.can_connect'
     INSTANCE_TYPE = "vsphere"
 
-    def __init__(self, name, init_config, agentConfig, instances):
-        AgentCheck.__init__(self, name, init_config, agentConfig, instances)
+    def __init__(self, name, init_config, instances):
+        AgentCheck.__init__(self, name, init_config, instances)
         self.time_started = time.time()
         self.pool_started = False
         self.exceptionq = Queue()
@@ -1290,7 +1293,8 @@ class VSphereCheck(AgentCheck):
                 self.relation(
                     build_id(vsphere_url, VSPHERE_COMPONENT_TYPE.VM, vm_id),
                     build_id(vsphere_url, VSPHERE_COMPONENT_TYPE.HOST, host["hostname"]),
-                    VSPHERE_RELATION_TYPE.VM_HOST
+                    VSPHERE_RELATION_TYPE.VM_HOST,
+                    {}
                 )
 
         for ds in topology_items["datastores"]:
@@ -1303,7 +1307,8 @@ class VSphereCheck(AgentCheck):
                 self.relation(
                     build_id(vsphere_url, VSPHERE_COMPONENT_TYPE.VM, vm_id),
                     build_id(vsphere_url, VSPHERE_COMPONENT_TYPE.DATASTORE, ds["topo_tags"]["name"]),
-                    VSPHERE_RELATION_TYPE.VM_DATASTORE
+                    VSPHERE_RELATION_TYPE.VM_DATASTORE,
+                    {}
                 )
 
         for cluster in topology_items["clustercomputeresource"]:
@@ -1402,20 +1407,3 @@ class VSphereCheck(AgentCheck):
         ### <TEST-INSTRUMENTATION>
         self.gauge('stackstate.agent.vsphere.queue_size', self.pool._workq.qsize(), tags=['instant:final'])
         ### </TEST-INSTRUMENTATION>
-
-if __name__ == '__main__':
-    check, _instances = VSphereCheck.from_yaml('conf.d/vsphere.yaml')
-    # check, _instances = VSphereCheck.from_yaml('/home/slavko/ssq/stackstate/sts-agent-integrations-core/vsphere/conf.yaml')
-    try:
-        for i in xrange(200):
-            print "Loop %d" % i
-            for instance in check.instances:
-                check.check(instance)
-                if check.has_events():
-                    print 'Events: %s' % (check.get_events())
-                print 'Metrics: %d' % (len(check.get_metrics()))
-            time.sleep(10)
-    except Exception as e:
-        print "Whoops something happened {0}".format(traceback.format_exc())
-    finally:
-        check.stop()
