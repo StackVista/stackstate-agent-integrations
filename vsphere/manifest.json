@@ -7,7 +7,7 @@
   "metric_to_check": "",
   "creates_events": true,
   "short_description": "Collect topology from Vsphere Vcenter",
-  "guid": "fda07bf1-9ff5-4ec6-884b-baa0f1c0a57a"
+  "guid": "fda07bf1-9ff5-4ec6-884b-baa0f1c0a57a",
   "support": "core",
   "supported_os": [
     "linux",
