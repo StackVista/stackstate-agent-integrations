@@ -2,7 +2,7 @@
   "display_name": "VSphere",
   "maintainer": "info@stackstate.com",
   "manifest_version": "1.0.0",
-  "name": "vpshere",
+  "name": "vsphere",
   "metric_prefix": "vsphere.",
   "metric_to_check": "",
   "creates_events": true,
