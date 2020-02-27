@@ -127,7 +127,7 @@ def test_connections_metrics(aggregator, check, pg_instance):
 @pytest.mark.integration
 @pytest.mark.usefixtures('sts_environment')
 def test_locks_metrics(aggregator, check, pg_instance):
-    with psycopg2.connect(host=HOST, dbname=DB_NAME, user="postgres") as conn:
+    with psycopg2.connect(host=HOST, dbname=DB_NAME, user="postgres", password="pg_datadog") as conn:
         with conn.cursor() as cur:
             cur.execute('LOCK persons')
             check.check(pg_instance)
