@@ -26,6 +26,14 @@ from .common import CADVISOR_DEFAULT_PORT, KubeletCredentials, PodListUtils, rep
 from .prometheus import CadvisorPrometheusScraperMixin
 
 try:
+    # this module is only available in agent 6
+    from stackstate_agent import get_clustername
+except ImportError:
+
+    def get_clustername():
+        return ""
+
+try:
     from datadog_agent import get_config
 except ImportError:
 
@@ -302,6 +310,7 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
         memory_capacity = node_spec.get('memory_capacity', 0)
 
         tags = instance_tags
+        tags.append(_add_cluster_name_tag())
         self.gauge(self.NAMESPACE + '.cpu.capacity', float(num_cores), tags)
         self.gauge(self.NAMESPACE + '.memory.capacity', float(memory_capacity), tags)
 
@@ -310,7 +319,8 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
         service_check_base = self.NAMESPACE + '.kubelet.check'
         is_ok = True
         url = self.kube_health_url
-
+        tags = instance_tags
+        tags.append(_add_cluster_name_tag())
         try:
             req = self.perform_kubelet_query(url)
             for line in req.iter_lines(decode_unicode=True):
@@ -325,9 +335,9 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
                 service_check_name = service_check_base + '.' + matches.group(2)
                 status = matches.group(1)
                 if status == '+':
-                    self.service_check(service_check_name, AgentCheck.OK, tags=instance_tags)
+                    self.service_check(service_check_name, AgentCheck.OK, tags=tags)
                 else:
-                    self.service_check(service_check_name, AgentCheck.CRITICAL, tags=instance_tags)
+                    self.service_check(service_check_name, AgentCheck.CRITICAL, tags=tags)
                     is_ok = False
 
         except Exception as e:
@@ -336,13 +346,13 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
                 service_check_base,
                 AgentCheck.CRITICAL,
                 message='Kubelet check %s failed: %s' % (url, str(e)),
-                tags=instance_tags,
+                tags=tags,
             )
         else:
             if is_ok:
-                self.service_check(service_check_base, AgentCheck.OK, tags=instance_tags)
+                self.service_check(service_check_base, AgentCheck.OK, tags=tags)
             else:
-                self.service_check(service_check_base, AgentCheck.CRITICAL, tags=instance_tags)
+                self.service_check(service_check_base, AgentCheck.CRITICAL, tags=tags)
 
     def _report_pods_running(self, pods, instance_tags):
         """
@@ -354,6 +364,7 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
         """
         pods_tag_counter = defaultdict(int)
         containers_tag_counter = defaultdict(int)
+        instance_tags.append(_add_cluster_name_tag())
         for pod in pods['items']:
             # Containers reporting
             containers = pod.get('status', {}).get('containerStatuses', [])
@@ -392,6 +403,7 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
 
     def _report_container_spec_metrics(self, pod_list, instance_tags):
         """Reports pod requests & limits by looking at pod specs."""
+        instance_tags.append(_add_cluster_name_tag())
         for pod in pod_list['items']:
             pod_name = pod.get('metadata', {}).get('name')
             pod_phase = pod.get('status', {}).get('phase')
@@ -435,6 +447,7 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
 
     def _report_container_state_metrics(self, pod_list, instance_tags):
         """Reports container state & reasons by looking at container statuses"""
+        instance_tags.append(_add_cluster_name_tag())
         if pod_list.get('expired_count'):
             self.gauge(self.NAMESPACE + '.pods.expired', pod_list.get('expired_count'), tags=instance_tags)
 
@@ -469,8 +482,7 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
                         self._submit_container_state_metric(metric_name, state_name, c_state, state_reasons, tags)
 
     def _submit_container_state_metric(self, metric_name, state_name, c_state, state_reasons, tags):
-        reason_tags = []
-
+        reason_tags = [_add_cluster_name_tag()]
         state_value = c_state.get(state_name)
         if state_value:
             reason = state_value.get('reason', '')
@@ -482,6 +494,12 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
 
             gauge_name = '{}.containers.{}.{}'.format(self.NAMESPACE, metric_name, state_name)
             self.gauge(gauge_name, 1, tags + reason_tags)
+
+    def _add_cluster_name_tag(self):
+        """
+        Lookups the cluster name from the stackstate agent, then returns a "name:value" tag string
+        """
+        return 'cluster-name:%s' % (get_clustername())
 
     @staticmethod
     def parse_quantity(string):
