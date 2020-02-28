@@ -364,7 +364,6 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
         """
         pods_tag_counter = defaultdict(int)
         containers_tag_counter = defaultdict(int)
-        instance_tags.append(self._add_cluster_name_tag())
         for pod in pods['items']:
             # Containers reporting
             containers = pod.get('status', {}).get('containerStatuses', [])
@@ -378,6 +377,7 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
                     continue
                 has_container_running = True
                 tags = tagger.get_tags(replace_container_rt_prefix(container_id), 0) or None
+                tags.append(self._add_cluster_name_tag())
                 if not tags:
                     continue
                 tags += instance_tags
@@ -394,6 +394,7 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
             if not tags:
                 continue
             tags += instance_tags
+            tags.append(self._add_cluster_name_tag())
             hash_tags = tuple(sorted(tags))
             pods_tag_counter[hash_tags] += 1
         for tags, count in iteritems(pods_tag_counter):
@@ -403,7 +404,6 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
 
     def _report_container_spec_metrics(self, pod_list, instance_tags):
         """Reports pod requests & limits by looking at pod specs."""
-        instance_tags.append(self._add_cluster_name_tag())
         for pod in pod_list['items']:
             pod_name = pod.get('metadata', {}).get('name')
             pod_phase = pod.get('status', {}).get('phase')
@@ -430,6 +430,7 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
 
                 tags = instance_tags[:]
                 tags += tagger.get_tags('%s' % replace_container_rt_prefix(cid), 2) or []
+                tags.append(self._add_cluster_name_tag())
 
                 try:
                     for resource, value_str in iteritems(ctr.get('resources', {}).get('requests', {})):
@@ -447,7 +448,6 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
 
     def _report_container_state_metrics(self, pod_list, instance_tags):
         """Reports container state & reasons by looking at container statuses"""
-        instance_tags.append(self._add_cluster_name_tag())
         if pod_list.get('expired_count'):
             self.gauge(self.NAMESPACE + '.pods.expired', pod_list.get('expired_count'), tags=instance_tags)
 
@@ -470,6 +470,7 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
 
                 tags = instance_tags[:]
                 tags += tagger.get_tags('%s' % replace_container_rt_prefix(cid), 1) or []
+                tags.append(self._add_cluster_name_tag())
 
                 restart_count = ctr_status.get('restartCount', 0)
                 self.gauge(self.NAMESPACE + '.containers.restarts', restart_count, tags)
