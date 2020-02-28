@@ -26,14 +26,6 @@ from .common import CADVISOR_DEFAULT_PORT, KubeletCredentials, PodListUtils, rep
 from .prometheus import CadvisorPrometheusScraperMixin
 
 try:
-    # this module is only available in agent 6
-    from stackstate_agent import get_clustername
-except ImportError:
-
-    def get_clustername():
-        return ""
-
-try:
     from datadog_agent import get_config
 except ImportError:
 
@@ -500,7 +492,7 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
         """
         Lookups the cluster name from the stackstate agent, then returns a "name:value" tag string
         """
-        return 'cluster-name:%s' % (get_clustername())
+        return 'cluster-name:%s' % (self.cluster_name)
 
     @staticmethod
     def parse_quantity(string):

@@ -22,14 +22,6 @@ from config import _is_affirmative
 from utils.kubernetes import KubeUtil
 from utils.service_discovery.sd_backend import get_sd_backend
 
-try:
-    # this module is only available in agent 6
-    from stackstate_agent import get_clustername
-except ImportError:
-
-    def get_clustername():
-        return ""
-
 
 NAMESPACE = "kubernetes"
 DEFAULT_MAX_DEPTH = 10
@@ -622,4 +614,4 @@ class Kubernetes(AgentCheck):
         """
         Lookups the cluster name from the stackstate agent, then returns a "name:value" tag string
         """
-        return 'cluster-name:%s' % (get_clustername())
+        return 'cluster-name:%s' % (self.cluster_name)

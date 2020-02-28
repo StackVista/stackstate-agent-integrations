@@ -128,6 +128,9 @@ class __AgentCheckPy3(object):
         # `self.hostname` is deprecated, use `datadog_agent.get_hostname()` instead
         self.hostname = datadog_agent.get_hostname()
 
+        # returns the cluster name if the check is running in Kubernetes / OpenShift
+        self.cluster_name = datadog_agent.get_clustername()
+
         # the agent5 'AgentCheck' setup a log attribute.
         self.log = logging.getLogger('{}.{}'.format(__name__, self.name))
 
@@ -562,6 +565,9 @@ class __AgentCheckPy2(object):
 
         # `self.hostname` is deprecated, use `datadog_agent.get_hostname()` instead
         self.hostname = datadog_agent.get_hostname()
+
+        # returns the cluster name if the check is running in Kubernetes / OpenShift
+        self.cluster_name = datadog_agent.get_clustername()
 
         # the agent5 'AgentCheck' setup a log attribute.
         self.log = logging.getLogger('%s.%s' % (__name__, self.name))

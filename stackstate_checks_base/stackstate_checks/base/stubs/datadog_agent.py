@@ -25,3 +25,7 @@ def error(msg, *args, **kwargs):
 
 def debug(msg, *args, **kwargs):
     pass
+
+
+def get_clustername():
+    return "stubbed-cluster-name"
