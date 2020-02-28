@@ -310,7 +310,7 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
         memory_capacity = node_spec.get('memory_capacity', 0)
 
         tags = instance_tags
-        tags.append(_add_cluster_name_tag())
+        tags.append(self._add_cluster_name_tag())
         self.gauge(self.NAMESPACE + '.cpu.capacity', float(num_cores), tags)
         self.gauge(self.NAMESPACE + '.memory.capacity', float(memory_capacity), tags)
 
@@ -320,7 +320,7 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
         is_ok = True
         url = self.kube_health_url
         tags = instance_tags
-        tags.append(_add_cluster_name_tag())
+        tags.append(self._add_cluster_name_tag())
         try:
             req = self.perform_kubelet_query(url)
             for line in req.iter_lines(decode_unicode=True):
@@ -364,7 +364,7 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
         """
         pods_tag_counter = defaultdict(int)
         containers_tag_counter = defaultdict(int)
-        instance_tags.append(_add_cluster_name_tag())
+        instance_tags.append(self._add_cluster_name_tag())
         for pod in pods['items']:
             # Containers reporting
             containers = pod.get('status', {}).get('containerStatuses', [])
@@ -403,7 +403,7 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
 
     def _report_container_spec_metrics(self, pod_list, instance_tags):
         """Reports pod requests & limits by looking at pod specs."""
-        instance_tags.append(_add_cluster_name_tag())
+        instance_tags.append(self._add_cluster_name_tag())
         for pod in pod_list['items']:
             pod_name = pod.get('metadata', {}).get('name')
             pod_phase = pod.get('status', {}).get('phase')
@@ -447,7 +447,7 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
 
     def _report_container_state_metrics(self, pod_list, instance_tags):
         """Reports container state & reasons by looking at container statuses"""
-        instance_tags.append(_add_cluster_name_tag())
+        instance_tags.append(self._add_cluster_name_tag())
         if pod_list.get('expired_count'):
             self.gauge(self.NAMESPACE + '.pods.expired', pod_list.get('expired_count'), tags=instance_tags)
 
@@ -482,7 +482,7 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
                         self._submit_container_state_metric(metric_name, state_name, c_state, state_reasons, tags)
 
     def _submit_container_state_metric(self, metric_name, state_name, c_state, state_reasons, tags):
-        reason_tags = [_add_cluster_name_tag()]
+        reason_tags = [self._add_cluster_name_tag()]
         state_value = c_state.get(state_name)
         if state_value:
             reason = state_value.get('reason', '')
