@@ -23,19 +23,19 @@ need to install anything else on your server.
 
 ### Metrics
 
-Scom does not include any metrics.
+Scom does not include any metrics yet.
 
 ### Service Checks
 
-Scom does not include any service checks.
+Scom includes service checks.
 
 ### Events
 
-Scom does not include any events.
+Scom includes events & alerts.
 
 ### Topology
 
-Scom does not include any topology.
+Scom includes topology.
 
 [1]: **LINK_TO_INTEGERATION_SITE**
 [2]: https://github.com/StackVista/stackstate-agent-integrations/blob/master/scom/stackstate_checks/scom/data/conf.yaml.example
