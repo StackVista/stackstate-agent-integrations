@@ -29,3 +29,4 @@ def debug(msg, *args, **kwargs):
 
 def get_clustername():
     return "stubbed-cluster-name"
+    
