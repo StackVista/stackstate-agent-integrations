@@ -235,7 +235,6 @@ def instance():
 
 @pytest.fixture
 def check(instance):
-    os.environ["CLUSTER_NAME"] = "stubbed-cluster-name"
     check = KubernetesState(CHECK_NAME, {}, {}, [instance])
     check.poll = mock.MagicMock(return_value=MockResponse(mock_from_file("prometheus.txt"), 'text/plain'))
     return check
