@@ -145,7 +145,7 @@ class Kubernetes(AgentCheck):
                 service_check_name = service_check_base + '.' + matches.group(2)
                 status = matches.group(1)
                 tags = instance.get('tags', [])
-                tags.append(self._add_cluster_name_tag())
+                tags += ['cluster_name:%s' % self.cluster_name]
                 if status == '+':
                     self.service_check(service_check_name, AgentCheck.OK, tags=tags)
                 else:
@@ -155,12 +155,12 @@ class Kubernetes(AgentCheck):
         except Exception as e:
             self.log.warning('kubelet check %s failed: %s' % (url, str(e)))
             tags = instance.get('tags', [])
-            tags.append(self._add_cluster_name_tag())
+            tags += ['cluster_name:%s' % self.cluster_name]
             self.service_check(service_check_base, AgentCheck.CRITICAL,
                                message='Kubelet check %s failed: %s' % (url, str(e)), tags=tags)
         else:
             tags = instance.get('tags', [])
-            tags.append(self._add_cluster_name_tag())
+            tags += ['cluster_name:%s' % self.cluster_name]
             if is_ok:
                 self.service_check(service_check_base, AgentCheck.OK, tags=tags)
             else:
@@ -277,7 +277,7 @@ class Kubernetes(AgentCheck):
         # kube_container_name is the name of the Kubernetes container resource,
         # not the name of the docker container (that's tagged as container_name)
         kube_container_name = cont_labels[KubeUtil.CONTAINER_NAME_LABEL]
-        tags.append(self._add_cluster_name_tag())
+        tags += ['cluster_name:%s' % self.cluster_name]
         tags.append(u"pod_name:{0}".format(pod_name))
         tags.append(u"kube_namespace:{0}".format(pod_namespace))
         tags.append(u"kube_container_name:{0}".format(kube_container_name))
@@ -305,7 +305,7 @@ class Kubernetes(AgentCheck):
 
         pod_name = cont_labels[KubeUtil.POD_NAME_LABEL]
         tags.append(u"pod_name:{0}".format(pod_name))
-        tags.append(self._add_cluster_name_tag())
+        tags += ['cluster_name:%s' % self.cluster_name]
 
         pod_labels = kube_labels.get(pod_name)
         if pod_labels:
@@ -426,7 +426,7 @@ class Kubernetes(AgentCheck):
                 continue
             try:
                 tags = self._update_container_metrics(instance, subcontainer, kube_labels)
-                tags.append(self._add_cluster_name_tag())
+                tags += ['cluster_name:%s' % self.cluster_name]
                 if c_id:
                     container_tags[c_id] = tags
                 # also store tags for aliases
@@ -458,7 +458,7 @@ class Kubernetes(AgentCheck):
                     continue
 
                 _tags = container_tags.get(c_id, [])
-                _tags.append(self._add_cluster_name_tag())
+                _tags += ['cluster_name:%s' % self.cluster_name]
 
                 # limits
                 try:
@@ -490,7 +490,7 @@ class Kubernetes(AgentCheck):
         memory_capacity = machine_info.get('memory_capacity', 0)
 
         tags = instance.get('tags', [])
-        tags.append(self._add_cluster_name_tag())
+        tags += ['cluster_name:%s' % self.cluster_name]
         self.publish_gauge(self, NAMESPACE + '.cpu.capacity', float(num_cores), tags)
         self.publish_gauge(self, NAMESPACE + '.memory.capacity', float(memory_capacity), tags)
         # TODO(markine): Report 'allocatable' which is capacity minus capacity
@@ -514,7 +514,7 @@ class Kubernetes(AgentCheck):
             if 'namespace' in pod_meta:
                 pod_tags.append('kube_namespace:%s' % pod_meta['namespace'])
 
-            pod_tags.append(self._add_cluster_name_tag())
+            pod_tags += ['cluster_name:%s' % self.cluster_name]
 
             tags_map[frozenset(pod_tags)] += 1
 
@@ -566,7 +566,7 @@ class Kubernetes(AgentCheck):
 
             tags = self.kubeutil.extract_event_tags(event)
             tags.extend(instance.get('tags', []))
-            tags.extend([self._add_cluster_name_tag()])
+            tags += ['cluster_name:%s' % self.cluster_name]
 
             title = '{} {} on {}'.format(involved_obj.get('name'), event.get('reason'), node_name)
             message = event.get('message')
