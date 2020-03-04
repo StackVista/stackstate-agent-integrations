@@ -180,8 +180,8 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
         )
 
         clustername = get_clustername()
-            if clustername != "":
-                kubelet_instance['_metric_tags'] = [clustername]
+        if clustername != "":
+            kubelet_instance['_metric_tags'] = [clustername]
 
         return kubelet_instance
 

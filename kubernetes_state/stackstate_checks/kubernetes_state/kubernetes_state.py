@@ -313,10 +313,10 @@ class KubernetesState(OpenMetricsBaseCheck):
         ksm_instance['label_joins'].update(extra_labels)
 
         clustername = get_clustername()
-            if clustername != "":
-                ksm_instance['_metric_tags'] = [clustername]
-                if hostname_override:
-                    ksm_instance['label_to_hostname_suffix'] = "-" + clustername
+        if clustername != "":
+            ksm_instance['_metric_tags'] = [clustername]
+            if hostname_override:
+                ksm_instance['label_to_hostname_suffix'] = "-" + clustername
 
         if hostname_override:
             ksm_instance['label_to_hostname'] = 'node'
