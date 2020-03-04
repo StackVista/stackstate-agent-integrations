@@ -609,9 +609,3 @@ class Kubernetes(AgentCheck):
         else:
             self.log.info("Leader status changed, updating event collection config...")
             self._configure_event_collection(instance)
-    
-    def _add_cluster_name_tag(self):
-        """
-        Lookups the cluster name from the stackstate agent, then returns a "name:value" tag string
-        """
-        return 'cluster-name:%s' % (self.cluster_name)
