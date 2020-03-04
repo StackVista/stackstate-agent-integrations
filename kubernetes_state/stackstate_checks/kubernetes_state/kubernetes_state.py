@@ -15,7 +15,7 @@ from stackstate_checks.errors import CheckException
 
 try:
     # this module is only available in agent 6
-    from stackstate_agent import get_clustername
+    from datadog_agent import get_clustername
 except ImportError:
 
     def get_clustername():
@@ -311,11 +311,15 @@ class KubernetesState(OpenMetricsBaseCheck):
 
         ksm_instance['prometheus_url'] = endpoint
         ksm_instance['label_joins'].update(extra_labels)
+
+        clustername = get_clustername()
+            if clustername != "":
+                ksm_instance['_metric_tags'] = [clustername]
+                if hostname_override:
+                    ksm_instance['label_to_hostname_suffix'] = "-" + clustername
+
         if hostname_override:
             ksm_instance['label_to_hostname'] = 'node'
-            clustername = get_clustername()
-            if clustername != "":
-                ksm_instance['label_to_hostname_suffix'] = "-" + clustername
 
         if 'labels_mapper' in ksm_instance and not isinstance(ksm_instance['labels_mapper'], dict):
             self.log.warning("Option labels_mapper should be a dictionary for {}".format(endpoint))

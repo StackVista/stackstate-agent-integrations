@@ -12,6 +12,14 @@ from stackstate_checks.checks.openmetrics import OpenMetricsBaseCheck
 
 from .common import get_pod_by_uid, is_static_pending_pod, replace_container_rt_prefix
 
+try:
+    # this module is only available in agent 6
+    from datadog_agent import get_clustername
+except ImportError:
+
+    def get_clustername():
+        return ""
+
 METRIC_TYPES = ['counter', 'gauge', 'summary']
 
 # container-specific metrics should have all these labels
@@ -96,6 +104,11 @@ class CadvisorPrometheusScraperMixin(object):
                 'health_service_check': instance.get('health_service_check', False),
             }
         )
+
+        clustername = get_clustername()
+            if clustername != "":
+                cadvisor_instance['_metric_tags'] = [clustername]
+
         return cadvisor_instance
 
     @staticmethod

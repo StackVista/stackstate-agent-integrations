@@ -32,6 +32,14 @@ except ImportError:
     def get_config(key):
         return ""
 
+try:
+    # this module is only available in agent 6
+    from datadog_agent import get_clustername
+except ImportError:
+
+    def get_clustername():
+        return ""
+
 
 KUBELET_HEALTH_PATH = '/healthz'
 NODE_SPEC_PATH = '/spec'
@@ -170,6 +178,11 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
                 'health_service_check': instance.get('health_service_check', False),
             }
         )
+
+        clustername = get_clustername()
+            if clustername != "":
+                kubelet_instance['_metric_tags'] = [clustername]
+
         return kubelet_instance
 
     def check(self, instance):
