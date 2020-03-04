@@ -188,7 +188,7 @@ class CadvisorScraper(object):
             self.log.debug("Subcontainer {} doesn't have tags, skipping.".format(subcontainer_id))
             return
 
-        tags += ['cluster-name:%s' % self.cluster_name]
+        tags += ['cluster_name:%s' % self.cluster_name]
         tags = list(set(tags + instance.get('tags', [])))
 
         stats = subcontainer['stats'][-1]  # take the latest

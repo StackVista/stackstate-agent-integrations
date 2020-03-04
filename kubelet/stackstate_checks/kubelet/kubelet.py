@@ -315,7 +315,7 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
         memory_capacity = node_spec.get('memory_capacity', 0)
 
         tags = instance_tags[:]
-        tags += ['cluster-name:%s' % self.cluster_name]
+        tags += ['cluster_name:%s' % self.cluster_name]
         self.gauge(self.NAMESPACE + '.cpu.capacity', float(num_cores), tags)
         self.gauge(self.NAMESPACE + '.memory.capacity', float(memory_capacity), tags)
 
@@ -325,7 +325,7 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
         is_ok = True
         url = self.kube_health_url
         tags = instance_tags[:]
-        tags += ['cluster-name:%s' % self.cluster_name]
+        tags += ['cluster_name:%s' % self.cluster_name]
         try:
             req = self.perform_kubelet_query(url)
             for line in req.iter_lines(decode_unicode=True):
@@ -382,7 +382,7 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
                     continue
                 has_container_running = True
                 tags = tagger.get_tags(replace_container_rt_prefix(container_id), 0) or []
-                tags += ['cluster-name:%s' % self.cluster_name]
+                tags += ['cluster_name:%s' % self.cluster_name]
                 if not tags:
                     continue
                 tags += instance_tags
@@ -399,7 +399,7 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
             if not tags:
                 continue
             tags += instance_tags
-            tags += ['cluster-name:%s' % self.cluster_name]
+            tags += ['cluster_name:%s' % self.cluster_name]
             hash_tags = tuple(sorted(tags))
             pods_tag_counter[hash_tags] += 1
         for tags, count in iteritems(pods_tag_counter):
@@ -435,7 +435,7 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
 
                 tags = instance_tags[:]
                 tags += tagger.get_tags('%s' % replace_container_rt_prefix(cid), 2) or []
-                tags += ['cluster-name:%s' % self.cluster_name]
+                tags += ['cluster_name:%s' % self.cluster_name]
 
                 try:
                     for resource, value_str in iteritems(ctr.get('resources', {}).get('requests', {})):
@@ -455,7 +455,7 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
         """Reports container state & reasons by looking at container statuses"""
         if pod_list.get('expired_count'):
             tags = instance_tags[:]
-            tags += ['cluster-name:%s' % self.cluster_name]
+            tags += ['cluster_name:%s' % self.cluster_name]
             self.gauge(self.NAMESPACE + '.pods.expired', pod_list.get('expired_count'), tags=tags)
 
         for pod in pod_list['items']:
@@ -477,7 +477,7 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
 
                 tags = instance_tags[:]
                 tags += tagger.get_tags('%s' % replace_container_rt_prefix(cid), 1) or []
-                tags += ['cluster-name:%s' % self.cluster_name]
+                tags += ['cluster_name:%s' % self.cluster_name]
 
                 restart_count = ctr_status.get('restartCount', 0)
                 self.gauge(self.NAMESPACE + '.containers.restarts', restart_count, tags)
@@ -490,8 +490,8 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
                         self._submit_container_state_metric(metric_name, state_name, c_state, state_reasons, tags)
 
     def _submit_container_state_metric(self, metric_name, state_name, c_state, state_reasons, tags):
-        if 'cluster-name:%s' % (self.cluster_name) not in tags :
-            tags += ['cluster-name:%s' % self.cluster_name]
+        if 'cluster_name:%s' % (self.cluster_name) not in tags :
+            tags += ['cluster_name:%s' % self.cluster_name]
             
         reason_tags = []
         state_value = c_state.get(state_name)
