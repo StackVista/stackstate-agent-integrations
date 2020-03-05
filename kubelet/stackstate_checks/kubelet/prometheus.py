@@ -107,7 +107,7 @@ class CadvisorPrometheusScraperMixin(object):
 
         clustername = get_clustername()
         if clustername != "":
-            cadvisor_instance['_metric_tags'] = [clustername]
+            cadvisor_instance.get('tags',[]).extend(['cluster_name:%s' % clustername])
 
         return cadvisor_instance
 
