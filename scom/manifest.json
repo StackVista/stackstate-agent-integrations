@@ -1,0 +1,23 @@
+{
+  "display_name": "Scom",
+  "maintainer": "info@stackstate.com",
+  "manifest_version": "1.0.0",
+  "name": "scom",
+  "metric_prefix": "scom.",
+  "metric_to_check": "",
+  "creates_events": false,
+  "short_description": "Agent V2 SCOM check",
+  "guid": "5de7dbef-696d-4c75-8204-67b1c38a61ca",
+  "support": "core",
+  "supported_os": [
+    "linux",
+    "mac_os",
+    "windows"
+  ],
+  "public_title": "StackState-Scom Integration",
+  "categories": [
+    ""
+  ],
+  "type": "check",
+  "is_public": false
+}

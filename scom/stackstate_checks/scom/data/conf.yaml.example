@@ -1,0 +1,13 @@
+init_config:
+    # runs every 5 minute
+    min_collection_interval: 300
+
+instances:
+  - hostip: # SCOM IP address
+    domain: # SCOM active directory domain
+    username: # SCOM read-only username
+    password: # SCOM password
+    auth_mode: Network
+    streams:
+      - name: SQL
+        class: Microsoft.SQLServer.Generic.Presentation.ServerRolesGroup
