@@ -31,8 +31,10 @@ from ....utils import dir_exists, file_exists, path_join
               help='Set the api key. can also be picked up form the STS_API_KEY environment variable')
 @click.option('--sts-url', '-u',
               help='StackState product url, can also be picked up from STS_STS_URL environment variable')
+@click.option('--cluster-name', '-c',
+              help='Kubernetes cluster name, can also be picked up from CLUSTER_NAME environment variable')
 @click.pass_context
-def start(ctx, check, env, agent, dev, base, api_key, sts_url):
+def start(ctx, check, env, agent, dev, base, api_key, sts_url, cluster_name):
     """Start an environment."""
     if not file_exists(get_tox_file(check)):
         abort('`{}` is not a testable check.'.format(check))
@@ -73,6 +75,12 @@ def start(ctx, check, env, agent, dev, base, api_key, sts_url):
             ' default to {}'.format(sts_url)
         )
 
+    cluster_name = cluster_name or ctx.obj['cluster_name']
+    if cluster_name is not None:
+        echo_info(
+            'Kubernetes clustername has been set {}'.format(cluster_name)
+        )
+
     echo_waiting('Setting up environment `{}`... '.format(env), nl=False)
     config, metadata, error = start_environment(check, env)
     if error:
@@ -108,7 +116,7 @@ def start(ctx, check, env, agent, dev, base, api_key, sts_url):
         stop_environment(check, env, metadata=metadata)
         abort()
 
-    environment = interface(check, env, base_package, config, metadata, agent_build, sts_url, api_key)
+    environment = interface(check, env, base_package, config, metadata, agent_build, sts_url, api_key, cluster_name)
 
     echo_waiting('Updating `{}`... '.format(agent_build), nl=False)
     environment.update_agent()

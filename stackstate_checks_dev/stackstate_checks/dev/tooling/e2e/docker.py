@@ -19,7 +19,7 @@ class DockerInterface(object):
     ENV_TYPE = 'docker'
 
     def __init__(self, check, env, base_package=None, config=None, metadata=None, agent_build=None, sts_url=None,
-                 api_key=None):
+                 api_key=None, cluster_name=None):
         self.check = check
         self.env = env
         self.base_package = base_package
@@ -28,6 +28,7 @@ class DockerInterface(object):
         self.agent_build = agent_build
         self.api_key = api_key or FAKE_API_KEY
         self.sts_url = sts_url
+        self.cluster_name = cluster_name
 
         self.container_name = 'stackstate_{}_{}'.format(self.check, self.env)
         self.config_dir = locate_config_dir(check, env)
@@ -103,6 +104,8 @@ class DockerInterface(object):
                 '-e', 'STS_API_KEY={}'.format(self.api_key),
                 # We still need this trifold, this should be improved
                 '-e', 'STS_STS_URL={}'.format(self.sts_url),
+                # Set the Kubernetes Cluster Name for k8s integrations
+                '-e', 'CLUSTER_NAME={}'.format(self.cluster_name),
                 # Avoid clashing with an already running agent's CMD port
                 '-e', 'STS_CMD_PORT=4999',
                 # Needs to be explicitly disabled

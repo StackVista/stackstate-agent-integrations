@@ -12,6 +12,14 @@ from stackstate_checks.checks.openmetrics import OpenMetricsBaseCheck
 
 from .common import get_pod_by_uid, is_static_pending_pod, replace_container_rt_prefix
 
+try:
+    # this module is only available in agent 6
+    from datadog_agent import get_clustername
+except ImportError:
+
+    def get_clustername():
+        return ""
+
 METRIC_TYPES = ['counter', 'gauge', 'summary']
 
 # container-specific metrics should have all these labels
@@ -96,6 +104,11 @@ class CadvisorPrometheusScraperMixin(object):
                 'health_service_check': instance.get('health_service_check', False),
             }
         )
+
+        clustername = get_clustername()
+        if clustername != "":
+            cadvisor_instance.get('tags',[]).extend(['cluster_name:%s' % clustername])
+
         return cadvisor_instance
 
     @staticmethod
@@ -303,6 +316,8 @@ class CadvisorPrometheusScraperMixin(object):
 
             val = sample[self.SAMPLE_VALUE]
 
+            tags += ['cluster_name:%s' % self.cluster_name]
+
             if "rate" == type:
                 self.rate(metric_name, val, tags)
             elif "gauge" == type:
@@ -326,6 +341,7 @@ class CadvisorPrometheusScraperMixin(object):
                 continue
             tags = tagger.get_tags('kubernetes_pod_uid://%s' % pod_uid, 2) or []
             tags += scraper_config['custom_tags']
+            tags += ['cluster_name:%s' % self.cluster_name]
             for label in labels:
                 value = sample[self.SAMPLE_LABELS].get(label)
                 if value:
@@ -370,6 +386,8 @@ class CadvisorPrometheusScraperMixin(object):
                 if value:
                     tags.append('%s:%s' % (label, value))
 
+            tags += ['cluster_name:%s' % self.cluster_name]
+            
             val = sample[self.SAMPLE_VALUE]
             cache[c_name] = (val, tags)
             seen_keys[c_name] = True
@@ -395,6 +413,7 @@ class CadvisorPrometheusScraperMixin(object):
 
             tags = scraper_config['custom_tags'][:]
             tags += tagger.get_tags(replace_container_rt_prefix(c_id), 2) or []
+            tags += ['cluster_name:%s' % self.cluster_name]
 
             if m_name:
                 self.gauge(m_name, limit, tags)

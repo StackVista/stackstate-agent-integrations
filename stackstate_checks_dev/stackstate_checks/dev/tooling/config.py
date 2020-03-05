@@ -33,6 +33,7 @@ DEFAULT_CONFIG = OrderedDict([
     ))),
     ('sts_api_key', os.getenv('STS_API_KEY')),
     ('sts_sts_url', os.getenv('STS_STS_URL')),
+    ('cluster_name', os.getenv('CLUSTER_NAME')),
     ('github', OrderedDict((
         ('user', ''),
         ('token', ''),
