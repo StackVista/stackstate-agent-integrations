@@ -6,7 +6,8 @@ The [StackState Agent][1] packages are equipped with all the Integrations from t
 # Development
 
 Prerequisites:
-- python 3.6
+- python 3
+- bash
 
 ## Setup
 
