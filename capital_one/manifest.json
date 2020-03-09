@@ -1,0 +1,23 @@
+{
+  "display_name": "capital-one",
+  "maintainer": "vishal.kumar@stackstate.com",
+  "manifest_version": "1.0.0",
+  "name": "capital_one",
+  "metric_prefix": "capital_one.",
+  "metric_to_check": "",
+  "creates_events": false,
+  "short_description": "",
+  "guid": "08b94cae-2e78-4db5-abeb-6768a15a49b4",
+  "support": "core",
+  "supported_os": [
+    "linux",
+    "mac_os",
+    "windows"
+  ],
+  "public_title": "StackState-capital-one Integration",
+  "categories": [
+    ""
+  ],
+  "type": "check",
+  "is_public": false
+}
