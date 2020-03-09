@@ -89,7 +89,7 @@ class SCOM(AgentCheck):
         data = response.get("monitoringObjectProperties", [])
         list = dict()
         for detail in data:
-            list.update({str(detail.get("name")): str(detail.get("value"))})
+            list.update({str(detail.get("name").encode('utf-8')):str(detail.get("value").encode('utf-8'))})
         return list
 
     def nextNodes(self, serviceid, session, scom_ip, domain, username, password, system_type):
