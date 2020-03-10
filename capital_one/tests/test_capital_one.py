@@ -15,7 +15,12 @@ def test_check(file_instance):
     expected_instance_key = {'type': 'capital-one', 'url': './tests/data/sample_data.txt'}
     # since url file contains a single line with ec2, VPC and Subnet each which creates 3 components
     assert len(components) == 3
+    # make sure first component is type of `aws.vpc`
+    assert components[0]['type'] == 'aws.vpc'
     assert instance_key == expected_instance_key
     # since url file contains a single line with relations making ec2 with subnet and VPC with Subnet each which
     # creates 2 relations
     assert len(relations) == 2
+    # make sure both relations has type called `uses service`
+    assert relations[0]['type'] == 'uses service'
+    assert relations[1]['type'] == 'uses service'

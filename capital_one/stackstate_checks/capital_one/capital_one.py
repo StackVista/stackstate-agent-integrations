@@ -2,7 +2,6 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import json
-import os
 
 from stackstate_checks.base import AgentCheck, ConfigurationError, TopologyInstance
 from .util import create_resource_arn
@@ -27,10 +26,7 @@ class CapitalOneCheck(AgentCheck):
         return {'Location': {'AwsAccount': account_id, 'AwsRegion': region}}
 
     def check(self, instance):
-        # dirname = os.path.dirname(__file__)
-        # file_path = os.path.join(dirname, instance.get("url"))
         file_path = instance.get("url")
-        self.log.info("File path:- "+ file_path)
         self.start_snapshot()
         try:
             # open the file from where to read the topology
