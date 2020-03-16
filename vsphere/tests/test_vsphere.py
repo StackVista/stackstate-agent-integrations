@@ -732,7 +732,6 @@ class TestVsphereTopo(unittest.TestCase):
         self.check.get_topologyitems_sync = MagicMock(return_value=topo_items)
         self.check.collect_topology(instance)
         snapshot = topology.get_snapshot(self.check.check_id)
-        print(snapshot)
 
         # Check if the returned topology contains 1 component
         self.assertEqual(len(snapshot['components']), 1)
@@ -778,27 +777,6 @@ class TestVsphereTopo(unittest.TestCase):
         topo_dict = self.check.get_topologyitems_sync(instance)
         self.assertEqual(len(topo_dict["hosts"]), 1)
         self.assertEqual(len(topo_dict["hosts"][0]['topo_tags']['identifiers']), 0)
-
-    def test_decode_dict(self):
-        """
-        Test if the dictionary only contain string data type in key:value pair
-        """
-        data = {"vm": u"vm1", "hosts": u"host1", "dc": "dc1"}
-        response = self.check._decode_dict(data)
-        for key in response.keys():
-            # check if key and value should be of string type
-            self.assertIs(type(key), str)
-            self.assertIs(type(response[key]), str)
-
-    def test_decode_list(self):
-        """
-        Test if the dictionary only contain string data type in key:value pair
-        """
-        data = ["vm", u"vm1", "hosts", u"host1", "dc", "dc1"]
-        response = self.check._decode_list(data)
-        for item in response:
-            # item should be of string type
-            self.assertIs(type(item), str)
 
     def test_get_topologyitems_sync_no_unicode(self):
         """

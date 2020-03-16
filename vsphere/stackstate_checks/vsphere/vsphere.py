@@ -16,6 +16,7 @@ import time
 import traceback
 import urllib3
 import json
+import yaml
 
 # 3p
 from pyVim import connect
@@ -1229,42 +1230,6 @@ class VSphereCheck(AgentCheck):
             password=instance.get('password'),
             session=session)
 
-    def _decode_list(self, data):
-        """
-        Convert unicode into string from the list data
-        :param data: list of string or unicode items
-        :return: list of string items
-        """
-        rv = []
-        for item in data:
-            if isinstance(item, unicode):
-                item = item.encode('utf-8')
-            elif isinstance(item, list):
-                item = self._decode_list(item)
-            elif isinstance(item, dict):
-                item = self._decode_dict(item)
-            rv.append(item)
-        return rv
-
-    def _decode_dict(self, data):
-        """
-        Convert unicode into string from the dict data
-        :param data: dictionary with string/unicode key:value pairs
-        :return: dictionary with only string key:value pairs
-        """
-        rv = {}
-        for key, value in data.iteritems():
-            if isinstance(key, unicode):
-                key = key.encode('utf-8')
-            if isinstance(value, unicode):
-                value = value.encode('utf-8')
-            elif isinstance(value, list):
-                value = self._decode_list(value)
-            elif isinstance(value, dict):
-                value = self._decode_dict(value)
-            rv[key] = value
-        return rv
-
     def get_topologyitems_sync(self, instance):
         server_instance = self._get_server_instance(instance)
         self.vsphere_client_connect(instance)
@@ -1277,16 +1242,14 @@ class VSphereCheck(AgentCheck):
         }
 
         # sanitize each resources to convert unicode into string types
-        vms = json.loads(json.dumps(self._vsphere_vms(content, domain, regexes)), object_hook=self._decode_dict)
-        hosts = json.loads(json.dumps(self._vsphere_hosts(content, domain, regexes)), object_hook=self._decode_dict)
-        datacenters = json.loads(json.dumps(self._vsphere_datacenters(content, domain)), object_hook=self._decode_dict)
-        datastores = json.loads(json.dumps(self._vsphere_datastores(content, domain, regexes)),
-                                object_hook=self._decode_dict)
-        clustercomputeresources = json.loads(
-            json.dumps(self._vsphere_clustercomputeresources(content, domain, regexes)),
-            object_hook=self._decode_dict)
-        computeresource = json.loads(json.dumps(self._vsphere_computeresources(content, domain, regexes)),
-                                     object_hook=self._decode_dict)
+        vms = yaml.safe_load(json.dumps(self._vsphere_vms(content, domain, regexes)))
+        hosts = yaml.safe_load(json.dumps(self._vsphere_hosts(content, domain, regexes)))
+        datacenters = yaml.safe_load(json.dumps(self._vsphere_datacenters(content, domain)))
+        datastores = yaml.safe_load(json.dumps(self._vsphere_datastores(content, domain, regexes)))
+        clustercomputeresources = yaml.safe_load(json.dumps(self._vsphere_clustercomputeresources(content, domain,
+                                                                                                  regexes)))
+        computeresource = yaml.safe_load(json.dumps(self._vsphere_computeresources(content, domain, regexes)))
+
         return {
             "vms": vms,
             "hosts": hosts,
