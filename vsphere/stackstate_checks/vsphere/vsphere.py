@@ -15,6 +15,8 @@ import ssl
 import time
 import traceback
 import urllib3
+import json
+import yaml
 
 # 3p
 from pyVim import connect
@@ -1004,7 +1006,7 @@ class VSphereCheck(AgentCheck):
                     add_label_pair(labels, "numCPU", c.config.hardware.numCPU)
                     add_label_pair(labels, "memoryMB", c.config.hardware.memoryMB)
                 topology_tags["labels"] = labels
-                obj_list.append(dict(mor_type="vm", mor=c, hostname=hostname, topo_tags=topology_tags))
+                obj_list.append(dict(mor_type="vm", hostname=hostname, topo_tags=topology_tags))
 
         return obj_list
 
@@ -1049,7 +1051,7 @@ class VSphereCheck(AgentCheck):
                 add_label_pair(labels, "name", topology_tags["name"])
                 hostname = None
             topology_tags["labels"] = labels
-            obj_list.append(dict(mor_type="datacenter", mor=c, hostname=hostname, topo_tags=topology_tags))
+            obj_list.append(dict(mor_type="datacenter", hostname=hostname, topo_tags=topology_tags))
 
         return obj_list
 
@@ -1088,7 +1090,7 @@ class VSphereCheck(AgentCheck):
                 topology_tags["vms"] = vms
                 hostname = None
             topology_tags["labels"] = labels
-            obj_list.append(dict(mor_type="datastore", mor=c, hostname=hostname, topo_tags=topology_tags))
+            obj_list.append(dict(mor_type="datastore", hostname=hostname, topo_tags=topology_tags))
 
         return obj_list
 
@@ -1137,7 +1139,7 @@ class VSphereCheck(AgentCheck):
 
                     add_label_pair(labels, "name", topology_tags["name"])
                 topology_tags["labels"] = labels
-                obj_list.append(dict(mor_type="host", mor=c, hostname=hostname, topo_tags=topology_tags))
+                obj_list.append(dict(mor_type="host", hostname=hostname, topo_tags=topology_tags))
 
         return obj_list
 
@@ -1174,7 +1176,7 @@ class VSphereCheck(AgentCheck):
                 topology_tags["datastores"] = datastores
                 add_label_pair(labels, "name", topology_tags["name"])
             topology_tags["labels"] = labels
-            obj_list.append(dict(mor_type="clustercomputeresource", mor=c, hostname=hostname, topo_tags=topology_tags))
+            obj_list.append(dict(mor_type="clustercomputeresource", hostname=hostname, topo_tags=topology_tags))
 
         return obj_list
 
@@ -1212,7 +1214,7 @@ class VSphereCheck(AgentCheck):
                 topology_tags["datastores"] = datastores
                 add_label_pair(labels, "name", topology_tags["name"])
             topology_tags["labels"] = labels
-            obj_list.append(dict(mor_type="computeresource", mor=c, hostname=hostname, topo_tags=topology_tags))
+            obj_list.append(dict(mor_type="computeresource", hostname=hostname, topo_tags=topology_tags))
 
         return obj_list
 
@@ -1239,12 +1241,14 @@ class VSphereCheck(AgentCheck):
             'vm_include': instance.get('vm_include_only_regex')
         }
 
-        vms = self._vsphere_vms(content, domain, regexes)
-        hosts = self._vsphere_hosts(content, domain, regexes)
-        datacenters = self._vsphere_datacenters(content, domain)
-        datastores = self._vsphere_datastores(content, domain, regexes)
-        clustercomputeresources = self._vsphere_clustercomputeresources(content, domain, regexes)
-        computeresource = self._vsphere_computeresources(content, domain, regexes)
+        # sanitize each resources to convert unicode into string types
+        vms = yaml.safe_load(json.dumps(self._vsphere_vms(content, domain, regexes)))
+        hosts = yaml.safe_load(json.dumps(self._vsphere_hosts(content, domain, regexes)))
+        datacenters = yaml.safe_load(json.dumps(self._vsphere_datacenters(content, domain)))
+        datastores = yaml.safe_load(json.dumps(self._vsphere_datastores(content, domain, regexes)))
+        clustercomputeresources = yaml.safe_load(json.dumps(self._vsphere_clustercomputeresources(content, domain,
+                                                                                                  regexes)))
+        computeresource = yaml.safe_load(json.dumps(self._vsphere_computeresources(content, domain, regexes)))
 
         return {
             "vms": vms,
