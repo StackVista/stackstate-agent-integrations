@@ -15,6 +15,7 @@ import ssl
 import time
 import traceback
 import urllib3
+import json
 
 # 3p
 from pyVim import connect
@@ -1004,7 +1005,7 @@ class VSphereCheck(AgentCheck):
                     add_label_pair(labels, "numCPU", c.config.hardware.numCPU)
                     add_label_pair(labels, "memoryMB", c.config.hardware.memoryMB)
                 topology_tags["labels"] = labels
-                obj_list.append(dict(mor_type="vm", mor=c, hostname=hostname, topo_tags=topology_tags))
+                obj_list.append(dict(mor_type="vm", hostname=hostname, topo_tags=topology_tags))
 
         return obj_list
 
@@ -1049,7 +1050,7 @@ class VSphereCheck(AgentCheck):
                 add_label_pair(labels, "name", topology_tags["name"])
                 hostname = None
             topology_tags["labels"] = labels
-            obj_list.append(dict(mor_type="datacenter", mor=c, hostname=hostname, topo_tags=topology_tags))
+            obj_list.append(dict(mor_type="datacenter", hostname=hostname, topo_tags=topology_tags))
 
         return obj_list
 
@@ -1088,7 +1089,7 @@ class VSphereCheck(AgentCheck):
                 topology_tags["vms"] = vms
                 hostname = None
             topology_tags["labels"] = labels
-            obj_list.append(dict(mor_type="datastore", mor=c, hostname=hostname, topo_tags=topology_tags))
+            obj_list.append(dict(mor_type="datastore", hostname=hostname, topo_tags=topology_tags))
 
         return obj_list
 
@@ -1137,7 +1138,7 @@ class VSphereCheck(AgentCheck):
 
                     add_label_pair(labels, "name", topology_tags["name"])
                 topology_tags["labels"] = labels
-                obj_list.append(dict(mor_type="host", mor=c, hostname=hostname, topo_tags=topology_tags))
+                obj_list.append(dict(mor_type="host", hostname=hostname, topo_tags=topology_tags))
 
         return obj_list
 
@@ -1174,7 +1175,7 @@ class VSphereCheck(AgentCheck):
                 topology_tags["datastores"] = datastores
                 add_label_pair(labels, "name", topology_tags["name"])
             topology_tags["labels"] = labels
-            obj_list.append(dict(mor_type="clustercomputeresource", mor=c, hostname=hostname, topo_tags=topology_tags))
+            obj_list.append(dict(mor_type="clustercomputeresource", hostname=hostname, topo_tags=topology_tags))
 
         return obj_list
 
@@ -1212,7 +1213,7 @@ class VSphereCheck(AgentCheck):
                 topology_tags["datastores"] = datastores
                 add_label_pair(labels, "name", topology_tags["name"])
             topology_tags["labels"] = labels
-            obj_list.append(dict(mor_type="computeresource", mor=c, hostname=hostname, topo_tags=topology_tags))
+            obj_list.append(dict(mor_type="computeresource", hostname=hostname, topo_tags=topology_tags))
 
         return obj_list
 
@@ -1228,6 +1229,42 @@ class VSphereCheck(AgentCheck):
             password=instance.get('password'),
             session=session)
 
+    def _decode_list(self, data):
+        """
+        Convert unicode into string from the list data
+        :param data: list of string or unicode items
+        :return: list of string items
+        """
+        rv = []
+        for item in data:
+            if isinstance(item, unicode):
+                item = item.encode('utf-8')
+            elif isinstance(item, list):
+                item = self._decode_list(item)
+            elif isinstance(item, dict):
+                item = self._decode_dict(item)
+            rv.append(item)
+        return rv
+
+    def _decode_dict(self, data):
+        """
+        Convert unicode into string from the dict data
+        :param data: dictionary with string/unicode key:value pairs
+        :return: dictionary with only string key:value pairs
+        """
+        rv = {}
+        for key, value in data.iteritems():
+            if isinstance(key, unicode):
+                key = key.encode('utf-8')
+            if isinstance(value, unicode):
+                value = value.encode('utf-8')
+            elif isinstance(value, list):
+                value = self._decode_list(value)
+            elif isinstance(value, dict):
+                value = self._decode_dict(value)
+            rv[key] = value
+        return rv
+
     def get_topologyitems_sync(self, instance):
         server_instance = self._get_server_instance(instance)
         self.vsphere_client_connect(instance)
@@ -1239,13 +1276,17 @@ class VSphereCheck(AgentCheck):
             'vm_include': instance.get('vm_include_only_regex')
         }
 
-        vms = self._vsphere_vms(content, domain, regexes)
-        hosts = self._vsphere_hosts(content, domain, regexes)
-        datacenters = self._vsphere_datacenters(content, domain)
-        datastores = self._vsphere_datastores(content, domain, regexes)
-        clustercomputeresources = self._vsphere_clustercomputeresources(content, domain, regexes)
-        computeresource = self._vsphere_computeresources(content, domain, regexes)
-
+        # sanitize each resources to convert unicode into string types
+        vms = json.loads(json.dumps(self._vsphere_vms(content, domain, regexes)), object_hook=self._decode_dict)
+        hosts = json.loads(json.dumps(self._vsphere_hosts(content, domain, regexes)), object_hook=self._decode_dict)
+        datacenters = json.loads(json.dumps(self._vsphere_datacenters(content, domain)), object_hook=self._decode_dict)
+        datastores = json.loads(json.dumps(self._vsphere_datastores(content, domain, regexes)),
+                                object_hook=self._decode_dict)
+        clustercomputeresources = json.loads(
+            json.dumps(self._vsphere_clustercomputeresources(content, domain, regexes)),
+            object_hook=self._decode_dict)
+        computeresource = json.loads(json.dumps(self._vsphere_computeresources(content, domain, regexes)),
+                                     object_hook=self._decode_dict)
         return {
             "vms": vms,
             "hosts": hosts,

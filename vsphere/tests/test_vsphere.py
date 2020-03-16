@@ -384,11 +384,11 @@ class TestVsphereTopo(unittest.TestCase):
         config = MockedMOR(guestId='ubuntu64Guest', guestFullName='Ubuntu Linux (64-bit)', hardware=vm_config_hardware)
 
         datastore = MockedMOR(spec='Datastore', _moId="54183927-04f91918-a72a-6805ca147c55", name="WDC1TB")
-        virtualmachine = MockedMOR(spec="VirtualMachine", name="Ubuntu", datastore=[datastore], config=config,
-                                   _moId="vm-12")
-        host = MockedMOR(spec="HostSystem", name="localhost.localdomain", datastore=[datastore], vm=[virtualmachine],
+        virtualmachine = MockedMOR(spec=u"VirtualMachine", name=u"Ubuntu", datastore=[datastore], config=config,
+                                   _moId=u"vm-12")
+        host = MockedMOR(spec=u"HostSystem", name=u"localhost.localdomain", datastore=[datastore], vm=[virtualmachine],
                          _moId="host-1")
-        computeresource = MockedMOR(spec="ComputeResource", name="localhost", datastore=[datastore], host=[host],
+        computeresource = MockedMOR(spec=u"ComputeResource", name="localhost", datastore=[datastore], host=[host],
                                     _moId="cr-1")
         clustercomputeresource = MockedMOR(spec="ClusterComputeResource", name="local",
                                            datastore=[datastore], host=[host], _moId="ccr-12")
@@ -677,6 +677,9 @@ class TestVsphereTopo(unittest.TestCase):
         self.assertEqual(len(topo_dict["vms"][0]['topo_tags']['identifiers']), 1)
         self.assertEqual(topo_dict["vms"][0]['topo_tags']['identifiers'][0], 'vishal-test')
 
+        # check if type of name is string rather than unicode
+        self.assertEqual(type(topo_dict["vms"][0]['topo_tags']['name']), str)
+
         # Check if tags are as expected
         self.assertEqual(topo_dict["vms"][0]['topo_tags']['name'], 'Ubuntu')
         self.assertEqual(topo_dict["vms"][0]['topo_tags']['domain'], 'ESXi')
@@ -775,3 +778,48 @@ class TestVsphereTopo(unittest.TestCase):
         topo_dict = self.check.get_topologyitems_sync(instance)
         self.assertEqual(len(topo_dict["hosts"]), 1)
         self.assertEqual(len(topo_dict["hosts"][0]['topo_tags']['identifiers']), 0)
+
+    def test_decode_dict(self):
+        """
+        Test if the dictionary only contain string data type in key:value pair
+        """
+        data = {"vm": u"vm1", "hosts": u"host1", "dc": "dc1"}
+        response = self.check._decode_dict(data)
+        for key in response.keys():
+            # check if key and value should be of string type
+            self.assertIs(type(key), str)
+            self.assertIs(type(response[key]), str)
+
+    def test_decode_list(self):
+        """
+        Test if the dictionary only contain string data type in key:value pair
+        """
+        data = ["vm", u"vm1", "hosts", u"host1", "dc", "dc1"]
+        response = self.check._decode_list(data)
+        for item in response:
+            # item should be of string type
+            self.assertIs(type(item), str)
+
+    def test_get_topologyitems_sync_no_unicode(self):
+        """
+        Test if the vms containing unicode objects are converted to string data type properly
+        """
+        instance = {'name': 'vsphere_mock', 'host': "ESXi"}
+
+        server_mock = MagicMock()
+        server_mock.configure_mock(**{'RetrieveContent.return_value': self.mock_content("vm")})
+        self.check._get_server_instance = MagicMock(return_value=server_mock)
+
+        # mock the vpshere client connect
+        self.check.vsphere_client_connect = MagicMock()
+        # get the client
+        client = vsphere_client()
+        client.tagging.TagAssociation.list_attached_tags = MagicMock(return_value=[])
+        self.check.client = client
+
+        topo_dict = self.check.get_topologyitems_sync(instance)
+        vm = topo_dict["vms"][0]
+        self.assertIs(type(vm['hostname']), str)
+        self.assertIs(type(vm['topo_tags']['name']), str)
+        self.assertEqual(vm['hostname'], 'Ubuntu')
+        self.assertEqual(vm['topo_tags']['name'], 'Ubuntu')
