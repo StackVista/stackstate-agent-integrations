@@ -1,0 +1,23 @@
+{
+  "display_name": "Zabbix",
+  "maintainer": "info@stackstate.com",
+  "manifest_version": "1.0.0",
+  "name": "zabbix",
+  "metric_prefix": "zabbix.",
+  "metric_to_check": "",
+  "creates_events": false,
+  "short_description": "Collect topology from zabbix instance",
+  "guid": "f6874cf1-00eb-48f6-8d0a-e28fc128072a",
+  "support": "core",
+  "supported_os": [
+    "linux",
+    "mac_os",
+    "windows"
+  ],
+  "public_title": "StackState-Zabbix Integration",
+  "categories": [
+    ""
+  ],
+  "type": "check",
+  "is_public": false
+}
