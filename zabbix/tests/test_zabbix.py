@@ -470,15 +470,16 @@ class TestZabbix(unittest.TestCase):
         Function check_connection is the first function that talks HTTP.
         """
         with mock.patch('requests.get') as mock_get:
-            self.check.login = lambda url, user, password: "dummyauthtoken"
-            self.check.retrieve_hosts = lambda x, y: []
-            self.check.retrieve_problems = lambda url, auth: []
-            self.check.retrieve_events = lambda url, auth, event_ids: []
-            self.check.check(instance_to_use)
-            mock_get.assert_called_once_with('http://10.0.0.1/zabbix/api_jsonrpc.php',
-                                             json={'params': {}, 'jsonrpc': '2.0', 'method': 'apiinfo.version',
-                                                   'id': 1},
-                                             verify=expected_verify_value)
+            with mock.patch('yaml.safe_load'):
+                self.check.login = lambda url, user, password: "dummyauthtoken"
+                self.check.retrieve_hosts = lambda x, y: []
+                self.check.retrieve_problems = lambda url, auth: []
+                self.check.retrieve_events = lambda url, auth, event_ids: []
+                self.check.check(instance_to_use)
+                mock_get.assert_called_once_with('http://10.0.0.1/zabbix/api_jsonrpc.php',
+                                                 json={'params': {}, 'jsonrpc': '2.0', 'method': 'apiinfo.version',
+                                                       'id': 1},
+                                                 verify=expected_verify_value)
 
     def test_zabbix_respect_false_ssl_verify(self):
         config = self.instance
