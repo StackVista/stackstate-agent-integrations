@@ -7,7 +7,7 @@ import pytest
 @pytest.fixture(scope='session')
 def sts_environment():
     return {
-        "url": "http://10.0.0.1/zabbix/api_jsonrpc.php",
+        "url": "http://localhost/api_jsonrpc.php",
         "user": "Admin",
         "password": "zabbix"
     }

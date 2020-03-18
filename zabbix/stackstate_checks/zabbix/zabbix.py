@@ -14,6 +14,7 @@ from stackstate_checks.base import AgentCheck, ConfigurationError, TopologyInsta
 
 import requests
 import time
+import yaml
 
 
 class ZabbixHost:
@@ -122,64 +123,67 @@ class ZabbixCheck(AgentCheck):
             "type": self.SERVICE_CHECK_NAME,
             "url": url
         }
+        try:
+            self.check_connection(url)
+            auth = self.login(url, instance['user'], instance['password'])
 
-        self.check_connection(url)
-        auth = self.login(url, instance['user'], instance['password'])
+            self.start_snapshot()
 
-        self.start_snapshot()
+            hosts = {}  # key: host_id, value: ZabbixHost
 
-        hosts = {}  # key: host_id, value: ZabbixHost
+            # Topology, get all hosts
+            for zabbix_host in self.retrieve_hosts(url, auth):
+                self.process_host_topology(topology_instance, zabbix_host, stackstate_environment)
 
-        # Topology, get all hosts
-        for zabbix_host in self.retrieve_hosts(url, auth):
-            self.process_host_topology(topology_instance, zabbix_host, stackstate_environment)
+                hosts[zabbix_host.host_id] = zabbix_host
 
-            hosts[zabbix_host.host_id] = zabbix_host
+            # Telemetry, get all problems.
+            zabbix_problems = self.retrieve_problems(url, auth)
 
-        # Telemetry, get all problems.
-        zabbix_problems = self.retrieve_problems(url, auth)
+            event_ids = list(problem.event_id for problem in zabbix_problems)
+            zabbix_events = [] if len(event_ids) == 0 else self.retrieve_events(url, auth, event_ids)
 
-        event_ids = list(problem.event_id for problem in zabbix_problems)
-        zabbix_events = [] if len(event_ids) == 0 else self.retrieve_events(url, auth, event_ids)
-
-        rolled_up_events_per_host = {}  # host_id -> [ZabbixEvent]
-        most_severe_severity_per_host = {}  # host_id -> severity int
-        for zabbix_event in zabbix_events:
-            for host_id in zabbix_event.host_ids:
-                if host_id in rolled_up_events_per_host:
-                    rolled_up_events_per_host[host_id].append(zabbix_event)
-                    if most_severe_severity_per_host[host_id] < zabbix_event.trigger.priority:
+            rolled_up_events_per_host = {}  # host_id -> [ZabbixEvent]
+            most_severe_severity_per_host = {}  # host_id -> severity int
+            for zabbix_event in zabbix_events:
+                for host_id in zabbix_event.host_ids:
+                    if host_id in rolled_up_events_per_host:
+                        rolled_up_events_per_host[host_id].append(zabbix_event)
+                        if most_severe_severity_per_host[host_id] < zabbix_event.trigger.priority:
+                            most_severe_severity_per_host[host_id] = zabbix_event.trigger.priority
+                    else:
+                        rolled_up_events_per_host[host_id] = [zabbix_event]
                         most_severe_severity_per_host[host_id] = zabbix_event.trigger.priority
-                else:
-                    rolled_up_events_per_host[host_id] = [zabbix_event]
-                    most_severe_severity_per_host[host_id] = zabbix_event.trigger.priority
 
-        self.log.debug('rolled_up_events_per_host:' + str(rolled_up_events_per_host))
-        self.log.debug('most_severe_severity_per_host:' + str(most_severe_severity_per_host))
+            self.log.debug('rolled_up_events_per_host:' + str(rolled_up_events_per_host))
+            self.log.debug('most_severe_severity_per_host:' + str(most_severe_severity_per_host))
 
-        # iterate all hosts to send an event per host, either in OK/PROBLEM state
-        for host_id, zabbix_host in hosts.items():
-            severity = 0
-            triggers = []
+            # iterate all hosts to send an event per host, either in OK/PROBLEM state
+            for host_id, zabbix_host in hosts.items():
+                severity = 0
+                triggers = []
 
-            if host_id in rolled_up_events_per_host:
-                triggers = [event.trigger.description for event in rolled_up_events_per_host[host_id]]
-                severity = most_severe_severity_per_host[host_id]
+                if host_id in rolled_up_events_per_host:
+                    triggers = [event.trigger.description for event in rolled_up_events_per_host[host_id]]
+                    severity = most_severe_severity_per_host[host_id]
 
-            self.event({
-                'timestamp': int(time.time()),
-                'source_type_name': self.INSTANCE_TYPE,
-                'host': self.hostname,
-                'tags': [
-                    'host_id:%s' % host_id,
-                    'host:%s' % zabbix_host.host,
-                    'host_name:%s' % zabbix_host.name,
-                    'severity:%s' % severity,
-                    'triggers:%s' % triggers
-                ]
-            })
-
-        self.stop_snapshot()
+                self.event({
+                    'timestamp': int(time.time()),
+                    'source_type_name': self.INSTANCE_TYPE,
+                    'host': self.hostname,
+                    'tags': [
+                        'host_id:%s' % host_id,
+                        'host:%s' % zabbix_host.host,
+                        'host_name:%s' % zabbix_host.name,
+                        'severity:%s' % severity,
+                        'triggers:%s' % triggers
+                    ]
+                })
+        except Exception as e:
+            self.log.exception(str(e))
+            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, message=str(e))
+        finally:
+            self.stop_snapshot()
 
     def process_host_topology(self, topology_instance, zabbix_host, stackstate_environment):
         external_id = "urn:host:/%s" % zabbix_host.host
@@ -359,4 +363,4 @@ class ZabbixCheck(AgentCheck):
         response = requests.get(url, json=payload, verify=self.ssl_verify)
         response.raise_for_status()
         self.log.debug("Request response: %s" % response.text)
-        return response.json()
+        return yaml.safe_load(response.text)

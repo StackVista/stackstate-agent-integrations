@@ -21,21 +21,13 @@ need to install anything else on your server.
 
 ## Data Collected
 
-### Metrics
-
-Zabbix does not include any metrics.
-
-### Service Checks
-
-Zabbix does not include any service checks.
-
 ### Events
 
-Zabbix does not include any events.
+Zabbix collects the events related to hosts.
 
 ### Topology
 
-Zabbix does not include any topology.
+Zabbix collects the topology for hosts. 
 
-[1]: **LINK_TO_INTEGERATION_SITE**
+[1]: https://www.zabbix.com/
 [2]: https://github.com/StackVista/stackstate-agent-integrations/blob/master/zabbix/stackstate_checks/zabbix/data/conf.yaml.example

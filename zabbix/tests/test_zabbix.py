@@ -314,7 +314,7 @@ class TestZabbix(unittest.TestCase):
 
     def test_zabbix_problems(self):
 
-        # TODO this is needed because the topology retains data across tests
+        # TODO this is needed because the aggregator retains events data across tests
         aggregator.reset()
 
         def _mocked_method_request(url, name, auth=None, params={}, request_id=1):
@@ -354,7 +354,7 @@ class TestZabbix(unittest.TestCase):
         When there are no problems, we are expecting all host components to go to green.
         To make this happen we need to send an event that says all is OK.
         """
-        # TODO this is needed because the topology retains data across tests
+        # TODO this is needed because the aggregator retains events data across tests
         aggregator.reset()
 
         def _mocked_method_request(url, name, auth=None, params={}, request_id=1):
@@ -389,7 +389,7 @@ class TestZabbix(unittest.TestCase):
             A host can have multiple active problems.
             From the active problems we determine the most severe state and send that to StackState
         """
-        # TODO this is needed because the topology retains data across tests
+        # TODO this is needed because the aggregator retains events data across tests
         aggregator.reset()
 
         def _mocked_method_request(url, name, auth=None, params={}, request_id=1):
