@@ -124,10 +124,9 @@ class ZabbixCheck(AgentCheck):
             "url": url
         }
         try:
+            self.start_snapshot()
             self.check_connection(url)
             auth = self.login(url, instance['user'], instance['password'])
-
-            self.start_snapshot()
 
             hosts = {}  # key: host_id, value: ZabbixHost
 
