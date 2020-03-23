@@ -288,8 +288,11 @@ class ZabbixCheck(AgentCheck):
             acknowledged = item.get("acknowledged", None)
             # Object id is in case of object=0 a trigger.
             trigger_id = item.get("objectid", None)
-            # for Zabbix versions <4.0 we need to get the trigger.priority
-            severity = item.get("severity", self.get_trigger_priority(url, auth, trigger_id))
+
+            # for Zabbix versions <4.0 we need to get the trigger.priority and if priority doesn't exist then
+            # either trigger is disabled or doesn't exist
+            priority = self.get_trigger_priority(url, auth, trigger_id)
+            severity = item.get("severity", priority)
 
             zabbix_problem = ZabbixProblem(event_id, acknowledged, trigger_id, severity)
 
@@ -297,16 +300,22 @@ class ZabbixCheck(AgentCheck):
             if not event_id or not trigger_id or not severity:
                 self.log.warn("Incomplete ZabbixProblem, got: %s" % zabbix_problem)
 
-            yield zabbix_problem
+            if priority is not None:
+                yield zabbix_problem
 
     def get_trigger_priority(self, url, auth, trigger_id):
+        # `monitored` flag make sure we only get enabled triggers
         params = {
             "output": ["priority"],
-            "triggerids": [trigger_id]
+            "triggerids": [trigger_id],
+            "monitored": True
         }
         response = self.method_request(url, "trigger.get", auth=auth, params=params)
-        trigger = response.get('result', [None])[0]  # get first element or None
-        return trigger.get("priority", None)
+        trigger = response.get('result')
+        # since result is a list so check if it has trigger object then get priority
+        if len(trigger) > 0:
+            return trigger[0].get("priority")
+        return None
 
     def check_connection(self, url):
         """
