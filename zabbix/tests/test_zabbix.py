@@ -493,3 +493,31 @@ class TestZabbix(unittest.TestCase):
 
     def test_zabbix_respect_default_ssl_verify(self):
         self.validate_requests_ssl_verify_setting(self.instance, True)
+
+    def test_zabbix_disabled_triggers_(self):
+        """
+        When there are no triggers enabled and return empty list for `trigger.get` call, then we are expecting no
+        problems and host will go back to green if it was red because there will be no event with problems.
+        """
+        # TODO this is needed because the aggregator retains events data across tests
+        aggregator.reset()
+
+        def _mocked_method_request(url, name, auth=None, params={}, request_id=1):
+            if name == "apiinfo.version":
+                return self._apiinfo_response()
+            elif name == "host.get":
+                return self._zabbix_host_response()
+            elif name == "problem.get":
+                response = self._zabbix_problem()
+                return response
+            elif name == "trigger.get":
+                return None
+            else:
+                self.fail("TEST FAILED on making invalid request")
+
+        self.check.method_request = _mocked_method_request
+        self.check.login = lambda url, user, password: "dummyauthtoken"
+
+        self.check.check(self.instance)
+        events = aggregator.events
+        self.assertEqual(len(events), 0)
