@@ -494,10 +494,10 @@ class TestZabbix(unittest.TestCase):
     def test_zabbix_respect_default_ssl_verify(self):
         self.validate_requests_ssl_verify_setting(self.instance, True)
 
-    def test_zabbix_disabled_triggers_(self):
+    def test_zabbix_disabled_triggers(self):
         """
         When there are no triggers enabled and return empty list for `trigger.get` call, then we are expecting no
-        problems and host will go back to green if it was red because there will be no event with problems.
+        problems and host will become green if it was red because there will be an event without any severity/problems.
         """
         # TODO this is needed because the aggregator retains events data across tests
         aggregator.reset()
@@ -511,7 +511,9 @@ class TestZabbix(unittest.TestCase):
                 response = self._zabbix_problem()
                 return response
             elif name == "trigger.get":
-                return None
+                response = self._zabbix_trigger()
+                response['result'] = []
+                return response
             else:
                 self.fail("TEST FAILED on making invalid request")
 
@@ -520,4 +522,15 @@ class TestZabbix(unittest.TestCase):
 
         self.check.check(self.instance)
         events = aggregator.events
-        self.assertEqual(len(events), 0)
+        self.assertEqual(len(events), 1)
+        tags = events[0]['tags']
+        for tag in [
+            'host_id:10084',
+            "host:zabbix01.example.com",
+            "host_name:Zabbix server",
+            "severity:0",
+            "triggers:[]"
+        ]:
+            if tag not in tags:
+                self.fail("Event does not have tag '%s', got: %s." % (tag, tags))
+        self.assertEqual(len(tags), 5)
