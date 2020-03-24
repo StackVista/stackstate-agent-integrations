@@ -301,6 +301,7 @@ class ZabbixCheck(AgentCheck):
                 self.log.warn("Incomplete ZabbixProblem, got: %s" % zabbix_problem)
 
             if priority is not None:
+                # send the problem only in case trigger is enabled and will get the priority always in enabled cases.
                 yield zabbix_problem
 
     def get_trigger_priority(self, url, auth, trigger_id):
