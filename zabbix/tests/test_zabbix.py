@@ -493,3 +493,44 @@ class TestZabbix(unittest.TestCase):
 
     def test_zabbix_respect_default_ssl_verify(self):
         self.validate_requests_ssl_verify_setting(self.instance, True)
+
+    def test_zabbix_disabled_triggers(self):
+        """
+        When there are no triggers enabled and return empty list for `trigger.get` call, then we are expecting no
+        problems and host will become green if it was red because there will be an event without any severity/problems.
+        """
+        # TODO this is needed because the aggregator retains events data across tests
+        aggregator.reset()
+
+        def _mocked_method_request(url, name, auth=None, params={}, request_id=1):
+            if name == "apiinfo.version":
+                return self._apiinfo_response()
+            elif name == "host.get":
+                return self._zabbix_host_response()
+            elif name == "problem.get":
+                response = self._zabbix_problem()
+                return response
+            elif name == "trigger.get":
+                response = self._zabbix_trigger()
+                response['result'] = []
+                return response
+            else:
+                self.fail("TEST FAILED on making invalid request")
+
+        self.check.method_request = _mocked_method_request
+        self.check.login = lambda url, user, password: "dummyauthtoken"
+
+        self.check.check(self.instance)
+        events = aggregator.events
+        self.assertEqual(len(events), 1)
+        tags = events[0]['tags']
+        for tag in [
+            'host_id:10084',
+            "host:zabbix01.example.com",
+            "host_name:Zabbix server",
+            "severity:0",
+            "triggers:[]"
+        ]:
+            if tag not in tags:
+                self.fail("Event does not have tag '%s', got: %s." % (tag, tags))
+        self.assertEqual(len(tags), 5)
