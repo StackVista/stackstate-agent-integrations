@@ -544,6 +544,9 @@ class TestZabbix(unittest.TestCase):
         # TODO this is needed because the aggregator retains events data across tests
         aggregator.reset()
 
+        self.event_response = {}
+        self.second_run = False
+
         def _mocked_method_request(url, name, auth=None, params={}, request_id=1):
             if name == "apiinfo.version":
                 return self._apiinfo_response()
@@ -556,10 +559,14 @@ class TestZabbix(unittest.TestCase):
                 response = self._zabbix_trigger()
                 return response
             elif name == "event.get":
-                response = self._zabbix_event()
-                # acknowledge the problem
-                response['result'][0]['acknowledged'] = '1'
-                return response
+                self.event_response = self._zabbix_event()
+                if not self.second_run:
+                    # acknowledge the problem
+                    self.event_response['result'][0]['acknowledged'] = '1'
+                    self.second_run = True
+                else:
+                    self.event_response['result'][0]['acknowledged'] = '0'
+                return self.event_response
             else:
                 self.fail("TEST FAILED on making invalid request")
 
@@ -576,6 +583,23 @@ class TestZabbix(unittest.TestCase):
             "host_name:Zabbix server",
             "severity:0",
             "triggers:[]"
+        ]:
+            if tag not in tags:
+                self.fail("Event does not have tag '%s', got: %s." % (tag, tags))
+        self.assertEqual(len(tags), 5)
+
+        aggregator.reset()
+        # second run to revert the acknowledged problem to create the event again
+        self.check.check(self.instance)
+        events = aggregator.events
+        self.assertEqual(len(events), 1)
+        tags = events[0]['tags']
+        for tag in [
+            'host_id:10084',
+            "host:zabbix01.example.com",
+            "host_name:Zabbix server",
+            "severity:3",
+            "triggers:['Zabbix agent on {HOST.NAME} is unreachable for 5 minutes']"
         ]:
             if tag not in tags:
                 self.fail("Event does not have tag '%s', got: %s." % (tag, tags))
