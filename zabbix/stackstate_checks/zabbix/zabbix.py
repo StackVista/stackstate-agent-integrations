@@ -247,8 +247,8 @@ class ZabbixCheck(AgentCheck):
 
             if not trigger_id or not trigger_description or not trigger_priority or not event_id or len(host_ids) == 0:
                 self.log.warn("Incomplete ZabbixEvent, got: %s" % zabbix_event)
-
-            yield zabbix_event
+            if acknowledged == '0':
+                yield zabbix_event
 
     def retrieve_hosts(self, url, auth):
         self.log.debug("Retrieving hosts.")

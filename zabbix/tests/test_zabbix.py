@@ -534,3 +534,73 @@ class TestZabbix(unittest.TestCase):
             if tag not in tags:
                 self.fail("Event does not have tag '%s', got: %s." % (tag, tags))
         self.assertEqual(len(tags), 5)
+
+    def test_zabbix_acknowledge_problem(self):
+        """
+        When there are problems, we are expecting all host components to go to yellow/red.
+        But acknowledging the problem should make the host components go back to green
+        To make this happen we need to send an event that says the problem is `acknowledged`.
+        """
+        # TODO this is needed because the aggregator retains events data across tests
+        aggregator.reset()
+
+        self.event_response = {}
+        self.second_run = False
+
+        def _mocked_method_request(url, name, auth=None, params={}, request_id=1):
+            if name == "apiinfo.version":
+                return self._apiinfo_response()
+            elif name == "host.get":
+                return self._zabbix_host_response()
+            elif name == "problem.get":
+                response = self._zabbix_problem()
+                return response
+            elif name == "trigger.get":
+                response = self._zabbix_trigger()
+                return response
+            elif name == "event.get":
+                self.event_response = self._zabbix_event()
+                if not self.second_run:
+                    # acknowledge the problem
+                    self.event_response['result'][0]['acknowledged'] = '1'
+                    self.second_run = True
+                else:
+                    self.event_response['result'][0]['acknowledged'] = '0'
+                return self.event_response
+            else:
+                self.fail("TEST FAILED on making invalid request")
+
+        self.check.method_request = _mocked_method_request
+        self.check.login = lambda url, user, password: "dummyauthtoken"
+
+        self.check.check(self.instance)
+        events = aggregator.events
+        self.assertEqual(len(events), 1)
+        tags = events[0]['tags']
+        for tag in [
+            'host_id:10084',
+            "host:zabbix01.example.com",
+            "host_name:Zabbix server",
+            "severity:0",
+            "triggers:[]"
+        ]:
+            if tag not in tags:
+                self.fail("Event does not have tag '%s', got: %s." % (tag, tags))
+        self.assertEqual(len(tags), 5)
+
+        aggregator.reset()
+        # second run to revert the acknowledged problem to create the event again
+        self.check.check(self.instance)
+        events = aggregator.events
+        self.assertEqual(len(events), 1)
+        tags = events[0]['tags']
+        for tag in [
+            'host_id:10084',
+            "host:zabbix01.example.com",
+            "host_name:Zabbix server",
+            "severity:3",
+            "triggers:['Zabbix agent on {HOST.NAME} is unreachable for 5 minutes']"
+        ]:
+            if tag not in tags:
+                self.fail("Event does not have tag '%s', got: %s." % (tag, tags))
+        self.assertEqual(len(tags), 5)
