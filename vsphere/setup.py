@@ -57,6 +57,8 @@ setup(
     # Run-time dependencies
     install_requires=[CHECKS_BASE_REQ],
 
+    dependency_links=['git+https://github.com/vmware/vsphere-automation-sdk-python.git@1.23.0'],
+
     # Extra files to ship with the wheel package
     include_package_data=True,
 )
