@@ -10,10 +10,11 @@ psycopg2-binary==2.7.5
 pymysql==0.8.0
 pywin32==224; sys_platform == 'win32'
 pyyaml==3.13
-requests==2.20.1
+requests==2.21.0
 requests_ntlm==1.1.0
 simplejson==3.6.5
 six==1.12.0
 uptime==3.0.1
 uuid==1.30
+vsphere-automation-sdk==1.0.0
 zeep==3.4.0
