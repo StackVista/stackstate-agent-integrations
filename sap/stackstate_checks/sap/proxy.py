@@ -8,8 +8,11 @@ from zeep import Client, Transport
 
 class SapProxy(object):
 
-    def __init__(self, url, user, password):
+    def __init__(self, url, user, password, verify=False, cert=None, keyfile=None):
         session = Session()
+        if cert:
+            session.verify = verify
+            session.cert = (cert, keyfile)
         session.auth = HTTPBasicAuth(user, password)
         wsdl_url = "{0}/?wsdl".format(url)
         self.client = Client(wsdl_url, transport=Transport(session=session, timeout=10))

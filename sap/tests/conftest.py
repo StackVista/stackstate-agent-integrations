@@ -25,6 +25,19 @@ def instance():
 
 
 @pytest.fixture
+def https_instance():
+    return {
+        "host": "LAB-SAP-001",
+        "url": "https://localhost",
+        "user": "test",
+        "pass": "test",
+        "verify": False,
+        "cert": "/path/to/cert.pem",
+        "keyfile": "/path/to/key.pem"
+    }
+
+
+@pytest.fixture
 def instance_empty():
     return {
         "host": "",
