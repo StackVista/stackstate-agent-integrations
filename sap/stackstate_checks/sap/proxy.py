@@ -13,9 +13,9 @@ class SapProxy(object):
         if cert:
             session.verify = verify
             if not verify:
-                # since `trust_env` is by default True and overrides `verify` with REQUESTS_CA_BUNDLE/CURL_CA_BUNDLE
-                # path, so make `trust_env=False` if not verifying certificates and not to override the `verify` flag
-                # with CA BUNDLE PATH of stackstate defined in production environment variable
+                # since `trust_env` is by default True and overrides `verify` flag with CURL_CA_BUNDLE certificate path
+                # set by Agent runtime for verification, making this flag `False` doesn't override and doesn't verify
+                # the certificate.
                 session.trust_env = False
             session.cert = (cert, keyfile)
         session.auth = HTTPBasicAuth(user, password)
