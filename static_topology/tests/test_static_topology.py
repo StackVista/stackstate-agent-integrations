@@ -69,7 +69,7 @@ class TestStaticCSVTopology(unittest.TestCase):
         }
         with self.assertRaises(ConfigurationError) as context:
             self.check.check(config["instances"][0])
-        self.assertTrue('Static topology instance missing "components_file" value.' in context.exception)
+        self.assertTrue('Static topology instance missing "components_file" value.' in str(context.exception))
 
     def test_omitted_relation_file(self):
         config = {
@@ -84,7 +84,7 @@ class TestStaticCSVTopology(unittest.TestCase):
         }
         with self.assertRaises(ConfigurationError) as context:
             self.check.check(config["instances"][0])
-        self.assertTrue('Static topology instance missing "relations_file" value.' in context.exception)
+        self.assertTrue('Static topology instance missing "relations_file" value.' in str(context.exception))
 
     def test_empty_component_file(self):
         config = {
