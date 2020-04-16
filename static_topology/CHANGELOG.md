@@ -1,0 +1,2 @@
+# CHANGELOG - Static_topology
+
