@@ -21,10 +21,12 @@ class SapProxy(object):
         session.auth = HTTPBasicAuth(user, password)
         wsdl_url = "{0}/?wsdl".format(url)
         self.client = Client(wsdl_url, transport=Transport(session=session, timeout=10))
-        type = wsdl_url.split("/")[-2]
+        sap_type = wsdl_url.split("/")[-2]
         address = "/".join(wsdl_url.split("/")[:-2])
-        if type == "SAPHostControl":
-            self.service = self.client.create_service("{urn:SAPHostControl}SAPHostControl", address)
+        # ServiceProxy for same host location from config as the host location can be different in WSDL response
+        if sap_type == "SAPHostControl":
+            self.service = self.client.create_service("{urn:SAPHostControl}SAPHostControl",
+                                                      address+"/SAPHostControl.cgi")
         else:
             self.service = self.client.create_service("{urn:SAPControl}SAPControl", address)
 
