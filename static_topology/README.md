@@ -2,7 +2,7 @@
 
 ## Overview
 
-This check monitors Static Topology ingested from file through the StackState Agent.
+This check monitors Static Topology ingested from CSV file through the StackState Agent.
 
 ## Setup
 
@@ -21,20 +21,11 @@ need to install anything else on your server.
 
 ## Data Collected
 
-### Metrics
+Static Topology includes the topology and service checks.
 
-Static_topology does not include any metrics.
+## Files Supported for Topology 
 
-### Service Checks
+* *CSV*
 
-Static_topology does not include any service checks.
-
-### Events
-
-Static_topology does not include any events.
-
-### Topology
-
-Static_topology does not include any topology.
 
 [1]: https://github.com/StackVista/stackstate-agent-integrations/blob/master/static_topology/stackstate_checks/static_topology/data/conf.yaml.example

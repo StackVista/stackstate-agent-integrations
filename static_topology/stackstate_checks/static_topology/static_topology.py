@@ -37,17 +37,20 @@ class StaticTopologyCheck(AgentCheck):
                 self.start_snapshot()
                 self.handle_component_csv(component_file, delimiter, instance_tags)
                 if relation_file:
-                    self.handle_relation_csv(relation_file, delimiter, instance_tags)
+                    self.handle_relation_csv(relation_file, delimiter)
             except ConfigurationError as e:
                 self.log.error(str(e))
-                raise e
+                self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, message=str(e), tags=instance_tags)
             except Exception as e:
                 self.log.exception(str(e))
                 self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, message=str(e), tags=instance_tags)
             finally:
                 self.stop_snapshot()
         else:
-            raise ConfigurationError('Static topology instance only supports type CSV.')
+            self.log.warning('Static topology instance only supports type CSV. Please use proper csv files for '
+                             'exploring the topology')
+            msg = "Static topology instance only supports type CSV."
+            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.WARNING, message=msg, tags=[])
 
     def handle_component_csv(self, filelocation, delimiter, instance_tags):
         self.log.debug("Processing component CSV file %s." % filelocation)
@@ -103,7 +106,7 @@ class StaticTopologyCheck(AgentCheck):
 
                 self.component(row[id_idx], row[type_idx], data)
 
-    def handle_relation_csv(self, filelocation, delimiter, instance_tags):
+    def handle_relation_csv(self, filelocation, delimiter):
         self.log.debug("Processing relation CSV file %s." % filelocation)
 
         RELATION_SOURCE_ID_FIELD = 'sourceid'

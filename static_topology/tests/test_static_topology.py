@@ -9,7 +9,7 @@ import pytest
 
 from stackstate_checks.base import ConfigurationError
 from stackstate_checks.static_topology import StaticTopologyCheck
-from stackstate_checks.base.stubs import topology
+from stackstate_checks.base.stubs import topology, aggregator
 
 
 class MockFileReader:
@@ -98,9 +98,14 @@ class TestStaticCSVTopology(unittest.TestCase):
                 }
             ]
         }
-        with self.assertRaises(ConfigurationError) as context:
-            self.check.check(config["instances"][0])
-        self.assertEquals('Component CSV file is empty.', str(context.exception))
+
+        # TODO this is needed because the topology retains data across tests
+        aggregator.reset()
+
+        self.check.check(config["instances"][0])
+        service_checks = aggregator.service_checks("StaticTopology")
+        self.assertEqual(service_checks[0].status, 2)
+        self.assertEqual(service_checks[0].message, "Component CSV file is empty.")
 
     def test_empty_relation_file(self):
         config = {
@@ -115,11 +120,12 @@ class TestStaticCSVTopology(unittest.TestCase):
             ]
         }
 
-        with self.assertRaises(ConfigurationError) as context:
-            self.check.handle_component_csv = lambda filelocation, delimiter, instance_tags: None
-            self.check.check(config["instances"][0])
+        # TODO this is needed because the topology retains data across tests
+        aggregator.reset()
 
-        self.assertEquals('Relation CSV file is empty.', str(context.exception))
+        self.check.check(config["instances"][0])
+        service_checks = aggregator.service_checks("StaticTopology")
+        self.assertEqual(service_checks[0].status, 2)
 
     @mock.patch('codecs.open',
                 side_effect=lambda location, mode, encoding: MockFileReader(location, {
@@ -131,7 +137,6 @@ class TestStaticCSVTopology(unittest.TestCase):
 
         self.check.check(self.instance)
         topo_instances = topology.get_snapshot(self.check.check_id)
-        print("topo instance :- {}".format(topo_instances))
         self.assertEqual(len(topo_instances['components']), 2)
         self.assertEqual(len(topo_instances['relations']), 1)
 
@@ -363,13 +368,14 @@ class TestStaticCSVTopology(unittest.TestCase):
         'component.csv': ['NOID,name,type'],
         'relation.csv': []}))
     def test_missing_component_id_field(self, mock):
+
         # TODO this is needed because the topology retains data across tests
-        topology.reset()
+        aggregator.reset()
 
-        with self.assertRaises(ConfigurationError) as context:
-            self.check.check(self.instance)
-
-        self.assertEquals('CSV header id not found in component csv.', str(context.exception))
+        self.check.check(self.instance)
+        service_checks = aggregator.service_checks("StaticTopology")
+        self.assertEqual(service_checks[0].status, 2)
+        self.assertEqual(service_checks[0].message, "CSV header id not found in component csv.")
 
     @mock.patch('codecs.open', side_effect=lambda location, mode, encoding: MockFileReader(location, {
         'component.csv': ['id,NONAME,type'],
@@ -377,24 +383,25 @@ class TestStaticCSVTopology(unittest.TestCase):
     def test_missing_component_name_field(self, mock):
 
         # TODO this is needed because the topology retains data across tests
-        topology.reset()
+        aggregator.reset()
 
-        with self.assertRaises(ConfigurationError) as context:
-            self.check.check(self.instance)
-
-        self.assertEquals('CSV header name not found in component csv.', str(context.exception))
+        self.check.check(self.instance)
+        service_checks = aggregator.service_checks("StaticTopology")
+        self.assertEqual(service_checks[0].status, 2)
+        self.assertEqual(service_checks[0].message, "CSV header name not found in component csv.")
 
     @mock.patch('codecs.open', side_effect=lambda location, mode, encoding: MockFileReader(location, {
         'component.csv': ['id,name,NOTYPE'],
         'relation.csv': []}))
     def test_missing_component_type_field(self, mock):
+
         # TODO this is needed because the topology retains data across tests
-        topology.reset()
+        aggregator.reset()
 
-        with self.assertRaises(ConfigurationError) as context:
-            self.check.check(self.instance)
-
-        self.assertEquals('CSV header type not found in component csv.', str(context.exception))
+        self.check.check(self.instance)
+        service_checks = aggregator.service_checks("StaticTopology")
+        self.assertEqual(service_checks[0].status, 2)
+        self.assertEqual(service_checks[0].message, "CSV header type not found in component csv.")
 
     @mock.patch('codecs.open', side_effect=lambda location, mode, encoding: MockFileReader(location, {
         'component.csv': ['id,name,type', 'id1,name1,type1', ''],
@@ -424,35 +431,39 @@ class TestStaticCSVTopology(unittest.TestCase):
         'component.csv': ['id,name,type'],
         'relation.csv': ['NOSOURCEID,targetid,type']}))
     def test_missing_relation_sourceid_field(self, mock):
+
         # TODO this is needed because the topology retains data across tests
-        topology.reset()
+        aggregator.reset()
 
-        with self.assertRaises(ConfigurationError) as context:
-            self.check.check(self.instance)
-
-        self.assertEquals('CSV header sourceid not found in relation csv.', str(context.exception))
+        self.check.check(self.instance)
+        service_checks = aggregator.service_checks("StaticTopology")
+        self.assertEqual(service_checks[0].status, 2)
+        self.assertEqual(service_checks[0].message, "CSV header sourceid not found in relation csv.")
 
     @mock.patch('codecs.open', side_effect=lambda location, mode, encoding: MockFileReader(location, {
         'component.csv': ['id,name,type'],
         'relation.csv': ['sourceid,NOTARGETID,type']}))
     def test_missing_relation_targetid_field(self, mock):
+
         # TODO this is needed because the topology retains data across tests
-        topology.reset()
+        aggregator.reset()
 
-        with self.assertRaises(ConfigurationError) as context:
-            self.check.check(self.instance)
-
-        self.assertEquals('CSV header targetid not found in relation csv.', str(context.exception))
+        self.check.check(self.instance)
+        service_checks = aggregator.service_checks("StaticTopology")
+        self.assertEqual(service_checks[0].status, 2)
+        self.assertEqual(service_checks[0].message, "CSV header targetid not found in relation csv.")
 
     @mock.patch('codecs.open', side_effect=lambda location, mode, encoding: MockFileReader(location, {
         'component.csv': ['id,name,type'],
         'relation.csv': ['sourceid,targetid,NOTYPE']}))
     def test_missing_relation_type_field(self, mock):
+        # TODO this is needed because the topology retains data across tests
+        aggregator.reset()
 
-        with self.assertRaises(ConfigurationError) as context:
-            self.check.check(self.instance)
-
-        self.assertEquals('CSV header type not found in relation csv.', str(context.exception))
+        self.check.check(self.instance)
+        service_checks = aggregator.service_checks("StaticTopology")
+        self.assertEqual(service_checks[0].status, 2)
+        self.assertEqual(service_checks[0].message, "CSV header type not found in relation csv.")
 
     @mock.patch('codecs.open', side_effect=lambda location, mode, encoding: MockFileReader(location, {
         'component.csv': ['id,name,type', 'id1,name1,type1', 'id2,name2,type2'],
