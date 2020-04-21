@@ -24,6 +24,24 @@ class SapProxy(object):
         sap_type = wsdl_url.split("/")[-2]
         address = "/".join(wsdl_url.split("/")[:-2])
         # ServiceProxy for same host location from config as the host location can be different in WSDL response
+        # As an Example -
+        #
+        # Case 1.) Type - SAPHostControl
+        #
+        #   URL = http://192.168.0.1:1129
+        #
+        #   SOAP Address location in WSDL response is "http://18.92.32.0:1128/SAPHostControl.cgi"
+        #   then creating a ServiceProxy with the given URL config, it will become
+        #   "http://192.168.0.1:1129/SAPHostControl.cgi"
+
+        # Case 2.) Type - SAPHostAgent
+        #
+        #   URL = http://192.168.0.1:1129
+        #
+        #   SOAP Address location in WSDL response is "http://18.92.32.0:1128"
+        #   then creating a ServiceProxy with the given URL config, it will become
+        #   "http://192.168.0.1:1129"
+
         if sap_type == "SAPHostControl":
             self.service = self.client.create_service("{urn:SAPHostControl}SAPHostControl",
                                                       address+"/SAPHostControl.cgi")

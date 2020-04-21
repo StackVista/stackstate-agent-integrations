@@ -2106,7 +2106,7 @@
     <service name="SAPHostControl">
         <documentation>The SAPHostControl support a group of Host specific operations like : Start / Stop an SAP System; Start/Stop a Database; Mount / Unmount of filesystems; Activate/Deactivate ip addresses.</documentation>
         <port name="SAPHostControl" binding="tns:SAPHostControl">
-            <SOAP:address location="http://localhost:1128/SAPHostControl.cgi"/>
+            <SOAP:address location="xcvbnmnbvcxzxcvbn"/>
         </port>
     </service>
 
