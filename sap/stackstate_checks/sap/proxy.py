@@ -28,19 +28,21 @@ class SapProxy(object):
         #
         # Case 1.) Type - SAPHostControl
         #
-        #   URL = http://192.168.0.1:1129
+        #   URL = http://192.168.0.1:1128  - in case of http
+        #   URL = https://192.168.0.1:1129  - in case of https
         #
         #   SOAP Address location in WSDL response is "http://18.92.32.0:1128/SAPHostControl.cgi"
         #   then creating a ServiceProxy with the given URL config, it will become
-        #   "http://192.168.0.1:1129/SAPHostControl.cgi"
+        #   "http://192.168.0.1:1128/SAPHostControl.cgi" and same goes for https
 
         # Case 2.) Type - SAPHostAgent
         #
-        #   URL = http://192.168.0.1:1129
+        #   URL = http://192.168.0.1:50013 in case of http
+        #   URL = https://192.168.0.1:50014 in case of https
         #
-        #   SOAP Address location in WSDL response is "http://18.92.32.0:1128"
+        #   SOAP Address location in WSDL response is "http://18.92.32.0:50013"
         #   then creating a ServiceProxy with the given URL config, it will become
-        #   "http://192.168.0.1:1129"
+        #   "http://192.168.0.1:50013" and same goes for https.
 
         if sap_type == "SAPHostControl":
             self.service = self.client.create_service("{urn:SAPHostControl}SAPHostControl",
