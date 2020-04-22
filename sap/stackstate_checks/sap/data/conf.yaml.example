@@ -5,6 +5,9 @@ instances:
     url: http://lab-sap-001.lab.hosting.local
     user: my_username
     pass: my_password
+    # verify: True
+    # cert: /path/to/cert.pem
+    # keyfile: /path/to/key.pem
     # tags:                  # Optional
     #   - optional_tag1
     #   - optional_tag2
