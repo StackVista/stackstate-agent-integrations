@@ -5585,7 +5585,7 @@
     <service name="SAPControl">
         <documentation>The SAPControl webservice can be used to control and monitor a single SAP instance. Some methods may fail with HTTP error 401 without user authentication. Use HTTP basic authentication (UTF8 encoded) to provide OS user credentials. By default the service uses port 5$(SAPSYSTEM)13 for HTTP and 5$(SAPSYSTEM)14 for HTTPS (if SSL is configured for the instance), this might be overridden in etc/service by specifying sapctrl$(SAPSYSTEM) and sapctrls$(SAPSYSTEM).</documentation>
         <port name="SAPControl" binding="tns:SAPControl">
-            <SOAP:address location="http://localhost:50013"/>
+            <SOAP:address location="xcvbnbvcxcvbn"/>
         </port>
     </service>
 
