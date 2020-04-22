@@ -8,8 +8,8 @@ import pytest
 def sts_environment():
     return {
         'type': 'csv',
-        'components_file': 'component.csv',
-        'relations_file': 'relation.csv',
+        'components_file': '/home/static_topology/components.csv',
+        'relations_file': '/home/static_topology/relations.csv',
         'delimiter': ','
     }
 
