@@ -187,6 +187,14 @@ test_zabbix:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
 
+test_static_topology:
+  <<: *linux_test
+  variables:
+    CHECK: "static_topology"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
 .windows_test: &windows_test
   <<: *windows_env
   stage: test
