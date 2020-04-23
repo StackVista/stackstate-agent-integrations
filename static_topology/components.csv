@@ -1,0 +1,3 @@
+id,name,type,layer,domain,environments
+1,component1,vm,machines,mydomain,myenvironment
+2,component2,vm,machines,mydomain,myenvironment
