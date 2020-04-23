@@ -54,7 +54,7 @@ class SapCheck(AgentCheck):
         self.url = instance.get("url", "")
         self.user = instance.get("user", "")
         self.password = str(instance.get("pass", ""))
-        self.verify = instance.get("verify", False)
+        self.verify = instance.get("verify", True)
         self.cert = instance.get("cert", "")
         self.keyfile = instance.get("keyfile", "")
         self.tags = instance.get("tags", [])
