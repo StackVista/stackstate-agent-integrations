@@ -348,6 +348,8 @@ def test_collect_databases(aggregator, instance):
         sap_check._get_config(instance)
         sap_check._collect_databases()
 
+        assert sap_check.verify is True
+
         topology.assert_snapshot(
             check_id=sap_check.check_id,
             start_snapshot=False,
