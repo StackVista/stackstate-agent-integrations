@@ -3,7 +3,6 @@ init_config:
 
 instances:
   - nagios_conf: /usr/local/nagios/etc/nagios.cfg
-    url: localhost
 #   collect_events: True                   # default is True
 #   passive_checks_events: True            # default is False
 #   collect_host_performance_data: True    # default is False
