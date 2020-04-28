@@ -195,6 +195,5 @@ class ServicenowCheck(AgentCheck):
 
         if resp.encoding is None:
             resp.encoding = 'UTF8'
-        print("hee")
         resp = yaml.safe_load(resp.text)
         return resp
