@@ -97,8 +97,9 @@ class ServicenowCheck(AgentCheck):
         for component in state['result']:
             external_id = component['sys_id']
             comp_type = component['sys_class_name']
+            comp_name = component['name'].encode('utf-8')
             data = {
-                "name": component['name'].encode('utf-8'),
+                "name": str(comp_name) if isinstance(comp_name, bytes) else comp_name,
                 "tags": instance_tags
             }
 

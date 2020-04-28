@@ -181,7 +181,7 @@ class TestServicenow(unittest.TestCase):
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 0)
-        self.assertEquals(topo_instances['relations'][0]['type'], 'Cools')
+        self.assertEqual(topo_instances['relations'][0]['type'], 'Cools')
 
     @mock.patch('requests.get')
     def test_get_json(self, mock_req_get):
