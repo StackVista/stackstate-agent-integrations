@@ -1,0 +1,23 @@
+{
+  "display_name": "ServiceNow",
+  "maintainer": "info@stackstate.com",
+  "manifest_version": "1.0.0",
+  "name": "servicenow",
+  "metric_prefix": "servicenow.",
+  "metric_to_check": "",
+  "creates_events": false,
+  "short_description": "Retrieve CMDB Configuration Items(CIs) and their relations from ServiceNow instance.",
+  "guid": "ba717ef7-ed43-43b2-98e2-37ec9fc0d350",
+  "support": "core",
+  "supported_os": [
+    "linux",
+    "mac_os",
+    "windows"
+  ],
+  "public_title": "StackState-ServiceNow Integration",
+  "categories": [
+    ""
+  ],
+  "type": "check",
+  "is_public": false
+}
