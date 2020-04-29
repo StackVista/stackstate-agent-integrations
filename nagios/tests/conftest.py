@@ -1,7 +1,14 @@
 # (C) StackState 2020
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
+import os
+from copy import deepcopy
+
 import pytest
+
+from .common import INSTANCE_INTEGRATION
+
+FIXTURE_DIR = os.path.join(os.path.dirname(__file__), 'fixtures')
 
 
 @pytest.fixture(scope='session')
@@ -14,4 +21,4 @@ def sts_environment():
 
 @pytest.fixture
 def instance():
-    return {}
+    return deepcopy(INSTANCE_INTEGRATION)
