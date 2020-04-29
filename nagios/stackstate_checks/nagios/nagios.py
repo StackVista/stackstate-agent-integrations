@@ -19,12 +19,12 @@ EVENT_FIELDS = {
     'PASSIVE SERVICE CHECK': namedtuple('E_PassiveServiceCheck', 'host, check_name, return_code, payload'),
     'HOST ALERT': namedtuple('E_HostAlert', 'host, event_state, event_soft_hard, return_code, payload'),
 
-    # [1305744274] SERVICE NOTIFICATION: ops;ip-10-114-237-165;Metric ETL;ACKNOWLEDGEMENT (CRITICAL);notify-service-by-email;HTTP CRITICAL: HTTP/1.1 503 Service Unavailable - 394 bytes in 0.010 second response time;datadog;alq
+    # [1305744274] SERVICE NOTIFICATION: ops;ip-10-114-237-165;Metric ETL;ACKNOWLEDGEMENT (CRITICAL);notify-service-by-email;HTTP CRITICAL: HTTP/1.1 503 Service Unavailable - 394 bytes in 0.010 second response time;datadog;alq # noqa: E501
     'SERVICE NOTIFICATION': namedtuple('E_ServiceNotification',
                                        'contact, host, check_name, event_state, notification_type, payload'),
 
-    # [1296509331] SERVICE FLAPPING ALERT: ip-10-114-97-27;cassandra JVM Heap;STARTED; Service appears to have started flapping (23.4% change >= 20.0% threshold)
-    # [1296662511] SERVICE FLAPPING ALERT: ip-10-114-97-27;cassandra JVM Heap;STOPPED; Service appears to have stopped flapping (3.8% change < 5.0% threshold)
+    # [1296509331] SERVICE FLAPPING ALERT: ip-10-114-97-27;cassandra JVM Heap;STARTED; Service appears to have started flapping (23.4% change >= 20.0% threshold) # noqa: E501
+    # [1296662511] SERVICE FLAPPING ALERT: ip-10-114-97-27;cassandra JVM Heap;STOPPED; Service appears to have stopped flapping (3.8% change < 5.0% threshold) # noqa: E501
     'SERVICE FLAPPING ALERT': namedtuple('E_FlappingAlert', 'host, check_name, flap_start_stop, payload'),
 
     # Reference for external commands: http://old.nagios.org/developerinfo/externalcommands/commandlist.php
@@ -32,7 +32,7 @@ EVENT_FIELDS = {
     # ACKNOWLEDGE_SVC_PROBLEM;<host_name>;<service_description>;<sticky>;<notify>;<persistent>;<author>;<comment>
     # [1305832665] EXTERNAL COMMAND: ACKNOWLEDGE_SVC_PROBLEM;ip-10-202-161-236;Resources ETL;2;1;0;datadog;alq checking
     'ACKNOWLEDGE_SVC_PROBLEM': namedtuple('E_ServiceAck',
-                                          'host, check_name, sticky_ack, notify_ack, persistent_ack, ack_author, payload'),
+                                    'host, check_name, sticky_ack, notify_ack, persistent_ack, ack_author, payload'),
 
     # Command Format:
     # ACKNOWLEDGE_HOST_PROBLEM;<host_name>;<sticky>;<notify>;<persistent>;<author>;<comment>
@@ -47,7 +47,7 @@ EVENT_FIELDS = {
 
     # Host Downtime
     # [1297894825] HOST DOWNTIME ALERT: ip-10-114-89-59;STARTED; Host has entered a period of scheduled downtime
-    # [1297894825] SERVICE DOWNTIME ALERT: ip-10-114-237-165;intake;STARTED; Service has entered a period of scheduled downtime
+    # [1297894825] SERVICE DOWNTIME ALERT: ip-10-114-237-165;intake;STARTED; Service has entered a period of scheduled downtime # noqa: E501
 
     'HOST DOWNTIME ALERT': namedtuple('E_HostDowntime', 'host, downtime_start_stop, payload'),
     'SERVICE DOWNTIME ALERT': namedtuple('E_ServiceDowntime', 'host, check_name, downtime_start_stop, payload'),
@@ -307,7 +307,7 @@ class NagiosEventLogTailer(NagiosTailer):
                 return False
 
             # and parse the rest of the line
-            parts = map(lambda p: p.strip(), remainder.split(';'))
+            parts = list(map(lambda p: p.strip(), remainder.split(';')))
             # Chop parts we don't recognize
             parts = parts[:len(fields._fields)]
 

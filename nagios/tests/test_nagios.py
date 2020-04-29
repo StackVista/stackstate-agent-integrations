@@ -8,14 +8,7 @@ from stackstate_checks.nagios import NagiosCheck
 
 from .common import (
     CHECK_NAME,
-    CUSTOM_TAGS,
-    NAGIOS_TEST_ALT_HOST_TEMPLATE,
-    NAGIOS_TEST_ALT_SVC_TEMPLATE,
-    NAGIOS_TEST_HOST,
-    NAGIOS_TEST_HOST_TEMPLATE,
-    NAGIOS_TEST_LOG,
-    NAGIOS_TEST_SVC,
-    NAGIOS_TEST_SVC_TEMPLATE,
+    NAGIOS_TEST_LOG
 )
 
 
