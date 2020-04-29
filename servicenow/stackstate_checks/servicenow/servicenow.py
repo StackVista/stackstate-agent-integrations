@@ -95,11 +95,11 @@ class ServicenowCheck(AgentCheck):
         state = self._collect_components(instance_config, timeout)
 
         for component in state['result']:
-            external_id = component['sys_id']
-            comp_type = component['sys_class_name']
             comp_name = component['name'].encode('utf-8')
+            external_id = str(comp_name) if isinstance(comp_name, bytes) else comp_name
+            comp_type = component['sys_class_name']
             data = {
-                "name": str(comp_name) if isinstance(comp_name, bytes) else comp_name,
+                "sys_id": component['sys_id'],
                 "tags": instance_tags
             }
 
