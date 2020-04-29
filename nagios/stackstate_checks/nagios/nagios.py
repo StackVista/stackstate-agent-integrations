@@ -207,7 +207,7 @@ class NagiosCheck(AgentCheck):
 class NagiosTailer(object):
 
     def __init__(self, log_path, file_template, logger, hostname, event_func, gauge_func, freq):
-        '''
+        """
         :param log_path: string, path to the file to parse
         :param file_template: string, format of the perfdata file
         :param logger: Logger object
@@ -215,7 +215,7 @@ class NagiosTailer(object):
         :param event_func: function to create event, should accept dict
         :param gauge_func: function to report a gauge
         :param freq: int, size of bucket to aggregate perfdata metrics
-        '''
+        """
         self.log_path = log_path
         self.log = logger
         self.gen = None
@@ -260,7 +260,7 @@ class NagiosEventLogTailer(NagiosTailer):
 
     def __init__(self, log_path, file_template, logger, hostname, event_func,
                  gauge_func, freq, passive_checks=False):
-        '''
+        """
         :param log_path: string, path to the file to parse
         :param file_template: string, format of the perfdata file
         :param logger: Logger object
@@ -269,7 +269,7 @@ class NagiosEventLogTailer(NagiosTailer):
         :param gauge_func: function to report a gauge
         :param freq: int, size of bucket to aggregate perfdata metrics
         :param passive_checks: bool, enable or not passive checks events
-        '''
+        """
         self.passive_checks = passive_checks
         super(NagiosEventLogTailer, self).__init__(
             log_path, file_template,
@@ -321,7 +321,8 @@ class NagiosEventLogTailer(NagiosTailer):
             self.log.exception("Unable to create a nagios event from line: [%s]" % (line))
             return False
 
-    def create_event(self, timestamp, event_type, hostname, fields):
+    @staticmethod
+    def create_event(timestamp, event_type, hostname, fields):
         """Factory method called by the parsers
         """
         d = fields._asdict()
