@@ -231,14 +231,14 @@ class NagiosTailer(object):
 
         self.tail = TailFile(self.log, self.log_path, self._parse_line)
         self.gen = self.tail.tail(line_by_line=False, move_end=True)
-        self.gen.next()
+        next(self.gen)
 
     def check(self):
         self._line_parsed = 0
         # read until the end of file
         try:
             self.log.debug("Start nagios check for file %s" % (self.log_path))
-            self.gen.next()
+            next(self.gen)
             self.log.debug("Done nagios check for file %s (parsed %s line(s))" %
                            (self.log_path, self._line_parsed))
         except StopIteration as e:
