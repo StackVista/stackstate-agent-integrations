@@ -88,7 +88,7 @@ class TestEventLogTailer:
         events = []
         ITERATIONS = 10
         log_file = tempfile.NamedTemporaryFile(mode="a+b")
-        log_file.write(test_data)
+        log_file.write(test_data.encode('utf-8'))
         log_file.flush()
 
         # Get the config
@@ -99,7 +99,7 @@ class TestEventLogTailer:
         nagios.get_topology = mocked_topology
 
         for i in range(ITERATIONS):
-            log_file.write(test_data)
+            log_file.write(test_data.encode('utf-8'))
             log_file.flush()
             nagios.check(config['instances'][0])
             events.extend(events)
