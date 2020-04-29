@@ -100,8 +100,7 @@ class NagiosCheck(AgentCheck):
                     self.log.warning("Missing path to nagios_conf")
                     continue
 
-                if 'log_file' in nagios_conf and \
-                        instance.get('collect_events', True):
+                if 'log_file' in nagios_conf and instance.get('collect_events', True):
                     self.log.debug("Starting to tail the event log")
                     tailers.append(NagiosEventLogTailer(
                         log_path=nagios_conf['log_file'],
@@ -138,7 +137,7 @@ class NagiosCheck(AgentCheck):
                         freq=check_freq))
 
                 self.nagios_tails[instance_key] = tailers
-                self.account_id = instance_key
+                self.account_id = self.hostname
 
     def get_instance_key(self, instance):
         return TopologyInstance(self.INSTANCE_TYPE, self.account_id)
@@ -203,7 +202,6 @@ class NagiosCheck(AgentCheck):
         finally:
             if f is not None:
                 f.close()
-
 
 
 class NagiosTailer(object):
