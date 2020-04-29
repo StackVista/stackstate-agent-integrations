@@ -26,7 +26,7 @@ class TestEventLogTailer:
         )
 
         # Set up the check
-        nagios = NagiosCheck(CHECK_NAME, {}, {}, config['instances'])
+        nagios = NagiosCheck(CHECK_NAME, {}, {}, instances=config['instances'])
 
         nagios.get_topology = mocked_topology
 
@@ -79,6 +79,33 @@ class TestEventLogTailer:
         assert counters["HOST DOWNTIME ALERT"] == 5
         assert counters["ACKNOWLEDGE_SVC_PROBLEM"] == 4
         assert "ACKNOWLEDGE_HOST_PROBLEM" not in counters
+
+    def test_continuous_bulk_parsing(self, aggregator):
+        """
+        Make sure the Tailer continues to parse Nagios as the file grows
+        """
+        test_data = open(NAGIOS_TEST_LOG).read()
+        events = []
+        ITERATIONS = 10
+        log_file = tempfile.NamedTemporaryFile(mode="a+b")
+        log_file.write(test_data)
+        log_file.flush()
+
+        # Get the config
+        config, nagios_cfg = get_config('\n'.join(["log_file={0}".format(log_file.name)]), events=True)
+
+        # Set up the check
+        nagios = NagiosCheck(CHECK_NAME, {}, {}, instances=config['instances'])
+        nagios.get_topology = mocked_topology
+
+        for i in range(ITERATIONS):
+            log_file.write(test_data)
+            log_file.flush()
+            nagios.check(config['instances'][0])
+            events.extend(events)
+
+        log_file.close()
+        assert len(aggregator.events) == ITERATIONS * 503
 
 
 def get_config(nagios_conf, events=False, service_perf=False, host_perf=False):
