@@ -96,11 +96,12 @@ class ServicenowCheck(AgentCheck):
 
         for component in state['result']:
             comp_name = component['name'].encode('utf-8')
-            external_id = str(comp_name) if isinstance(comp_name, bytes) else comp_name
+            external_id = component['sys_id']
             comp_type = component['sys_class_name']
             identifier = "urn:servicenow:{}:{}".format(comp_type, component['sys_id'])
             data = {
                 "sys_id": component['sys_id'],
+                "name": str(comp_name) if isinstance(comp_name, bytes) else comp_name,
                 "identifiers": identifier,
                 "tags": instance_tags
             }
