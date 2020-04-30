@@ -3,12 +3,16 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import tempfile
 
+import mock
+from pynag.Utils import misc
+
 from stackstate_checks.base import ensure_bytes
+from stackstate_checks.base.stubs import topology
 from stackstate_checks.nagios import NagiosCheck
 
 from .common import (
     CHECK_NAME,
-    NAGIOS_TEST_LOG
+    NAGIOS_TEST_LOG, NAGIOS_TEST_HOST_CFG
 )
 
 
@@ -105,6 +109,39 @@ def test_continuous_bulk_parsing(aggregator):
 
     log_file.close()
     assert len(aggregator.events) == ITERATIONS * 503
+
+
+def test_get_topology(dummy_instance):
+    """
+    Collect Nagios Host components as topology
+    """
+    instance_key = {"type": "nagios", "url": "192.1.1.1", "conf_path": dummy_instance.get("nagios_conf")}
+
+    # Mock parse_nagios_config
+    NagiosCheck.parse_nagios_config = mock.MagicMock()
+    NagiosCheck.parse_nagios_config.return_value = {"key": "value"}
+
+    # Set up the check
+    nagios = NagiosCheck(CHECK_NAME, {}, {}, instances=[dummy_instance])
+
+    # Creates a fake nagios environment with minimal configs in /tmp/
+    environment = misc.FakeNagiosEnvironment()
+    # Create temporary director with minimal config and one by default host 'ok_host'
+    environment.create_minimal_environment()
+    # Update the global variables in pynag.Model
+    environment.update_model()
+
+    environment.import_config(NAGIOS_TEST_HOST_CFG)
+    environment.config.parse_maincfg()
+
+    nagios.get_topology(instance_key)
+    snaphot = topology.get_snapshot(nagios.check_id)
+
+    # topology should return 3 components, 2 from cfg and 1 default
+    assert len(snaphot.get('components')) == 3
+
+    # topology should return 1st host name as components from host.cfg
+    assert snaphot.get('components')[0].get('id') == 'prod-api-1'
 
 
 def get_config(nagios_conf, events=False, service_perf=False, host_perf=False):

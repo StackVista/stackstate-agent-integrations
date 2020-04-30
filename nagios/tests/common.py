@@ -23,6 +23,7 @@ CUSTOM_TAGS = ['optional:tag1']
 NAGIOS_TEST_LOG = os.path.join(HERE, 'fixtures', 'nagios')
 NAGIOS_TEST_HOST = os.path.join(HERE, 'fixtures', 'host-perfdata')
 NAGIOS_TEST_SVC = os.path.join(HERE, 'fixtures', 'service-perfdata')
+NAGIOS_TEST_HOST_CFG = os.path.join(HERE, 'fixtures', 'host.cfg')
 
 NAGIOS_TEST_ALT_HOST_TEMPLATE = "[HOSTPERFDATA]\t$TIMET$\t$HOSTNAME$\t$HOSTEXECUTIONTIME$\t$HOSTOUTPUT$\t$HOSTPERFDATA$"
 NAGIOS_TEST_ALT_SVC_TEMPLATE = (

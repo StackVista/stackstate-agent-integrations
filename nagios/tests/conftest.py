@@ -22,3 +22,8 @@ def sts_environment():
 @pytest.fixture
 def instance():
     return deepcopy(INSTANCE_INTEGRATION)
+
+
+@pytest.fixture
+def dummy_instance():
+    return {"nagios_conf": "dummy/path/nagios.cfg"}
