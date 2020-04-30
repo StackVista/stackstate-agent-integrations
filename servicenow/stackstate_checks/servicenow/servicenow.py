@@ -55,8 +55,8 @@ class ServicenowCheck(AgentCheck):
 
         instance_config = InstanceInfo(instance_tags, base_url, auth)
 
-        relation_types = self._process_and_cache_relation_types(instance_config, timeout)
         try:
+            relation_types = self._process_and_cache_relation_types(instance_config, timeout)
             self.start_snapshot()
             self._process_components(instance_config, timeout)
             self._process_component_relations(instance_config, batch_size, timeout, relation_types)
@@ -98,8 +98,10 @@ class ServicenowCheck(AgentCheck):
             comp_name = component['name'].encode('utf-8')
             external_id = str(comp_name) if isinstance(comp_name, bytes) else comp_name
             comp_type = component['sys_class_name']
+            identifier = "urn:servicenow:{}:{}".format(comp_type, component['sys_id'])
             data = {
                 "sys_id": component['sys_id'],
+                "identifiers": identifier,
                 "tags": instance_tags
             }
 
