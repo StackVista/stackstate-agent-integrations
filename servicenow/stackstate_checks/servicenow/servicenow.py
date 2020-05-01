@@ -56,8 +56,8 @@ class ServicenowCheck(AgentCheck):
         instance_config = InstanceInfo(instance_tags, base_url, auth)
 
         try:
-            relation_types = self._process_and_cache_relation_types(instance_config, timeout)
             self.start_snapshot()
+            relation_types = self._process_and_cache_relation_types(instance_config, timeout)
             self._process_components(instance_config, timeout)
             self._process_component_relations(instance_config, batch_size, timeout, relation_types)
         except Exception as e:
@@ -95,15 +95,12 @@ class ServicenowCheck(AgentCheck):
         state = self._collect_components(instance_config, timeout)
 
         for component in state['result']:
-            identifiers = []
             comp_name = component['name'].encode('utf-8')
-            external_id = component['sys_id']
             comp_type = component['sys_class_name']
-            identifiers.append("urn:servicenow:{}:{}".format(comp_type, component['sys_id']))
+            external_id = "urn:servicenow:{}:{}".format(comp_type, component['sys_id'])
             data = {
                 "sys_id": component['sys_id'],
                 "name": str(comp_name) if isinstance(comp_name, bytes) else comp_name,
-                "identifiers": identifiers,
                 "tags": instance_tags
             }
 
