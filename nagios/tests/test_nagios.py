@@ -14,7 +14,7 @@ from stackstate_checks.nagios import NagiosCheck
 from .common import (
     CHECK_NAME,
     NAGIOS_TEST_LOG, NAGIOS_TEST_HOST_CFG, NAGIOS_TEST_SVC_TEMPLATE, NAGIOS_TEST_HOST_TEMPLATE, NAGIOS_TEST_SVC,
-    NAGIOS_TEST_ALT_SVC_TEMPLATE
+    NAGIOS_TEST_ALT_SVC_TEMPLATE, NAGIOS_TEST_ALT_HOST_TEMPLATE, NAGIOS_TEST_HOST
 )
 
 
@@ -363,6 +363,58 @@ class TestPerfDataTailer:
                 'value': 2470.0,
                 'hostname': 'localhost',
                 'tags': ['unit:MB', 'warn:5852', 'crit:6583', 'min:0', 'max:7315', 'device:/'],
+            },
+        ]
+
+        for metric in expected_metrics:
+            aggregator.assert_metric(metric['name'], metric['value'], tags=metric['tags'], hostname=metric['hostname'])
+
+        aggregator.assert_all_metrics_covered()
+
+    def test_alt_host_perfdata(self, aggregator):
+        """
+        Collect Nagios Host PerfData metrics - alternative template
+        """
+        self.log_file = tempfile.NamedTemporaryFile()
+        perfdata_file = tempfile.NamedTemporaryFile()
+
+        # Get the config
+        config, _ = get_config(
+            "host_perfdata_file={}\n"
+            "host_perfdata_file_template={}".format(perfdata_file.name, NAGIOS_TEST_ALT_HOST_TEMPLATE),
+            host_perf=True
+        )
+
+        # Set up the check
+        nagios = NagiosCheck(CHECK_NAME, {}, {}, config['instances'])
+        nagios.get_topology = mocked_topology
+
+        # Run the check once
+        nagios.check(config['instances'][0])
+
+        with open(NAGIOS_TEST_HOST, "r") as f:
+            nagios_perf = ensure_bytes(f.read())
+
+        perfdata_file.write(nagios_perf)
+        perfdata_file.flush()
+
+        nagios.check(config['instances'][0])
+
+        # Test metrics
+        expected_metrics = [
+            {
+                'name': 'nagios.host.pl',
+                'timestamp': 1339511440,
+                'value': 0.0,
+                'hostname': 'localhost',
+                'tags': ['unit:%', 'warn:80', 'crit:100', 'min:0'],
+            },
+            {
+                'name': 'nagios.host.rta',
+                'timestamp': 1339511440,
+                'value': 0.048,
+                'hostname': 'localhost',
+                'tags': ['unit:ms', 'warn:3000.000000', 'crit:5000.000000', 'min:0.000000'],
             },
         ]
 
