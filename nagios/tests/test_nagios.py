@@ -221,6 +221,45 @@ class TestPerfDataTailer:
 
         aggregator.assert_all_metrics_covered()
 
+    def test_service_perfdata_special_cases(self, aggregator):
+        """
+        Handle special cases in PerfData metrics
+        """
+        self.log_file = tempfile.NamedTemporaryFile()
+
+        config, _ = get_config(
+            "service_perfdata_file={}\n"
+            "service_perfdata_file_template={}".format(self.log_file.name, NAGIOS_TEST_SVC_TEMPLATE),
+            service_perf=True
+        )
+
+        # Set up the check
+        nagios = NagiosCheck(CHECK_NAME, {}, {}, instances=config['instances'])
+        nagios.get_topology = mocked_topology
+
+        # Run the check once
+        nagios.check(config['instances'][0])
+
+        # Write content to log file and run check
+        self._write_log('\t'.join(self.DISK_LOG_DATA))
+        nagios.check(config['instances'][0])
+
+        # Test metrics
+        for metric_data in self.DISK_LOG_SERVICEPERFDATA:
+            name, info = metric_data.split("=")
+            values = info.split(";")
+            value = float(values[0][:-2])
+            expected_tags = ['device:' + name, 'unit:' + values[0][-2:]]
+            if len(values) == 5:
+                expected_tags.append('warn:' + values[1])
+                expected_tags.append('crit:' + values[2])
+                expected_tags.append('min:' + values[3])
+                expected_tags.append('max:' + values[4])
+
+            aggregator.assert_metric("nagios.disk_space", value=value, tags=expected_tags, count=1)
+
+        aggregator.assert_all_metrics_covered()
+
 
 class TestNagiosTopology:
 
