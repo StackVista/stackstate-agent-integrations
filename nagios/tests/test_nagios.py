@@ -31,8 +31,7 @@ class TestEventLogTailer:
 
         # Set up the check
         nagios = NagiosCheck(CHECK_NAME, {}, {}, instances=config['instances'])
-
-        nagios.get_topology = self.mocked_topology
+        nagios.get_topology = mocked_topology
 
         # Run the check once
         nagios.check(config['instances'][0])
@@ -100,7 +99,7 @@ class TestEventLogTailer:
 
         # Set up the check
         nagios = NagiosCheck(CHECK_NAME, {}, {}, instances=config['instances'])
-        nagios.get_topology = self.mocked_topology
+        nagios.get_topology = mocked_topology
 
         for i in range(ITERATIONS):
             log_file.write(test_data.encode('utf-8'))
@@ -110,47 +109,6 @@ class TestEventLogTailer:
 
         log_file.close()
         assert len(aggregator.events) == ITERATIONS * 503
-
-    def mocked_topology(self, *args, **kwargs):
-        """
-        return mocked topology
-        """
-        return {'instance': {'key': 'dummy'}, 'components': []}
-
-
-class TestNagiosTopology:
-
-    def test_get_topology(self, dummy_instance):
-        """
-        Collect Nagios Host components as topology
-        """
-        instance_key = {"type": "nagios", "url": "192.1.1.1", "conf_path": dummy_instance.get("nagios_conf")}
-
-        # Mock parse_nagios_config
-        NagiosCheck.parse_nagios_config = mock.MagicMock()
-        NagiosCheck.parse_nagios_config.return_value = {"key": "value"}
-
-        # Set up the check
-        nagios = NagiosCheck(CHECK_NAME, {}, {}, instances=[dummy_instance])
-
-        # Creates a fake nagios environment with minimal configs in /tmp/
-        environment = misc.FakeNagiosEnvironment()
-        # Create temporary director with minimal config and one by default host 'ok_host'
-        environment.create_minimal_environment()
-        # Update the global variables in pynag.Model
-        environment.update_model()
-
-        environment.import_config(NAGIOS_TEST_HOST_CFG)
-        environment.config.parse_maincfg()
-
-        nagios.get_topology(instance_key)
-        snapshot = topology.get_snapshot(nagios.check_id)
-
-        # topology should return 3 components, 2 from cfg and 1 default
-        assert len(snapshot.get('components')) == 3
-
-        # topology should return 1st host name as components from host.cfg
-        assert snapshot.get('components')[0].get('id') == 'prod-api-1'
 
 
 class TestPerfDataTailer:
@@ -217,8 +175,9 @@ class TestPerfDataTailer:
         """
         Write log data to log file
         """
-        for data in log_data:
-            self.log_file.write("{}\n".format(data).encode('utf-8'))
+        # for data in log_data:
+        #     self.log_file.write("{}\n".format(data).encode('utf-8'))
+        self.log_file.write("{}\n".format(log_data).encode('utf-8'))
         self.log_file.flush()
 
     def test_service_perfdata(self, aggregator):
@@ -227,18 +186,21 @@ class TestPerfDataTailer:
         """
         self.log_file = tempfile.NamedTemporaryFile()
 
-        config, _ = get_config("service_perfdata_file={}\n"
-                               "service_perfdata_file_template={}".format(self.log_file, NAGIOS_TEST_SVC_TEMPLATE),
-                               service_perf=True)
+        config, _ = get_config(
+            "service_perfdata_file={}\n"
+            "service_perfdata_file_template={}".format(self.log_file.name, NAGIOS_TEST_SVC_TEMPLATE),
+            service_perf=True
+        )
 
         # Set up the check
         nagios = NagiosCheck(CHECK_NAME, {}, {}, instances=config['instances'])
+        nagios.get_topology = mocked_topology
 
         # Run the check once
         nagios.check(config['instances'][0])
 
         # Write content to log file and run check
-        self._write_log(['\t'.join(data) for data in self.DB_LOG_DATA])
+        self._write_log('\t'.join(self.DB_LOG_DATA))
         nagios.check(config['instances'][0])
 
         # Test metrics
@@ -257,7 +219,42 @@ class TestPerfDataTailer:
 
             aggregator.assert_metric(metric_name, value=value, tags=expected_tags, count=1)
 
-        aggregator.assert_all_metric_covered()
+        aggregator.assert_all_metrics_covered()
+
+
+class TestNagiosTopology:
+
+    def test_get_topology(self, dummy_instance):
+        """
+        Collect Nagios Host components as topology
+        """
+        instance_key = {"type": "nagios", "url": "192.1.1.1", "conf_path": dummy_instance.get("nagios_conf")}
+
+        # Mock parse_nagios_config
+        NagiosCheck.parse_nagios_config = mock.MagicMock()
+        NagiosCheck.parse_nagios_config.return_value = {"key": "value"}
+
+        # Set up the check
+        nagios = NagiosCheck(CHECK_NAME, {}, {}, instances=[dummy_instance])
+
+        # Creates a fake nagios environment with minimal configs in /tmp/
+        environment = misc.FakeNagiosEnvironment()
+        # Create temporary director with minimal config and one by default host 'ok_host'
+        environment.create_minimal_environment()
+        # Update the global variables in pynag.Model
+        environment.update_model()
+
+        environment.import_config(NAGIOS_TEST_HOST_CFG)
+        environment.config.parse_maincfg()
+
+        nagios.get_topology(instance_key)
+        snapshot = topology.get_snapshot(nagios.check_id)
+
+        # topology should return 3 components, 2 from cfg and 1 default
+        assert len(snapshot.get('components')) == 3
+
+        # topology should return 1st host name as components from host.cfg
+        assert snapshot.get('components')[0].get('id') == 'prod-api-1'
 
 
 def get_config(nagios_conf, events=False, service_perf=False, host_perf=False):
@@ -266,14 +263,14 @@ def get_config(nagios_conf, events=False, service_perf=False, host_perf=False):
     """
     nagios_conf = ensure_bytes(nagios_conf)
 
-    nagios_cfg = tempfile.NamedTemporaryFile(mode="a+b")
-    nagios_cfg.write(nagios_conf)
-    nagios_cfg.flush()
+    nagios_cfg_file = tempfile.NamedTemporaryFile(mode="a+b")
+    nagios_cfg_file.write(nagios_conf)
+    nagios_cfg_file.flush()
 
     config = {
         'instances': [
             {
-                'nagios_conf': nagios_cfg.name,
+                'nagios_conf': nagios_cfg_file.name,
                 'collect_events': events,
                 'collect_service_performance_data': service_perf,
                 'collect_host_performance_data': host_perf
@@ -281,4 +278,11 @@ def get_config(nagios_conf, events=False, service_perf=False, host_perf=False):
         ]
     }
 
-    return config, nagios_cfg
+    return config, nagios_cfg_file
+
+
+def mocked_topology(*args, **kwargs):
+    """
+    return mocked topology
+    """
+    return {'instance': {'key': 'dummy'}, 'components': []}

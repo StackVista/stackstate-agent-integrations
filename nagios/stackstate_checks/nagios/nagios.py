@@ -31,8 +31,10 @@ EVENT_FIELDS = {
     # Command Format:
     # ACKNOWLEDGE_SVC_PROBLEM;<host_name>;<service_description>;<sticky>;<notify>;<persistent>;<author>;<comment>
     # [1305832665] EXTERNAL COMMAND: ACKNOWLEDGE_SVC_PROBLEM;ip-10-202-161-236;Resources ETL;2;1;0;datadog;alq checking
-    'ACKNOWLEDGE_SVC_PROBLEM': namedtuple('E_ServiceAck',
-                                    'host, check_name, sticky_ack, notify_ack, persistent_ack, ack_author, payload'),
+    'ACKNOWLEDGE_SVC_PROBLEM': namedtuple(
+        'E_ServiceAck',
+        'host, check_name, sticky_ack, notify_ack, persistent_ack, ack_author, payload'
+    ),
 
     # Command Format:
     # ACKNOWLEDGE_HOST_PROBLEM;<host_name>;<sticky>;<notify>;<persistent>;<author>;<comment>
@@ -255,6 +257,9 @@ class NagiosTailer(object):
         except Exception as e:
             raise InvalidDataTemplate("%s (%s)" % (file_template, e))
 
+    def _parse_line(self, line):
+        raise NotImplementedError
+
 
 class NagiosEventLogTailer(NagiosTailer):
 
@@ -401,7 +406,7 @@ class NagiosPerfDataTailer(NagiosTailer):
                     if attr_val is not None and attr_val != '':
                         tags.append("{0}:{1}".format(key, attr_val))
 
-                self._gauge(metric, value, tags, host_name, device_name, timestamp)
+                self._gauge(metric, value, tags, host_name, device_name)
 
 
 class NagiosHostPerfDataTailer(NagiosPerfDataTailer):
