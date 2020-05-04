@@ -13,7 +13,7 @@ from stackstate_checks.nagios import NagiosCheck
 
 from .common import (
     CHECK_NAME,
-    NAGIOS_TEST_LOG, NAGIOS_TEST_HOST_CFG
+    NAGIOS_TEST_LOG, NAGIOS_TEST_HOST_CFG, NAGIOS_TEST_SVC_TEMPLATE
 )
 
 
@@ -212,6 +212,52 @@ class TestPerfDataTailer:
         "HOSTSTATE::UP",
         "HOSTSTATETYPE::HARD",
     ]
+
+    def _write_log(self, log_data):
+        """
+        Write log data to log file
+        """
+        for data in log_data:
+            self.log_file.write("{}\n".format(data).encode('utf-8'))
+        self.log_file.flush()
+
+    def test_service_perfdata(self, aggregator):
+        """
+        Collect Nagios Service PerfData metrics
+        """
+        self.log_file = tempfile.NamedTemporaryFile()
+
+        config, _ = get_config("service_perfdata_file={}\n"
+                               "service_perfdata_file_template={}".format(self.log_file, NAGIOS_TEST_SVC_TEMPLATE),
+                               service_perf=True)
+
+        # Set up the check
+        nagios = NagiosCheck(CHECK_NAME, {}, {}, instances=config['instances'])
+
+        # Run the check once
+        nagios.check(config['instances'][0])
+
+        # Write content to log file and run check
+        self._write_log(['\t'.join(data) for data in self.DB_LOG_DATA])
+        nagios.check(config['instances'][0])
+
+        # Test metrics
+        for metric_data in self.DB_LOG_SERVICEPERFDATA:
+            name, info = metric_data.split("=")
+            metric_name = "nagios.pgsql_backends." + name
+
+            values = info.split(";")
+            value = float(values[0])
+            expected_tags = []
+            if len(values) == 5:
+                expected_tags.append('warn:' + values[1])
+                expected_tags.append('crit:' + values[2])
+                expected_tags.append('min:' + values[3])
+                expected_tags.append('max:' + values[4])
+
+            aggregator.assert_metric(metric_name, value=value, tags=expected_tags, count=1)
+
+        aggregator.assert_all_metric_covered()
 
 
 def get_config(nagios_conf, events=False, service_perf=False, host_perf=False):
