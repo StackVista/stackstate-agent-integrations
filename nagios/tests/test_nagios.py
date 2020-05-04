@@ -13,7 +13,7 @@ from stackstate_checks.nagios import NagiosCheck
 
 from .common import (
     CHECK_NAME,
-    NAGIOS_TEST_LOG, NAGIOS_TEST_HOST_CFG, NAGIOS_TEST_SVC_TEMPLATE
+    NAGIOS_TEST_LOG, NAGIOS_TEST_HOST_CFG, NAGIOS_TEST_SVC_TEMPLATE, NAGIOS_TEST_HOST_TEMPLATE
 )
 
 
@@ -257,6 +257,50 @@ class TestPerfDataTailer:
                 expected_tags.append('max:' + values[4])
 
             aggregator.assert_metric("nagios.disk_space", value=value, tags=expected_tags, count=1)
+
+        aggregator.assert_all_metrics_covered()
+
+    def test_host_perfdata(self, aggregator):
+        """
+        Collect Nagios Host PerfData metrics
+        """
+        self.log_file = tempfile.NamedTemporaryFile()
+
+        # Get the config
+        config, _ = get_config(
+            "host_perfdata_file={}\n"
+            "host_perfdata_file_template={}".format(self.log_file.name, NAGIOS_TEST_HOST_TEMPLATE),
+            host_perf=True
+        )
+
+        # Set up the check
+        nagios = NagiosCheck(CHECK_NAME, {}, {}, config['instances'])
+        nagios.get_topology = mocked_topology
+
+        # Run the check once
+        nagios.check(config['instances'][0])
+
+        # Write content to log file and run check
+        self._write_log('\t'.join(self.HOST_LOG_DATA))
+        nagios.check(config['instances'][0])
+
+        # Test metric
+        for metric_data in self.HOST_LOG_SERVICEPERFDATA:
+            name, info = metric_data.split("=")
+            metric_name = "nagios.host." + name
+
+            values = info.split(";")
+
+            index = values[0].find("ms") if values[0].find("ms") != -1 else values[0].find("%")
+            index = len(values[0]) - index
+            value = float(values[0][:-index])
+            expected_tags = ['unit:' + values[0][-index:]]
+            if len(values) == 4:
+                expected_tags.append('warn:' + values[1])
+                expected_tags.append('crit:' + values[2])
+                expected_tags.append('min:' + values[3])
+
+            aggregator.assert_metric(metric_name, value=value, tags=expected_tags, count=1)
 
         aggregator.assert_all_metrics_covered()
 
