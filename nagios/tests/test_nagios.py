@@ -13,7 +13,8 @@ from stackstate_checks.nagios import NagiosCheck
 
 from .common import (
     CHECK_NAME,
-    NAGIOS_TEST_LOG, NAGIOS_TEST_HOST_CFG, NAGIOS_TEST_SVC_TEMPLATE, NAGIOS_TEST_HOST_TEMPLATE
+    NAGIOS_TEST_LOG, NAGIOS_TEST_HOST_CFG, NAGIOS_TEST_SVC_TEMPLATE, NAGIOS_TEST_HOST_TEMPLATE, NAGIOS_TEST_SVC,
+    NAGIOS_TEST_ALT_SVC_TEMPLATE
 )
 
 
@@ -301,6 +302,72 @@ class TestPerfDataTailer:
                 expected_tags.append('min:' + values[3])
 
             aggregator.assert_metric(metric_name, value=value, tags=expected_tags, count=1)
+
+        aggregator.assert_all_metrics_covered()
+
+    def test_alt_service_perfdata(self, aggregator):
+        """
+        Collect Nagios Service PerfData metrics - alternative template
+        """
+        self.log_file = tempfile.NamedTemporaryFile()
+        perfdata_file = tempfile.NamedTemporaryFile()
+
+        # Get the config
+        config, _ = get_config(
+            "service_perfdata_file={}\n"
+            "service_perfdata_file_template={}".format(perfdata_file.name, NAGIOS_TEST_ALT_SVC_TEMPLATE),
+            service_perf=True
+        )
+
+        # Set up the check
+        nagios = NagiosCheck(CHECK_NAME, {}, {}, config['instances'])
+        nagios.get_topology = mocked_topology
+
+        # Run the check once
+        nagios.check(config['instances'][0])
+
+        with open(NAGIOS_TEST_SVC, "r") as f:
+            nagios_perf = ensure_bytes(f.read())
+
+        perfdata_file.write(nagios_perf)
+        perfdata_file.flush()
+
+        nagios.check(config['instances'][0])
+
+        # Test metrics
+        expected_metrics = [
+            {
+                'name': 'nagios.current_users.users',
+                'timestamp': 1339511440,
+                'value': 1.0,
+                'hostname': 'localhost',
+                'tags': ['warn:20', 'crit:50', 'min:0'],
+            },
+            {
+                'name': 'nagios.ping.pl',
+                'timestamp': 1339511500,
+                'value': 0.0,
+                'hostname': 'localhost',
+                'tags': ['unit:%', 'warn:20', 'crit:60', 'min:0'],
+            },
+            {
+                'name': 'nagios.ping.rta',
+                'timestamp': 1339511500,
+                'value': 0.065,
+                'hostname': 'localhost',
+                'tags': ['unit:ms', 'warn:100.000000', 'crit:500.000000', 'min:0.000000'],
+            },
+            {
+                'name': 'nagios.root_partition',
+                'timestamp': 1339511560,
+                'value': 2470.0,
+                'hostname': 'localhost',
+                'tags': ['unit:MB', 'warn:5852', 'crit:6583', 'min:0', 'max:7315', 'device:/'],
+            },
+        ]
+
+        for metric in expected_metrics:
+            aggregator.assert_metric(metric['name'], metric['value'], tags=metric['tags'], hostname=metric['hostname'])
 
         aggregator.assert_all_metrics_covered()
 
