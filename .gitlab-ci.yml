@@ -195,6 +195,15 @@ test_static_topology:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
 
+test_nagios:
+  <<: *linux_test
+  variables:
+    CHECK: "nagios"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
+
 .windows_test: &windows_test
   <<: *windows_env
   stage: test
@@ -229,6 +238,11 @@ test_aws_xray_win:
   <<: *windows_test
   variables:
     CHECK: "aws_xray"
+
+test_nagios_win:
+  <<: *windows_test
+  variables:
+    CHECK: "nagios"
 
 publish-checks-dev:
   stage: publish

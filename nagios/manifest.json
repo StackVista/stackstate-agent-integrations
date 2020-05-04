@@ -6,7 +6,7 @@
   "metric_prefix": "nagios.",
   "metric_to_check": "",
   "creates_events": false,
-  "short_description": "",
+  "short_description": "Send Nagios service flaps, host alerts, and more to your Datadog event stream.",
   "guid": "184af361-a363-4e40-8e86-b0c6cfff691d",
   "support": "core",
   "supported_os": [
