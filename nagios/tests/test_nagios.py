@@ -3,7 +3,6 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import tempfile
 import time
-from pprint import PrettyPrinter
 
 import mock
 from pynag.Utils import misc
