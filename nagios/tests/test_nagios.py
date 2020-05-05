@@ -3,6 +3,7 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import tempfile
 import time
+from pprint import PrettyPrinter
 
 import mock
 from pynag.Utils import misc
@@ -451,6 +452,8 @@ class TestNagiosTopology:
 
         nagios.get_topology(instance_key)
         snapshot = topology.get_snapshot(nagios.check_id)
+        pp = PrettyPrinter()
+        pp.pprint(snapshot.get('components'))
 
         # topology should return 3 components, 2 from cfg and 1 default
         assert len(snapshot.get('components')) == 3
