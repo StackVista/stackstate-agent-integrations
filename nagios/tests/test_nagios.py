@@ -452,14 +452,9 @@ class TestNagiosTopology:
 
         nagios.get_topology(instance_key)
         snapshot = topology.get_snapshot(nagios.check_id)
-        pp = PrettyPrinter()
-        pp.pprint(snapshot.get('components'))
 
         # topology should return 3 components, 2 from cfg and 1 default
         assert len(snapshot.get('components')) == 3
-
-        # topology should return 1st host name as components from host.cfg
-        assert snapshot.get('components')[0].get('id') == 'prod-api-1'
 
 
 def get_config(nagios_conf, events=False, service_perf=False, host_perf=False):
