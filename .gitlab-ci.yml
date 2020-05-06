@@ -239,11 +239,6 @@ test_aws_xray_win:
   variables:
     CHECK: "aws_xray"
 
-test_nagios_win:
-  <<: *windows_test
-  variables:
-    CHECK: "nagios"
-
 publish-checks-dev:
   stage: publish
   script:

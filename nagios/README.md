@@ -21,21 +21,7 @@ need to install anything else on your server.
 
 ## Data Collected
 
-### Metrics
+Nagios collected data include topology and metrics.
 
-Nagios does not include any metrics.
-
-### Service Checks
-
-Nagios does not include any service checks.
-
-### Events
-
-Nagios does not include any events.
-
-### Topology
-
-Nagios does not include any topology.
-
-[1]: **LINK_TO_INTEGERATION_SITE**
+[1]: https://www.nagios.org
 [2]: https://github.com/StackVista/stackstate-agent-integrations/blob/master/nagios/stackstate_checks/nagios/data/conf.yaml.example
