@@ -6,17 +6,27 @@ from copy import deepcopy
 
 import pytest
 
-from .common import INSTANCE_INTEGRATION
-
-FIXTURE_DIR = os.path.join(os.path.dirname(__file__), 'fixtures')
+from stackstate_checks.dev import TempDir, docker_run
+from .common import INSTANCE_INTEGRATION, HERE
 
 
 @pytest.fixture(scope='session')
 def sts_environment():
-    # This conf instance is used when running `checksdev env start mycheck myenv`.
-    # The start command places this as a `conf.yaml` in the `conf.d/mycheck/` directory.
-    # If you want to run an environment this object can not be empty.
-    return {"key": "value"}
+    nagios_conf = os.path.join(HERE, 'compose', 'nagios4', 'nagios.cfg')
+    with TempDir("nagios_var_log") as nagios_var_log:
+        e2e_metadata = {
+            'docker_volumes': [
+                '{}:/opt/nagios/etc/nagios.cfg'.format(nagios_conf),
+                '{}:/opt/nagios/var/log/'.format(nagios_var_log),
+            ]
+        }
+
+        with docker_run(
+                os.path.join(HERE, 'compose', 'docker-compose.yaml'),
+                env_vars={'NAGIOS_LOGS_PATH': nagios_var_log},
+                build=True,
+        ):
+            yield INSTANCE_INTEGRATION, e2e_metadata
 
 
 @pytest.fixture
