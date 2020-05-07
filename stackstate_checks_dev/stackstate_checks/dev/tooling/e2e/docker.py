@@ -109,10 +109,16 @@ class DockerInterface(object):
         env_vars = {
             # Agent 6 will simply fail without an API key
             'STS_API_KEY': self.api_key,
-            # Run API on a random port
+            # We still need this trifold, this should be improved
+            'STS_STS_URL': self.sts_url,
+            # Set the Kubernetes Cluster Name for k8s integrations
+            'CLUSTER_NAME:': self.cluster_name,
+            # Avoid clashing with an already running agent's CMD port
             'STS_CMD_PORT': 4999,
             # Disable trace agent
             'STS_APM_ENABLED': 'false',
+            # Enable debugging level
+            'STS_LOG_LEVEL': 'DEBUG',
             # Don't write .pyc, needed to fix this issue (only Python 2):
             # When reinstalling a package, .pyc are not cleaned correctly. The issue is fixed by not writing them
             # in the first place.
@@ -120,9 +126,6 @@ class DockerInterface(object):
             # TODO: Remove PYTHONDONTWRITEBYTECODE env var when Python 2 support is removed
             'PYTHONDONTWRITEBYTECODE': "1",
         }
-        if self.sts_url:
-            # Set custom agent intake
-            env_vars['DD_DD_URL'] = self.sts_url
         env_vars.update(self.env_vars)
 
         volumes = [
@@ -140,11 +143,9 @@ class DockerInterface(object):
             # Keep it up
             '-d',
             # Ensure consistent naming
-            '--name',
-            self.container_name,
+            '--name', self.container_name,
             # Ensure access to host network
-            '--network',
-            'host',
+            '--network', 'host',
         ]
         for volume in volumes:
             command.extend(['-v', volume])
