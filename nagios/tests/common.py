@@ -12,7 +12,7 @@ HOST = get_docker_hostname()
 CONTAINER_NAME = "sts-test-nagios"
 
 INSTANCE_INTEGRATION = {
-    'nagios_conf': '/opt/nagios/etc/nagios.cfg',
+    'nagios_conf': '/etc/nagios/nagios.cfg',
     'collect_host_performance_data': True,
     'collect_service_performance_data': True,
 }
