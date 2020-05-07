@@ -4,3 +4,5 @@ services:
     build: .
     volumes:
       - ${NAGIOS_LOGS_PATH}:/opt/nagios/var/log/
+    ports:
+      - 8080:80
