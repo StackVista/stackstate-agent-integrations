@@ -18,10 +18,22 @@ from ..commands.console import echo_info
 class DockerInterface(object):
     ENV_TYPE = 'docker'
 
-    def __init__(self, check, env, base_package=None, config=None, metadata=None, agent_build=None, sts_url=None,
-                 api_key=None, cluster_name=None):
+    def __init__(
+            self,
+            check,
+            env,
+            base_package=None,
+            config=None,
+            metadata=None,
+            agent_build=None,
+            sts_url=None,
+            api_key=None,
+            cluster_name=None,
+            env_vars=None
+    ):
         self.check = check
         self.env = env
+        self.env_vars = env_vars or {}
         self.base_package = base_package
         self.config = config or {}
         self.metadata = metadata or {}
@@ -91,44 +103,66 @@ class DockerInterface(object):
             run_command(['docker', 'pull', self.agent_build], capture=True, check=True)
 
     def start_agent(self):
-        if self.agent_build:
-            command = [
-                'docker', 'run',
-                # Keep it up
-                '-d',
-                # Ensure consistent naming
-                '--name', self.container_name,
-                # Ensure access to host network
-                '--network', 'host',
-                # Agent 6 will simply fail without an API key
-                '-e', 'STS_API_KEY={}'.format(self.api_key),
-                # We still need this trifold, this should be improved
-                '-e', 'STS_STS_URL={}'.format(self.sts_url),
-                # Set the Kubernetes Cluster Name for k8s integrations
-                '-e', 'CLUSTER_NAME={}'.format(self.cluster_name),
-                # Avoid clashing with an already running agent's CMD port
-                '-e', 'STS_CMD_PORT=4999',
-                # Needs to be explicitly disabled
-                '-e', 'STS_APM_ENABLED=false',
-                # Enable debugging level
-                '-e', 'STS_LOG_LEVEL=DEBUG',
-                # Mount the config directory, not the file, to ensure updates are propagated
-                # https://github.com/moby/moby/issues/15793#issuecomment-135411504
-                '-v', '{}:{}'.format(self.config_dir, get_agent_conf_dir(self.check)),
-                # Mount the check directory
-                '-v', '{}:{}'.format(path_join(get_root(), self.check), self.check_mount_dir),
-            ]
+        if not self.agent_build:
+            return
 
-            if self.base_package:
-                # Mount the check directory
-                command.append('-v')
-                command.append('{}:{}'.format(self.base_package, self.base_mount_dir))
+        env_vars = {
+            # Agent 6 will simply fail without an API key
+            'STS_API_KEY': self.api_key,
+            # Run API on a random port
+            'STS_CMD_PORT': 4999,
+            # Disable trace agent
+            'STS_APM_ENABLED': 'false',
+            # Don't write .pyc, needed to fix this issue (only Python 2):
+            # When reinstalling a package, .pyc are not cleaned correctly. The issue is fixed by not writing them
+            # in the first place.
+            # More info: https://github.com/DataDog/integrations-core/pull/5454
+            # TODO: Remove PYTHONDONTWRITEBYTECODE env var when Python 2 support is removed
+            'PYTHONDONTWRITEBYTECODE': "1",
+        }
+        if self.sts_url:
+            # Set custom agent intake
+            env_vars['DD_DD_URL'] = self.sts_url
+        env_vars.update(self.env_vars)
 
-            # The chosen tag
-            command.append(self.agent_build)
+        volumes = [
+            # Mount the config directory, not the file, to ensure updates are propagated
+            # https://github.com/moby/moby/issues/15793#issuecomment-135411504
+            '{}:{}'.format(self.config_dir, get_agent_conf_dir(self.check)),
+            # Mount the check directory
+            '{}:{}'.format(path_join(get_root(), self.check), self.check_mount_dir),
+        ]
+        volumes.extend(self.metadata.get('docker_volumes', []))
 
-            echo_info("\nCommand used to start the agent env: '{0}'\n".format(" ".join(command)))
-            return run_command(command, capture=True)
+        command = [
+            'docker',
+            'run',
+            # Keep it up
+            '-d',
+            # Ensure consistent naming
+            '--name',
+            self.container_name,
+            # Ensure access to host network
+            '--network',
+            'host',
+        ]
+        for volume in volumes:
+            command.extend(['-v', volume])
+
+        # Any environment variables passed to the start command
+        for key, value in sorted(env_vars.items()):
+            command.extend(['-e', '{}={}'.format(key, value)])
+
+        if self.base_package:
+            # Mount the check directory
+            command.append('-v')
+            command.append('{}:{}'.format(self.base_package, self.base_mount_dir))
+
+        # The chosen tag
+        command.append(self.agent_build)
+
+        echo_info("\nCommand used to start the agent env: '{0}'\n".format(" ".join(command)))
+        return run_command(command, capture=True)
 
     def stop_agent(self):
         # Only error for exit code if config actually exists

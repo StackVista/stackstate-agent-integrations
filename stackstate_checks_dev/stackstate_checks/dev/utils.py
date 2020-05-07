@@ -165,6 +165,28 @@ def get_here():
     return get_parent_dir(inspect.currentframe().f_back.f_code.co_filename)
 
 
+def find_check_root(depth=0):
+    # Account for this call
+    depth += 1
+
+    frame = inspect.currentframe()
+    for _ in range(depth):
+        frame = frame.f_back
+
+    root = get_parent_dir(frame.f_code.co_filename)
+    while True:
+        if file_exists(path_join(root, 'setup.py')):
+            break
+
+        new_root = os.path.dirname(root)
+        if new_root == root:
+            raise OSError('No check found')
+
+        root = new_root
+
+    return root
+
+
 @contextmanager
 def temp_dir():
     # TODO: On Python 3.5+ just use `with TemporaryDirectory() as d:`.
