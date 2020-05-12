@@ -187,6 +187,14 @@ test_zabbix:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
 
+test_servicenow:
+  <<: *linux_test
+  variables:
+    CHECK: "servicenow"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
 test_static_topology:
   <<: *linux_test
   variables:

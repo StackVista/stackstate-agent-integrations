@@ -8,7 +8,7 @@ from zeep import Client, Transport
 
 class SapProxy(object):
 
-    def __init__(self, url, user, password, verify=False, cert=None, keyfile=None):
+    def __init__(self, url, user, password, verify=True, cert=None, keyfile=None):
         session = Session()
         if cert:
             session.verify = verify
