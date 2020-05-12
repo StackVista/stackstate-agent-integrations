@@ -365,6 +365,7 @@ class NagiosPerfDataTailer(NagiosTailer):
         matched = self.line_pattern.match(line)
         if matched:
             self.log.debug("Matching line found %s" % line)
+            self._line_parsed = self._line_parsed + 1
             data = matched.groupdict()
             metric_prefix = self._get_metric_prefix(data)
 
