@@ -408,6 +408,7 @@ class NagiosPerfDataTailer(NagiosTailer):
                         tags.append("{0}:{1}".format(key, attr_val))
 
                 self._gauge(metric, value, tags, host_name, device_name)
+                self.log.debug("Nagios metric: {}: {}".format(metric, value))
 
 
 class NagiosHostPerfDataTailer(NagiosPerfDataTailer):
