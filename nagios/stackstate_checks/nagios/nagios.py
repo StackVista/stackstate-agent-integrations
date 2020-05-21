@@ -61,7 +61,7 @@ RE_LINE_EXT = re.compile(r'^\[(\d+)\] ([^:]+): (.*)$')
 
 
 class NagiosCheck(AgentCheck):
-    INSTANCE_TYPE = "nagios"
+    SERVICE_CHECK_NAME = INSTANCE_TYPE = "nagios"
     NAGIOS_CONF_KEYS = [
         re.compile(r'^(?P<key>log_file)\s*=\s*(?P<value>.+)$'),
         re.compile(r'^(?P<key>host_perfdata_file_template)\s*=\s*(?P<value>.+)$'),
@@ -152,23 +152,33 @@ class NagiosCheck(AgentCheck):
         Special case: Compatibility with the old conf when no conf file is specified
         but the path to the event_log is given
         """
-        instance_key = instance.get('nagios_conf',
-                                    instance.get('nagios_perf_cfg',
-                                                 instance.get('nagios_log',
-                                                              None)))
-        # Bad configuration: This instance does not contain any necessary configuration
-        if not instance_key or instance_key not in self.nagios_tails:
-            raise Exception('No Nagios configuration file specified')
-        for tailer in self.nagios_tails[instance_key]:
-            tailer.check()
-        i_key = {"type": self.INSTANCE_TYPE, "conf_path": instance.get("nagios_conf"), "url": self.hostname}
-        self.get_topology(i_key)
+        tags = ["url:{}".format(self.hostname)]
+        try:
+            instance_key = instance.get('nagios_conf',
+                                        instance.get('nagios_perf_cfg',
+                                                     instance.get('nagios_log',
+                                                                  None)))
+            # Bad configuration: This instance does not contain any necessary configuration
+            if not instance_key or instance_key not in self.nagios_tails:
+                raise Exception('No Nagios configuration file specified')
+            for tailer in self.nagios_tails[instance_key]:
+                tailer.check()
+            i_key = {"type": self.INSTANCE_TYPE, "conf_path": instance.get("nagios_conf"), "url": self.hostname}
+            self.get_topology(i_key)
+
+            msg = "Parsed Nagios logs at {} ".format(self.hostname)
+            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=tags, message=msg)
+        except Exception as e:
+            self.log.exception(str(e))
+            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, message=str(e), tags=tags)
 
     def get_topology(self, instance_key):
         # Get all hosts
         self.start_snapshot()
         all_hosts = Model.Host.objects.all
+        self.log.debug("Nagios hosts found: {}".format(len(all_hosts)))
         for host in all_hosts:
+            self.log.debug("Nagios host object: {}".format(host))
             if host.host_name is None:
                 continue
             id = host.host_name
