@@ -166,7 +166,7 @@ class NagiosCheck(AgentCheck):
             i_key = {"type": self.INSTANCE_TYPE, "conf_path": instance.get("nagios_conf"), "url": self.hostname}
             self.get_topology(i_key)
 
-            msg = "Parsed Nagios logs at {} ".format(self.hostname)
+            msg = "Parsed Nagios logs at {}".format(self.hostname)
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=tags, message=msg)
         except Exception as e:
             self.log.exception(str(e))
@@ -176,12 +176,11 @@ class NagiosCheck(AgentCheck):
         # Get all hosts
         self.start_snapshot()
         all_hosts = Model.Host.objects.all
-        self.log.debug("Nagios hosts found: {}".format(len(all_hosts)))
         for host in all_hosts:
-            self.log.debug("Nagios host object: {}".format(host))
             if host.host_name is None:
                 continue
             id = host.host_name
+            self.log.debug("Nagios host object: {}".format(id))
             type = "nagios-host"
             data = {
                 "name": host.host_name.strip(),
