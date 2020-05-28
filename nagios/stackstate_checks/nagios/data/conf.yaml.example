@@ -1,5 +1,4 @@
 init_config:
-  min_collection_interval: 30
 
 instances:
   - nagios_conf: /usr/local/nagios/etc/nagios.cfg
