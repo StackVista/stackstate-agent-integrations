@@ -86,7 +86,7 @@ class NagiosCheck(AgentCheck):
                     conf_path = instance['nagios_conf']
                     nagios_conf = self.parse_nagios_config(conf_path)
                     instance_key = conf_path
-                # Retrocompatibility Code
+                # Retro compatibility Code
                 elif 'nagios_perf_cfg' in instance:
                     conf_path = instance['nagios_perf_cfg']
                     nagios_conf = self.parse_nagios_config(conf_path)
@@ -97,7 +97,7 @@ class NagiosCheck(AgentCheck):
                     nagios_conf["log_file"] = instance['nagios_log']
                     if instance_key is None:
                         instance_key = instance['nagios_log']
-                # End of retrocompatibility code
+                # End of retro compatibility code
                 if not nagios_conf:
                     self.log.warning("Missing path to nagios_conf")
                     continue
