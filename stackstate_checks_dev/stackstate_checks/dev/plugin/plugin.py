@@ -105,8 +105,9 @@ def sts_environment_runner(request):
 
 @pytest.fixture
 def sts_agent_check(request, aggregator):
-    if not e2e_testing():
-        pytest.skip('Not running E2E tests')
+    # TODO: do we use e2e_testing() elsewhere?
+    # if not e2e_testing():
+    #     pytest.skip('Not running E2E tests')
 
     # Lazily import to reduce plugin load times for everyone
     from stackstate_checks.dev import TempDir, run_command
@@ -120,14 +121,14 @@ def sts_agent_check(request, aggregator):
 
             new_root = os.path.dirname(root)
             if new_root == root:
-                raise OSError('No Datadog Agent check found')
+                raise OSError('No StackState Agent check found')
 
             root = new_root
 
         python_path = os.environ[E2E_PARENT_PYTHON]
         env = os.environ['TOX_ENV_NAME']
 
-        check_command = [python_path, '-m', 'datadog_checks.dev', 'env', 'check', check, env, '--json']
+        check_command = [python_path, '-m', 'stackstate_checks.dev', 'env', 'check', check, env, '--json']
 
         if config:
             config = format_config(config)
@@ -167,5 +168,5 @@ def sts_agent_check(request, aggregator):
         return aggregator
 
     # Give an explicit name so we don't shadow other uses
-    with TempDir('dd_agent_check') as temp_dir:
+    with TempDir('sts_agent_check') as temp_dir:
         yield run_check
