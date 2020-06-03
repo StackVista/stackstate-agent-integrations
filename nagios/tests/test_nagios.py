@@ -5,6 +5,7 @@ import tempfile
 import time
 
 import mock
+import pytest
 from pynag.Utils import misc
 
 from stackstate_checks.base import ensure_bytes
@@ -18,6 +19,7 @@ from .common import (
 )
 
 
+@pytest.mark.unit
 class TestEventLogTailer:
     def test_line_parser(self, aggregator):
         """
@@ -112,6 +114,7 @@ class TestEventLogTailer:
         assert len(aggregator.events) == ITERATIONS * 503
 
 
+@pytest.mark.unit
 class TestPerfDataTailer:
     POINT_TIME = (int(time.time()) / 15) * 15
 
@@ -424,6 +427,10 @@ class TestPerfDataTailer:
         aggregator.assert_all_metrics_covered()
 
 
+
+
+
+@pytest.mark.unit
 class TestNagiosTopology:
 
     def test_get_topology(self, dummy_instance):
@@ -462,7 +469,7 @@ def get_config(nagios_conf, events=False, service_perf=False, host_perf=False):
     """
     nagios_conf = ensure_bytes(nagios_conf)
 
-    nagios_cfg_file = tempfile.NamedTemporaryFile(mode="a+b")
+    nagios_cfg_file = tempfile.NamedTemporaryFile(mode="a+b", delete=False)
     nagios_cfg_file.write(nagios_conf)
     nagios_cfg_file.flush()
 
