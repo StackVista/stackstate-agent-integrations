@@ -8,7 +8,7 @@ from base64 import urlsafe_b64encode
 
 import pytest
 
-from .._env import E2E_FIXTURE_NAME, TESTING_PLUGIN, e2e_active, get_env_vars, e2e_testing, E2E_PARENT_PYTHON, \
+from .._env import E2E_FIXTURE_NAME, TESTING_PLUGIN, e2e_active, get_env_vars, E2E_PARENT_PYTHON, \
     format_config, AGENT_COLLECTOR_SEPARATOR, replay_check_run
 
 try:
