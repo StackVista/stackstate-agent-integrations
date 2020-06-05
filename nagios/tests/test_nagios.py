@@ -427,9 +427,6 @@ class TestPerfDataTailer:
         aggregator.assert_all_metrics_covered()
 
 
-
-
-
 @pytest.mark.unit
 class TestNagiosTopology:
 

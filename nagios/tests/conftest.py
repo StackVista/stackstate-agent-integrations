@@ -35,10 +35,12 @@ def sts_environment():
 def instance():
     return deepcopy(INSTANCE_INTEGRATION)
 
+
 @pytest.fixture
 def integration_instance():
     conf_dir = os.path.join(HERE, 'compose', 'nagios4', 'conf.d')
-    config, _ = get_config('log_file={}\ncfg_file={}\ncfg_dir={}\n'.format(DOCKER_NAGIOS_CONF, DOCKER_NAGIOS_LOCALHOST_CONF, conf_dir))
+    config, _ = get_config(
+        'log_file={}\ncfg_file={}\ncfg_dir={}\n'.format(DOCKER_NAGIOS_CONF, DOCKER_NAGIOS_LOCALHOST_CONF, conf_dir))
     return config['instances'][0]
 
 
