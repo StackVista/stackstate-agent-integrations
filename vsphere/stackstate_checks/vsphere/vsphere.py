@@ -1071,7 +1071,7 @@ class VSphereCheck(AgentCheck):
                 topology_tags["topo_type"] = VSPHERE_COMPONENT_TYPE.DATASTORE
                 topology_tags["name"] = c.name
                 topology_tags["accessible"] = c.summary.accessible
-                topology_tags["capacity"] = c.summary.capacity
+                topology_tags["capacity"] = str(c.summary.capacity)
                 topology_tags["type"] = c.summary.type
                 topology_tags["url"] = c.summary.url
                 topology_tags["layer"] = TOPOLOGY_LAYERS.DATASTORE
