@@ -529,6 +529,7 @@ class TestVsphereTopo(unittest.TestCase):
         self.assertEqual(obj_list[0]['topo_tags']['accessible'], 'true')
         self.assertEqual(obj_list[0]['topo_tags']['name'], 'WDC1TB')
         self.assertEqual(obj_list[0]['topo_tags']['url'], '/vmfs/volumes/54183927-04f91918-a72a-6805ca147c55')
+        self.assertEqual(type(obj_list[0]['topo_tags']['capacity']), str)
 
     def test_vsphere_hosts(self):
         """

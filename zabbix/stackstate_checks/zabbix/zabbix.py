@@ -187,7 +187,7 @@ class ZabbixCheck(AgentCheck):
     def process_host_topology(self, topology_instance, zabbix_host, stackstate_environment):
         external_id = "urn:host:/%s" % zabbix_host.host
         url = topology_instance.get('url')
-        if 'http'in url or 'https' in url:
+        if 'http' in url or 'https' in url:
             instance_url = url.split("//")[1].split("/")[0]
         else:
             instance_url = url.split("/")[0]
