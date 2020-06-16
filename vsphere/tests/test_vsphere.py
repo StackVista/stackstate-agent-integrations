@@ -463,6 +463,45 @@ class TestVsphereTopo(unittest.TestCase):
         self.assertEqual(expected_numcpu_label, 'numCPU:1')
         self.assertEqual(expected_memory_label, 'memoryMB:4096')
 
+    def test_vsphere_vms_metadata_exception(self):
+        """
+        Test if the vsphere_vms returns the VM list and labels
+        """
+        self.check._is_excluded = MagicMock(return_value=False)
+
+        # get the client
+        client = vsphere_client()
+
+        # list_attached_tags method returns empty list of tags
+        client.tagging.TagAssociation.list_attached_tags = MagicMock(return_value=[])
+
+        # assign the vsphere client object to the vsphere check client object
+        self.check.client = client
+
+        config = MockedMOR(guestId='ubuntu64Guest', guestFullName='Ubuntu Linux (64-bit)')
+        virtualmachine = MockedMOR(spec=u"VirtualMachine", name=u"Ubuntu", config=config, _moId=u"vm-12")
+        mock_content = MagicMock(view=[virtualmachine])
+        obj_list = self.check._vsphere_vms(mock_content, "ESXi")
+
+        self.assertEqual(len(obj_list), 1)
+        self.assertEqual(obj_list[0]['hostname'], 'Ubuntu')
+
+        # check there should be no tags and labels extracted from vsphere client
+        self.assertEqual(len(obj_list[0]['topo_tags']['identifiers']), 0)
+
+        # No labels should be added as it throws exception because datastore doesn't exist
+        self.assertEqual(len(obj_list[0]['topo_tags']["labels"]), 0)
+        self.assertEqual(obj_list[0]['topo_tags']["layer"], "VSphere VMs")
+        # expected_name_label = obj_list[0]['topo_tags']["labels"][0]
+        # expected_guestid_label = obj_list[0]['topo_tags']["labels"][1]
+        # expected_guestfullname_label = obj_list[0]['topo_tags']["labels"][2]
+        #
+        # # Check if the labels are as expected
+        # self.assertEqual(len(obj_list[0]['topo_tags']["labels"]), 3)
+        # self.assertEqual(expected_name_label, 'name:Ubuntu')
+        # self.assertEqual(expected_guestid_label, 'guestId:ubuntu64Guest')
+        # self.assertEqual(expected_guestfullname_label, 'guestFullName:Ubuntu Linux (64-bit)')
+
     def test_vsphere_datacenters(self):
         """
         Test if the vsphere_datacenter returns the datacenter list
