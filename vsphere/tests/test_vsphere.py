@@ -482,8 +482,9 @@ class TestVsphereTopo(unittest.TestCase):
         virtualmachine = MockedMOR(spec=u"VirtualMachine", name=u"Ubuntu", config=config, _moId=u"vm-12")
         mock_content = MagicMock(view=[virtualmachine])
         obj_list = self.check._vsphere_vms(mock_content, "ESXi")
+        print(obj_list)
 
-        self.assertEqual(len(obj_list), 1)
+        self.assertEqual(len(obj_list), 0)
         self.assertEqual(obj_list[0]['hostname'], 'Ubuntu')
 
         # check there should be no tags and labels extracted from vsphere client
