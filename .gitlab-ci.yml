@@ -106,6 +106,8 @@ test_stackstate_checks_dev:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
+  tags:
+    - sts-aws
 
 test_kubernetes:
   <<: *linux_test
@@ -138,6 +140,8 @@ test_mysql:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
+  tags:
+    - sts-aws
 
 test_postgres:
   <<: *linux_test
@@ -146,6 +150,8 @@ test_postgres:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
+  tags:
+    - sts-aws
 
 test_cloudera:
   <<: *linux_test
