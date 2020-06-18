@@ -106,8 +106,9 @@ test_stackstate_checks_dev:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
   tags:
-    - sts-aws
+    - sts-k8s-xl-no-docker-runner
 
 test_kubernetes:
   <<: *linux_test
@@ -140,8 +141,9 @@ test_mysql:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
   tags:
-    - sts-aws
+    - sts-k8s-xl-no-docker-runner
 
 test_postgres:
   <<: *linux_test
@@ -150,8 +152,9 @@ test_postgres:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
   tags:
-    - sts-aws
+    - sts-k8s-xl-no-docker-runner
 
 test_cloudera:
   <<: *linux_test
