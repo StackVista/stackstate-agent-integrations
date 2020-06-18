@@ -884,7 +884,7 @@ class TestVsphereTopo(unittest.TestCase):
         self.assertEqual(topo_dict["vms"][0]['topo_tags']['domain'], 'ESXi')
         self.assertEqual(topo_dict["vms"][0]['topo_tags']['layer'], 'VSphere VMs')
         self.assertEqual(topo_dict["vms"][0]["topo_tags"]["topo_type"], "vsphere-VirtualMachine")
-        self.assertEqual(topo_dict["vms"][0]['topo_tags']['datastore'], '54183927-04f91918-a72a-6805ca147c55')
+        self.assertEqual(topo_dict["vms"][0]['topo_tags']['datastore'], ['54183927-04f91918-a72a-6805ca147c55'])
 
     def test_collect_topology_component(self):
         """

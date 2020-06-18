@@ -1002,7 +1002,10 @@ class VSphereCheck(AgentCheck):
                     try:
                         # extra metadata collection if present otherwise continue with the component creation with
                         # collected metadata only
-                        topology_tags["datastore"] = c.datastore[0]._moId
+                        datastores = []
+                        for ds in c.datastore:
+                            datastores.append(ds._moId)
+                        topology_tags["datastore"] = datastores
                         add_label_pair(labels, "name", topology_tags["name"])
                         add_label_pair(labels, "guestId", c.config.guestId)
                         add_label_pair(labels, "guestFullName", c.config.guestFullName)
@@ -1041,13 +1044,13 @@ class VSphereCheck(AgentCheck):
                 try:
                     # extra metadata collection if present otherwise continue with the component creation with
                     # collected metadata only
-                    computeresources = []
-                    clustercomputeresources = []
                     datastores = []
                     for datastore in c.datastore:
                         datastores.append(datastore.name)
                     topology_tags["datastores"] = datastores
 
+                    computeresources = []
+                    clustercomputeresources = []
                     for computeres in c.hostFolder.childEntity:
                         if isinstance(computeres, vim.ComputeResource):
                             computeresources.append(computeres.name)
@@ -1100,7 +1103,6 @@ class VSphereCheck(AgentCheck):
                     for vm in c.vm:
                         if not self._is_excluded(vm, regexes, include_only_marked):
                             vms.append(vm.name)
-
                     topology_tags["vms"] = vms
                     hostname = None
                 except Exception as e:
@@ -1135,18 +1137,16 @@ class VSphereCheck(AgentCheck):
                     # identifiers to be extracted from the component type
                     sts_identifiers, labels = self.extract_tags("HostSystem", c._moId)
                     topology_tags["identifiers"] = sts_identifiers
-
-                    host_datastores = []
-                    host_vms = []
                     try:
                         # extra metadata collection if present otherwise continue with the component creation with
                         # collected metadata only
+                        host_vms = []
                         for vm in c.vm:
                             if not self._is_excluded(vm, regexes, include_only_marked):
                                 host_vms.append(vm.name)
+                        host_datastores = []
                         for ds in c.datastore:
                             host_datastores.append(ds.name)
-
                         topology_tags["datastores"] = host_datastores
                         topology_tags["vms"] = host_vms
 
@@ -1185,18 +1185,16 @@ class VSphereCheck(AgentCheck):
                 # identifiers to be extracted from the component type
                 sts_identifiers, labels = self.extract_tags("ClusterComputeResource", c._moId)
                 topology_tags["identifiers"] = sts_identifiers
-
-                datastores = []
-                hosts = []
                 try:
                     # extra metadata collection if present otherwise continue with the component creation with
                     # collected metadata only
+                    datastores = []
                     for ds in c.datastore:
                         datastores.append(ds.name)
+                    hosts = []
                     for host in c.host:
                         if not self._is_excluded(host, regexes, include_only_marked):
                             hosts.append(host.name)
-
                     topology_tags["hosts"] = hosts
                     topology_tags["datastores"] = datastores
                     add_label_pair(labels, "name", topology_tags["name"])
@@ -1229,14 +1227,13 @@ class VSphereCheck(AgentCheck):
                 # identifiers to be extracted from the component type
                 sts_identifiers, labels = self.extract_tags("ComputeResource", c._moId)
                 topology_tags["identifiers"] = sts_identifiers
-
-                datastores = []
-                hosts = []
                 try:
                     # extra metadata collection if present otherwise continue with the component creation with
                     # collected metadata only
+                    datastores = []
                     for ds in c.datastore:
                         datastores.append(ds.name)
+                    hosts = []
                     for host in c.host:
                         if not self._is_excluded(host, regexes, include_only_marked):
                             hosts.append(host.name)
