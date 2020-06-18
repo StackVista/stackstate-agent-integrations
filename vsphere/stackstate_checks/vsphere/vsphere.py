@@ -989,24 +989,27 @@ class VSphereCheck(AgentCheck):
             labels = []
             if not self._is_excluded(c, regexes, include_only_marked):
                 hostname = c.name
-                try:
-                    if isinstance(c, vim.VirtualMachine):
-                        topology_tags["topo_type"] = VSPHERE_COMPONENT_TYPE.VM
-                        topology_tags["name"] = c.name
-                        topology_tags["layer"] = TOPOLOGY_LAYERS.VM
-                        topology_tags["domain"] = domain
+                if isinstance(c, vim.VirtualMachine):
+                    # required attributes for the component creation definition
+                    topology_tags["topo_type"] = VSPHERE_COMPONENT_TYPE.VM
+                    topology_tags["name"] = c.name
+                    topology_tags["layer"] = TOPOLOGY_LAYERS.VM
+                    topology_tags["domain"] = domain
 
-                        sts_identifiers, labels = self.extract_tags("VirtualMachine", c._moId)
-                        topology_tags["identifiers"] = sts_identifiers
-
+                    # identifiers to be extracted from the component type
+                    sts_identifiers, labels = self.extract_tags("VirtualMachine", c._moId)
+                    topology_tags["identifiers"] = sts_identifiers
+                    try:
+                        # extra metadata collection if present otherwise continue with the component creation with
+                        # collected metadata only
                         topology_tags["datastore"] = c.datastore[0]._moId
                         add_label_pair(labels, "name", topology_tags["name"])
                         add_label_pair(labels, "guestId", c.config.guestId)
                         add_label_pair(labels, "guestFullName", c.config.guestFullName)
                         add_label_pair(labels, "numCPU", c.config.hardware.numCPU)
                         add_label_pair(labels, "memoryMB", c.config.hardware.memoryMB)
-                except Exception as e:
-                    self.log.exception("Exception occurred during collecting metadata for VMs: {}".format(str(e)))
+                    except Exception as e:
+                        self.log.exception("Exception occurred during collecting metadata for VMs: {}".format(str(e)))
                 topology_tags["labels"] = labels
                 obj_list.append(dict(mor_type="vm", hostname=hostname, topo_tags=topology_tags))
 
@@ -1023,22 +1026,26 @@ class VSphereCheck(AgentCheck):
             topology_tags = {}
             labels = []
             hostname = c.name
-            try:
-                if isinstance(c, vim.Datacenter):
-                    topology_tags["name"] = c.name
-                    topology_tags["id"] = c._moId
-                    topology_tags["layer"] = TOPOLOGY_LAYERS.DATACENTER
-                    topology_tags["domain"] = domain
 
-                    sts_identifiers, labels = self.extract_tags("Datacenter", c._moId)
-                    topology_tags["identifiers"] = sts_identifiers
+            if isinstance(c, vim.Datacenter):
+                # required attributes for the component creation definition
+                topology_tags["name"] = c.name
+                topology_tags["id"] = c._moId
+                topology_tags["layer"] = TOPOLOGY_LAYERS.DATACENTER
+                topology_tags["domain"] = domain
+                topology_tags["topo_type"] = VSPHERE_COMPONENT_TYPE.DATACENTER
 
+                # identifiers to be extracted from the component type
+                sts_identifiers, labels = self.extract_tags("Datacenter", c._moId)
+                topology_tags["identifiers"] = sts_identifiers
+                try:
+                    # extra metadata collection if present otherwise continue with the component creation with
+                    # collected metadata only
                     computeresources = []
                     clustercomputeresources = []
                     datastores = []
                     for datastore in c.datastore:
                         datastores.append(datastore.name)
-                    topology_tags["topo_type"] = VSPHERE_COMPONENT_TYPE.DATACENTER
                     topology_tags["datastores"] = datastores
 
                     for computeres in c.hostFolder.childEntity:
@@ -1052,8 +1059,9 @@ class VSphereCheck(AgentCheck):
 
                     add_label_pair(labels, "name", topology_tags["name"])
                     hostname = None
-            except Exception as e:
-                self.log.exception("Exception occurred during collecting metadata for DataCenter: {}".format(str(e)))
+                except Exception as e:
+                    self.log.exception("Exception occurred during collecting metadata for DataCenter: {}"
+                                       .format(str(e)))
             topology_tags["labels"] = labels
             obj_list.append(dict(mor_type="datacenter", hostname=hostname, topo_tags=topology_tags))
 
@@ -1070,22 +1078,24 @@ class VSphereCheck(AgentCheck):
             topology_tags = {}
             labels = []
             hostname = c.name
-            try:
-                if isinstance(c, vim.Datastore):
-                    topology_tags["topo_type"] = VSPHERE_COMPONENT_TYPE.DATASTORE
-                    topology_tags["name"] = c.name
-                    topology_tags["layer"] = TOPOLOGY_LAYERS.DATASTORE
-                    topology_tags["domain"] = domain
+            if isinstance(c, vim.Datastore):
+                # required attributes for the component creation definition
+                topology_tags["topo_type"] = VSPHERE_COMPONENT_TYPE.DATASTORE
+                topology_tags["name"] = c.name
+                topology_tags["layer"] = TOPOLOGY_LAYERS.DATASTORE
+                topology_tags["domain"] = domain
+
+                # identifiers to be extracted from the component type
+                sts_identifiers, labels = self.extract_tags("Datastore", c._moId)
+                topology_tags["identifiers"] = sts_identifiers
+                try:
+                    # extra metadata collection if present otherwise continue with the component creation with
+                    # collected metadata only
+                    add_label_pair(labels, "name", topology_tags["name"])
                     topology_tags["accessible"] = c.summary.accessible
                     topology_tags["capacity"] = str(c.summary.capacity)
                     topology_tags["type"] = c.summary.type
                     topology_tags["url"] = c.summary.url
-
-                    sts_identifiers, labels = self.extract_tags("Datastore", c._moId)
-                    topology_tags["identifiers"] = sts_identifiers
-
-                    add_label_pair(labels, "name", topology_tags["name"])
-
                     vms = []
                     for vm in c.vm:
                         if not self._is_excluded(vm, regexes, include_only_marked):
@@ -1093,8 +1103,8 @@ class VSphereCheck(AgentCheck):
 
                     topology_tags["vms"] = vms
                     hostname = None
-            except Exception as e:
-                self.log.exception("Exception occurred during collecting metadata for DataStore: {}".format(str(e)))
+                except Exception as e:
+                    self.log.exception("Exception occurred during collecting metadata for DataStore: {}".format(str(e)))
             topology_tags["labels"] = labels
             obj_list.append(dict(mor_type="datastore", hostname=hostname, topo_tags=topology_tags))
 
@@ -1112,22 +1122,25 @@ class VSphereCheck(AgentCheck):
             labels = []
             if not self._is_excluded(c, regexes, include_only_marked):
                 hostname = c.name
-                try:
-                    if isinstance(c, vim.HostSystem):
-                        # c.vm contains list of virtual machines on a host.
-                        # c.hardware - info about hardware
-                        # c.compatibility
-                        topology_tags["name"] = c.name
-                        topology_tags["topo_type"] = VSPHERE_COMPONENT_TYPE.HOST
-                        topology_tags["layer"] = TOPOLOGY_LAYERS.HOST
-                        topology_tags["domain"] = domain
+                if isinstance(c, vim.HostSystem):
+                    # c.vm contains list of virtual machines on a host.
+                    # c.hardware - info about hardware
+                    # c.compatibility
+                    # required attributes for the component creation definition
+                    topology_tags["name"] = c.name
+                    topology_tags["topo_type"] = VSPHERE_COMPONENT_TYPE.HOST
+                    topology_tags["layer"] = TOPOLOGY_LAYERS.HOST
+                    topology_tags["domain"] = domain
 
-                        sts_identifiers, labels = self.extract_tags("HostSystem", c._moId)
-                        topology_tags["identifiers"] = sts_identifiers
+                    # identifiers to be extracted from the component type
+                    sts_identifiers, labels = self.extract_tags("HostSystem", c._moId)
+                    topology_tags["identifiers"] = sts_identifiers
 
-                        host_datastores = []
-                        host_vms = []
-
+                    host_datastores = []
+                    host_vms = []
+                    try:
+                        # extra metadata collection if present otherwise continue with the component creation with
+                        # collected metadata only
                         for vm in c.vm:
                             if not self._is_excluded(vm, regexes, include_only_marked):
                                 host_vms.append(vm.name)
@@ -1144,8 +1157,8 @@ class VSphereCheck(AgentCheck):
                             topology_tags["clustercomputeresource"] = c.parent.name
 
                         add_label_pair(labels, "name", topology_tags["name"])
-                except Exception as e:
-                    self.log.exception("Exception occurred during collecting metadata for Hosts: {}".format(str(e)))
+                    except Exception as e:
+                        self.log.exception("Exception occurred during collecting metadata for Hosts: {}".format(str(e)))
                 topology_tags["labels"] = labels
                 obj_list.append(dict(mor_type="host", hostname=hostname, topo_tags=topology_tags))
 
@@ -1162,18 +1175,22 @@ class VSphereCheck(AgentCheck):
             topology_tags = {}
             labels = []
             hostname = c.name
-            try:
-                if isinstance(c, vim.ClusterComputeResource):
-                    topology_tags["topo_type"] = VSPHERE_COMPONENT_TYPE.CLUSTERCOMPUTERESOURCE
-                    topology_tags["name"] = c.name
-                    topology_tags["layer"] = TOPOLOGY_LAYERS.COMPUTERESOURCE
-                    topology_tags["domain"] = domain
+            if isinstance(c, vim.ClusterComputeResource):
+                # required attributes for the component creation definition
+                topology_tags["topo_type"] = VSPHERE_COMPONENT_TYPE.CLUSTERCOMPUTERESOURCE
+                topology_tags["name"] = c.name
+                topology_tags["layer"] = TOPOLOGY_LAYERS.COMPUTERESOURCE
+                topology_tags["domain"] = domain
 
-                    sts_identifiers, labels = self.extract_tags("ClusterComputeResource", c._moId)
-                    topology_tags["identifiers"] = sts_identifiers
+                # identifiers to be extracted from the component type
+                sts_identifiers, labels = self.extract_tags("ClusterComputeResource", c._moId)
+                topology_tags["identifiers"] = sts_identifiers
 
-                    datastores = []
-                    hosts = []
+                datastores = []
+                hosts = []
+                try:
+                    # extra metadata collection if present otherwise continue with the component creation with
+                    # collected metadata only
                     for ds in c.datastore:
                         datastores.append(ds.name)
                     for host in c.host:
@@ -1183,9 +1200,9 @@ class VSphereCheck(AgentCheck):
                     topology_tags["hosts"] = hosts
                     topology_tags["datastores"] = datastores
                     add_label_pair(labels, "name", topology_tags["name"])
-            except Exception as e:
-                self.log.exception("Exception occurred during collecting metadata for ClusterComputeResource: {}".
-                                   format(str(e)))
+                except Exception as e:
+                    self.log.exception("Exception occurred during collecting metadata for ClusterComputeResource: {}".
+                                       format(str(e)))
             topology_tags["labels"] = labels
             obj_list.append(dict(mor_type="clustercomputeresource", hostname=hostname, topo_tags=topology_tags))
 
@@ -1202,19 +1219,22 @@ class VSphereCheck(AgentCheck):
             topology_tags = {}
             labels = []
             hostname = c.name
-            try:
-                if isinstance(c, vim.ComputeResource):
-                    topology_tags["topo_type"] = VSPHERE_COMPONENT_TYPE.COMPUTERESOURCE
-                    topology_tags["name"] = c.name
-                    topology_tags["layer"] = TOPOLOGY_LAYERS.COMPUTERESOURCE
-                    topology_tags["domain"] = domain
+            if isinstance(c, vim.ComputeResource):
+                # required attributes for the component creation definition
+                topology_tags["topo_type"] = VSPHERE_COMPONENT_TYPE.COMPUTERESOURCE
+                topology_tags["name"] = c.name
+                topology_tags["layer"] = TOPOLOGY_LAYERS.COMPUTERESOURCE
+                topology_tags["domain"] = domain
 
-                    sts_identifiers, labels = self.extract_tags("ComputeResource", c._moId)
-                    topology_tags["identifiers"] = sts_identifiers
+                # identifiers to be extracted from the component type
+                sts_identifiers, labels = self.extract_tags("ComputeResource", c._moId)
+                topology_tags["identifiers"] = sts_identifiers
 
-                    datastores = []
-                    hosts = []
-
+                datastores = []
+                hosts = []
+                try:
+                    # extra metadata collection if present otherwise continue with the component creation with
+                    # collected metadata only
                     for ds in c.datastore:
                         datastores.append(ds.name)
                     for host in c.host:
@@ -1224,9 +1244,9 @@ class VSphereCheck(AgentCheck):
                     topology_tags["hosts"] = hosts
                     topology_tags["datastores"] = datastores
                     add_label_pair(labels, "name", topology_tags["name"])
-            except Exception as e:
-                self.log.exception("Exception occurred during collecting metadata for ComputeResource: {}".
-                                   format(str(e)))
+                except Exception as e:
+                    self.log.exception("Exception occurred during collecting metadata for ComputeResource: {}".
+                                       format(str(e)))
             topology_tags["labels"] = labels
             obj_list.append(dict(mor_type="computeresource", hostname=hostname, topo_tags=topology_tags))
 
