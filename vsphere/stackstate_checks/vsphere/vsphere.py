@@ -1251,7 +1251,13 @@ class VSphereCheck(AgentCheck):
 
     def vsphere_client_connect(self, instance):
         session = requests.session()
-        session.verify = False
+        verify = instance.get('ssl_verify', False)
+        session.verify = verify
+        if not verify:
+            # since `trust_env` is by default True and overrides `verify` flag with CURL_CA_BUNDLE certificate path
+            # set by Agent runtime for verification, making this flag `False` doesn't override and doesn't verify
+            # the certificate.
+            session.trust_env = False
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
         # Connect to vSphere client
