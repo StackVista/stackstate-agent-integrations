@@ -463,6 +463,38 @@ class TestVsphereTopo(unittest.TestCase):
         self.assertEqual(expected_numcpu_label, 'numCPU:1')
         self.assertEqual(expected_memory_label, 'memoryMB:4096')
 
+    def test_vsphere_vms_metadata_datastore_exception(self):
+        """
+        Test if the vsphere_vms returns the VM list and labels even in case of exception occurred for datastore
+        """
+        self.check._is_excluded = MagicMock(return_value=False)
+
+        # get the client
+        client = vsphere_client()
+
+        # list_attached_tags method returns empty list of tags
+        client.tagging.TagAssociation.list_attached_tags = MagicMock(return_value=[])
+
+        # assign the vsphere client object to the vsphere check client object
+        self.check.client = client
+
+        config = MockedMOR(guestId='ubuntu64Guest', guestFullName='Ubuntu Linux (64-bit)')
+        virtualmachine = MockedMOR(spec=u"VirtualMachine", name=u"Ubuntu", config=config, _moId=u"vm-12")
+        view_mock = MagicMock(view=[virtualmachine])
+        viewmanager_mock = MagicMock(**{'CreateContainerView.return_value': view_mock})
+        content_mock = MagicMock(viewManager=viewmanager_mock)
+        obj_list = self.check._vsphere_vms(content_mock, "ESXi")
+
+        self.assertEqual(len(obj_list), 1)
+        self.assertEqual(obj_list[0]['hostname'], 'Ubuntu')
+
+        # check there should be no identifiers extracted from vsphere client
+        self.assertEqual(len(obj_list[0]['topo_tags']['identifiers']), 0)
+
+        # No labels should be added as it throws exception because datastore doesn't exist
+        self.assertEqual(len(obj_list[0]['topo_tags']["labels"]), 0)
+        self.assertEqual(obj_list[0]['topo_tags']["layer"], "VSphere VMs")
+
     def test_vsphere_datacenters(self):
         """
         Test if the vsphere_datacenter returns the datacenter list
@@ -500,6 +532,46 @@ class TestVsphereTopo(unittest.TestCase):
         self.assertEqual(obj_list[0]['topo_tags']['datastores'][0], 'WDC1TB')
         self.assertEqual(obj_list[0]['topo_tags']['name'], 'da-Datacenter')
 
+    def test_vsphere_datacenters_metadata_exception(self):
+        """
+        Test if the vsphere_datacenter returns the datacenter list in case of optional data exception
+        """
+        self.check._is_excluded = MagicMock(return_value=False)
+
+        # mock the CategoryModel and TagModel for response
+        category = VsphereCategory('345', 'stackstate-label')
+        tags = VsphereTag('123', 'vishal-test', '345')
+
+        # get the client
+        client = vsphere_client()
+
+        # list_attached_tags method returns list of tags ids of type string
+        client.tagging.TagAssociation.list_attached_tags = MagicMock(return_value=['123'])
+        # get method of Tag returns a TagModel object which is returned
+        client.tagging.Tag.get = MagicMock(return_value=tags)
+        # get method of Category returns a CategoryModel object which is returned
+        client.tagging.Category.get = MagicMock(return_value=category)
+
+        # assign the vsphere client object to the check vsphere client object
+        self.check.client = client
+
+        datacenter = MockedMOR(spec="Datacenter", name="da-Datacenter", _moId="54183347-04d231918")
+        view_mock = MagicMock(view=[datacenter])
+        viewmanager_mock = MagicMock(**{'CreateContainerView.return_value': view_mock})
+        content_mock = MagicMock(viewManager=viewmanager_mock)
+        obj_list = self.check._vsphere_datacenters(content_mock, "ESXi")
+
+        # should have one component even if data section fails
+        self.assertEqual(len(obj_list), 1)
+
+        # expect a label coming from Tagging model of datacenter
+        expected_name_label = obj_list[0]['topo_tags']["labels"][0]
+        self.assertEqual(expected_name_label, 'stackstate-label:vishal-test')
+        # identifier should be empty
+        self.assertEqual(len(obj_list[0]['topo_tags']['identifiers']), 0)
+
+        self.assertEqual(obj_list[0]['topo_tags']['name'], 'da-Datacenter')
+
     def test_vsphere_datastores(self):
         """
         Test if the vsphere_datastores returns the datastores list
@@ -530,6 +602,30 @@ class TestVsphereTopo(unittest.TestCase):
         self.assertEqual(obj_list[0]['topo_tags']['name'], 'WDC1TB')
         self.assertEqual(obj_list[0]['topo_tags']['url'], '/vmfs/volumes/54183927-04f91918-a72a-6805ca147c55')
         self.assertEqual(type(obj_list[0]['topo_tags']['capacity']), str)
+
+    def test_vsphere_datastores_metadata_exception(self):
+        """
+        Test if the vsphere_datastores returns the datastores list in case of exception as well
+        """
+        self.check._is_excluded = MagicMock(return_value=False)
+
+        # get the client
+        client = vsphere_client()
+
+        # list_attached_tags method returns list of tags ids of type string
+        client.tagging.TagAssociation.list_attached_tags = MagicMock(return_value=[])
+
+        # assign the vsphere client object to the check vsphere client object
+        self.check.client = client
+
+        datastore = MockedMOR(spec='Datastore', _moId="54183927-04f91918-a72a-6805ca147c55", name="WDC1TB")
+        view_mock = MagicMock(view=[datastore])
+        viewmanager_mock = MagicMock(**{'CreateContainerView.return_value': view_mock})
+        content_mock = MagicMock(viewManager=viewmanager_mock)
+        obj_list = self.check._vsphere_datastores(content_mock, "ESXi")
+
+        self.assertEqual(len(obj_list), 1)
+        self.assertEqual(obj_list[0]['topo_tags']['name'], 'WDC1TB')
 
     def test_vsphere_hosts(self):
         """
@@ -570,6 +666,46 @@ class TestVsphereTopo(unittest.TestCase):
         self.assertEqual(obj_list[0]['topo_tags']['datastores'][0], 'WDC1TB')
         self.assertEqual(obj_list[0]['topo_tags']['computeresource'], 'localhost')
 
+    def test_vsphere_hosts_metadata_exception(self):
+        """
+        Test if the vsphere_hosts returns the hosts list even in case of exception
+        """
+        self.check._is_excluded = MagicMock(return_value=False)
+
+        # mock the CategoryModel and TagModel for response
+        category = VsphereCategory('345', 'stackstate-identifier')
+        tags = VsphereTag('123', 'vishal-test', '345')
+
+        # get the client
+        client = vsphere_client()
+
+        # list_attached_tags method returns list of tags ids of type string
+        client.tagging.TagAssociation.list_attached_tags = MagicMock(return_value=['123'])
+        # get method of Tag returns a TagModel object which is returned
+        client.tagging.Tag.get = MagicMock(return_value=tags)
+        # get method of Category returns a CategoryModel object which is returned
+        client.tagging.Category.get = MagicMock(return_value=category)
+
+        # assign the vsphere client object to the check vsphere client object
+        self.check.client = client
+
+        host = MockedMOR(spec=u"HostSystem", name=u"localhost.localdomain", _moId="host-1")
+        view_mock = MagicMock(view=[host])
+        viewmanager_mock = MagicMock(**{'CreateContainerView.return_value': view_mock})
+        content_mock = MagicMock(viewManager=viewmanager_mock)
+        obj_list = self.check._vsphere_hosts(content_mock, "ESXi")
+
+        # one identifier expected
+        self.assertEqual(len(obj_list[0]['topo_tags']['identifiers']), 1)
+        self.assertEqual(obj_list[0]['topo_tags']['identifiers'][0], "vishal-test")
+
+        # Check if host has tags name and topo_type
+        self.assertEqual(len(obj_list), 1)
+        self.assertEqual(obj_list[0]['topo_tags']['name'], 'localhost.localdomain')
+        self.assertEqual(obj_list[0]['topo_tags']['topo_type'], 'vsphere-HostSystem')
+        # since exception had occurred while collecting datastores/vms, so noo labels should have been created
+        self.assertEqual(len(obj_list[0]['topo_tags']['labels']), 0)
+
     def test_vsphere_clustercomputeresources(self):
         """
         Test if the vsphere_clustercomputeresources returns the cluster list
@@ -599,6 +735,37 @@ class TestVsphereTopo(unittest.TestCase):
         self.assertEqual(obj_list[0]['topo_tags']['hosts'][0], 'localhost.localdomain')
         self.assertEqual(obj_list[0]['topo_tags']['datastores'][0], 'WDC1TB')
 
+    def test_vsphere_clustercomputeresources_metadata_exception(self):
+        """
+        Test if the vsphere_clustercomputeresources returns the cluster list
+        """
+        self.check._is_excluded = MagicMock(return_value=False)
+
+        # get the client
+        client = vsphere_client()
+
+        # list_attached_tags method returns list of tags ids of type string
+        client.tagging.TagAssociation.list_attached_tags = MagicMock(return_value=[])
+
+        # assign the vsphere client object to the check vsphere client object
+        self.check.client = client
+
+        clustercomputeresource = MockedMOR(spec="ClusterComputeResource", name="local", _moId="ccr-12")
+        view_mock = MagicMock(view=[clustercomputeresource])
+        viewmanager_mock = MagicMock(**{'CreateContainerView.return_value': view_mock})
+        content_mock = MagicMock(viewManager=viewmanager_mock)
+        obj_list = self.check._vsphere_clustercomputeresources(content_mock, "ESXi")
+
+        # expect an empty identifier list
+        self.assertEqual(len(obj_list[0]['topo_tags']['identifiers']), 0)
+
+        # Check if clustercomputeresources has tags name and topo_type
+        self.assertEqual(len(obj_list), 1)
+        self.assertEqual(obj_list[0]['topo_tags']['name'], 'local')
+        self.assertEqual(obj_list[0]['topo_tags']['topo_type'], 'vsphere-ClusterComputeResource')
+        # since exception had occurred while collecting datastores/hosts, so no labels should have been created
+        self.assertEqual(len(obj_list[0]['topo_tags']['labels']), 0)
+
     def test_vsphere_computeresources(self):
         """
         Test if the vsphere_computeresources returns the computeresource list
@@ -627,6 +794,37 @@ class TestVsphereTopo(unittest.TestCase):
         # Check if computeresources list contains host and datastore
         self.assertEqual(obj_list[0]['topo_tags']['hosts'][0], 'localhost.localdomain')
         self.assertEqual(obj_list[0]['topo_tags']['datastores'][0], 'WDC1TB')
+
+    def test_vsphere_computeresources_metadata_exception(self):
+        """
+        Test if the vsphere_computeresources returns the computeresource list even in case of exception
+        """
+        self.check._is_excluded = MagicMock(return_value=False)
+
+        # get the client
+        client = vsphere_client()
+
+        # list_attached_tags method returns list of tags ids of type string
+        client.tagging.TagAssociation.list_attached_tags = MagicMock(return_value=[])
+
+        # assign the vsphere client object to the check vsphere client object
+        self.check.client = client
+
+        computeresource = MockedMOR(spec=u"ComputeResource", name="localhost", _moId="cr-1")
+        view_mock = MagicMock(view=[computeresource])
+        viewmanager_mock = MagicMock(**{'CreateContainerView.return_value': view_mock})
+        content_mock = MagicMock(viewManager=viewmanager_mock)
+        obj_list = self.check._vsphere_computeresources(content_mock, "ESXi")
+
+        # expect an empty identifier list
+        self.assertEqual(len(obj_list[0]['topo_tags']['identifiers']), 0)
+
+        # Check if computeresources has tags name and topo_type
+        self.assertEqual(len(obj_list), 1)
+        self.assertEqual(obj_list[0]['topo_tags']['name'], 'localhost')
+        self.assertEqual(obj_list[0]['topo_tags']['topo_type'], 'vsphere-ComputeResource')
+        # since exception had occurred while collecting datastores/hosts, so no labels should have been created
+        self.assertEqual(len(obj_list[0]['topo_tags']['labels']), 0)
 
     def test_vsphere_vms_with_regex(self):
         """
@@ -686,7 +884,7 @@ class TestVsphereTopo(unittest.TestCase):
         self.assertEqual(topo_dict["vms"][0]['topo_tags']['domain'], 'ESXi')
         self.assertEqual(topo_dict["vms"][0]['topo_tags']['layer'], 'VSphere VMs')
         self.assertEqual(topo_dict["vms"][0]["topo_tags"]["topo_type"], "vsphere-VirtualMachine")
-        self.assertEqual(topo_dict["vms"][0]['topo_tags']['datastore'], '54183927-04f91918-a72a-6805ca147c55')
+        self.assertEqual(topo_dict["vms"][0]['topo_tags']['datastore'], ['54183927-04f91918-a72a-6805ca147c55'])
 
     def test_collect_topology_component(self):
         """
