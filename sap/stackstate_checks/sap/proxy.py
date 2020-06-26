@@ -12,11 +12,6 @@ class SapProxy(object):
         session = Session()
         if cert:
             session.verify = verify
-            if not verify:
-                # since `trust_env` is by default True and overrides `verify` flag with CURL_CA_BUNDLE certificate path
-                # set by Agent runtime for verification, making this flag `False` doesn't override and doesn't verify
-                # the certificate.
-                session.trust_env = False
             session.cert = (cert, keyfile)
         session.auth = HTTPBasicAuth(user, password)
         wsdl_url = "{0}/?wsdl".format(url)
