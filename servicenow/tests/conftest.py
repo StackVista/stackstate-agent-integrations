@@ -16,7 +16,7 @@ def sts_environment():
         "user": "admin",
         "password": "Stackstate@123",
         "batch_size": 100,
-        "include_resource_types": ["cmdb_ci_netgear", "cmdb_ci_cluster", "cmdb_ci_win_cluster_node"]
+        "include_resource_types": ["cmdb_ci_netgear", "cmdb_ci_win_cluster", "cmdb_ci_win_cluster_node"]
     }
 
 

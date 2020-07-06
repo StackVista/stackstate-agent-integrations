@@ -34,6 +34,15 @@ def mock_collect_components():
     return json.dumps(response)
 
 
+def mock_collect_filter_components():
+    """
+    Mock behaviour(response) from ServiceNow API for Components(CIs)
+    """
+    response = {'result': [{'sys_class_name': 'cmdb_ci_computer', 'sys_id': '00a96c0d3790200044e0bfc8bcbe5db4',
+                            'sys_created_on': '2012-02-18 08:14:21', 'name': 'MacBook Pro 15'}]}
+    return json.dumps(response)
+
+
 def mock_relation_types():
     """
     Mock behaviour for relation types
@@ -133,6 +142,9 @@ class TestServicenow(unittest.TestCase):
         self.assertEqual(len(topo_instances['components']), 1)
         self.assertEqual(len(topo_instances['relations']), 0)
         self.assertEqual(topo_instances['components'][0]['type'], 'cmdb_ci_computer')
+        self.assertEqual(topo_instances['components'][0]['data']['identifiers'],
+                         ["urn:host:/MacBook Pro 15",
+                          "urn:servicenow:cmdb_ci_computer:00a96c0d3790200044e0bfc8bcbe5db4"])
 
     def test_collect_relation_types(self):
         """

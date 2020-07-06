@@ -100,6 +100,10 @@ class ServicenowCheck(AgentCheck):
         self.log.debug("sys param query for relation is :- " + sysparm_query)
         return sysparm_query
 
+    def filter_empty_metadata(self, data):
+        data = {k: v for k, v in data.items() if v}
+        return data
+
     def _collect_components(self, instance_config, timeout):
         """
         collect components from ServiceNow CMDB's cmdb_ci table
@@ -111,10 +115,10 @@ class ServicenowCheck(AgentCheck):
         base_url = instance_config.base_url
         auth = instance_config.auth
         sys_class_filter = instance_config.sys_class_filter
-        url = base_url + '/api/now/table/cmdb_ci?sysparm_fields=name,sys_id,sys_class_name,sys_created_on'
+        url = base_url + '/api/now/table/cmdb_ci'
         sys_class_filter_query = self.get_sys_class_component_filter_query(sys_class_filter)
         if sys_class_filter_query:
-            url = url + "&{}".format(sys_class_filter_query)
+            url = url + "?{}".format(sys_class_filter_query)
             self.log.debug("URL for component collection after applying filter:- %s", url)
         return self._get_json(url, timeout, auth)
 
@@ -128,14 +132,19 @@ class ServicenowCheck(AgentCheck):
         state = self._collect_components(instance_config, timeout)
 
         for component in state['result']:
+            identifiers = []
             comp_name = component['name'].encode('utf-8')
             comp_type = component['sys_class_name']
             external_id = "urn:servicenow:{}:{}".format(comp_type, component['sys_id'])
-            data = {
-                "sys_id": component['sys_id'],
-                "name": str(comp_name) if isinstance(comp_name, bytes) else comp_name,
-                "tags": instance_tags
-            }
+
+            if 'fqdn' in component and component['fqdn']:
+                identifiers.append("urn:host:/{}".format(component['fqdn']))
+            if 'host_name' in component and component['host_name']:
+                identifiers.append("urn:host:/{}".format(component['host_name']))
+            identifiers.append("urn:host:/{}".format(comp_name))
+            identifiers.append(external_id)
+            data = self.filter_empty_metadata(component)
+            data.update({"identifiers": identifiers, "tags": instance_tags})
 
             self.component(external_id, comp_type, data)
 
@@ -172,17 +181,16 @@ class ServicenowCheck(AgentCheck):
         base_url = instance_config.base_url
         auth = instance_config.auth
         sys_class_filter = instance_config.sys_class_filter
-        url = base_url + '/api/now/table/cmdb_rel_ci?sysparm_fields=parent,type,child'
+        url = base_url + '/api/now/table/cmdb_rel_ci'
         sys_class_filter_query = self.get_sys_class_relation_filter_query(sys_class_filter)
         if sys_class_filter_query:
-            url = url + "&{}".format(sys_class_filter_query)
+            url = url + "?{}".format(sys_class_filter_query)
             self.log.debug("URL for relation collection after applying filter:- %s", url)
 
         return self._get_json_batch(url, offset, batch_size, timeout, auth)
 
     def _process_component_relations(self, instance_config, batch_size, timeout, relation_types):
         offset = 0
-        instance_tags = instance_config.instance_tags
 
         completed = False
         while not completed:
@@ -195,9 +203,7 @@ class ServicenowCheck(AgentCheck):
                 type_sys_id = relation['type']['value']
 
                 relation_type = relation_types[type_sys_id]
-                data = {
-                    "tags": instance_tags
-                }
+                data = self.filter_empty_metadata(relation)
 
                 self.relation(parent_sys_id, child_sys_id, relation_type, data)
 
