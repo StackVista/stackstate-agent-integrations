@@ -38,8 +38,8 @@ def mock_collect_filter_components():
     """
     Mock behaviour(response) from ServiceNow API for Components(CIs)
     """
-    response = {'result': [{'sys_class_name': 'cmdb_ci_computer', 'sys_id': '00a96c0d3790200044e0bfc8bcbe5db4',
-                            'sys_created_on': '2012-02-18 08:14:21', 'name': 'MacBook Pro 15'}]}
+    response = {'result': [{'sys_class_name': 'cmdb_ci_cluster', 'sys_id': '00a96c0d3790200044e0bfc8bcbe5db4',
+                            'sys_created_on': '2012-02-18 18:14:21', 'name': 'Test Cluster'}]}
     return json.dumps(response)
 
 
@@ -52,6 +52,27 @@ def mock_relation_types():
 
 
 def mock_relation_components():
+    """
+    Mock response from ServiceNow API for relation between components
+    """
+    response = {
+        'result': [
+            {'type': {
+                'link': 'https://dev60476.service-now.com/api/now/table/cmdb_rel_type/1a9cb166f1571100a92eb60da2bce5c5',
+                'value': '1a9cb166f1571100a92eb60da2bce5c5'},
+                'parent': {
+                    'link': 'https://dev60476.service-now.com/api/now/table/cmdb_ci/451047c6c0a8016400de0ae6df9b9d76',
+                    'value': '451047c6c0a8016400de0ae6df9b9d76'},
+                'child': {
+                    'link': 'https://dev60476.service-now.com/api/now/table/cmdb_ci/53979c53c0a801640116ad2044643fb2',
+                    'value': '53979c53c0a801640116ad2044643fb2'
+                }}
+        ]
+    }
+    return json.dumps(response)
+
+
+def mock_relation_with_filter():
     """
     Mock response from ServiceNow API for relation between components
     """
@@ -289,5 +310,57 @@ class TestServicenow(unittest.TestCase):
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 0)
+        self.assertEqual(len(topo_instances['relations']), 1)
+        self.assertEqual(topo_instances['relations'][0]['type'], 'Cools')
+
+    def test_process_components_without_sys_filter_change(self):
+        """
+        Test _process_components to return whole topology when query changed in between
+        """
+        # TODO this is needed because the topology retains data across tests
+        topology.reset()
+
+        instance_config = InstanceInfo([], self.instance.get('url'), ('admin', 'Service@123'),
+                                       self.instance.get('include_resource_types'))
+        sys_class_filter = self.instance.get('include_resource_types')
+        query_filter = self.check.get_sys_class_component_filter_query(sys_class_filter)
+        expected_query = "sysparm_query=sys_class_nameINcmdb_ci_netgear%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server"
+        # asserting the actual query
+        self.assertEqual(query_filter, expected_query)
+
+        self.check._get_json = mock.MagicMock()
+        self.check._get_json.return_value = json.loads(mock_collect_filter_components())
+        self.check._process_components(instance_config, 10)
+
+        topo_instances = topology.get_snapshot(self.check.check_id)
+        self.assertEqual(len(topo_instances['components']), 1)
+        self.assertEqual(len(topo_instances['relations']), 0)
+        # Since the filter gets specific component types only so returned one component
+        self.assertEqual(topo_instances['components'][0]['type'], 'cmdb_ci_cluster')
+
+    def test_process_component_relations_without_sys_filter_change(self):
+        """
+        Test _process_components to return whole topology when query changed in between
+        """
+        # TODO this is needed because the topology retains data across tests
+        topology.reset()
+
+        instance_config = InstanceInfo([], self.instance.get('url'), ('admin', 'Service@123'),
+                                       self.instance.get('include_resource_types'))
+        sys_class_filter = self.instance.get('include_resource_types')
+        query_filter = self.check.get_sys_class_relation_filter_query(sys_class_filter)
+        expected_query = "sysparm_query=parent.sys_class_nameINcmdb_ci_netgear%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server" \
+                         "%5Echild.sys_class_nameINcmdb_ci_netgear%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server"
+        # asserting the actual query
+        self.assertEqual(query_filter, expected_query)
+
+        self.check._get_json = mock.MagicMock()
+        self.check._get_json.return_value = json.loads(mock_relation_with_filter())
+        relation_types = {'1a9cb166f1571100a92eb60da2bce5c5': 'Cools'}
+        self.check._process_component_relations(instance_config, 100, 10, relation_types)
+
+        topo_instances = topology.get_snapshot(self.check.check_id)
+        self.assertEqual(len(topo_instances['components']), 0)
+        # Since the filter gets specific relation only so returned one relation for filtered resource types
         self.assertEqual(len(topo_instances['relations']), 1)
         self.assertEqual(topo_instances['relations'][0]['type'], 'Cools')
