@@ -16,7 +16,7 @@ def sts_environment():
         "user": "admin",
         "password": "Stackstate@123",
         "batch_size": 100,
-        "include_resource_types": ["cmdb_ci_netgear", "cmdb_ci_cluster", "cmdb_ci_app_server"]
+        "include_resource_types": ["cmdb_ci_netgear", "cmdb_ci_cluster", "cmdb_ci_win_cluster_node"]
     }
 
 
@@ -25,7 +25,7 @@ def instance(request):
     cfg = {
         "url": "https://dev60476.service-now.com",
         "user": "admin",
-        "password": "Service @ 123",
+        "password": "Service@123",
         "batch_size": 100,
         "include_resource_types": ["cmdb_ci_netgear", "cmdb_ci_cluster", "cmdb_ci_app_server"]
     }

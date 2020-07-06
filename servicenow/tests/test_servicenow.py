@@ -64,10 +64,11 @@ def mock_relation_components():
 
 
 class InstanceInfo():
-    def __init__(self, instance_tags, base_url, auth):
+    def __init__(self, instance_tags, base_url, auth, sys_class_filter):
         self.instance_tags = instance_tags
         self.base_url = base_url
         self.auth = auth
+        self.sys_class_filter = sys_class_filter
 
 
 instance = {
@@ -76,18 +77,7 @@ instance = {
     'batch_size': 100
 }
 
-CONFIG = {
-    'init_config': {'default_timeout': 10, 'min_collection_interval': 5},
-    'instances': [
-        {
-            'url': "https://dev60479.service-now.com",
-            'basic_auth': {'user': 'admin', 'password': 'Service@12'},
-            'batch_size': 100
-        }
-    ]
-}
-
-instance_config = InstanceInfo([], instance.get('url'), ('admin', 'Service@123'))
+instance_config = InstanceInfo([], instance.get('url'), ('admin', 'Service@123'), [])
 
 
 @pytest.mark.usefixtures("instance")
@@ -138,7 +128,6 @@ class TestServicenow(unittest.TestCase):
         self.check._collect_components = mock.MagicMock()
         self.check._collect_components.return_value = json.loads(mock_collect_components())
         self.check._process_components(instance_config, 10)
-        # self.check.check(self.instance)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 1)
@@ -210,3 +199,83 @@ class TestServicenow(unittest.TestCase):
         print(service_checks)
         self.assertEqual(service_checks[0].name, self.SERVICE_CHECK_NAME)
         self.assertEqual(service_checks[0].status, 2)
+
+    def test_get_sys_class_component_filter_query(self):
+        """
+        Test to check if the method creates the proper param query
+        """
+        sys_class_filter = self.instance.get('include_resource_types')
+        self.assertEqual(len(sys_class_filter), 3)
+        query = self.check.get_sys_class_component_filter_query(sys_class_filter)
+        expected_query = "sysparm_query=sys_class_nameINcmdb_ci_netgear%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server"
+        self.assertEqual(query, expected_query)
+
+    def test_get_sys_class_relation_filter_query(self):
+        """
+        Test to check if the method creates the proper param query
+        """
+        sys_class_filter = self.instance.get('include_resource_types')
+        self.assertEqual(len(sys_class_filter), 3)
+        query = self.check.get_sys_class_relation_filter_query(sys_class_filter)
+        expected_query = "sysparm_query=parent.sys_class_nameINcmdb_ci_netgear%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server" \
+                         "%5Echild.sys_class_nameINcmdb_ci_netgear%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server"
+        self.assertEqual(query, expected_query)
+
+    def test_process_components_with_sys_filter_change(self):
+        """
+        Test _process_components to return whole topology when query changed in between
+        """
+        # TODO this is needed because the topology retains data across tests
+        topology.reset()
+
+        instance_config = InstanceInfo([], self.instance.get('url'), ('admin', 'Service@123'),
+                                       self.instance.get('include_resource_types'))
+        sys_class_filter = self.instance.get('include_resource_types')
+        query_filter = self.check.get_sys_class_component_filter_query(sys_class_filter)
+        expected_query = "sysparm_query=sys_class_nameINcmdb_ci_netgear%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server"
+        # asserting the actual query
+        self.assertEqual(query_filter, expected_query)
+
+        self.check.get_sys_class_component_filter_query = mock.MagicMock()
+        # changing the query in between and returning with incorrect query
+        self.check.get_sys_class_component_filter_query.return_value = "sysparm_query=sys_class_namecmdb_ci_netgear" \
+                                                                       "%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server"
+        self.check._get_json = mock.MagicMock()
+        self.check._get_json.return_value = json.loads(mock_collect_components())
+        self.check._process_components(instance_config, 10)
+
+        topo_instances = topology.get_snapshot(self.check.check_id)
+        self.assertEqual(len(topo_instances['components']), 1)
+        self.assertEqual(len(topo_instances['relations']), 0)
+        self.assertEqual(topo_instances['components'][0]['type'], 'cmdb_ci_computer')
+
+    def test_process_component_relations_with_sys_filter_change(self):
+        """
+        Test _process_components to return whole topology when query changed in between
+        """
+        # TODO this is needed because the topology retains data across tests
+        topology.reset()
+
+        instance_config = InstanceInfo([], self.instance.get('url'), ('admin', 'Service@123'),
+                                       self.instance.get('include_resource_types'))
+        sys_class_filter = self.instance.get('include_resource_types')
+        query_filter = self.check.get_sys_class_relation_filter_query(sys_class_filter)
+        expected_query = "sysparm_query=parent.sys_class_nameINcmdb_ci_netgear%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server" \
+                         "%5Echild.sys_class_nameINcmdb_ci_netgear%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server"
+        # asserting the actual query
+        self.assertEqual(query_filter, expected_query)
+
+        self.check.get_sys_class_relation_filter_query = mock.MagicMock()
+        # changing the query in between and returning with incorrect query
+        self.check.get_sys_class_relation_filter_query.return_value = "sysparm_query=parent.sys_class_nameN" \
+                                                                      "cmdb_ci_netgear%5Echild.sys_class_nameIN" \
+                                                                      "cmdb_ci_netgear"
+        self.check._get_json = mock.MagicMock()
+        self.check._get_json.return_value = json.loads(mock_relation_components())
+        relation_types = {'1a9cb166f1571100a92eb60da2bce5c5': 'Cools'}
+        self.check._process_component_relations(instance_config, 100, 10, relation_types)
+
+        topo_instances = topology.get_snapshot(self.check.check_id)
+        self.assertEqual(len(topo_instances['components']), 0)
+        self.assertEqual(len(topo_instances['relations']), 1)
+        self.assertEqual(topo_instances['relations'][0]['type'], 'Cools')
