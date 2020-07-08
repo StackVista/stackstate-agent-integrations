@@ -135,7 +135,7 @@ class ServicenowCheck(AgentCheck):
             identifiers = []
             comp_name = component['name'].encode('utf-8')
             comp_type = component['sys_class_name']
-            external_id = "urn:servicenow:{}:{}".format(comp_type, component['sys_id'])
+            external_id = component['sys_id']
 
             if 'fqdn' in component and component['fqdn']:
                 identifiers.append("urn:host:/{}".format(component['fqdn']))
