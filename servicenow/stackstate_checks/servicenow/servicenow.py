@@ -52,7 +52,7 @@ class ServicenowCheck(AgentCheck):
         instance_tags = instance.get('tags', [])
         sys_class_filter = instance.get('include_resource_types', [])
 
-        default_timeout = self.init_config.get('default_timeout', 5)
+        default_timeout = self.init_config.get('default_timeout', 20)
         timeout = float(instance.get('timeout', default_timeout))
 
         instance_config = InstanceInfo(instance_tags, base_url, auth, sys_class_filter)
@@ -101,8 +101,13 @@ class ServicenowCheck(AgentCheck):
         return sysparm_query
 
     def filter_empty_metadata(self, data):
-        data = {k: v for k, v in data.items() if v}
-        return data
+        result = {}
+        for k, v in data.items():
+            if v:
+                if type(v) is not dict:
+                    v = v.encode('utf-8')
+                result[k] = v
+        return result
 
     def _collect_components(self, instance_config, timeout):
         """
@@ -211,7 +216,12 @@ class ServicenowCheck(AgentCheck):
             offset += batch_size
 
     def _get_json_batch(self, url, offset, batch_size, timeout, auth):
-        limit_args = "&sysparm_query=ORDERBYsys_created_on&sysparm_offset=%i&sysparm_limit=%i" % (offset, batch_size)
+        if "?" not in url:
+            limit_args = "?"
+        else:
+            limit_args = "&"
+        limit_args = limit_args + "sysparm_query=ORDERBYsys_created_on&sysparm_offset={}&sysparm_limit={}".\
+            format(offset, batch_size)
         limited_url = url + limit_args
         return self._get_json(limited_url, timeout, auth)
 

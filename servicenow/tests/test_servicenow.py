@@ -164,8 +164,7 @@ class TestServicenow(unittest.TestCase):
         self.assertEqual(len(topo_instances['relations']), 0)
         self.assertEqual(topo_instances['components'][0]['type'], 'cmdb_ci_computer')
         self.assertEqual(topo_instances['components'][0]['data']['identifiers'],
-                         ["urn:host:/MacBook Pro 15",
-                          "urn:servicenow:cmdb_ci_computer:00a96c0d3790200044e0bfc8bcbe5db4"])
+                         ["urn:host:/MacBook Pro 15", "00a96c0d3790200044e0bfc8bcbe5db4"])
 
     def test_collect_relation_types(self):
         """
