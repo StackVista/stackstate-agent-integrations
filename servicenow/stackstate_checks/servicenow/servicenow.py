@@ -104,7 +104,8 @@ class ServicenowCheck(AgentCheck):
         result = {}
         for k, v in data.items():
             if v:
-                if type(v) is not dict:
+                if str(type(v)) == "<type 'unicode'>":
+                    # only possible in Python 2
                     v = v.encode('utf-8')
                 result[k] = v
         return result
@@ -137,8 +138,9 @@ class ServicenowCheck(AgentCheck):
         state = self._collect_components(instance_config, timeout)
 
         for component in state['result']:
+            component = self.filter_empty_metadata(component)
             identifiers = []
-            comp_name = component['name'].encode('utf-8')
+            comp_name = component['name']
             comp_type = component['sys_class_name']
             external_id = component['sys_id']
 
@@ -148,8 +150,8 @@ class ServicenowCheck(AgentCheck):
                 identifiers.append("urn:host:/{}".format(component['host_name']))
             identifiers.append("urn:host:/{}".format(comp_name))
             identifiers.append(external_id)
-            data = self.filter_empty_metadata(component)
-            data.update({"identifiers": identifiers, "tags": instance_tags})
+            data = {"identifiers": identifiers, "tags": instance_tags}
+            data.update(component)
 
             self.component(external_id, comp_type, data)
 
