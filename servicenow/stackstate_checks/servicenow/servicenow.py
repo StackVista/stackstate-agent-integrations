@@ -198,6 +198,7 @@ class ServicenowCheck(AgentCheck):
 
     def _process_component_relations(self, instance_config, batch_size, timeout, relation_types):
         offset = 0
+        instance_tags = instance_config.instance_tags
 
         completed = False
         while not completed:
@@ -211,6 +212,7 @@ class ServicenowCheck(AgentCheck):
 
                 relation_type = relation_types[type_sys_id]
                 data = self.filter_empty_metadata(relation)
+                data.update({"tags": instance_tags})
 
                 self.relation(parent_sys_id, child_sys_id, relation_type, data)
 
