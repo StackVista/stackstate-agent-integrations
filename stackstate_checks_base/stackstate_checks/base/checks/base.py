@@ -56,7 +56,7 @@ ONE_PER_CONTEXT_METRIC_TYPES = [
 ]
 
 
-class TopologyInstance(object):
+class TopologyInstanceBase(object):
     """
     Data structure for defining a topology instance, a unique identifier for a topology source.
     """
@@ -75,6 +75,19 @@ class TopologyInstance(object):
 
     def __hash__(self):
         return hash((self.type, self.url))
+
+
+class AgentIntegrationInstance(TopologyInstanceBase):
+
+    def __init__(self):
+        super().__init__("agent", "integrations")
+
+
+class TopologyInstance(TopologyInstanceBase):
+    """
+    Data structure for defining a topology instance, a unique identifier for a topology source.
+    """
+    pass
 
 
 class __AgentCheckPy3(object):
