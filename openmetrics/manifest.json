@@ -1,6 +1,6 @@
 {
   "display_name": "OpenMetrics",
-  "maintainer": "jvanerp@stackstate.com",
+  "maintainer": "info@stackstate.com",
   "manifest_version": "1.0.0",
   "name": "openmetrics",
   "metric_prefix": "openmetrics.",
@@ -19,5 +19,5 @@
     "monitoring"
   ],
   "type": "check",
-  "is_public": false
+  "is_public": true
 }
