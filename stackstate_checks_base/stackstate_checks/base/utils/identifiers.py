@@ -55,3 +55,7 @@ class Identifiers(object):
         the implementer to decide the identifier structure.
         """
         return "{}:service-instance/:{}".format(Identifiers.urnPrefix, service_instance_identifier)
+
+    @staticmethod
+    def create_integration_identifier(host, integration_type, integration_url):
+        return "{}:integration:{}:{}:{}".format(Identifiers.urnPrefix, host, integration_type, integration_url)

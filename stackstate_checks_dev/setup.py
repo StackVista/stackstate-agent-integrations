@@ -31,6 +31,7 @@ REQUIRES = [
     'pytest-mock',
     'requests>=2.20.0',
     'six',
+    'Deprecated==1.2.10'
 ]
 
 

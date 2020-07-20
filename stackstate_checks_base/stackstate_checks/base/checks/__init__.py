@@ -7,12 +7,13 @@ try:
     from checks import AgentCheck
     from checks.network_checks import NetworkCheck, Status, EventType
 except ImportError:
-    from .base import AgentCheck, TopologyInstance
+    from .base import AgentCheck, TopologyInstance, AgentIntegrationInstance
     from .network import NetworkCheck, Status, EventType
 
 __all__ = [
     'AgentCheck',
     'TopologyInstance',
+    'AgentIntegrationInstance',
     'NetworkCheck',
     'Status',
     'EventType',

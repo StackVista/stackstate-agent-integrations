@@ -21,7 +21,7 @@ to work with the check.
 
 To install the check in dev mode:
 ```
-pip install -e .[dev]
+pip install -e ".[dev]"
 ```
 
 To build the wheel package:

@@ -42,6 +42,8 @@ from ..constants import ServiceCheck
 from ..utils.common import ensure_bytes, ensure_unicode
 from ..utils.proxy import config_proxy_skip
 from ..utils.limiter import Limiter
+from ..utils.identifiers import Identifiers
+from deprecated.sphinx import deprecated
 
 if datadog_agent.get_config('disable_unsafe_yaml'):
     from ..ddyaml import monkey_patch_pyyaml
@@ -60,9 +62,10 @@ class TopologyInstanceBase(object):
     """
     Data structure for defining a topology instance, a unique identifier for a topology source.
     """
-    def __init__(self, type, url):
+    def __init__(self, type, url, with_snapshots=True):
         self.type = type
         self.url = url
+        self.with_snapshots = with_snapshots
 
     def toDict(self):
         return {"type": self.type, "url": self.url}
@@ -80,7 +83,7 @@ class TopologyInstanceBase(object):
 class AgentIntegrationInstance(TopologyInstanceBase):
 
     def __init__(self):
-        super().__init__("agent", "integrations")
+        TopologyInstanceBase.__init__(self, type="agent", url="integrations", with_snapshots=False)
 
 
 class TopologyInstance(TopologyInstanceBase):
@@ -429,7 +432,11 @@ class __AgentCheckPy3(object):
 
     def run(self):
         try:
-            self.check(copy.deepcopy(self.instances[0]))
+            if self._get_instance_key_value().with_snapshots:
+                topology.submit_start_snapshot(self, self.check_id, self._get_instance_key())
+            instance = self.instances[0]
+            self.create_integration_instance(copy.deepcopy(instance))
+            self.check(copy.deepcopy(instance))
             result = ''
         except Exception as e:
             result = json.dumps([
@@ -441,6 +448,8 @@ class __AgentCheckPy3(object):
         finally:
             if self.metric_limiter:
                 self.metric_limiter.reset()
+            if self._get_instance_key_value().with_snapshots:
+                topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key())
 
         return result
 
@@ -493,16 +502,20 @@ class __AgentCheckPy3(object):
             self._raise_unexpected_type(argumentName, value, "dictionary or None value")
 
     def _get_instance_key(self):
+        return self._get_instance_key_value().toDict()
+
+    def _get_instance_key_value(self):
         value = self.get_instance_key(self.instance)
         if value is None:
             self._raise_unexpected_type("get_instance_key()", "None", "dictionary")
-        if not isinstance(value, TopologyInstance):
-            self._raise_unexpected_type("get_instance_key()", value, "TopologyInstance")
+        if not isinstance(value, (TopologyInstance, AgentIntegrationInstance)):
+            self._raise_unexpected_type("get_instance_key()", value, "TopologyInstance or AgentIntegrationInstance")
         if not isinstance(value.type, str):
             raise ValueError("Instance requires a 'type' field of type 'string'")
         if not isinstance(value.url, str):
             raise ValueError("Instance requires a 'url' field of type 'string'")
-        return value.toDict()
+
+        return value
 
     def component(self, id, type, data):
         self._check_is_string("id", id)
@@ -521,11 +534,34 @@ class __AgentCheckPy3(object):
         self._check_struct("data", data)
         topology.submit_relation(self, self.check_id, self._get_instance_key(), source, target, type, data)
 
+    @deprecated(version='2.6.0', reason="Topology Snapshots is enabled by default for all TopologyInstance checks, "
+                                        "to disable snapshots use TopologyInstance(type, url, with_snapshots=False) "
+                                        "when overriding get_instance_key")
     def start_snapshot(self):
-        topology.submit_start_snapshot(self, self.check_id, self._get_instance_key())
+        pass
 
+    @deprecated(version='2.6.0', reason="Topology Snapshots is enabled by default for all TopologyInstance checks, "
+                                        "to disable snapshots use TopologyInstance(type, url, with_snapshots=False) "
+                                        "when overriding get_instance_key")
     def stop_snapshot(self):
-        topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key())
+        pass
+
+    def create_integration_instance(self, check_instance):
+        instance = self._get_instance_key_value()
+        instance_name = "{}:{}".format(instance.type, instance.url)
+        externalId = Identifiers.\
+            create_integration_identifier(datadog_agent.get_hostname(), instance.type, instance.url)
+        data = {"name": instance_name, "integration": instance.type, "hostname": datadog_agent.get_hostname(),
+                "tags": check_instance.get('tags', [])}
+
+        if datadog_agent.get_clustername():
+            data["cluster"] = datadog_agent.get_clustername()
+
+        topology.submit_component(self, self.check_id, self._get_instance_key(), externalId, "agent-integration", data)
+
+        agentExternalId = Identifiers.create_process_identifier(datadog_agent.get_hostname(), 1, 1)
+        topology.submit_relation(self, self.check_id, self._get_instance_key(), externalId, agentExternalId,
+                                 "agent-integration", {})
 
 
 class __AgentCheckPy2(object):
@@ -880,7 +916,11 @@ class __AgentCheckPy2(object):
 
     def run(self):
         try:
-            self.check(copy.deepcopy(self.instances[0]))
+            if self._get_instance_key_value().with_snapshots:
+                topology.submit_start_snapshot(self, self.check_id, self._get_instance_key())
+            instance = self.instances[0]
+            self.create_integration_instance(copy.deepcopy(instance))
+            self.check(copy.deepcopy(instance))
             result = b''
         except Exception as e:
             result = json.dumps([
@@ -892,6 +932,8 @@ class __AgentCheckPy2(object):
         finally:
             if self.metric_limiter:
                 self.metric_limiter.reset()
+            if self._get_instance_key_value().with_snapshots:
+                topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key())
 
         return result
 
@@ -944,16 +986,20 @@ class __AgentCheckPy2(object):
             self._raise_unexpected_type(argumentName, value, "dictionary or None value")
 
     def _get_instance_key(self):
+        return self._get_instance_key_value().toDict()
+
+    def _get_instance_key_value(self):
         value = self.get_instance_key(self.instance)
         if value is None:
             self._raise_unexpected_type("get_instance_key()", "None", "dictionary")
-        if not isinstance(value, TopologyInstance):
-            self._raise_unexpected_type("get_instance_key()", value, "TopologyInstance")
+        if not isinstance(value, (TopologyInstance, AgentIntegrationInstance)):
+            self._raise_unexpected_type("get_instance_key()", value, "TopologyInstance or AgentIntegrationInstance")
         if not isinstance(value.type, str):
             raise ValueError("Instance requires a 'type' field of type 'string'")
         if not isinstance(value.url, str):
             raise ValueError("Instance requires a 'url' field of type 'string'")
-        return value.toDict()
+
+        return value
 
     def component(self, id, type, data):
         self._check_is_string("id", id)
@@ -972,11 +1018,34 @@ class __AgentCheckPy2(object):
         self._check_struct("data", data)
         topology.submit_relation(self, self.check_id, self._get_instance_key(), source, target, type, data)
 
+    @deprecated(version='2.6.0', reason="Topology Snapshots is enabled by default for all TopologyInstance checks, "
+                                        "to disable snapshots use TopologyInstance(type, url, with_snapshots=False) "
+                                        "when overriding get_instance_key")
     def start_snapshot(self):
-        topology.submit_start_snapshot(self, self.check_id, self._get_instance_key())
+        pass
 
+    @deprecated(version='2.6.0', reason="Topology Snapshots is enabled by default for all TopologyInstance checks, "
+                                        "to disable snapshots use TopologyInstance(type, url, with_snapshots=False) "
+                                        "when overriding get_instance_key")
     def stop_snapshot(self):
-        topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key())
+        pass
+
+    def create_integration_instance(self, check_instance):
+        instance = self._get_instance_key_value()
+        instance_name = "{}:{}".format(instance.type, instance.url)
+        externalId = Identifiers.\
+            create_integration_identifier(datadog_agent.get_hostname(), instance.type, instance.url)
+        data = {"name": instance_name, "integration": instance.type, "hostname": datadog_agent.get_hostname(),
+                "tags": check_instance.get('tags', [])}
+
+        if datadog_agent.get_clustername():
+            data["cluster"] = datadog_agent.get_clustername()
+
+        topology.submit_component(self, self.check_id, self._get_instance_key(), externalId, "agent-integration", data)
+
+        agentExternalId = Identifiers.create_process_identifier(datadog_agent.get_hostname(), 1, 1)
+        topology.submit_relation(self, self.check_id, self._get_instance_key(), externalId, agentExternalId,
+                                 "agent-integration", {})
 
 
 if PY3:
