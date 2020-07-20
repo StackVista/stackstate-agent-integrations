@@ -6,7 +6,7 @@
   "metric_prefix": "openmetrics.",
   "metric_to_check": "",
   "creates_events": false,
-  "short_description": "penMetrics is an open standard for exposing metric data",
+  "short_description": "OpenMetrics is an open standard for exposing metric data",
   "guid": "0e522171-f799-4694-9ddd-a143c4199a54",
   "support": "core",
   "supported_os": [

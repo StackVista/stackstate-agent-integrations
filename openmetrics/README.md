@@ -2,7 +2,9 @@
 
 ## Overview
 
-This check monitors [Openmetrics][1] through the StackState Agent.
+Extract custom metrics from any OpenMetrics endpoints.
+
+**Note:** All the metrics retrieved by this integration are considered as custom metrics.
 
 ## Setup
 
@@ -23,7 +25,7 @@ need to install anything else on your server.
 
 ### Metrics
 
-Openmetrics does not include any metrics.
+All metrics collected by the OpenMetrics check are forwarded to Datadog as custom metrics.
 
 ### Service Checks
 
