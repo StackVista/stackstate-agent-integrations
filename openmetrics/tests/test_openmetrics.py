@@ -205,7 +205,7 @@ def test_openmetrics_mixed_instance(aggregator):
     aggregator.assert_metric(
         CHECK_NAME + '.renamed.metric1',
         hostname='host1',
-        tags=['node:host1', 'flavor:test', 'matched_label:foobar', 'timestamp:123', 'extra:foo'],
+        tags=['node:host1', 'flavor:test', 'matched_label:foobar', 'extra:foo'],
         metric_type=aggregator.GAUGE
     )
     aggregator.assert_metric(
