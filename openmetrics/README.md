@@ -25,7 +25,7 @@ need to install anything else on your server.
 
 ### Metrics
 
-All metrics collected by the OpenMetrics check are forwarded to Datadog as custom metrics.
+All metrics collected by the OpenMetrics check are forwarded to StackState as custom metrics.
 
 ### Service Checks
 
