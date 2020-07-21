@@ -1,6 +1,7 @@
 # (C) Datadog, Inc. 2018
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
+from datetime import datetime
 
 
 def get_hostname():
@@ -28,4 +29,12 @@ def debug(msg, *args, **kwargs):
 
 
 def get_clustername():
-    return "stubbed-cluster-name"
+    return 'stubbed-cluster-name'
+
+
+def get_pid():
+    return 1
+
+
+def get_create_time():
+    return datetime.now()

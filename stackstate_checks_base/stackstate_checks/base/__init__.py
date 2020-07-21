@@ -9,6 +9,7 @@ from .config import is_affirmative
 from .errors import ConfigurationError
 from .utils.common import ensure_bytes, ensure_unicode, to_string
 from .utils.identifiers import Identifiers
+from .utils.telemetry import MetricStream, MetricHealthChecks, EventStream, EventHealthChecks, HealthState
 
 # Windows-only
 try:
@@ -36,4 +37,9 @@ __all__ = [
     'is_affirmative',
     'to_string',
     'Identifiers',
+    'MetricStream',
+    'MetricHealthChecks',
+    'EventStream',
+    'EventHealthChecks',
+    'HealthState',
 ]

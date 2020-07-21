@@ -559,7 +559,9 @@ class __AgentCheckPy3(object):
 
         topology.submit_component(self, self.check_id, self._get_instance_key(), externalId, "agent-integration", data)
 
-        agentExternalId = Identifiers.create_process_identifier(datadog_agent.get_hostname(), 1, 1)
+        agentExternalId = Identifiers.create_process_identifier(
+            datadog_agent.get_hostname(), datadog_agent.get_pid(), datadog_agent.get_create_time()
+        )
         topology.submit_relation(self, self.check_id, self._get_instance_key(), externalId, agentExternalId,
                                  "agent-integration", {})
 
@@ -1043,7 +1045,9 @@ class __AgentCheckPy2(object):
 
         topology.submit_component(self, self.check_id, self._get_instance_key(), externalId, "agent-integration", data)
 
-        agentExternalId = Identifiers.create_process_identifier(datadog_agent.get_hostname(), 1, 1)
+        agentExternalId = Identifiers.create_process_identifier(
+            datadog_agent.get_hostname(), datadog_agent.get_pid(), datadog_agent.get_create_time()
+        )
         topology.submit_relation(self, self.check_id, self._get_instance_key(), externalId, agentExternalId,
                                  "agent-integration", {})
 
