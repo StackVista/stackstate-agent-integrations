@@ -23,7 +23,7 @@ class AgentIntegrationTestUtil(object):
         expected_relation = {
             'data': {},
             'source_id': 'urn:integration:stubbed.hostname:{}:{}'.format(instance["type"], instance["url"]),
-            'target_id': integration_relation['target_id'],
+            'target_id': 'urn:process/:stubbed.hostname:1:1234567890',
             'type': 'agent-integration'
         }
         check.assertEqual(expected_relation, integration_relation)

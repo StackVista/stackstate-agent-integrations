@@ -37,4 +37,4 @@ def get_pid():
 
 
 def get_create_time():
-    return int(time.time())
+    return int(1234567890)

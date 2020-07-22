@@ -24,14 +24,39 @@ def test_cannot_connect_to_host_control(aggregator, instance):
         m.get(host_control_url + "/?wsdl", exc=requests.exceptions.ConnectTimeout)
 
         sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
-        sap_check.check(instance)
+        sap_check.run()
+        instance = sap_check._get_instance_key()
+        integration_component = {
+            'data': {
+                'cluster': 'stubbed-cluster-name',
+                'hostname': 'stubbed.hostname',
+                'integration': '{}'.format(instance["type"]),
+                'name': '{}:{}'.format(instance["type"], instance["url"]),
+                'tags': []
+            },
+            'id': 'urn:integration:stubbed.hostname:{}:{}'.format(instance["type"], instance["url"]),
+            'type': 'agent-integration'
+        }
+        integration_relation = {
+            'data': {},
+            'source_id': 'urn:integration:stubbed.hostname:{}:{}'.format(instance["type"], instance["url"]),
+            'target_id': 'urn:process/:stubbed.hostname:1:1234567890',
+            'type': 'agent-integration'
+        }
 
         topology.assert_snapshot(
             check_id=sap_check.check_id,
             start_snapshot=True,
             stop_snapshot=True,
             instance_key=TopologyInstance("sap", "LAB-SAP-001"),
-            components=[{"id": "urn:host:/LAB-SAP-001", "type": "sap-host", "data": {"host": "LAB-SAP-001"}}])
+            components=[
+                integration_component,
+                {"id": "urn:host:/LAB-SAP-001", "type": "sap-host", "data": {"host": "LAB-SAP-001"}}
+            ],
+            relations=[
+                integration_relation
+            ],
+        )
 
         aggregator.assert_event(
             msg_text="",
@@ -61,14 +86,39 @@ def test_check_run_no_sap_instances(aggregator, instance):
         m.post(host_control_url + ".cgi", text=_read_test_file("samples/GetCIMObject-NoResult.xml"))
 
         sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
-        sap_check.check(instance)
+        sap_check.run()
+        instance = sap_check._get_instance_key()
+        integration_component = {
+            'data': {
+                'cluster': 'stubbed-cluster-name',
+                'hostname': 'stubbed.hostname',
+                'integration': '{}'.format(instance["type"]),
+                'name': '{}:{}'.format(instance["type"], instance["url"]),
+                'tags': []
+            },
+            'id': 'urn:integration:stubbed.hostname:{}:{}'.format(instance["type"], instance["url"]),
+            'type': 'agent-integration'
+        }
+        integration_relation = {
+            'data': {},
+            'source_id': 'urn:integration:stubbed.hostname:{}:{}'.format(instance["type"], instance["url"]),
+            'target_id': 'urn:process/:stubbed.hostname:1:1234567890',
+            'type': 'agent-integration'
+        }
 
         topology.assert_snapshot(
             check_id=sap_check.check_id,
             start_snapshot=True,
             stop_snapshot=True,
             instance_key=TopologyInstance("sap", "LAB-SAP-001"),
-            components=[{"id": "urn:host:/LAB-SAP-001", "type": "sap-host", "data": {"host": "LAB-SAP-001"}}])
+            components=[
+                integration_component,
+                {"id": "urn:host:/LAB-SAP-001", "type": "sap-host", "data": {"host": "LAB-SAP-001"}}
+            ],
+            relations=[
+                integration_relation
+            ],
+        )
 
         aggregator.assert_event(
             msg_text="",
