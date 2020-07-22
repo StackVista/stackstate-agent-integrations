@@ -10,6 +10,7 @@ from .errors import ConfigurationError
 from .utils.common import ensure_bytes, ensure_unicode, to_string
 from .utils.identifiers import Identifiers
 from .utils.telemetry import MetricStream, MetricHealthChecks, EventStream, EventHealthChecks, HealthState
+from .utils.agent_integration_test_util import AgentIntegrationTestUtil
 
 # Windows-only
 try:
@@ -42,4 +43,5 @@ __all__ = [
     'EventStream',
     'EventHealthChecks',
     'HealthState',
+    'AgentIntegrationTestUtil',
 ]

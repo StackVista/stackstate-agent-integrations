@@ -1,7 +1,7 @@
 # (C) Datadog, Inc. 2018
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
-from datetime import datetime
+import time
 
 
 def get_hostname():
@@ -37,4 +37,4 @@ def get_pid():
 
 
 def get_create_time():
-    return datetime.now()
+    return int(time.time())

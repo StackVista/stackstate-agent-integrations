@@ -7,7 +7,7 @@ import mock
 import unittest
 import pytest
 
-from stackstate_checks.base import ConfigurationError
+from stackstate_checks.base import ConfigurationError, AgentIntegrationTestUtil
 from stackstate_checks.static_topology import StaticTopologyCheck
 from stackstate_checks.base.stubs import topology, aggregator
 
@@ -135,10 +135,12 @@ class TestStaticCSVTopology(unittest.TestCase):
         # TODO this is needed because the topology retains data across tests
         topology.reset()
 
-        self.check.check(self.instance)
+        self.check.run()
         topo_instances = topology.get_snapshot(self.check.check_id)
-        self.assertEqual(len(topo_instances['components']), 2)
-        self.assertEqual(len(topo_instances['relations']), 1)
+        AgentIntegrationTestUtil.assert_agent_integration_component(self, topo_instances['components'][0])
+        AgentIntegrationTestUtil.assert_agent_integration_relation(self, topo_instances['relations'][0])
+        self.assertEqual(len(topo_instances['components']), 3)
+        self.assertEqual(len(topo_instances['relations']), 2)
 
     @mock.patch('codecs.open',
                 side_effect=lambda location, mode, encoding: MockFileReader(location, {
@@ -149,7 +151,7 @@ class TestStaticCSVTopology(unittest.TestCase):
         # TODO this is needed because the topology retains data across tests
         topology.reset()
 
-        self.check.check(self.instance)
+        self.check.run()
         instances = topology.get_snapshot(self.check.check_id)
         self.assertTrue(instances['start_snapshot'], msg='start_snapshot was not set to True')
         self.assertTrue(instances['stop_snapshot'], msg='stop_snapshot was not set to True')
@@ -196,18 +198,20 @@ class TestStaticCSVTopology(unittest.TestCase):
         # TODO this is needed because the topology retains data across tests
         topology.reset()
 
-        self.check.check(self.instance)
+        self.check.run()
         instances = topology.get_snapshot(self.check.check_id)
-        self.assertEqual(len(instances['components']), 2)
-        self.assertEqual(len(instances['components'][0]['data']['labels']), 3)
-        self.assertEqual(len(instances['components'][1]['data']['labels']), 2)
-        self.assertIn("csv.component:component.csv", instances['components'][0]['data']['labels'])
-        self.assertIn("csv.relation:relation.csv", instances['components'][0]['data']['labels'])
+        AgentIntegrationTestUtil.assert_agent_integration_component(self, instances['components'][0])
+        AgentIntegrationTestUtil.assert_agent_integration_relation(self, instances['relations'][0])
+        self.assertEqual(len(instances['components']), 3)
+        self.assertEqual(len(instances['components'][1]['data']['labels']), 3)
+        self.assertEqual(len(instances['components'][2]['data']['labels']), 2)
         self.assertIn("csv.component:component.csv", instances['components'][1]['data']['labels'])
         self.assertIn("csv.relation:relation.csv", instances['components'][1]['data']['labels'])
+        self.assertIn("csv.component:component.csv", instances['components'][2]['data']['labels'])
+        self.assertIn("csv.relation:relation.csv", instances['components'][2]['data']['labels'])
 
-        self.assertEqual(len(instances['relations']), 1)
-        self.assertNotIn('labels', instances['relations'][0]['data'])
+        self.assertEqual(len(instances['relations']), 2)
+        self.assertNotIn('labels', instances['relations'][1]['data'])
 
     @mock.patch('codecs.open',
                 side_effect=lambda location, mode, encoding: MockFileReader(location, {
@@ -219,23 +223,25 @@ class TestStaticCSVTopology(unittest.TestCase):
         # TODO this is needed because the topology retains data across tests
         topology.reset()
 
-        self.check.check(self.instance)
+        self.check.run()
         instances = topology.get_snapshot(self.check.check_id)
-        self.assertEqual(len(instances['components']), 2)
-        self.assertEqual(len(instances['components'][0]['data']['labels']), 4)
-        self.assertEqual(len(instances['components'][1]['data']['labels']), 5)
-        self.assertIn("label1", instances['components'][0]['data']['labels'])
-        self.assertIn("label2", instances['components'][0]['data']['labels'])
-        self.assertIn("csv.component:component.csv", instances['components'][0]['data']['labels'])
-        self.assertIn("csv.relation:relation.csv", instances['components'][0]['data']['labels'])
+        AgentIntegrationTestUtil.assert_agent_integration_component(self, instances['components'][0])
+        AgentIntegrationTestUtil.assert_agent_integration_relation(self, instances['relations'][0])
+        self.assertEqual(len(instances['components']), 3)
+        self.assertEqual(len(instances['components'][1]['data']['labels']), 4)
+        self.assertEqual(len(instances['components'][2]['data']['labels']), 5)
         self.assertIn("label1", instances['components'][1]['data']['labels'])
         self.assertIn("label2", instances['components'][1]['data']['labels'])
-        self.assertIn("label3", instances['components'][1]['data']['labels'])
         self.assertIn("csv.component:component.csv", instances['components'][1]['data']['labels'])
         self.assertIn("csv.relation:relation.csv", instances['components'][1]['data']['labels'])
+        self.assertIn("label1", instances['components'][2]['data']['labels'])
+        self.assertIn("label2", instances['components'][2]['data']['labels'])
+        self.assertIn("label3", instances['components'][2]['data']['labels'])
+        self.assertIn("csv.component:component.csv", instances['components'][2]['data']['labels'])
+        self.assertIn("csv.relation:relation.csv", instances['components'][2]['data']['labels'])
 
-        self.assertEqual(len(instances['relations']), 1)
-        self.assertNotIn('labels', instances['relations'][0]['data'])
+        self.assertEqual(len(instances['relations']), 2)
+        self.assertNotIn('labels', instances['relations'][1]['data'])
 
     @mock.patch('codecs.open',
                 side_effect=lambda location, mode, encoding: MockFileReader(location, {
@@ -246,15 +252,17 @@ class TestStaticCSVTopology(unittest.TestCase):
         # TODO this is needed because the topology retains data across tests
         topology.reset()
 
-        self.check.check(self.instance)
+        self.check.run()
         instances = topology.get_snapshot(self.check.check_id)
-        self.assertEqual(len(instances['components']), 2)
-        self.assertEqual(len(instances['components'][0]['data']['identifiers']), 1)
-        self.assertEqual(len(instances['components'][1]['data']['identifiers']), 0)
-        self.assertIn("id1", instances['components'][0]['data']['identifiers'])
+        AgentIntegrationTestUtil.assert_agent_integration_component(self, instances['components'][0])
+        AgentIntegrationTestUtil.assert_agent_integration_relation(self, instances['relations'][0])
+        self.assertEqual(len(instances['components']), 3)
+        self.assertEqual(len(instances['components'][1]['data']['identifiers']), 1)
+        self.assertEqual(len(instances['components'][2]['data']['identifiers']), 0)
+        self.assertIn("id1", instances['components'][1]['data']['identifiers'])
 
-        self.assertEqual(len(instances['relations']), 1)
-        self.assertNotIn('labels', instances['relations'][0]['data'])
+        self.assertEqual(len(instances['relations']), 2)
+        self.assertNotIn('labels', instances['relations'][1]['data'])
 
     @mock.patch('codecs.open',
                 side_effect=lambda location, mode, encoding: MockFileReader(location, {
@@ -266,19 +274,21 @@ class TestStaticCSVTopology(unittest.TestCase):
         # TODO this is needed because the topology retains data across tests
         topology.reset()
 
-        self.check.check(self.instance)
+        self.check.run()
         instances = topology.get_snapshot(self.check.check_id)
-        self.assertEqual(len(instances['components']), 2)
-        self.assertEqual(len(instances['components'][0]['data']['identifiers']), 2)
-        self.assertEqual(len(instances['components'][1]['data']['identifiers']), 3)
-        self.assertIn("id1", instances['components'][0]['data']['identifiers'])
-        self.assertIn("id2", instances['components'][0]['data']['identifiers'])
+        AgentIntegrationTestUtil.assert_agent_integration_component(self, instances['components'][0])
+        AgentIntegrationTestUtil.assert_agent_integration_relation(self, instances['relations'][0])
+        self.assertEqual(len(instances['components']), 3)
+        self.assertEqual(len(instances['components'][1]['data']['identifiers']), 2)
+        self.assertEqual(len(instances['components'][2]['data']['identifiers']), 3)
         self.assertIn("id1", instances['components'][1]['data']['identifiers'])
         self.assertIn("id2", instances['components'][1]['data']['identifiers'])
-        self.assertIn("id3", instances['components'][1]['data']['identifiers'])
+        self.assertIn("id1", instances['components'][2]['data']['identifiers'])
+        self.assertIn("id2", instances['components'][2]['data']['identifiers'])
+        self.assertIn("id3", instances['components'][2]['data']['identifiers'])
 
-        self.assertEqual(len(instances['relations']), 1)
-        self.assertNotIn('labels', instances['relations'][0]['data'])
+        self.assertEqual(len(instances['relations']), 2)
+        self.assertNotIn('labels', instances['relations'][1]['data'])
 
     @mock.patch('codecs.open',
                 side_effect=lambda location, mode, encoding: MockFileReader(location, {
@@ -322,22 +332,24 @@ class TestStaticCSVTopology(unittest.TestCase):
         # TODO this is needed because the topology retains data across tests
         topology.reset()
 
-        self.check.check(self.instance)
+        self.check.run()
         instances = topology.get_snapshot(self.check.check_id)
-        self.assertEqual(len(instances['components']), 2)
-        self.assertEqual(len(instances['components'][0]['data']['labels']), 2)
+        AgentIntegrationTestUtil.assert_agent_integration_component(self, instances['components'][0])
+        AgentIntegrationTestUtil.assert_agent_integration_relation(self, instances['relations'][0])
+        self.assertEqual(len(instances['components']), 3)
         self.assertEqual(len(instances['components'][1]['data']['labels']), 2)
-        self.assertIn("csv.component:component.csv", instances['components'][0]['data']['labels'])
-        self.assertIn("csv.relation:relation.csv", instances['components'][0]['data']['labels'])
+        self.assertEqual(len(instances['components'][2]['data']['labels']), 2)
         self.assertIn("csv.component:component.csv", instances['components'][1]['data']['labels'])
         self.assertIn("csv.relation:relation.csv", instances['components'][1]['data']['labels'])
-        self.assertEqual(len(instances['components'][0]['data']['environments']), 1)
+        self.assertIn("csv.component:component.csv", instances['components'][2]['data']['labels'])
+        self.assertIn("csv.relation:relation.csv", instances['components'][2]['data']['labels'])
         self.assertEqual(len(instances['components'][1]['data']['environments']), 1)
-        self.assertIn("env1", instances['components'][0]['data']['environments'])
-        self.assertIn("Production", instances['components'][1]['data']['environments'])
+        self.assertEqual(len(instances['components'][2]['data']['environments']), 1)
+        self.assertIn("env1", instances['components'][1]['data']['environments'])
+        self.assertIn("Production", instances['components'][2]['data']['environments'])
 
-        self.assertEqual(len(instances['relations']), 1)
-        self.assertNotIn('labels', instances['relations'][0]['data'])
+        self.assertEqual(len(instances['relations']), 2)
+        self.assertNotIn('labels', instances['relations'][1]['data'])
 
     @mock.patch('codecs.open',
                 side_effect=lambda location, mode, encoding: MockFileReader(location, {
@@ -348,21 +360,23 @@ class TestStaticCSVTopology(unittest.TestCase):
         # TODO this is needed because the topology retains data across tests
         topology.reset()
 
-        self.check.check(self.instance)
+        self.check.run()
         instances = topology.get_snapshot(self.check.check_id)
-        self.assertEqual(len(instances['components']), 2)
-        self.assertEqual(len(instances['components'][0]['data']['labels']), 2)
+        AgentIntegrationTestUtil.assert_agent_integration_component(self, instances['components'][0])
+        AgentIntegrationTestUtil.assert_agent_integration_relation(self, instances['relations'][0])
+        self.assertEqual(len(instances['components']), 3)
         self.assertEqual(len(instances['components'][1]['data']['labels']), 2)
-        self.assertIn("csv.component:component.csv", instances['components'][0]['data']['labels'])
-        self.assertIn("csv.relation:relation.csv", instances['components'][0]['data']['labels'])
-        self.assertEqual(len(instances['components'][0]['data']['environments']), 2)
-        self.assertEqual(len(instances['components'][1]['data']['environments']), 1)
-        self.assertIn("env1", instances['components'][0]['data']['environments'])
-        self.assertIn("env2", instances['components'][0]['data']['environments'])
-        self.assertIn("Production", instances['components'][1]['data']['environments'])
+        self.assertEqual(len(instances['components'][2]['data']['labels']), 2)
+        self.assertIn("csv.component:component.csv", instances['components'][1]['data']['labels'])
+        self.assertIn("csv.relation:relation.csv", instances['components'][1]['data']['labels'])
+        self.assertEqual(len(instances['components'][1]['data']['environments']), 2)
+        self.assertEqual(len(instances['components'][2]['data']['environments']), 1)
+        self.assertIn("env1", instances['components'][1]['data']['environments'])
+        self.assertIn("env2", instances['components'][1]['data']['environments'])
+        self.assertIn("Production", instances['components'][2]['data']['environments'])
 
-        self.assertEqual(len(instances['relations']), 1)
-        self.assertNotIn('labels', instances['relations'][0]['data'])
+        self.assertEqual(len(instances['relations']), 2)
+        self.assertNotIn('labels', instances['relations'][1]['data'])
 
     @mock.patch('codecs.open', side_effect=lambda location, mode, encoding: MockFileReader(location, {
         'component.csv': ['NOID,name,type'],
@@ -372,7 +386,7 @@ class TestStaticCSVTopology(unittest.TestCase):
         # TODO this is needed because the topology retains data across tests
         aggregator.reset()
 
-        self.check.check(self.instance)
+        self.check.run()
         service_checks = aggregator.service_checks("StaticTopology")
         self.assertEqual(service_checks[0].status, 2)
         self.assertEqual(service_checks[0].message, "CSV header id not found in component csv.")
@@ -385,7 +399,7 @@ class TestStaticCSVTopology(unittest.TestCase):
         # TODO this is needed because the topology retains data across tests
         aggregator.reset()
 
-        self.check.check(self.instance)
+        self.check.run()
         service_checks = aggregator.service_checks("StaticTopology")
         self.assertEqual(service_checks[0].status, 2)
         self.assertEqual(service_checks[0].message, "CSV header name not found in component csv.")
@@ -398,7 +412,7 @@ class TestStaticCSVTopology(unittest.TestCase):
         # TODO this is needed because the topology retains data across tests
         aggregator.reset()
 
-        self.check.check(self.instance)
+        self.check.run()
         service_checks = aggregator.service_checks("StaticTopology")
         self.assertEqual(service_checks[0].status, 2)
         self.assertEqual(service_checks[0].message, "CSV header type not found in component csv.")
@@ -410,10 +424,12 @@ class TestStaticCSVTopology(unittest.TestCase):
         # TODO this is needed because the topology retains data across tests
         topology.reset()
 
-        self.check.check(self.instance)
+        self.check.run()
         instances = topology.get_snapshot(self.check.check_id)
-        self.assertEqual(len(instances['components']), 1)
-        self.assertEqual(len(instances['relations']), 0)
+        AgentIntegrationTestUtil.assert_agent_integration_component(self, instances['components'][0])
+        AgentIntegrationTestUtil.assert_agent_integration_relation(self, instances['relations'][0])
+        self.assertEqual(len(instances['components']), 2)
+        self.assertEqual(len(instances['relations']), 1)
 
     @mock.patch('codecs.open', side_effect=lambda location, mode, encoding: MockFileReader(location, {
         'component.csv': ['id,name,type,othervalue', 'id1,name1,type1,othervalue', 'id2,name2,type2'],
@@ -422,10 +438,12 @@ class TestStaticCSVTopology(unittest.TestCase):
         # TODO this is needed because the topology retains data across tests
         topology.reset()
 
-        self.check.check(self.instance)
+        self.check.run()
         instances = topology.get_snapshot(self.check.check_id)
-        self.assertEqual(len(instances['components']), 1)
-        self.assertEqual(len(instances['relations']), 0)
+        AgentIntegrationTestUtil.assert_agent_integration_component(self, instances['components'][0])
+        AgentIntegrationTestUtil.assert_agent_integration_relation(self, instances['relations'][0])
+        self.assertEqual(len(instances['components']), 2)
+        self.assertEqual(len(instances['relations']), 1)
 
     @mock.patch('codecs.open', side_effect=lambda location, mode, encoding: MockFileReader(location, {
         'component.csv': ['id,name,type'],
@@ -435,7 +453,7 @@ class TestStaticCSVTopology(unittest.TestCase):
         # TODO this is needed because the topology retains data across tests
         aggregator.reset()
 
-        self.check.check(self.instance)
+        self.check.run()
         service_checks = aggregator.service_checks("StaticTopology")
         self.assertEqual(service_checks[0].status, 2)
         self.assertEqual(service_checks[0].message, "CSV header sourceid not found in relation csv.")
@@ -448,7 +466,7 @@ class TestStaticCSVTopology(unittest.TestCase):
         # TODO this is needed because the topology retains data across tests
         aggregator.reset()
 
-        self.check.check(self.instance)
+        self.check.run()
         service_checks = aggregator.service_checks("StaticTopology")
         self.assertEqual(service_checks[0].status, 2)
         self.assertEqual(service_checks[0].message, "CSV header targetid not found in relation csv.")
@@ -460,7 +478,7 @@ class TestStaticCSVTopology(unittest.TestCase):
         # TODO this is needed because the topology retains data across tests
         aggregator.reset()
 
-        self.check.check(self.instance)
+        self.check.run()
         service_checks = aggregator.service_checks("StaticTopology")
         self.assertEqual(service_checks[0].status, 2)
         self.assertEqual(service_checks[0].message, "CSV header type not found in relation csv.")
@@ -472,10 +490,12 @@ class TestStaticCSVTopology(unittest.TestCase):
         # TODO this is needed because the topology retains data across tests
         topology.reset()
 
-        self.check.check(self.instance)
+        self.check.run()
         instances = topology.get_snapshot(self.check.check_id)
-        self.assertEqual(len(instances['components']), 2)
-        self.assertEqual(len(instances['relations']), 1)
+        AgentIntegrationTestUtil.assert_agent_integration_component(self, instances['components'][0])
+        AgentIntegrationTestUtil.assert_agent_integration_relation(self, instances['relations'][0])
+        self.assertEqual(len(instances['components']), 3)
+        self.assertEqual(len(instances['relations']), 2)
 
     @mock.patch('codecs.open', side_effect=lambda location, mode, encoding: MockFileReader(location, {
         'component.csv': ['id,name,type', 'id1,name1,type1', 'id2,name2,type2'],
@@ -484,7 +504,9 @@ class TestStaticCSVTopology(unittest.TestCase):
         # TODO this is needed because the topology retains data across tests
         topology.reset()
 
-        self.check.check(self.instance)
+        self.check.run()
         instances = topology.get_snapshot(self.check.check_id)
-        self.assertEqual(len(instances['components']), 2)
-        self.assertEqual(len(instances['relations']), 1)
+        AgentIntegrationTestUtil.assert_agent_integration_component(self, instances['components'][0])
+        AgentIntegrationTestUtil.assert_agent_integration_relation(self, instances['relations'][0])
+        self.assertEqual(len(instances['components']), 3)
+        self.assertEqual(len(instances['relations']), 2)

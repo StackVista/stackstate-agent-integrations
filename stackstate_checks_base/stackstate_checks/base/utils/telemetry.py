@@ -2,6 +2,8 @@ from enum import Enum
 
 
 class HealthState(Enum):
+    """
+    """
     UNKNOWN = "UNKNOWN"
     CLEAR = "CLEAR"
     DISABLED = "DISABLED"
@@ -11,9 +13,13 @@ class HealthState(Enum):
 
 
 class EventHealthChecks(object):
+    """
+    """
 
     @staticmethod
     def contains_key_value(stream_id, name, contains_key, contains_value, found_health_state, missing_health_state):
+        """
+        """
         return {
             "stream_id": stream_id,
             "name": name,
@@ -25,6 +31,8 @@ class EventHealthChecks(object):
 
     @staticmethod
     def use_tag_as_health(stream_id, name, tag_name):
+        """
+        """
         return {
             "stream_id": stream_id,
             "name": name,
@@ -33,10 +41,14 @@ class EventHealthChecks(object):
 
     @staticmethod
     def custom_health_check(name, check_arguments):
+        """
+        """
         return check_arguments.update({"name": name})
 
 
 class MetricHealthChecks(object):
+    """
+    """
 
     @staticmethod
     def _single_stream_check_base(stream_id, name, deviating_value, critical_value):
@@ -49,21 +61,29 @@ class MetricHealthChecks(object):
 
     @staticmethod
     def maximum_average(stream_id, name, deviating_value, critical_value):
+        """
+        """
         return MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value)\
             .update({"is_metric_maximum_average_check": True})
 
     @staticmethod
     def maximum_percentile(stream_id, name, deviating_value, critical_value):
+        """
+        """
         return MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value) \
             .update({"is_metric_maximum_percentile_check": True})
 
     @staticmethod
     def maximum_last(stream_id, name, deviating_value, critical_value):
+        """
+        """
         return MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value) \
             .update({"is_metric_maximum_last_check": True})
 
     @staticmethod
     def maximum_ratio(denominator, numerator, name, deviating_value, critical_value):
+        """
+        """
         return {
             "is_metric_maximum_ratio_check": True,
             "denominator": denominator,
@@ -75,21 +95,29 @@ class MetricHealthChecks(object):
 
     @staticmethod
     def minimum_average(stream_id, name, deviating_value, critical_value):
+        """
+        """
         return MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value) \
             .update({"is_metrics_minimum_average_check": True})
 
     @staticmethod
     def minimum_last(stream_id, name, deviating_value, critical_value):
+        """
+        """
         return MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value) \
             .update({"is_metrics_minimum_average_check": True})
 
     @staticmethod
     def minimum_percentile(stream_id, name, deviating_value, critical_value):
+        """
+        """
         return MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value) \
             .update({"is_metric_minimum_percentile_check": True})
 
     @staticmethod
     def failed_ratio(success, failed, name, deviating_value, critical_value):
+        """
+        """
         return {
             "is_metrics_failed_ratio_check": True,
             "success": success,
@@ -101,6 +129,8 @@ class MetricHealthChecks(object):
 
     @staticmethod
     def custom_health_check(name, check_arguments):
+        """
+        """
         return check_arguments.update({"name": name})
 
 
