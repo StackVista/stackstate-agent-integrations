@@ -7,7 +7,7 @@ import mock
 import pytest
 from six import PY3
 
-from stackstate_checks.checks import AgentCheck, TopologyInstance
+from stackstate_checks.checks import AgentCheck, TopologyInstance, AgentIntegrationInstance
 from stackstate_checks.base.stubs.topology import component, relation
 
 
@@ -322,12 +322,12 @@ class TestTopology:
 
     def test_start_snapshot(self, topology):
         check = TopologyCheck()
-        check.start_snapshot()
+        topology.submit_start_snapshot(check, check.check_id, check._get_instance_key())
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True)
 
     def test_stop_snapshot(self, topology):
         check = TopologyCheck()
-        check.stop_snapshot()
+        topology.submit_stop_snapshot(check, check.check_id, check._get_instance_key())
         topology.assert_snapshot(check.check_id, check.key, stop_snapshot=True)
 
     def test_none_data_ok(self, topology):
@@ -372,10 +372,10 @@ expected string, int, dictionary, list or None value"""
             assert check.component("my-id", "my-type", None)
         if PY3:
             assert str(e.value) == """Got unexpected <class 'dict'> for argument get_instance_key(), \
-expected TopologyInstance"""
+expected TopologyInstance or AgentIntegrationInstance"""
         else:
             assert str(e.value) == """Got unexpected <type 'dict'> for argument get_instance_key(), \
-expected TopologyInstance"""
+expected TopologyInstance or AgentIntegrationInstance"""
 
     def test_illegal_instance_key_field_type(self):
         check = TopologyCheck()
@@ -383,3 +383,13 @@ expected TopologyInstance"""
         with pytest.raises(ValueError) as e:
             assert check.component("my-id", "my-type", None)
         assert str(e.value) == "Instance requires a 'url' field of type 'string'"
+
+    def test_topology_instance(self):
+        check = TopologyCheck()
+        check.key = TopologyInstance("mytype", "myurl")
+        assert check.key.toDict() == {"type": "mytype", "url": "myurl"}
+
+    def test_agent_integration_instance(self):
+        check = TopologyCheck()
+        check.key = AgentIntegrationInstance()
+        assert check.key.toDict() == {"type": "agent", "url": "integrations"}
