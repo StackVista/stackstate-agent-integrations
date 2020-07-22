@@ -1,0 +1,23 @@
+{
+  "display_name": "Agent_integration_sample",
+  "maintainer": "zwitte@stackstate.com",
+  "manifest_version": "1.0.0",
+  "name": "agent_integration_sample",
+  "metric_prefix": "agent_integration_sample.",
+  "metric_to_check": "",
+  "creates_events": false,
+  "short_description": "",
+  "guid": "8017609c-a1bb-4a2e-85f5-d013b00af9c7",
+  "support": "core",
+  "supported_os": [
+    "linux",
+    "mac_os",
+    "windows"
+  ],
+  "public_title": "StackState-Agent_integration_sample Integration",
+  "categories": [
+    ""
+  ],
+  "type": "check",
+  "is_public": false
+}
