@@ -13,3 +13,4 @@ PyYAML==3.13
 boto3==1.10.49
 flatten-dict==0.2.0
 Deprecated==1.2.10
+enum34==1.1.10

@@ -115,7 +115,7 @@ class TelemetryStream(object):
         self.check = None
 
     def identifier(self):
-        return "{}".format(self.name)
+        return "{}".format(hash(frozenset(self.as_topology().items())))
 
     def as_topology(self):
         return {
@@ -161,9 +161,6 @@ class MetricStream(TelemetryStream):
             metric_stream["priority"] = self.priority
 
         return metric_stream
-
-    def identifier(self):
-        return "{}:{}".format(self.name, self.metric_field)
 
 
 class EventStream(TelemetryStream):
