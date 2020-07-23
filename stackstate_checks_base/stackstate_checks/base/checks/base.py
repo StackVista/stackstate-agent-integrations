@@ -610,6 +610,8 @@ class __AgentCheckPy2(object):
             # Do not allow to disable limiting if the class has set a non-zero default value
             if metric_limit == 0 and self.DEFAULT_METRIC_LIMIT > 0:
                 metric_limit = self.DEFAULT_METRIC_LIMIT
+                self.warning("Setting max_returned_metrics to zero is not allowed,"
+                             + "reverting to the default of {} metrics".format(self.DEFAULT_METRIC_LIMIT))  # noqa: W503
                 self.warning(
                     "Setting max_returned_metrics to zero is not allowed, reverting to the default of {} metrics"
                     .format(self.DEFAULT_METRIC_LIMIT)
