@@ -289,7 +289,7 @@ class TestLimits():
             }
         ]
         check = LimitedCheck("test", {}, instances)
-        assert len(check.get_warnings()) == 2
+        assert len(check.get_warnings()) == 1
 
         for i in range(0, 42):
             check.gauge("metric", 0)
