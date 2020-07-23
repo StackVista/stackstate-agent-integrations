@@ -612,6 +612,10 @@ class __AgentCheckPy2(object):
                 metric_limit = self.DEFAULT_METRIC_LIMIT
                 self.warning("Setting max_returned_metrics to zero is not allowed,"
                              + "reverting to the default of {} metrics".format(self.DEFAULT_METRIC_LIMIT))  # noqa: W503
+                self.warning(
+                    "Setting max_returned_metrics to zero is not allowed, reverting to the default of {} metrics"
+                    .format(self.DEFAULT_METRIC_LIMIT)
+                )
         except Exception:
             metric_limit = self.DEFAULT_METRIC_LIMIT
         if metric_limit > 0:

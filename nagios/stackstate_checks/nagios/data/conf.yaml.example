@@ -1,0 +1,12 @@
+init_config:
+
+instances:
+  - nagios_conf: /usr/local/nagios/etc/nagios.cfg
+#   collect_events: True                   # default is True
+#   passive_checks_events: True            # default is False
+#   collect_host_performance_data: True    # default is False
+#   collect_service_performance_data: True # default is False
+
+# Retro compatibility option for Nagios3
+# - nagios_perf_cfg: /etc/nagios3/nagios.cfg
+#   nagios_log: /var/log/nagios3/nagios.log
