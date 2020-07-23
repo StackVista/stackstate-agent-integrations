@@ -1,4 +1,5 @@
 from enum import Enum
+import json
 
 
 class HealthState(Enum):
@@ -27,6 +28,7 @@ class EventHealthChecks(object):
             "contains_value": contains_value,
             "found_health_state": found_health_state.name,
             "missing_health_state": missing_health_state.name,
+            "is_event_contains_key_value_check": True
         }
 
     @staticmethod
@@ -37,13 +39,24 @@ class EventHealthChecks(object):
             "stream_id": stream_id,
             "name": name,
             "tag_name": tag_name,
+            "is_event_tag_as_health_check": True
+        }
+
+    @staticmethod
+    def service_check_health(stream_id, name):
+        """
+        """
+        return {
+            "stream_id": stream_id,
+            "name": name,
+            "is_service_check_health_check": True
         }
 
     @staticmethod
     def custom_health_check(name, check_arguments):
         """
         """
-        return check_arguments.update({"name": name})
+        return dict(check_arguments, **{"name": name})
 
 
 class MetricHealthChecks(object):
@@ -63,22 +76,22 @@ class MetricHealthChecks(object):
     def maximum_average(stream_id, name, deviating_value, critical_value):
         """
         """
-        return MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value)\
-            .update({"is_metric_maximum_average_check": True})
+        return dict(MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value),
+                    **{"is_metric_maximum_average_check": True})
 
     @staticmethod
     def maximum_percentile(stream_id, name, deviating_value, critical_value):
         """
         """
-        return MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value) \
-            .update({"is_metric_maximum_percentile_check": True})
+        return dict(MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value),
+                    **{"is_metric_maximum_percentile_check": True})
 
     @staticmethod
     def maximum_last(stream_id, name, deviating_value, critical_value):
         """
         """
-        return MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value) \
-            .update({"is_metric_maximum_last_check": True})
+        return dict(MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value),
+                    **{"is_metric_maximum_last_check": True})
 
     @staticmethod
     def maximum_ratio(denominator, numerator, name, deviating_value, critical_value):
@@ -97,22 +110,22 @@ class MetricHealthChecks(object):
     def minimum_average(stream_id, name, deviating_value, critical_value):
         """
         """
-        return MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value) \
-            .update({"is_metrics_minimum_average_check": True})
+        return dict(MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value),
+                    **{"is_metrics_minimum_average_check": True})
 
     @staticmethod
     def minimum_last(stream_id, name, deviating_value, critical_value):
         """
         """
-        return MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value) \
-            .update({"is_metrics_minimum_average_check": True})
+        return dict(MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value),
+                    **{"is_metrics_minimum_average_check": True})
 
     @staticmethod
     def minimum_percentile(stream_id, name, deviating_value, critical_value):
         """
         """
-        return MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value) \
-            .update({"is_metric_minimum_percentile_check": True})
+        return dict(MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value),
+                    **{"is_metric_minimum_percentile_check": True})
 
     @staticmethod
     def failed_ratio(success, failed, name, deviating_value, critical_value):
@@ -131,7 +144,7 @@ class MetricHealthChecks(object):
     def custom_health_check(name, check_arguments):
         """
         """
-        return check_arguments.update({"name": name})
+        return dict(check_arguments, **{"name": name})
 
 
 class TelemetryStream(object):
@@ -145,9 +158,12 @@ class TelemetryStream(object):
         self.check = None
 
     def identifier(self):
-        return "{}".format(hash(frozenset(self.as_topology().items())))
+        return "{}".format(hash(frozenset(json.dumps(self._as_topology(), sort_keys=True))))
 
-    def as_topology(self):
+    def to_payload(self):
+        return dict(self._as_topology(), **{"identifier": self.identifier()})
+
+    def _as_topology(self):
         return {
             "name": self.name,
             "conditions": self.conditions,
@@ -155,6 +171,10 @@ class TelemetryStream(object):
 
 
 class MetricStream(TelemetryStream):
+    acceptable_aggregation_methods = ["EVENT_COUNT", "MAX", "MEAN", "MIN", "SUM", "PERCENTILE_25", "PERCENTILE_50",
+                                      "PERCENTILE_75", "PERCENTILE_90", "PERCENTILE_95", "PERCENTILE_98",
+                                      "PERCENTILE_99"]
+    acceptable_stream_priorities = ["NONE", "LOW", "MEDIUM", "HIGH"]
     """
     creates a metric stream definition for the component that will bind metrics in StackState for the conditions.
     args: `name, metricField, conditions, unit_of_measure, aggregation, priority`
@@ -173,11 +193,21 @@ class MetricStream(TelemetryStream):
         TelemetryStream.__init__(self, name, conditions)
         self.metric_field = metric_field
         self.unit_of_measure = unit_of_measure
-        self.aggregation = aggregation
-        self.priority = priority
+        if aggregation:
+            if aggregation not in MetricStream.acceptable_aggregation_methods:
+                raise ValueError("Got unexpected value {} for argument aggregation, expected one of {}"
+                                 .format(aggregation, MetricStream.acceptable_aggregation_methods))
+            self.aggregation = aggregation
 
-    def as_topology(self):
-        metric_stream = TelemetryStream.as_topology(self)
+        if priority:
+            if priority not in MetricStream.acceptable_stream_priorities:
+                raise ValueError("Got unexpected value {} for argument priority, expected one of {}"
+                                 .format(priority, MetricStream.acceptable_stream_priorities))
+
+            self.priority = priority
+
+    def _as_topology(self):
+        metric_stream = TelemetryStream._as_topology(self)
 
         metric_stream["metric_field"] = self.metric_field
 

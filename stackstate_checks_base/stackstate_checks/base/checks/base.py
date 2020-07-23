@@ -43,6 +43,7 @@ from ..utils.common import ensure_bytes, ensure_unicode
 from ..utils.proxy import config_proxy_skip
 from ..utils.limiter import Limiter
 from ..utils.identifiers import Identifiers
+from ..utils.telemetry import EventStream, EventHealthChecks
 from deprecated.sphinx import deprecated
 
 if datadog_agent.get_config('disable_unsafe_yaml'):
@@ -308,6 +309,8 @@ class __AgentCheckPy3(object):
         else:
             message = ensure_unicode(message)
 
+        instance = self._get_instance_key()
+        tags = tags + ["integration-type:{}".format(instance['type']), "integration-url:{}".format(instance['url'])]
         aggregator.submit_service_check(self, self.check_id, ensure_unicode(name), status, tags, hostname, message)
 
     def event(self, event):
@@ -472,7 +475,7 @@ class __AgentCheckPy3(object):
         return proxies if proxies else no_proxy_settings
 
     def get_instance_key(self, instance):
-        raise NotImplementedError
+        return AgentIntegrationInstance()
 
     def _raise_unexpected_type(self, argumentName, value, expected):
         raise ValueError("Got unexpected {} for argument {}, expected {}".format(type(value), argumentName, expected))
@@ -517,20 +520,28 @@ class __AgentCheckPy3(object):
 
         return value
 
-    def component(self, id, type, data):
+    def component(self, id, type, data, streams=None, checks=None):
         self._check_is_string("id", id)
         self._check_is_string("type", type)
         if data is None:
             data = {}
+        if streams:
+            data["streams"] = list(map(lambda stream: stream.to_payload(), streams))
+        if checks:
+            data["checks"] = checks
         self._check_struct("data", data)
         topology.submit_component(self, self.check_id, self._get_instance_key(), id, type, data)
 
-    def relation(self, source, target, type, data):
+    def relation(self, source, target, type, data, streams=None, checks=None):
         self._check_is_string("source", source)
         self._check_is_string("target", target)
         self._check_is_string("type", type)
         if data is None:
             data = {}
+        if streams:
+            data["streams"] = map(lambda stream: stream.to_payload(), streams)
+        if checks:
+            data["checks"] = checks
         self._check_struct("data", data)
         topology.submit_relation(self, self.check_id, self._get_instance_key(), source, target, type, data)
 
@@ -557,13 +568,17 @@ class __AgentCheckPy3(object):
         if datadog_agent.get_clustername():
             data["cluster"] = datadog_agent.get_clustername()
 
-        topology.submit_component(self, self.check_id, self._get_instance_key(), externalId, "agent-integration", data)
+        instance = self._get_instance_key()
+        conditions = {"hostname": datadog_agent.get_hostname(), "integration-type": instance['type'],
+                      "integration-url": instance['url']}
+        service_check_stream = EventStream("Service Checks", conditions=conditions)
+        service_check = EventHealthChecks.service_check_health(service_check_stream.identifier(), "Integration Health")
+        self.component(externalId, "agent-integration", data, streams=[service_check_stream], checks=[service_check])
 
         agentExternalId = Identifiers.create_process_identifier(
             datadog_agent.get_hostname(), datadog_agent.get_pid(), datadog_agent.get_create_time()
         )
-        topology.submit_relation(self, self.check_id, self._get_instance_key(), externalId, agentExternalId,
-                                 "agent-integration", {})
+        self.relation(externalId, agentExternalId, "agent-integration", {})
 
 
 class __AgentCheckPy2(object):
@@ -958,7 +973,7 @@ class __AgentCheckPy2(object):
         return proxies if proxies else no_proxy_settings
 
     def get_instance_key(self, instance):
-        raise NotImplementedError
+        return AgentIntegrationInstance()
 
     def _raise_unexpected_type(self, argumentName, value, expected):
         raise ValueError("Got unexpected {} for argument {}, expected {}".format(type(value), argumentName, expected))
@@ -1003,20 +1018,28 @@ class __AgentCheckPy2(object):
 
         return value
 
-    def component(self, id, type, data):
+    def component(self, id, type, data, streams=None, checks=None):
         self._check_is_string("id", id)
         self._check_is_string("type", type)
         if data is None:
             data = {}
+        if streams:
+            data["streams"] = map(lambda stream: stream.to_payload(), streams)
+        if checks:
+            data["checks"] = checks
         self._check_struct("data", data)
         topology.submit_component(self, self.check_id, self._get_instance_key(), id, type, data)
 
-    def relation(self, source, target, type, data):
+    def relation(self, source, target, type, data, streams=None, checks=None):
         self._check_is_string("source", source)
         self._check_is_string("target", target)
         self._check_is_string("type", type)
         if data is None:
             data = {}
+        if streams:
+            data["streams"] = map(lambda stream: stream.to_payload(), streams)
+        if checks:
+            data["checks"] = checks
         self._check_struct("data", data)
         topology.submit_relation(self, self.check_id, self._get_instance_key(), source, target, type, data)
 
