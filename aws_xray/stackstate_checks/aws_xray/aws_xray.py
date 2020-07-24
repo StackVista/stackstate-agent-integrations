@@ -31,7 +31,8 @@ DEFAULT_COLLECTION_INTERVAL = 60
 class AwsCheck(AgentCheck):
     """Converts AWS X-Ray traces and sends them to Trace Agent."""
     INSTANCE_TYPE = 'aws'
-    SERVICE_CHECK_NAME = 'aws_xray.can_connect'
+    SERVICE_CHECK_CONNECT_NAME = 'aws_xray.can_connect'
+    SERVICE_CHECK_EXECUTE_NAME = 'aws_xray.can_execute'
 
     def __init__(self, name, init_config, agentConfig, instances=None):
         AgentCheck.__init__(self, name, init_config, agentConfig, instances)
@@ -50,18 +51,34 @@ class AwsCheck(AgentCheck):
             aws_client = AwsClient(instance, self.init_config)
             self.region = aws_client.region
             self.account_id = aws_client.get_account_id()
+            self.service_check(self.SERVICE_CHECK_CONNECT_NAME, AgentCheck.OK, tags=self.tags)
+        except Exception as e:
+            msg = 'AWS connection failed: {}'.format(e)
+            self.log.error(msg)
+            # set self.account_id so that we can still identify this instance if something went wrong
+            aws_access_key_id = instance.get('aws_access_key_id')
+            role_arn = instance.get('role_arn')
+            if role_arn:
+                self.account_id = role_arn
+            elif aws_access_key_id:
+                self.account_id = aws_access_key_id
+            else:
+                self.account_id = "unknown-instance"
+            self.service_check(self.SERVICE_CHECK_CONNECT_NAME, AgentCheck.CRITICAL, message=msg, tags=self.tags)
+            return
 
+        try:
             traces = self._process_xray_traces(aws_client)
 
             if traces:
                 self._send_payload(traces)
 
             aws_client.write_cache_file()
-            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=self.tags)
+            self.service_check(self.SERVICE_CHECK_EXECUTE_NAME, AgentCheck.OK, tags=self.tags)
         except Exception as e:
             msg = 'AWS check failed: {}'.format(e)
             self.log.error(msg)
-            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, message=msg, tags=self.tags)
+            self.service_check(self.SERVICE_CHECK_EXECUTE_NAME, AgentCheck.CRITICAL, message=msg, tags=self.tags)
 
     def _process_xray_traces(self, aws_client):
         """Gets AWS X-Ray traces returns them in Trace Agent format."""

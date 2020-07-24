@@ -6,7 +6,7 @@ import requests
 import requests_mock
 
 from stackstate_checks.sap import SapCheck
-from stackstate_checks.base import ConfigurationError, TopologyInstance, AgentCheck
+from stackstate_checks.base import ConfigurationError, TopologyInstance, AgentCheck, AgentIntegrationTestUtil
 from stackstate_checks.base.stubs import topology
 
 CHECK_NAME = "sap-test"
@@ -25,24 +25,7 @@ def test_cannot_connect_to_host_control(aggregator, instance):
 
         sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
         sap_check.run()
-        instance = sap_check._get_instance_key()
-        integration_component = {
-            'data': {
-                'cluster': 'stubbed-cluster-name',
-                'hostname': 'stubbed.hostname',
-                'integration': '{}'.format(instance["type"]),
-                'name': '{}:{}'.format(instance["type"], instance["url"]),
-                'tags': []
-            },
-            'id': 'urn:integration:stubbed.hostname:{}:{}'.format(instance["type"], instance["url"]),
-            'type': 'agent-integration'
-        }
-        integration_relation = {
-            'data': {},
-            'source_id': 'urn:integration:stubbed.hostname:{}:{}'.format(instance["type"], instance["url"]),
-            'target_id': 'urn:process/:stubbed.hostname:1:1234567890',
-            'type': 'agent-integration'
-        }
+        topo_instances = topology.get_snapshot(sap_check.check_id)
 
         topology.assert_snapshot(
             check_id=sap_check.check_id,
@@ -50,11 +33,12 @@ def test_cannot_connect_to_host_control(aggregator, instance):
             stop_snapshot=True,
             instance_key=TopologyInstance("sap", "LAB-SAP-001"),
             components=[
-                integration_component,
+                AgentIntegrationTestUtil.expected_agent_integration_component(sap_check,
+                                                                              topo_instances['components'][0]),
                 {"id": "urn:host:/LAB-SAP-001", "type": "sap-host", "data": {"host": "LAB-SAP-001"}}
             ],
             relations=[
-                integration_relation
+                AgentIntegrationTestUtil.expected_agent_integration_relation(sap_check)
             ],
         )
 
@@ -87,24 +71,7 @@ def test_check_run_no_sap_instances(aggregator, instance):
 
         sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
         sap_check.run()
-        instance = sap_check._get_instance_key()
-        integration_component = {
-            'data': {
-                'cluster': 'stubbed-cluster-name',
-                'hostname': 'stubbed.hostname',
-                'integration': '{}'.format(instance["type"]),
-                'name': '{}:{}'.format(instance["type"], instance["url"]),
-                'tags': []
-            },
-            'id': 'urn:integration:stubbed.hostname:{}:{}'.format(instance["type"], instance["url"]),
-            'type': 'agent-integration'
-        }
-        integration_relation = {
-            'data': {},
-            'source_id': 'urn:integration:stubbed.hostname:{}:{}'.format(instance["type"], instance["url"]),
-            'target_id': 'urn:process/:stubbed.hostname:1:1234567890',
-            'type': 'agent-integration'
-        }
+        topo_instances = topology.get_snapshot(sap_check.check_id)
 
         topology.assert_snapshot(
             check_id=sap_check.check_id,
@@ -112,11 +79,12 @@ def test_check_run_no_sap_instances(aggregator, instance):
             stop_snapshot=True,
             instance_key=TopologyInstance("sap", "LAB-SAP-001"),
             components=[
-                integration_component,
+                AgentIntegrationTestUtil.expected_agent_integration_component(sap_check,
+                                                                              topo_instances['components'][0]),
                 {"id": "urn:host:/LAB-SAP-001", "type": "sap-host", "data": {"host": "LAB-SAP-001"}}
             ],
             relations=[
-                integration_relation
+                AgentIntegrationTestUtil.expected_agent_integration_relation(sap_check)
             ],
         )
 
