@@ -36,7 +36,8 @@ class AgentIntegrationTestUtil(object):
 
     @staticmethod
     def assert_agent_integration_component(check, integration_component):
-        check.assertEqual(AgentIntegrationTestUtil.expected_agent_integration_component(check.check, integration_component),
+        check.assertEqual(AgentIntegrationTestUtil.expected_agent_integration_component(check.check,
+                                                                                        integration_component),
                           integration_component)
 
     @staticmethod
@@ -51,4 +52,5 @@ class AgentIntegrationTestUtil(object):
 
     @staticmethod
     def assert_agent_integration_relation(check, integration_relation):
-        check.assertEqual(AgentIntegrationTestUtil.expected_agent_integration_relation(check.check), integration_relation)
+        check.assertEqual(AgentIntegrationTestUtil.expected_agent_integration_relation(check.check),
+                          integration_relation)
