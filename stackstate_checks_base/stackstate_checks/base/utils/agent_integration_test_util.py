@@ -18,17 +18,17 @@ class AgentIntegrationTestUtil(object):
                         'stream_id': integration_component['data']['checks'][0]['stream_id']
                     }
                 ],
-                'streams': [
+                'events': [
                     {
                         'conditions': {
                             'hostname': 'stubbed.hostname',
                             'integration-type': '{}'.format(instance["type"]),
                             'integration-url': '{}'.format(instance["url"])
                         },
-                        'identifier': integration_component['data']['streams'][0]['identifier'],
+                        'identifier': integration_component['data']['events'][0]['identifier'],
                         'name': 'Service Checks'
                     }
-                ]
+                ],
             },
             'id': 'urn:integration:stubbed.hostname:{}:{}'.format(instance["type"], instance["url"]),
             'type': 'agent-integration',

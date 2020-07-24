@@ -43,7 +43,7 @@ from ..utils.common import ensure_bytes, ensure_unicode
 from ..utils.proxy import config_proxy_skip
 from ..utils.limiter import Limiter
 from ..utils.identifiers import Identifiers
-from ..utils.telemetry import EventStream, EventHealthChecks
+from ..utils.telemetry import EventStream, EventHealthChecks, MetricStream
 from deprecated.sphinx import deprecated
 
 if datadog_agent.get_config('disable_unsafe_yaml'):
@@ -526,7 +526,17 @@ class __AgentCheckPy3(object):
         if data is None:
             data = {}
         if streams:
-            data["streams"] = list(map(lambda stream: stream.to_payload(), streams))
+            for stream in streams:
+                if isinstance(stream, MetricStream):
+                    if "metrics" in data:
+                        data["metrics"].append(stream.to_payload())
+                    else:
+                        data["metrics"] = [stream.to_payload()]
+                elif isinstance(stream, EventStream):
+                    if "events" in data:
+                        data["events"].append(stream.to_payload())
+                    else:
+                        data["events"] = [stream.to_payload()]
         if checks:
             data["checks"] = checks
         self._check_struct("data", data)
@@ -539,7 +549,17 @@ class __AgentCheckPy3(object):
         if data is None:
             data = {}
         if streams:
-            data["streams"] = map(lambda stream: stream.to_payload(), streams)
+            for stream in streams:
+                if isinstance(stream, MetricStream):
+                    if "metrics" in data:
+                        data["metrics"].append(stream.to_payload())
+                    else:
+                        data["metrics"] = [stream.to_payload()]
+                elif isinstance(stream, EventStream):
+                    if "events" in data:
+                        data["events"].append(stream.to_payload())
+                    else:
+                        data["events"] = [stream.to_payload()]
         if checks:
             data["checks"] = checks
         self._check_struct("data", data)
@@ -1024,7 +1044,17 @@ class __AgentCheckPy2(object):
         if data is None:
             data = {}
         if streams:
-            data["streams"] = map(lambda stream: stream.to_payload(), streams)
+            for stream in streams:
+                if isinstance(stream, MetricStream):
+                    if "metrics" in data:
+                        data["metrics"].append(stream.to_payload())
+                    else:
+                        data["metrics"] = [stream.to_payload()]
+                elif isinstance(stream, EventStream):
+                    if "events" in data:
+                        data["events"].append(stream.to_payload())
+                    else:
+                        data["events"] = [stream.to_payload()]
         if checks:
             data["checks"] = checks
         self._check_struct("data", data)
@@ -1037,7 +1067,17 @@ class __AgentCheckPy2(object):
         if data is None:
             data = {}
         if streams:
-            data["streams"] = map(lambda stream: stream.to_payload(), streams)
+            for stream in streams:
+                if isinstance(stream, MetricStream):
+                    if "metrics" in data:
+                        data["metrics"].append(stream.to_payload())
+                    else:
+                        data["metrics"] = [stream.to_payload()]
+                elif isinstance(stream, EventStream):
+                    if "events" in data:
+                        data["events"].append(stream.to_payload())
+                    else:
+                        data["events"] = [stream.to_payload()]
         if checks:
             data["checks"] = checks
         self._check_struct("data", data)
