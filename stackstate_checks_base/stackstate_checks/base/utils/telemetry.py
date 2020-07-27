@@ -1,5 +1,5 @@
 from enum import Enum
-import json
+import uuid
 
 
 class HealthState(Enum):
@@ -155,18 +155,20 @@ class TelemetryStream(object):
     def __init__(self, name, conditions):
         self.name = name
         self.conditions = conditions
-        self.check = None
-
-    def identifier(self):
-        return "{}".format(hash(frozenset(json.dumps(self._as_topology(), sort_keys=True))))
+        self.stream_id = None
+        self.identifier = "{}".format(uuid.uuid4())
 
     def to_payload(self):
-        return dict(self._as_topology(), **{"identifier": self.identifier()})
+        if self.stream_id:
+            return dict(self._as_topology(), **{"stream_id": self.stream_id})
+        else:
+            return self._as_topology()
 
     def _as_topology(self):
         return {
             "name": self.name,
             "conditions": self.conditions,
+            "identifier": self.identifier,
         }
 
 

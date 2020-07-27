@@ -525,20 +525,7 @@ class __AgentCheckPy3(object):
         self._check_is_string("type", type)
         if data is None:
             data = {}
-        if streams:
-            for stream in streams:
-                if isinstance(stream, MetricStream):
-                    if "metrics" in data:
-                        data["metrics"].append(stream.to_payload())
-                    else:
-                        data["metrics"] = [stream.to_payload()]
-                elif isinstance(stream, EventStream):
-                    if "events" in data:
-                        data["events"].append(stream.to_payload())
-                    else:
-                        data["events"] = [stream.to_payload()]
-        if checks:
-            data["checks"] = checks
+        data = self._map_streams_and_checks(data, streams, checks)
         self._check_struct("data", data)
         topology.submit_component(self, self.check_id, self._get_instance_key(), id, type, data)
 
@@ -548,20 +535,7 @@ class __AgentCheckPy3(object):
         self._check_is_string("type", type)
         if data is None:
             data = {}
-        if streams:
-            for stream in streams:
-                if isinstance(stream, MetricStream):
-                    if "metrics" in data:
-                        data["metrics"].append(stream.to_payload())
-                    else:
-                        data["metrics"] = [stream.to_payload()]
-                elif isinstance(stream, EventStream):
-                    if "events" in data:
-                        data["events"].append(stream.to_payload())
-                    else:
-                        data["events"] = [stream.to_payload()]
-        if checks:
-            data["checks"] = checks
+        data = self._map_streams_and_checks(data, streams, checks)
         self._check_struct("data", data)
         topology.submit_relation(self, self.check_id, self._get_instance_key(), source, target, type, data)
 
@@ -576,6 +550,34 @@ class __AgentCheckPy3(object):
                                         "when overriding get_instance_key")
     def stop_snapshot(self):
         pass
+
+    def _map_streams_and_checks(self, data, streams, checks):
+        if streams:
+            stream_id = -1
+            for stream in streams:
+                stream.stream_id = stream_id
+                if isinstance(stream, MetricStream):
+                    if "metrics" in data:
+                        data["metrics"].append(stream.to_payload())
+                    else:
+                        data["metrics"] = [stream.to_payload()]
+                elif isinstance(stream, EventStream):
+                    if "events" in data:
+                        data["events"].append(stream.to_payload())
+                    else:
+                        data["events"] = [stream.to_payload()]
+
+                # decrement for negative id
+                stream_id = stream_id - 1
+        if checks:
+            data["checks"] = []
+            for check in checks:
+                stream_id = next((stream.stream_id for stream in streams if stream.identifier ==
+                                  check["stream_id"]), None)
+                if stream_id:
+                    data["checks"].append(dict(check, **{"stream_id": stream_id}))
+
+        return data
 
     def create_integration_instance(self, check_instance):
         instance = self._get_instance_key_value()
@@ -592,7 +594,7 @@ class __AgentCheckPy3(object):
         conditions = {"hostname": datadog_agent.get_hostname(), "integration-type": instance['type'],
                       "integration-url": instance['url']}
         service_check_stream = EventStream("Service Checks", conditions=conditions)
-        service_check = EventHealthChecks.service_check_health(service_check_stream.identifier(), "Integration Health")
+        service_check = EventHealthChecks.service_check_health(service_check_stream.identifier, "Integration Health")
         self.component(externalId, "agent-integration", data, streams=[service_check_stream], checks=[service_check])
 
         agentExternalId = Identifiers.create_process_identifier(
@@ -1043,20 +1045,7 @@ class __AgentCheckPy2(object):
         self._check_is_string("type", type)
         if data is None:
             data = {}
-        if streams:
-            for stream in streams:
-                if isinstance(stream, MetricStream):
-                    if "metrics" in data:
-                        data["metrics"].append(stream.to_payload())
-                    else:
-                        data["metrics"] = [stream.to_payload()]
-                elif isinstance(stream, EventStream):
-                    if "events" in data:
-                        data["events"].append(stream.to_payload())
-                    else:
-                        data["events"] = [stream.to_payload()]
-        if checks:
-            data["checks"] = checks
+        data = self._map_streams_and_checks(data, streams, checks)
         self._check_struct("data", data)
         topology.submit_component(self, self.check_id, self._get_instance_key(), id, type, data)
 
@@ -1066,20 +1055,7 @@ class __AgentCheckPy2(object):
         self._check_is_string("type", type)
         if data is None:
             data = {}
-        if streams:
-            for stream in streams:
-                if isinstance(stream, MetricStream):
-                    if "metrics" in data:
-                        data["metrics"].append(stream.to_payload())
-                    else:
-                        data["metrics"] = [stream.to_payload()]
-                elif isinstance(stream, EventStream):
-                    if "events" in data:
-                        data["events"].append(stream.to_payload())
-                    else:
-                        data["events"] = [stream.to_payload()]
-        if checks:
-            data["checks"] = checks
+        data = self._map_streams_and_checks(data, streams, checks)
         self._check_struct("data", data)
         topology.submit_relation(self, self.check_id, self._get_instance_key(), source, target, type, data)
 
@@ -1094,6 +1070,34 @@ class __AgentCheckPy2(object):
                                         "when overriding get_instance_key")
     def stop_snapshot(self):
         pass
+
+    def _map_streams_and_checks(self, data, streams, checks):
+        if streams:
+            stream_id = -1
+            for stream in streams:
+                stream.stream_id = stream_id
+                if isinstance(stream, MetricStream):
+                    if "metrics" in data:
+                        data["metrics"].append(stream.to_payload())
+                    else:
+                        data["metrics"] = [stream.to_payload()]
+                elif isinstance(stream, EventStream):
+                    if "events" in data:
+                        data["events"].append(stream.to_payload())
+                    else:
+                        data["events"] = [stream.to_payload()]
+
+                # decrement for negative id
+                stream_id = stream_id - 1
+        if checks:
+            data["checks"] = []
+            for check in checks:
+                stream_id = next((stream.stream_id for stream in streams if stream.identifier ==
+                                  check["stream_id"]), None)
+                if stream_id:
+                    data["checks"].append(dict(check, **{"stream_id": stream_id}))
+
+        return data
 
     def create_integration_instance(self, check_instance):
         instance = self._get_instance_key_value()
@@ -1110,7 +1114,7 @@ class __AgentCheckPy2(object):
         conditions = {"hostname": datadog_agent.get_hostname(), "integration-type": instance['type'],
                       "integration-url": instance['url']}
         service_check_stream = EventStream("Service Checks", conditions=conditions)
-        service_check = EventHealthChecks.service_check_health(service_check_stream.identifier(), "Integration Health")
+        service_check = EventHealthChecks.service_check_health(service_check_stream.identifier, "Integration Health")
         self.component(externalId, "agent-integration", data, streams=[service_check_stream], checks=[service_check])
 
         agentExternalId = Identifiers.create_process_identifier(

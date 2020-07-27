@@ -15,7 +15,7 @@ class AgentIntegrationTestUtil(object):
                     {
                         'is_service_check_health_check': True,
                         'name': 'Integration Health',
-                        'stream_id': integration_component['data']['checks'][0]['stream_id']
+                        'stream_id': -1,
                     }
                 ],
                 'events': [
@@ -26,6 +26,7 @@ class AgentIntegrationTestUtil(object):
                             'integration-url': '{}'.format(instance["url"])
                         },
                         'identifier': integration_component['data']['events'][0]['identifier'],
+                        'stream_id': -1,
                         'name': 'Service Checks'
                     }
                 ],
