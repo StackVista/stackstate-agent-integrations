@@ -145,6 +145,14 @@ test_mysql:
   tags:
     - sts-aws
 
+test_openmetrics:
+  <<: *linux_test
+  variables:
+    CHECK: "openmetrics"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
 test_postgres:
   <<: *linux_test
   variables:
@@ -211,6 +219,15 @@ test_static_topology:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
+
+test_nagios:
+  <<: *linux_test
+  variables:
+    CHECK: "nagios"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
 
 .windows_test: &windows_test
   <<: *windows_env
