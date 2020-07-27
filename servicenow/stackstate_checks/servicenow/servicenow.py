@@ -17,10 +17,11 @@ EVENT_TYPE = SOURCE_TYPE_NAME = 'servicenow'
 
 class InstanceInfo():
 
-    def __init__(self, instance_tags, base_url, auth):
+    def __init__(self, instance_tags, base_url, auth, sys_class_filter):
         self.instance_tags = instance_tags
         self.base_url = base_url
         self.auth = auth
+        self.sys_class_filter = sys_class_filter
 
 
 class ServicenowCheck(AgentCheck):
@@ -49,11 +50,12 @@ class ServicenowCheck(AgentCheck):
         base_url = instance['url']
         batch_size = instance['batch_size']
         instance_tags = instance.get('tags', [])
+        sys_class_filter = instance.get('include_resource_types', [])
 
-        default_timeout = self.init_config.get('default_timeout', 5)
+        default_timeout = self.init_config.get('default_timeout', 20)
         timeout = float(instance.get('timeout', default_timeout))
 
-        instance_config = InstanceInfo(instance_tags, base_url, auth)
+        instance_config = InstanceInfo(instance_tags, base_url, auth, sys_class_filter)
 
         try:
             self.start_snapshot()
@@ -71,6 +73,43 @@ class ServicenowCheck(AgentCheck):
         tags = ["url:%s" % base_url]
         self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=tags, message=msg)
 
+    def get_sys_class_component_filter_query(self, sys_class_filter):
+        """
+        Return the sys_parm_query on the basis of sys_class_name filters from configuration
+        :param sys_class_filter: a filter with list of sys_class_name
+        :return: sysparm_query for url or ""
+        """
+        sysparm_query = ""
+        if len(sys_class_filter) > 0:
+            sysparm_query = "sysparm_query=sys_class_nameIN{}".format(sys_class_filter[0])
+            for sys_class in sys_class_filter[1:]:
+                sysparm_query = sysparm_query + "%2C{}".format(sys_class)
+        self.log.debug("sys param query for component is :- " + sysparm_query)
+        return sysparm_query
+
+    def get_sys_class_relation_filter_query(self, sys_class_filter):
+        sysparm_parent_query = ""
+        sysparm_child_query = ""
+        if len(sys_class_filter) > 0:
+            sysparm_parent_query = "sysparm_query=parent.sys_class_nameIN{}".format(sys_class_filter[0])
+            sysparm_child_query = "%5Echild.sys_class_nameIN{}".format(sys_class_filter[0])
+            for sys_class in sys_class_filter[1:]:
+                sysparm_parent_query = sysparm_parent_query + "%2C{}".format(sys_class)
+                sysparm_child_query = sysparm_child_query + "%2C{}".format(sys_class)
+        sysparm_query = sysparm_parent_query + sysparm_child_query
+        self.log.debug("sys param query for relation is :- " + sysparm_query)
+        return sysparm_query
+
+    def filter_empty_metadata(self, data):
+        result = {}
+        for k, v in data.items():
+            if v:
+                if str(type(v)) == "<type 'unicode'>":
+                    # only possible in Python 2
+                    v = v.encode('utf-8')
+                result[k] = v
+        return result
+
     def _collect_components(self, instance_config, timeout):
         """
         collect components from ServiceNow CMDB's cmdb_ci table
@@ -81,8 +120,12 @@ class ServicenowCheck(AgentCheck):
 
         base_url = instance_config.base_url
         auth = instance_config.auth
-        url = base_url + '/api/now/table/cmdb_ci?sysparm_fields=name,sys_id,sys_class_name,sys_created_on'
-
+        sys_class_filter = instance_config.sys_class_filter
+        url = base_url + '/api/now/table/cmdb_ci'
+        sys_class_filter_query = self.get_sys_class_component_filter_query(sys_class_filter)
+        if sys_class_filter_query:
+            url = url + "?{}".format(sys_class_filter_query)
+            self.log.debug("URL for component collection after applying filter:- %s", url)
         return self._get_json(url, timeout, auth)
 
     def _process_components(self, instance_config, timeout):
@@ -95,14 +138,20 @@ class ServicenowCheck(AgentCheck):
         state = self._collect_components(instance_config, timeout)
 
         for component in state['result']:
-            comp_name = component['name'].encode('utf-8')
+            component = self.filter_empty_metadata(component)
+            identifiers = []
+            comp_name = component['name']
             comp_type = component['sys_class_name']
-            external_id = "urn:servicenow:{}:{}".format(comp_type, component['sys_id'])
-            data = {
-                "sys_id": component['sys_id'],
-                "name": str(comp_name) if isinstance(comp_name, bytes) else comp_name,
-                "tags": instance_tags
-            }
+            external_id = component['sys_id']
+
+            if 'fqdn' in component and component['fqdn']:
+                identifiers.append("urn:host:/{}".format(component['fqdn']))
+            if 'host_name' in component and component['host_name']:
+                identifiers.append("urn:host:/{}".format(component['host_name']))
+            identifiers.append("urn:host:/{}".format(comp_name))
+            identifiers.append(external_id)
+            data = {"identifiers": identifiers, "tags": instance_tags}
+            data.update(component)
 
             self.component(external_id, comp_type, data)
 
@@ -138,7 +187,12 @@ class ServicenowCheck(AgentCheck):
         """
         base_url = instance_config.base_url
         auth = instance_config.auth
-        url = base_url + '/api/now/table/cmdb_rel_ci?sysparm_fields=parent,type,child'
+        sys_class_filter = instance_config.sys_class_filter
+        url = base_url + '/api/now/table/cmdb_rel_ci'
+        sys_class_filter_query = self.get_sys_class_relation_filter_query(sys_class_filter)
+        if sys_class_filter_query:
+            url = url + "?{}".format(sys_class_filter_query)
+            self.log.debug("URL for relation collection after applying filter:- %s", url)
 
         return self._get_json_batch(url, offset, batch_size, timeout, auth)
 
@@ -157,9 +211,8 @@ class ServicenowCheck(AgentCheck):
                 type_sys_id = relation['type']['value']
 
                 relation_type = relation_types[type_sys_id]
-                data = {
-                    "tags": instance_tags
-                }
+                data = self.filter_empty_metadata(relation)
+                data.update({"tags": instance_tags})
 
                 self.relation(parent_sys_id, child_sys_id, relation_type, data)
 
@@ -167,7 +220,12 @@ class ServicenowCheck(AgentCheck):
             offset += batch_size
 
     def _get_json_batch(self, url, offset, batch_size, timeout, auth):
-        limit_args = "&sysparm_query=ORDERBYsys_created_on&sysparm_offset=%i&sysparm_limit=%i" % (offset, batch_size)
+        if "?" not in url:
+            limit_args = "?"
+        else:
+            limit_args = "&"
+        limit_args = limit_args + "sysparm_query=ORDERBYsys_created_on&sysparm_offset={}&sysparm_limit={}".\
+            format(offset, batch_size)
         limited_url = url + limit_args
         return self._get_json(limited_url, timeout, auth)
 
