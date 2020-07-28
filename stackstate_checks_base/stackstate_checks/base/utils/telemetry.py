@@ -20,7 +20,7 @@ class EventHealthChecks(object):
 
     @staticmethod
     def contains_key_value(stream_id, name, contains_key, contains_value, found_health_state, missing_health_state,
-                           description, remediation_hint):
+                           description=None, remediation_hint=None):
         """
         """
         check = {
@@ -42,7 +42,7 @@ class EventHealthChecks(object):
         return check
 
     @staticmethod
-    def use_tag_as_health(stream_id, name, tag_name, description, remediation_hint):
+    def use_tag_as_health(stream_id, name, tag_name, description=None, remediation_hint=None):
         """
         """
         check = {
@@ -61,7 +61,7 @@ class EventHealthChecks(object):
         return check
 
     @staticmethod
-    def service_check_health(stream_id, name, description, remediation_hint):
+    def service_check_health(stream_id, name, description=None, remediation_hint=None):
         """
         """
         check = {
