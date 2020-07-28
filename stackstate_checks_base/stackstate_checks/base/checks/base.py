@@ -572,10 +572,21 @@ class __AgentCheckPy3(object):
         if checks:
             data["checks"] = []
             for check in checks:
-                stream_id = next((stream.stream_id for stream in streams if stream.identifier ==
-                                  check["stream_id"]), None)
-                if stream_id:
-                    data["checks"].append(dict(check, **{"stream_id": stream_id}))
+                # single stream check
+                if "stream_id" in check:
+                    stream_id = next((stream.stream_id for stream in streams if stream.identifier ==
+                                      check["stream_id"]), None)
+                    if stream_id:
+                        data["checks"].append(dict(check, **{"stream_id": stream_id}))
+                # denominator and numerator stream check
+                if "denominator_stream_id" and "numerator_stream_id" in check:
+                    denominator_stream_id = next((stream.stream_id for stream in streams if stream.identifier ==
+                                                  check["denominator_stream_id"]), None)
+                    numerator_stream_id = next((stream.stream_id for stream in streams if stream.identifier ==
+                                                check["numerator_stream_id"]), None)
+                    if denominator_stream_id and numerator_stream_id:
+                        data["checks"].append(dict(check, **{"denominator_stream_id": denominator_stream_id,
+                                                             "numerator_stream_id": numerator_stream_id}))
 
         return data
 

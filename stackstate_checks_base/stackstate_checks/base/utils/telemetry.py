@@ -19,10 +19,11 @@ class EventHealthChecks(object):
     """
 
     @staticmethod
-    def contains_key_value(stream_id, name, contains_key, contains_value, found_health_state, missing_health_state):
+    def contains_key_value(stream_id, name, contains_key, contains_value, found_health_state, missing_health_state,
+                           description, remediation_hint):
         """
         """
-        return {
+        check = {
             "stream_id": stream_id,
             "name": name,
             "contains_key": contains_key,
@@ -32,26 +33,50 @@ class EventHealthChecks(object):
             "is_event_contains_key_value_check": True
         }
 
+        if description:
+            check["description"] = description
+
+        if remediation_hint:
+            check["remediation_hint"] = remediation_hint
+
+        return check
+
     @staticmethod
-    def use_tag_as_health(stream_id, name, tag_name):
+    def use_tag_as_health(stream_id, name, tag_name, description, remediation_hint):
         """
         """
-        return {
+        check = {
             "stream_id": stream_id,
             "name": name,
             "tag_name": tag_name,
             "is_event_tag_as_health_check": True
         }
 
+        if description:
+            check["description"] = description
+
+        if remediation_hint:
+            check["remediation_hint"] = remediation_hint
+
+        return check
+
     @staticmethod
-    def service_check_health(stream_id, name):
+    def service_check_health(stream_id, name, description, remediation_hint):
         """
         """
-        return {
+        check = {
             "stream_id": stream_id,
             "name": name,
             "is_service_check_health_check": True
         }
+
+        if description:
+            check["description"] = description
+
+        if remediation_hint:
+            check["remediation_hint"] = remediation_hint
+
+        return check
 
     @staticmethod
     def custom_health_check(name, check_arguments):
@@ -65,94 +90,123 @@ class MetricHealthChecks(object):
     """
 
     @staticmethod
-    def _single_stream_check_base(stream_id, name, deviating_value, critical_value, description, remediation_hint):
-        return {
+    def _single_stream_check_base(stream_id, name, deviating_value, critical_value, description, remediation_hint,
+                                  max_window):
+        check = {
             "stream_id": stream_id,
             "name": name,
             "deviating_value": deviating_value,
             "critical_value": critical_value,
-            "description": description,
-            "remediation_hint": remediation_hint,
+            "max_window": max_window if max_window is not None else 300000,
         }
 
+        if description:
+            check["description"] = description
+
+        if remediation_hint:
+            check["remediation_hint"] = remediation_hint
+
+        return check
+
     @staticmethod
-    def maximum_average(stream_id, name, deviating_value, critical_value, description=None, remediation_hint=None):
+    def maximum_average(stream_id, name, deviating_value, critical_value, description=None, remediation_hint=None,
+                        max_window=None):
         """
         """
         return dict(MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value,
-                                                                 description, remediation_hint),
+                                                                 description, remediation_hint, max_window),
                     **{"is_metric_maximum_average_check": True})
 
     @staticmethod
-    def maximum_percentile(stream_id, name, deviating_value, critical_value, description=None, remediation_hint=None):
+    def maximum_last(stream_id, name, deviating_value, critical_value, description=None, remediation_hint=None,
+                     max_window=None):
         """
         """
         return dict(MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value,
-                                                                 description, remediation_hint),
-                    **{"is_metric_maximum_percentile_check": True})
-
-    @staticmethod
-    def maximum_last(stream_id, name, deviating_value, critical_value, description=None, remediation_hint=None):
-        """
-        """
-        return dict(MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value,
-                                                                 description, remediation_hint),
+                                                                 description, remediation_hint, max_window),
                     **{"is_metric_maximum_last_check": True})
 
     @staticmethod
-    def maximum_ratio(denominator, numerator, name, deviating_value, critical_value, description=None,
-                      remediation_hint=None):
+    def maximum_percentile(stream_id, name, deviating_value, critical_value, percentile, description=None,
+                           remediation_hint=None, max_window=None):
         """
         """
-        return {
+        return dict(MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value,
+                                                                 description, remediation_hint, max_window),
+                    **{"percentile": percentile, "is_metric_maximum_percentile_check": True})
+
+    @staticmethod
+    def maximum_ratio(denominator_stream_id, numerator_stream_id, name, deviating_value, critical_value, description=None,
+                      remediation_hint=None, max_window=None):
+        """
+        """
+        check = {
             "is_metric_maximum_ratio_check": True,
-            "denominator": denominator,
-            "numerator": numerator,
+            "denominator_stream_id": denominator_stream_id,
+            "numerator_stream_id": numerator_stream_id,
             "name": name,
             "deviating_value": deviating_value,
             "critical_value": critical_value,
-            "description": description,
-            "remediation_hint": remediation_hint,
+            "max_window": max_window if max_window is not None else 300000,
         }
 
+        if description:
+            check["description"] = description
+
+        if remediation_hint:
+            check["remediation_hint"] = remediation_hint
+
+        return check
+
     @staticmethod
-    def minimum_average(stream_id, name, deviating_value, critical_value, description=None, remediation_hint=None):
+    def minimum_average(stream_id, name, deviating_value, critical_value, description=None, remediation_hint=None,
+                        max_window=None):
         """
         """
         return dict(MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value,
-                                                                 description, remediation_hint),
-                    **{"is_metrics_minimum_average_check": True})
+                                                                 description, remediation_hint, max_window),
+                    **{"is_metric_minimum_average_check": True})
 
     @staticmethod
-    def minimum_last(stream_id, name, deviating_value, critical_value, description=None, remediation_hint=None):
+    def minimum_last(stream_id, name, deviating_value, critical_value, description=None, remediation_hint=None,
+                     max_window=None):
         """
         """
         return dict(MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value,
-                                                                 description, remediation_hint),
-                    **{"is_metrics_minimum_average_check": True})
+                                                                 description, remediation_hint, max_window),
+                    **{"is_metric_minimum_last_check": True})
 
     @staticmethod
-    def minimum_percentile(stream_id, name, deviating_value, critical_value, description=None, remediation_hint=None):
+    def minimum_percentile(stream_id, name, deviating_value, critical_value, percentile, description=None,
+                           remediation_hint=None, max_window=None):
         """
         """
         return dict(MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value,
-                                                                 description, remediation_hint),
-                    **{"is_metric_minimum_percentile_check": True})
+                                                                 description, remediation_hint, max_window),
+                    **{"percentile": percentile, "is_metric_minimum_percentile_check": True})
 
     @staticmethod
-    def failed_ratio(success, failed, name, deviating_value, critical_value, description=None, remediation_hint=None):
+    def failed_ratio(success_stream_id, failed_stream_id, name, deviating_value, critical_value,
+                     description=None, remediation_hint=None, max_window=None):
         """
         """
-        return {
-            "is_metrics_failed_ratio_check": True,
-            "success": success,
-            "failed": failed,
+        check = {
+            "is_metric_failed_ratio_check": True,
+            "denominator_stream_id": success_stream_id,
+            "numerator_stream_id": failed_stream_id,
             "name": name,
             "deviating_value": deviating_value,
             "critical_value": critical_value,
-            "description": description,
-            "remediation_hint": remediation_hint,
+            "max_window": max_window if max_window is not None else 300000,
         }
+
+        if description:
+            check["description"] = description
+
+        if remediation_hint:
+            check["remediation_hint"] = remediation_hint
+
+        return check
 
     @staticmethod
     def custom_health_check(name, check_arguments):
