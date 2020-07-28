@@ -136,8 +136,8 @@ class MetricHealthChecks(object):
                     **{"percentile": percentile, "is_metric_maximum_percentile_check": True})
 
     @staticmethod
-    def maximum_ratio(denominator_stream_id, numerator_stream_id, name, deviating_value, critical_value, description=None,
-                      remediation_hint=None, max_window=None):
+    def maximum_ratio(denominator_stream_id, numerator_stream_id, name, deviating_value, critical_value,
+                      description=None, remediation_hint=None, max_window=None):
         """
         """
         check = {
