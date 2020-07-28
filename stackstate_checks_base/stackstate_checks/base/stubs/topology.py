@@ -9,6 +9,8 @@ from six import binary_type, iteritems
 
 from ..utils.common import ensure_unicode, to_string
 
+import json
+
 
 def component(id, type, data):
     return {"id": id, "type": type, "data": data}

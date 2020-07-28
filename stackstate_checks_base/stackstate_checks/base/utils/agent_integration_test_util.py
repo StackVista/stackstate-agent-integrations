@@ -20,11 +20,11 @@ class AgentIntegrationTestUtil(object):
                 ],
                 'events': [
                     {
-                        'conditions': {
-                            'hostname': 'stubbed.hostname',
-                            'integration-type': '{}'.format(instance["type"]),
-                            'integration-url': '{}'.format(instance["url"])
-                        },
+                        'conditions': [
+                            {'key': 'hostname', 'value': 'stubbed.hostname'},
+                            {'key': 'integration-type', 'value': '{}'.format(instance["type"])},
+                            {'key': 'integration-url', 'value': '{}'.format(instance["url"])},
+                        ],
                         'identifier': integration_component['data']['events'][0]['identifier'],
                         'stream_id': -1,
                         'name': 'Service Checks'

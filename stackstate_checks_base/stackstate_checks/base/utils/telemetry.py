@@ -1,3 +1,4 @@
+from six import iteritems
 from enum import Enum
 import uuid
 
@@ -64,37 +65,43 @@ class MetricHealthChecks(object):
     """
 
     @staticmethod
-    def _single_stream_check_base(stream_id, name, deviating_value, critical_value):
+    def _single_stream_check_base(stream_id, name, deviating_value, critical_value, description, remediation_hint):
         return {
             "stream_id": stream_id,
             "name": name,
             "deviating_value": deviating_value,
             "critical_value": critical_value,
+            "description": description,
+            "remediation_hint": remediation_hint,
         }
 
     @staticmethod
-    def maximum_average(stream_id, name, deviating_value, critical_value):
+    def maximum_average(stream_id, name, deviating_value, critical_value, description=None, remediation_hint=None):
         """
         """
-        return dict(MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value),
+        return dict(MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value,
+                                                                 description, remediation_hint),
                     **{"is_metric_maximum_average_check": True})
 
     @staticmethod
-    def maximum_percentile(stream_id, name, deviating_value, critical_value):
+    def maximum_percentile(stream_id, name, deviating_value, critical_value, description=None, remediation_hint=None):
         """
         """
-        return dict(MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value),
+        return dict(MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value,
+                                                                 description, remediation_hint),
                     **{"is_metric_maximum_percentile_check": True})
 
     @staticmethod
-    def maximum_last(stream_id, name, deviating_value, critical_value):
+    def maximum_last(stream_id, name, deviating_value, critical_value, description=None, remediation_hint=None):
         """
         """
-        return dict(MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value),
+        return dict(MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value,
+                                                                 description, remediation_hint),
                     **{"is_metric_maximum_last_check": True})
 
     @staticmethod
-    def maximum_ratio(denominator, numerator, name, deviating_value, critical_value):
+    def maximum_ratio(denominator, numerator, name, deviating_value, critical_value, description=None,
+                      remediation_hint=None):
         """
         """
         return {
@@ -104,31 +111,36 @@ class MetricHealthChecks(object):
             "name": name,
             "deviating_value": deviating_value,
             "critical_value": critical_value,
+            "description": description,
+            "remediation_hint": remediation_hint,
         }
 
     @staticmethod
-    def minimum_average(stream_id, name, deviating_value, critical_value):
+    def minimum_average(stream_id, name, deviating_value, critical_value, description=None, remediation_hint=None):
         """
         """
-        return dict(MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value),
+        return dict(MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value,
+                                                                 description, remediation_hint),
                     **{"is_metrics_minimum_average_check": True})
 
     @staticmethod
-    def minimum_last(stream_id, name, deviating_value, critical_value):
+    def minimum_last(stream_id, name, deviating_value, critical_value, description=None, remediation_hint=None):
         """
         """
-        return dict(MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value),
+        return dict(MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value,
+                                                                 description, remediation_hint),
                     **{"is_metrics_minimum_average_check": True})
 
     @staticmethod
-    def minimum_percentile(stream_id, name, deviating_value, critical_value):
+    def minimum_percentile(stream_id, name, deviating_value, critical_value, description=None, remediation_hint=None):
         """
         """
-        return dict(MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value),
+        return dict(MetricHealthChecks._single_stream_check_base(stream_id, name, deviating_value, critical_value,
+                                                                 description, remediation_hint),
                     **{"is_metric_minimum_percentile_check": True})
 
     @staticmethod
-    def failed_ratio(success, failed, name, deviating_value, critical_value):
+    def failed_ratio(success, failed, name, deviating_value, critical_value, description=None, remediation_hint=None):
         """
         """
         return {
@@ -138,6 +150,8 @@ class MetricHealthChecks(object):
             "name": name,
             "deviating_value": deviating_value,
             "critical_value": critical_value,
+            "description": description,
+            "remediation_hint": remediation_hint,
         }
 
     @staticmethod
@@ -154,7 +168,13 @@ class TelemetryStream(object):
     """
     def __init__(self, name, conditions):
         self.name = name
-        self.conditions = conditions
+        # map conditions into the format the backend expects
+        _mapped_conditions = []
+        for key, value in iteritems(conditions):
+            kv = {"key": key, "value": value}
+            _mapped_conditions.append(kv)
+
+        self.conditions = sorted(_mapped_conditions, key=lambda c: c['key'])
         self.stream_id = None
         self.identifier = "{}".format(uuid.uuid4())
 
