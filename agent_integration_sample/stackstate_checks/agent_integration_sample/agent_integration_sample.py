@@ -24,10 +24,10 @@ class AgentIntegrationSampleCheck(AgentCheck):
         timeout = float(instance.get('timeout', default_timeout))
 
         this_host_cpu_usage = MetricStream("Host CPU Usage", "host.cpu.usage",
-                                                  conditions={"hostname": "this-host"},
-                                                  unit_of_measure="Percentage",
-                                                  aggregation="MEAN",
-                                                  priority="HIGH")
+                                           conditions={"hostname": "this-host"},
+                                           unit_of_measure="Percentage",
+                                           aggregation="MEAN",
+                                           priority="HIGH")
         cpu_max_average_check = MetricHealthChecks.maximum_average(this_host_cpu_usage.identifier,
                                                                    "Max CPU Usage (Average)", 75, 90)
         cpu_max_last_check = MetricHealthChecks.maximum_last(this_host_cpu_usage.identifier,
