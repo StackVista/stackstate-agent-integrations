@@ -119,8 +119,8 @@ class TestServicenow(unittest.TestCase):
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         print(topo_instances)
-        self.assertEqual(len(topo_instances['components']), 1)
-        self.assertEqual(len(topo_instances['relations']), 1)
+        self.assertEqual(len(topo_instances['components']), 3)
+        self.assertEqual(len(topo_instances['relations']), 2)
 
     def test_collect_components(self):
         """
