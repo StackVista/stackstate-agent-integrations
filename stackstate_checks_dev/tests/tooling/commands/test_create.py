@@ -6,8 +6,7 @@ import sys
 
 from stackstate_checks.dev import EnvVars, run_command
 from stackstate_checks.dev.utils import chdir, remove_path
-from stackstate_checks.dev._env import TESTING_PLUGIN
-
+from stackstate_checks.dev._env import TESTING_PLUGIN, E2E_PREFIX
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CORE_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(HERE))))
@@ -29,7 +28,10 @@ def test_new_check_test():
         )
 
         with chdir(check_path):
-            with EnvVars(ignore=[TESTING_PLUGIN]):
+            ignored_env_vars = [TESTING_PLUGIN, 'PYTEST_ADDOPTS']
+            ignored_env_vars.extend(ev for ev in os.environ if ev.startswith(E2E_PREFIX))
+
+            with EnvVars(ignore=ignored_env_vars):
                 run_command([sys.executable, '-m', 'pytest'], capture=True, check=True)
 
         run_command(

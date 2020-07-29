@@ -9,8 +9,8 @@ def sts_environment():
     return {
         "host": "LAB-SAP-001",
         "url": "http://localhost",
-        "user": "donadm",
-        "pass": "Master01",
+        "user": "test",
+        "pass": "test",
     }
 
 
@@ -19,8 +19,21 @@ def instance():
     return {
         "host": "LAB-SAP-001",
         "url": "http://localhost",
-        "user": "donadm",
-        "pass": "Master01",
+        "user": "test",
+        "pass": "test",
+    }
+
+
+@pytest.fixture
+def https_instance():
+    return {
+        "host": "LAB-SAP-001",
+        "url": "https://localhost",
+        "user": "test",
+        "pass": "test",
+        "verify": False,
+        "cert": "/path/to/cert.pem",
+        "keyfile": "/path/to/key.pem"
     }
 
 

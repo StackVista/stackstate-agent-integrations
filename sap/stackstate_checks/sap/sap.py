@@ -54,6 +54,9 @@ class SapCheck(AgentCheck):
         self.url = instance.get("url", "")
         self.user = instance.get("user", "")
         self.password = str(instance.get("pass", ""))
+        self.verify = instance.get("verify", True)
+        self.cert = instance.get("cert", "")
+        self.keyfile = instance.get("keyfile", "")
         self.tags = instance.get("tags", [])
 
         return self.host, self.url, self.user, self.password, self.tags
@@ -65,13 +68,20 @@ class SapCheck(AgentCheck):
 
     def _get_proxy(self, instance_id=None):
         if not instance_id:
-            # 1128 is the port of the HostControl
-            host_control_url = "{0}:1128/SAPHostControl".format(self.url)
-            return SapProxy(host_control_url, self.user, self.password)
+            # 1128 is the port of the HostControl for HTTP protocol
+            host_port = "1128"
+            if self.cert:
+                # for HTTPS protocol, 1129 is the port of the HostControl
+                host_port = "1129"
+            host_control_url = "{0}:{1}/SAPHostControl".format(self.url, host_port)
+            return SapProxy(host_control_url, self.user, self.password, self.verify, self.cert, self.keyfile)
         else:
             # 5xx13 is the port of the HostAgent where xx is the instance_id
-            host_instance_agent_url = "{0}:5{1}13/SAPHostAgent".format(self.url, instance_id)
-            return SapProxy(host_instance_agent_url, self.user, self.password)
+            if self.cert:
+                host_instance_agent_url = "{0}:5{1}14/SAPHostAgent".format(self.url, instance_id)
+            else:
+                host_instance_agent_url = "{0}:5{1}13/SAPHostAgent".format(self.url, instance_id)
+            return SapProxy(host_instance_agent_url, self.user, self.password, self.verify, self.cert, self.keyfile)
 
     def _collect_hosts(self):
         try:

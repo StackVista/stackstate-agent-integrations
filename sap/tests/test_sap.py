@@ -348,6 +348,8 @@ def test_collect_databases(aggregator, instance):
         sap_check._get_config(instance)
         sap_check._collect_databases()
 
+        assert sap_check.verify is True
+
         topology.assert_snapshot(
             check_id=sap_check.check_id,
             start_snapshot=False,
@@ -448,6 +450,86 @@ def test_collect_databases(aggregator, instance):
                 "status:SAPHostControl-DB-RUNNING",
                 "database_component_name:Listener",
                 ]
+        )
+
+        aggregator.all_metrics_asserted()
+
+
+def test_collect_only_hosts_create_service_https(aggregator, https_instance):
+    """
+        Should return the proper host location as defined in the config and doesn't care about WSDL host location
+    """
+    # TODO this is needed because the topology retains data across tests
+    topology.reset()
+
+    host_control_url = "https://localhost:1129/SAPHostControl"
+    with requests_mock.mock() as m:
+        m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/HostControl.wsdl"))
+        m.post(host_control_url + ".cgi", text=_read_test_file("samples/GetCIMObject.xml"))
+
+        sap_check = SapCheck(CHECK_NAME, {}, instances=[https_instance])
+        sap_check._get_config(https_instance)
+        sap_check._collect_hosts()
+
+        assert sap_check.verify is False
+
+        topology.assert_snapshot(
+            check_id=sap_check.check_id,
+            start_snapshot=False,
+            stop_snapshot=False,
+            instance_key=TopologyInstance("sap", "LAB-SAP-001"),
+            components=[
+                {"id": "urn:host:/LAB-SAP-001", "type": "sap-host", "data": {"host": "LAB-SAP-001"}},
+                {"id": "urn:sap:/instance:LAB-SAP-001:67",
+                 "type": "sap-instance",
+                 "data": {"host": "LAB-SAP-001",
+                          "labels": [],
+                          "name": "CDA",
+                          "sid": "CDA",
+                          "system_number": "67",
+                          "type": "Solution Manager Diagnostic Agent",
+                          "version": "753, patch 200, changelist 1844229"}},
+                {"id": "urn:sap:/instance:LAB-SAP-001:00",
+                 "type": "sap-instance",
+                 "data": {"host": "LAB-SAP-001",
+                          "labels": [],
+                          "name": "DON",
+                          "sid": "DON",
+                          "system_number": "00",
+                          "type": "ABAP Instance",
+                          "version": "753, patch 401, changelist 1927964"}},
+                {"id": "urn:sap:/instance:LAB-SAP-001:01",
+                 "type": "sap-instance",
+                 "data": {"host": "LAB-SAP-001",
+                          "labels": [],
+                          "name": "DON",
+                          "sid": "DON",
+                          "system_number": "01",
+                          "type": "Central Services Instance",
+                          "version": "753, patch 401, changelist 1927964"}}
+            ],
+            relations=[
+                {'data': {},
+                 'source_id': 'urn:sap:/instance:LAB-SAP-001:67',
+                 'target_id': 'urn:host:/LAB-SAP-001',
+                 'type': 'is hosted on'},
+                {'data': {},
+                 'source_id': 'urn:sap:/instance:LAB-SAP-001:00',
+                 'target_id': 'urn:host:/LAB-SAP-001',
+                 'type': 'is hosted on'},
+                {'data': {},
+                 'source_id': 'urn:sap:/instance:LAB-SAP-001:01',
+                 'target_id': 'urn:host:/LAB-SAP-001',
+                 'type': 'is hosted on'}
+            ]
+        )
+
+        aggregator.assert_event(
+            msg_text="",
+            tags=[
+                "status:sap-host-control-success",
+                "host:LAB-SAP-001"
+            ]
         )
 
         aggregator.all_metrics_asserted()

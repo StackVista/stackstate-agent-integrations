@@ -77,6 +77,7 @@ clear-win-caches:
       ## Overriding the entrypoint to exclude the /var/run/docker.sock because we also mount it
       entrypoint: ["dockerd-entrypoint.sh", "/usr/local/bin/dockerd", "--host=tcp://0.0.0.0:2375" ]
   script:
+    - source ./.setup-scripts/setup_vsphere_artifactory_publishing.sh
     - checksdev test --cov ${CHECK}
     - checksdev test ${CHECK} --bench || true
       # [BS] we skip this until https://github.com/PyCQA/pylint/pull/2681/commits/253e5d05e3943d3bc8e4470804a138cb20049548 lands in pylint stable version
@@ -105,6 +106,9 @@ test_stackstate_checks_dev:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
+  tags:
+    - sts-k8s-xl-no-docker-runner
 
 test_kubernetes:
   <<: *linux_test
@@ -137,6 +141,17 @@ test_mysql:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
+  tags:
+    - sts-aws
+
+test_openmetrics:
+  <<: *linux_test
+  variables:
+    CHECK: "openmetrics"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
 
 test_postgres:
   <<: *linux_test
@@ -145,6 +160,9 @@ test_postgres:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
+  tags:
+    - sts-k8s-xl-no-docker-runner
 
 test_cloudera:
   <<: *linux_test
@@ -185,6 +203,31 @@ test_zabbix:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
+
+test_servicenow:
+  <<: *linux_test
+  variables:
+    CHECK: "servicenow"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
+test_static_topology:
+  <<: *linux_test
+  variables:
+    CHECK: "static_topology"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
+test_nagios:
+  <<: *linux_test
+  variables:
+    CHECK: "nagios"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
 
 .windows_test: &windows_test
   <<: *windows_env
