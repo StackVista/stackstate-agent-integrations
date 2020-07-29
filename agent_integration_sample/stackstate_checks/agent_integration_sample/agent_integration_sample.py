@@ -23,18 +23,18 @@ class AgentIntegrationSampleCheck(AgentCheck):
         # gets the value of the `timeout` property or defaults `default_timeout` and casts it to a float data type
         timeout = float(instance.get('timeout', default_timeout))
 
-        some_application_cpu_usage = MetricStream("Host CPU Usage", "host.cpu.usage",
+        this_host_cpu_usage = MetricStream("Host CPU Usage", "host.cpu.usage",
                                                   conditions={"hostname": "this-host"},
                                                   unit_of_measure="Percentage",
                                                   aggregation="MEAN",
                                                   priority="HIGH")
-        cpu_max_average_check = MetricHealthChecks.maximum_average(some_application_cpu_usage.identifier,
+        cpu_max_average_check = MetricHealthChecks.maximum_average(this_host_cpu_usage.identifier,
                                                                    "Max CPU Usage (Average)", 75, 90)
-        cpu_max_last_check = MetricHealthChecks.maximum_last(some_application_cpu_usage.identifier,
+        cpu_max_last_check = MetricHealthChecks.maximum_last(this_host_cpu_usage.identifier,
                                                              "Max CPU Usage (Last)", 75, 90)
-        cpu_min_average_check = MetricHealthChecks.minimum_average(some_application_cpu_usage.identifier,
+        cpu_min_average_check = MetricHealthChecks.minimum_average(this_host_cpu_usage.identifier,
                                                                    "Min CPU Usage (Average)", 10, 5)
-        cpu_min_last_check = MetricHealthChecks.minimum_last(some_application_cpu_usage.identifier,
+        cpu_min_last_check = MetricHealthChecks.minimum_last(this_host_cpu_usage.identifier,
                                                              "Min CPU Usage (Last)", 10, 5)
         self.component("urn:example/host:this_host", "Host",
                        data={
@@ -45,7 +45,7 @@ class AgentIntegrationSampleCheck(AgentCheck):
                             "labels": ["host:this_host", "region:eu-west-1"],
                             "environment": "Production"
                        },
-                       streams=[some_application_cpu_usage],
+                       streams=[this_host_cpu_usage],
                        checks=[cpu_max_average_check, cpu_max_last_check, cpu_min_average_check, cpu_min_last_check])
 
         self.gauge("host.cpu.usage", randint(0, 100), tags=["hostname:this-host"])
