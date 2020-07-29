@@ -4,6 +4,7 @@
 import pytest
 import requests
 import requests_mock
+import json
 
 from stackstate_checks.sap import SapCheck
 from stackstate_checks.base import ConfigurationError, TopologyInstance, AgentCheck, AgentIntegrationTestUtil
@@ -33,12 +34,16 @@ def test_cannot_connect_to_host_control(aggregator, instance):
             stop_snapshot=True,
             instance_key=TopologyInstance("sap", "LAB-SAP-001"),
             components=[
+                AgentIntegrationTestUtil.expected_agent_component(),
                 AgentIntegrationTestUtil.expected_agent_integration_component(sap_check,
-                                                                              topo_instances['components'][0]),
+                                                                              topo_instances['components'][1]),
+                AgentIntegrationTestUtil.expected_agent_integration_instance_component(sap_check,
+                                                                                       topo_instances['components'][2]),
                 {"id": "urn:host:/LAB-SAP-001", "type": "sap-host", "data": {"host": "LAB-SAP-001"}}
             ],
             relations=[
-                AgentIntegrationTestUtil.expected_agent_integration_relation(sap_check)
+                AgentIntegrationTestUtil.expected_agent_integration_relation(sap_check),
+                AgentIntegrationTestUtil.expected_agent_integration_instance_relation(sap_check)
             ],
         )
 
@@ -79,12 +84,16 @@ def test_check_run_no_sap_instances(aggregator, instance):
             stop_snapshot=True,
             instance_key=TopologyInstance("sap", "LAB-SAP-001"),
             components=[
+                AgentIntegrationTestUtil.expected_agent_component(),
                 AgentIntegrationTestUtil.expected_agent_integration_component(sap_check,
-                                                                              topo_instances['components'][0]),
+                                                                              topo_instances['components'][1]),
+                AgentIntegrationTestUtil.expected_agent_integration_instance_component(sap_check,
+                                                                                       topo_instances['components'][2]),
                 {"id": "urn:host:/LAB-SAP-001", "type": "sap-host", "data": {"host": "LAB-SAP-001"}}
             ],
             relations=[
-                AgentIntegrationTestUtil.expected_agent_integration_relation(sap_check)
+                AgentIntegrationTestUtil.expected_agent_integration_relation(sap_check),
+                AgentIntegrationTestUtil.expected_agent_integration_instance_relation(sap_check)
             ],
         )
 

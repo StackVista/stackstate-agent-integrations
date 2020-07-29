@@ -57,5 +57,14 @@ class Identifiers(object):
         return "{}:service-instance/:{}".format(Identifiers.urnPrefix, service_instance_identifier)
 
     @staticmethod
-    def create_integration_identifier(host, integration_type, integration_url):
-        return "{}:integration:{}:{}:{}".format(Identifiers.urnPrefix, host, integration_type, integration_url)
+    def create_integration_identifier(host, integration_type):
+        return "{}:agent-integration/:{}:{}".format(Identifiers.urnPrefix, host, integration_type)
+
+    @staticmethod
+    def create_integration_instance_identifier(host, integration_type, integration_url):
+        return "{}:agent-integration-instance/:{}:{}:{}".format(Identifiers.urnPrefix, host, integration_type,
+                                                                integration_url)
+
+    @staticmethod
+    def create_agent_identifier(host):
+        return "{}:stackstate-agent/:{}".format(Identifiers.urnPrefix, host)

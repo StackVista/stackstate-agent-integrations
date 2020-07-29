@@ -591,27 +591,72 @@ class __AgentCheckPy3(object):
         return data
 
     def create_integration_instance(self, check_instance):
+        """
+
+        Agent -> Agent Integration -> Agent Integration Instance
+        """
         instance = self._get_instance_key_value()
-        instance_name = "{}:{}".format(instance.type, instance.url)
-        externalId = Identifiers.\
-            create_integration_identifier(datadog_agent.get_hostname(), instance.type, instance.url)
-        data = {"name": instance_name, "integration": instance.type, "hostname": datadog_agent.get_hostname(),
-                "tags": check_instance.get('tags', [])}
 
+        # Agent Component
+        agent_external_id = Identifiers.create_agent_identifier(datadog_agent.get_hostname())
+        agent_data = {
+            "name": "StackState Agent:{}".format(datadog_agent.get_hostname()),
+            "hostname": datadog_agent.get_hostname(),
+            "tags": check_instance.get('tags', []) + ["hostname:{}".format(datadog_agent.get_hostname()),
+                                                      "stackstate-agent"],
+            "identifiers": [Identifiers.create_process_identifier(
+                datadog_agent.get_hostname(), datadog_agent.get_pid(), datadog_agent.get_create_time()
+            )]
+        }
         if datadog_agent.get_clustername():
-            data["cluster"] = datadog_agent.get_clustername()
+            agent_data["cluster"] = datadog_agent.get_clustername()
+        self.component(agent_external_id, "stackstate-agent", agent_data)
 
-        instance = self._get_instance_key()
-        conditions = {"hostname": datadog_agent.get_hostname(), "integration-type": instance['type'],
-                      "integration-url": instance['url']}
+        # Agent Integration + relation to Agent
+        agent_integration_external_id = Identifiers.create_integration_identifier(datadog_agent.get_hostname(),
+                                                                                  instance.type)
+        agent_integration_data = {
+            "name": "{}:{}".format(datadog_agent.get_hostname(), instance.type), "integration": instance.type,
+            "hostname": datadog_agent.get_hostname(), "tags": check_instance.get('tags', []) + [
+                "hostname:{}".format(datadog_agent.get_hostname()), "agent-integration:{}".format(instance.type)
+            ]
+        }
+        if datadog_agent.get_clustername():
+            agent_integration_data["cluster"] = datadog_agent.get_clustername()
+
+        conditions = {"hostname": datadog_agent.get_hostname(), "integration-type": instance.type}
         service_check_stream = EventStream("Service Checks", conditions=conditions)
         service_check = EventHealthChecks.service_check_health(service_check_stream.identifier, "Integration Health")
-        self.component(externalId, "agent-integration", data, streams=[service_check_stream], checks=[service_check])
+        self.component(agent_integration_external_id, "agent-integration", agent_integration_data,
+                       streams=[service_check_stream],
+                       checks=[service_check])
+        self.relation(agent_external_id, agent_integration_external_id, "runs", {})
 
-        agentExternalId = Identifiers.create_process_identifier(
-            datadog_agent.get_hostname(), datadog_agent.get_pid(), datadog_agent.get_create_time()
+        # Agent Integration Instance + relation to Agent Integration
+        agent_integration_instance_name = "{}:{}".format(instance.type, instance.url)
+        agent_integration_instance_external_id = Identifiers.create_integration_instance_identifier(
+            datadog_agent.get_hostname(), instance.type, instance.url
         )
-        self.relation(externalId, agentExternalId, "agent-integration", {})
+        agent_integration_instance_data = {
+            "name": agent_integration_instance_name, "integration": instance.type,
+            "hostname": datadog_agent.get_hostname(),
+            "tags": check_instance.get('tags', []) + [
+                "hostname:{}".format(datadog_agent.get_hostname()), "agent-integration:{}".format(instance.type),
+                "agent-integration-url:{}".format(instance.url)
+            ]
+        }
+
+        if datadog_agent.get_clustername():
+            agent_integration_instance_data["cluster"] = datadog_agent.get_clustername()
+
+        conditions = {"hostname": datadog_agent.get_hostname(), "integration-type": instance.type,
+                      "integration-url": instance.url}
+        service_check_stream = EventStream("Service Checks", conditions=conditions)
+        service_check = EventHealthChecks.service_check_health(service_check_stream.identifier,
+                                                               "Integration Instance Health")
+        self.component(agent_integration_instance_external_id, "agent-integration-instance",
+                       agent_integration_instance_data, streams=[service_check_stream], checks=[service_check])
+        self.relation(agent_integration_external_id, agent_integration_instance_external_id, "has", {})
 
 
 class __AgentCheckPy2(object):
@@ -1111,27 +1156,71 @@ class __AgentCheckPy2(object):
         return data
 
     def create_integration_instance(self, check_instance):
+        """
+
+        Agent -> Agent Integration -> Agent Integration Instance
+        """
         instance = self._get_instance_key_value()
-        instance_name = "{}:{}".format(instance.type, instance.url)
-        externalId = Identifiers. \
-            create_integration_identifier(datadog_agent.get_hostname(), instance.type, instance.url)
-        data = {"name": instance_name, "integration": instance.type, "hostname": datadog_agent.get_hostname(),
-                "tags": check_instance.get('tags', [])}
 
+        # Agent Component
+        agent_external_id = Identifiers.create_agent_identifier(datadog_agent.get_hostname())
+        agent_data = {
+            "name": "StackState Agent:{}".format(datadog_agent.get_hostname()),
+            "hostname": datadog_agent.get_hostname(),
+            "tags": check_instance.get('tags', []) + ["hostname:{}".format(datadog_agent.get_hostname()),
+                                                      "stackstate-agent"],
+            "identifiers": [Identifiers.create_process_identifier(
+                datadog_agent.get_hostname(), datadog_agent.get_pid(), datadog_agent.get_create_time()
+            )]
+        }
         if datadog_agent.get_clustername():
-            data["cluster"] = datadog_agent.get_clustername()
+            agent_data["cluster"] = datadog_agent.get_clustername()
+        self.component(agent_external_id, "stackstate-agent", agent_data)
 
-        instance = self._get_instance_key()
-        conditions = {"hostname": datadog_agent.get_hostname(), "integration-type": instance['type'],
-                      "integration-url": instance['url']}
+        # Agent Integration + relation to Agent
+        agent_integration_external_id = Identifiers.create_integration_identifier(datadog_agent.get_hostname(),
+                                                                                  instance.type)
+        agent_integration_data = {
+            "name": "{}:{}".format(datadog_agent.get_hostname(), instance.type), "integration": instance.type,
+            "hostname": datadog_agent.get_hostname(), "tags": check_instance.get('tags', []) + [
+                "hostname:{}".format(datadog_agent.get_hostname()), "agent-integration:{}".format(instance.type)
+            ]
+        }
+        if datadog_agent.get_clustername():
+            agent_integration_data["cluster"] = datadog_agent.get_clustername()
+
+        conditions = {"hostname": datadog_agent.get_hostname(), "integration-type": instance.type}
         service_check_stream = EventStream("Service Checks", conditions=conditions)
         service_check = EventHealthChecks.service_check_health(service_check_stream.identifier, "Integration Health")
-        self.component(externalId, "agent-integration", data, streams=[service_check_stream], checks=[service_check])
+        self.component(agent_integration_external_id, "agent-integration", agent_integration_data,
+                       streams=[service_check_stream], checks=[service_check])
+        self.relation(agent_external_id, agent_integration_external_id, "runs", {})
 
-        agentExternalId = Identifiers.create_process_identifier(
-            datadog_agent.get_hostname(), datadog_agent.get_pid(), datadog_agent.get_create_time()
+        # Agent Integration Instance + relation to Agent Integration
+        agent_integration_instance_name = "{}:{}".format(instance.type, instance.url)
+        agent_integration_instance_external_id = Identifiers.create_integration_instance_identifier(
+            datadog_agent.get_hostname(), instance.type, instance.url
         )
-        self.relation(externalId, agentExternalId, "agent-integration", {})
+        agent_integration_instance_data = {
+            "name": agent_integration_instance_name, "integration": instance.type,
+            "hostname": datadog_agent.get_hostname(),
+            "tags": check_instance.get('tags', []) + [
+                "hostname:{}".format(datadog_agent.get_hostname()), "agent-integration:{}".format(instance.type),
+                "agent-integration-url:{}".format(instance.url)
+            ]
+        }
+
+        if datadog_agent.get_clustername():
+            agent_integration_instance_data["cluster"] = datadog_agent.get_clustername()
+
+        conditions = {"hostname": datadog_agent.get_hostname(), "integration-type": instance.type,
+                      "integration-url": instance.url}
+        service_check_stream = EventStream("Service Checks", conditions=conditions)
+        service_check = EventHealthChecks.service_check_health(service_check_stream.identifier,
+                                                               "Integration Instance Health")
+        self.component(agent_integration_instance_external_id, "agent-integration-instance",
+                       agent_integration_instance_data, streams=[service_check_stream], checks=[service_check])
+        self.relation(agent_integration_external_id, agent_integration_instance_external_id, "has", {})
 
 
 if PY3:
