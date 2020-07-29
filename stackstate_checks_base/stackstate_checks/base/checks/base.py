@@ -83,7 +83,9 @@ class TopologyInstanceBase(object):
 
 class AgentIntegrationInstance(TopologyInstanceBase):
 
-    def __init__(self):
+    def __init__(self, integration, name):
+        self.integration = integration
+        self.name = name
         TopologyInstanceBase.__init__(self, type="agent", url="integrations", with_snapshots=False)
 
 
@@ -475,7 +477,7 @@ class __AgentCheckPy3(object):
         return proxies if proxies else no_proxy_settings
 
     def get_instance_key(self, instance):
-        return AgentIntegrationInstance()
+        raise NotImplementedError
 
     def _raise_unexpected_type(self, argumentName, value, expected):
         raise ValueError("Got unexpected {} for argument {}, expected {}".format(type(value), argumentName, expected))
@@ -596,6 +598,8 @@ class __AgentCheckPy3(object):
         Agent -> Agent Integration -> Agent Integration Instance
         """
         instance = self._get_instance_key_value()
+        if isinstance(instance, AgentIntegrationInstance):
+            instance = TopologyInstance(instance.integration, instance.name)
 
         # Agent Component
         agent_external_id = Identifiers.create_agent_identifier(datadog_agent.get_hostname())
@@ -1051,7 +1055,7 @@ class __AgentCheckPy2(object):
         return proxies if proxies else no_proxy_settings
 
     def get_instance_key(self, instance):
-        return AgentIntegrationInstance()
+        raise NotImplementedError
 
     def _raise_unexpected_type(self, argumentName, value, expected):
         raise ValueError("Got unexpected {} for argument {}, expected {}".format(type(value), argumentName, expected))
@@ -1161,6 +1165,8 @@ class __AgentCheckPy2(object):
         Agent -> Agent Integration -> Agent Integration Instance
         """
         instance = self._get_instance_key_value()
+        if isinstance(instance, AgentIntegrationInstance):
+            instance = TopologyInstance(instance.integration, instance.name)
 
         # Agent Component
         agent_external_id = Identifiers.create_agent_identifier(datadog_agent.get_hostname())

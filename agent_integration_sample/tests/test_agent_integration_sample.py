@@ -46,5 +46,5 @@ class TestAgentIntegration(unittest.TestCase):
         print(result)
         topo_instances = topology.get_snapshot(self.check.check_id)
         print(topo_instances)
-        self.assertEqual(len(topo_instances['components']), 3)
+        self.assertEqual(len(topo_instances['components']), 4)
         self.assertEqual(len(topo_instances['relations']), 2)
