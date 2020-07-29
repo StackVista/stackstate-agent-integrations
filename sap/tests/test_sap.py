@@ -4,7 +4,6 @@
 import pytest
 import requests
 import requests_mock
-import json
 
 from stackstate_checks.sap import SapCheck
 from stackstate_checks.base import ConfigurationError, TopologyInstance, AgentCheck, AgentIntegrationTestUtil
