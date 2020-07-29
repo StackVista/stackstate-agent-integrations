@@ -391,5 +391,5 @@ expected TopologyInstance or AgentIntegrationInstance"""
 
     def test_agent_integration_instance(self):
         check = TopologyCheck()
-        check.key = AgentIntegrationInstance()
+        check.key = AgentIntegrationInstance("integration", "name")
         assert check.key.toDict() == {"type": "agent", "url": "integrations"}

@@ -477,7 +477,7 @@ class __AgentCheckPy3(object):
         return proxies if proxies else no_proxy_settings
 
     def get_instance_key(self, instance):
-        raise NotImplementedError
+        return AgentIntegrationInstance("default", "integration")
 
     def _raise_unexpected_type(self, argumentName, value, expected):
         raise ValueError("Got unexpected {} for argument {}, expected {}".format(type(value), argumentName, expected))
@@ -1055,7 +1055,7 @@ class __AgentCheckPy2(object):
         return proxies if proxies else no_proxy_settings
 
     def get_instance_key(self, instance):
-        raise NotImplementedError
+        return AgentIntegrationInstance("default", "integration")
 
     def _raise_unexpected_type(self, argumentName, value, expected):
         raise ValueError("Got unexpected {} for argument {}, expected {}".format(type(value), argumentName, expected))
