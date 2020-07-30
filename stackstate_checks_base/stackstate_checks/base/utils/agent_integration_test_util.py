@@ -9,9 +9,9 @@ class AgentIntegrationTestUtil(object):
                 'hostname': 'stubbed.hostname',
                 'name': 'StackState Agent:stubbed.hostname',
                 'tags': ['hostname:stubbed.hostname', 'stackstate-agent'],
-                'identifiers': ['urn:process/:stubbed.hostname:1:1234567890'],
+                'identifiers': ['urn:process:/stubbed.hostname:1:1234567890'],
             },
-            'id': 'urn:stackstate-agent/:stubbed.hostname',
+            'id': 'urn:stackstate-agent:/stubbed.hostname',
             'type': 'stackstate-agent',
         }
 
@@ -48,7 +48,7 @@ class AgentIntegrationTestUtil(object):
                     }
                 ],
             },
-            'id': 'urn:agent-integration/:stubbed.hostname:{}'.format(instance["type"]),
+            'id': 'urn:agent-integration:/stubbed.hostname:{}'.format(instance["type"]),
             'type': 'agent-integration',
         }
 
@@ -63,8 +63,8 @@ class AgentIntegrationTestUtil(object):
         instance = check._get_instance_key()
         return {
             'data': {},
-            'target_id': 'urn:agent-integration/:stubbed.hostname:{}'.format(instance["type"]),
-            'source_id': 'urn:stackstate-agent/:stubbed.hostname',
+            'target_id': 'urn:agent-integration:/stubbed.hostname:{}'.format(instance["type"]),
+            'source_id': 'urn:stackstate-agent:/stubbed.hostname',
             'type': 'runs'
         }
 
@@ -104,7 +104,7 @@ class AgentIntegrationTestUtil(object):
                     }
                 ],
             },
-            'id': 'urn:agent-integration-instance/:stubbed.hostname:{}:{}'.format(instance["type"], instance["url"]),
+            'id': 'urn:agent-integration-instance:/stubbed.hostname:{}:{}'.format(instance["type"], instance["url"]),
             'type': 'agent-integration-instance',
         }
 
@@ -121,9 +121,9 @@ class AgentIntegrationTestUtil(object):
         instance = check._get_instance_key()
         return {
             'data': {},
-            'target_id': 'urn:agent-integration-instance/:stubbed.hostname:{}:{}'.format(instance["type"],
+            'target_id': 'urn:agent-integration-instance:/stubbed.hostname:{}:{}'.format(instance["type"],
                                                                                          instance["url"]),
-            'source_id': 'urn:agent-integration/:stubbed.hostname:{}'.format(instance["type"]),
+            'source_id': 'urn:agent-integration:/stubbed.hostname:{}'.format(instance["type"]),
             'type': 'has'
         }
 

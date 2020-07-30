@@ -54,7 +54,7 @@ class TestAgentIntegration(unittest.TestCase):
                 'cluster': 'stubbed-cluster-name',
                 'hostname': 'stubbed.hostname',
                 'identifiers': [
-                  'urn:process/:stubbed.hostname:1:1234567890'
+                  'urn:process:/stubbed.hostname:1:1234567890'
                 ],
                 'name': 'StackState Agent:stubbed.hostname',
                 'tags': [
@@ -62,7 +62,7 @@ class TestAgentIntegration(unittest.TestCase):
                   'stackstate-agent'
                 ]
               },
-              'id': 'urn:stackstate-agent/:stubbed.hostname',
+              'id': 'urn:stackstate-agent:/stubbed.hostname',
               'type': 'stackstate-agent'
             },
             {
@@ -100,7 +100,7 @@ class TestAgentIntegration(unittest.TestCase):
                   'agent-integration:agent-integration'
                 ]
               },
-              'id': 'urn:agent-integration/:stubbed.hostname:agent-integration',
+              'id': 'urn:agent-integration:/stubbed.hostname:agent-integration',
               'type': 'agent-integration'
             },
             {
@@ -143,7 +143,7 @@ class TestAgentIntegration(unittest.TestCase):
                   'agent-integration-url:sample'
                 ]
               },
-              'id': 'urn:agent-integration-instance/:stubbed.hostname:agent-integration:sample',
+              'id': 'urn:agent-integration-instance:/stubbed.hostname:agent-integration:sample',
               'type': 'agent-integration-instance'
             },
             {
@@ -211,7 +211,7 @@ class TestAgentIntegration(unittest.TestCase):
                 ],
                 'name': 'this-host'
               },
-              'id': 'urn:example/host:this_host',
+              'id': 'urn:example:/host:this_host',
               'type': 'Host'
             },
             {
@@ -223,7 +223,7 @@ class TestAgentIntegration(unittest.TestCase):
                     'deviating_value': 50,
                     'is_metric_maximum_ratio_check': True,
                     'max_window': 300000,
-                    'name': 'OK vs Error Responses',
+                    'name': 'OK vs Error Responses (Maximum)',
                     'numerator_stream_id': -2
                   },
                   {
@@ -241,7 +241,7 @@ class TestAgentIntegration(unittest.TestCase):
                     'deviating_value': 50,
                     'is_metric_failed_ratio_check': True,
                     'max_window': 300000,
-                    'name': 'OK vs Error Responses',
+                    'name': 'OK vs Error Responses (Failed)',
                     'numerator_stream_id': -2
                   },
                   {
@@ -308,7 +308,7 @@ class TestAgentIntegration(unittest.TestCase):
                 'name': 'some-application',
                 'version': '0.2.0'
               },
-              'id': 'urn:example/application:some_application',
+              'id': 'urn:example:/application:some_application',
               'type': 'Application'
             }
           ],
@@ -319,20 +319,20 @@ class TestAgentIntegration(unittest.TestCase):
           'relations': [
             {
               'data': {},
-              'source_id': 'urn:stackstate-agent/:stubbed.hostname',
-              'target_id': 'urn:agent-integration/:stubbed.hostname:agent-integration',
+              'source_id': 'urn:stackstate-agent:/stubbed.hostname',
+              'target_id': 'urn:agent-integration:/stubbed.hostname:agent-integration',
               'type': 'runs'
             },
             {
               'data': {},
-              'source_id': 'urn:agent-integration/:stubbed.hostname:agent-integration',
-              'target_id': 'urn:agent-integration-instance/:stubbed.hostname:agent-integration:sample',
+              'source_id': 'urn:agent-integration:/stubbed.hostname:agent-integration',
+              'target_id': 'urn:agent-integration-instance:/stubbed.hostname:agent-integration:sample',
               'type': 'has'
             },
             {
               'data': {},
-              'source_id': 'urn:example/application:some_application',
-              'target_id': 'urn:example/host:this_host',
+              'source_id': 'urn:example:/application:some_application',
+              'target_id': 'urn:example:/host:this_host',
               'type': 'IS_HOSTED_ON'
             }
           ],
