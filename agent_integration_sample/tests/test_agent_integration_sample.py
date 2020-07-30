@@ -197,7 +197,7 @@ class TestAgentIntegration(unittest.TestCase):
                     'aggregation': 'MEAN',
                     'conditions': [
                       {
-                        'key': 'hostname',
+                        'key': 'tags.hostname',
                         'value': 'this-host'
                       }
                     ],
@@ -270,11 +270,11 @@ class TestAgentIntegration(unittest.TestCase):
                     'aggregation': 'MEAN',
                     'conditions': [
                       {
-                        'key': 'application',
+                        'key': 'tags.application',
                         'value': 'some_application'
                       },
                       {
-                        'key': 'region',
+                        'key': 'tags.region',
                         'value': 'eu-west-1'
                       }
                     ],
@@ -289,11 +289,11 @@ class TestAgentIntegration(unittest.TestCase):
                     'aggregation': 'MEAN',
                     'conditions': [
                       {
-                        'key': 'application',
+                        'key': 'tags.application',
                         'value': 'some_application'
                       },
                       {
-                        'key': 'region',
+                        'key': 'tags.region',
                         'value': 'eu-west-1'
                       }
                     ],
