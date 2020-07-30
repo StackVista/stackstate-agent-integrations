@@ -870,6 +870,9 @@ class __AgentCheckPy2(object):
         else:
             message = ensure_bytes(message)
 
+        instance = self._get_instance_key()
+        tags = tags + [ensure_bytes("integration-type:{}".format(instance['type'])),
+                       ensure_bytes("integration-url:{}".format(instance['url']))]
         aggregator.submit_service_check(self, self.check_id, ensure_bytes(name), status, tags, hostname, message)
 
     def event(self, event):

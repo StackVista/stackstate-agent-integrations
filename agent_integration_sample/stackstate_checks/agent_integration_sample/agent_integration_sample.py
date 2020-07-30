@@ -17,7 +17,7 @@ class AgentIntegrationSampleCheck(AgentCheck):
 
     def check(self, instance):
         # gets the value of the `url` property
-        instance_url = instance['url']
+        instance_url = instance.get('url', 'agent-integration-sample')
         # gets the value of the `default_timeout` property or defaults to 5
         default_timeout = self.init_config.get('default_timeout', 5)
         # gets the value of the `timeout` property or defaults `default_timeout` and casts it to a float data type
