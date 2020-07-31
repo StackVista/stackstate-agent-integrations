@@ -57,7 +57,7 @@ def test_check_run_no_sap_instances(aggregator, instance):
 
     host_control_url = "http://localhost:1128/SAPHostControl"
     with requests_mock.mock() as m:
-        m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/HostControl.wsdl"))
+        m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/SAPHostAgent.wsdl"))
         m.post(host_control_url + ".cgi", text=_read_test_file("samples/GetCIMObject-NoResult.xml"))
 
         sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
@@ -94,7 +94,7 @@ def test_collect_only_hosts(aggregator, instance):
 
     host_control_url = "http://localhost:1128/SAPHostControl"
     with requests_mock.mock() as m:
-        m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/HostControl.wsdl"))
+        m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/SAPHostAgent.wsdl"))
         m.post(host_control_url + ".cgi", text=_read_test_file("samples/GetCIMObject.xml"))
 
         sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
@@ -168,10 +168,10 @@ def test_collect_processes(aggregator, instance):
     topology.reset()
 
     instance_id = "00"
-    host_agent_url = "http://localhost:50013/"
+    host_control_url = "http://localhost:1128/SAPHostControl"
     with requests_mock.mock() as m:
-        m.get(host_agent_url + "SAPHostAgent/?wsdl", text=_read_test_file("wsdl/HostAgent.wsdl"))
-        m.post(host_agent_url, text=_read_test_file("samples/GetProcessList.xml"))
+        m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/SAPHostAgent.wsdl"))
+        m.post(host_control_url+ ".cgi", text=_read_test_file("samples/GetProcessList.xml"))
 
         sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
         sap_check._get_config(instance)
@@ -284,10 +284,10 @@ def test_collect_worker_metrics(aggregator, instance):
     # Only ABAP instances
 
     instance_id = "00"
-    host_agent_url = "http://localhost:50013/"
+    host_control_url = "http://localhost:1128/SAPHostControl"
     with requests_mock.mock() as m:
-        m.get(host_agent_url + "SAPHostAgent/?wsdl", text=_read_test_file("wsdl/HostAgent.wsdl"))
-        m.post(host_agent_url, text=_read_test_file("samples/ABAPGetWPTable.xml"))
+        m.get(host_control_url + "?wsdl", text=_read_test_file("wsdl/SAPHostAgent.wsdl"))
+        m.post(host_control_url+ ".cgi", text=_read_test_file("samples/ABAPGetWPTable.xml"))
 
         sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
         sap_check._get_config(instance)
@@ -314,10 +314,10 @@ def test_collect_worker_metrics(aggregator, instance):
 
 def test_collect_memory_metric(aggregator, instance):
     instance_id = "00"
-    host_agent_url = "http://localhost:50013/"
+    host_control_url = "http://localhost:1128/SAPHostControl"
     with requests_mock.mock() as m:
-        m.get(host_agent_url + "SAPHostAgent/?wsdl", text=_read_test_file("wsdl/HostAgent.wsdl"))
-        m.post(host_agent_url, text=_read_test_file("samples/ParameterValue.xml"))
+        m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/SAPHostAgent.wsdl"))
+        m.post(host_control_url+ ".cgi", text=_read_test_file("samples/ParameterValue.xml"))
 
         sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
         sap_check._get_config(instance)
@@ -341,7 +341,7 @@ def test_collect_databases(aggregator, instance):
 
     host_control_url = "http://localhost:1128/SAPHostControl"
     with requests_mock.mock() as m:
-        m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/HostControl.wsdl"))
+        m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/SAPHostAgent.wsdl"))
         m.post(host_control_url + ".cgi", text=_read_test_file("samples/ListDatabases.xml"))
 
         sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
@@ -464,7 +464,7 @@ def test_collect_only_hosts_create_service_https(aggregator, https_instance):
 
     host_control_url = "https://localhost:1129/SAPHostControl"
     with requests_mock.mock() as m:
-        m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/HostControl.wsdl"))
+        m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/SAPHostAgent.wsdl"))
         m.post(host_control_url + ".cgi", text=_read_test_file("samples/GetCIMObject.xml"))
 
         sap_check = SapCheck(CHECK_NAME, {}, instances=[https_instance])
