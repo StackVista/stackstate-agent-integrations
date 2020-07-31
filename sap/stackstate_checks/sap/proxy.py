@@ -18,7 +18,6 @@ class SapProxy(object):
             session.auth = HTTPBasicAuth(user, password)
         wsdl_url = "{0}/?wsdl".format(url)
         self.client = Client(wsdl_url, transport=Transport(session=session, timeout=10))
-        sap_type = wsdl_url.split("/")[-2]
         address = "/".join(wsdl_url.split("/")[:-2])
         # ServiceProxy for same host location from config as the host location can be different in WSDL response
         # As an Example -
