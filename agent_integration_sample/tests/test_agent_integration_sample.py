@@ -79,11 +79,11 @@ class TestAgentIntegration(unittest.TestCase):
                   {
                     'conditions': [
                       {
-                        'key': 'hostname',
+                        'key': 'host',
                         'value': 'stubbed.hostname'
                       },
                       {
-                        'key': 'integration-type',
+                        'key': 'tags.integration-type',
                         'value': 'agent-integration'
                       }
                     ],
@@ -117,15 +117,15 @@ class TestAgentIntegration(unittest.TestCase):
                   {
                     'conditions': [
                       {
-                        'key': 'hostname',
+                        'key': 'host',
                         'value': 'stubbed.hostname'
                       },
                       {
-                        'key': 'integration-type',
+                        'key': 'tags.integration-type',
                         'value': 'agent-integration'
                       },
                       {
-                        'key': 'integration-url',
+                        'key': 'tags.integration-url',
                         'value': 'sample'
                       }
                     ],

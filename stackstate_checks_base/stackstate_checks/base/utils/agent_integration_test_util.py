@@ -39,8 +39,8 @@ class AgentIntegrationTestUtil(object):
                 'events': [
                     {
                         'conditions': [
-                            {'key': 'hostname', 'value': 'stubbed.hostname'},
-                            {'key': 'integration-type', 'value': '{}'.format(instance["type"])},
+                            {'key': 'host', 'value': 'stubbed.hostname'},
+                            {'key': 'tags.integration-type', 'value': '{}'.format(instance["type"])},
                         ],
                         'identifier': integration_component['data']['events'][0]['identifier'],
                         'stream_id': -1,
@@ -94,9 +94,9 @@ class AgentIntegrationTestUtil(object):
                 'events': [
                     {
                         'conditions': [
-                            {'key': 'hostname', 'value': 'stubbed.hostname'},
-                            {'key': 'integration-type', 'value': '{}'.format(instance["type"])},
-                            {'key': 'integration-url', 'value': '{}'.format(instance["url"])},
+                            {'key': 'host', 'value': 'stubbed.hostname'},
+                            {'key': 'tags.integration-type', 'value': '{}'.format(instance["type"])},
+                            {'key': 'tags.integration-url', 'value': '{}'.format(instance["url"])},
                         ],
                         'identifier': integration_component['data']['events'][0]['identifier'],
                         'stream_id': -1,

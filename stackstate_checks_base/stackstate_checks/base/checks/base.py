@@ -628,7 +628,7 @@ class __AgentCheckPy3(object):
         if datadog_agent.get_clustername():
             agent_integration_data["cluster"] = datadog_agent.get_clustername()
 
-        conditions = {"hostname": datadog_agent.get_hostname(), "integration-type": instance.type}
+        conditions = {"host": datadog_agent.get_hostname(), "tags.integration-type": instance.type}
         service_check_stream = EventStream("Service Checks", conditions=conditions)
         service_check = EventHealthChecks.service_check_health(service_check_stream.identifier, "Integration Health")
         self.component(agent_integration_external_id, "agent-integration", agent_integration_data,
@@ -653,8 +653,8 @@ class __AgentCheckPy3(object):
         if datadog_agent.get_clustername():
             agent_integration_instance_data["cluster"] = datadog_agent.get_clustername()
 
-        conditions = {"hostname": datadog_agent.get_hostname(), "integration-type": instance.type,
-                      "integration-url": instance.url}
+        conditions = {"host": datadog_agent.get_hostname(), "tags.integration-type": instance.type,
+                      "tags.integration-url": instance.url}
         service_check_stream = EventStream("Service Checks", conditions=conditions)
         service_check = EventHealthChecks.service_check_health(service_check_stream.identifier,
                                                                "Integration Instance Health")
@@ -1209,7 +1209,7 @@ class __AgentCheckPy2(object):
         if datadog_agent.get_clustername():
             agent_integration_data["cluster"] = datadog_agent.get_clustername()
 
-        conditions = {"hostname": datadog_agent.get_hostname(), "integration-type": instance.type}
+        conditions = {"host": datadog_agent.get_hostname(), "tags.integration-type": instance.type}
         service_check_stream = EventStream("Service Checks", conditions=conditions)
         service_check = EventHealthChecks.service_check_health(service_check_stream.identifier, "Integration Health")
         self.component(agent_integration_external_id, "agent-integration", agent_integration_data,
@@ -1233,8 +1233,8 @@ class __AgentCheckPy2(object):
         if datadog_agent.get_clustername():
             agent_integration_instance_data["cluster"] = datadog_agent.get_clustername()
 
-        conditions = {"hostname": datadog_agent.get_hostname(), "integration-type": instance.type,
-                      "integration-url": instance.url}
+        conditions = {"host": datadog_agent.get_hostname(), "tags.integration-type": instance.type,
+                      "tags.integration-url": instance.url}
         service_check_stream = EventStream("Service Checks", conditions=conditions)
         service_check = EventHealthChecks.service_check_health(service_check_stream.identifier,
                                                                "Integration Instance Health")
