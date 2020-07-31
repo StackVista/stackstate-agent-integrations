@@ -6,6 +6,7 @@ from requests.auth import HTTPBasicAuth
 from zeep import Client, Transport
 import base64
 
+
 class SapProxy(object):
 
     def __init__(self, url, user, password, verify=True, cert=None, keyfile=None):
@@ -60,9 +61,9 @@ class SapProxy(object):
 
     def get_sap_instance_processes(self, instance_id):
         """Retrieves all processes on a host instance"""
-        
+
         # ns0:Property(mKey: xsd:string, mValue: xsd:string)
-        property_type = self.client.get_type("ns0:Property")                
+        property_type = self.client.get_type("ns0:Property")
         sap_instance_property = property_type(mKey="EnumerateInstances", mValue="SAP_ITSAMInstance/Process??Instancenumber={0}".format(instance_id))
 
         # ns0:ArrayOfProperty(item: ns0:Property[])
@@ -71,12 +72,11 @@ class SapProxy(object):
 
         return self.service.GetCIMObject(properties)
 
-
     def get_sap_instance_abap_free_workers(self, instance_id, worker_types):
         """Retrieves free workers metric from an ABAP host instance"""
 
         # ns0:Property(mKey: xsd:string, mValue: xsd:string)
-        property_type = self.client.get_type("ns0:Property")                
+        property_type = self.client.get_type("ns0:Property")
         sap_instance_property = property_type(mKey="EnumerateInstances", mValue="SAP_ITSAMInstance/WorkProcess??Instancenumber={0}".format(instance_id))
 
         # ns0:ArrayOfProperty(item: ns0:Property[])
@@ -85,7 +85,6 @@ class SapProxy(object):
         worker_processes = self.service.GetCIMObject(properties)
 
         if worker_processes:
-            array_worker_processes = []
             grouped_workers = {}
             for worker_proces in worker_processes:
                 worker_proces_item = {i.mName: i.mValue for i in worker_proces.mProperties.item}
@@ -101,22 +100,22 @@ class SapProxy(object):
     def get_sap_instance_physical_memory(self, instance_id):
         """Retrieves physical memory (in megabytes) metric from an host instance"""
         # ns0:Property(mKey: xsd:string, mValue: xsd:string)
-        property_type = self.client.get_type("ns0:Property")                
+        property_type = self.client.get_type("ns0:Property")
         sap_instance_property = property_type(mKey="EnumerateInstances", mValue="SAP_ITSAMInstance/Parameter??Instancenumber={0}".format(instance_id))
         # ns0:ArrayOfProperty(item: ns0:Property[])
         properties_type = self.client.get_type("ns0:ArrayOfProperty")
         properties = properties_type([sap_instance_property])
         params_reply = self.service.GetCIMObject(properties)
-        memsize=0.0
+        memsize = 0
         if params_reply:
             for param_reply in params_reply:
                 params_item = {i.mName: i.mValue for i in param_reply.mProperties.item}
-                base64parameters =  params_item.get("value")                        
-                base64decodedparams = base64.b64decode(base64parameters.encode()).encode()                        
-                params={}
-                line_params = base64decodedparams.split('\n')
+                base64parameters = params_item.get("value")
+                base64decodedparams = base64.b64decode(base64parameters)
+                params = {}
+                line_params = base64decodedparams.split(b'\n')
                 for line in line_params:
-                    name, var = line.partition("=")[::2]
+                    name, var = line.partition(b'=')[::2]
                     params[name.strip()] = str(var)
-                memsize=params["PHYS_MEMSIZE"]
+                memsize = params["PHYS_MEMSIZE"]
         return memsize

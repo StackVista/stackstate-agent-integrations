@@ -74,7 +74,7 @@ class SapCheck(AgentCheck):
             host_port = "1129"
         host_control_url = "{0}:{1}/SAPHostControl".format(self.url, host_port)
         return SapProxy(host_control_url, self.user, self.password, self.verify, self.cert, self.keyfile)
-        
+
     def _collect_hosts(self):
         try:
             # define SAP host control component
@@ -241,7 +241,7 @@ class SapCheck(AgentCheck):
     def _collect_worker_metrics(self, instance_id, instance_type, host_instance_proxy):
         if instance_type.startswith("ABAP"):
             interesting_workers = ["DIA", "BTC"]
-            num_free_workers = host_instance_proxy.get_sap_instance_abap_free_workers(instance_id,interesting_workers)
+            num_free_workers = host_instance_proxy.get_sap_instance_abap_free_workers(instance_id, interesting_workers)
             self.log.debug("number of worker processes for instance '{0}': {1}".format(
                 instance_id, num_free_workers))
             for worker_type, num_free_worker in list(num_free_workers.items()):
@@ -253,7 +253,7 @@ class SapCheck(AgentCheck):
                 )
 
     def _collect_memory_metric(self, instance_id, host_instance_proxy):
-        phys_memsize = host_instance_proxy.get_sap_instance_physical_memory()
+        phys_memsize = host_instance_proxy.get_sap_instance_physical_memory(instance_id)
         self.log.debug("host instance '{0}' physical memory: {1}".format(instance_id, phys_memsize))
         self.gauge(
             name="phys_memsize",
