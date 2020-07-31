@@ -311,8 +311,10 @@ class __AgentCheckPy3(object):
         else:
             message = ensure_unicode(message)
 
-        instance = self._get_instance_key()
-        tags = tags + ["integration-type:{}".format(instance['type']), "integration-url:{}".format(instance['url'])]
+        instance = self._get_instance_key_value()
+        if isinstance(instance, AgentIntegrationInstance):
+            instance = TopologyInstance(instance.integration, instance.name)
+        tags = tags + ["integration-type:{}".format(instance.type), "integration-url:{}".format(instance.url)]
         aggregator.submit_service_check(self, self.check_id, ensure_unicode(name), status, tags, hostname, message)
 
     def event(self, event):
@@ -870,9 +872,11 @@ class __AgentCheckPy2(object):
         else:
             message = ensure_bytes(message)
 
-        instance = self._get_instance_key()
-        tags = tags + [ensure_bytes("integration-type:{}".format(instance['type'])),
-                       ensure_bytes("integration-url:{}".format(instance['url']))]
+        instance = self._get_instance_key_value()
+        if isinstance(instance, AgentIntegrationInstance):
+            instance = TopologyInstance(instance.integration, instance.name)
+        tags = tags + [ensure_bytes("integration-type:{}".format(instance.type)),
+                       ensure_bytes("integration-url:{}".format(instance.url))]
         aggregator.submit_service_check(self, self.check_id, ensure_bytes(name), status, tags, hostname, message)
 
     def event(self, event):
