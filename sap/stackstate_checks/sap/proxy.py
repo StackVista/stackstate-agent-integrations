@@ -31,8 +31,7 @@ class SapProxy(object):
         #   then creating a ServiceProxy with the given URL config, it will become
         #   "http://192.168.0.1:1128/SAPHostControl.cgi" and same goes for https
 
-        self.service = self.client.create_service("{urn:SAPHostControl}SAPHostControl",
-                                                      address+"/SAPHostControl.cgi")
+        self.service = self.client.create_service("{urn:SAPHostControl}SAPHostControl", address+"/SAPHostControl.cgi")
 
     def get_databases(self):
         """Retrieves all databases with their components from the host control"""
@@ -63,7 +62,8 @@ class SapProxy(object):
 
         # ns0:Property(mKey: xsd:string, mValue: xsd:string)
         property_type = self.client.get_type("ns0:Property")
-        sap_instance_property = property_type(mKey="EnumerateInstances", mValue="SAP_ITSAMInstance/Process??Instancenumber={0}".format(instance_id))
+        value = "SAP_ITSAMInstance/Process??Instancenumber={0}".format(instance_id)
+        sap_instance_property = property_type(mKey="EnumerateInstances", mValue=value)
 
         # ns0:ArrayOfProperty(item: ns0:Property[])
         properties_type = self.client.get_type("ns0:ArrayOfProperty")
@@ -76,7 +76,8 @@ class SapProxy(object):
 
         # ns0:Property(mKey: xsd:string, mValue: xsd:string)
         property_type = self.client.get_type("ns0:Property")
-        sap_instance_property = property_type(mKey="EnumerateInstances", mValue="SAP_ITSAMInstance/WorkProcess??Instancenumber={0}".format(instance_id))
+        value = "SAP_ITSAMInstance/WorkProcess??Instancenumber={0}".format(instance_id)
+        sap_instance_property = property_type(mKey="EnumerateInstances", mValue=value)
 
         # ns0:ArrayOfProperty(item: ns0:Property[])
         properties_type = self.client.get_type("ns0:ArrayOfProperty")
@@ -87,7 +88,10 @@ class SapProxy(object):
             grouped_workers = {}
             for worker_proces in worker_processes:
                 worker_proces_item = {i.mName: i.mValue for i in worker_proces.mProperties.item}
-                grouped_workers[worker_proces_item.get("Typ")] = grouped_workers.get(worker_proces_item.get("Typ"), []) + [(worker_proces_item.get("Pid"), worker_proces_item.get("Status"))]
+                typ = worker_proces_item.get("Typ")
+                status = worker_proces_item.get("Status")
+                pid = worker_proces_item.get("Pid")
+                grouped_workers[typ] = grouped_workers.get(typ, []) + [(pid, status)]
 
             num_free_workers = {}
             for worker_type in worker_types:
@@ -100,7 +104,8 @@ class SapProxy(object):
         """Retrieves physical memory (in megabytes) metric from an host instance"""
         # ns0:Property(mKey: xsd:string, mValue: xsd:string)
         property_type = self.client.get_type("ns0:Property")
-        sap_instance_property = property_type(mKey="EnumerateInstances", mValue="SAP_ITSAMInstance/Parameter??Instancenumber={0}".format(instance_id))
+        value = "SAP_ITSAMInstance/Parameter??Instancenumber={0}".format(instance_id)
+        sap_instance_property = property_type(mKey="EnumerateInstances", mValue=value)
         # ns0:ArrayOfProperty(item: ns0:Property[])
         properties_type = self.client.get_type("ns0:ArrayOfProperty")
         properties = properties_type([sap_instance_property])
@@ -115,6 +120,7 @@ class SapProxy(object):
                 line_params = base64decodedparams.split(b'\n')
                 for line in line_params:
                     name, var = line.partition(b'=')[::2]
-                    params[name.strip()] = str(var)
+                    params[name.decode()] = var.decode()
                 memsize = params["PHYS_MEMSIZE"]
         return memsize
+
