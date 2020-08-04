@@ -57,10 +57,11 @@ class TestAgentIntegration(unittest.TestCase):
                   'urn:process:/stubbed.hostname:1:1234567890'
                 ],
                 'name': 'StackState Agent:stubbed.hostname',
-                'tags': [
+                'tags': sorted([
                   'hostname:stubbed.hostname',
-                  'stackstate-agent'
-                ]
+                  'stackstate-agent',
+                  'agent-integration:sample'
+                ])
               },
               'id': 'urn:stackstate-agent:/stubbed.hostname',
               'type': 'stackstate-agent'
@@ -95,10 +96,11 @@ class TestAgentIntegration(unittest.TestCase):
                 'hostname': 'stubbed.hostname',
                 'integration': 'agent-integration',
                 'name': 'stubbed.hostname:agent-integration',
-                'tags': [
+                'tags': sorted([
                   'hostname:stubbed.hostname',
-                  'agent-integration:agent-integration'
-                ]
+                  'agent-integration:agent-integration',
+                  'agent-integration:sample'
+                ])
               },
               'id': 'urn:agent-integration:/stubbed.hostname:agent-integration',
               'type': 'agent-integration'
@@ -137,11 +139,12 @@ class TestAgentIntegration(unittest.TestCase):
                 'hostname': 'stubbed.hostname',
                 'integration': 'agent-integration',
                 'name': 'agent-integration:sample',
-                'tags': [
+                'tags': sorted([
                   'hostname:stubbed.hostname',
                   'agent-integration:agent-integration',
-                  'agent-integration-url:sample'
-                ]
+                  'agent-integration-url:sample',
+                  'agent-integration:sample'
+                ])
               },
               'id': 'urn:agent-integration-instance:/stubbed.hostname:agent-integration:sample',
               'type': 'agent-integration-instance'
@@ -191,6 +194,9 @@ class TestAgentIntegration(unittest.TestCase):
                   'host:this_host',
                   'region:eu-west-1'
                 ],
+                'tags': sorted([
+                  'agent-integration:sample'
+                ]),
                 'layer': 'Hosts',
                 'metrics': [
                   {
@@ -264,6 +270,9 @@ class TestAgentIntegration(unittest.TestCase):
                   'region:eu-west-1',
                   'hosted_on:this-host'
                 ],
+                'tags': sorted([
+                  'agent-integration:sample'
+                ]),
                 'layer': 'Applications',
                 'metrics': [
                   {

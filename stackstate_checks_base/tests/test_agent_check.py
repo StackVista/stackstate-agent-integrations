@@ -333,7 +333,8 @@ class TestTopology:
     def test_none_data_ok(self, topology):
         check = TopologyCheck()
         check.component("my-id", "my-type", None)
-        topology.assert_snapshot(check.check_id, check.key, components=[component("my-id", "my-type", {})])
+        topology.assert_snapshot(check.check_id, check.key, components=[component("my-id", "my-type",
+                                                                                  {'tags': ['mytype:someurl']})])
 
     def test_illegal_data(self):
         check = TopologyCheck()

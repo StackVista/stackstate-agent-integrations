@@ -2,13 +2,15 @@
 class AgentIntegrationTestUtil(object):
 
     @staticmethod
-    def expected_agent_component():
+    def expected_agent_component(check):
+        instance = check._get_instance_key()
         return {
             'data': {
                 'cluster': 'stubbed-cluster-name',
                 'hostname': 'stubbed.hostname',
                 'name': 'StackState Agent:stubbed.hostname',
-                'tags': ['hostname:stubbed.hostname', 'stackstate-agent'],
+                'tags': sorted(['hostname:stubbed.hostname', '{}:{}'.format(instance["type"], instance["url"]),
+                                'stackstate-agent']),
                 'identifiers': ['urn:process:/stubbed.hostname:1:1234567890'],
             },
             'id': 'urn:stackstate-agent:/stubbed.hostname',
@@ -17,7 +19,7 @@ class AgentIntegrationTestUtil(object):
 
     @staticmethod
     def assert_agent_component(check, agent_component):
-        check.assertEqual(AgentIntegrationTestUtil.expected_agent_component(), agent_component)
+        check.assertEqual(AgentIntegrationTestUtil.expected_agent_component(check.check), agent_component)
 
     @staticmethod
     def expected_agent_integration_component(check, integration_component):
@@ -28,7 +30,8 @@ class AgentIntegrationTestUtil(object):
                 'hostname': 'stubbed.hostname',
                 'integration': '{}'.format(instance["type"]),
                 'name': 'stubbed.hostname:{}'.format(instance["type"]),
-                'tags': ['hostname:stubbed.hostname', 'agent-integration:{}'.format(instance["type"])],
+                'tags': sorted(['agent-integration:{}'.format(instance["type"]), 'hostname:stubbed.hostname',
+                                '{}:{}'.format(instance["type"], instance["url"])]),
                 'checks': [
                     {
                         'is_service_check_health_check': True,
@@ -82,8 +85,10 @@ class AgentIntegrationTestUtil(object):
                 'hostname': 'stubbed.hostname',
                 'integration': '{}'.format(instance["type"]),
                 'name': '{}:{}'.format(instance["type"], instance["url"]),
-                'tags': ['hostname:stubbed.hostname', 'agent-integration:{}'.format(instance["type"]),
-                         'agent-integration-url:{}'.format(instance["url"])],
+                'tags': sorted(['agent-integration-url:{}'.format(instance["url"]),
+                                'agent-integration:{}'.format(instance["type"]),
+                                'hostname:stubbed.hostname',
+                                '{}:{}'.format(instance["type"], instance["url"])]),
                 'checks': [
                     {
                         'is_service_check_health_check': True,

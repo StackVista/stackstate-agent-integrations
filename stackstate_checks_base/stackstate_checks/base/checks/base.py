@@ -531,6 +531,12 @@ class __AgentCheckPy3(object):
             data = {}
         data = self._map_streams_and_checks(data, streams, checks)
         self._check_struct("data", data)
+        # add topology instance for view filtering
+        instance = self._get_instance_key_value()
+        if isinstance(instance, AgentIntegrationInstance):
+            instance = TopologyInstance(instance.integration, instance.name)
+        data['tags'] = sorted(list(set(data.get('tags', []) + ['{}:{}'.format(instance.type, instance.url)])))
+
         topology.submit_component(self, self.check_id, self._get_instance_key(), id, type, data)
 
     def relation(self, source, target, type, data, streams=None, checks=None):
@@ -1114,6 +1120,12 @@ class __AgentCheckPy2(object):
             data = {}
         data = self._map_streams_and_checks(data, streams, checks)
         self._check_struct("data", data)
+        # add topology instance for view filtering
+        instance = self._get_instance_key_value()
+        if isinstance(instance, AgentIntegrationInstance):
+            instance = TopologyInstance(instance.integration, instance.name)
+        data['tags'] = sorted(list(set(data.get('tags', []) + ['{}:{}'.format(instance.type, instance.url)])))
+
         topology.submit_component(self, self.check_id, self._get_instance_key(), id, type, data)
 
     def relation(self, source, target, type, data, streams=None, checks=None):
