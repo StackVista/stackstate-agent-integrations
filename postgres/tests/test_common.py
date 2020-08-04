@@ -152,5 +152,10 @@ def test_topology(topology, check, pg_instance):
     check.check(pg_instance)
 
     topology.assert_snapshot(check.check_id, TopologyInstance("postgresql", "postgresql://postgresql"),
-                             components=[{"id": check._get_topology_hostname(HOST),
-                                          "type": "postgresql", "data": {}}])
+                             components=[
+                                {
+                                     "id": check._get_topology_hostname(HOST),
+                                     "type": "postgresql",
+                                     "data": {'tags': ['postgresql:postgresql://postgresql']}
+                                }
+                             ])
