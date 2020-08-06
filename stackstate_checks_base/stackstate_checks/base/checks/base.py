@@ -305,10 +305,14 @@ class AgentCheckBase(object):
         data = self.map_streams_and_checks(data, streams, checks)
         self._check_struct("data", data)
         # add topology instance for view filtering
-        instance = self._get_instance_key_value()
-        if isinstance(instance, AgentIntegrationInstance):
-            instance = TopologyInstance(instance.integration, instance.name)
-        data['tags'] = sorted(list(set(data.get('tags', []) + ['{}:{}'.format(instance.type, instance.url)])))
+        _instance = self._get_instance_key_value()
+        instance_type = _instance.type
+        instance_url = _instance.url
+        if isinstance(_instance, AgentIntegrationInstance):
+            instance_type = _instance.integration
+            instance_url = _instance.name
+
+        data['tags'] = sorted(list(set(data.get('tags', []) + ['{}:{}'.format(instance_type, instance_url)])))
 
         topology.submit_component(self, self.check_id, self._get_instance_key(), id, type, data)
 
