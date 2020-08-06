@@ -155,12 +155,8 @@ class AgentCheckBase(object):
 
         self.log = None
         self._deprecations = {}
-        self.agentConfig = kwargs.get('agentConfig', {})
-        self.warnings = []
         # Set proxy settings
         self.proxies = self._get_requests_proxy()
-
-        # Set proxy settings
         if not self.init_config:
             self._use_agent_proxy = True
         else:
@@ -168,7 +164,7 @@ class AgentCheckBase(object):
 
         self.default_integration_http_timeout = float(self.agentConfig.get('default_integration_http_timeout', 9))
 
-        # Setup metric limits
+    def set_metric_limits(self):
         try:
             metric_limit = self.instances[0].get('max_returned_metrics', self.DEFAULT_METRIC_LIMIT)
             # Do not allow to disable limiting if the class has set a non-zero default value
@@ -178,7 +174,8 @@ class AgentCheckBase(object):
                     'Setting max_returned_metrics to zero is not allowed, reverting '
                     'to the default of {} metrics'.format(self.DEFAULT_METRIC_LIMIT)
                 )
-        except Exception:
+        except Exception as e:
+            print("exception: {}".format(e))
             metric_limit = self.DEFAULT_METRIC_LIMIT
         if metric_limit > 0:
             self.metric_limiter = Limiter(self.name, 'metrics', metric_limit, self.warning)
@@ -244,15 +241,28 @@ class AgentCheckBase(object):
     def _get_instance_key(self):
         return self._get_instance_key_value().toDict()
 
+    def get_instance_proxy(self, instance, uri, proxies=None):
+        proxies = proxies if proxies is not None else self.proxies.copy()
+
+        deprecated_skip = instance.get('no_proxy', None)
+        skip = (
+            is_affirmative(instance.get('skip_proxy', not self._use_agent_proxy)) or is_affirmative(deprecated_skip)
+        )
+
+        if deprecated_skip is not None:
+            self._log_deprecation('no_proxy')
+
+        return config_proxy_skip(proxies, uri, skip)
+
     # TODO(olivier): implement service_metadata if it's worth it
     def service_metadata(self, meta_name, value):
-        raise NotImplementedError
+        pass
 
     def check(self, instance):
         raise NotImplementedError
 
     def warning(self, warning_message):
-        raise NotImplementedError
+        pass
 
     def normalize(self, metric, prefix=None, fix_case=False):
         """
@@ -552,10 +562,11 @@ class __AgentCheckPy3(AgentCheckBase):
                 ),
             ],
         }
+        self.set_metric_limits()
 
     # TODO(olivier): implement service_metadata if it's worth it
     def service_metadata(self, meta_name, value):
-        raise NotImplementedError
+        pass
 
     def check(self, instance):
         raise NotImplementedError
@@ -666,6 +677,8 @@ class __AgentCheckPy3(AgentCheckBase):
         self.log.warning(warning_message, extra={'_lineno': lineno, '_filename': filename})
         self.warnings.append(warning_message)
 
+        print("overhere py3: {}".format(self.warnings))
+
     def run(self):
         try:
             if self._get_instance_key_value().with_snapshots:
@@ -725,9 +738,11 @@ class __AgentCheckPy2(AgentCheckBase):
             ],
         }
 
+        self.set_metric_limits()
+
     # TODO(olivier): implement service_metadata if it's worth it
     def service_metadata(self, meta_name, value):
-        raise NotImplementedError
+        pass
 
     def check(self, instance):
         raise NotImplementedError
@@ -858,6 +873,8 @@ class __AgentCheckPy2(AgentCheckBase):
 
         self.log.warning(warning_message, extra={'_lineno': lineno, '_filename': filename})
         self.warnings.append(warning_message)
+
+        print("overhere py2: {}".format(self.warnings))
 
     def run(self):
         try:
