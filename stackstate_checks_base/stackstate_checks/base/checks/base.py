@@ -175,7 +175,6 @@ class AgentCheckBase(object):
                     'to the default of {} metrics'.format(self.DEFAULT_METRIC_LIMIT)
                 )
         except Exception as e:
-            print("exception: {}".format(e))
             metric_limit = self.DEFAULT_METRIC_LIMIT
         if metric_limit > 0:
             self.metric_limiter = Limiter(self.name, 'metrics', metric_limit, self.warning)
@@ -677,8 +676,6 @@ class __AgentCheckPy3(AgentCheckBase):
         self.log.warning(warning_message, extra={'_lineno': lineno, '_filename': filename})
         self.warnings.append(warning_message)
 
-        print("overhere py3: {}".format(self.warnings))
-
     def run(self):
         try:
             if self._get_instance_key_value().with_snapshots:
@@ -873,8 +870,6 @@ class __AgentCheckPy2(AgentCheckBase):
 
         self.log.warning(warning_message, extra={'_lineno': lineno, '_filename': filename})
         self.warnings.append(warning_message)
-
-        print("overhere py2: {}".format(self.warnings))
 
     def run(self):
         try:
