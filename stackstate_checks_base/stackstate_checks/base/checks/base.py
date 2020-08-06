@@ -174,7 +174,7 @@ class AgentCheckBase(object):
                     'Setting max_returned_metrics to zero is not allowed, reverting '
                     'to the default of {} metrics'.format(self.DEFAULT_METRIC_LIMIT)
                 )
-        except Exception as e:
+        except Exception:
             metric_limit = self.DEFAULT_METRIC_LIMIT
         if metric_limit > 0:
             self.metric_limiter = Limiter(self.name, 'metrics', metric_limit, self.warning)
