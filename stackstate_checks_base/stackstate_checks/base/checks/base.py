@@ -310,35 +310,39 @@ class AgentCheckBase(object):
         return self.DOT_UNDERSCORE_CLEANUP.sub(br'.', metric_name).strip(b'_')
 
     def component(self, id, type, data, streams=None, checks=None):
+        instance = self._get_instance_key_value()
+        data = self._map_component_data(id, type, instance, data, streams, checks)
+        topology.submit_component(self, self.check_id, self._get_instance_key(), id, type, data)
+
+    def _map_component_data(self, id, type, instance, data, streams=None, checks=None, add_instance_tags=True):
         self._check_is_string("id", id)
         self._check_is_string("type", type)
         if data is None:
             data = {}
-        data = self.map_streams_and_checks(data, streams, checks)
         self._check_struct("data", data)
-        # add topology instance for view filtering
-        _instance = self._get_instance_key_value()
-        instance_type = _instance.type
-        instance_url = _instance.url
-        if isinstance(_instance, AgentIntegrationInstance):
-            instance_type = _instance.integration
-            instance_url = _instance.name
-
-        data['tags'] = sorted(list(set(data.get('tags', []) + ['{}:{}'.format(instance_type, instance_url)])))
-
-        topology.submit_component(self, self.check_id, self._get_instance_key(), id, type, data)
+        data = self._map_streams_and_checks(data, streams, checks)
+        if add_instance_tags:
+            # add topology instance for view filtering
+            data['tags'] = sorted(list(set(data.get('tags', []) + instance.tags())))
+        self._check_struct("data", data)
+        return data
 
     def relation(self, source, target, type, data, streams=None, checks=None):
+        data = self._map_relation_data(source, target, type, data, streams, checks)
+        topology.submit_relation(self, self.check_id, self._get_instance_key(), source, target, type, data)
+
+    def _map_relation_data(self, source, target, type, data, streams=None, checks=None):
         self._check_is_string("source", source)
         self._check_is_string("target", target)
         self._check_is_string("type", type)
+        self._check_struct("data", data)
         if data is None:
             data = {}
-        data = self.map_streams_and_checks(data, streams, checks)
+        data = self._map_streams_and_checks(data, streams, checks)
         self._check_struct("data", data)
-        topology.submit_relation(self, self.check_id, self._get_instance_key(), source, target, type, data)
+        return data
 
-    def map_streams_and_checks(self, data, streams, checks):
+    def _map_streams_and_checks(self, data, streams, checks):
         if streams:
             stream_id = -1
             for stream in streams:
@@ -394,12 +398,18 @@ class AgentCheckBase(object):
 
         Agent -> Agent Integration -> Agent Integration Instance
         """
-        _instance = self._get_instance_key_value()
-        instance_type = _instance.type
-        instance_url = _instance.url
-        if isinstance(_instance, AgentIntegrationInstance):
-            instance_type = _instance.integration
-            instance_url = _instance.name
+        instance = self._get_instance_key_value()
+        instance_type = instance.type
+        instance_url = instance.url
+        check_id = self.check_id
+        if isinstance(instance, AgentIntegrationInstance):
+            instance_type = instance.integration
+            instance_url = instance.name
+        else:
+            check_id = "{}:{}".format(instance_type, instance_url)
+
+        # use this as the topology instance so that data ends up in the Agent Integration sync
+        integration_instance = AgentIntegrationInstance("default", "integration")
 
         # Agent Component
         agent_external_id = Identifiers.create_agent_identifier(datadog_agent.get_hostname())
@@ -414,7 +424,9 @@ class AgentCheckBase(object):
         }
         if datadog_agent.get_clustername():
             agent_data["cluster"] = datadog_agent.get_clustername()
-        self.component(agent_external_id, "stackstate-agent", agent_data)
+        topology.submit_component(self, check_id, integration_instance.toDict(), agent_external_id, "stackstate-agent",
+                                  self._map_component_data(agent_external_id, "stackstate-agent", instance, agent_data,
+                                                           add_instance_tags=False))
 
         # Agent Integration + relation to Agent
         agent_integration_external_id = Identifiers.create_integration_identifier(datadog_agent.get_hostname(),
@@ -422,7 +434,7 @@ class AgentCheckBase(object):
         agent_integration_data = {
             "name": "{}:{}".format(datadog_agent.get_hostname(), instance_type), "integration": instance_type,
             "hostname": datadog_agent.get_hostname(), "tags": check_instance.get('tags', []) + [
-                "hostname:{}".format(datadog_agent.get_hostname()), "agent-integration:{}".format(instance_type)
+                "hostname:{}".format(datadog_agent.get_hostname()), "integration-type:{}".format(instance_type)
             ]
         }
         if datadog_agent.get_clustername():
@@ -431,9 +443,16 @@ class AgentCheckBase(object):
         conditions = {"host": datadog_agent.get_hostname(), "tags.integration-type": instance_type}
         service_check_stream = EventStream("Service Checks", conditions=conditions)
         service_check = EventHealthChecks.service_check_health(service_check_stream.identifier, "Integration Health")
-        self.component(agent_integration_external_id, "agent-integration", agent_integration_data,
-                       streams=[service_check_stream], checks=[service_check])
-        self.relation(agent_external_id, agent_integration_external_id, "runs", {})
+        topology.submit_component(self, check_id, integration_instance.toDict(), agent_integration_external_id,
+                                  "agent-integration", self._map_component_data(agent_integration_external_id,
+                                                                                "agent-integration", instance,
+                                                                                agent_integration_data,
+                                                                                [service_check_stream], [service_check],
+                                                                                add_instance_tags=False)
+                                  )
+        topology.submit_relation(self, check_id, integration_instance.toDict(), agent_external_id,
+                                 agent_integration_external_id, "runs",
+                                 self._map_relation_data(agent_external_id, agent_integration_external_id, "runs", {}))
 
         # Agent Integration Instance + relation to Agent Integration
         agent_integration_instance_name = "{}:{}".format(instance_type, instance_url)
@@ -444,8 +463,7 @@ class AgentCheckBase(object):
             "name": agent_integration_instance_name, "integration": instance_type,
             "hostname": datadog_agent.get_hostname(),
             "tags": check_instance.get('tags', []) + [
-                "hostname:{}".format(datadog_agent.get_hostname()), "agent-integration:{}".format(instance_type),
-                "agent-integration-url:{}".format(instance_url)
+                "hostname:{}".format(datadog_agent.get_hostname())
             ]
         }
 
@@ -457,9 +475,17 @@ class AgentCheckBase(object):
         service_check_stream = EventStream("Service Checks", conditions=conditions)
         service_check = EventHealthChecks.service_check_health(service_check_stream.identifier,
                                                                "Integration Instance Health")
-        self.component(agent_integration_instance_external_id, "agent-integration-instance",
-                       agent_integration_instance_data, streams=[service_check_stream], checks=[service_check])
-        self.relation(agent_integration_external_id, agent_integration_instance_external_id, "has", {})
+        topology.submit_component(self, check_id, integration_instance.toDict(), agent_integration_instance_external_id,
+                                  "agent-integration-instance",
+                                  self._map_component_data(agent_integration_instance_external_id,
+                                                           "agent-integration-instance",
+                                                           instance, agent_integration_instance_data,
+                                                           [service_check_stream], [service_check])
+                                  )
+        topology.submit_relation(self, check_id, integration_instance.toDict(), agent_integration_external_id,
+                                 agent_integration_instance_external_id, "has",
+                                 self._map_relation_data(agent_integration_external_id,
+                                                         agent_integration_instance_external_id, "has", {}))
 
     def _submit_metric(self, mtype, name, value, tags=None, hostname=None, device_name=None):
         pass

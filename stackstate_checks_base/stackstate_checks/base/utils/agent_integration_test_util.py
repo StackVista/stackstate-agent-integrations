@@ -1,16 +1,18 @@
 
+from ..stubs import topology
+from .. import TopologyInstance
+
+
 class AgentIntegrationTestUtil(object):
 
     @staticmethod
     def expected_agent_component(check):
-        instance = check._get_instance_key()
         return {
             'data': {
                 'cluster': 'stubbed-cluster-name',
                 'hostname': 'stubbed.hostname',
                 'name': 'StackState Agent:stubbed.hostname',
-                'tags': sorted(['hostname:stubbed.hostname', '{}:{}'.format(instance["type"], instance["url"]),
-                                'stackstate-agent']),
+                'tags': sorted(['hostname:stubbed.hostname', 'stackstate-agent']),
                 'identifiers': ['urn:process:/stubbed.hostname:1:1234567890'],
             },
             'id': 'urn:stackstate-agent:/stubbed.hostname',
@@ -30,8 +32,7 @@ class AgentIntegrationTestUtil(object):
                 'hostname': 'stubbed.hostname',
                 'integration': '{}'.format(instance["type"]),
                 'name': 'stubbed.hostname:{}'.format(instance["type"]),
-                'tags': sorted(['agent-integration:{}'.format(instance["type"]), 'hostname:stubbed.hostname',
-                                '{}:{}'.format(instance["type"], instance["url"])]),
+                'tags': sorted(['integration-type:{}'.format(instance["type"]), 'hostname:stubbed.hostname']),
                 'checks': [
                     {
                         'is_service_check_health_check': True,
@@ -85,10 +86,9 @@ class AgentIntegrationTestUtil(object):
                 'hostname': 'stubbed.hostname',
                 'integration': '{}'.format(instance["type"]),
                 'name': '{}:{}'.format(instance["type"], instance["url"]),
-                'tags': sorted(['agent-integration-url:{}'.format(instance["url"]),
-                                'agent-integration:{}'.format(instance["type"]),
-                                'hostname:stubbed.hostname',
-                                '{}:{}'.format(instance["type"], instance["url"])]),
+                'tags': sorted(['integration-url:{}'.format(instance["url"]),
+                                'integration-type:{}'.format(instance["type"]),
+                                'hostname:stubbed.hostname']),
                 'checks': [
                     {
                         'is_service_check_health_check': True,
@@ -136,3 +136,25 @@ class AgentIntegrationTestUtil(object):
     def assert_agent_integration_instance_relation(check, integration_instance_relation):
         check.assertEqual(AgentIntegrationTestUtil.expected_agent_integration_instance_relation(check.check),
                           integration_instance_relation)
+
+    @staticmethod
+    def assert_integration_snapshot(check, check_id):
+        agent_integration_topology_instances = topology.get_snapshot(check_id)
+        topology.assert_snapshot(
+            check_id=check_id,
+            start_snapshot=False,
+            stop_snapshot=False,
+            instance_key=TopologyInstance("agent", "integrations"),
+            components=[
+                AgentIntegrationTestUtil.expected_agent_component(check),
+                AgentIntegrationTestUtil.
+                expected_agent_integration_component(check, agent_integration_topology_instances['components'][1]),
+                AgentIntegrationTestUtil.
+                expected_agent_integration_instance_component(check,
+                                                              agent_integration_topology_instances['components'][2]),
+            ],
+            relations=[
+                AgentIntegrationTestUtil.expected_agent_integration_relation(check),
+                AgentIntegrationTestUtil.expected_agent_integration_instance_relation(check)
+            ],
+        )

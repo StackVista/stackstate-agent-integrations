@@ -60,7 +60,6 @@ class TestAgentIntegration(unittest.TestCase):
                 'tags': sorted([
                   'hostname:stubbed.hostname',
                   'stackstate-agent',
-                  'agent-integration:sample'
                 ])
               },
               'id': 'urn:stackstate-agent:/stubbed.hostname',
@@ -98,8 +97,7 @@ class TestAgentIntegration(unittest.TestCase):
                 'name': 'stubbed.hostname:agent-integration',
                 'tags': sorted([
                   'hostname:stubbed.hostname',
-                  'agent-integration:agent-integration',
-                  'agent-integration:sample'
+                  'integration-type:agent-integration',
                 ])
               },
               'id': 'urn:agent-integration:/stubbed.hostname:agent-integration',
@@ -141,9 +139,8 @@ class TestAgentIntegration(unittest.TestCase):
                 'name': 'agent-integration:sample',
                 'tags': sorted([
                   'hostname:stubbed.hostname',
-                  'agent-integration:agent-integration',
-                  'agent-integration-url:sample',
-                  'agent-integration:sample'
+                  'integration-type:agent-integration',
+                  'integration-url:sample'
                 ])
               },
               'id': 'urn:agent-integration-instance:/stubbed.hostname:agent-integration:sample',
@@ -195,7 +192,8 @@ class TestAgentIntegration(unittest.TestCase):
                   'region:eu-west-1'
                 ],
                 'tags': sorted([
-                  'agent-integration:sample'
+                  'integration-type:agent-integration',
+                  'integration-url:sample'
                 ]),
                 'layer': 'Hosts',
                 'metrics': [
@@ -271,7 +269,8 @@ class TestAgentIntegration(unittest.TestCase):
                   'hosted_on:this-host'
                 ],
                 'tags': sorted([
-                  'agent-integration:sample'
+                  'integration-type:agent-integration',
+                  'integration-url:sample'
                 ]),
                 'layer': 'Applications',
                 'metrics': [

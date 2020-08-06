@@ -251,4 +251,5 @@ def test_topology(topology, instance_basic):
 
     topology.assert_snapshot(mysql_check.check_id, TopologyInstance("mysql", "mysql://mysql"),
                              components=[{"id": mysql_check._get_topology_hostname(common.HOST, common.PORT),
-                                          "type": "mysql", "data": {'tags': ['mysql:mysql://mysql']}}])
+                                          "type": "mysql", "data": {'tags': ['integration-type:mysql',
+                                                                             'integration-url:mysql://mysql']}}])

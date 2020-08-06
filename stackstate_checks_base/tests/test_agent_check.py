@@ -334,7 +334,9 @@ class TestTopology:
         check = TopologyCheck()
         check.component("my-id", "my-type", None)
         topology.assert_snapshot(check.check_id, check.key, components=[component("my-id", "my-type",
-                                                                                  {'tags': ['mytype:someurl']})])
+                                                                                  {'tags': ['integration-type:mytype',
+                                                                                            'integration-url:someurl']
+                                                                                   })])
 
     def test_illegal_data(self):
         check = TopologyCheck()

@@ -156,6 +156,7 @@ def test_topology(topology, check, pg_instance):
                                 {
                                      "id": check._get_topology_hostname(HOST),
                                      "type": "postgresql",
-                                     "data": {'tags': ['postgresql:postgresql://postgresql']}
+                                     "data": {'tags': ['integration-type:postgresql',
+                                                       'integration-url:postgresql://postgresql']}
                                 }
                              ])

@@ -25,7 +25,7 @@ def test_cannot_connect_to_host_control(aggregator, instance):
 
         sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
         sap_check.run()
-        topo_instances = topology.get_snapshot(sap_check.check_id)
+        topology.get_snapshot(sap_check.check_id)
 
         topology.assert_snapshot(
             check_id=sap_check.check_id,
@@ -33,19 +33,13 @@ def test_cannot_connect_to_host_control(aggregator, instance):
             stop_snapshot=True,
             instance_key=TopologyInstance("sap", "LAB-SAP-001"),
             components=[
-                AgentIntegrationTestUtil.expected_agent_component(sap_check),
-                AgentIntegrationTestUtil.expected_agent_integration_component(sap_check,
-                                                                              topo_instances['components'][1]),
-                AgentIntegrationTestUtil.expected_agent_integration_instance_component(sap_check,
-                                                                                       topo_instances['components'][2]),
                 {"id": "urn:host:/LAB-SAP-001", "type": "sap-host",
-                 "data": {"host": "LAB-SAP-001", 'tags': ['sap:LAB-SAP-001']}}
+                 "data": {"host": "LAB-SAP-001", 'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001']}}
             ],
-            relations=[
-                AgentIntegrationTestUtil.expected_agent_integration_relation(sap_check),
-                AgentIntegrationTestUtil.expected_agent_integration_instance_relation(sap_check)
-            ],
+            relations=[],
         )
+
+        AgentIntegrationTestUtil.assert_integration_snapshot(sap_check, 'sap:LAB-SAP-001')
 
         aggregator.assert_event(
             msg_text="",
@@ -76,7 +70,7 @@ def test_check_run_no_sap_instances(aggregator, instance):
 
         sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
         sap_check.run()
-        topo_instances = topology.get_snapshot(sap_check.check_id)
+        topology.get_snapshot(sap_check.check_id)
 
         topology.assert_snapshot(
             check_id=sap_check.check_id,
@@ -84,19 +78,13 @@ def test_check_run_no_sap_instances(aggregator, instance):
             stop_snapshot=True,
             instance_key=TopologyInstance("sap", "LAB-SAP-001"),
             components=[
-                AgentIntegrationTestUtil.expected_agent_component(sap_check),
-                AgentIntegrationTestUtil.expected_agent_integration_component(sap_check,
-                                                                              topo_instances['components'][1]),
-                AgentIntegrationTestUtil.expected_agent_integration_instance_component(sap_check,
-                                                                                       topo_instances['components'][2]),
                 {"id": "urn:host:/LAB-SAP-001", "type": "sap-host",
-                 "data": {"host": "LAB-SAP-001", 'tags': ['sap:LAB-SAP-001']}}
+                 "data": {"host": "LAB-SAP-001", 'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001']}}
             ],
-            relations=[
-                AgentIntegrationTestUtil.expected_agent_integration_relation(sap_check),
-                AgentIntegrationTestUtil.expected_agent_integration_instance_relation(sap_check)
-            ],
+            relations=[],
         )
+
+        AgentIntegrationTestUtil.assert_integration_snapshot(sap_check, 'sap:LAB-SAP-001')
 
         aggregator.assert_event(
             msg_text="",
@@ -136,12 +124,13 @@ def test_collect_only_hosts(aggregator, instance):
             instance_key=TopologyInstance("sap", "LAB-SAP-001"),
             components=[
                 {"id": "urn:host:/LAB-SAP-001", "type": "sap-host", "data": {"host": "LAB-SAP-001",
-                                                                             'tags': ['sap:LAB-SAP-001']}},
+                                                                             'tags': ['integration-type:sap',
+                                                                                      'integration-url:LAB-SAP-001']}},
                 {"id": "urn:sap:/instance:LAB-SAP-001:67",
                  "type": "sap-instance",
                  "data": {"host": "LAB-SAP-001",
                           "labels": [],
-                          'tags': ['sap:LAB-SAP-001'],
+                          'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
                           "name": "CDA",
                           "sid": "CDA",
                           "system_number": "67",
@@ -151,7 +140,7 @@ def test_collect_only_hosts(aggregator, instance):
                  "type": "sap-instance",
                  "data": {"host": "LAB-SAP-001",
                           "labels": [],
-                          'tags': ['sap:LAB-SAP-001'],
+                          'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
                           "name": "DON",
                           "sid": "DON",
                           "system_number": "00",
@@ -161,7 +150,7 @@ def test_collect_only_hosts(aggregator, instance):
                  "type": "sap-instance",
                  "data": {"host": "LAB-SAP-001",
                           "labels": [],
-                          'tags': ['sap:LAB-SAP-001'],
+                          'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
                           "name": "DON",
                           "sid": "DON",
                           "system_number": "01",
@@ -219,7 +208,7 @@ def test_collect_processes(aggregator, instance):
                           'elapsedtime': '119:16:01',
                           'host': 'LAB-SAP-001',
                           'labels': [],
-                          'tags': ['sap:LAB-SAP-001'],
+                          'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
                           'name': 'disp+work.EXE',
                           'pid': 4392,
                           'starttime': '2020 01 22 12:52:29'},
@@ -229,7 +218,7 @@ def test_collect_processes(aggregator, instance):
                           'elapsedtime': '119:16:01',
                           'host': 'LAB-SAP-001',
                           'labels': [],
-                          'tags': ['sap:LAB-SAP-001'],
+                          'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
                           'name': 'igswd.EXE',
                           'pid': 11088,
                           'starttime': '2020 01 22 12:52:29'},
@@ -239,7 +228,7 @@ def test_collect_processes(aggregator, instance):
                           'elapsedtime': '119:16:01',
                           'host': 'LAB-SAP-001',
                           'labels': [],
-                          'tags': ['sap:LAB-SAP-001'],
+                          'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
                           'name': 'gwrd',
                           'pid': 9512,
                           'starttime': '2020 01 22 12:52:29'},
@@ -249,7 +238,7 @@ def test_collect_processes(aggregator, instance):
                           'elapsedtime': '119:16:01',
                           'host': 'LAB-SAP-001',
                           'labels': [],
-                          'tags': ['sap:LAB-SAP-001'],
+                          'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
                           'name': 'icman',
                           'pid': 6584,
                           'starttime': '2020 01 22 12:52:29'},
@@ -398,7 +387,7 @@ def test_collect_databases(aggregator, instance):
                                   'type': 'ora',
                                   'host': 'lab-sap-001',
                                   'version': '18.0.0.0.0',
-                                  'tags': ['sap:LAB-SAP-001'],
+                                  'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
                                   'labels': []}},
                         {'type': 'sap-database-component',
                          'id': 'urn:sap:/db_component:LAB-SAP-001:DON:Instance',
@@ -406,7 +395,7 @@ def test_collect_databases(aggregator, instance):
                                   'description': 'Instance',
                                   'database_name': 'DON',
                                   'name': 'Instance',
-                                  'tags': ['sap:LAB-SAP-001'],
+                                  'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
                                   'labels': []}},
                         {'type': 'sap-database-component',
                          'id': 'urn:sap:/db_component:LAB-SAP-001:DON:Database',
@@ -414,7 +403,7 @@ def test_collect_databases(aggregator, instance):
                                   'description': 'Database',
                                   'database_name': 'DON',
                                   'name': 'Database',
-                                  'tags': ['sap:LAB-SAP-001'],
+                                  'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
                                   'labels': []}},
                         {'type': 'sap-database-component',
                          'id': 'urn:sap:/db_component:LAB-SAP-001:DON:Archiver',
@@ -422,7 +411,7 @@ def test_collect_databases(aggregator, instance):
                                   'description': 'Archiver',
                                   'database_name': 'DON',
                                   'name': 'Archiver',
-                                  'tags': ['sap:LAB-SAP-001'],
+                                  'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
                                   'labels': []}},
                         {'type': 'sap-database-component',
                          'id': 'urn:sap:/db_component:LAB-SAP-001:DON:Listener',
@@ -430,7 +419,7 @@ def test_collect_databases(aggregator, instance):
                                   'description': 'Listener',
                                   'database_name': 'DON',
                                   'name': 'Listener',
-                                  'tags': ['sap:LAB-SAP-001'],
+                                  'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
                                   'labels': []}}
                         ],
             relations=[{'type': 'is hosted on',
@@ -521,12 +510,12 @@ def test_collect_only_hosts_create_service_https(aggregator, https_instance):
             instance_key=TopologyInstance("sap", "LAB-SAP-001"),
             components=[
                 {"id": "urn:host:/LAB-SAP-001", "type": "sap-host",
-                 "data": {"host": "LAB-SAP-001", 'tags': ['sap:LAB-SAP-001']}},
+                 "data": {"host": "LAB-SAP-001", 'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001']}},
                 {"id": "urn:sap:/instance:LAB-SAP-001:67",
                  "type": "sap-instance",
                  "data": {"host": "LAB-SAP-001",
                           "labels": [],
-                          'tags': ['sap:LAB-SAP-001'],
+                          'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
                           "name": "CDA",
                           "sid": "CDA",
                           "system_number": "67",
@@ -536,7 +525,7 @@ def test_collect_only_hosts_create_service_https(aggregator, https_instance):
                  "type": "sap-instance",
                  "data": {"host": "LAB-SAP-001",
                           "labels": [],
-                          'tags': ['sap:LAB-SAP-001'],
+                          'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
                           "name": "DON",
                           "sid": "DON",
                           "system_number": "00",
@@ -546,7 +535,7 @@ def test_collect_only_hosts_create_service_https(aggregator, https_instance):
                  "type": "sap-instance",
                  "data": {"host": "LAB-SAP-001",
                           "labels": [],
-                          'tags': ['sap:LAB-SAP-001'],
+                          'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
                           "name": "DON",
                           "sid": "DON",
                           "system_number": "01",
