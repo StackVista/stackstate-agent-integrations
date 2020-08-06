@@ -135,12 +135,12 @@ class TestServicenow(unittest.TestCase):
         self.check._process_components = mock_process_components
         self.check._process_component_relations = mock_process_component_relations
 
-        self.check.run()
+        self.check.check(self.instance)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         print(topo_instances)
-        self.assertEqual(len(topo_instances['components']), 3)
-        self.assertEqual(len(topo_instances['relations']), 2)
+        self.assertEqual(len(topo_instances['components']), 0)
+        self.assertEqual(len(topo_instances['relations']), 0)
 
     def test_collect_components(self):
         """
