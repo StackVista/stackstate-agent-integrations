@@ -58,6 +58,8 @@ class AwsCheck(AgentCheck):
             # set self.account_id so that we can still identify this instance if something went wrong
             aws_access_key_id = instance.get('aws_access_key_id')
             role_arn = instance.get('role_arn')
+            # account_id is used in topology instance url, so we recover and set the role_arn or aws_access_key_id as
+            # the account_id so we can map the service_check in StackState
             if role_arn:
                 self.account_id = role_arn
             elif aws_access_key_id:

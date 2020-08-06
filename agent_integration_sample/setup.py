@@ -33,8 +33,8 @@ setup(
     url='https://github.com/StackVista/stackstate-agent-integrations',
 
     # Author details
-    author='zandrewitte',
-    author_email='zwitte@stackstate.com',
+    author='StackState',
+    author_email='info@stackstate.com',
 
     # License
     license='BSD-3-Clause',

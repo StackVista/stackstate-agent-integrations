@@ -37,5 +37,5 @@ Agent_integration_sample does not include any events.
 
 Agent_integration_sample does not include any topology.
 
-[1]: **LINK_TO_INTEGERATION_SITE**
+[1]: https://docs.stackstate.com/develop/agent_check/how_to_develop_agent_checks
 [2]: https://github.com/StackVista/stackstate-agent-integrations/blob/master/agent_integration_sample/stackstate_checks/agent_integration_sample/data/conf.yaml.example

@@ -16,7 +16,7 @@ class Identifiers(object):
         `hostname` can be the machine name or the fully qualified domain name (fqdn). In the case of AWS it can
         be the AWS instanceId.
         """
-        return "{}:host:/{}".format(Identifiers.urnPrefix, host)
+        return "urn:host:/{}".format(host)
 
     @staticmethod
     def create_process_identifier(host, pid, create_time):
@@ -26,7 +26,7 @@ class Identifiers(object):
         `host` can be the machine name or the fully qualified domain name (fqdn), as well as the pod name in the case
         of Kubernetes / OpenShift, or the containerId if the processes is in any container environment.
         """
-        return "{}:process:/{}:{}:{}".format(Identifiers.urnPrefix, host, pid, create_time)
+        return "urn:process:/{}:{}:{}".format(host, pid, create_time)
 
     @staticmethod
     def create_container_identifier(host, container_id):
@@ -36,7 +36,7 @@ class Identifiers(object):
         `host` can be the machine name or the fully qualified domain name (fqdn), as well as the pod name in the case
         of Kubernetes / OpenShift.
         """
-        return "{}:container:/{}:{}".format(Identifiers.urnPrefix, host, container_id)
+        return "urn:container:/{}:{}".format(host, container_id)
 
     @staticmethod
     def create_trace_service_identifier(service_name):
@@ -44,7 +44,7 @@ class Identifiers(object):
         create a trace service identifier that can be used to merge with trace services in StackState
         args: `service_name`
         """
-        return "{}:service:/{}".format(Identifiers.urnPrefix, service_name)
+        return "urn:service:/{}".format(service_name)
 
     @staticmethod
     def create_trace_service_instance_identifier(service_instance_identifier):
@@ -54,17 +54,21 @@ class Identifiers(object):
         `service_instance_identifier` is built up in the context of where the trace originated from, thus it's left to
         the implementer to decide the identifier structure.
         """
-        return "{}:service-instance:/{}".format(Identifiers.urnPrefix, service_instance_identifier)
+        return "urn:service-instance:/{}".format(service_instance_identifier)
 
     @staticmethod
     def create_integration_identifier(host, integration_type):
-        return "{}:agent-integration:/{}:{}".format(Identifiers.urnPrefix, host, integration_type)
+        return "urn:agent-integration:/{}:{}".format(host, integration_type)
 
     @staticmethod
     def create_integration_instance_identifier(host, integration_type, integration_url):
-        return "{}:agent-integration-instance:/{}:{}:{}".format(Identifiers.urnPrefix, host, integration_type,
+        return "urn:agent-integration-instance:/{}:{}:{}".format(host, integration_type,
                                                                 integration_url)
 
     @staticmethod
     def create_agent_identifier(host):
-        return "{}:stackstate-agent:/{}".format(Identifiers.urnPrefix, host)
+        return "urn:stackstate-agent:/{}".format(host)
+
+    @staticmethod
+    def create_stackstate_identifier(identifier_namespace, identifier):
+        return "urn:{}:/{}".format(identifier_namespace, identifier)
