@@ -251,6 +251,9 @@ class AgentCheckBase(object):
     def check(self, instance):
         raise NotImplementedError
 
+    def warning(self, warning_message):
+        raise NotImplementedError
+
     def normalize(self, metric, prefix=None, fix_case=False):
         """
         Turn a metric into a well-formed metric name
