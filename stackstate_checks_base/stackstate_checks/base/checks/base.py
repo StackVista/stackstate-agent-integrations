@@ -381,13 +381,13 @@ class AgentCheckBase(object):
                                         "to disable snapshots use TopologyInstance(type, url, with_snapshots=False) "
                                         "when overriding get_instance_key")
     def start_snapshot(self):
-        pass
+        topology.submit_start_snapshot(self, self.check_id, self._get_instance_key())
 
     @deprecated(version='2.6.0', reason="Topology Snapshots is enabled by default for all TopologyInstance checks, "
                                         "to disable snapshots use TopologyInstance(type, url, with_snapshots=False) "
                                         "when overriding get_instance_key")
     def stop_snapshot(self):
-        pass
+        topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key())
 
     def create_integration_instance(self, check_instance):
         """
