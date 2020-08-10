@@ -8,7 +8,7 @@ import pytest
 
 # project
 from stackstate_checks.agent_integration_sample import AgentIntegrationSampleCheck
-from stackstate_checks.base.stubs import topology
+from stackstate_checks.base.stubs import topology, aggregator
 
 
 class InstanceInfo():
@@ -75,7 +75,7 @@ class TestAgentIntegration(unittest.TestCase):
                   }
                 ],
                 'cluster': 'stubbed-cluster-name',
-                'events': [
+                'service_checks': [
                   {
                     'conditions': [
                       {
@@ -87,7 +87,7 @@ class TestAgentIntegration(unittest.TestCase):
                         'value': 'agent-integration'
                       }
                     ],
-                    'identifier': topo_instances['components'][1]['data']['events'][0]['identifier'],
+                    'identifier': topo_instances['components'][1]['data']['service_checks'][0]['identifier'],
                     'name': 'Service Checks',
                     'stream_id': -1
                   }
@@ -113,7 +113,7 @@ class TestAgentIntegration(unittest.TestCase):
                   }
                 ],
                 'cluster': 'stubbed-cluster-name',
-                'events': [
+                'service_checks': [
                   {
                     'conditions': [
                       {
@@ -129,7 +129,7 @@ class TestAgentIntegration(unittest.TestCase):
                         'value': 'sample'
                       }
                     ],
-                    'identifier': topo_instances['components'][2]['data']['events'][0]['identifier'],
+                    'identifier': topo_instances['components'][2]['data']['service_checks'][0]['identifier'],
                     'name': 'Service Checks',
                     'stream_id': -1
                   }
@@ -203,6 +203,10 @@ class TestAgentIntegration(unittest.TestCase):
                       {
                         'key': 'tags.hostname',
                         'value': 'this-host'
+                      },
+                      {
+                        'key': 'tags.region',
+                        'value': 'eu-west-1'
                       }
                     ],
                     'identifier': topo_instances['components'][3]['data']['metrics'][0]['identifier'],
@@ -347,3 +351,10 @@ class TestAgentIntegration(unittest.TestCase):
           'start_snapshot': False,
           'stop_snapshot': False
         }
+
+        aggregator.assert_metric('host.cpu.usage', count=7, tags=["hostname:this-host", "region:eu-west-1"])
+        aggregator.assert_metric('2xx.responses', count=4, tags=["application:some_application", "region:eu-west-1"])
+        aggregator.assert_metric('5xx.responses', count=4, tags=["application:some_application", "region:eu-west-1"])
+        aggregator.assert_event('Http request to {} timed out after {} seconds.'.format('http://localhost', 5.0),
+                                count=1)
+        aggregator.assert_service_check('example.can_connect', self.check.OK)

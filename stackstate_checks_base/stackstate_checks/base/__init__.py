@@ -9,7 +9,8 @@ from .config import is_affirmative
 from .errors import ConfigurationError
 from .utils.common import ensure_bytes, ensure_unicode, to_string
 from .utils.identifiers import Identifiers
-from .utils.telemetry import MetricStream, MetricHealthChecks, EventStream, EventHealthChecks, HealthState
+from .utils.telemetry import MetricStream, MetricHealthChecks, EventStream, EventHealthChecks, HealthState,\
+    ServiceCheckStream
 from .utils.agent_integration_test_util import AgentIntegrationTestUtil
 
 # Windows-only
@@ -43,5 +44,6 @@ __all__ = [
     'EventStream',
     'EventHealthChecks',
     'HealthState',
+    'ServiceCheckStream',
     'AgentIntegrationTestUtil',
 ]

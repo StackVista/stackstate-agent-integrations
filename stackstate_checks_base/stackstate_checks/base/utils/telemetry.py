@@ -302,9 +302,19 @@ class MetricStream(TelemetryStream):
 class EventStream(TelemetryStream):
     """
     creates a event stream definition for the component that will bind events in StackState for the conditions.
-    args: `name, metricField, conditions, unit_of_measure, aggregation, priority`
+    args: `name, conditions`
     `name` The name for the stream in StackState
-    `metricField` the name of the event to select
+    `conditions` is a dictionary of key -> value arguments that are used to filter the event values for the stream.
+    """
+    pass
+
+
+class ServiceCheckStream(TelemetryStream):
+    """
+    creates a service check stream definition for the component that will bind service checks in StackState for the
+    conditions.
+    args: `name, conditions
+    `name` The name for the stream in StackState
     `conditions` is a dictionary of key -> value arguments that are used to filter the event values for the stream.
     """
     pass

@@ -24,7 +24,7 @@ class AgentIntegrationSampleCheck(AgentCheck):
         timeout = float(instance.get('timeout', default_timeout))
 
         this_host_cpu_usage = MetricStream("Host CPU Usage", "host.cpu.usage",
-                                           conditions={"tags.hostname": "this-host"},
+                                           conditions={"tags.hostname": "this-host", "tags.region": "eu-west-1"},
                                            unit_of_measure="Percentage",
                                            aggregation="MEAN",
                                            priority="HIGH")
@@ -48,13 +48,13 @@ class AgentIntegrationSampleCheck(AgentCheck):
                        streams=[this_host_cpu_usage],
                        checks=[cpu_max_average_check, cpu_max_last_check, cpu_min_average_check, cpu_min_last_check])
 
-        self.gauge("host.cpu.usage", randint(0, 100), tags=["hostname:this-host"])
-        self.gauge("host.cpu.usage", randint(0, 100), tags=["hostname:this-host"])
-        self.gauge("host.cpu.usage", randint(0, 100), tags=["hostname:this-host"])
-        self.gauge("host.cpu.usage", randint(0, 100), tags=["hostname:this-host"])
-        self.gauge("host.cpu.usage", randint(0, 100), tags=["hostname:this-host"])
-        self.gauge("host.cpu.usage", randint(0, 100), tags=["hostname:this-host"])
-        self.gauge("host.cpu.usage", randint(0, 100), tags=["hostname:this-host"])
+        self.gauge("host.cpu.usage", randint(0, 100), tags=["hostname:this-host", "region:eu-west-1"])
+        self.gauge("host.cpu.usage", randint(0, 100), tags=["hostname:this-host", "region:eu-west-1"])
+        self.gauge("host.cpu.usage", randint(0, 100), tags=["hostname:this-host", "region:eu-west-1"])
+        self.gauge("host.cpu.usage", randint(0, 100), tags=["hostname:this-host", "region:eu-west-1"])
+        self.gauge("host.cpu.usage", randint(0, 100), tags=["hostname:this-host", "region:eu-west-1"])
+        self.gauge("host.cpu.usage", randint(0, 100), tags=["hostname:this-host", "region:eu-west-1"])
+        self.gauge("host.cpu.usage", randint(0, 100), tags=["hostname:this-host", "region:eu-west-1"])
 
         some_application_2xx_responses = MetricStream("2xx Responses", "2xx.responses",
                                                       conditions={"tags.application": "some_application",
