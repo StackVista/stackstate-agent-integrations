@@ -199,7 +199,7 @@ class TestAgentIntegration(unittest.TestCase):
                   'integration-type:agent-integration',
                   'integration-url:sample'
                 ]),
-                'layer': 'Hosts',
+                'layer': 'Machines',
                 'metrics': [
                   {
                     'aggregation': 'MEAN',
@@ -214,10 +214,29 @@ class TestAgentIntegration(unittest.TestCase):
                       }
                     ],
                     'identifier': topo_instances['components'][3]['data']['metrics'][0]['identifier'],
-                    'metric_field': 'host.cpu.usage',
+                    'metric_field': 'system.cpu.usage',
                     'name': 'Host CPU Usage',
                     'priority': 'HIGH',
                     'stream_id': -1,
+                    'unit_of_measure': 'Percentage'
+                  },
+                  {
+                    'aggregation': 'MEAN',
+                    'conditions': [
+                      {
+                        'key': 'tags.hostname',
+                        'value': 'this-host'
+                      },
+                      {
+                        'key': 'tags.region',
+                        'value': 'eu-west-1'
+                      }
+                    ],
+                    'identifier': topo_instances['components'][3]['data']['metrics'][1]['identifier'],
+                    'metric_field': 'location.availability',
+                    'name': 'Host Availability',
+                    'priority': 'HIGH',
+                    'stream_id': -2,
                     'unit_of_measure': 'Percentage'
                   }
                 ],
@@ -356,7 +375,8 @@ class TestAgentIntegration(unittest.TestCase):
           'stop_snapshot': False
         }
 
-        aggregator.assert_metric('host.cpu.usage', count=7, tags=["hostname:this-host", "region:eu-west-1"])
+        aggregator.assert_metric('system.cpu.usage', count=3, tags=["hostname:this-host", "region:eu-west-1"])
+        aggregator.assert_metric('location.availability', count=3, tags=["hostname:this-host", "region:eu-west-1"])
         aggregator.assert_metric('2xx.responses', count=4, tags=["application:some_application", "region:eu-west-1"])
         aggregator.assert_metric('5xx.responses', count=4, tags=["application:some_application", "region:eu-west-1"])
         aggregator.assert_event('Http request to {} timed out after {} seconds.'.format('http://localhost', 5.0),

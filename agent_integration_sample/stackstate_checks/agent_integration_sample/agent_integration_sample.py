@@ -23,7 +23,13 @@ class AgentIntegrationSampleCheck(AgentCheck):
         # gets the value of the `timeout` property or defaults `default_timeout` and casts it to a float data type
         timeout = float(instance.get('timeout', default_timeout))
 
-        this_host_cpu_usage = MetricStream("Host CPU Usage", "host.cpu.usage",
+        this_host_availability = MetricStream("Host Availability", "location.availability",
+                                              conditions={"tags.hostname": "this-host", "tags.region": "eu-west-1"},
+                                              unit_of_measure="Percentage",
+                                              aggregation="MEAN",
+                                              priority="HIGH")
+
+        this_host_cpu_usage = MetricStream("Host CPU Usage", "system.cpu.usage",
                                            conditions={"tags.hostname": "this-host", "tags.region": "eu-west-1"},
                                            unit_of_measure="Percentage",
                                            aggregation="MEAN",
@@ -47,21 +53,20 @@ class AgentIntegrationSampleCheck(AgentCheck):
                        data={
                             "name": "this-host",
                             "domain": "Webshop",
-                            "layer": "Hosts",
+                            "layer": "Machines",
                             "identifiers": ["another_identifier_for_this_host"],
                             "labels": ["host:this_host", "region:eu-west-1"],
                             "environment": "Production"
                        },
-                       streams=[this_host_cpu_usage],
+                       streams=[this_host_cpu_usage, this_host_availability],
                        checks=[cpu_max_average_check, cpu_max_last_check, cpu_min_average_check, cpu_min_last_check])
 
-        self.gauge("host.cpu.usage", randint(0, 100), tags=["hostname:this-host", "region:eu-west-1"])
-        self.gauge("host.cpu.usage", randint(0, 100), tags=["hostname:this-host", "region:eu-west-1"])
-        self.gauge("host.cpu.usage", randint(0, 100), tags=["hostname:this-host", "region:eu-west-1"])
-        self.gauge("host.cpu.usage", randint(0, 100), tags=["hostname:this-host", "region:eu-west-1"])
-        self.gauge("host.cpu.usage", randint(0, 100), tags=["hostname:this-host", "region:eu-west-1"])
-        self.gauge("host.cpu.usage", randint(0, 100), tags=["hostname:this-host", "region:eu-west-1"])
-        self.gauge("host.cpu.usage", randint(0, 100), tags=["hostname:this-host", "region:eu-west-1"])
+        self.gauge("system.cpu.usage", randint(0, 100), tags=["hostname:this-host", "region:eu-west-1"])
+        self.gauge("system.cpu.usage", randint(0, 100), tags=["hostname:this-host", "region:eu-west-1"])
+        self.gauge("system.cpu.usage", randint(0, 100), tags=["hostname:this-host", "region:eu-west-1"])
+        self.gauge("location.availability", randint(0, 100), tags=["hostname:this-host", "region:eu-west-1"])
+        self.gauge("location.availability", randint(0, 100), tags=["hostname:this-host", "region:eu-west-1"])
+        self.gauge("location.availability", randint(0, 100), tags=["hostname:this-host", "region:eu-west-1"])
 
         some_application_2xx_responses = MetricStream("2xx Responses", "2xx.responses",
                                                       conditions={"tags.application": "some_application",
