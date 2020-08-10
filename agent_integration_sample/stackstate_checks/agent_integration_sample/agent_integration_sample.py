@@ -29,13 +29,20 @@ class AgentIntegrationSampleCheck(AgentCheck):
                                            aggregation="MEAN",
                                            priority="HIGH")
         cpu_max_average_check = MetricHealthChecks.maximum_average(this_host_cpu_usage.identifier,
-                                                                   "Max CPU Usage (Average)", 75, 90)
+                                                                   "Max CPU Usage (Average)", 75, 90,
+                                                                   remediation_hint="There is too much activity on "
+                                                                                    "this host")
         cpu_max_last_check = MetricHealthChecks.maximum_last(this_host_cpu_usage.identifier,
-                                                             "Max CPU Usage (Last)", 75, 90)
+                                                             "Max CPU Usage (Last)", 75, 90,
+                                                             remediation_hint="There is too much activity on "
+                                                                              "this host")
         cpu_min_average_check = MetricHealthChecks.minimum_average(this_host_cpu_usage.identifier,
-                                                                   "Min CPU Usage (Average)", 10, 5)
+                                                                   "Min CPU Usage (Average)", 10, 5,
+                                                                   remediation_hint="There is too few activity on "
+                                                                                    "this host")
         cpu_min_last_check = MetricHealthChecks.minimum_last(this_host_cpu_usage.identifier,
-                                                             "Min CPU Usage (Last)", 10, 5)
+                                                             "Min CPU Usage (Last)", 10, 5,
+                                                             remediation_hint="There is too few activity on this host")
         self.component("urn:example:/host:this_host", "Host",
                        data={
                             "name": "this-host",

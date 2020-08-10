@@ -43,7 +43,7 @@ from ..utils.common import ensure_bytes, ensure_unicode
 from ..utils.proxy import config_proxy_skip
 from ..utils.limiter import Limiter
 from ..utils.identifiers import Identifiers
-from ..utils.telemetry import EventStream, EventHealthChecks, MetricStream, ServiceCheckStream
+from ..utils.telemetry import EventStream, EventHealthChecks, MetricStream, ServiceCheckStream, ServiceCheckHealthChecks
 from deprecated.sphinx import deprecated
 
 if datadog_agent.get_config('disable_unsafe_yaml'):
@@ -446,7 +446,8 @@ class AgentCheckBase(object):
 
         conditions = {"host": datadog_agent.get_hostname(), "tags.integration-type": instance_type}
         service_check_stream = ServiceCheckStream("Service Checks", conditions=conditions)
-        service_check = EventHealthChecks.service_check_health(service_check_stream.identifier, "Integration Health")
+        service_check = ServiceCheckHealthChecks.service_check_health(service_check_stream.identifier,
+                                                                      "Integration Health")
         topology.submit_component(self, check_id, integration_instance.toDict(), agent_integration_external_id,
                                   "agent-integration", self._map_component_data(agent_integration_external_id,
                                                                                 "agent-integration", instance,
@@ -477,8 +478,8 @@ class AgentCheckBase(object):
         conditions = {"host": datadog_agent.get_hostname(), "tags.integration-type": instance_type,
                       "tags.integration-url": instance_url}
         service_check_stream = ServiceCheckStream("Service Checks", conditions=conditions)
-        service_check = EventHealthChecks.service_check_health(service_check_stream.identifier,
-                                                               "Integration Instance Health")
+        service_check = ServiceCheckHealthChecks.service_check_health(service_check_stream.identifier,
+                                                                      "Integration Instance Health")
         topology.submit_component(self, check_id, integration_instance.toDict(), agent_integration_instance_external_id,
                                   "agent-integration-instance",
                                   self._map_component_data(agent_integration_instance_external_id,

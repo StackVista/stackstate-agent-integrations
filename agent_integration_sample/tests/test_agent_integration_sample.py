@@ -155,6 +155,7 @@ class TestAgentIntegration(unittest.TestCase):
                     'is_metric_maximum_average_check': True,
                     'max_window': 300000,
                     'name': 'Max CPU Usage (Average)',
+                    'remediation_hint': 'There is too much activity on this host',
                     'stream_id': -1
                   },
                   {
@@ -163,6 +164,7 @@ class TestAgentIntegration(unittest.TestCase):
                     'is_metric_maximum_last_check': True,
                     'max_window': 300000,
                     'name': 'Max CPU Usage (Last)',
+                    'remediation_hint': 'There is too much activity on this host',
                     'stream_id': -1
                   },
                   {
@@ -171,6 +173,7 @@ class TestAgentIntegration(unittest.TestCase):
                     'is_metric_minimum_average_check': True,
                     'max_window': 300000,
                     'name': 'Min CPU Usage (Average)',
+                    'remediation_hint': 'There is too few activity on this host',
                     'stream_id': -1
                   },
                   {
@@ -179,6 +182,7 @@ class TestAgentIntegration(unittest.TestCase):
                     'is_metric_minimum_last_check': True,
                     'max_window': 300000,
                     'name': 'Min CPU Usage (Last)',
+                    'remediation_hint': 'There is too few activity on this host',
                     'stream_id': -1
                   }
                 ],
