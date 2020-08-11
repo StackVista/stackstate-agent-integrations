@@ -192,7 +192,7 @@ class AggregatorStub(object):
             if status is not None and status != sc.status:
                 continue
 
-            if tags and tags != sorted(sc.tags):
+            if tags and not all(tag in sc.tags for tag in tags):
                 continue
 
             if hostname is not None and hostname != sc.hostname:

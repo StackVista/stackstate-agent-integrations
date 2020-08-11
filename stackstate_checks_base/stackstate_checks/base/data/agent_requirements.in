@@ -19,3 +19,5 @@ uptime==3.0.1
 uuid==1.30
 vsphere-automation-sdk==1.0.0
 zeep==3.4.0
+Deprecated==1.2.10
+enum34==1.1.10

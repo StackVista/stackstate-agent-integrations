@@ -11,6 +11,7 @@ import pytest
 # project
 from stackstate_checks.servicenow import ServicenowCheck
 from stackstate_checks.base.stubs import topology, aggregator
+from stackstate_checks.base import AgentIntegrationTestUtil
 
 
 def mock_process_and_cache_relation_types(*args):
@@ -135,12 +136,14 @@ class TestServicenow(unittest.TestCase):
         self.check._process_components = mock_process_components
         self.check._process_component_relations = mock_process_component_relations
 
-        self.check.check(self.instance)
+        self.check.run()
 
         topo_instances = topology.get_snapshot(self.check.check_id)
-        print(topo_instances)
         self.assertEqual(len(topo_instances['components']), 0)
         self.assertEqual(len(topo_instances['relations']), 0)
+
+        AgentIntegrationTestUtil.assert_integration_snapshot(self.check,
+                                                             'servicenow_cmdb:https://dev60476.service-now.com')
 
     def test_collect_components(self):
         """
