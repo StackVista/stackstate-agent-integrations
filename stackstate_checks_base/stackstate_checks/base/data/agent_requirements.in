@@ -1,6 +1,8 @@
 boto3==1.10.49
 cm-client==33.0.0
 ddtrace==0.13.0
+deprecated==1.2.10
+enum34==1.1.10
 flatten-dict==0.2.0
 kubernetes==8.0.1
 pg8000==1.10.1
@@ -11,7 +13,7 @@ pymysql==0.8.0
 pynag==1.1.2
 pywin32==224; sys_platform == 'win32'
 pyyaml==3.13
-requests==2.21.0
+requests==2.24.0
 requests_ntlm==1.1.0
 simplejson==3.6.5
 six==1.12.0
@@ -19,5 +21,3 @@ uptime==3.0.1
 uuid==1.30
 vsphere-automation-sdk==1.0.0
 zeep==3.4.0
-Deprecated==1.2.10
-enum34==1.1.10
