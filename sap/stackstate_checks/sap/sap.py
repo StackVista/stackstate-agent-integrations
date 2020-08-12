@@ -191,7 +191,7 @@ class SapCheck(AgentCheck):
         self.log.debug("host instance '{0}' processes: {1}".format(instance_id, processes))
         if processes:
             for process in processes:
-                process_item = {i.mName: i.mValue for i in proces.mProperties.item}
+                process_item = {i.mName: i.mValue for i in process.mProperties.item}
 
                 name = process_item.get("name")
                 description = process_item.get("description")
