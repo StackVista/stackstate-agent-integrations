@@ -56,8 +56,8 @@ EVENT_FIELDS = {
 }
 
 # Regex for the Nagios event log
-RE_LINE_REG = re.compile(r'^\[(\d+)\] EXTERNAL COMMAND: (\w+);(.*)$')
-RE_LINE_EXT = re.compile(r'^\[(\d+)\] ([^:]+): (.*)$')
+RE_LINE_REG = re.compile(r'^\[(\d+)] EXTERNAL COMMAND: (\w+);(.*)$')
+RE_LINE_EXT = re.compile(r'^\[(\d+)] ([^:]+): (.*)$')
 
 
 class NagiosCheck(AgentCheck):
@@ -173,10 +173,17 @@ class NagiosCheck(AgentCheck):
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, message=str(e), tags=tags)
 
     def get_topology(self, instance_key):
+        nagios_cfg_path = instance_key['conf_path']
+        self.log.debug("Start nagios topology gathering for file: {}.".format(nagios_cfg_path))
+
+        # set nagios.cfg path for pynag
+        Model.cfg_file = nagios_cfg_path
+
         # Get all hosts
         self.start_snapshot()
         all_hosts = Model.Host.objects.all
         for host in all_hosts:
+            self.log.debug("Topology, processing host: {}".format(host))
             if host.host_name is None:
                 continue
             id = host.host_name
@@ -188,6 +195,8 @@ class NagiosCheck(AgentCheck):
             }
             self.component(id, type, data)
         self.stop_snapshot()
+        self.log.debug("Done nagios topology gathering for file: {} "
+                       "(processed {} hosts)".format(Model.cfg_file, len(all_hosts)))
 
     def parse_nagios_config(self, filename):
         output = {}

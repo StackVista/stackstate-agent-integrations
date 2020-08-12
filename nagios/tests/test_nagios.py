@@ -453,6 +453,7 @@ class TestNagiosTopology:
         environment.import_config(NAGIOS_TEST_HOST_CFG)
         environment.config.parse_maincfg()
 
+        instance_key['conf_path'] = environment.cfg_file  # use the mock nagios.cfg location for test
         nagios.get_topology(instance_key)
         snapshot = topology.get_snapshot(nagios.check_id)
 
