@@ -49,11 +49,13 @@ class SapProxy(object):
 
     def get_sap_instance_processes(self, instance_id):
         """Retrieves all processes on a host instance"""
-        return self.get_cim_object("EnumerateInstances", "SAP_ITSAMInstance/Process??Instancenumber={0}".format(instance_id))
+        return self.get_cim_object("EnumerateInstances",
+                                   "SAP_ITSAMInstance/Process??Instancenumber={0}".format(instance_id))
 
     def get_sap_instance_abap_free_workers(self, instance_id, worker_types):
         """Retrieves free workers metric from an ABAP host instance"""
-        worker_processes = self.get_cim_object("EnumerateInstances", "SAP_ITSAMInstance/WorkProcess??Instancenumber={0}".format(instance_id))
+        worker_processes = self.get_cim_object("EnumerateInstances",
+                                               "SAP_ITSAMInstance/WorkProcess??Instancenumber={0}".format(instance_id))
         if worker_processes:
             grouped_workers = {}
             for worker_proces in worker_processes:
@@ -72,7 +74,8 @@ class SapProxy(object):
 
     def get_sap_instance_physical_memory(self, instance_id):
         """Retrieves physical memory (in megabytes) metric from an host instance"""
-        params_reply = self.get_cim_object("EnumerateInstances", "SAP_ITSAMInstance/Parameter??Instancenumber={0}".format(instance_id))
+        params_reply = self.get_cim_object("EnumerateInstances",
+                                           "SAP_ITSAMInstance/Parameter??Instancenumber={0}".format(instance_id))
         memsize = 0
         if params_reply:
             for param_reply in params_reply:
@@ -89,9 +92,9 @@ class SapProxy(object):
 
     def get_cim_object(self, key, value):
         # ns0:Property(mKey: xsd:string, mValue: xsd:string)
-        property_type = self.client.get_type("ns0:Property")        
+        property_type = self.client.get_type("ns0:Property")
         sap_instance_property = property_type(mKey=key, mValue=value)
         # ns0:ArrayOfProperty(item: ns0:Property[])
         properties_type = self.client.get_type("ns0:ArrayOfProperty")
         properties = properties_type([sap_instance_property])
-        return self.service.GetCIMObject(properties) 
+        return self.service.GetCIMObject(properties)
