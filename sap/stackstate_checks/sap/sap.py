@@ -187,20 +187,19 @@ class SapCheck(AgentCheck):
                 })
 
     def _collect_processes(self, instance_id, host_instance_proxy):
-        processes = {}
         processes = host_instance_proxy.get_sap_instance_processes(instance_id)
         self.log.debug("host instance '{0}' processes: {1}".format(instance_id, processes))
         if processes:
-            for proces in processes:
-                proces_item = {i.mName: i.mValue for i in proces.mProperties.item}
+            for process in processes:
+                process_item = {i.mName: i.mValue for i in proces.mProperties.item}
 
-                name = proces_item.get("name")
-                description = proces_item.get("description")
-                dispstatus = proces_item.get("dispstatus")
-                textstatus = proces_item.get("textstatus")
-                starttime = proces_item.get("starttime")
-                elapsedtime = proces_item.get("elapsedtime")
-                pid = int(proces_item.get("pid"))
+                name = process_item.get("name")
+                description = process_item.get("description")
+                dispstatus = process_item.get("dispstatus")
+                textstatus = process_item.get("textstatus")
+                starttime = process_item.get("starttime")
+                elapsedtime = process_item.get("elapsedtime")
+                pid = int(process_item.get("pid"))
 
                 # define SAP process component
                 # TODO use process name in externalId for process
