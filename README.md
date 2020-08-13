@@ -73,5 +73,4 @@ The CI image is built from `.setup-scripts/image`.
 
 If you find anything missing in this README please amend it! :)
 
-
 [1]: https://github.com/StackVista/stackstate-agent
