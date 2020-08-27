@@ -56,8 +56,8 @@ EVENT_FIELDS = {
 }
 
 # Regex for the Nagios event log
-RE_LINE_REG = re.compile(r'^\[(\d+)] EXTERNAL COMMAND: (\w+);(.*)$')
-RE_LINE_EXT = re.compile(r'^\[(\d+)] ([^:]+): (.*)$')
+RE_LINE_REG = re.compile(r'^\[(\d+)\] EXTERNAL COMMAND: (\w+);(.*)$')
+RE_LINE_EXT = re.compile(r'^\[(\d+)\] ([^:]+): (.*)$')
 
 
 class NagiosCheck(AgentCheck):
