@@ -9,7 +9,6 @@ import pytest
 from pynag.Utils import misc
 
 from stackstate_checks.base import ensure_bytes
-from stackstate_checks.base.stubs import topology
 from stackstate_checks.nagios import NagiosCheck
 
 from .common import (
@@ -447,7 +446,7 @@ class TestNagiosTopology:
         service_check_message = aggregator.service_checks('nagios')[0].message
         assert service_check_message == "[Errno 2] No such file or directory: 'dummy/path/nagios.cfg'"
 
-    def test_get_topology(self, dummy_instance):
+    def test_get_topology(self, dummy_instance, topology):
         """
         Collect Nagios Host components as topology
         """
