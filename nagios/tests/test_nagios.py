@@ -430,11 +430,27 @@ class TestPerfDataTailer:
 @pytest.mark.unit
 class TestNagiosTopology:
 
+    def test_no_access_to_nagios_config(self, dummy_instance, aggregator):
+        """
+        When pynag can't get to nagios.conf we get service_check error.
+        """
+
+        # Mock parse_nagios_config
+        NagiosCheck.parse_nagios_config = mock.MagicMock()
+        NagiosCheck.parse_nagios_config.return_value = {"key": "value"}
+
+        nagios = NagiosCheck(CHECK_NAME, {}, {}, instances=[dummy_instance])
+
+        nagios.check(dummy_instance)
+
+        assert len(aggregator.service_checks('nagios')) == 1
+        service_check_message = aggregator.service_checks('nagios')[0].message
+        assert service_check_message == "[Errno 2] No such file or directory: 'dummy/path/nagios.cfg'"
+
     def test_get_topology(self, dummy_instance):
         """
         Collect Nagios Host components as topology
         """
-        instance_key = {"type": "nagios", "url": "192.1.1.1", "conf_path": dummy_instance.get("nagios_conf")}
 
         # Mock parse_nagios_config
         NagiosCheck.parse_nagios_config = mock.MagicMock()
@@ -453,7 +469,8 @@ class TestNagiosTopology:
         environment.import_config(NAGIOS_TEST_HOST_CFG)
         environment.config.parse_maincfg()
 
-        instance_key['conf_path'] = environment.cfg_file  # use the mock nagios.cfg location for test
+        # use the mock nagios.cfg location for test
+        instance_key = {"type": "nagios", "url": "192.1.1.1", "conf_path": environment.cfg_file}
         nagios.get_topology(instance_key)
         snapshot = topology.get_snapshot(nagios.check_id)
 
