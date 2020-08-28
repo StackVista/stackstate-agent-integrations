@@ -180,7 +180,6 @@ class NagiosCheck(AgentCheck):
         Model.cfg_file = nagios_cfg_path
 
         # Get all hosts
-        self.start_snapshot()
         all_hosts = Model.Host.objects.all
         for host in all_hosts:
             self.log.debug("Topology, processing host: {}".format(host))
@@ -194,7 +193,6 @@ class NagiosCheck(AgentCheck):
                 "labels": ["nagios-server:" + instance_key.get("url")]
             }
             self.component(id, type, data)
-        self.stop_snapshot()
         self.log.debug("Done nagios topology gathering for file: {} "
                        "(processed {} hosts)".format(Model.cfg_file, len(all_hosts)))
 
