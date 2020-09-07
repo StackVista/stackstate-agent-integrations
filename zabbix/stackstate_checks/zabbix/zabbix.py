@@ -253,7 +253,7 @@ class ZabbixCheck(AgentCheck):
     def retrieve_hosts(self, url, auth):
         self.log.debug("Retrieving hosts.")
         params = {
-            "output": ["hostid", "host", "name"],
+            "output": ["hostid", "host", "name", "maintenance_status"],
             "selectGroups": ["groupid", "name"]
         }
         response = self.method_request(url, "host.get", auth=auth, params=params)
@@ -262,6 +262,7 @@ class ZabbixCheck(AgentCheck):
             host = item.get("host", None)
             name = item.get("name", None)
             raw_groups = item.get('groups', [])
+            maintenance_status = item.get("maintenance_status", "0")
             groups = []
             for raw_group in raw_groups:
                 host_group_id = raw_group.get('groupid', None)
@@ -272,8 +273,8 @@ class ZabbixCheck(AgentCheck):
             zabbix_host = ZabbixHost(host_id, host, name, groups)
             if not host_id or not host or not name or len(groups) == 0:
                 self.log.warn("Incomplete ZabbixHost, got: %s" % zabbix_host)
-
-            yield zabbix_host
+            if maintenance_status == "0":
+                yield zabbix_host
 
     def retrieve_problems(self, url, auth):
         self.log.debug("Retrieving problems.")
