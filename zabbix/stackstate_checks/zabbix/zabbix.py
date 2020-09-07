@@ -262,7 +262,7 @@ class ZabbixCheck(AgentCheck):
             host = item.get("host", None)
             name = item.get("name", None)
             raw_groups = item.get('groups', [])
-            maintenance_status = item.get("maintenance_status", None)
+            maintenance_status = item.get("maintenance_status", "0")
             groups = []
             for raw_group in raw_groups:
                 host_group_id = raw_group.get('groupid', None)
