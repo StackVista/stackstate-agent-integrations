@@ -21,6 +21,8 @@ def instance():
         "url": "http://localhost",
         "user": "test",
         "pass": "test",
+        "domain": "sap",
+        "environment": "sap-prod"
     }
 
 
