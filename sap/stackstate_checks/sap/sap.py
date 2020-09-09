@@ -19,6 +19,8 @@ class SapCheck(AgentCheck):
         self.user = None
         self.password = None
         self.tags = None
+        self.domain = None
+        self.stackstate_environment = None
 
         # `zeep` logs lots of stuff related to wsdl parsing on DEBUG level so we avoid that
         zeep_logger = logging.getLogger("zeep")
@@ -57,6 +59,8 @@ class SapCheck(AgentCheck):
         self.verify = instance.get("verify", True)
         self.cert = instance.get("cert", "")
         self.keyfile = instance.get("keyfile", "")
+        self.domain = instance.get("domain", None)
+        self.stackstate_environment = instance.get("environment", None)
         self.tags = instance.get("tags", [])
 
         return self.host, self.url, self.user, self.password, self.tags
@@ -78,7 +82,13 @@ class SapCheck(AgentCheck):
     def _collect_hosts(self):
         try:
             # define SAP host control component
-            self.component(self._host_external_id(), "sap-host", {"host": self.host})
+            data = {
+                "host": self.host,
+                "tags": self.tags,
+                "environment": self.stackstate_environment,
+                "domain": self.domain
+            }
+            self.component(self._host_external_id(), "sap-host", data)
 
             host_control_proxy = self._get_proxy()
             host_instances = host_control_proxy.get_sap_instances()
@@ -104,7 +114,10 @@ class SapCheck(AgentCheck):
                         "system_number": instance_id,
                         "type": instance_type,
                         "version": sap_version,
-                        "labels": []
+                        "labels": [],
+                        "domain": self.domain,
+                        "environment": self.stackstate_environment,
+                        "tags": self.tags
                     }
                     self.component(external_id, "sap-instance", component_data)
 
@@ -112,7 +125,11 @@ class SapCheck(AgentCheck):
                     #                              is hosted on
                     source_id = external_id
                     target_id = self._host_external_id()
-                    relation_data = {}
+                    relation_data = {
+                        "domain": self.domain,
+                        "environment": self.stackstate_environment,
+                        "tags": self.tags
+                    }
                     self.relation(source_id, target_id, "is hosted on", relation_data)
 
                     instances.update({instance_id: instance_type})
@@ -211,7 +228,10 @@ class SapCheck(AgentCheck):
                     "elapsedtime": elapsedtime,
                     "pid": pid,
                     "host": self.host,
-                    "labels": []
+                    "labels": [],
+                    "domain": self.domain,
+                    "environment": self.stackstate_environment,
+                    "tags": self.tags
                 }
                 self.component(external_id, "sap-process", component_data)
 
@@ -219,7 +239,11 @@ class SapCheck(AgentCheck):
                 #                         runs on
                 source_id = external_id
                 target_id = self._host_instance_external_id(instance_id)
-                relation_data = {}
+                relation_data = {
+                    "domain": self.domain,
+                    "environment": self.stackstate_environment,
+                    "tags": self.tags
+                }
                 self.relation(source_id, target_id, "runs on", relation_data)
 
                 # define process status event
@@ -278,7 +302,10 @@ class SapCheck(AgentCheck):
                     "vendor": database_item.get("Database/Vendor"),
                     "host": database_item.get("Database/Host").lower(),
                     "version": database_item.get("Database/Release"),
-                    "labels": []
+                    "labels": [],
+                    "domain": self.domain,
+                    "environment": self.stackstate_environment,
+                    "tags": self.tags
                 }
                 self.component(external_id, "sap-database", component_data)
 
@@ -286,7 +313,11 @@ class SapCheck(AgentCheck):
                 #                          is hosted on
                 source_id = external_id
                 target_id = self._host_external_id()
-                relation_data = {}
+                relation_data = {
+                    "domain": self.domain,
+                    "environment": self.stackstate_environment,
+                    "tags": self.tags
+                }
                 self.relation(source_id, target_id, "is hosted on", relation_data)
 
                 # define database status event
@@ -316,7 +347,10 @@ class SapCheck(AgentCheck):
                         "database_name": database_name,
                         "description": database_component_item.get("Database/ComponentDescription"),
                         "host": self.host,
-                        "labels": []
+                        "labels": [],
+                        "domain": self.domain,
+                        "environment": self.stackstate_environment,
+                        "tags": self.tags
                     }
                     self.component(database_component_external_id, "sap-database-component", database_component_data)
 
@@ -324,7 +358,11 @@ class SapCheck(AgentCheck):
                     #                                           runs on
                     database_component_relation_source_id = database_component_external_id
                     database_component_relation_target_id = external_id
-                    database_component_relation_data = {}
+                    database_component_relation_data = {
+                        "domain": self.domain,
+                        "environment": self.stackstate_environment,
+                        "tags": self.tags
+                    }
                     self.relation(
                         source=database_component_relation_source_id,
                         target=database_component_relation_target_id,

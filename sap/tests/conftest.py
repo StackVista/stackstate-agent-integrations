@@ -21,6 +21,8 @@ def instance():
         "url": "http://localhost",
         "user": "test",
         "pass": "test",
+        "domain": "sap",
+        "environment": "sap-prod"
     }
 
 
@@ -33,7 +35,8 @@ def https_instance():
         "pass": "test",
         "verify": False,
         "cert": "/path/to/cert.pem",
-        "keyfile": "/path/to/key.pem"
+        "keyfile": "/path/to/key.pem",
+        "tags": ["customer:Stackstate", "foo:bar"]
     }
 
 
