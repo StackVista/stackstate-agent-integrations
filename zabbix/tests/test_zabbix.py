@@ -85,7 +85,7 @@ class TestZabbix(unittest.TestCase):
         }
 
     @staticmethod
-    def _zabbix_host_response():
+    def _zabbix_host_response(maintenance_mode="0"):
         return {
             "jsonrpc": "2.0",
             "result": [
@@ -93,6 +93,7 @@ class TestZabbix(unittest.TestCase):
                     "hostid": "10084",
                     "host": "zabbix01.example.com",
                     "name": "Zabbix server",
+                    "maintenance_status": maintenance_mode,
                     "groups": [
                         {
                             "groupid": "4",
@@ -233,6 +234,33 @@ class TestZabbix(unittest.TestCase):
         for label in ['zabbix', 'host group:Zabbix servers']:
             if label not in labels:
                 self.fail("Component does not have label '%s'." % label)
+
+    def test_zabbix_topology_hosts_no_component(self):
+        """
+        Test should not return any hosts as host is in maintenance mode
+        """
+
+        # TODO this is needed because the topology retains data across tests
+        topology.reset()
+
+        def _mocked_method_request(url, name, auth=None, params={}, request_id=1):
+            if name == "apiinfo.version":
+                return self._apiinfo_response()
+            elif name == "host.get":
+                return self._zabbix_host_response(maintenance_mode="1")
+            else:
+                self.fail("TEST FAILED on making invalid request")
+
+        self.check.method_request = _mocked_method_request
+        self.check.login = lambda url, user, password: "dummyauthtoken"
+        self.check.retrieve_problems = lambda url, auth: []
+        self.check.retrieve_events = lambda url, auth, event_ids: []
+
+        self.check.check(self.instance)
+
+        topo_instances = topology.get_snapshot(self.check.check_id)
+        self.assertEqual(len(topo_instances['components']), 0)
+        self.assertEqual(len(topo_instances['relations']), 0)
 
     def test_zabbix_topology_non_default_environment(self):
 

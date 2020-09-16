@@ -19,6 +19,8 @@ class SapCheck(AgentCheck):
         self.user = None
         self.password = None
         self.tags = None
+        self.domain = None
+        self.stackstate_environment = None
 
         # `zeep` logs lots of stuff related to wsdl parsing on DEBUG level so we avoid that
         zeep_logger = logging.getLogger("zeep")
@@ -57,6 +59,8 @@ class SapCheck(AgentCheck):
         self.verify = instance.get("verify", True)
         self.cert = instance.get("cert", "")
         self.keyfile = instance.get("keyfile", "")
+        self.domain = instance.get("domain", None)
+        self.stackstate_environment = instance.get("environment", None)
         self.tags = instance.get("tags", [])
 
         return self.host, self.url, self.user, self.password, self.tags
@@ -67,26 +71,24 @@ class SapCheck(AgentCheck):
         self._collect_databases()
 
     def _get_proxy(self, instance_id=None):
-        if not instance_id:
-            # 1128 is the port of the HostControl for HTTP protocol
-            host_port = "1128"
-            if self.cert:
-                # for HTTPS protocol, 1129 is the port of the HostControl
-                host_port = "1129"
-            host_control_url = "{0}:{1}/SAPHostControl".format(self.url, host_port)
-            return SapProxy(host_control_url, self.user, self.password, self.verify, self.cert, self.keyfile)
-        else:
-            # 5xx13 is the port of the HostAgent where xx is the instance_id
-            if self.cert:
-                host_instance_agent_url = "{0}:5{1}14/SAPHostAgent".format(self.url, instance_id)
-            else:
-                host_instance_agent_url = "{0}:5{1}13/SAPHostAgent".format(self.url, instance_id)
-            return SapProxy(host_instance_agent_url, self.user, self.password, self.verify, self.cert, self.keyfile)
+        # 1128 is the port of the HostControl for HTTP protocol
+        host_port = "1128"
+        if self.cert:
+            # for HTTPS protocol, 1129 is the port of the HostControl
+            host_port = "1129"
+        host_control_url = "{0}:{1}/SAPHostControl".format(self.url, host_port)
+        return SapProxy(host_control_url, self.user, self.password, self.verify, self.cert, self.keyfile)
 
     def _collect_hosts(self):
         try:
             # define SAP host control component
-            self.component(self._host_external_id(), "sap-host", {"host": self.host})
+            data = {
+                "host": self.host,
+                "tags": self.tags,
+                "environment": self.stackstate_environment,
+                "domain": self.domain
+            }
+            self.component(self._host_external_id(), "sap-host", data)
 
             host_control_proxy = self._get_proxy()
             host_instances = host_control_proxy.get_sap_instances()
@@ -112,7 +114,10 @@ class SapCheck(AgentCheck):
                         "system_number": instance_id,
                         "type": instance_type,
                         "version": sap_version,
-                        "labels": []
+                        "labels": [],
+                        "domain": self.domain,
+                        "environment": self.stackstate_environment,
+                        "tags": self.tags
                     }
                     self.component(external_id, "sap-instance", component_data)
 
@@ -120,7 +125,11 @@ class SapCheck(AgentCheck):
                     #                              is hosted on
                     source_id = external_id
                     target_id = self._host_external_id()
-                    relation_data = {}
+                    relation_data = {
+                        "domain": self.domain,
+                        "environment": self.stackstate_environment,
+                        "tags": self.tags
+                    }
                     self.relation(source_id, target_id, "is hosted on", relation_data)
 
                     instances.update({instance_id: instance_type})
@@ -155,8 +164,6 @@ class SapCheck(AgentCheck):
                 ]
             })
 
-    # Documentation regarding SAPControl Web Service, which describes API of SOAPHostAgent
-    # https://www.sap.com/documents/2016/09/0a40e60d-8b7c-0010-82c7-eda71af511fa.html?infl=71bb5841-1684-47b2-af2d-11c623d3660e
     def _collect_instance_processes_and_metrics(self, host_instances):
         for instance_id, instance_type in list(host_instances.items()):
             try:
@@ -197,57 +204,67 @@ class SapCheck(AgentCheck):
                 })
 
     def _collect_processes(self, instance_id, host_instance_proxy):
-        processes = host_instance_proxy.get_sap_instance_processes()
+        processes = host_instance_proxy.get_sap_instance_processes(instance_id)
         self.log.debug("host instance '{0}' processes: {1}".format(instance_id, processes))
-        for process in processes:
-            name = process.name
-            description = process.description
-            dispstatus = process.dispstatus
-            textstatus = process.textstatus
-            starttime = process.starttime
-            elapsedtime = process.elapsedtime
-            pid = int(process.pid)
+        if processes:
+            for process in processes:
+                process_item = {i.mName: i.mValue for i in process.mProperties.item}
 
-            # define SAP process component
-            # TODO use process name in externalId for process
-            external_id = self._process_external_id(instance_id, pid)
-            component_data = {
-                "name": name,
-                "description": description,
-                "starttime": starttime,
-                "elapsedtime": elapsedtime,
-                "pid": pid,
-                "host": self.host,
-                "labels": []
-            }
-            self.component(external_id, "sap-process", component_data)
+                name = process_item.get("name")
+                description = process_item.get("description")
+                dispstatus = process_item.get("dispstatus")
+                textstatus = process_item.get("textstatus")
+                starttime = process_item.get("starttime")
+                elapsedtime = process_item.get("elapsedtime")
+                pid = int(process_item.get("pid"))
 
-            # define relation  process  -->  host instance
-            #                         runs on
-            source_id = external_id
-            target_id = self._host_instance_external_id(instance_id)
-            relation_data = {}
-            self.relation(source_id, target_id, "runs on", relation_data)
+                # define SAP process component
+                # TODO use process name in externalId for process
+                external_id = self._process_external_id(instance_id, pid)
+                component_data = {
+                    "name": name,
+                    "description": description,
+                    "starttime": starttime,
+                    "elapsedtime": elapsedtime,
+                    "pid": pid,
+                    "host": self.host,
+                    "labels": [],
+                    "domain": self.domain,
+                    "environment": self.stackstate_environment,
+                    "tags": self.tags
+                }
+                self.component(external_id, "sap-process", component_data)
 
-            # define process status event
-            self.event({
-                "timestamp": int(time.time()),
-                "source_type_name": "SAP:process state",
-                "msg_title": "Process pid '{0}' status update.".format(pid),
-                "msg_text": textstatus,
-                "host": self.host,
-                "tags": [
-                    "status:{0}".format(dispstatus),
-                    "pid:{0}".format(pid),
-                    "instance_id:{0}".format(instance_id),
-                    "starttime:{0}".format(starttime),
-                ]
-            })
+                # define relation  process  -->  host instance
+                #                         runs on
+                source_id = external_id
+                target_id = self._host_instance_external_id(instance_id)
+                relation_data = {
+                    "domain": self.domain,
+                    "environment": self.stackstate_environment,
+                    "tags": self.tags
+                }
+                self.relation(source_id, target_id, "runs on", relation_data)
+
+                # define process status event
+                self.event({
+                    "timestamp": int(time.time()),
+                    "source_type_name": "SAP:process state",
+                    "msg_title": "Process pid '{0}' status update.".format(pid),
+                    "msg_text": textstatus,
+                    "host": self.host,
+                    "tags": [
+                        "status:{0}".format(dispstatus),
+                        "pid:{0}".format(pid),
+                        "instance_id:{0}".format(instance_id),
+                        "starttime:{0}".format(starttime),
+                    ]
+                })
 
     def _collect_worker_metrics(self, instance_id, instance_type, host_instance_proxy):
         if instance_type.startswith("ABAP"):
             interesting_workers = ["DIA", "BTC"]
-            num_free_workers = host_instance_proxy.get_sap_instance_abap_free_workers(interesting_workers)
+            num_free_workers = host_instance_proxy.get_sap_instance_abap_free_workers(instance_id, interesting_workers)
             self.log.debug("number of worker processes for instance '{0}': {1}".format(
                 instance_id, num_free_workers))
             for worker_type, num_free_worker in list(num_free_workers.items()):
@@ -259,7 +276,7 @@ class SapCheck(AgentCheck):
                 )
 
     def _collect_memory_metric(self, instance_id, host_instance_proxy):
-        phys_memsize = host_instance_proxy.get_sap_instance_physical_memory()
+        phys_memsize = host_instance_proxy.get_sap_instance_physical_memory(instance_id)
         self.log.debug("host instance '{0}' physical memory: {1}".format(instance_id, phys_memsize))
         self.gauge(
             name="phys_memsize",
@@ -285,7 +302,10 @@ class SapCheck(AgentCheck):
                     "vendor": database_item.get("Database/Vendor"),
                     "host": database_item.get("Database/Host").lower(),
                     "version": database_item.get("Database/Release"),
-                    "labels": []
+                    "labels": [],
+                    "domain": self.domain,
+                    "environment": self.stackstate_environment,
+                    "tags": self.tags
                 }
                 self.component(external_id, "sap-database", component_data)
 
@@ -293,7 +313,11 @@ class SapCheck(AgentCheck):
                 #                          is hosted on
                 source_id = external_id
                 target_id = self._host_external_id()
-                relation_data = {}
+                relation_data = {
+                    "domain": self.domain,
+                    "environment": self.stackstate_environment,
+                    "tags": self.tags
+                }
                 self.relation(source_id, target_id, "is hosted on", relation_data)
 
                 # define database status event
@@ -323,7 +347,10 @@ class SapCheck(AgentCheck):
                         "database_name": database_name,
                         "description": database_component_item.get("Database/ComponentDescription"),
                         "host": self.host,
-                        "labels": []
+                        "labels": [],
+                        "domain": self.domain,
+                        "environment": self.stackstate_environment,
+                        "tags": self.tags
                     }
                     self.component(database_component_external_id, "sap-database-component", database_component_data)
 
@@ -331,7 +358,11 @@ class SapCheck(AgentCheck):
                     #                                           runs on
                     database_component_relation_source_id = database_component_external_id
                     database_component_relation_target_id = external_id
-                    database_component_relation_data = {}
+                    database_component_relation_data = {
+                        "domain": self.domain,
+                        "environment": self.stackstate_environment,
+                        "tags": self.tags
+                    }
                     self.relation(
                         source=database_component_relation_source_id,
                         target=database_component_relation_target_id,

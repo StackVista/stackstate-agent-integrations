@@ -34,7 +34,8 @@ def test_cannot_connect_to_host_control(aggregator, instance):
             instance_key=TopologyInstance("sap", "LAB-SAP-001"),
             components=[
                 {"id": "urn:host:/LAB-SAP-001", "type": "sap-host",
-                 "data": {"host": "LAB-SAP-001", 'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001']}}
+                 "data": {"host": "LAB-SAP-001", 'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
+                          "domain": "sap", "environment": "sap-prod"}}
             ],
             relations=[],
         )
@@ -65,7 +66,7 @@ def test_check_run_no_sap_instances(aggregator, instance):
 
     host_control_url = "http://localhost:1128/SAPHostControl"
     with requests_mock.mock() as m:
-        m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/HostControl.wsdl"))
+        m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/SAPHostAgent.wsdl"))
         m.post(host_control_url + ".cgi", text=_read_test_file("samples/GetCIMObject-NoResult.xml"))
 
         sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
@@ -79,7 +80,8 @@ def test_check_run_no_sap_instances(aggregator, instance):
             instance_key=TopologyInstance("sap", "LAB-SAP-001"),
             components=[
                 {"id": "urn:host:/LAB-SAP-001", "type": "sap-host",
-                 "data": {"host": "LAB-SAP-001", 'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001']}}
+                 "data": {"host": "LAB-SAP-001", 'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
+                          "domain": "sap", "environment": "sap-prod"}}
             ],
             relations=[],
         )
@@ -110,7 +112,7 @@ def test_collect_only_hosts(aggregator, instance):
 
     host_control_url = "http://localhost:1128/SAPHostControl"
     with requests_mock.mock() as m:
-        m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/HostControl.wsdl"))
+        m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/SAPHostAgent.wsdl"))
         m.post(host_control_url + ".cgi", text=_read_test_file("samples/GetCIMObject.xml"))
 
         sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
@@ -125,7 +127,9 @@ def test_collect_only_hosts(aggregator, instance):
             components=[
                 {"id": "urn:host:/LAB-SAP-001", "type": "sap-host", "data": {"host": "LAB-SAP-001",
                                                                              'tags': ['integration-type:sap',
-                                                                                      'integration-url:LAB-SAP-001']}},
+                                                                                      'integration-url:LAB-SAP-001'],
+                                                                             "domain": "sap",
+                                                                             "environment": "sap-prod"}},
                 {"id": "urn:sap:/instance:LAB-SAP-001:67",
                  "type": "sap-instance",
                  "data": {"host": "LAB-SAP-001",
@@ -135,7 +139,8 @@ def test_collect_only_hosts(aggregator, instance):
                           "sid": "CDA",
                           "system_number": "67",
                           "type": "Solution Manager Diagnostic Agent",
-                          "version": "753, patch 200, changelist 1844229"}},
+                          "version": "753, patch 200, changelist 1844229",
+                          "domain": "sap", "environment": "sap-prod"}},
                 {"id": "urn:sap:/instance:LAB-SAP-001:00",
                  "type": "sap-instance",
                  "data": {"host": "LAB-SAP-001",
@@ -145,7 +150,8 @@ def test_collect_only_hosts(aggregator, instance):
                           "sid": "DON",
                           "system_number": "00",
                           "type": "ABAP Instance",
-                          "version": "753, patch 401, changelist 1927964"}},
+                          "version": "753, patch 401, changelist 1927964",
+                          "domain": "sap", "environment": "sap-prod"}},
                 {"id": "urn:sap:/instance:LAB-SAP-001:01",
                  "type": "sap-instance",
                  "data": {"host": "LAB-SAP-001",
@@ -155,18 +161,19 @@ def test_collect_only_hosts(aggregator, instance):
                           "sid": "DON",
                           "system_number": "01",
                           "type": "Central Services Instance",
-                          "version": "753, patch 401, changelist 1927964"}}
+                          "version": "753, patch 401, changelist 1927964",
+                          "domain": "sap", "environment": "sap-prod"}}
             ],
             relations=[
-                {'data': {},
+                {'data': {"domain": "sap", "environment": "sap-prod", "tags": []},
                  'source_id': 'urn:sap:/instance:LAB-SAP-001:67',
                  'target_id': 'urn:host:/LAB-SAP-001',
                  'type': 'is hosted on'},
-                {'data': {},
+                {'data': {"domain": "sap", "environment": "sap-prod", "tags": []},
                  'source_id': 'urn:sap:/instance:LAB-SAP-001:00',
                  'target_id': 'urn:host:/LAB-SAP-001',
                  'type': 'is hosted on'},
-                {'data': {},
+                {'data': {"domain": "sap", "environment": "sap-prod", "tags": []},
                  'source_id': 'urn:sap:/instance:LAB-SAP-001:01',
                  'target_id': 'urn:host:/LAB-SAP-001',
                  'type': 'is hosted on'}
@@ -189,10 +196,10 @@ def test_collect_processes(aggregator, instance):
     topology.reset()
 
     instance_id = "00"
-    host_agent_url = "http://localhost:50013/"
+    host_control_url = "http://localhost:1128/SAPHostControl"
     with requests_mock.mock() as m:
-        m.get(host_agent_url + "SAPHostAgent/?wsdl", text=_read_test_file("wsdl/HostAgent.wsdl"))
-        m.post(host_agent_url, text=_read_test_file("samples/GetProcessList.xml"))
+        m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/SAPHostAgent.wsdl"))
+        m.post(host_control_url + ".cgi", text=_read_test_file("samples/GetProcessList.xml"))
 
         sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
         sap_check._get_config(instance)
@@ -205,61 +212,65 @@ def test_collect_processes(aggregator, instance):
             instance_key=TopologyInstance("sap", "LAB-SAP-001"),
             components=[
                 {'data': {'description': 'Dispatcher',
-                          'elapsedtime': '119:16:01',
+                          'elapsedtime': '0:56:22',
                           'host': 'LAB-SAP-001',
                           'labels': [],
                           'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
                           'name': 'disp+work.EXE',
-                          'pid': 4392,
-                          'starttime': '2020 01 22 12:52:29'},
-                 'id': 'urn:process:/LAB-SAP-001:00:4392',
+                          'pid': 5972,
+                          'starttime': '2020 07 31 08:37:19',
+                          "domain": "sap", "environment": "sap-prod"},
+                 'id': 'urn:process:/LAB-SAP-001:00:5972',
                  'type': 'sap-process'},
                 {'data': {'description': 'IGS Watchdog',
-                          'elapsedtime': '119:16:01',
+                          'elapsedtime': '0:56:22',
                           'host': 'LAB-SAP-001',
                           'labels': [],
                           'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
                           'name': 'igswd.EXE',
-                          'pid': 11088,
-                          'starttime': '2020 01 22 12:52:29'},
-                 'id': 'urn:process:/LAB-SAP-001:00:11088',
+                          'pid': 15564,
+                          'starttime': '2020 07 31 08:37:19',
+                          "domain": "sap", "environment": "sap-prod"},
+                 'id': 'urn:process:/LAB-SAP-001:00:15564',
                  'type': 'sap-process'},
                 {'data': {'description': 'Gateway',
-                          'elapsedtime': '119:16:01',
+                          'elapsedtime': '0:56:21',
                           'host': 'LAB-SAP-001',
                           'labels': [],
                           'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
                           'name': 'gwrd',
-                          'pid': 9512,
-                          'starttime': '2020 01 22 12:52:29'},
-                 'id': 'urn:process:/LAB-SAP-001:00:9512',
+                          'pid': 16624,
+                          'starttime': '2020 07 31 08:37:20',
+                          "domain": "sap", "environment": "sap-prod"},
+                 'id': 'urn:process:/LAB-SAP-001:00:16624',
                  'type': 'sap-process'},
                 {'data': {'description': 'ICM',
-                          'elapsedtime': '119:16:01',
+                          'elapsedtime': '0:56:21',
                           'host': 'LAB-SAP-001',
                           'labels': [],
                           'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
                           'name': 'icman',
-                          'pid': 6584,
-                          'starttime': '2020 01 22 12:52:29'},
-                 'id': 'urn:process:/LAB-SAP-001:00:6584',
+                          'pid': 11508,
+                          'starttime': '2020 07 31 08:37:20',
+                          "domain": "sap", "environment": "sap-prod"},
+                 'id': 'urn:process:/LAB-SAP-001:00:11508',
                  'type': 'sap-process'}
             ],
             relations=[
-                {'data': {},
-                 'source_id': 'urn:process:/LAB-SAP-001:00:4392',
+                {'data': {"domain": "sap", "environment": "sap-prod", "tags": []},
+                 'source_id': 'urn:process:/LAB-SAP-001:00:5972',
                  'target_id': 'urn:sap:/instance:LAB-SAP-001:00',
                  'type': 'runs on'},
-                {'data': {},
-                 'source_id': 'urn:process:/LAB-SAP-001:00:11088',
+                {'data': {"domain": "sap", "environment": "sap-prod", "tags": []},
+                 'source_id': 'urn:process:/LAB-SAP-001:00:15564',
                  'target_id': 'urn:sap:/instance:LAB-SAP-001:00',
                  'type': 'runs on'},
-                {'data': {},
-                 'source_id': 'urn:process:/LAB-SAP-001:00:9512',
+                {'data': {"domain": "sap", "environment": "sap-prod", "tags": []},
+                 'source_id': 'urn:process:/LAB-SAP-001:00:16624',
                  'target_id': 'urn:sap:/instance:LAB-SAP-001:00',
                  'type': 'runs on'},
-                {'data': {},
-                 'source_id': 'urn:process:/LAB-SAP-001:00:6584',
+                {'data': {"domain": "sap", "environment": "sap-prod", "tags": []},
+                 'source_id': 'urn:process:/LAB-SAP-001:00:11508',
                  'target_id': 'urn:sap:/instance:LAB-SAP-001:00',
                  'type': 'runs on'}
             ]
@@ -269,36 +280,36 @@ def test_collect_processes(aggregator, instance):
             msg_text="Running",
             tags=[
                 "status:SAPControl-GREEN",
-                "pid:4392",
+                "pid:5972",
                 "instance_id:" + instance_id,
-                "starttime:2020 01 22 12:52:29",
+                "starttime:2020 07 31 08:37:19",
             ]
         )
         aggregator.assert_event(
             msg_text="Running",
             tags=[
                 "status:SAPControl-GREEN",
-                "pid:11088",
+                "pid:15564",
                 "instance_id:" + instance_id,
-                "starttime:2020 01 22 12:52:29",
+                "starttime:2020 07 31 08:37:19",
             ]
         )
         aggregator.assert_event(
             msg_text="Running",
             tags=[
                 "status:SAPControl-GREEN",
-                "pid:9512",
+                "pid:16624",
                 "instance_id:" + instance_id,
-                "starttime:2020 01 22 12:52:29",
+                "starttime:2020 07 31 08:37:20",
             ]
         )
         aggregator.assert_event(
             msg_text="Running",
             tags=[
-                "status:SAPControl-GRAY",
-                "pid:6584",
+                "status:SAPControl-GREEN",
+                "pid:11508",
                 "instance_id:" + instance_id,
-                "starttime:2020 01 22 12:52:29",
+                "starttime:2020 07 31 08:37:20",
             ]
         )
 
@@ -309,10 +320,10 @@ def test_collect_worker_metrics(aggregator, instance):
     # Only ABAP instances
 
     instance_id = "00"
-    host_agent_url = "http://localhost:50013/"
+    host_control_url = "http://localhost:1128/SAPHostControl"
     with requests_mock.mock() as m:
-        m.get(host_agent_url + "SAPHostAgent/?wsdl", text=_read_test_file("wsdl/HostAgent.wsdl"))
-        m.post(host_agent_url, text=_read_test_file("samples/ABAPGetWPTable.xml"))
+        m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/SAPHostAgent.wsdl"))
+        m.post(host_control_url + ".cgi", text=_read_test_file("samples/ABAPGetWPTable.xml"))
 
         sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
         sap_check._get_config(instance)
@@ -339,10 +350,10 @@ def test_collect_worker_metrics(aggregator, instance):
 
 def test_collect_memory_metric(aggregator, instance):
     instance_id = "00"
-    host_agent_url = "http://localhost:50013/"
+    host_control_url = "http://localhost:1128/SAPHostControl"
     with requests_mock.mock() as m:
-        m.get(host_agent_url + "SAPHostAgent/?wsdl", text=_read_test_file("wsdl/HostAgent.wsdl"))
-        m.post(host_agent_url, text=_read_test_file("samples/ParameterValue.xml"))
+        m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/SAPHostAgent.wsdl"))
+        m.post(host_control_url + ".cgi", text=_read_test_file("samples/ParameterValue.xml"))
 
         sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
         sap_check._get_config(instance)
@@ -351,7 +362,7 @@ def test_collect_memory_metric(aggregator, instance):
         expected_tags = ["instance_id:" + instance_id]
         aggregator.assert_metric(
             name="phys_memsize",
-            value=65535.0,
+            value=32767,
             hostname="LAB-SAP-001",
             metric_type=aggregator.GAUGE,
             tags=expected_tags
@@ -366,7 +377,7 @@ def test_collect_databases(aggregator, instance):
 
     host_control_url = "http://localhost:1128/SAPHostControl"
     with requests_mock.mock() as m:
-        m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/HostControl.wsdl"))
+        m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/SAPHostAgent.wsdl"))
         m.post(host_control_url + ".cgi", text=_read_test_file("samples/ListDatabases.xml"))
 
         sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
@@ -388,7 +399,9 @@ def test_collect_databases(aggregator, instance):
                                   'host': 'lab-sap-001',
                                   'version': '18.0.0.0.0',
                                   'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
-                                  'labels': []}},
+                                  'labels': [],
+                                  "domain": "sap",
+                                  "environment": "sap-prod"}},
                         {'type': 'sap-database-component',
                          'id': 'urn:sap:/db_component:LAB-SAP-001:DON:Instance',
                          'data': {'host': 'LAB-SAP-001',
@@ -396,7 +409,9 @@ def test_collect_databases(aggregator, instance):
                                   'database_name': 'DON',
                                   'name': 'Instance',
                                   'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
-                                  'labels': []}},
+                                  'labels': [],
+                                  "domain": "sap",
+                                  "environment": "sap-prod"}},
                         {'type': 'sap-database-component',
                          'id': 'urn:sap:/db_component:LAB-SAP-001:DON:Database',
                          'data': {'host': 'LAB-SAP-001',
@@ -404,7 +419,9 @@ def test_collect_databases(aggregator, instance):
                                   'database_name': 'DON',
                                   'name': 'Database',
                                   'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
-                                  'labels': []}},
+                                  'labels': [],
+                                  "domain": "sap",
+                                  "environment": "sap-prod"}},
                         {'type': 'sap-database-component',
                          'id': 'urn:sap:/db_component:LAB-SAP-001:DON:Archiver',
                          'data': {'host': 'LAB-SAP-001',
@@ -412,7 +429,9 @@ def test_collect_databases(aggregator, instance):
                                   'database_name': 'DON',
                                   'name': 'Archiver',
                                   'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
-                                  'labels': []}},
+                                  'labels': [],
+                                  "domain": "sap",
+                                  "environment": "sap-prod"}},
                         {'type': 'sap-database-component',
                          'id': 'urn:sap:/db_component:LAB-SAP-001:DON:Listener',
                          'data': {'host': 'LAB-SAP-001',
@@ -420,26 +439,28 @@ def test_collect_databases(aggregator, instance):
                                   'database_name': 'DON',
                                   'name': 'Listener',
                                   'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
-                                  'labels': []}}
+                                  'labels': [],
+                                  "domain": "sap",
+                                  "environment": "sap-prod"}}
                         ],
             relations=[{'type': 'is hosted on',
-                        'data': {},
+                        'data': {"domain": "sap", "environment": "sap-prod", "tags": []},
                         'source_id': 'urn:db:/LAB-SAP-001:DON',
                         'target_id': 'urn:host:/LAB-SAP-001'},
                        {'type': 'runs on',
-                        'data': {},
+                        'data': {"domain": "sap", "environment": "sap-prod", "tags": []},
                         'source_id': 'urn:sap:/db_component:LAB-SAP-001:DON:Instance',
                         'target_id': 'urn:db:/LAB-SAP-001:DON'},
                        {'type': 'runs on',
-                        'data': {},
+                        'data': {"domain": "sap", "environment": "sap-prod", "tags": []},
                         'source_id': 'urn:sap:/db_component:LAB-SAP-001:DON:Database',
                         'target_id': 'urn:db:/LAB-SAP-001:DON'},
                        {'type': 'runs on',
-                        'data': {},
+                        'data': {"domain": "sap", "environment": "sap-prod", "tags": []},
                         'source_id': 'urn:sap:/db_component:LAB-SAP-001:DON:Archiver',
                         'target_id': 'urn:db:/LAB-SAP-001:DON'},
                        {'type': 'runs on',
-                        'data': {},
+                        'data': {"domain": "sap", "environment": "sap-prod", "tags": []},
                         'source_id': 'urn:sap:/db_component:LAB-SAP-001:DON:Listener',
                         'target_id': 'urn:db:/LAB-SAP-001:DON'}
                        ]
@@ -494,7 +515,7 @@ def test_collect_only_hosts_create_service_https(aggregator, https_instance):
 
     host_control_url = "https://localhost:1129/SAPHostControl"
     with requests_mock.mock() as m:
-        m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/HostControl.wsdl"))
+        m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/SAPHostAgent.wsdl"))
         m.post(host_control_url + ".cgi", text=_read_test_file("samples/GetCIMObject.xml"))
 
         sap_check = SapCheck(CHECK_NAME, {}, instances=[https_instance])
@@ -510,48 +531,60 @@ def test_collect_only_hosts_create_service_https(aggregator, https_instance):
             instance_key=TopologyInstance("sap", "LAB-SAP-001"),
             components=[
                 {"id": "urn:host:/LAB-SAP-001", "type": "sap-host",
-                 "data": {"host": "LAB-SAP-001", 'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001']}},
+                 "data": {"host": "LAB-SAP-001",
+                          'tags': ['customer:Stackstate', 'foo:bar', 'integration-type:sap',
+                                   'integration-url:LAB-SAP-001'],
+                          "domain": None, "environment": None}},
                 {"id": "urn:sap:/instance:LAB-SAP-001:67",
                  "type": "sap-instance",
                  "data": {"host": "LAB-SAP-001",
                           "labels": [],
-                          'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
+                          'tags': ['customer:Stackstate', 'foo:bar', 'integration-type:sap',
+                                   'integration-url:LAB-SAP-001'],
                           "name": "CDA",
                           "sid": "CDA",
                           "system_number": "67",
                           "type": "Solution Manager Diagnostic Agent",
-                          "version": "753, patch 200, changelist 1844229"}},
+                          "version": "753, patch 200, changelist 1844229",
+                          "domain": None,
+                          "environment": None}},
                 {"id": "urn:sap:/instance:LAB-SAP-001:00",
                  "type": "sap-instance",
                  "data": {"host": "LAB-SAP-001",
                           "labels": [],
-                          'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
+                          'tags': ['customer:Stackstate', 'foo:bar', 'integration-type:sap',
+                                   'integration-url:LAB-SAP-001'],
                           "name": "DON",
                           "sid": "DON",
                           "system_number": "00",
                           "type": "ABAP Instance",
-                          "version": "753, patch 401, changelist 1927964"}},
+                          "version": "753, patch 401, changelist 1927964",
+                          "domain": None,
+                          "environment": None}},
                 {"id": "urn:sap:/instance:LAB-SAP-001:01",
                  "type": "sap-instance",
                  "data": {"host": "LAB-SAP-001",
                           "labels": [],
-                          'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
+                          'tags': ['customer:Stackstate', 'foo:bar', 'integration-type:sap',
+                                   'integration-url:LAB-SAP-001'],
                           "name": "DON",
                           "sid": "DON",
                           "system_number": "01",
                           "type": "Central Services Instance",
-                          "version": "753, patch 401, changelist 1927964"}}
+                          "version": "753, patch 401, changelist 1927964",
+                          "domain": None,
+                          "environment": None}}
             ],
             relations=[
-                {'data': {},
+                {'data': {"domain": None, "environment": None, "tags": ['customer:Stackstate', 'foo:bar']},
                  'source_id': 'urn:sap:/instance:LAB-SAP-001:67',
                  'target_id': 'urn:host:/LAB-SAP-001',
                  'type': 'is hosted on'},
-                {'data': {},
+                {'data': {"domain": None, "environment": None, "tags": ['customer:Stackstate', 'foo:bar']},
                  'source_id': 'urn:sap:/instance:LAB-SAP-001:00',
                  'target_id': 'urn:host:/LAB-SAP-001',
                  'type': 'is hosted on'},
-                {'data': {},
+                {'data': {"domain": None, "environment": None, "tags": ['customer:Stackstate', 'foo:bar']},
                  'source_id': 'urn:sap:/instance:LAB-SAP-001:01',
                  'target_id': 'urn:host:/LAB-SAP-001',
                  'type': 'is hosted on'}
