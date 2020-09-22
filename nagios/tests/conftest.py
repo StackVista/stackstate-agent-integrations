@@ -16,7 +16,7 @@ def sts_environment():
     with TempDir("nagios_var_log") as nagios_var_log:
         e2e_metadata = {
             'docker_volumes': [
-                '{}:/etc/nagios/nagios.cfg'.format(DOCKER_NAGIOS_CONF),
+                '{}:/opt/nagios/etc/nagios.cfg'.format(DOCKER_NAGIOS_CONF),
                 '{}:/opt/nagios/etc/objects/localhost.cfg'.format(DOCKER_NAGIOS_LOCALHOST_CONF),
                 '{}:/opt/nagios/etc/conf.d/mysql.cfg'.format(mysql_conf),
                 '{}:/opt/nagios/var/log/'.format(nagios_var_log),
