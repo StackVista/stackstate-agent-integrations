@@ -347,8 +347,16 @@ class NagiosEventLogTailer(NagiosTailer):
         """Factory method called by the parsers
         """
         d = fields._asdict()
-        d.update({'timestamp': timestamp,
-                  'event_type': event_type})
+
+        d.update(
+            {
+                'timestamp': timestamp,
+                'event_type': event_type,
+                "msg_title": event_type,
+                "source_type_name": 'nagios.event_from_log',
+                "msg_text": d.get('payload', None)
+            }
+        )
 
         # if host is localhost, turn that into the internal host name
         host = d.get('host', None)
