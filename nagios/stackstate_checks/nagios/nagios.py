@@ -346,23 +346,26 @@ class NagiosEventLogTailer(NagiosTailer):
     def create_event(timestamp, event_type, hostname, fields):
         """Factory method called by the parsers
         """
-        d = fields._asdict()
+        event = fields._asdict()
+        tags = ['{}: {}'.format(k, v) for k, v in event.items()]
 
-        d.update(
+        event.update(
             {
                 'timestamp': timestamp,
-                'event_type': event_type,
+                # 'event_type': event_type,
                 "msg_title": event_type,
-                "source_type_name": 'nagios.event_from_log',
-                "msg_text": d.get('payload', None)
+                "source_type_name": event_type,
+                "msg_text": event.get('event_state', None),
+                "tags": tags
             }
         )
 
         # if host is localhost, turn that into the internal host name
-        host = d.get('host', None)
+        host = event.get('host', None)
         if host == "localhost":
-            d["host"] = hostname
-        return d
+            event["host"] = hostname
+
+        return event
 
 
 class NagiosPerfDataTailer(NagiosTailer):
