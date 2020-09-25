@@ -352,7 +352,7 @@ class NagiosEventLogTailer(NagiosTailer):
         event.update(
             {
                 'timestamp': timestamp,
-                # 'event_type': event_type,
+                'event_type': event_type,
                 "msg_title": event_type,
                 "source_type_name": event_type,
                 "msg_text": event.get('event_state', None),
