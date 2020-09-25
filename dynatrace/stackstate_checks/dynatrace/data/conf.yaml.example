@@ -1,0 +1,9 @@
+init_config:
+
+instances:
+  - url: https://ton48129.live.dynatrace.com
+    token: PSxqSomuSxSeYWgg_vt_p
+    # domain: "axa"
+    # environment: "axa"
+    # tags:
+    #   - foo:bar
