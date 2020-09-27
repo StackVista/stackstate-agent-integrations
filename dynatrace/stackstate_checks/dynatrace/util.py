@@ -1,12 +1,17 @@
 import cPickle as pickle
 import logging
 import os
-from stackstate_checks.base import AgentCheck
+import pwd
 
-PATH = "/etc/stackstate-agent/conf.d/dynatrace.d/"
+
 log = logging.getLogger(__name__)
 
+# Temporary directory for creating the state file
+PATH = "/etc/stackstate-agent/conf.d/dynatrace.d/"
+# Full path of temporary file
 pickle_path = os.path.join(PATH, "dynatrace_data" + '.pickle')
+# get the user details of stackstate-agent
+user = pwd.getpwnam('stackstate-agent')
 
 
 class DynatraceStatus:
@@ -18,6 +23,8 @@ class DynatraceStatus:
         try:
             log.debug("Persisting status to %s" % PATH)
             f = open(PATH, 'w+')
+            # Change the ownership of the file, so it could be read next time with other user
+            os.chown(PATH, user.pw_uid, user.pw_gid)
             try:
                 pickle.dump(self, f)
             finally:
@@ -37,19 +44,9 @@ class DynatraceStatus:
         except (IOError, EOFError):
             return None
 
-    # def to_dict(self):
-    #     return {}
-
 
 class DynatraceData(DynatraceStatus):
 
-    def __init__(self, url):
+    def __init__(self):
         DynatraceStatus.__init__(self)
         self.data = dict()
-
-    # def to_dict(self):
-    #     status_info = DynatraceStatus.to_dict(self)
-    #     status_info.update({
-    #         'data': self.data
-    #     })
-    #     return status_info

@@ -6,7 +6,7 @@
   "metric_prefix": "dynatrace.",
   "metric_to_check": "",
   "creates_events": false,
-  "short_description": "",
+  "short_description": "Collect topology and events from Dynatrace",
   "guid": "c8e670fa-822e-4118-8ebb-4d935836cb1d",
   "support": "core",
   "supported_os": [

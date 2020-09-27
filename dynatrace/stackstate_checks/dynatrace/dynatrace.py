@@ -233,7 +233,7 @@ class DynatraceCheck(AgentCheck):
         else:
             self.log.info("Problem getting the services or No services found.")
 
-    def process_events(self, cursor=''):
+    def process_events(self):
         self.collect_events()
         self.send_filtered_events()
         self.log.info("Persisting the data...")
@@ -266,14 +266,16 @@ class DynatraceCheck(AgentCheck):
         severity_level = {"AVAILABILITY": "OK", "CUSTOM_ALERT": "OK", "PERFORMANCE": "DEVIATING",
                           "RESOURCE_CONTENTION": "DEVIATING", "ERROR": "CRITICAL", "MONITORING_UNAVAILABLE": "CRITICAL"}
         health_state = "UNKNOWN"
-        detailed_msg = ""
+        detailed_msg = """|  EventType  |  SeverityLevel  |  Impact  |\n
+        |-------------|-----------------|----------|\n
+        """
         for events in open_events:
             severity = events.get("severityLevel")
             impact = events.get("impactLevel")
             event_type = events.get("eventType")
             entity_name = events.get("entityName")
             event_health_state = severity_level.get(severity)
-            detailed_msg += "{0}  |  {1}  |  {2}\n".format(event_type, severity, impact)
+            detailed_msg += "|    {0}     |   {1}    |   {2}   |\n".format(event_type, severity, impact)
             if health_states.get(event_health_state) > health_states.get(health_state):
                 health_state = event_health_state
 
@@ -349,14 +351,13 @@ class DynatraceCheck(AgentCheck):
         self.log.info("Creating a new event")
         tags = [
             "entityId:{0}".format(entity_id),
-            "health:{0}".format(healthState),
-            "detailedMessage:{0}".format(detailedmsg)
+            "health:{0}".format(healthState)
         ]
         self.event({
             "timestamp": int(time.time()),
             "source_type_name": "Dynatrace Events",
             "msg_title": "",
-            "msg_text": "",
+            "msg_text": detailedmsg,
             "tags": tags
         })
 
