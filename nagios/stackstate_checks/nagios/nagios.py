@@ -173,10 +173,16 @@ class NagiosCheck(AgentCheck):
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, message=str(e), tags=tags)
 
     def get_topology(self, instance_key):
+        nagios_cfg_path = instance_key['conf_path']
+        self.log.debug("Start nagios topology gathering for file: {}.".format(nagios_cfg_path))
+
+        # set nagios.cfg path for pynag
+        Model.cfg_file = nagios_cfg_path
+
         # Get all hosts
-        self.start_snapshot()
         all_hosts = Model.Host.objects.all
         for host in all_hosts:
+            self.log.debug("Topology, processing host: {}".format(host))
             if host.host_name is None:
                 continue
             id = host.host_name
@@ -187,7 +193,8 @@ class NagiosCheck(AgentCheck):
                 "labels": ["nagios-server:" + instance_key.get("url")]
             }
             self.component(id, type, data)
-        self.stop_snapshot()
+        self.log.debug("Done nagios topology gathering for file: {} "
+                       "(processed {} hosts)".format(Model.cfg_file, len(all_hosts)))
 
     def parse_nagios_config(self, filename):
         output = {}
@@ -339,15 +346,26 @@ class NagiosEventLogTailer(NagiosTailer):
     def create_event(timestamp, event_type, hostname, fields):
         """Factory method called by the parsers
         """
-        d = fields._asdict()
-        d.update({'timestamp': timestamp,
-                  'event_type': event_type})
+        event = fields._asdict()
+        tags = ['{}: {}'.format(k, v) for k, v in event.items()]
+
+        event.update(
+            {
+                'timestamp': timestamp,
+                'event_type': event_type,
+                "msg_title": event_type,
+                "source_type_name": event_type,
+                "msg_text": event.get('event_state', None),
+                "tags": tags
+            }
+        )
 
         # if host is localhost, turn that into the internal host name
-        host = d.get('host', None)
+        host = event.get('host', None)
         if host == "localhost":
-            d["host"] = hostname
-        return d
+            event["host"] = hostname
+
+        return event
 
 
 class NagiosPerfDataTailer(NagiosTailer):
