@@ -52,6 +52,7 @@ class DynatraceEventCheck(AgentCheck):
         self.environment = instance.get('environment', 'production')
         self.load_status()
         self.log.info("After loading the status: {}".format(self.status.data))
+        self.log.info("After loading, the from time is {}".format(self.status.data.get(self.url)))
 
         try:
             self.start_snapshot()
@@ -91,7 +92,6 @@ class DynatraceEventCheck(AgentCheck):
                 else:
                     # del events[entityId]
                     del self.status.data[self.url + "/events"][entityId]
-                self.log.info("Total events to send for entityID {}:- {}".format(entityId, open_events))
         self.log.info("After filtering the closed events :- {}".format(self.status.data))
 
     def create_health_event(self, entityId, open_events):
@@ -149,10 +149,8 @@ class DynatraceEventCheck(AgentCheck):
                 # Check if event already exist for that entityId
                 elif entity_events:
                     event = entity_events.get(event_type)
-                    self.log.info("Current Event for the entityID {0} is {1}".format(entityId, event))
                     end_time = entity_events.get(event_type, {}).get("endTime")
                     status = entity_events.get(event_type, {}).get("eventStatus")
-                    self.log.info("status is {}".format(status))
                     # different type of event can exist for same entityId
                     if event is None and event_status == "OPEN":
                         self.log.info("Creating a new open event type for an existing entityId")
@@ -166,7 +164,6 @@ class DynatraceEventCheck(AgentCheck):
                     elif status == "CLOSED" and event_status == "OPEN":
                         self.log.info("Deleting an existing open event type for an existing entityId ")
                         del self.status.data[self.url + "/events"][entityId][event_type]
-            self.log.info("After iteration data is : {}".format(self.status.data))
             nextCursor = events.get("nextCursor")
             self.log.info("Next cursor value is {}".format(nextCursor))
             if nextCursor:

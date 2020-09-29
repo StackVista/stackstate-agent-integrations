@@ -6,7 +6,7 @@ import pwd
 log = logging.getLogger(__name__)
 
 # Temporary directory for creating the state file
-PATH = "/etc/stackstate-agent/conf.d/dynatrace.d/"
+PATH = "/etc/stackstate-agent/conf.d/dynatrace_event.d/"
 # Full path of temporary file
 pickle_path = os.path.join(PATH, "dynatrace_data" + '.pickle')
 # get the user details of stackstate-agent
