@@ -3,7 +3,6 @@ import logging
 import os
 import pwd
 
-
 log = logging.getLogger(__name__)
 
 # Temporary directory for creating the state file
@@ -21,10 +20,10 @@ class DynatraceStatus:
 
     def persist(self):
         try:
-            log.debug("Persisting status to %s" % PATH)
-            f = open(PATH, 'w+')
+            log.debug("Persisting status to %s" % pickle_path)
+            f = open(pickle_path, 'w+')
             # Change the ownership of the file, so it could be read next time with other user
-            os.chown(PATH, user.pw_uid, user.pw_gid)
+            os.chown(pickle_path, user.pw_uid, user.pw_gid)
             try:
                 pickle.dump(self, f)
             finally:
@@ -35,7 +34,7 @@ class DynatraceStatus:
     @classmethod
     def load_latest_status(cls):
         try:
-            f = open(PATH)
+            f = open(pickle_path)
             try:
                 r = pickle.load(f)
                 return r

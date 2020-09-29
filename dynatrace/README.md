@@ -1,14 +1,14 @@
-# Agent Check: Dynatrace
+# Agent Check: Dynatrace Topology
 
 ## Overview
 
-This check monitors [Dynatrace][1] through the StackState Agent.
+This check monitors [Dynatrace][1] smartscape topology through the StackState Agent.
 
 ## Setup
 
 ### Installation
 
-The Dynatrace check is included in the [StackState Agent][2] package, so you do not
+The Dynatrace Topology check is included in the [StackState Agent][2] package, so you do not
 need to install anything else on your server.
 
 ### Configuration
@@ -21,12 +21,7 @@ need to install anything else on your server.
 
 ## Data Collected
 
-Dynatrace collects topology, events and metrics.
-
-
-### Topology
-
-Dynatrace does not include any topology.
+Dynatrace collects topology.
 
 [1]: https://www.dynatrace.com/
 [2]: https://github.com/StackVista/stackstate-agent-integrations/blob/master/dynatrace/stackstate_checks/dynatrace/data/conf.yaml.example
