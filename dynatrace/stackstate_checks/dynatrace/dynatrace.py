@@ -51,7 +51,9 @@ class DynatraceCheck(AgentCheck):
             self.stop_snapshot()
 
     def process_topology(self):
-        # Collect each component type from dynatrace smartscape topology API
+        """
+        Collects each component type from dynatrace smartscape topology API
+        """
         start_time = datetime.now()
         self.log.info("Starting the collection of topology")
         self.collect_services()
@@ -93,26 +95,7 @@ class DynatraceCheck(AgentCheck):
         """
         endpoint = self.url + "/api/v1/entity/infrastructure/processes"
         processes = self.get_json_response(endpoint)
-        if type(processes) is not dict and "error" not in processes:
-            for process in processes:
-                identifiers = []
-                externalId = process.get("entityId")
-                component_type = "process"
-                process_urn = "urn:process:/{}".format(externalId)
-                identifiers.append(process_urn)
-                data = {
-                    "identifiers": identifiers,
-                    "tags": self.tags,
-                    "domain": self.domain,
-                    "environment": self.environment,
-                    "instance": self.url
-                }
-                data.update(process)
-                data = self.filter_data(data)
-                self.component(externalId, component_type, data)
-                self.collect_relations(process, externalId)
-        else:
-            self.log.info("Problem getting the processes or No processes found.")
+        self.process_component(processes, "process")
 
     def collect_hosts(self):
         """
@@ -120,30 +103,7 @@ class DynatraceCheck(AgentCheck):
         """
         endpoint = self.url + "/api/v1/entity/infrastructure/hosts"
         hosts = self.get_json_response(endpoint)
-        if type(hosts) is not dict and "error" not in hosts:
-            for host in hosts:
-                for key in host.keys():
-                    if type(host[key]) is float:
-                        host[key] = str(host[key])
-                identifiers = []
-                externalId = host.get("entityId")
-                displayName = host.get("displayName")
-                host_urn = "urn:host:/{}".format(displayName)
-                component_type = "host"
-                identifiers.append(host_urn)
-                data = {
-                    "identifiers": identifiers,
-                    "tags": self.tags,
-                    "domain": self.domain,
-                    "environment": self.environment,
-                    "instance": self.url
-                }
-                data.update(host)
-                data = self.filter_data(data)
-                self.component(externalId, component_type, data)
-                self.collect_relations(host, externalId)
-        else:
-            self.log.info("Problem getting the hosts or No hosts found.")
+        self.process_component(hosts, "host")
 
     def collect_applications(self):
         """
@@ -151,26 +111,8 @@ class DynatraceCheck(AgentCheck):
         """
         endpoint = self.url + "/api/v1/entity/applications"
         applications = self.get_json_response(endpoint)
-        if type(applications) is not dict and "error" not in applications:
-            for application in applications:
-                identifiers = []
-                externalId = application.get("entityId")
-                component_type = "application"
-                application_urn = "urn:application:/{}".format(externalId)
-                identifiers.append(application_urn)
-                data = {
-                    "identifiers": identifiers,
-                    "tags": self.tags,
-                    "domain": self.domain,
-                    "environment": self.environment,
-                    "instance": self.url
-                }
-                data.update(application)
-                data = self.filter_data(data)
-                self.component(externalId, component_type, data)
-                self.collect_relations(application, externalId)
-        else:
-            self.log.info("Problem getting the applications or No applications found.")
+        self.process_component(applications, "application")
+
 
     def collect_proccess_groups(self):
         """
@@ -178,26 +120,7 @@ class DynatraceCheck(AgentCheck):
         """
         endpoint = self.url + "/api/v1/entity/infrastructure/process-groups"
         process_groups = self.get_json_response(endpoint)
-        if type(process_groups) is not dict and "error" not in process_groups:
-            for process_group in process_groups:
-                identifiers = []
-                externalId = process_group.get("entityId")
-                component_type = "process-group"
-                process_group_urn = "urn:process-group:/{}".format(externalId)
-                identifiers.append(process_group_urn)
-                data = {
-                    "identifiers": identifiers,
-                    "tags": self.tags,
-                    "domain": self.domain,
-                    "environment": self.environment,
-                    "instance": self.url
-                }
-                data.update(process_group)
-                data = self.filter_data(data)
-                self.component(externalId, component_type, data)
-                self.collect_relations(process_group, externalId)
-        else:
-            self.log.info("Problem getting the process-groups or No process-groups found.")
+        self.process_component(process_groups, "process-group")
 
     def collect_services(self):
         """
@@ -205,13 +128,37 @@ class DynatraceCheck(AgentCheck):
         """
         endpoint = self.url + "/api/v1/entity/services"
         services = self.get_json_response(endpoint)
-        if type(services) is not dict and "error" not in services:
-            for service in services:
+        self.process_component(services, "service")
+
+    def process_component(self, response, component_type):
+        """
+        Process each component type and map those with specific data
+        :param response: Response of each component type endpoint
+        :param component_type: Component type
+        :return: create the component on stackstate API
+        """
+        urn = ''
+        if type(response) is not dict and "error" not in response:
+            for item in response:
+                # special case for host type as we get some float values
+                if component_type == "host":
+                    for key in item.keys():
+                        if type(item[key]) is float:
+                            item[key] = int(item[key])
                 identifiers = []
-                externalId = service.get("entityId")
-                service_urn = "urn:service:/{}".format(externalId)
-                component_type = "service"
-                identifiers.append(service_urn)
+                externalId = item.get("entityId")
+                if component_type == "service":
+                    urn = "urn:service:/{}".format(externalId)
+                elif component_type == "process-group":
+                    urn = "urn:process-group:/{}".format(externalId)
+                elif component_type == "application":
+                    urn = "urn:application:/{}".format(externalId)
+                elif component_type == "process":
+                    urn = "urn:process:/{}".format(externalId)
+                elif component_type == "host":
+                    displayName = item.get("displayName")
+                    urn = "urn:host:/{}".format(displayName)
+                identifiers.append(urn)
                 data = {
                     "identifiers": identifiers,
                     "tags": self.tags,
@@ -219,12 +166,12 @@ class DynatraceCheck(AgentCheck):
                     "environment": self.environment,
                     "instance": self.url
                 }
-                data.update(service)
+                data.update(item)
                 data = self.filter_data(data)
                 self.component(externalId, component_type, data)
-                self.collect_relations(service, externalId)
+                self.collect_relations(item, externalId)
         else:
-            self.log.info("Problem getting the services or No services found.")
+            self.log.info("Problem getting the {0} or No {1} found.".format(type, type))
 
     def get_json_response(self, endpoint, timeout=10):
         headers = {"Authorization": "Api-Token {}".format(self.token)}
