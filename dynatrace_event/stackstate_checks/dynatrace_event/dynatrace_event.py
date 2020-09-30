@@ -5,6 +5,7 @@ from stackstate_checks.base import AgentCheck, ConfigurationError, TopologyInsta
 from .util import DynatraceData
 
 import requests
+from requests import Session
 import yaml
 from datetime import datetime, timedelta
 import time
@@ -24,6 +25,9 @@ class DynatraceEventCheck(AgentCheck):
         self.events_start_days = None
         self.domain = None
         self.status = None
+        self.verify = None
+        self.cert = None
+        self.keyfile = None
 
     def load_status(self):
         self.status = DynatraceData.load_latest_status()
@@ -50,6 +54,9 @@ class DynatraceEventCheck(AgentCheck):
         self.events_start_days = instance.get('events_start_days', 5)
         self.tags = instance.get('tags', [])
         self.environment = instance.get('environment', 'production')
+        self.verify = instance.get('verify', True)
+        self.cert = instance.get('cert', '')
+        self.keyfile = instance.get('keyfile', '')
         self.load_status()
         self.log.info("After loading the status: {}".format(self.status.data))
         self.log.info("After loading, the from time is {}".format(self.status.data.get(self.url)))
@@ -80,7 +87,6 @@ class DynatraceEventCheck(AgentCheck):
                     for event_type in event_type_values.keys():
                         event_status = event_type_values.get(event_type).get("eventStatus")
                         if event_status == "CLOSED":
-                            # del event_type_values[event_type]
                             del self.status.data[self.url + "/events"][entityId][event_type]
                         else:
                             self.log.info("Appending an open event for entityID {}: {}".format(entityId, event_type_values[event_type]))
@@ -90,7 +96,6 @@ class DynatraceEventCheck(AgentCheck):
                     if len(open_events) > 0:
                         self.create_health_event(entityId, open_events)
                 else:
-                    # del events[entityId]
                     del self.status.data[self.url + "/events"][entityId]
         self.log.info("After filtering the closed events :- {}".format(self.status.data))
 
@@ -197,9 +202,14 @@ class DynatraceEventCheck(AgentCheck):
         resp = None
         msg = None
         self.log.info("URL is {}".format(endpoint))
-        self.log.info("Header is {}".format(headers))
         try:
-            resp = requests.get(endpoint, headers=headers)
+            session = Session()
+            session.headers.update(headers)
+            if self.cert:
+                session.verify = self.verify
+                session.cert = (self.cert, self.keyfile)
+            resp = session.get(endpoint)
+            # resp = requests.get(endpoint, headers=headers)
         except requests.exceptions.Timeout:
             msg = "{} seconds timeout when hitting {}".format(timeout, endpoint)
             status = AgentCheck.CRITICAL

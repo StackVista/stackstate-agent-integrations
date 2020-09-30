@@ -1,8 +1,13 @@
 init_config:
 
 instances:
-  - url: https://ton48129.live.dynatrace.com
+  - min_collection_interval: 600
+    url: https://ton48129.live.dynatrace.com
     token: PSxqSomuSxSeYWgg_vt_p
+    # events_start_days: 15
+    # verify: True  # By default it's True
+    # cert: /path/to/cert.pem
+    # keyfile: /path/to/key.pem
     # domain: "axa"
     # environment: "axa"
     # tags:

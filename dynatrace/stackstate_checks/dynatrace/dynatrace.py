@@ -4,6 +4,7 @@
 from stackstate_checks.base import AgentCheck, ConfigurationError, TopologyInstance
 
 import requests
+from requests import Session
 import yaml
 from datetime import datetime
 
@@ -20,6 +21,9 @@ class DynatraceCheck(AgentCheck):
         self.tags = None
         self.environment = None
         self.domain = None
+        self.verify = None
+        self.cert = None
+        self.keyfile = None
 
     def get_instance_key(self, instance):
         if 'url' not in instance:
@@ -40,6 +44,9 @@ class DynatraceCheck(AgentCheck):
         self.token = instance.get('token')
         self.tags = instance.get('tags', [])
         self.environment = instance.get('environment', 'production')
+        self.verify = instance.get('verify', True)
+        self.cert = instance.get('cert', '')
+        self.keyfile = instance.get('keyfile', '')
 
         try:
             self.start_snapshot()
@@ -159,9 +166,10 @@ class DynatraceCheck(AgentCheck):
                     displayName = item.get("displayName")
                     urn = "urn:host:/{}".format(displayName)
                 identifiers.append(urn)
+                tags = [tag.get("key") for tag in item.get("tags", [])] + self.tags
                 data = {
                     "identifiers": identifiers,
-                    "tags": self.tags,
+                    "tags": tags,
                     "domain": self.domain,
                     "environment": self.environment,
                     "instance": self.url
@@ -180,7 +188,12 @@ class DynatraceCheck(AgentCheck):
         msg = None
         self.log.info("URL is {}".format(endpoint))
         try:
-            resp = requests.get(endpoint, headers=headers)
+            session = Session()
+            session.headers.update(headers)
+            if self.cert:
+                session.verify = self.verify
+                session.cert = (self.cert, self.keyfile)
+            resp = session.get(endpoint)
         except requests.exceptions.Timeout:
             msg = "{} seconds timeout when hitting {}".format(timeout, endpoint)
             status = AgentCheck.CRITICAL
