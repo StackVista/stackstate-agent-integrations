@@ -71,9 +71,7 @@
                 "PROCESS_GROUP_INSTANCE-3A6855F295757634"
             ],
             "isNetworkClientOfProcessGroup": [
-                "PROCESS_GROUP-8101A473AF3FCDDD",
-                "PROCESS_GROUP-B27330900F0E858D",
-                "PROCESS_GROUP-8B150BF9BA023A3D"
+                "PROCESS_GROUP-8101A473AF3FCDDD"
             ],
             "runsOn": [
                 "SERVICE-8EEF704E6A3A9914"
@@ -140,11 +138,7 @@
             ],
             "isNetworkClientOfProcessGroup": [
                 "PROCESS_GROUP-997474DD330FAEEA",
-                "PROCESS_GROUP-8AC007985ABA2035",
-                "PROCESS_GROUP-646C5B4BA51F1057",
-                "PROCESS_GROUP-93D3CC45D953C816",
-                "PROCESS_GROUP-775EE6636316B06F",
-                "PROCESS_GROUP-BF850F696F63BD7B"
+                "PROCESS_GROUP-8AC007985ABA2035"
             ],
             "runsOn": [
                 "SERVICE-DC8E0E65DC4E59C6"

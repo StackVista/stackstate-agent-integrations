@@ -87,8 +87,7 @@
                 "PROCESS_GROUP-8B474E9128049C87"
             ],
             "calls": [
-                "SERVICE-923B9ABBC3F9DB68",
-                "SERVICE-8745799105D02C01"
+                "SERVICE-923B9ABBC3F9DB68"
             ]
         },
         "toRelationships": {},

@@ -18,7 +18,7 @@ class DynatraceCheck(AgentCheck):
         AgentCheck.__init__(self, name, init_config, instances)
         self.url = None
         self.token = None
-        self.tags = None
+        self.tags = []
         self.environment = None
         self.domain = None
         self.verify = None
@@ -79,8 +79,8 @@ class DynatraceCheck(AgentCheck):
         :param externalId: the component externalId for and from relationship will be created
         :return: None
         """
-        outgoing_relations = component.get("fromRelationships")
-        incoming_relations = component.get("toRelationships")
+        outgoing_relations = component.get("fromRelationships", {})
+        incoming_relations = component.get("toRelationships", {})
         for relation_type in outgoing_relations.keys():
             for target_id in outgoing_relations[relation_type]:
                 self.relation(externalId, target_id, relation_type, {})
@@ -92,8 +92,10 @@ class DynatraceCheck(AgentCheck):
         """
         Delete the un-necessary relationships from the data
         """
-        del data["fromRelationships"]
-        del data["toRelationships"]
+        if "fromRelationships" in data:
+            del data["fromRelationships"]
+        if "toRelationships" in data:
+            del data["toRelationships"]
         return data
 
     def collect_processes(self):
@@ -119,7 +121,6 @@ class DynatraceCheck(AgentCheck):
         endpoint = self.url + "/api/v1/entity/applications"
         applications = self.get_json_response(endpoint)
         self.process_component(applications, "application")
-
 
     def collect_proccess_groups(self):
         """
@@ -166,7 +167,9 @@ class DynatraceCheck(AgentCheck):
                     displayName = item.get("displayName")
                     urn = "urn:host:/{}".format(displayName)
                 identifiers.append(urn)
-                tags = [tag.get("key") for tag in item.get("tags", [])] + self.tags
+                if "tags" in item:
+                    tags = [tag.get("key") for tag in item.get("tags", [])] + self.tags
+                    del item["tags"]
                 data = {
                     "identifiers": identifiers,
                     "tags": tags,

@@ -14,16 +14,10 @@
                 "PROCESS_GROUP-518359807AEC7140"
             ],
             "isNetworkClientOf": [
-                "PROCESS_GROUP_INSTANCE-76212BDF04F05189",
-                "PROCESS_GROUP_INSTANCE-6292F6F6D00A5436",
-                "PROCESS_GROUP_INSTANCE-60A720CE7A97EFF2"
+                "PROCESS_GROUP_INSTANCE-76212BDF04F05189"
             ]
         },
-        "toRelationships": {
-            "isNetworkClientOf": [
-                "PROCESS_GROUP_INSTANCE-1AD087DFF6B1EBC3"
-            ]
-        },
+        "toRelationships": {},
         "metadata": {
             "commandLineArgs": [
                 "C:\\Program\\ Files\\Microsoft\\Exchange\\ Server\\V15\\Bin\\EdgeTransport.exe -pipe:2144 -stopkey:Global\\ExchangeStopKey-34b894c1-c976-43db-a83d-cbc89ea5c5e0 -resetkey:Global\\ExchangeResetKey-4a9e8cc5-6ad9-4cc4-8610-36c9627cbcbe -readykey:Global\\ExchangeReadyKey-89d0548b-6776-4101-aed9-dbf884236629 -hangkey:Global\\ExchangeHangKey-b5611f0f-6ac3-4a4f-a405-f99ac6a7d673 -startUpProgressKey:Global\\ExchangeProgressKey-81c9a718-f3c5-40a3-a6b3-74b8d26b7dd2 -workerListening"
@@ -76,16 +70,7 @@
                 "PROCESS_GROUP-647A29F2E878C508"
             ]
         },
-        "toRelationships": {
-            "runsOnProcessGroupInstance": [
-                "SERVICE-8EEF704E6A3A9914"
-            ],
-            "isNetworkClientOf": [
-                "PROCESS_GROUP_INSTANCE-0DE8F43661AF4A3F",
-                "PROCESS_GROUP_INSTANCE-D0A7A497B0011544",
-                "PROCESS_GROUP_INSTANCE-DAB30B1DA53CE2A4"
-            ]
-        },
+        "toRelationships": {},
         "metadata": {
             "elasticSearchClusterNames": [
                 "stackstate"
@@ -164,12 +149,7 @@
                 "SERVICE-DC8E0E65DC4E59C6"
             ],
             "isNetworkClientOf": [
-                "PROCESS_GROUP_INSTANCE-0EC2543319EDF0A3",
-                "PROCESS_GROUP_INSTANCE-F97DC33D65A128E2",
-                "PROCESS_GROUP_INSTANCE-E06E08E0E648C0C1",
-                "PROCESS_GROUP_INSTANCE-D52B0011D3915D8F",
-                "PROCESS_GROUP_INSTANCE-CAAEF72D0F18B6CE",
-                "PROCESS_GROUP_INSTANCE-1AD087DFF6B1EBC3"
+                "PROCESS_GROUP_INSTANCE-0EC2543319EDF0A3"
             ]
         },
         "metadata": {
