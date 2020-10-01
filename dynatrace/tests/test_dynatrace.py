@@ -66,18 +66,13 @@ class TestDynatrace(unittest.TestCase):
 
         self.assertEqual(len(topo_instances['components']), 3)
         # check the first component data and should match
-        component1 = topo_instances['components'][0]
-        self.assertEqual(component1['id'], 'PROCESS_GROUP_INSTANCE-F25A8361C6742030')
-        self.assertEqual(component1['type'], 'process')
-        self.assertEqual(component1['data']['identifiers'], ['urn:process:/PROCESS_GROUP_INSTANCE-F25A8361C6742030'])
-        self.assertEqual(component1['data']['entityId'], 'PROCESS_GROUP_INSTANCE-F25A8361C6742030')
+        component = topo_instances['components'][0]
+        self.assertEqual(component['id'], 'PROCESS_GROUP_INSTANCE-F25A8361C6742030')
+        self.assertEqual(component['type'], 'process')
+        self.assertEqual(component['data']['identifiers'], ['urn:process:/PROCESS_GROUP_INSTANCE-F25A8361C6742030'])
+        self.assertEqual(component['data']['entityId'], 'PROCESS_GROUP_INSTANCE-F25A8361C6742030')
 
         self.assertEqual(len(topo_instances['relations']), 9)
-        # check the third relation data and should match
-        # relation = topo_instances['relations'][3]
-        # self.assertEqual(relation['type'], 'isProcessOf')
-        # self.assertEqual(relation['source_id'], 'PROCESS_GROUP_INSTANCE-F25A8361C6742030')
-        # self.assertEqual(relation['target_id'], 'HOST-6AAE0F78BCF2E0F4')
 
     def test_collect_hosts(self):
         """
