@@ -127,5 +127,13 @@ class AgentIntegrationSampleCheck(AgentCheck):
             "aggregation_key": "instance-request-%s" % instance_url
         })
 
+        self.event({
+            "timestamp": int(time.time()),
+            "source_type_name": "HTTP_TIMEOUT",
+            "msg_title": "URL timeout",
+            "msg_text": "Http request to %s timed out after %s seconds." % (instance_url, timeout),
+            "aggregation_key": "instance-request-%s" % instance_url
+        }, {"context": "yes"})
+
         # some logic here to test our connection and if successful:
         self.service_check("example.can_connect", AgentCheck.OK, tags=["instance_url:%s" % instance_url])

@@ -8,7 +8,7 @@ import pytest
 
 # project
 from stackstate_checks.agent_integration_sample import AgentIntegrationSampleCheck
-from stackstate_checks.base.stubs import topology, aggregator
+from stackstate_checks.base.stubs import topology, aggregator, telemetry
 
 
 class InstanceInfo():
@@ -42,7 +42,8 @@ class TestAgentIntegration(unittest.TestCase):
         # TODO this is needed because the topology retains data across tests
         topology.reset()
 
-        self.check.run()
+        result = self.check.run()
+        print(result)
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 5)
         self.assertEqual(len(topo_instances['relations']), 3)
@@ -381,4 +382,8 @@ class TestAgentIntegration(unittest.TestCase):
         aggregator.assert_metric('5xx.responses', count=4, tags=["application:some_application", "region:eu-west-1"])
         aggregator.assert_event('Http request to {} timed out after {} seconds.'.format('http://localhost', 5.0),
                                 count=1)
+        telemetry.assert_topology_event(
+          'Http request to {} timed out after {} seconds.'.format('http://localhost', 5.0),
+          count=1
+        )
         aggregator.assert_service_check('example.can_connect', self.check.OK)

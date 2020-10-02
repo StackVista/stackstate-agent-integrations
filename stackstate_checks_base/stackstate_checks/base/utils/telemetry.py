@@ -1,6 +1,8 @@
 from six import iteritems
 from enum import Enum
 import uuid
+from schematics.models import Model
+from schematics.types import StringType, URLType, ModelType, DictType
 
 
 class HealthState(Enum):
@@ -443,8 +445,40 @@ class ServiceCheckStream(TelemetryStream):
     """
     creates a service check stream definition for the component that will bind service checks in StackState for the
     conditions.
-    args: `name, conditions
+    args: `name, conditions`
     `name` The name for the stream in StackState
     `conditions` is a dictionary of key -> value arguments that are used to filter the event values for the stream.
     """
     pass
+
+
+# class TopologyEventContext(Model):
+#     """
+#     EventContext enriches the event with some more context and allows correlation to topology in StackState
+#     args:
+#     `source_identifier` an optional identifier for the event from the source
+#     `element_identifiers` identifiers of 4T data model in terms of URNs. A stream instance identifier is urn:*.
+#         (indexed) - (details) *'urn://process/C:/processs/with/a/long/path/which/is/really/long',
+#         'urn://host/lnx5002345', 80% cases 1, 19% cases 2-5, 0,1-1% cases 100+*
+#     `source` - Kubernetes, ServiceNow, etc.
+#     `category` - unique category of the event
+#     `data` - json blob with any extra properties our stackpack builders want to send
+#     `source_links`[title: String, url: String] - A list of titles and URLs that the event might link to.
+#     """
+#     source_identifier = source_identifier
+#     element_identifiers = element_identifiers
+#     source = source
+#     category = category
+#     data = DictType()
+#     source_links = ModelType(SourceLink)
+#
+#
+# class SourceLink(Model):
+#     """
+#     SourceLink is a external source / event that the event might link to
+#     args:
+#     `title` the name of the external source / event
+#     `url` the url at which more information about this event can be found
+#     """
+#     title = StringType(required=True)
+#     url = URLType()
