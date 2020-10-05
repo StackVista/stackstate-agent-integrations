@@ -101,7 +101,7 @@ class TestDynatrace(unittest.TestCase):
 
     def test_collect_services(self):
         """
-        Testing Dynatrace check should collect services
+        Testing Dynatrace check should collect services and tags coming from Kubernetes
         """
 
         # TODO this is needed because the topology retains data across tests
@@ -121,12 +121,14 @@ class TestDynatrace(unittest.TestCase):
         self.assertEqual(component['type'], 'service')
         self.assertEqual(component['data']['identifiers'], ['urn:service:/SERVICE-329B4CC95B522941'])
         self.assertEqual(component['data']['entityId'], 'SERVICE-329B4CC95B522941')
-
+        tags = component['data']['tags']
+        # Test the tags coming from kubernetes into dynatrace
+        self.assertEqual(tags[0], "[Kubernetes]namespace:default")
         self.assertEqual(len(topo_instances['relations']), 9)
 
     def test_collect_applications(self):
         """
-        Testing Dynatrace check should collect applications
+        Testing Dynatrace check should collect applications and also the tags properly coming from dynatrace
         """
 
         # TODO this is needed because the topology retains data across tests

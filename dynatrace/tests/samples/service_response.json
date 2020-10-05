@@ -78,7 +78,13 @@
         "discoveredName": "AutodiscoverService",
         "firstSeenTimestamp": 1600181244244,
         "lastSeenTimestamp": 1601448254398,
-        "tags": [],
+        "tags": [
+            {
+                "context": "Kubernetes",
+                "key": "namespace",
+                "value": "default"
+            }
+        ],
         "fromRelationships": {
             "runsOnProcessGroupInstance": [
                 "PROCESS_GROUP_INSTANCE-E1E941E994F67C73"

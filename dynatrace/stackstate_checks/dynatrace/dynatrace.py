@@ -154,6 +154,7 @@ class DynatraceCheck(AgentCheck):
                         if type(item[key]) is float:
                             item[key] = int(item[key])
                 identifiers = []
+                labels = []
                 externalId = item.get("entityId")
                 if component_type == "service":
                     urn = "urn:service:/{}".format(externalId)
@@ -167,15 +168,18 @@ class DynatraceCheck(AgentCheck):
                     displayName = item.get("displayName")
                     urn = "urn:host:/{}".format(displayName)
                 identifiers.append(urn)
+                # tags = [tag.get("key") for tag in item.get("tags", [])] + self.tags
+                tags = self.add_tags(item)
                 if "tags" in item:
-                    tags = [tag.get("key") for tag in item.get("tags", [])] + self.tags
                     del item["tags"]
+                labels = self.add_labels(item, labels)
                 data = {
                     "identifiers": identifiers,
                     "tags": tags,
                     "domain": self.domain,
                     "environment": self.environment,
-                    "instance": self.url
+                    "instance": self.url,
+                    "labels": labels
                 }
                 data.update(item)
                 data = self.filter_data(data)
@@ -183,6 +187,49 @@ class DynatraceCheck(AgentCheck):
                 self.collect_relations(item, externalId)
         else:
             self.log.info("Problem getting the {0} or No {1} found.".format(type, type))
+
+    def add_tags(self, item):
+        tags = []
+        for tag in item.get("tags", []):
+            tag_label = ''
+            if bool(tag['context']) and tag.get('context') != 'CONTEXTLESS':
+                tag_label += '[{0}]'.format(tag['context'])
+            if bool(tag.get('key')):
+                tag_label += "{0}".format(tag['key'])
+            if bool(tag.get('value')):
+                tag_label += ":{0}".format(tag['value'])
+            tags.append(tag_label)
+        return tags
+
+    def add_labels(self, item, labels):
+        """
+        Add labels for each component
+        :param item: the component item
+        :param labels: empty labels list where to add specific labels
+        :return: the list of added labels for a component
+        """
+        # append management zones in labels for each existing component
+        if "managementZones" in item:
+            for zone in item["managementZones"]:
+                labels.append("managementZones:{}".format(zone.get("name)")))
+        if "entityId" in item:
+            labels.append(item["entityId"])
+        if "monitoringState" in item:
+            actual_state = item["monitoringState"].get("actualMonitoringState")
+            expected_state = item["monitoringState"].get("expectedMonitoringState")
+            labels.append("actualMonitoringState:{}".format(actual_state))
+            labels.append("expectedMonitoringState:{}".format(expected_state))
+        if "softwareTechnologies" in item:
+            for technologies in item["softwareTechnologies"]:
+                tech_label = ''
+                if bool(technologies['type']):
+                    tech_label += technologies['type']
+                if bool(technologies['edition']):
+                    tech_label += ":{}".format(technologies['edition'])
+                if bool(technologies['version']):
+                    tech_label += ":{}".format(technologies['version'])
+                labels.append(tech_label)
+        return labels
 
     def get_json_response(self, endpoint, timeout=10):
         headers = {"Authorization": "Api-Token {}".format(self.token)}
