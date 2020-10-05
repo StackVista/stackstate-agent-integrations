@@ -10,7 +10,7 @@ from .errors import ConfigurationError
 from .utils.common import ensure_bytes, ensure_unicode, to_string
 from .utils.identifiers import Identifiers
 from .utils.telemetry import MetricStream, MetricHealthChecks, EventStream, EventHealthChecks, HealthState,\
-    ServiceCheckStream, ServiceCheckHealthChecks
+    ServiceCheckStream, ServiceCheckHealthChecks, TopologyEventContext, SourceLink, Event
 from .utils.agent_integration_test_util import AgentIntegrationTestUtil
 
 # Windows-only
@@ -47,4 +47,7 @@ __all__ = [
     'ServiceCheckStream',
     'ServiceCheckHealthChecks',
     'AgentIntegrationTestUtil',
+    'TopologyEventContext',
+    'SourceLink',
+    'Event'
 ]

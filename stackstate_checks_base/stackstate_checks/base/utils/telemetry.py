@@ -2,7 +2,8 @@ from six import iteritems
 from enum import Enum
 import uuid
 from schematics.models import Model
-from schematics.types import StringType, URLType, ModelType, DictType
+from schematics.types import StringType, URLType, ModelType, DictType, ListType, IntType
+from schematics.exceptions import ValidationError
 
 
 class HealthState(Enum):
@@ -452,33 +453,74 @@ class ServiceCheckStream(TelemetryStream):
     pass
 
 
-# class TopologyEventContext(Model):
-#     """
-#     EventContext enriches the event with some more context and allows correlation to topology in StackState
-#     args:
-#     `source_identifier` an optional identifier for the event from the source
-#     `element_identifiers` identifiers of 4T data model in terms of URNs. A stream instance identifier is urn:*.
-#         (indexed) - (details) *'urn://process/C:/processs/with/a/long/path/which/is/really/long',
-#         'urn://host/lnx5002345', 80% cases 1, 19% cases 2-5, 0,1-1% cases 100+*
-#     `source` - Kubernetes, ServiceNow, etc.
-#     `category` - unique category of the event
-#     `data` - json blob with any extra properties our stackpack builders want to send
-#     `source_links`[title: String, url: String] - A list of titles and URLs that the event might link to.
-#     """
-#     source_identifier = source_identifier
-#     element_identifiers = element_identifiers
-#     source = source
-#     category = category
-#     data = DictType()
-#     source_links = ModelType(SourceLink)
-#
-#
-# class SourceLink(Model):
-#     """
-#     SourceLink is a external source / event that the event might link to
-#     args:
-#     `title` the name of the external source / event
-#     `url` the url at which more information about this event can be found
-#     """
-#     title = StringType(required=True)
-#     url = URLType()
+def is_valid_alert_type(value):
+    """
+    Event alert types should be one of ('error', 'warning', 'success', 'info'), defaults to 'info'
+    """
+    if value is None:
+        return 'info'
+
+    if value not in ['error', 'warning', 'success', 'info']:
+        raise ValidationError(u'event alert type should be one of (\'error\', \'warning\', \'success\', \'info\')')
+    return value
+
+
+class SourceLink(Model):
+    """
+    SourceLink is a external source / event that the event might link to
+    args:
+    `title` the name of the external source / event
+    `url` the url at which more information about this event can be found
+    """
+    title = StringType(required=True)
+    url = URLType(fqdn=False, required=True)
+
+
+class TopologyEventContext(Model):
+    """
+    EventContext enriches the event with some more context and allows correlation to topology in StackState
+    args:
+    `source_identifier` an optional identifier for the event from the source
+    `element_identifiers` identifiers of 4T data model in terms of URNs. A stream instance identifier is urn:*.
+        (indexed) - (details) *'urn://process/C:/processs/with/a/long/path/which/is/really/long',
+        'urn://host/lnx5002345', 80% cases 1, 19% cases 2-5, 0,1-1% cases 100+*
+    `source` - Kubernetes, ServiceNow, etc.
+    `category` - unique category of the event
+    `data` - json blob with any extra properties our stackpack builders want to send
+    `source_links`[title: String, url: String] - A list of titles and URLs that the event might link to.
+    """
+    source_identifier = StringType(required=False, serialize_when_none=False)
+    element_identifiers = ListType(StringType, required=False, serialize_when_none=False)
+    source = StringType(required=True)
+    category = StringType(required=True)
+    data = DictType(StringType, required=False, serialize_when_none=False)
+    source_links = ListType(ModelType(SourceLink), required=False, serialize_when_none=False)
+
+
+class Event(Model):
+    """
+    Event represents some activity that occurred that is of interest to
+    args:
+    `msg_title` the title of the event
+    `msg_text` the text body of the event
+    `timestamp` the epoch timestamp for the event
+    `source_type_name` the source type name
+    `priority` specifies the priority of the event ("normal" or "low")
+    `host` the name of the host
+    `tags` a list of tags to associate with this event
+    `alert_type` one of ('error', 'warning', 'success', 'info'), defaults to 'info'
+    `aggregation_key` a key to use for aggregating events
+    `event_type` the event name
+    `event_context` enriches the event with some more context and allows correlation to topology in StackState
+    """
+    msg_title = StringType(required=True)
+    msg_text = StringType(required=True)
+    timestamp = IntType(required=True)
+    source_type_name = StringType(required=True)
+    priority = StringType(required=False, serialize_when_none=False)
+    host = StringType(required=False, serialize_when_none=False)
+    tags = ListType(StringType, required=False, serialize_when_none=False)
+    alert_type = StringType(required=False, serialize_when_none=False, choices=['error', 'warning', 'success', 'info'])
+    aggregation_key = StringType(required=False, serialize_when_none=False)
+    event_type = StringType(required=False, serialize_when_none=False)
+    event_context = ModelType(TopologyEventContext, required=False, serialize_when_none=False)
