@@ -146,7 +146,7 @@ class DynatraceCheck(AgentCheck):
         :return: create the component on stackstate API
         """
         urn = ''
-        if type(response) is not dict and "error" not in response:
+        if "error" not in response:
             for item in response:
                 # special case for host type as we get some float values
                 if component_type == "host":
@@ -168,8 +168,7 @@ class DynatraceCheck(AgentCheck):
                     displayName = item.get("displayName")
                     urn = "urn:host:/{}".format(displayName)
                 identifiers.append(urn)
-                # tags = [tag.get("key") for tag in item.get("tags", [])] + self.tags
-                tags = self.add_tags(item)
+                tags = self.add_tags(item) + self.tags
                 if "tags" in item:
                     del item["tags"]
                 labels = self.add_labels(item, labels)
@@ -186,7 +185,9 @@ class DynatraceCheck(AgentCheck):
                 self.component(externalId, component_type, data)
                 self.collect_relations(item, externalId)
         else:
-            self.log.info("Problem getting the {0} or No {1} found.".format(type, type))
+            self.log.info("Problem getting the {0} or No {1} found.".format(component_type, component_type))
+            self.log.error("Response code {0} with message : {1}".format(response["error"].get("code"),
+                                                                         response["error"].get("message")))
 
     def add_tags(self, item):
         tags = []
@@ -211,17 +212,17 @@ class DynatraceCheck(AgentCheck):
         # append management zones in labels for each existing component
         if "managementZones" in item:
             for zone in item["managementZones"]:
-                labels.append("managementZones:{}".format(zone.get("name)")))
+                labels.append("dynatrace-managementZones:{}".format(zone.get("name)")))
         if "entityId" in item:
             labels.append(item["entityId"])
         if "monitoringState" in item:
             actual_state = item["monitoringState"].get("actualMonitoringState")
             expected_state = item["monitoringState"].get("expectedMonitoringState")
-            labels.append("actualMonitoringState:{}".format(actual_state))
-            labels.append("expectedMonitoringState:{}".format(expected_state))
+            labels.append("dynatrace-actualMonitoringState:{}".format(actual_state))
+            labels.append("dynatrace-expectedMonitoringState:{}".format(expected_state))
         if "softwareTechnologies" in item:
             for technologies in item["softwareTechnologies"]:
-                tech_label = ''
+                tech_label = 'dynatrace-'
                 if bool(technologies['type']):
                     tech_label += technologies['type']
                 if bool(technologies['edition']):
