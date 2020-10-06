@@ -500,7 +500,7 @@ class AgentCheckBase(object):
                                  self._map_relation_data(agent_integration_external_id,
                                                          agent_integration_instance_external_id, "has", {}))
 
-    def event(self, event, context=None):
+    def validate_event(self, event):
         # sent in as Event, validate to make sure it's correct
         if isinstance(event, Event):
             event.validate()
@@ -512,79 +512,7 @@ class AgentCheckBase(object):
         elif not isinstance(event, Event):
             self._raise_unexpected_type("event", event, "Dictionary or Event")
 
-        #  Py 3
-        # # Enforce types of some fields, considerably facilitates handling in go bindings downstream
-        # for key, value in list(iteritems(event)):
-        #     # transform any bytes objects to utf-8
-        #     if isinstance(value, bytes):
-        #         try:
-        #             event[key] = event[key].decode('utf-8')
-        #         except UnicodeError:
-        #             self.log.warning(
-        #                 'Error decoding unicode field `{}` to utf-8 encoded string, cannot submit event'.format(key)
-        #             )
-        #             return
-        # if event.get('tags'):
-        #     event['tags'] = self._normalize_tags_type(event['tags'])
-        # if event.get('timestamp'):
-        #     event['timestamp'] = int(event['timestamp'])
-        # if event.get('aggregation_key'):
-        #     event['aggregation_key'] = ensure_unicode(event['aggregation_key'])
-        # aggregator.submit_event(self, self.check_id, event)`
-
-        #  Py 2
-        # # Enforce types of some fields, considerably facilitates handling in go bindings downstream
-        # for key, value in list(iteritems(event)):
-        #     # transform the unicode objects to plain strings with utf-8 encoding
-        #     if isinstance(value, text_type):
-        #         try:
-        #             event[key] = event[key].encode('utf-8')
-        #         except UnicodeError:
-        #             self.log.warning(
-        #                 "Error encoding unicode field '%s' to utf-8 encoded string, can't submit event",
-        #                 key)
-        #             return
-        # if event.get('tags'):
-        #     event['tags'] = self._normalize_tags_type(event['tags'])
-        # if event.get('timestamp'):
-        #     event['timestamp'] = int(event['timestamp'])
-        # if event.get('aggregation_key'):
-        #     event['aggregation_key'] = ensure_bytes(event['aggregation_key'])
-        # aggregator.submit_event(self, self.check_id, event)
-
-        # validate the optional context
-        if context:
-            # sent in as TopologyEventContext, validate to make sure it's correct
-            if isinstance(context, TopologyEventContext):
-                context.validate()
-            # sent in as dictionary, convert to TopologyEventContext and validate to make sure it's correct
-            elif isinstance(context, dict):
-                _context = TopologyEventContext(context)
-                _context.validate()
-                context = _context
-            elif not isinstance(context, TopologyEventContext):
-                self._raise_unexpected_type("context", context, "None, Dictionary or TopologyEventContext")
-
-            event.event_context = context
-
-        if context:
-            telemetry.submit_topology_event(self, self.check_id, event.to_primitive())
-        else:
-            aggregator.submit_event(self, self.check_id, event.to_primitive())
-
-    def topology_event(self, event):
-        # sent in as Event, validate to make sure it's correct
-        if isinstance(event, Event):
-            event.validate()
-        # sent in as dictionary, convert to Event and validate to make sure it's correct
-        elif isinstance(event, dict):
-            _event = Event(event)
-            _event.validate()
-            event = _event
-        elif not isinstance(event, Event):
-            self._raise_unexpected_type("event", event, "Dictionary or Event")
-
-        telemetry.submit_topology_event(self, self.check_id, event.to_primitive())
+        return event.to_native()
 
     def _submit_metric(self, mtype, name, value, tags=None, hostname=None, device_name=None):
         pass
@@ -649,70 +577,6 @@ class AgentCheckBase(object):
             proxies['no'] = proxies.pop('no_proxy')
 
         return proxies if proxies else no_proxy_settings
-
-    def _to_bytes(self, data):
-        """
-        Normalize a text data to bytes (type `bytes`) so that the go bindings can
-        handle it easily.
-        """
-        # TODO: On Python 3, move this `if` line to the `except` branch
-        # as the common case will indeed no longer be bytes.
-        if not isinstance(data, bytes):
-            try:
-                return data.encode('utf-8')
-            except Exception:
-                return None
-
-        return data
-
-    def _normalize_tags_type(self, tags, device_name=None, metric_name=None):
-        """
-        Normalize tags contents and type:
-        - append `device_name` as `device:` tag
-        - normalize tags type
-        - doesn't mutate the passed list, returns a new list
-        """
-        normalized_tags = []
-
-        if device_name:
-            self._log_deprecation('device_name')
-            if PY3:
-                normalized_tags.append('device:{}'.format(ensure_unicode(device_name)))
-            else:
-                device_tag = self._to_bytes("device:{}".format(device_name))
-                if device_tag is None:
-                    self.log.warning(
-                        'Error encoding device name `{}` to utf-8 for metric `{}`, ignoring tag'.format(
-                            repr(device_name), repr(metric_name)
-                        )
-                    )
-                else:
-                    normalized_tags.append(device_tag)
-        if tags is not None:
-            for tag in tags:
-                if PY3:
-                    if not isinstance(tag, str):
-                        try:
-                            tag = tag.decode('utf-8')
-                        except UnicodeError:
-                            self.log.warning(
-                                'Error decoding tag `{}` as utf-8 for metric `{}`, ignoring tag'.format(tag, metric_name)
-                            )
-                            continue
-
-                    normalized_tags.append(tag)
-                else:
-                    encoded_tag = self._to_bytes(tag)
-                    if encoded_tag is None:
-                        self.log.warning(
-                            'Error encoding tag `{}` to utf-8 for metric `{}`, ignoring tag'.format(
-                                repr(tag), repr(metric_name)
-                            )
-                        )
-                        continue
-                    normalized_tags.append(encoded_tag)
-
-        return normalized_tags
 
 
 class __AgentCheckPy3(AgentCheckBase):
@@ -805,6 +669,59 @@ class __AgentCheckPy3(AgentCheckBase):
         instance = self._get_instance_key_value()
         aggregator.submit_service_check(self, self.check_id, ensure_unicode(name), status, tags + instance.tags(),
                                         hostname, message)
+
+    def event(self, event):
+        event = self.validate_event(event)
+        # Enforce types of some fields, considerably facilitates handling in go bindings downstream
+        for key, value in list(iteritems(event)):
+            # transform any bytes objects to utf-8
+            if isinstance(value, bytes):
+                try:
+                    event[key] = event[key].decode('utf-8')
+                except UnicodeError:
+                    self.log.warning(
+                        'Error decoding unicode field `{}` to utf-8 encoded string, cannot submit event'.format(key)
+                    )
+                    return
+        if event.get('tags'):
+            event['tags'] = self._normalize_tags_type(event['tags'])
+        if event.get('timestamp'):
+            event['timestamp'] = int(event['timestamp'])
+        if event.get('aggregation_key'):
+            event['aggregation_key'] = ensure_unicode(event['aggregation_key'])
+
+        if 'context' in event:
+            telemetry.submit_topology_event(self, self.check_id, event)
+        else:
+            aggregator.submit_event(self, self.check_id, event)
+
+    def _normalize_tags_type(self, tags, device_name=None, metric_name=None):
+        """
+        Normalize tags contents and type:
+        - append `device_name` as `device:` tag
+        - normalize tags type
+        - doesn't mutate the passed list, returns a new list
+        """
+        normalized_tags = []
+
+        if device_name:
+            self._log_deprecation('device_name')
+            normalized_tags.append('device:{}'.format(ensure_unicode(device_name)))
+
+        if tags is not None:
+            for tag in tags:
+                if not isinstance(tag, str):
+                    try:
+                        tag = tag.decode('utf-8')
+                    except UnicodeError:
+                        self.log.warning(
+                            'Error decoding tag `{}` as utf-8 for metric `{}`, ignoring tag'.format(tag, metric_name)
+                        )
+                        continue
+
+                normalized_tags.append(tag)
+
+        return normalized_tags
 
     def warning(self, warning_message):
         warning_message = ensure_unicode(warning_message)
@@ -931,6 +848,79 @@ class __AgentCheckPy2(AgentCheckBase):
         tags_bytes = list(map(lambda t: ensure_bytes(t), instance.tags()))
         aggregator.submit_service_check(self, self.check_id, ensure_bytes(name), status,
                                         tags + tags_bytes, hostname, message)
+
+    def event(self, event):
+        event = self.validate_event(event)
+        # Enforce types of some fields, considerably facilitates handling in go bindings downstream
+        for key, value in list(iteritems(event)):
+            # transform the unicode objects to plain strings with utf-8 encoding
+            if isinstance(value, text_type):
+                try:
+                    event[key] = event[key].encode('utf-8')
+                except UnicodeError:
+                    self.log.warning("Error encoding unicode field '%s' to utf-8 encoded string, can't submit event",
+                                     key)
+                    return
+        if event.get('tags'):
+            event['tags'] = self._normalize_tags_type(event['tags'])
+        if event.get('timestamp'):
+            event['timestamp'] = int(event['timestamp'])
+        if event.get('aggregation_key'):
+            event['aggregation_key'] = ensure_bytes(event['aggregation_key'])
+
+        if 'context' in event:
+            telemetry.submit_topology_event(self, self.check_id, event)
+        else:
+            aggregator.submit_event(self, self.check_id, event)
+
+    def _normalize_tags_type(self, tags, device_name=None, metric_name=None):
+        """
+        Normalize tags contents and type:
+        - append `device_name` as `device:` tag
+        - normalize tags type
+        - doesn't mutate the passed list, returns a new list
+        """
+        normalized_tags = []
+        if device_name:
+            self._log_deprecation("device_name")
+            device_tag = self._to_bytes("device:{}".format(device_name))
+            if device_tag is None:
+                self.log.warning(
+                    'Error encoding device name `{}` to utf-8 for metric `{}`, ignoring tag'.format(
+                        repr(device_name), repr(metric_name)
+                    )
+                )
+            else:
+                normalized_tags.append(device_tag)
+
+        if tags is not None:
+            for tag in tags:
+                encoded_tag = self._to_bytes(tag)
+                if encoded_tag is None:
+                    self.log.warning(
+                        'Error encoding tag `{}` to utf-8 for metric `{}`, ignoring tag'.format(
+                            repr(tag), repr(metric_name)
+                        )
+                    )
+                    continue
+                normalized_tags.append(encoded_tag)
+
+        return normalized_tags
+
+    def _to_bytes(self, data):
+        """
+        Normalize a text data to bytes (type `bytes`) so that the go bindings can
+        handle it easily.
+        """
+        # TODO: On Python 3, move this `if` line to the `except` branch
+        # as the common case will indeed no longer be bytes.
+        if not isinstance(data, bytes):
+            try:
+                return data.encode('utf-8')
+            except Exception:
+                return None
+
+        return data
 
     def warning(self, warning_message):
         warning_message = ensure_bytes(warning_message)

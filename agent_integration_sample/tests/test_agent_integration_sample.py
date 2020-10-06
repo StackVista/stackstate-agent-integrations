@@ -383,7 +383,23 @@ class TestAgentIntegration(unittest.TestCase):
         aggregator.assert_event('Http request to {} timed out after {} seconds.'.format('http://localhost', 5.0),
                                 count=1)
         telemetry.assert_topology_event(
-          'Http request to {} timed out after {} seconds.'.format('http://localhost', 5.0),
+          {
+            "timestamp": int(1),
+            "source_type_name": "HTTP_TIMEOUT",
+            "msg_title": "URL timeout",
+            "msg_text": "Http request to http://localhost timed out after 5.0 seconds.",
+            "aggregation_key": "instance-request-http://localhost",
+            "context": {
+              "source_identifier": "source_identifier_value",
+              "element_identifiers": ["urn:host:/123"],
+              "source": "source_value",
+              "category": "my_category",
+              "data": {"big_black_hole": "here", "another_thing": 1, "test": {"1": "test"}},
+              "source_links": [
+                {"title": "my_event_external_link", "url": "http://localhost"}
+              ]
+            }
+          },
           count=1
         )
         aggregator.assert_service_check('example.can_connect', self.check.OK)

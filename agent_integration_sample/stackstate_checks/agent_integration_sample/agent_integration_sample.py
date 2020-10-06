@@ -128,20 +128,21 @@ class AgentIntegrationSampleCheck(AgentCheck):
         })
 
         self.event({
-            "timestamp": int(time.time()),
+            "timestamp": int(1),
             "source_type_name": "HTTP_TIMEOUT",
             "msg_title": "URL timeout",
             "msg_text": "Http request to %s timed out after %s seconds." % (instance_url, timeout),
-            "aggregation_key": "instance-request-%s" % instance_url
-        }, {
-            "source_identifier": "source_identifier_value",
-            "element_identifiers": ["urn:host:/123"],
-            "source": "source_value",
-            "category": "my_category",
-            "data": {"big_black_hole": "here", "another_thing": 1, "test": {"1": "test"}},
-            "source_links": [
-                {"title": "my_event_external_link", "url": "http://localhost"}
-            ]
+            "aggregation_key": "instance-request-%s" % instance_url,
+            "context": {
+                "source_identifier": "source_identifier_value",
+                "element_identifiers": ["urn:host:/123"],
+                "source": "source_value",
+                "category": "my_category",
+                "data": {"big_black_hole": "here", "another_thing": 1, "test": {"1": "test"}},
+                "source_links": [
+                    {"title": "my_event_external_link", "url": "http://localhost"}
+                ]
+            }
         })
 
         # some logic here to test our connection and if successful:

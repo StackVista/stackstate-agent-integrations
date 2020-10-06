@@ -1,4 +1,4 @@
-from six import iteritems
+from six import iteritems, string_types
 from enum import Enum
 import uuid
 from schematics.models import Model
@@ -23,8 +23,8 @@ class EventHealthChecks(object):
     """
 
     @staticmethod
-    def _is_valid_health_state(healthState):
-        return HealthState[healthState]
+    def _is_valid_health_state(health_state):
+        return HealthState[health_state]
 
     @staticmethod
     def contains_key_value(stream_id, name, contains_key, contains_value, found_health_state, missing_health_state,
@@ -453,6 +453,14 @@ class ServiceCheckStream(TelemetryStream):
     pass
 
 
+class ProperStringType(StringType):
+    def convert(self, value, context=None):
+        if not isinstance(value, string_types):
+            raise ValidationError('Value must be a string')
+        value = super(ProperStringType, self).convert(value, context)
+        return value
+
+
 class SourceLink(Model):
     """
     SourceLink is a external source / event that the event might link to
@@ -460,7 +468,7 @@ class SourceLink(Model):
     `title` the name of the external source / event
     `url` the url at which more information about this event can be found
     """
-    title = StringType(required=True)
+    title = ProperStringType(required=True)
     url = URLType(fqdn=False, required=True)
 
 
@@ -477,10 +485,10 @@ class TopologyEventContext(Model):
     `data` - json blob with any extra properties our stackpack builders want to send
     `source_links`[title: String, url: String] - A list of titles and URLs that the event might link to.
     """
-    source_identifier = StringType(required=False)
-    element_identifiers = ListType(StringType, required=False)
-    source = StringType(required=True)
-    category = StringType(required=True)
+    source_identifier = ProperStringType(required=False)
+    element_identifiers = ListType(ProperStringType, required=False)
+    source = ProperStringType(required=True)
+    category = ProperStringType(required=True)
     data = BaseType(required=False)
     source_links = ListType(ModelType(SourceLink), required=False)
 
@@ -504,17 +512,17 @@ class Event(Model):
     `event_type` the event name
     `event_context` enriches the event with some more context and allows correlation to topology in StackState
     """
-    msg_title = StringType(required=True, default="")
-    msg_text = StringType(required=True, default="")
+    msg_title = ProperStringType(required=True, default="")
+    msg_text = ProperStringType(required=True, default="")
     timestamp = IntType(required=True)
-    source_type_name = StringType(required=True)
-    priority = StringType(required=False)
-    host = StringType(required=False)
-    tags = ListType(StringType, required=False)
-    alert_type = StringType(required=False, choices=['error', 'warning', 'success', 'info'])
-    aggregation_key = StringType(required=False)
-    event_type = StringType(required=False)
-    event_context = ModelType(TopologyEventContext, required=False)
+    source_type_name = ProperStringType(required=True)
+    priority = ProperStringType(required=False)
+    host = ProperStringType(required=False)
+    tags = ListType(ProperStringType, required=False)
+    alert_type = ProperStringType(required=False, choices=['error', 'warning', 'success', 'info'])
+    aggregation_key = ProperStringType(required=False)
+    event_type = ProperStringType(required=False)
+    context = ModelType(TopologyEventContext, required=False)
 
     class Options:
         serialize_when_none = False

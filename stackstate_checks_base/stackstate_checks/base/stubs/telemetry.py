@@ -33,25 +33,15 @@ class TelemetryStub(object):
     def submit_topology_event(self, check, check_id, event):
         self._topology_events.append(event)
 
-    # Potential kwargs: aggregation_key, alert_type, event_type,
-    # msg_title, source_type_name
-    def assert_topology_event(self, msg_text, count=None, at_least=1, exact_match=True,
-                     tags=None, **kwargs):
+    def assert_topology_event(self, event, count=None, at_least=1):
         candidates = []
         for e in self._topology_events:
-            if exact_match and msg_text != e['msg_text'] or \
-                    msg_text not in e['msg_text']:
-                continue
-            if tags and set(tags) != set(e['tags']):
-                continue
-            for name, value in iteritems(kwargs):
-                if e[name] != value:
-                    break
-            else:
+            print(e)
+            if e == event:
                 candidates.append(e)
 
         msg = ("Candidates size assertion for {0}, count: {1}, "
-               "at_least: {2}) failed").format(msg_text, count, at_least)
+               "at_least: {2}) failed").format(event, count, at_least)
         if count is not None:
             assert len(candidates) == count, msg
         else:
