@@ -2,7 +2,7 @@ from six import iteritems
 from enum import Enum
 import uuid
 from schematics.models import Model
-from schematics.types import StringType, URLType, ModelType, DictType, ListType, IntType
+from schematics.types import StringType, URLType, ModelType, ListType, IntType, BaseType
 from schematics.exceptions import ValidationError
 
 
@@ -453,18 +453,6 @@ class ServiceCheckStream(TelemetryStream):
     pass
 
 
-def is_valid_alert_type(value):
-    """
-    Event alert types should be one of ('error', 'warning', 'success', 'info'), defaults to 'info'
-    """
-    if value is None:
-        return 'info'
-
-    if value not in ['error', 'warning', 'success', 'info']:
-        raise ValidationError(u'event alert type should be one of (\'error\', \'warning\', \'success\', \'info\')')
-    return value
-
-
 class SourceLink(Model):
     """
     SourceLink is a external source / event that the event might link to
@@ -489,12 +477,15 @@ class TopologyEventContext(Model):
     `data` - json blob with any extra properties our stackpack builders want to send
     `source_links`[title: String, url: String] - A list of titles and URLs that the event might link to.
     """
-    source_identifier = StringType(required=False, serialize_when_none=False)
-    element_identifiers = ListType(StringType, required=False, serialize_when_none=False)
+    source_identifier = StringType(required=False)
+    element_identifiers = ListType(StringType, required=False)
     source = StringType(required=True)
     category = StringType(required=True)
-    data = DictType(StringType, required=False, serialize_when_none=False)
-    source_links = ListType(ModelType(SourceLink), required=False, serialize_when_none=False)
+    data = BaseType(required=False)
+    source_links = ListType(ModelType(SourceLink), required=False)
+
+    class Options:
+        serialize_when_none = False
 
 
 class Event(Model):
@@ -513,14 +504,17 @@ class Event(Model):
     `event_type` the event name
     `event_context` enriches the event with some more context and allows correlation to topology in StackState
     """
-    msg_title = StringType(required=True)
-    msg_text = StringType(required=True)
+    msg_title = StringType(required=True, default="")
+    msg_text = StringType(required=True, default="")
     timestamp = IntType(required=True)
     source_type_name = StringType(required=True)
-    priority = StringType(required=False, serialize_when_none=False)
-    host = StringType(required=False, serialize_when_none=False)
-    tags = ListType(StringType, required=False, serialize_when_none=False)
-    alert_type = StringType(required=False, serialize_when_none=False, choices=['error', 'warning', 'success', 'info'])
-    aggregation_key = StringType(required=False, serialize_when_none=False)
-    event_type = StringType(required=False, serialize_when_none=False)
-    event_context = ModelType(TopologyEventContext, required=False, serialize_when_none=False)
+    priority = StringType(required=False)
+    host = StringType(required=False)
+    tags = ListType(StringType, required=False)
+    alert_type = StringType(required=False, choices=['error', 'warning', 'success', 'info'])
+    aggregation_key = StringType(required=False)
+    event_type = StringType(required=False)
+    event_context = ModelType(TopologyEventContext, required=False)
+
+    class Options:
+        serialize_when_none = False

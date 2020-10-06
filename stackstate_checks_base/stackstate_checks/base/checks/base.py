@@ -512,6 +512,46 @@ class AgentCheckBase(object):
         elif not isinstance(event, Event):
             self._raise_unexpected_type("event", event, "Dictionary or Event")
 
+        #  Py 3
+        # # Enforce types of some fields, considerably facilitates handling in go bindings downstream
+        # for key, value in list(iteritems(event)):
+        #     # transform any bytes objects to utf-8
+        #     if isinstance(value, bytes):
+        #         try:
+        #             event[key] = event[key].decode('utf-8')
+        #         except UnicodeError:
+        #             self.log.warning(
+        #                 'Error decoding unicode field `{}` to utf-8 encoded string, cannot submit event'.format(key)
+        #             )
+        #             return
+        # if event.get('tags'):
+        #     event['tags'] = self._normalize_tags_type(event['tags'])
+        # if event.get('timestamp'):
+        #     event['timestamp'] = int(event['timestamp'])
+        # if event.get('aggregation_key'):
+        #     event['aggregation_key'] = ensure_unicode(event['aggregation_key'])
+        # aggregator.submit_event(self, self.check_id, event)`
+
+        #  Py 2
+        # # Enforce types of some fields, considerably facilitates handling in go bindings downstream
+        # for key, value in list(iteritems(event)):
+        #     # transform the unicode objects to plain strings with utf-8 encoding
+        #     if isinstance(value, text_type):
+        #         try:
+        #             event[key] = event[key].encode('utf-8')
+        #         except UnicodeError:
+        #             self.log.warning(
+        #                 "Error encoding unicode field '%s' to utf-8 encoded string, can't submit event",
+        #                 key)
+        #             return
+        # if event.get('tags'):
+        #     event['tags'] = self._normalize_tags_type(event['tags'])
+        # if event.get('timestamp'):
+        #     event['timestamp'] = int(event['timestamp'])
+        # if event.get('aggregation_key'):
+        #     event['aggregation_key'] = ensure_bytes(event['aggregation_key'])
+        # aggregator.submit_event(self, self.check_id, event)
+
         # validate the optional context
         if context:
             # sent in as TopologyEventContext, validate to make sure it's correct
@@ -525,7 +565,7 @@ class AgentCheckBase(object):
             elif not isinstance(context, TopologyEventContext):
                 self._raise_unexpected_type("context", context, "None, Dictionary or TopologyEventContext")
 
-        event.event_context = context
+            event.event_context = context
 
         if context:
             telemetry.submit_topology_event(self, self.check_id, event.to_primitive())

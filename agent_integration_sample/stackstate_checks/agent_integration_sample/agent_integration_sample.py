@@ -138,7 +138,7 @@ class AgentIntegrationSampleCheck(AgentCheck):
             "element_identifiers": ["urn:host:/123"],
             "source": "source_value",
             "category": "my_category",
-            "data": {"big_black_hole": "here"},
+            "data": {"big_black_hole": "here", "another_thing": 1, "test": {"1": "test"}},
             "source_links": [
                 {"title": "my_event_external_link", "url": "http://localhost"}
             ]
