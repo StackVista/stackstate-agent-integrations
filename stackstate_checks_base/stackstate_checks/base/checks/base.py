@@ -506,7 +506,7 @@ class AgentCheckBase(object):
             event.validate()
         # sent in as dictionary, convert to Event and validate to make sure it's correct
         elif isinstance(event, dict):
-            _event = Event(event)
+            _event = Event(event, strict=False)  # strict=False ignores extra fields provided by nagios
             _event.validate()
             event = _event
         elif not isinstance(event, Event):
@@ -671,7 +671,7 @@ class __AgentCheckPy3(AgentCheckBase):
                                         hostname, message)
 
     def event(self, event):
-        event = self.validate_event(event)
+        self.validate_event(event)
         # Enforce types of some fields, considerably facilitates handling in go bindings downstream
         for key, value in list(iteritems(event)):
             # transform any bytes objects to utf-8
@@ -850,7 +850,7 @@ class __AgentCheckPy2(AgentCheckBase):
                                         tags + tags_bytes, hostname, message)
 
     def event(self, event):
-        event = self.validate_event(event)
+        self.validate_event(event)
         # Enforce types of some fields, considerably facilitates handling in go bindings downstream
         for key, value in list(iteritems(event)):
             # transform the unicode objects to plain strings with utf-8 encoding
