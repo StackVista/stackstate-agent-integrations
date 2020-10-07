@@ -47,6 +47,12 @@ class TelemetryStub(object):
         else:
             assert len(candidates) >= at_least, msg
 
+    def reset(self):
+        """
+        Set the stub to its initial state
+        """
+        self._topology_events = []
+
 
 # Use the stub as a singleton
 telemetry = TelemetryStub()
