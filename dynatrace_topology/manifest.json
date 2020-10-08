@@ -1,12 +1,12 @@
 {
-  "display_name": "Dynatrace",
+  "display_name": "Dynatrace Topology",
   "maintainer": "info@stackstate.com",
   "manifest_version": "1.0.0",
-  "name": "dynatrace",
-  "metric_prefix": "dynatrace.",
+  "name": "dynatrace_topology",
+  "metric_prefix": "dynatrace_topology.",
   "metric_to_check": "",
   "creates_events": false,
-  "short_description": "Collect topology and events from Dynatrace",
+  "short_description": "Collect smartscape topology from Dynatrace",
   "guid": "c8e670fa-822e-4118-8ebb-4d935836cb1d",
   "support": "core",
   "supported_os": [
@@ -14,7 +14,7 @@
     "mac_os",
     "windows"
   ],
-  "public_title": "StackState-Dynatrace Integration",
+  "public_title": "StackState-Dynatrace Topology Integration",
   "categories": [
     ""
   ],

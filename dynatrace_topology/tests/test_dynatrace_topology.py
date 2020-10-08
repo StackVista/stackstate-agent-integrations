@@ -7,7 +7,7 @@ import unittest
 import yaml
 import mock
 
-from stackstate_checks.dynatrace import DynatraceCheck
+from stackstate_checks.dynatrace_topology import DynatraceTopologyCheck
 from stackstate_checks.base.stubs import topology, aggregator
 
 
@@ -18,7 +18,7 @@ def read_data(filename):
 
 
 @pytest.mark.usefixtures("instance")
-class TestDynatrace(unittest.TestCase):
+class TestDynatraceTopologyCheck(unittest.TestCase):
     """Basic Test for Dynatrace integration."""
     CHECK_NAME = 'dynatrace'
     SERVICE_CHECK_NAME = "dynatrace"
@@ -28,15 +28,14 @@ class TestDynatrace(unittest.TestCase):
         Initialize and patch the check, i.e.
         """
         config = {}
-        self.check = DynatraceCheck(self.CHECK_NAME, config, instances=[self.instance])
+        self.check = DynatraceTopologyCheck(self.CHECK_NAME, config, instances=[self.instance])
+        # this is needed because the topology retains data across tests
+        topology.reset()
 
     def test_collect_empty_topology(self):
         """
         Testing Dynatrace check should not produce any topology
         """
-
-        # TODO this is needed because the topology retains data across tests
-        topology.reset()
 
         self.check.get_json_response = mock.MagicMock()
         self.check.get_json_response.return_value = []
@@ -52,9 +51,6 @@ class TestDynatrace(unittest.TestCase):
         """
         Testing Dynatrace check should collect processes
         """
-
-        # TODO this is needed because the topology retains data across tests
-        topology.reset()
 
         self.check.get_json_response = mock.MagicMock()
         self.check.get_json_response.return_value = read_data("process_response.json")
@@ -79,9 +75,6 @@ class TestDynatrace(unittest.TestCase):
         Testing Dynatrace check should collect hosts
         """
 
-        # TODO this is needed because the topology retains data across tests
-        topology.reset()
-
         self.check.get_json_response = mock.MagicMock()
         self.check.get_json_response.return_value = read_data("host_response.json")
         self.check.url = self.instance.get('url')
@@ -104,9 +97,6 @@ class TestDynatrace(unittest.TestCase):
         Testing Dynatrace check should collect services and tags coming from Kubernetes
         """
 
-        # TODO this is needed because the topology retains data across tests
-        topology.reset()
-
         self.check.get_json_response = mock.MagicMock()
         self.check.get_json_response.return_value = read_data("service_response.json")
         self.check.url = self.instance.get('url')
@@ -121,18 +111,16 @@ class TestDynatrace(unittest.TestCase):
         self.assertEqual(component['type'], 'service')
         self.assertEqual(component['data']['identifiers'], ['urn:service:/SERVICE-329B4CC95B522941'])
         self.assertEqual(component['data']['entityId'], 'SERVICE-329B4CC95B522941')
-        tags = component['data']['tags']
-        # Test the tags coming from kubernetes into dynatrace
-        self.assertEqual(tags[0], "[Kubernetes]namespace:default")
+        labels = component['data']['labels']
+        print(labels)
+        # tags coming from kubernetes into dynatrace should appear as label in stackstate
+        self.assertIn("dynatrace-[Kubernetes]namespace:default", labels)
         self.assertEqual(len(topo_instances['relations']), 9)
 
     def test_collect_applications(self):
         """
         Testing Dynatrace check should collect applications and also the tags properly coming from dynatrace
         """
-
-        # TODO this is needed because the topology retains data across tests
-        topology.reset()
 
         self.check.get_json_response = mock.MagicMock()
         self.check.get_json_response.return_value = read_data("application_response.json")
@@ -148,17 +136,23 @@ class TestDynatrace(unittest.TestCase):
         self.assertEqual(component['type'], 'application')
         self.assertEqual(component['data']['identifiers'], ['urn:application:/APPLICATION-EA7C4B59F27D43EB'])
         self.assertEqual(component['data']['entityId'], 'APPLICATION-EA7C4B59F27D43EB')
-        self.assertEqual(component['data']['tags'][0], 'Mytag')
-        self.assertEqual(component['data']['tags'][1], 'Test')
+
+        labels = component['data']['labels']
+        print(labels)
+        # tags coming from dynatrace should appear as label in stackstate
+        self.assertIn('dynatrace-Mytag', component['data']['labels'])
+        self.assertIn('dynatrace-Test', component['data']['labels'])
+        # managementZones should be in labels
+        self.assertIn('dynatrace-managementZones:allTypes', component['data']['labels'])
+        self.assertIn('dynatrace-managementZones:Applications except easyTravel', component['data']['labels'])
+        # entityId should be also exist in labels
+        self.assertIn('dynatrace-APPLICATION-EA7C4B59F27D43EB', component['data']['labels'])
         self.assertEqual(len(topo_instances['relations']), 3)
 
     def test_collect_process_groups(self):
         """
         Testing Dynatrace check should collect process-groups
         """
-
-        # TODO this is needed because the topology retains data across tests
-        topology.reset()
 
         self.check.get_json_response = mock.MagicMock()
         self.check.get_json_response.return_value = read_data("process-group_response.json")
@@ -202,9 +196,6 @@ class TestDynatrace(unittest.TestCase):
         Test to check if relations are collected properly
         """
 
-        # TODO this is needed because the topology retains data across tests
-        topology.reset()
-
         component = read_data("host_response.json")[0]
         self.check.collect_relations(component, component.get('entityId'))
 
@@ -221,9 +212,6 @@ class TestDynatrace(unittest.TestCase):
         """
         Test to raise a check exception when collecting components
         """
-
-        # TODO this is needed because the aggregator retains data across tests
-        aggregator.reset()
 
         self.check.get_json_response = mock.MagicMock()
         self.check.get_json_response.side_effect = Exception("Exception occured")

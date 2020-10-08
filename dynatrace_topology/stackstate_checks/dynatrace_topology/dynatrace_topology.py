@@ -2,6 +2,7 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 from stackstate_checks.base import AgentCheck, ConfigurationError, TopologyInstance
+from .dynatrace_exception import DynatraceError
 
 import requests
 from requests import Session
@@ -9,7 +10,7 @@ import yaml
 from datetime import datetime
 
 
-class DynatraceCheck(AgentCheck):
+class DynatraceTopologyCheck(AgentCheck):
 
     INSTANCE_TYPE = "dynatrace"
     SERVICE_CHECK_NAME = "dynatrace"
@@ -27,7 +28,7 @@ class DynatraceCheck(AgentCheck):
 
     def get_instance_key(self, instance):
         if 'url' not in instance:
-            raise ConfigurationError('Missing API url in configuration.')
+            raise ConfigurationError('Missing url in configuration.')
 
         return TopologyInstance(self.INSTANCE_TYPE, instance["url"])
 
@@ -36,7 +37,7 @@ class DynatraceCheck(AgentCheck):
         Integration logic
         """
         if 'url' not in instance:
-            raise ConfigurationError('Missing API user in configuration.')
+            raise ConfigurationError('Missing URL in configuration.')
         if 'token' not in instance:
             raise ConfigurationError('Missing API Token in configuration.')
 
@@ -70,7 +71,7 @@ class DynatraceCheck(AgentCheck):
         self.collect_applications()
         end_time = datetime.now()
         time_taken = end_time - start_time
-        self.log.info("Time taken to collect the topology is: {}".format(time_taken.total_seconds()))
+        self.log.info("Time taken to collect the topology is: {} seconds".format(time_taken.total_seconds()))
 
     def collect_relations(self, component, externalId):
         """
@@ -152,9 +153,8 @@ class DynatraceCheck(AgentCheck):
                 if component_type == "host":
                     for key in item.keys():
                         if type(item[key]) is float:
-                            item[key] = int(item[key])
+                            item[key] = str(item[key])
                 identifiers = []
-                labels = []
                 externalId = item.get("entityId")
                 if component_type == "service":
                     urn = "urn:service:/{}".format(externalId)
@@ -168,13 +168,18 @@ class DynatraceCheck(AgentCheck):
                     displayName = item.get("displayName")
                     urn = "urn:host:/{}".format(displayName)
                 identifiers.append(urn)
-                tags = self.add_tags(item) + self.tags
+                # derive useful labels and get labels from dynatrace tags
+                labels = self.get_labels(item)
+                print("labels for application {} :- {}".format(externalId, labels))
+                labels += self.get_labels_from_dynatrace_tags(item)
+                print("labels after processing tags for application {} :- {}".format(externalId, labels))
                 if "tags" in item:
                     del item["tags"]
-                labels = self.add_labels(item, labels)
+                # prefix the labels with `dynatrace-` for all labels
+                labels = ["dynatrace-{}".format(label) for label in labels]
                 data = {
                     "identifiers": identifiers,
-                    "tags": tags,
+                    "tags": self.tags,
                     "domain": self.domain,
                     "environment": self.environment,
                     "instance": self.url,
@@ -185,11 +190,15 @@ class DynatraceCheck(AgentCheck):
                 self.component(externalId, component_type, data)
                 self.collect_relations(item, externalId)
         else:
-            self.log.info("Problem getting the {0} or No {1} found.".format(component_type, component_type))
-            self.log.error("Response code {0} with message : {1}".format(response["error"].get("code"),
-                                                                         response["error"].get("message")))
+            self.log.warning("Problem getting the {0} or No {1} found.".format(component_type, component_type))
+            raise DynatraceError(response["error"].get("message"), response["error"].get("code"), component_type)
 
-    def add_tags(self, item):
+    def get_labels_from_dynatrace_tags(self, item):
+        """
+        Process each tag as a label in component
+        :param item: the component item to read from
+        :return: list of added tags as labels
+        """
         tags = []
         for tag in item.get("tags", []):
             tag_label = ''
@@ -202,27 +211,27 @@ class DynatraceCheck(AgentCheck):
             tags.append(tag_label)
         return tags
 
-    def add_labels(self, item, labels):
+    def get_labels(self, item):
         """
-        Add labels for each component
+        get labels for each component
         :param item: the component item
-        :param labels: empty labels list where to add specific labels
         :return: the list of added labels for a component
         """
+        labels = []
         # append management zones in labels for each existing component
         if "managementZones" in item:
             for zone in item["managementZones"]:
-                labels.append("dynatrace-managementZones:{}".format(zone.get("name)")))
+                labels.append("managementZones:{}".format(zone.get("name")))
         if "entityId" in item:
             labels.append(item["entityId"])
         if "monitoringState" in item:
             actual_state = item["monitoringState"].get("actualMonitoringState")
             expected_state = item["monitoringState"].get("expectedMonitoringState")
-            labels.append("dynatrace-actualMonitoringState:{}".format(actual_state))
-            labels.append("dynatrace-expectedMonitoringState:{}".format(expected_state))
+            labels.append("actualMonitoringState:{}".format(actual_state))
+            labels.append("expectedMonitoringState:{}".format(expected_state))
         if "softwareTechnologies" in item:
             for technologies in item["softwareTechnologies"]:
-                tech_label = 'dynatrace-'
+                tech_label = ''
                 if bool(technologies['type']):
                     tech_label += technologies['type']
                 if bool(technologies['edition']):
@@ -234,7 +243,6 @@ class DynatraceCheck(AgentCheck):
 
     def get_json_response(self, endpoint, timeout=10):
         headers = {"Authorization": "Api-Token {}".format(self.token)}
-        status = None
         resp = None
         msg = None
         self.log.info("URL is {}".format(endpoint))
@@ -247,13 +255,5 @@ class DynatraceCheck(AgentCheck):
             resp = session.get(endpoint)
         except requests.exceptions.Timeout:
             msg = "{} seconds timeout when hitting {}".format(timeout, endpoint)
-            status = AgentCheck.CRITICAL
-        except Exception as e:
-            msg = str(e)
-            status = AgentCheck.CRITICAL
-        finally:
-            if status is AgentCheck.CRITICAL:
-                self.service_check(self.SERVICE_CHECK_NAME, status, tags=[],
-                                   message=msg)
-                raise Exception("Exception occured for endpoint {0} with message: {1}".format(endpoint, msg))
+            raise Exception("Exception occured for endpoint {0} with message: {1}".format(endpoint, msg))
         return yaml.safe_load(resp.text)
