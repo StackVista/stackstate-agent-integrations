@@ -62,11 +62,10 @@ class ServicenowCheck(AgentCheck):
             relation_types = self._process_and_cache_relation_types(instance_config, timeout)
             self._process_components(instance_config, timeout)
             self._process_component_relations(instance_config, batch_size, timeout, relation_types)
+            self.stop_snapshot()
         except Exception as e:
             self.log.exception(str(e))
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, message=str(e), tags=instance_tags)
-        finally:
-            self.stop_snapshot()
 
         # Report ServiceCheck OK
         msg = "ServiceNow CMDB instance detected at %s " % base_url
