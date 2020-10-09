@@ -7,11 +7,11 @@ instances:
     # Base URL of Dynatrace instance
     # SaaS base url example - https://{your-environment-id}.live.dynatrace.com
     # Managed base url example - https://{your-domain}/e/{your-environment-id}
-    url: https://gwn19037.live.dynatrace.com
+    url: https://test.live.dynatrace.com
 
     # Api Token from Dynatrace platform which has access to read the topology API
     # Docs - https://www.dynatrace.com/support/help/dynatrace-api/basics/dynatrace-api-authentication/#generate-a-token
-    token: xjNh9qMuTmCLdYs5tTFhY
+    token: test_token
 
     # No. of days to start collecting events
     # events_boostrap_days: 15
@@ -29,10 +29,10 @@ instances:
     # keyfile: /path/to/key.pem
 
     # domain to filter out different instances
-    # domain: "axa"
+    # domain: "customer"
 
     # Environment to use for putting the data in
-    # environment: "axa"
+    # environment: "development"
 
     # Custom tags which can be used to filter out
     # tags:
