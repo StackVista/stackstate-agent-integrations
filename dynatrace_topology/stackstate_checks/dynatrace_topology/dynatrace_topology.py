@@ -172,9 +172,7 @@ class DynatraceTopologyCheck(AgentCheck):
                 identifiers.append(urn)
                 # derive useful labels and get labels from dynatrace tags
                 labels = self.get_labels(item)
-                print("labels for application {} :- {}".format(externalId, labels))
                 labels += self.get_labels_from_dynatrace_tags(item)
-                print("labels after processing tags for application {} :- {}".format(externalId, labels))
                 if "tags" in item:
                     del item["tags"]
                 # prefix the labels with `dynatrace-` for all labels
@@ -251,8 +249,8 @@ class DynatraceTopologyCheck(AgentCheck):
         try:
             session = Session()
             session.headers.update(headers)
+            session.verify = self.verify
             if self.cert:
-                session.verify = self.verify
                 session.cert = (self.cert, self.keyfile)
             resp = session.get(endpoint)
         except requests.exceptions.Timeout:

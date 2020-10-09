@@ -14,10 +14,10 @@ instances:
     token: test_token
 
     # No. of days to start collecting events
-    # events_boostrap_days: 15
+    # events_boostrap_days: 5  # by default it's 5 days
 
     # Maximum number of events to proccess each run
-    # events_process_limit: 10000
+    # events_process_limit: 10000  # by default it's 10k events
 
     # to verify the certificate for https
     # verify: True  # By default it's True

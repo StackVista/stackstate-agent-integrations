@@ -248,27 +248,17 @@ class DynatraceEventCheck(AgentCheck):
 
     def get_json_response(self, endpoint, timeout=10):
         headers = {"Authorization": "Api-Token {}".format(self.token)}
-        status = None
         resp = None
         msg = None
         self.log.info("URL is {}".format(endpoint))
         try:
             session = Session()
             session.headers.update(headers)
+            session.verify = self.verify
             if self.cert:
-                session.verify = self.verify
                 session.cert = (self.cert, self.keyfile)
             resp = session.get(endpoint)
-            # resp = requests.get(endpoint, headers=headers)
         except requests.exceptions.Timeout:
             msg = "{} seconds timeout when hitting {}".format(timeout, endpoint)
-            status = AgentCheck.CRITICAL
-        except Exception as e:
-            msg = str(e)
-            status = AgentCheck.CRITICAL
-        finally:
-            if status is AgentCheck.CRITICAL:
-                self.service_check(self.SERVICE_CHECK_NAME, status, tags=[],
-                                   message=msg)
-                raise Exception("Exception occured for endpoint {0} with message: {1}".format(endpoint, msg))
+            raise Exception("Exception occured for endpoint {0} with message: {1}".format(endpoint, msg))
         return yaml.safe_load(resp.text)
