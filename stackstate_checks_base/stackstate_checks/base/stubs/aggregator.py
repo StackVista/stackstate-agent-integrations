@@ -188,9 +188,7 @@ class AggregatorStub(object):
         """
         tags = normalize_tags(tags, sort=True)
         candidates = []
-        print("OVERHERE")
         for sc in self.service_checks(name):
-            print(sc)
             if status is not None and status != sc.status:
                 continue
 

@@ -42,8 +42,7 @@ class TestAgentIntegration(unittest.TestCase):
         # TODO this is needed because the topology retains data across tests
         topology.reset()
 
-        result = self.check.run()
-        print(result)
+        self.check.run()
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 5)
         self.assertEqual(len(topo_instances['relations']), 3)
