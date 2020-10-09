@@ -10,17 +10,6 @@ from six import binary_type, iteritems
 from ..utils.common import ensure_unicode, to_string
 
 
-def normalize_tags(tags, sort=False):
-    # The base class ensures the Agent receives bytes, so to avoid
-    # prefacing our asserted tags like b'foo:bar' we'll convert back.
-    if tags:
-        if sort:
-            return sorted(ensure_unicode(tag) for tag in tags)
-        else:
-            return [ensure_unicode(tag) for tag in tags]
-    return tags
-
-
 class TelemetryStub(object):
     """
     Mainly used for unit testing checks, this stub makes possible to execute

@@ -501,6 +501,11 @@ class AgentCheckBase(object):
                                                          agent_integration_instance_external_id, "has", {}))
 
     def validate_event(self, event):
+        """
+        Validates the event against the Event schematic model to make sure that all the expected values are provided
+        and are the correct type
+        `event` the event that will be validated against the Event schematic model.
+        """
         # sent in as Event, validate to make sure it's correct
         if isinstance(event, Event):
             event.validate()
@@ -511,8 +516,6 @@ class AgentCheckBase(object):
             event = _event
         elif not isinstance(event, Event):
             self._raise_unexpected_type("event", event, "Dictionary or Event")
-
-        return event.to_native()
 
     def _submit_metric(self, mtype, name, value, tags=None, hostname=None, device_name=None):
         pass
