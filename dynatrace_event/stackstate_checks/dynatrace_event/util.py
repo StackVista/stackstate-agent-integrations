@@ -22,7 +22,7 @@ class DynatraceStatus:
         try:
             log.debug("Persisting status to %s" % pickle_path)
             f = open(pickle_path, 'w+')
-            # Change the ownership of the file, so it could be read next time with other user
+            # Change the ownership of the file, so it could be read with stackstate-agent user
             os.chown(pickle_path, user.pw_uid, user.pw_gid)
             try:
                 pickle.dump(self, f)

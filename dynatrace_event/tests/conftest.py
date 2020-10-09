@@ -14,6 +14,11 @@ def sts_environment():
         "token": "PSxqSomuSxSeYWgg_vt_p"
     }
 
-@pytest.fixture
-def instance():
-    return {}
+@pytest.fixture(scope="class")
+def instance(request):
+    cfg = {
+        "url": "https://ton48129.live.dynatrace.com",
+        "token": "PSxqSomuSxSeYWgg_vt_p",
+        "events_process_limit": 10000
+    }
+    request.cls.instance = cfg

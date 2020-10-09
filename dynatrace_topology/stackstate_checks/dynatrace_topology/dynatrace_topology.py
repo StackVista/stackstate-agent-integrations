@@ -44,6 +44,7 @@ class DynatraceTopologyCheck(AgentCheck):
         self.url = instance.get('url')
         self.token = instance.get('token')
         self.tags = instance.get('tags', [])
+        self.domain = instance.get('domain', '')
         self.environment = instance.get('environment', 'production')
         self.verify = instance.get('verify', True)
         self.cert = instance.get('cert', '')
@@ -155,6 +156,7 @@ class DynatraceTopologyCheck(AgentCheck):
                         if type(item[key]) is float:
                             item[key] = str(item[key])
                 identifiers = []
+                data = dict()
                 externalId = item.get("entityId")
                 if component_type == "service":
                     urn = "urn:service:/{}".format(externalId)
@@ -177,15 +179,15 @@ class DynatraceTopologyCheck(AgentCheck):
                     del item["tags"]
                 # prefix the labels with `dynatrace-` for all labels
                 labels = ["dynatrace-{}".format(label) for label in labels]
-                data = {
+                data.update(item)
+                data.update({
                     "identifiers": identifiers,
                     "tags": self.tags,
                     "domain": self.domain,
                     "environment": self.environment,
                     "instance": self.url,
                     "labels": labels
-                }
-                data.update(item)
+                })
                 data = self.filter_data(data)
                 self.component(externalId, component_type, data)
                 self.collect_relations(item, externalId)

@@ -1,14 +1,39 @@
 init_config:
 
 instances:
+    # collection interval for events
   - min_collection_interval: 600
-    url: https://ton48129.live.dynatrace.com
-    token: PSxqSomuSxSeYWgg_vt_p
-    # events_start_days: 15
+
+    # Base URL of Dynatrace instance
+    # SaaS base url example - https://{your-environment-id}.live.dynatrace.com
+    # Managed base url example - https://{your-domain}/e/{your-environment-id}
+    url: https://gwn19037.live.dynatrace.com
+
+    # Api Token from Dynatrace platform which has access to read the topology API
+    # Docs - https://www.dynatrace.com/support/help/dynatrace-api/basics/dynatrace-api-authentication/#generate-a-token
+    token: xjNh9qMuTmCLdYs5tTFhY
+
+    # No. of days to start collecting events
+    # events_boostrap_days: 15
+
+    # Maximum number of events to proccess each run
+    # events_process_limit: 10000
+
+    # to verify the certificate for https
     # verify: True  # By default it's True
+
+    # path to certificate file for https verification
     # cert: /path/to/cert.pem
+
+    # path to public key of certificate for https verification
     # keyfile: /path/to/key.pem
+
+    # domain to filter out different instances
     # domain: "axa"
+
+    # Environment to use for putting the data in
     # environment: "axa"
+
+    # Custom tags which can be used to filter out
     # tags:
     #   - foo:bar
