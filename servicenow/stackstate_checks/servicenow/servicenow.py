@@ -101,6 +101,11 @@ class ServicenowCheck(AgentCheck):
         return sysparm_query
 
     def filter_empty_metadata(self, data):
+        """
+        Filter the empty key:value in metadata and also convert unicode values to sting
+        :param data: metadata from servicenow
+        :return: filtered metadata
+        """
         result = {}
         if isinstance(data, dict):
             for k, v in data.items():
@@ -140,6 +145,8 @@ class ServicenowCheck(AgentCheck):
 
         if "result" in state:
             for component in state.get('result', []):
+                data = {}
+                component = self.filter_empty_metadata(component)
                 identifiers = []
                 comp_name = component.get('name')
                 comp_type = component.get('sys_class_name')
@@ -152,7 +159,7 @@ class ServicenowCheck(AgentCheck):
                 else:
                     identifiers.append("urn:host:/{}".format(comp_name))
                 identifiers.append(external_id)
-                data = self.filter_empty_metadata(component)
+                data.update(component)
                 data.update({"identifiers": identifiers, "tags": instance_tags})
 
                 self.component(external_id, comp_type, data)
