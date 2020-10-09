@@ -33,7 +33,7 @@ class ServicenowCheck(AgentCheck):
         if "url" not in instance:
             raise ConfigurationError("Missing 'url' in instance configuration.")
 
-        return TopologyInstance(self.INSTANCE_TYPE, instance["url"], with_snapshot=False)
+        return TopologyInstance(self.INSTANCE_TYPE, instance["url"], with_snapshots=False)
 
     def check(self, instance):
         if 'url' not in instance:
