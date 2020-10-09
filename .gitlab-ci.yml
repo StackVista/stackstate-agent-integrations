@@ -172,6 +172,14 @@ test_cloudera:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
 
+test_dynatrace_topology:
+  <<: *linux_test
+  variables:
+    CHECK: "dynatrace_topology"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
 test_aws_xray:
   <<: *linux_test
   variables:
