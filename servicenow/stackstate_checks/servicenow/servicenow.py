@@ -102,12 +102,13 @@ class ServicenowCheck(AgentCheck):
 
     def filter_empty_metadata(self, data):
         result = {}
-        for k, v in data.items():
-            if v:
-                if str(type(v)) == "<type 'unicode'>":
-                    # only possible in Python 2
-                    v = v.encode('utf-8')
-                result[k] = v
+        if isinstance(data, dict):
+            for k, v in data.items():
+                if v:
+                    if str(type(v)) == "<type 'unicode'>":
+                        # only possible in Python 2
+                        v = v.encode('utf-8')
+                    result[k] = v
         return result
 
     def _collect_components(self, instance_config, timeout):
@@ -137,23 +138,24 @@ class ServicenowCheck(AgentCheck):
 
         state = self._collect_components(instance_config, timeout)
 
-        for component in state['result']:
-            component = self.filter_empty_metadata(component)
-            identifiers = []
-            comp_name = component['name']
-            comp_type = component['sys_class_name']
-            external_id = component['sys_id']
+        if "result" in state:
+            for component in state.get('result', []):
+                identifiers = []
+                comp_name = component.get('name')
+                comp_type = component.get('sys_class_name')
+                external_id = component.get('sys_id')
 
-            if 'fqdn' in component and component['fqdn']:
-                identifiers.append("urn:host:/{}".format(component['fqdn']))
-            if 'host_name' in component and component['host_name']:
-                identifiers.append("urn:host:/{}".format(component['host_name']))
-            identifiers.append("urn:host:/{}".format(comp_name))
-            identifiers.append(external_id)
-            data = {"identifiers": identifiers, "tags": instance_tags}
-            data.update(component)
+                if 'fqdn' in component and component['fqdn']:
+                    identifiers.append("urn:host:/{}".format(component['fqdn']))
+                if 'host_name' in component and component['host_name']:
+                    identifiers.append("urn:host:/{}".format(component['host_name']))
+                else:
+                    identifiers.append("urn:host:/{}".format(comp_name))
+                identifiers.append(external_id)
+                data = self.filter_empty_metadata(component)
+                data.update({"identifiers": identifiers, "tags": instance_tags})
 
-            self.component(external_id, comp_type, data)
+                self.component(external_id, comp_type, data)
 
     def _collect_relation_types(self, instance_config, timeout):
         """
@@ -175,10 +177,11 @@ class ServicenowCheck(AgentCheck):
         relation_types = {}
         state = self._collect_relation_types(instance_config, timeout)
 
-        for relation in state['result']:
-            id = relation['sys_id']
-            parent_descriptor = relation['parent_descriptor']
-            relation_types[id] = parent_descriptor
+        if "result" in state:
+            for relation in state.get('result', []):
+                id = relation['sys_id']
+                parent_descriptor = relation['parent_descriptor']
+                relation_types[id] = parent_descriptor
         return relation_types
 
     def _collect_component_relations(self, instance_config, timeout, offset, batch_size):
@@ -202,20 +205,19 @@ class ServicenowCheck(AgentCheck):
 
         completed = False
         while not completed:
-            state = self._collect_component_relations(instance_config, timeout, offset, batch_size)['result']
+            state = self._collect_component_relations(instance_config, timeout, offset, batch_size)
 
-            for relation in state:
+            if "result" in state:
+                for relation in state.get('result', []):
+                    parent_sys_id = relation['parent']['value']
+                    child_sys_id = relation['child']['value']
+                    type_sys_id = relation['type']['value']
 
-                parent_sys_id = relation['parent']['value']
-                child_sys_id = relation['child']['value']
-                type_sys_id = relation['type']['value']
+                    relation_type = relation_types[type_sys_id]
+                    data = self.filter_empty_metadata(relation)
+                    data.update({"tags": instance_tags})
 
-                relation_type = relation_types[type_sys_id]
-                data = self.filter_empty_metadata(relation)
-                data.update({"tags": instance_tags})
-
-                self.relation(parent_sys_id, child_sys_id, relation_type, data)
-
+                    self.relation(parent_sys_id, child_sys_id, relation_type, data)
             completed = len(state) < batch_size
             offset += batch_size
 
@@ -254,5 +256,9 @@ class ServicenowCheck(AgentCheck):
 
         if resp.encoding is None:
             resp.encoding = 'UTF8'
-        resp = yaml.safe_load(resp.text)
+        try:
+            resp = yaml.safe_load(resp.text)
+        except Exception as e:
+            self.log.exception(str(e))
+            raise Exception("Exception occured while parsing response with Yaml and the error is : {}".format(str(e)))
         return resp
