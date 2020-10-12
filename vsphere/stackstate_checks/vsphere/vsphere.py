@@ -16,7 +16,6 @@ import time
 import traceback
 import urllib3
 import json
-import yaml
 
 # 3p
 from pyVim import connect
@@ -522,6 +521,7 @@ class VSphereCheck(AgentCheck):
                     host=instance.get('host'),
                     user=instance.get('username'),
                     pwd=instance.get('password'),
+                    connectionPoolTimeout=-1,
                     sslContext=context if not ssl_verify or ssl_capath else None
                 )
             except Exception as e:
@@ -1294,7 +1294,7 @@ class VSphereCheck(AgentCheck):
         if "host" not in instance:
             raise ConfigurationError("Missing 'host' in instance configuration.")
 
-        return TopologyInstance(self.INSTANCE_TYPE, instance["host"])
+        return TopologyInstance(self.INSTANCE_TYPE, instance["host"], with_snapshots=False)
 
     def collect_topology(self, instance):
 
