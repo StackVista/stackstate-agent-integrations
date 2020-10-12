@@ -114,7 +114,9 @@ class TestEvents:
     def test_valid_event(self, aggregator):
         check = AgentCheck()
         event = {
+            "timestamp": 123456789,
             "event_type": "new.event",
+            "source_type_name": "new.source.type",
             "msg_title": "new test event",
             "aggregation_key": "test.event",
             "msg_text": "test event test event",
@@ -122,6 +124,25 @@ class TestEvents:
         }
         check.event(event)
         aggregator.assert_event('test event test event')
+
+    def test_topology_event(self, telemetry):
+        check = AgentCheck()
+        event = {
+            "timestamp": 123456789,
+            "event_type": "new.event",
+            "source_type_name": "new.source.type",
+            "msg_title": "new test event",
+            "aggregation_key": "test.event",
+            "msg_text": "test event test event",
+            "tags": None,
+            "context": {
+                "element_identifiers": ["urn:test:/value"],
+                "source": "test source",
+                "category": "test category",
+            }
+        }
+        check.event(event)
+        telemetry.assert_topology_event(event)
 
 
 class TestServiceChecks:

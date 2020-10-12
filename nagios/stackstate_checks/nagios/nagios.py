@@ -355,7 +355,7 @@ class NagiosEventLogTailer(NagiosTailer):
                 'event_type': event_type,
                 "msg_title": event_type,
                 "source_type_name": event_type,
-                "msg_text": event.get('event_state', None),
+                "msg_text": event.get('event_state', event_type),
                 "tags": tags
             }
         )
