@@ -1,0 +1,146 @@
+{
+  "components": [
+    {
+      "data": {
+        "entityId": "APPLICATION-EA7C4B59F27D43EB",
+        "displayName": "RUM Default Application",
+        "customizedName": "RUM Default Application",
+        "discoveredName": "RUM Default Application",
+        "firstSeenTimestamp": 1422282024216,
+        "lastSeenTimestamp": 1538579528065,
+        "applicationType": "DEFAULT",
+        "ruleAppliedPattern": "http",
+        "managementZones": [
+          {
+            "id": "-6239538939987181652",
+            "name": "allTypes"
+          },
+          {
+            "id": "-2519468841583898843",
+            "name": "app name exists"
+          },
+          {
+            "id": "4485554873951847460",
+            "name": "Applications except easyTravel"
+          }
+        ],
+        "domain": null,
+        "environment": null,
+        "identifiers": [
+          "urn:application:/APPLICATION-EA7C4B59F27D43EB"
+        ],
+        "instance": "https://ton48129.live.dynatrace.com",
+        "tags": [
+          "integration-type:dynatrace",
+          "integration-url:https://ton48129.live.dynatrace.com"
+        ],
+        "labels": [
+          "dynatrace-managementZones:allTypes",
+          "dynatrace-managementZones:app name exists",
+          "dynatrace-managementZones:Applications except easyTravel",
+          "dynatrace-APPLICATION-EA7C4B59F27D43EB",
+          "dynatrace-Mytag",
+          "dynatrace-Test"
+        ]
+      },
+      "id": "APPLICATION-EA7C4B59F27D43EB",
+      "type": "application"
+    },
+    {
+      "data": {
+        "entityId": "APPLICATION-BBFA55551D507E2B",
+        "displayName": "easyTravel Ionic Web",
+        "discoveredName": "easyTravel Ionic Web",
+        "firstSeenTimestamp": 1528695861873,
+        "lastSeenTimestamp": 1538572321269,
+        "applicationType": "RUMONLY",
+        "managementZones": [
+          {
+            "id": "-6239538939987181652",
+            "name": "allTypes"
+          },
+          {
+            "id": "-4085081632192243904",
+            "name": "easyTravel"
+          }
+        ],
+        "domain": null,
+        "environment": null,
+        "identifiers": [
+          "urn:application:/APPLICATION-BBFA55551D507E2B"
+        ],
+        "instance": "https://ton48129.live.dynatrace.com",
+        "tags": [
+          "integration-type:dynatrace",
+          "integration-url:https://ton48129.live.dynatrace.com"
+        ],
+        "labels": [
+          "dynatrace-managementZones:allTypes",
+          "dynatrace-managementZones:easyTravel",
+          "dynatrace-APPLICATION-BBFA55551D507E2B"
+        ]
+      },
+      "id": "APPLICATION-BBFA55551D507E2B",
+      "type": "application"
+    },
+    {
+      "data": {
+        "entityId": "MOBILE_APPLICATION-752C288D59734C79",
+        "displayName": "easyTravel Demo",
+        "customizedName": "easyTravel Demo",
+        "discoveredName": "752c288d-5973-4c79-b7d1-3a49d4d42ea0",
+        "firstSeenTimestamp": 1469613941393,
+        "lastSeenTimestamp": 1538654940201,
+        "mobileOsFamily": [
+          "ANDROID",
+          "IOS",
+          "WINDOWS"
+        ],
+        "managementZones": [
+          {
+            "id": "-4085081632192243904",
+            "name": "easyTravel"
+          }
+        ],
+        "domain": null,
+        "environment": null,
+        "identifiers": [
+          "urn:application:/MOBILE_APPLICATION-752C288D59734C79"
+        ],
+        "instance": "https://ton48129.live.dynatrace.com",
+        "tags": [
+          "integration-type:dynatrace",
+          "integration-url:https://ton48129.live.dynatrace.com"
+        ],
+        "labels": [
+          "dynatrace-managementZones:easyTravel",
+          "dynatrace-MOBILE_APPLICATION-752C288D59734C79",
+          "dynatrace-portal",
+          "dynatrace-easyTravel"
+        ]
+      },
+      "id": "MOBILE_APPLICATION-752C288D59734C79",
+      "type": "application"
+    }
+  ],
+  "relations": [
+    {
+      "data": {},
+      "source_id": "APPLICATION-EA7C4B59F27D43EB",
+      "target_id": "SERVICE-FFE4B7A6D72F2CAC",
+      "type": "calls"
+    },
+    {
+      "data": {},
+      "source_id": "APPLICATION-BBFA55551D507E2B",
+      "target_id": "SERVICE-ED0B103392AC86BF",
+      "type": "calls"
+    },
+    {
+      "data": {},
+      "source_id": "MOBILE_APPLICATION-752C288D59734C79",
+      "target_id": "SERVICE-ED0B103392AC86BF",
+      "type": "calls"
+    }
+  ]
+}

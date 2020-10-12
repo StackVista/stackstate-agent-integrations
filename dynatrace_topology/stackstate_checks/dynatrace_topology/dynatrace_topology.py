@@ -84,11 +84,15 @@ class DynatraceTopologyCheck(AgentCheck):
         outgoing_relations = component.get("fromRelationships", {})
         incoming_relations = component.get("toRelationships", {})
         for relation_type in outgoing_relations.keys():
-            for target_id in outgoing_relations[relation_type]:
-                self.relation(externalId, target_id, relation_type, {})
+            # Ignore `isSiteOf` relation since location components are not processed right now
+            if relation_type != "isSiteOf":
+                for target_id in outgoing_relations[relation_type]:
+                    self.relation(externalId, target_id, relation_type, {})
         for relation_type in incoming_relations.keys():
-            for source_id in incoming_relations[relation_type]:
-                self.relation(source_id, externalId, relation_type, {})
+            # Ignore `isSiteOf` relation since location components are not processed right now
+            if relation_type != "isSiteOf":
+                for source_id in incoming_relations[relation_type]:
+                    self.relation(source_id, externalId, relation_type, {})
 
     def filter_data(self, data):
         """
@@ -242,6 +246,12 @@ class DynatraceTopologyCheck(AgentCheck):
         return labels
 
     def get_json_response(self, endpoint, timeout=10):
+        """
+        Make a request to Dynatrace endpoint through session
+        :param endpoint: Dynatrace API Endpoint to call
+        :param timeout: timeout for a response
+        :return: Response of each endpoint
+        """
         headers = {"Authorization": "Api-Token {}".format(self.token)}
         resp = None
         msg = None
