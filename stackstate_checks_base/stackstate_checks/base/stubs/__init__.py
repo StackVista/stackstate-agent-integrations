@@ -4,7 +4,8 @@
 from .aggregator import aggregator
 from .topology import topology, component, relation
 from .tagging import tagger
+from .telemetry import telemetry
 
 __all__ = [
-    'aggregator', 'datadog_agent', 'topology', 'component', 'relation', 'tagger'
+    'aggregator', 'datadog_agent', 'topology', 'component', 'relation', 'tagger', 'telemetry'
 ]

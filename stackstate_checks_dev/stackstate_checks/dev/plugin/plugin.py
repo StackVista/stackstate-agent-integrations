@@ -44,6 +44,23 @@ except ImportError:
         raise ImportError('stackstate-checks-base is not installed!')
 
 
+try:
+    from stackstate_checks.base.stubs import telemetry as __telemetry
+
+    @pytest.fixture
+    def telemetry():
+        """This fixture returns a mocked Agent aggregator with state cleared."""
+        __telemetry.reset()
+        return __telemetry
+
+except ImportError:
+    __telemetry = None
+
+    @pytest.fixture
+    def telemetry():
+        raise ImportError('stackstate-checks-base is not installed!')
+
+
 @pytest.fixture(scope='session', autouse=True)
 def sts_environment_runner(request):
     testing_plugin = os.getenv(TESTING_PLUGIN) == 'true'
