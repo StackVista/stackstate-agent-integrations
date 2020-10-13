@@ -517,13 +517,12 @@ class Event(Model):
     msg_title = StrictStringType(required=True, default="")
     msg_text = StrictStringType(required=True, default="")
     timestamp = IntType(required=True)
-    source_type_name = StrictStringType(required=True)
+    event_type = StrictStringType(required=True, deserialize_from=['event_type', 'source_type_name'])
     priority = StrictStringType(required=False, choices=['normal', 'low'])
     host = StrictStringType(required=False)
     tags = ListType(StrictStringType, required=False)
     alert_type = StrictStringType(required=False, choices=['error', 'warning', 'success', 'info'], default="info")
     aggregation_key = StrictStringType(required=False)
-    event_type = StrictStringType(required=False)
     context = ModelType(TopologyEventContext, required=False)
 
     class Options:
