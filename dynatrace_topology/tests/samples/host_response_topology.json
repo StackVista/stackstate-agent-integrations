@@ -41,8 +41,8 @@
                 "localHostName": "ip-172-31-29-43.eu-west-1.compute.internal",
                 "amiId": "ami-044b14bf9ccadeee9",
                 "awsInstanceId": "i-0de40b60fae0f6846",
-                "domain": null,
-                "environment": null,
+                "domain": "",
+                "environment": "production",
                 "identifiers": [
                     "urn:host:/EX01.stackstate.lab"
                 ],
@@ -98,8 +98,8 @@
                 "localHostName": "ip-172-31-30-110.eu-west-1.compute.internal",
                 "amiId": "ami-076c188b0006a9c1c",
                 "awsInstanceId": "i-0eee811b00ae31c95",
-                "domain": null,
-                "environment": null,
+                "domain": "",
+                "environment": "production",
                 "identifiers": [
                     "urn:host:/SQL01.stackstate.lab"
                 ],
@@ -120,6 +120,12 @@
         {
             "data": {},
             "source_id": "PROCESS_GROUP_INSTANCE-0EC2543319EDF0A3",
+            "target_id": "HOST-6AAE0F78BCF2E0F4",
+            "type": "isProcessOf"
+        },
+        {
+            "data": {},
+            "source_id": "PROCESS_GROUP_INSTANCE-F25A8361C6742030",
             "target_id": "HOST-6AAE0F78BCF2E0F4",
             "type": "isProcessOf"
         },

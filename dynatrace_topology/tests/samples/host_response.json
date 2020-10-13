@@ -9,7 +9,8 @@
         "fromRelationships": {},
         "toRelationships": {
             "isProcessOf": [
-                "PROCESS_GROUP_INSTANCE-0EC2543319EDF0A3"
+                "PROCESS_GROUP_INSTANCE-0EC2543319EDF0A3",
+                "PROCESS_GROUP_INSTANCE-F25A8361C6742030"
             ],
             "isSiteOf": [
                 "GEOLOC_SITE-C9B2D39AD8A7FA9A",

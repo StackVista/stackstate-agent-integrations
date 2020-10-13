@@ -24,8 +24,8 @@
             "name": "Applications except easyTravel"
           }
         ],
-        "domain": null,
-        "environment": null,
+        "domain": "",
+        "environment": "production",
         "identifiers": [
           "urn:application:/APPLICATION-EA7C4B59F27D43EB"
         ],
@@ -64,8 +64,8 @@
             "name": "easyTravel"
           }
         ],
-        "domain": null,
-        "environment": null,
+        "domain": "",
+        "environment": "production",
         "identifiers": [
           "urn:application:/APPLICATION-BBFA55551D507E2B"
         ],
@@ -102,8 +102,8 @@
             "name": "easyTravel"
           }
         ],
-        "domain": null,
-        "environment": null,
+        "domain": "",
+        "environment": "production",
         "identifiers": [
           "urn:application:/MOBILE_APPLICATION-752C288D59734C79"
         ],

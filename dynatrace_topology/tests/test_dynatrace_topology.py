@@ -36,6 +36,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         """
         config = {}
         self.check = DynatraceTopologyCheck(self.CHECK_NAME, config, instances=[self.instance])
+
         # this is needed because the topology retains data across tests
         topology.reset()
 
@@ -59,11 +60,17 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         Testing Dynatrace check should collect processes
         """
 
+        # mock other component type calls and return empty response
+        self.check.collect_services = mock.MagicMock(return_value=[])
+        self.check.collect_process_groups = mock.MagicMock(return_value=[])
+        self.check.collect_applications = mock.MagicMock(return_value=[])
+        self.check.collect_hosts = mock.MagicMock(return_value=[])
+
         self.check.get_json_response = mock.MagicMock()
         self.check.get_json_response.return_value = read_data("process_response.json")
         self.check.url = self.instance.get('url')
 
-        self.check.collect_processes()
+        self.check.run()
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         actual_topology = read_data("process_response_topology.json")
@@ -82,11 +89,17 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         Testing Dynatrace check should collect hosts
         """
 
+        # mock other component type calls and return empty response
+        self.check.collect_services = mock.MagicMock(return_value=[])
+        self.check.collect_process_groups = mock.MagicMock(return_value=[])
+        self.check.collect_applications = mock.MagicMock(return_value=[])
+        self.check.collect_processes = mock.MagicMock(return_value=[])
+
         self.check.get_json_response = mock.MagicMock()
         self.check.get_json_response.return_value = read_data("host_response.json")
         self.check.url = self.instance.get('url')
 
-        self.check.collect_hosts()
+        self.check.run()
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         actual_topology = read_data("host_response_topology.json")
@@ -105,11 +118,17 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         Testing Dynatrace check should collect services and tags coming from Kubernetes
         """
 
+        # mock other component type calls and return empty response
+        self.check.collect_hosts = mock.MagicMock(return_value=[])
+        self.check.collect_process_groups = mock.MagicMock(return_value=[])
+        self.check.collect_applications = mock.MagicMock(return_value=[])
+        self.check.collect_processes = mock.MagicMock(return_value=[])
+
         self.check.get_json_response = mock.MagicMock()
         self.check.get_json_response.return_value = read_data("service_response.json")
         self.check.url = self.instance.get('url')
 
-        self.check.collect_services()
+        self.check.run()
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         actual_topology = read_data("service_response_topology.json")
@@ -128,11 +147,17 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         Testing Dynatrace check should collect applications and also the tags properly coming from dynatrace
         """
 
+        # mock other component type calls and return empty response
+        self.check.collect_hosts = mock.MagicMock(return_value=[])
+        self.check.collect_process_groups = mock.MagicMock(return_value=[])
+        self.check.collect_services = mock.MagicMock(return_value=[])
+        self.check.collect_processes = mock.MagicMock(return_value=[])
+
         self.check.get_json_response = mock.MagicMock()
         self.check.get_json_response.return_value = read_data("application_response.json")
         self.check.url = self.instance.get('url')
 
-        self.check.collect_applications()
+        self.check.run()
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         actual_topology = read_data("application_response_topology.json")
@@ -151,11 +176,17 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         Testing Dynatrace check should collect process-groups
         """
 
+        # mock other component type calls and return empty response
+        self.check.collect_hosts = mock.MagicMock(return_value=[])
+        self.check.collect_applications = mock.MagicMock(return_value=[])
+        self.check.collect_services = mock.MagicMock(return_value=[])
+        self.check.collect_processes = mock.MagicMock(return_value=[])
+
         self.check.get_json_response = mock.MagicMock()
         self.check.get_json_response.return_value = read_data("process-group_response.json")
         self.check.url = self.instance.get('url')
 
-        self.check.collect_proccess_groups()
+        self.check.run()
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         actual_topology = read_data("process-group_response_topology.json")
@@ -189,7 +220,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 0)
-        self.assertEqual(len(topo_instances['relations']), 2)
+        self.assertEqual(len(topo_instances['relations']), 3)
 
         # since all relations are to this host itself so target id is same
         relation = topo_instances['relations'][0]
@@ -198,14 +229,48 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
 
     def test_check_raise_exception(self):
         """
-        Test to raise a check exception when collecting components
+        Test to raise a check exception when collecting components and snapshot should be False
         """
 
         self.check.get_json_response = mock.MagicMock()
         self.check.get_json_response.side_effect = Exception("Exception occured")
 
         self.assertRaises(Exception, self.check.check(self.instance))
+        # since the check raised exception, the topology snapshot is not completed
+        topo_instance = topology.get_snapshot(self.check.check_id)
+        self.assertEqual(topo_instance.get("start_snapshot"), True)
+        self.assertEqual(topo_instance.get("stop_snapshot"), False)
+        # Service Checks should be generated
         service_checks = aggregator.service_checks("dynatrace")
         self.assertEqual(len(service_checks), 1)
         self.assertEqual(service_checks[0].name, self.SERVICE_CHECK_NAME)
         self.assertEqual(service_checks[0].status, 2)
+
+    def test_full_topology(self):
+        """
+        Test e2e to collect full topology for all component types from Dynatrace
+        :return:
+        """
+
+        self.check.collect_hosts = mock.MagicMock(return_value=read_data("host_response.json"))
+        self.check.collect_applications = mock.MagicMock(return_value=read_data("application_response.json"))
+        self.check.collect_services = mock.MagicMock(return_value=read_data("service_response.json"))
+        self.check.collect_processes = mock.MagicMock(return_value=read_data("process_response.json"))
+        self.check.collect_process_groups = mock.MagicMock(return_value=read_data("process-group_response.json"))
+
+        self.check.url = self.instance.get('url')
+        self.check.run()
+
+        topo_instances = topology.get_snapshot(self.check.check_id)
+        actual_topology = read_data("smartscape_full_response_topology.json")
+
+        # sort the keys of components and relations, so we match it in actual
+        components, relations = sort_topology_data(topo_instances)
+        actual_components, actual_relations = sort_topology_data(actual_topology)
+
+        self.assertEqual(len(components), len(actual_components))
+        for component in components:
+            self.assertIn(component, actual_components)
+        self.assertEqual(len(relations), len(actual_relations))
+        for relation in relations:
+            self.assertIn(relation, actual_relations)

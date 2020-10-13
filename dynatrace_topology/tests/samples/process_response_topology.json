@@ -5,9 +5,9 @@
         "bitness": "64bit",
         "discoveredName": "EdgeTransport.exe",
         "displayName": "EdgeTransport.exe",
-        "domain": null,
+        "domain": "",
         "entityId": "PROCESS_GROUP_INSTANCE-F25A8361C6742030",
-        "environment": null,
+        "environment": "production",
         "firstSeenTimestamp": 1600180620000,
         "identifiers": [
           "urn:process:/PROCESS_GROUP_INSTANCE-F25A8361C6742030"
@@ -78,9 +78,9 @@
         "bitness": "64bit",
         "discoveredName": "Elasticsearch stackstate",
         "displayName": "Elasticsearch stackstate (stackstate-prod-0)",
-        "domain": null,
+        "domain": "",
         "entityId": "PROCESS_GROUP_INSTANCE-3A6855F295757634",
-        "environment": null,
+        "environment": "production",
         "firstSeenTimestamp": 1600092000000,
         "identifiers": [
           "urn:process:/PROCESS_GROUP_INSTANCE-3A6855F295757634"
@@ -155,9 +155,9 @@
         "bitness": "64bit",
         "discoveredName": "IIS",
         "displayName": "IIS",
-        "domain": null,
+        "domain": "",
         "entityId": "PROCESS_GROUP_INSTANCE-D87BE1EAFC600996",
-        "environment": null,
+        "environment": "production",
         "firstSeenTimestamp": 1600180620000,
         "identifiers": [
           "urn:process:/PROCESS_GROUP_INSTANCE-D87BE1EAFC600996"

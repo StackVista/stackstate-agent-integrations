@@ -30,7 +30,7 @@ class DynatraceTopologyCheck(AgentCheck):
         if 'url' not in instance:
             raise ConfigurationError('Missing url in configuration.')
 
-        return TopologyInstance(self.INSTANCE_TYPE, instance["url"])
+        return TopologyInstance(self.INSTANCE_TYPE, instance["url"], with_snapshots=False)
 
     def check(self, instance):
         """
@@ -53,23 +53,27 @@ class DynatraceTopologyCheck(AgentCheck):
         try:
             self.start_snapshot()
             self.process_topology()
+            self.stop_snapshot()
         except Exception as e:
             self.log.exception(str(e))
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=self.tags, message=str(e))
-        finally:
-            self.stop_snapshot()
 
     def process_topology(self):
         """
-        Collects each component type from dynatrace smartscape topology API
+        Collects components and relations for each component type from dynatrace smartscape topology API
         """
         start_time = datetime.now()
         self.log.info("Starting the collection of topology")
-        self.collect_services()
-        self.collect_processes()
-        self.collect_proccess_groups()
-        self.collect_hosts()
-        self.collect_applications()
+        services = self.collect_services()
+        processes = self.collect_processes()
+        processes_groups = self.collect_process_groups()
+        hosts = self.collect_hosts()
+        applications = self.collect_applications()
+        topology = {"service": services, "process": processes, "process-group": processes_groups, "host": hosts,
+                    "application": applications}
+        # process component for each type
+        for comp_type, response in topology.items():
+            self.process_component(response, comp_type)
         end_time = datetime.now()
         time_taken = end_time - start_time
         self.log.info("Time taken to collect the topology is: {} seconds".format(time_taken.total_seconds()))
@@ -106,43 +110,43 @@ class DynatraceTopologyCheck(AgentCheck):
 
     def collect_processes(self):
         """
-        Collects all processes from Dynatrace API and their relationships with other component types if exists
+        Collects the response from the Dynatrace Process API endpoint
         """
         endpoint = self.url + "/api/v1/entity/infrastructure/processes"
         processes = self.get_json_response(endpoint)
-        self.process_component(processes, "process")
+        return processes
 
     def collect_hosts(self):
         """
-        Collects all hosts from Dynatrace API and their relationships with other component types if exists
+        Collects the response from the Dynatrace Host API endpoint
         """
         endpoint = self.url + "/api/v1/entity/infrastructure/hosts"
         hosts = self.get_json_response(endpoint)
-        self.process_component(hosts, "host")
+        return hosts
 
     def collect_applications(self):
         """
-        Collects all applications from Dynatrace API and their relationships with other component types if exists
+        Collects the response from the Dynatrace Application API endpoint
         """
         endpoint = self.url + "/api/v1/entity/applications"
         applications = self.get_json_response(endpoint)
-        self.process_component(applications, "application")
+        return applications
 
-    def collect_proccess_groups(self):
+    def collect_process_groups(self):
         """
-        Collects all process-groups from Dynatrace API and their relationships with other component types if exists
+        Collects the response from the Dynatrace Process-Group API endpoint
         """
         endpoint = self.url + "/api/v1/entity/infrastructure/process-groups"
         process_groups = self.get_json_response(endpoint)
-        self.process_component(process_groups, "process-group")
+        return process_groups
 
     def collect_services(self):
         """
-        Collects all services from Dynatrace API and their relationships with other component types if exists
+        Collects the response from the Dynatrace Service API endpoint
         """
         endpoint = self.url + "/api/v1/entity/services"
         services = self.get_json_response(endpoint)
-        self.process_component(services, "service")
+        return services
 
     def process_component(self, response, component_type):
         """

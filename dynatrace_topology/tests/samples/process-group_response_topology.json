@@ -37,8 +37,8 @@
           2525,
           6671
         ],
-        "domain": null,
-        "environment": null,
+        "domain": "",
+        "environment": "production",
         "identifiers": [
           "urn:process-group:/PROCESS_GROUP-518359807AEC7140"
         ],
@@ -105,8 +105,8 @@
           9200,
           9300
         ],
-        "domain": null,
-        "environment": null,
+        "domain": "",
+        "environment": "production",
         "identifiers": [
           "urn:process-group:/PROCESS_GROUP-647A29F2E878C508"
         ],
@@ -163,8 +163,8 @@
           443,
           444
         ],
-        "domain": null,
-        "environment": null,
+        "domain": "",
+        "environment": "production",
         "identifiers": [
           "urn:process-group:/PROCESS_GROUP-3D9D854163F8F07A"
         ],
