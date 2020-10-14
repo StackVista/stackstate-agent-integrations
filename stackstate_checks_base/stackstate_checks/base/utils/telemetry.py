@@ -1,6 +1,9 @@
-from six import iteritems
+from six import iteritems, string_types
 from enum import Enum
 import uuid
+from schematics.models import Model
+from schematics.types import StringType, URLType, ModelType, ListType, IntType, BaseType
+from schematics.exceptions import ValidationError
 
 
 class HealthState(Enum):
@@ -20,8 +23,8 @@ class EventHealthChecks(object):
     """
 
     @staticmethod
-    def _is_valid_health_state(healthState):
-        return HealthState[healthState]
+    def _is_valid_health_state(health_state):
+        return HealthState[health_state]
 
     @staticmethod
     def contains_key_value(stream_id, name, contains_key, contains_value, found_health_state, missing_health_state,
@@ -443,8 +446,85 @@ class ServiceCheckStream(TelemetryStream):
     """
     creates a service check stream definition for the component that will bind service checks in StackState for the
     conditions.
-    args: `name, conditions
+    args: `name, conditions`
     `name` The name for the stream in StackState
     `conditions` is a dictionary of key -> value arguments that are used to filter the event values for the stream.
     """
     pass
+
+
+class StrictStringType(StringType):
+    def convert(self, value, context=None):
+        if not isinstance(value, string_types):
+            raise ValidationError('Value must be a string')
+        value = super(StrictStringType, self).convert(value, context)
+        if value is None:
+            return self.default()
+        return value
+
+
+class SourceLink(Model):
+    """
+    SourceLink is a external source / event that the event might link to
+    args:
+    `title` the name of the external source / event
+    `url` the url at which more information about this event can be found
+    """
+    title = StrictStringType(required=True)
+    url = URLType(fqdn=False, required=True)
+
+
+class TopologyEventContext(Model):
+    """
+    EventContext enriches the event with some more context and allows correlation to topology in StackState
+    args:
+    `source_identifier` an optional identifier for the event from the source
+    `element_identifiers` identifiers of 4T data model in terms of URNs. A stream instance identifier is urn:*.
+        (indexed) - (details) *'urn://process/C:/processs/with/a/long/path/which/is/really/long',
+        'urn://host/lnx5002345', 80% cases 1, 19% cases 2-5, 0,1-1% cases 100+*
+    `source` - Kubernetes, ServiceNow, etc.
+    `category` - unique category of the event
+    `data` - json blob with any extra properties our stackpack builders want to send
+    `source_links`[title: String, url: String] - A list of titles and URLs that the event might link to.
+    """
+    source_identifier = StrictStringType(required=False)
+    element_identifiers = ListType(StrictStringType, required=False)
+    source = StrictStringType(required=True)
+    category = StrictStringType(required=True)
+    data = BaseType(required=False)
+    source_links = ListType(ModelType(SourceLink), required=False)
+
+    class Options:
+        serialize_when_none = False
+
+
+class Event(Model):
+    """
+    Event represents some activity that occurred that is of interest to
+    args:
+    `msg_title` the title of the event
+    `msg_text` the text body of the event
+    `timestamp` the epoch timestamp for the event
+    `source_type_name` the source type name
+    `priority` specifies the priority of the event ("normal" or "low")
+    `host` the name of the host
+    `tags` a list of tags to associate with this event
+    `alert_type` one of ('error', 'warning', 'success', 'info'), defaults to 'info'
+    `aggregation_key` a key to use for aggregating events
+    `event_type` the event name
+    `event_context` enriches the event with some more context and allows correlation to topology in StackState
+    """
+    msg_title = StrictStringType(required=True, default="")
+    msg_text = StrictStringType(required=True, default="")
+    timestamp = IntType(required=True)
+    source_type_name = StrictStringType(required=True)
+    priority = StrictStringType(required=False, choices=['normal', 'low'])
+    host = StrictStringType(required=False)
+    tags = ListType(StrictStringType, required=False)
+    alert_type = StrictStringType(required=False, choices=['error', 'warning', 'success', 'info'], default="info")
+    aggregation_key = StrictStringType(required=False)
+    event_type = StrictStringType(required=False)
+    context = ModelType(TopologyEventContext, required=False)
+
+    class Options:
+        serialize_when_none = False

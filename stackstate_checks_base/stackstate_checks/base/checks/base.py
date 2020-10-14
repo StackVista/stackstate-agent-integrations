@@ -37,13 +37,21 @@ except ImportError:
     from ..stubs import topology
     using_stub_topology = True
 
+try:
+    import telemetry
+    using_stub_telemetry = False
+except ImportError:
+    from ..stubs import telemetry
+    using_stub_telemetry = True
+
 from ..config import is_affirmative
 from ..constants import ServiceCheck
 from ..utils.common import ensure_bytes, ensure_unicode
 from ..utils.proxy import config_proxy_skip
 from ..utils.limiter import Limiter
 from ..utils.identifiers import Identifiers
-from ..utils.telemetry import EventStream, EventHealthChecks, MetricStream, ServiceCheckStream, ServiceCheckHealthChecks
+from ..utils.telemetry import EventStream, TopologyEventContext, MetricStream, ServiceCheckStream, \
+    ServiceCheckHealthChecks, Event
 from deprecated.sphinx import deprecated
 
 if datadog_agent.get_config('disable_unsafe_yaml'):
@@ -492,6 +500,23 @@ class AgentCheckBase(object):
                                  self._map_relation_data(agent_integration_external_id,
                                                          agent_integration_instance_external_id, "has", {}))
 
+    def validate_event(self, event):
+        """
+        Validates the event against the Event schematic model to make sure that all the expected values are provided
+        and are the correct type
+        `event` the event that will be validated against the Event schematic model.
+        """
+        # sent in as Event, validate to make sure it's correct
+        if isinstance(event, Event):
+            event.validate()
+        # sent in as dictionary, convert to Event and validate to make sure it's correct
+        elif isinstance(event, dict):
+            _event = Event(event, strict=False)  # strict=False ignores extra fields provided by nagios
+            _event.validate()
+            event = _event
+        elif not isinstance(event, Event):
+            self._raise_unexpected_type("event", event, "Dictionary or Event")
+
     def _submit_metric(self, mtype, name, value, tags=None, hostname=None, device_name=None):
         pass
 
@@ -649,6 +674,7 @@ class __AgentCheckPy3(AgentCheckBase):
                                         hostname, message)
 
     def event(self, event):
+        self.validate_event(event)
         # Enforce types of some fields, considerably facilitates handling in go bindings downstream
         for key, value in list(iteritems(event)):
             # transform any bytes objects to utf-8
@@ -666,7 +692,11 @@ class __AgentCheckPy3(AgentCheckBase):
             event['timestamp'] = int(event['timestamp'])
         if event.get('aggregation_key'):
             event['aggregation_key'] = ensure_unicode(event['aggregation_key'])
-        aggregator.submit_event(self, self.check_id, event)
+
+        if 'context' in event:
+            telemetry.submit_topology_event(self, self.check_id, event)
+        else:
+            aggregator.submit_event(self, self.check_id, event)
 
     def _normalize_tags_type(self, tags, device_name=None, metric_name=None):
         """
@@ -823,6 +853,7 @@ class __AgentCheckPy2(AgentCheckBase):
                                         tags + tags_bytes, hostname, message)
 
     def event(self, event):
+        self.validate_event(event)
         # Enforce types of some fields, considerably facilitates handling in go bindings downstream
         for key, value in list(iteritems(event)):
             # transform the unicode objects to plain strings with utf-8 encoding
@@ -839,7 +870,11 @@ class __AgentCheckPy2(AgentCheckBase):
             event['timestamp'] = int(event['timestamp'])
         if event.get('aggregation_key'):
             event['aggregation_key'] = ensure_bytes(event['aggregation_key'])
-        aggregator.submit_event(self, self.check_id, event)
+
+        if 'context' in event:
+            telemetry.submit_topology_event(self, self.check_id, event)
+        else:
+            aggregator.submit_event(self, self.check_id, event)
 
     def _normalize_tags_type(self, tags, device_name=None, metric_name=None):
         """
