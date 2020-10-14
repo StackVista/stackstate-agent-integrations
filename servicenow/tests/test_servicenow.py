@@ -95,7 +95,7 @@ def mock_relation_with_filter():
 
 
 mock_instance = {
-    'url': "https://mockdev.service-now.com",
+    'url': "https://dev60476.service-now.com",
     'user': 'name',
     'password': 'secret',
     'batch_size': 100
