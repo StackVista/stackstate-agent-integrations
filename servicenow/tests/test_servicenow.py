@@ -11,7 +11,7 @@ import pytest
 # project
 from stackstate_checks.servicenow import ServicenowCheck, InstanceInfo
 from stackstate_checks.base.stubs import topology, aggregator
-from stackstate_checks.base import AgentIntegrationTestUtil
+from stackstate_checks.base import AgentIntegrationTestUtil, AgentCheck
 
 
 def mock_process_and_cache_relation_types(*args):
@@ -94,13 +94,19 @@ def mock_relation_with_filter():
     return json.dumps(response)
 
 
-instance = {
-    'url': "https://dev6047.service-now.com",
-    'basic_auth': {'user': 'admin', 'password': 'Service@123'},
+mock_instance = {
+    'url': "https://mockdev.service-now.com",
+    'user': 'name',
+    'password': 'secret',
     'batch_size': 100
 }
 
-instance_config = InstanceInfo([], instance.get('url'), ('admin', 'Service@123'), [])
+instance_config = InstanceInfo(
+    instance_tags=[],
+    base_url=mock_instance.get('url'),
+    auth=(mock_instance.get('user'), mock_instance.get('password')),
+    sys_class_filter=[]
+)
 
 
 @pytest.mark.usefixtures("instance")
@@ -115,15 +121,13 @@ class TestServicenow(unittest.TestCase):
         """
         config = {}
         self.check = ServicenowCheck(self.CHECK_NAME, config, instances=[self.instance])
+        topology.reset()
+        aggregator.reset()
 
     def test_check(self):
         """
         Testing Servicenow check.
         """
-
-        # TODO this is needed because the topology retains data across tests
-        topology.reset()
-
         self.check._process_and_cache_relation_types = mock_process_and_cache_relation_types
         self.check._process_components = mock_process_components
         self.check._process_component_relations = mock_process_component_relations
@@ -137,22 +141,32 @@ class TestServicenow(unittest.TestCase):
         AgentIntegrationTestUtil.assert_integration_snapshot(self.check,
                                                              'servicenow_cmdb:https://dev60476.service-now.com')
 
-    def test_collect_components(self):
+    def test_check_exception(self):
         """
         Test to raise a check exception when collecting components
         """
-        self.assertRaises(Exception, self.check._collect_components, instance_config, 10)
+        self.check._get_json = mock.MagicMock()
+        self.check._get_json.side_effect = Exception("Test exception occurred")
+        self.assertRaises(Exception, self.check.check(mock_instance))
+
+        # since the check raised exception, the topology snapshot is not completed
+        topo_instance = topology.get_snapshot(self.check.check_id)
+        self.assertEqual(topo_instance.get("start_snapshot"), True)
+        self.assertEqual(topo_instance.get("stop_snapshot"), False)
+
+        # Service Checks should be generated
+        service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_NAME)
+        self.assertEqual(len(service_checks), 1)
+        self.assertEqual(service_checks[0].name, self.SERVICE_CHECK_NAME)
+        self.assertEqual(service_checks[0].status, AgentCheck.CRITICAL)
 
     def test_process_components(self):
         """
         Test _process_components to return topology for components
         """
-        # TODO this is needed because the topology retains data across tests
-        topology.reset()
-
         self.check._collect_components = mock.MagicMock()
         self.check._collect_components.return_value = json.loads(mock_collect_components())
-        self.check._process_components(instance_config, 10)
+        self.check._process_components(instance_config, batch_size=100, timeout=10)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 1)
@@ -187,9 +201,6 @@ class TestServicenow(unittest.TestCase):
         """
         Test to collect the component relations and process it as a topology
         """
-        # TODO this is needed because the topology retains data across tests
-        topology.reset()
-
         relation_types = {'1a9cb166f1571100a92eb60da2bce5c5': 'Cools'}
         self.check._collect_component_relations = mock.MagicMock()
         self.check._collect_component_relations.return_value = json.loads(mock_relation_components())
@@ -204,9 +215,6 @@ class TestServicenow(unittest.TestCase):
         """
         Test to check the method _get_json with positive response and get a OK service check
         """
-        # TODO this is needed because the aggregator retains data across tests
-        aggregator.reset()
-
         url = self.instance.get('url') + "/api/now/table/cmdb_ci"
         auth = (self.instance.get('user'), self.instance.get('password'))
         mock_req_get.return_value = mock.MagicMock(status_code=200, text=json.dumps({'key': 'value'}))
@@ -214,9 +222,6 @@ class TestServicenow(unittest.TestCase):
         service_checks = aggregator.service_checks("servicenow.cmdb.topology_information")
         print(service_checks)
         self.assertEqual(len(service_checks), 0)
-
-        # TODO this is needed because the aggregator retains data across tests
-        aggregator.reset()
 
         # Test for Check Exception if response code is not 200
         mock_req_get.return_value = mock.MagicMock(status_code=300, text=json.dumps({'key': 'value'}))
@@ -252,9 +257,6 @@ class TestServicenow(unittest.TestCase):
         """
         Test _process_components to return whole topology when query changed in between
         """
-        # TODO this is needed because the topology retains data across tests
-        topology.reset()
-
         instance_config = InstanceInfo([], self.instance.get('url'), ('admin', 'Service@123'),
                                        self.instance.get('include_resource_types'))
         sys_class_filter = self.instance.get('include_resource_types')
@@ -269,7 +271,7 @@ class TestServicenow(unittest.TestCase):
                                                                        "%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server"
         self.check._get_json = mock.MagicMock()
         self.check._get_json.return_value = json.loads(mock_collect_components())
-        self.check._process_components(instance_config, 10)
+        self.check._process_components(instance_config, batch_size=100, timeout=10)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 1)
@@ -280,9 +282,6 @@ class TestServicenow(unittest.TestCase):
         """
         Test _process_components to return whole topology when query changed in between
         """
-        # TODO this is needed because the topology retains data across tests
-        topology.reset()
-
         instance_config = InstanceInfo([], self.instance.get('url'), ('admin', 'Service@123'),
                                        self.instance.get('include_resource_types'))
         sys_class_filter = self.instance.get('include_resource_types')
@@ -311,9 +310,6 @@ class TestServicenow(unittest.TestCase):
         """
         Test _process_components to return whole topology when query changed in between
         """
-        # TODO this is needed because the topology retains data across tests
-        topology.reset()
-
         instance_config = InstanceInfo([], self.instance.get('url'), ('admin', 'Service@123'),
                                        self.instance.get('include_resource_types'))
         sys_class_filter = self.instance.get('include_resource_types')
@@ -324,7 +320,7 @@ class TestServicenow(unittest.TestCase):
 
         self.check._get_json = mock.MagicMock()
         self.check._get_json.return_value = json.loads(mock_collect_filter_components())
-        self.check._process_components(instance_config, 10)
+        self.check._process_components(instance_config, batch_size=100, timeout=10)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 1)
@@ -336,9 +332,6 @@ class TestServicenow(unittest.TestCase):
         """
         Test _process_components to return whole topology when query changed in between
         """
-        # TODO this is needed because the topology retains data across tests
-        topology.reset()
-
         instance_config = InstanceInfo([], self.instance.get('url'), ('admin', 'Service@123'),
                                        self.instance.get('include_resource_types'))
         sys_class_filter = self.instance.get('include_resource_types')
