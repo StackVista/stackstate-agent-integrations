@@ -616,6 +616,11 @@ class __AgentCheckPy3(AgentCheckBase):
                     'to `skip_proxy` and will be removed in a future release.'
                 ),
             ],
+            'source_type_name': [
+                False,
+                "DEPRECATION NOTICE: The `source_type_name` event parameters has been deprecated "
+                "in favour of `event_type` and will be removed in a future release.",
+            ],
         }
         self.set_metric_limits()
 
@@ -796,6 +801,11 @@ class __AgentCheckPy2(AgentCheckBase):
                 False,
                 "DEPRECATION NOTICE: The `no_proxy` config option has been renamed "
                 "to `skip_proxy` and will be removed in a future release.",
+            ],
+            'source_type_name': [
+                False,
+                "DEPRECATION NOTICE: The `source_type_name` event parameters has been deprecated "
+                "in favour of `event_type` and will be removed in a future release.",
             ],
         }
 
