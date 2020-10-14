@@ -53,6 +53,8 @@ class DynatraceTopologyCheck(AgentCheck):
         try:
             self.start_snapshot()
             self.process_topology()
+            msg = "Dynatrace topology processed successfully"
+            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=self.tags, message=msg)
             self.stop_snapshot()
         except Exception as e:
             self.log.exception(str(e))

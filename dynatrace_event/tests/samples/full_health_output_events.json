@@ -1,0 +1,222 @@
+[
+  {
+    "msg_title": "",
+    "tags": [
+      "entityId:SERVICE-FAA29C9BB1C02F9B",
+      "health:CRITICAL"
+    ],
+    "source_type_name": "Dynatrace Events",
+    "msg_text": "|  EventType  |  SeverityLevel  |  Impact  |  Open Since  |  Tags  |  Source  |\n\n        |-------------|-----------------|----------|--------------|--------|----------|\n\n        |  FAILURE_RATE_INCREASED  |  ERROR  |  SERVICE  |  Sep 23, 2020, 20:55:00  |  [{\"context\": \"CONTEXTLESS\", \"key\": \"app-ivory\"}, {\"context\": \"CONTEXTLESS\", \"key\": \"comp-ivory_to_ctp\"}, {\"context\": \"CONTEXTLESS\", \"key\": \"product-bcops\"}, {\"context\": \"CONTEXTLESS\", \"key\": \"stage\", \"value\": \"prod\"}]  |  dynatrace-builtin  |\n",
+    "timestamp": 1602685050
+  },
+  {
+    "msg_title": "",
+    "tags": [
+      "entityId:PROCESS_GROUP_INSTANCE-F4A36BC73727791E",
+      "health:OK"
+    ],
+    "source_type_name": "Dynatrace Events",
+    "msg_text": "",
+    "timestamp": 1602685050
+  },
+  {
+    "msg_title": "",
+    "tags": [
+      "entityId:PROCESS_GROUP_INSTANCE-0C52D42FE2AD313D",
+      "health:OK"
+    ],
+    "source_type_name": "Dynatrace Events",
+    "msg_text": "",
+    "timestamp": 1602685050
+  },
+  {
+    "msg_title": "",
+    "tags": [
+      "entityId:PROCESS_GROUP_INSTANCE-F475E01D291BD4E6",
+      "health:OK"
+    ],
+    "source_type_name": "Dynatrace Events",
+    "msg_text": "",
+    "timestamp": 1602685050
+  },
+  {
+    "msg_title": "",
+    "tags": [
+      "entityId:PROCESS_GROUP_INSTANCE-FDC86DF925A614C8",
+      "health:OK"
+    ],
+    "source_type_name": "Dynatrace Events",
+    "msg_text": "",
+    "timestamp": 1602685050
+  },
+  {
+    "msg_title": "",
+    "tags": [
+      "entityId:PROCESS_GROUP_INSTANCE-38D928161ECD49A7",
+      "health:OK"
+    ],
+    "source_type_name": "Dynatrace Events",
+    "msg_text": "",
+    "timestamp": 1602685050
+  },
+  {
+    "msg_title": "",
+    "tags": [
+      "entityId:PROCESS_GROUP_INSTANCE-E12428951C5FC879",
+      "health:OK"
+    ],
+    "source_type_name": "Dynatrace Events",
+    "msg_text": "",
+    "timestamp": 1602685050
+  },
+  {
+    "msg_title": "",
+    "tags": [
+      "entityId:PROCESS_GROUP_INSTANCE-5A193C82F0FDC101",
+      "health:OK"
+    ],
+    "source_type_name": "Dynatrace Events",
+    "msg_text": "",
+    "timestamp": 1602685050
+  },
+  {
+    "msg_title": "",
+    "tags": [
+      "entityId:PROCESS_GROUP_INSTANCE-0F09600EB85B07B3",
+      "health:OK"
+    ],
+    "source_type_name": "Dynatrace Events",
+    "msg_text": "",
+    "timestamp": 1602685050
+  },
+  {
+    "msg_title": "",
+    "tags": [
+      "entityId:PROCESS_GROUP_INSTANCE-39E189EB637F4477",
+      "health:OK"
+    ],
+    "source_type_name": "Dynatrace Events",
+    "msg_text": "",
+    "timestamp": 1602685050
+  },
+  {
+    "msg_title": "",
+    "tags": [
+      "entityId:PROCESS_GROUP_INSTANCE-E923E35802176A3A",
+      "health:OK"
+    ],
+    "source_type_name": "Dynatrace Events",
+    "msg_text": "",
+    "timestamp": 1602685050
+  },
+  {
+    "msg_title": "",
+    "tags": [
+      "entityId:PROCESS_GROUP_INSTANCE-CF8539713BBAB924",
+      "health:OK"
+    ],
+    "source_type_name": "Dynatrace Events",
+    "msg_text": "",
+    "timestamp": 1602685050
+  },
+  {
+    "msg_title": "",
+    "tags": [
+      "entityId:SERVICE-9B16B9C5B03836C5",
+      "health:CRITICAL"
+    ],
+    "source_type_name": "Dynatrace Events",
+    "msg_text": "|  EventType  |  SeverityLevel  |  Impact  |  Open Since  |  Tags  |  Source  |\n\n        |-------------|-----------------|----------|--------------|--------|----------|\n\n        |  FAILURE_RATE_INCREASED  |  ERROR  |  SERVICE  |  Sep 23, 2020, 20:57:00  |  [{\"context\": \"CONTEXTLESS\", \"key\": \"component\", \"value\": \"ant-*\"}, {\"context\": \"CONTEXTLESS\", \"key\": \"k8s-namespace\", \"value\": \"schaden-anliegentracking-prod-axa-ch\"}, {\"context\": \"CONTEXTLESS\", \"key\": \"stage\", \"value\": \"prod\"}]  |  dynatrace-builtin  |\n",
+    "timestamp": 1602685050
+  },
+  {
+    "msg_title": "",
+    "tags": [
+      "entityId:PROCESS_GROUP_INSTANCE-D85C10AE9B4A47E0",
+      "health:OK"
+    ],
+    "source_type_name": "Dynatrace Events",
+    "msg_text": "",
+    "timestamp": 1602685050
+  },
+  {
+    "msg_title": "",
+    "tags": [
+      "entityId:PROCESS_GROUP_INSTANCE-5EC2DFCF038CB186",
+      "health:OK"
+    ],
+    "source_type_name": "Dynatrace Events",
+    "msg_text": "",
+    "timestamp": 1602685050
+  },
+  {
+    "msg_title": "",
+    "tags": [
+      "entityId:PROCESS_GROUP_INSTANCE-824A512BB875431D",
+      "health:OK"
+    ],
+    "source_type_name": "Dynatrace Events",
+    "msg_text": "",
+    "timestamp": 1602685050
+  },
+  {
+    "msg_title": "",
+    "tags": [
+      "entityId:PROCESS_GROUP_INSTANCE-F6F62E17D8A78C00",
+      "health:OK"
+    ],
+    "source_type_name": "Dynatrace Events",
+    "msg_text": "",
+    "timestamp": 1602685050
+  },
+  {
+    "msg_title": "",
+    "tags": [
+      "entityId:PROCESS_GROUP_INSTANCE-02DD08860032026B",
+      "health:OK"
+    ],
+    "source_type_name": "Dynatrace Events",
+    "msg_text": "",
+    "timestamp": 1602685050
+  },
+  {
+    "msg_title": "",
+    "tags": [
+      "entityId:PROCESS_GROUP_INSTANCE-2AF17995B89ACEFE",
+      "health:OK"
+    ],
+    "source_type_name": "Dynatrace Events",
+    "msg_text": "",
+    "timestamp": 1602685050
+  },
+  {
+    "msg_title": "",
+    "tags": [
+      "entityId:PROCESS_GROUP_INSTANCE-C01F497D1D0F7F49",
+      "health:OK"
+    ],
+    "source_type_name": "Dynatrace Events",
+    "msg_text": "",
+    "timestamp": 1602685050
+  },
+  {
+    "msg_title": "",
+    "tags": [
+      "entityId:PROCESS_GROUP_INSTANCE-6703EC3165BBF22B",
+      "health:OK"
+    ],
+    "source_type_name": "Dynatrace Events",
+    "msg_text": "",
+    "timestamp": 1602685050
+  },
+  {
+    "msg_title": "",
+    "tags": [
+      "entityId:PROCESS_GROUP_INSTANCE-874A7BE975CB6D92",
+      "health:OK"
+    ],
+    "source_type_name": "Dynatrace Events",
+    "msg_text": "",
+    "timestamp": 1602685050
+  }
+]

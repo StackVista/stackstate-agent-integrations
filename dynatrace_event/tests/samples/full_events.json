@@ -1,0 +1,504 @@
+{
+  "nextEventStartTms": 1600873810000,
+  "nextEventId": 4693051395068987000,
+  "nextCursor": "AgEAAAF0IRpoAwEAAAF0u5kwAwAAAQAcMTc0YmI4M2M4NTAtNDEyMTExNjEwM2JkMDYzZQ==",
+  "from": 1598283212803,
+  "to": 1600875212803,
+  "totalEventCount": 122,
+  "events": [
+    {
+      "eventId": -5695353740630077000,
+      "startTime": 1600875000000,
+      "endTime": 1600875010000,
+      "entityId": "PROCESS_GROUP_INSTANCE-824A512BB875431D",
+      "entityName": "SFControl.exe",
+      "impactLevel": "INFRASTRUCTURE",
+      "eventType": "PROCESS_RESTART",
+      "eventStatus": "CLOSED",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "prod"
+        }
+      ],
+      "id": "-5695353740630077232_1600875000000",
+      "source": "builtin"
+    },
+    {
+      "eventId": -6374021115351989000,
+      "startTime": 1600875000000,
+      "endTime": 1600875010000,
+      "entityId": "PROCESS_GROUP_INSTANCE-5EC2DFCF038CB186",
+      "entityName": "Universal Data Mover Server (x64)",
+      "impactLevel": "INFRASTRUCTURE",
+      "eventType": "PROCESS_RESTART",
+      "eventStatus": "CLOSED",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "prod"
+        }
+      ],
+      "id": "-6374021115351988940_1600875000000",
+      "source": "builtin"
+    },
+    {
+      "eventId": -7929896856034353000,
+      "startTime": 1600875000000,
+      "endTime": 1600875010000,
+      "entityId": "PROCESS_GROUP_INSTANCE-02DD08860032026B",
+      "entityName": "SFControl.exe",
+      "impactLevel": "INFRASTRUCTURE",
+      "eventType": "PROCESS_RESTART",
+      "eventStatus": "CLOSED",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "preprod"
+        }
+      ],
+      "id": "-7929896856034352911_1600875000000",
+      "source": "builtin"
+    },
+    {
+      "eventId": 1273921780227268600,
+      "startTime": 1600875000000,
+      "endTime": 1600875010000,
+      "entityId": "PROCESS_GROUP_INSTANCE-874A7BE975CB6D92",
+      "entityName": "csc.exe",
+      "impactLevel": "INFRASTRUCTURE",
+      "eventType": "PROCESS_RESTART",
+      "eventStatus": "CLOSED",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "prod"
+        }
+      ],
+      "id": "1273921780227268668_1600875000000",
+      "source": "builtin"
+    },
+    {
+      "eventId": -1920904455712359000,
+      "startTime": 1600874700000,
+      "endTime": -1,
+      "entityId": "SERVICE-FAA29C9BB1C02F9B",
+      "entityName": "Ivory Server CTP Inbound PROD",
+      "severityLevel": "ERROR",
+      "impactLevel": "SERVICE",
+      "eventType": "FAILURE_RATE_INCREASED",
+      "eventStatus": "OPEN",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "app-ivory"
+        },
+        {
+          "context": "CONTEXTLESS",
+          "key": "comp-ivory_to_ctp"
+        },
+        {
+          "context": "CONTEXTLESS",
+          "key": "product-bcops"
+        },
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "prod"
+        }
+      ],
+      "id": "-1920904455712358970_1600874700000",
+      "affectedRequestsPerMinute": 35.4,
+      "service": "Ivory Server CTP Inbound PROD",
+      "source": "builtin",
+      "serviceMethod": "/soap/DistributionEinheitInfoGet_5"
+    },
+    {
+      "eventId": 2476935386724871000,
+      "startTime": 1600875000000,
+      "endTime": 1600875010000,
+      "entityId": "PROCESS_GROUP_INSTANCE-0C52D42FE2AD313D",
+      "entityName": "AxaEurex_Batch.jar",
+      "impactLevel": "INFRASTRUCTURE",
+      "eventType": "PROCESS_RESTART",
+      "eventStatus": "CLOSED",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "prod"
+        }
+      ],
+      "id": "2476935386724871208_1600875000000",
+      "source": "builtin"
+    },
+    {
+      "eventId": 7577229374478442000,
+      "startTime": 1600875000000,
+      "endTime": 1600875010000,
+      "entityId": "PROCESS_GROUP_INSTANCE-39E189EB637F4477",
+      "entityName": "AGCommandLineSupport.exe",
+      "impactLevel": "INFRASTRUCTURE",
+      "eventType": "PROCESS_RESTART",
+      "eventStatus": "CLOSED",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "prod"
+        }
+      ],
+      "id": "7577229374478442894_1600875000000",
+      "source": "builtin"
+    },
+    {
+      "eventId": -1509535909667188700,
+      "startTime": 1600874980000,
+      "endTime": 1600874990000,
+      "entityId": "PROCESS_GROUP_INSTANCE-FDC86DF925A614C8",
+      "entityName": "Apache Web Server dispatcher",
+      "impactLevel": "INFRASTRUCTURE",
+      "eventType": "DEPLOYMENT_CHANGED_CHANGE",
+      "eventStatus": "CLOSED",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "app-aem"
+        },
+        {
+          "context": "CONTEXTLESS",
+          "key": "comp-aem_publish_dispatcher"
+        },
+        {
+          "context": "CONTEXTLESS",
+          "key": "product-website_and_eforms"
+        },
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "preprod"
+        }
+      ],
+      "id": "-1509535909667188740_1600874980000",
+      "artifact": "/opt/aem/cache/etc with 4 changes.\n/opt/aem/cache/etc.clientlibs/cq/testandtarget/clientlibs/testandtarget/parameters.a16fffacb27c809cfa4be81fe0c78255.js\n",
+      "source": "builtin"
+    },
+    {
+      "eventId": 7799395567706106000,
+      "startTime": 1600874820000,
+      "endTime": -1,
+      "entityId": "SERVICE-9B16B9C5B03836C5",
+      "entityName": "RequestService",
+      "severityLevel": "ERROR",
+      "impactLevel": "SERVICE",
+      "eventType": "FAILURE_RATE_INCREASED",
+      "eventStatus": "OPEN",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "component",
+          "value": "ant-*"
+        },
+        {
+          "context": "CONTEXTLESS",
+          "key": "k8s-namespace",
+          "value": "schaden-anliegentracking-prod-axa-ch"
+        },
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "prod"
+        }
+      ],
+      "id": "7799395567706106116_1600874820000",
+      "affectedRequestsPerMinute": 76.6,
+      "service": "RequestService",
+      "source": "builtin",
+      "serviceMethod": "getRequests"
+    },
+    {
+      "eventId": -2499485708448302600,
+      "startTime": 1600874960000,
+      "endTime": 1600874970000,
+      "entityId": "PROCESS_GROUP_INSTANCE-D85C10AE9B4A47E0",
+      "entityName": "ruby",
+      "impactLevel": "INFRASTRUCTURE",
+      "eventType": "PROCESS_RESTART",
+      "eventStatus": "CLOSED",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "prod"
+        }
+      ],
+      "id": "-2499485708448302794_1600874960000",
+      "source": "builtin"
+    },
+    {
+      "eventId": 4304649148681175600,
+      "startTime": 1600874940000,
+      "endTime": 1600874950000,
+      "entityId": "PROCESS_GROUP_INSTANCE-CF8539713BBAB924",
+      "entityName": "jstat",
+      "impactLevel": "INFRASTRUCTURE",
+      "eventType": "PROCESS_RESTART",
+      "eventStatus": "CLOSED",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "prod"
+        }
+      ],
+      "id": "4304649148681175773_1600874940000",
+      "source": "builtin"
+    },
+    {
+      "eventId": -6846071412382022000,
+      "startTime": 1600874920000,
+      "endTime": 1600874930000,
+      "entityId": "PROCESS_GROUP_INSTANCE-F475E01D291BD4E6",
+      "entityName": "choco.exe",
+      "impactLevel": "INFRASTRUCTURE",
+      "eventType": "PROCESS_RESTART",
+      "eventStatus": "CLOSED",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "dev"
+        }
+      ],
+      "id": "-6846071412382021333_1600874920000",
+      "source": "builtin"
+    },
+    {
+      "eventId": 3408190044300454000,
+      "startTime": 1600874910000,
+      "endTime": 1600874920000,
+      "entityId": "PROCESS_GROUP_INSTANCE-2AF17995B89ACEFE",
+      "entityName": "ruby",
+      "impactLevel": "INFRASTRUCTURE",
+      "eventType": "PROCESS_RESTART",
+      "eventStatus": "CLOSED",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "prod"
+        }
+      ],
+      "id": "3408190044300453974_1600874910000",
+      "source": "builtin"
+    },
+    {
+      "eventId": 2902837849271715300,
+      "startTime": 1600874900000,
+      "endTime": 1600874910000,
+      "entityId": "PROCESS_GROUP_INSTANCE-F4A36BC73727791E",
+      "entityName": "jstat",
+      "impactLevel": "INFRASTRUCTURE",
+      "eventType": "PROCESS_RESTART",
+      "eventStatus": "CLOSED",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "maint"
+        }
+      ],
+      "id": "2902837849271715505_1600874900000",
+      "source": "builtin"
+    },
+    {
+      "eventId": 8218347052905427000,
+      "startTime": 1600874880000,
+      "endTime": 1600874890000,
+      "entityId": "PROCESS_GROUP_INSTANCE-6703EC3165BBF22B",
+      "entityName": "ruby",
+      "impactLevel": "INFRASTRUCTURE",
+      "eventType": "PROCESS_RESTART",
+      "eventStatus": "CLOSED",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "dev"
+        }
+      ],
+      "id": "8218347052905427435_1600874880000",
+      "source": "builtin"
+    },
+    {
+      "eventId": -4027742498231797000,
+      "startTime": 1600874820000,
+      "endTime": -1,
+      "entityId": "SERVICE-9B16B9C5B03836C5",
+      "entityName": "RequestService",
+      "severityLevel": "ERROR",
+      "impactLevel": "SERVICE",
+      "eventType": "FAILURE_RATE_INCREASED",
+      "eventStatus": "OPEN",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "component",
+          "value": "ant-*"
+        },
+        {
+          "context": "CONTEXTLESS",
+          "key": "k8s-namespace",
+          "value": "schaden-anliegentracking-prod-axa-ch"
+        },
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "prod"
+        }
+      ],
+      "id": "-4027742498231797321_1600874820000",
+      "affectedRequestsPerMinute": 79.2,
+      "service": "RequestService",
+      "source": "builtin",
+      "serviceMethodGroup": "Default requests"
+    },
+    {
+      "eventId": -6112922304237904000,
+      "startTime": 1600874810000,
+      "endTime": 1600874820000,
+      "entityId": "PROCESS_GROUP_INSTANCE-E923E35802176A3A",
+      "entityName": "ruby",
+      "impactLevel": "INFRASTRUCTURE",
+      "eventType": "PROCESS_RESTART",
+      "eventStatus": "CLOSED",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "preprod"
+        }
+      ],
+      "id": "-6112922304237904168_1600874810000",
+      "source": "builtin"
+    },
+    {
+      "eventId": 2456637075599895000,
+      "startTime": 1600874810000,
+      "endTime": 1600874820000,
+      "entityId": "PROCESS_GROUP_INSTANCE-0F09600EB85B07B3",
+      "entityName": "ruby",
+      "impactLevel": "INFRASTRUCTURE",
+      "eventType": "PROCESS_RESTART",
+      "eventStatus": "CLOSED",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "prod"
+        }
+      ],
+      "id": "2456637075599895150_1600874810000",
+      "source": "builtin"
+    },
+    {
+      "eventId": -251160284049797440,
+      "startTime": 1600874730000,
+      "endTime": 1600874740000,
+      "entityId": "PROCESS_GROUP_INSTANCE-F6F62E17D8A78C00",
+      "entityName": "choco.exe",
+      "impactLevel": "INFRASTRUCTURE",
+      "eventType": "PROCESS_RESTART",
+      "eventStatus": "CLOSED",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "dev"
+        }
+      ],
+      "id": "-251160284049797427_1600874730000",
+      "source": "builtin"
+    },
+    {
+      "eventId": 5782637675996842000,
+      "startTime": 1600874730000,
+      "endTime": 1600874740000,
+      "entityId": "PROCESS_GROUP_INSTANCE-5A193C82F0FDC101",
+      "entityName": "ruby",
+      "impactLevel": "INFRASTRUCTURE",
+      "eventType": "PROCESS_RESTART",
+      "eventStatus": "CLOSED",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "dev"
+        }
+      ],
+      "id": "5782637675996842016_1600874730000",
+      "source": "builtin"
+    },
+    {
+      "eventId": 4179150746171657000,
+      "startTime": 1600874700000,
+      "endTime": 1600874710000,
+      "entityId": "PROCESS_GROUP_INSTANCE-E12428951C5FC879",
+      "entityName": "SCOM Agent",
+      "impactLevel": "INFRASTRUCTURE",
+      "eventType": "PROCESS_RESTART",
+      "eventStatus": "CLOSED",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "preprod"
+        }
+      ],
+      "id": "4179150746171657095_1600874700000",
+      "source": "builtin"
+    },
+    {
+      "eventId": -2725279095812089000,
+      "startTime": 1600874670000,
+      "endTime": 1600874680000,
+      "entityId": "PROCESS_GROUP_INSTANCE-38D928161ECD49A7",
+      "entityName": "gem.bat",
+      "impactLevel": "INFRASTRUCTURE",
+      "eventType": "PROCESS_RESTART",
+      "eventStatus": "CLOSED",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "prod"
+        }
+      ],
+      "id": "-2725279095812088784_1600874670000",
+      "source": "builtin"
+    },
+    {
+      "eventId": 4461823570195515400,
+      "startTime": 1600874670000,
+      "endTime": 1600874680000,
+      "entityId": "PROCESS_GROUP_INSTANCE-C01F497D1D0F7F49",
+      "entityName": "csc.exe",
+      "impactLevel": "INFRASTRUCTURE",
+      "eventType": "PROCESS_RESTART",
+      "eventStatus": "CLOSED",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "prod"
+        }
+      ],
+      "id": "4461823570195515144_1600874670000",
+      "source": "builtin"
+    }
+  ]
+}

@@ -581,6 +581,14 @@ class AgentCheckBase(object):
 
         return proxies if proxies else no_proxy_settings
 
+    @staticmethod
+    def get_agent_confd_path():
+        return datadog_agent.get_config("confd_path")
+
+    @staticmethod
+    def get_config(key):
+        return datadog_agent.get_config(key)
+
 
 class __AgentCheckPy3(AgentCheckBase):
     def __init__(self, *args, **kwargs):

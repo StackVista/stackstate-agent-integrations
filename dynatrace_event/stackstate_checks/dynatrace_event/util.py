@@ -1,51 +1,77 @@
+# (C) StackState 2020
+# All rights reserved
+# Licensed under a 3-clause BSD style license (see LICENSE)
+
+from stackstate_checks.base import AgentCheck
+
 import cPickle as pickle
 import logging
 import os
-import pwd
 
 log = logging.getLogger(__name__)
 
-# Temporary directory for creating the state file
-PATH = "/etc/stackstate-agent/conf.d/dynatrace_event.d/"
-# Full path of temporary file
-pickle_path = os.path.join(PATH, "dynatrace_data" + '.pickle')
-# get the user details of stackstate-agent
-user = pwd.getpwnam('stackstate-agent')
+# get the agent configuration(/etc/stackstate-agent/conf.d) folder path
+AGENT_CONFD_PATH = AgentCheck.get_agent_confd_path()
+# Full path of state file
+DYNATRACE_STATE_FILE = os.path.join(AGENT_CONFD_PATH, "/dynatrace_event.d/dynatrace_event_state.pickle")
 
 
-class DynatraceStatus:
+class DynatraceEventState(object):
+    """
+    A class to keep the state of the events coming from Dynatrace. The structure of state looks like below:
 
+    # timestamp   : last event processed timestamp
+    # entityId    : EntityId of Dynatrace for which event occured
+    # event_type  : Event Type of an event for the EntityId
+    # event       : Event details for the EntityId
+    state = {
+                "url" : timestamp,
+                "url/events": {
+                                "entityId": {
+                                                "event_type": event
+                                            }
+                              }
+            }
+
+    """
     def __init__(self):
-        pass
+        self.data = dict()
 
     def persist(self):
         try:
-            log.debug("Persisting status to %s" % pickle_path)
-            f = open(pickle_path, 'w+')
-            # Change the ownership of the file, so it could be read with stackstate-agent user
-            os.chown(pickle_path, user.pw_uid, user.pw_gid)
+            log.debug("Persisting status to %s" % DYNATRACE_STATE_FILE)
+            f = open(DYNATRACE_STATE_FILE, 'w+')
             try:
                 pickle.dump(self, f)
             finally:
                 f.close()
         except Exception as e:
             log.exception("Error persisting the data: {}".format(str(e)))
+            raise e
+
+    def clear(self, instance):
+        """
+        Clear the instance state as it can have multiple instance state
+        :param instance: the instance for which state need to be cleared
+        :return: None
+        """
+        if instance in self.data:
+            del self.data[instance]
+            del self.data[instance+"/events"]
+        else:
+            log.debug("There is no state existing for the instance {}".format(instance))
 
     @classmethod
     def load_latest_status(cls):
         try:
-            f = open(pickle_path)
+            f = open(DYNATRACE_STATE_FILE)
             try:
                 r = pickle.load(f)
                 return r
+            except Exception as e:
+                log.exception("Error loading the state : {}".format(str(e)))
             finally:
                 f.close()
         except (IOError, EOFError):
+            # First time when it loads there will be no file existing, so need to handle that
             return None
-
-
-class DynatraceData(DynatraceStatus):
-
-    def __init__(self):
-        DynatraceStatus.__init__(self)
-        self.data = dict()
