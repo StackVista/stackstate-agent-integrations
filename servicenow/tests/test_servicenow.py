@@ -112,8 +112,7 @@ instance_config = InstanceInfo(
 @pytest.mark.usefixtures("instance")
 class TestServicenow(unittest.TestCase):
     """Basic Test for servicenow integration."""
-    CHECK_NAME = 'servicenow'
-    SERVICE_CHECK_NAME = "servicenow.cmdb.topology_information"
+    CHECK_NAME = 'servicenow_test'
 
     def setUp(self):
         """
@@ -157,7 +156,7 @@ class TestServicenow(unittest.TestCase):
         # Service Checks should be generated
         service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_NAME)
         self.assertEqual(len(service_checks), 1)
-        self.assertEqual(service_checks[0].name, self.SERVICE_CHECK_NAME)
+        self.assertEqual(service_checks[0].name, self.check.SERVICE_CHECK_NAME)
         self.assertEqual(service_checks[0].status, AgentCheck.CRITICAL)
 
     def test_process_components(self):
@@ -227,7 +226,7 @@ class TestServicenow(unittest.TestCase):
         self.assertRaises(Exception, self.check._get_json, url, 10, auth)
         service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_NAME)
         self.assertEqual(len(service_checks), 1)
-        self.assertEqual(service_checks[0].name, self.SERVICE_CHECK_NAME)
+        self.assertEqual(service_checks[0].name, self.check.SERVICE_CHECK_NAME)
         self.assertEqual(service_checks[0].status, AgentCheck.CRITICAL)
 
     def test_get_sys_class_component_filter_query(self):
