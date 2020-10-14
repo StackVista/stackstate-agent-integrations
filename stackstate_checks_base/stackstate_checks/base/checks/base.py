@@ -693,6 +693,7 @@ class __AgentCheckPy3(AgentCheckBase):
         if event.get('aggregation_key'):
             event['aggregation_key'] = ensure_unicode(event['aggregation_key'])
         if event.get('source_type_name'):
+            self._log_deprecation("source_type_name")
             event['event_type'] = ensure_unicode(event['source_type_name'])
 
         if 'context' in event:
@@ -873,6 +874,7 @@ class __AgentCheckPy2(AgentCheckBase):
         if event.get('aggregation_key'):
             event['aggregation_key'] = ensure_bytes(event['aggregation_key'])
         if event.get('source_type_name'):
+            self._log_deprecation("source_type_name")
             event['event_type'] = ensure_bytes(event['source_type_name'])
 
         if 'context' in event:
