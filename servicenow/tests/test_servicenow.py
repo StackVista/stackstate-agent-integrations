@@ -219,18 +219,16 @@ class TestServicenow(unittest.TestCase):
         auth = (self.instance.get('user'), self.instance.get('password'))
         mock_req_get.return_value = mock.MagicMock(status_code=200, text=json.dumps({'key': 'value'}))
         self.check._get_json(url, timeout=10, auth=auth)
-        service_checks = aggregator.service_checks("servicenow.cmdb.topology_information")
-        print(service_checks)
-        self.assertEqual(len(service_checks), 0)
+        service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_NAME)
+        self.assertEqual(len(service_checks), AgentCheck.OK)
 
         # Test for Check Exception if response code is not 200
         mock_req_get.return_value = mock.MagicMock(status_code=300, text=json.dumps({'key': 'value'}))
         self.assertRaises(Exception, self.check._get_json, url, 10, auth)
-        service_checks = aggregator.service_checks("servicenow.cmdb.topology_information")
+        service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_NAME)
         self.assertEqual(len(service_checks), 1)
-        print(service_checks)
         self.assertEqual(service_checks[0].name, self.SERVICE_CHECK_NAME)
-        self.assertEqual(service_checks[0].status, 2)
+        self.assertEqual(service_checks[0].status, AgentCheck.CRITICAL)
 
     def test_get_sys_class_component_filter_query(self):
         """
