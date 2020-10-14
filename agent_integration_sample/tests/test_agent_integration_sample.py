@@ -42,7 +42,8 @@ class TestAgentIntegration(unittest.TestCase):
         # TODO this is needed because the topology retains data across tests
         topology.reset()
 
-        self.check.run()
+        result = self.check.run()
+        assert result == ''
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 5)
         self.assertEqual(len(topo_instances['relations']), 3)
@@ -384,7 +385,7 @@ class TestAgentIntegration(unittest.TestCase):
         telemetry.assert_topology_event(
           {
             "timestamp": int(1),
-            "source_type_name": "HTTP_TIMEOUT",
+            "event_type": "HTTP_TIMEOUT",
             "msg_title": "URL timeout",
             "msg_text": "Http request to http://localhost timed out after 5.0 seconds.",
             "aggregation_key": "instance-request-http://localhost",
