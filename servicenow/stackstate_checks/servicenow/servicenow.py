@@ -60,17 +60,16 @@ class ServicenowCheck(AgentCheck):
         try:
             self.start_snapshot()
             relation_types = self._process_and_cache_relation_types(instance_config, timeout)
-            self._process_components(instance_config, timeout)
+            self._process_components(instance_config, batch_size, timeout)
             self._process_component_relations(instance_config, batch_size, timeout, relation_types)
+            # Report ServiceCheck OK
+            msg = "ServiceNow CMDB instance detected at %s " % base_url
+            tags = ["url:%s" % base_url]
+            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=tags, message=msg)
             self.stop_snapshot()
         except Exception as e:
             self.log.exception(str(e))
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, message=str(e), tags=instance_tags)
-
-        # Report ServiceCheck OK
-        msg = "ServiceNow CMDB instance detected at %s " % base_url
-        tags = ["url:%s" % base_url]
-        self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=tags, message=msg)
 
     def get_sys_class_component_filter_query(self, sys_class_filter):
         """
@@ -115,7 +114,7 @@ class ServicenowCheck(AgentCheck):
                     result[k] = v
         return result
 
-    def _collect_components(self, instance_config, timeout):
+    def _collect_components(self, instance_config, offset, batch_size, timeout):
         """
         collect components from ServiceNow CMDB's cmdb_ci table
         (API Doc- https://developer.servicenow.com/app.do#!/rest_api_doc?v=london&id=r_TableAPI-GET)
@@ -131,37 +130,42 @@ class ServicenowCheck(AgentCheck):
         if sys_class_filter_query:
             url = url + "?{}".format(sys_class_filter_query)
             self.log.debug("URL for component collection after applying filter:- %s", url)
-        return self._get_json(url, timeout, auth)
+        return self._get_json_batch(url, offset, batch_size, timeout, auth)
 
-    def _process_components(self, instance_config, timeout):
+    def _process_components(self, instance_config, batch_size, timeout):
         """
         process components fetched from CMDB
         :return: nothing
         """
         instance_tags = instance_config.instance_tags
+        offset = 0
 
-        state = self._collect_components(instance_config, timeout)
+        completed = False
+        while not completed:
+            components = self._collect_components(instance_config, offset, batch_size, timeout)
+            total_components = len(components.get("result"))
+            if "result" in components and isinstance(components["result"], list):
+                for component in components.get('result'):
+                    data = {}
+                    component = self.filter_empty_metadata(component)
+                    identifiers = []
+                    comp_name = component.get('name')
+                    comp_type = component.get('sys_class_name')
+                    external_id = component.get('sys_id')
 
-        if "result" in state:
-            for component in state.get('result', []):
-                data = {}
-                component = self.filter_empty_metadata(component)
-                identifiers = []
-                comp_name = component.get('name')
-                comp_type = component.get('sys_class_name')
-                external_id = component.get('sys_id')
+                    if 'fqdn' in component and component['fqdn']:
+                        identifiers.append("urn:host:/{}".format(component['fqdn']))
+                    if 'host_name' in component and component['host_name']:
+                        identifiers.append("urn:host:/{}".format(component['host_name']))
+                    else:
+                        identifiers.append("urn:host:/{}".format(comp_name))
+                    identifiers.append(external_id)
+                    data.update(component)
+                    data.update({"identifiers": identifiers, "tags": instance_tags})
 
-                if 'fqdn' in component and component['fqdn']:
-                    identifiers.append("urn:host:/{}".format(component['fqdn']))
-                if 'host_name' in component and component['host_name']:
-                    identifiers.append("urn:host:/{}".format(component['host_name']))
-                else:
-                    identifiers.append("urn:host:/{}".format(comp_name))
-                identifiers.append(external_id)
-                data.update(component)
-                data.update({"identifiers": identifiers, "tags": instance_tags})
-
-                self.component(external_id, comp_type, data)
+                    self.component(external_id, comp_type, data)
+            completed = total_components < batch_size
+            offset += batch_size
 
     def _collect_relation_types(self, instance_config, timeout):
         """
@@ -211,10 +215,10 @@ class ServicenowCheck(AgentCheck):
 
         completed = False
         while not completed:
-            state = self._collect_component_relations(instance_config, timeout, offset, batch_size)
-
-            if "result" in state:
-                for relation in state.get('result', []):
+            relations = self._collect_component_relations(instance_config, timeout, offset, batch_size)
+            total_relations = len(relations.get("result"))
+            if "result" in relations and isinstance(relations["result"], list):
+                for relation in relations.get('result'):
                     parent_sys_id = relation['parent']['value']
                     child_sys_id = relation['child']['value']
                     type_sys_id = relation['type']['value']
@@ -224,7 +228,7 @@ class ServicenowCheck(AgentCheck):
                     data.update({"tags": instance_tags})
 
                     self.relation(parent_sys_id, child_sys_id, relation_type, data)
-            completed = len(state) < batch_size
+            completed = total_relations < batch_size
             offset += batch_size
 
     def _get_json_batch(self, url, offset, batch_size, timeout, auth):
@@ -263,8 +267,11 @@ class ServicenowCheck(AgentCheck):
         if resp.encoding is None:
             resp.encoding = 'UTF8'
         try:
-            resp = yaml.safe_load(resp.text)
+            resp = yaml.safe_load(resp.text.encode("utf-8"))
         except Exception as e:
             self.log.exception(str(e))
-            raise Exception("Exception occured while parsing response with Yaml and the error is : {}".format(str(e)))
+            raise Exception("Exception occured while parsing response and the error is : {}".format(str(e)))
+
+        if "error" in resp and resp["error"]:
+            raise Exception("Problem in collecting CIs : {}".format(resp["error"].get("message")))
         return resp
