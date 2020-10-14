@@ -9,7 +9,7 @@ import unittest
 import pytest
 
 # project
-from stackstate_checks.servicenow import ServicenowCheck
+from stackstate_checks.servicenow import ServicenowCheck, InstanceInfo
 from stackstate_checks.base.stubs import topology, aggregator
 from stackstate_checks.base import AgentIntegrationTestUtil
 
@@ -92,14 +92,6 @@ def mock_relation_with_filter():
         ]
     }
     return json.dumps(response)
-
-
-class InstanceInfo():
-    def __init__(self, instance_tags, base_url, auth, sys_class_filter):
-        self.instance_tags = instance_tags
-        self.base_url = base_url
-        self.auth = auth
-        self.sys_class_filter = sys_class_filter
 
 
 instance = {

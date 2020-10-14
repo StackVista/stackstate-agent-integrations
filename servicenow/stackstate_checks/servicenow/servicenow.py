@@ -15,8 +15,7 @@ import yaml
 EVENT_TYPE = SOURCE_TYPE_NAME = 'servicenow'
 
 
-class InstanceInfo():
-
+class InstanceInfo:
     def __init__(self, instance_tags, base_url, auth, sys_class_filter):
         self.instance_tags = instance_tags
         self.base_url = base_url
@@ -48,7 +47,7 @@ class ServicenowCheck(AgentCheck):
         auth = (user, password)
 
         base_url = instance['url']
-        batch_size = instance['batch_size']
+        batch_size = instance.get('batch_size', 10000)
         instance_tags = instance.get('tags', [])
         sys_class_filter = instance.get('include_resource_types', [])
 
