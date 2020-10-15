@@ -11,8 +11,22 @@ from stackstate_checks.base import ConfigurationError, AgentCheck, TopologyInsta
 # inbuilt
 import yaml
 
-
 EVENT_TYPE = SOURCE_TYPE_NAME = 'servicenow'
+
+
+def _get_mandatory_instance_values(instance):
+    """
+    Check if mandatory instance values are present
+    :param instance:
+    :return: Strings base_url, password, user
+    """
+    try:
+        user = instance['user']
+        password = instance['password']
+        base_url = instance['url']
+    except KeyError as e:
+        raise ConfigurationError('ServiceNow CMDB topology instance missing "{}" value.'.format(e))
+    return base_url, password, user
 
 
 class InstanceInfo:
@@ -24,29 +38,16 @@ class InstanceInfo:
 
 
 class ServicenowCheck(AgentCheck):
-
     INSTANCE_TYPE = "servicenow_cmdb"
     SERVICE_CHECK_NAME = "servicenow.cmdb.topology_information"
 
     def get_instance_key(self, instance):
-        if "url" not in instance:
-            raise ConfigurationError("Missing 'url' in instance configuration.")
-
-        return TopologyInstance(self.INSTANCE_TYPE, instance["url"], with_snapshots=False)
+        base_url, _, _ = _get_mandatory_instance_values(instance)
+        return TopologyInstance(self.INSTANCE_TYPE, base_url, with_snapshots=False)
 
     def check(self, instance):
-        if 'url' not in instance:
-            raise ConfigurationError('ServiceNow CMDB topology instance missing "url" value.')
-        if 'user' not in instance:
-            raise ConfigurationError('ServiceNow CMDB topology instance missing "user" value.')
-        if 'password' not in instance:
-            raise ConfigurationError('ServiceNow CMDB topology instance missing "password" value.')
-
-        user = instance['user']
-        password = instance['password']
+        base_url, password, user = _get_mandatory_instance_values(instance)
         auth = (user, password)
-
-        base_url = instance['url']
         batch_size = instance.get('batch_size', 10000)
         instance_tags = instance.get('tags', [])
         sys_class_filter = instance.get('include_resource_types', [])
@@ -235,7 +236,7 @@ class ServicenowCheck(AgentCheck):
             limit_args = "?"
         else:
             limit_args = "&"
-        limit_args = limit_args + "sysparm_query=ORDERBYsys_created_on&sysparm_offset={}&sysparm_limit={}".\
+        limit_args = limit_args + "sysparm_query=ORDERBYsys_created_on&sysparm_offset={}&sysparm_limit={}". \
             format(offset, batch_size)
         limited_url = url + limit_args
         return self._get_json(limited_url, timeout, auth)

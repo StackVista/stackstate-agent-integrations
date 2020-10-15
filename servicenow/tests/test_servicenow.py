@@ -11,7 +11,7 @@ import pytest
 # project
 from stackstate_checks.servicenow import ServicenowCheck, InstanceInfo
 from stackstate_checks.base.stubs import topology, aggregator
-from stackstate_checks.base import AgentIntegrationTestUtil, AgentCheck
+from stackstate_checks.base import AgentIntegrationTestUtil, AgentCheck, ConfigurationError
 
 
 def mock_process_and_cache_relation_types(*args):
@@ -146,14 +146,12 @@ instance_config = InstanceInfo(
 @pytest.mark.usefixtures("instance")
 class TestServicenow(unittest.TestCase):
     """Basic Test for servicenow integration."""
-    CHECK_NAME = 'servicenow_test'
 
     def setUp(self):
         """
         Initialize and patch the check, i.e.
         """
-        config = {}
-        self.check = ServicenowCheck(self.CHECK_NAME, config, instances=[self.instance])
+        self.check = ServicenowCheck('servicenow_test', config={}, instances=[self.instance])
         topology.reset()
         aggregator.reset()
 
@@ -393,3 +391,12 @@ class TestServicenow(unittest.TestCase):
 
         topology_instance = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topology_instance['components']), 6)
+
+    def test_mandatory_instance_values(self):
+        """
+        Test existence of mandatory instance values
+        """
+        self.assertRaises(ConfigurationError, self.check.check, {'user': 'name', 'password': 'secret'})
+        self.assertRaises(ConfigurationError, self.check.check, {'user': 'name', 'url': "https://website.com"})
+        self.assertRaises(ConfigurationError, self.check.check, {'password': 'secret', 'url': "https://website.com"})
+        self.assertRaises(ConfigurationError, self.check.get_instance_key, {})
