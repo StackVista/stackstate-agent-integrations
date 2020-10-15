@@ -30,26 +30,90 @@ def mock_collect_components():
     """
     Mock behaviour(response) from ServiceNow API for Components(CIs)
     """
-    response = {'result': [{'sys_class_name': 'cmdb_ci_computer', 'sys_id': '00a96c0d3790200044e0bfc8bcbe5db4',
-                            'sys_created_on': '2012-02-18 08:14:21', 'name': 'MacBook Pro 15'}]}
-    return json.dumps(response)
+    response = {
+        'result': [
+            {
+                'sys_class_name': 'cmdb_ci_computer',
+                'sys_id': '00a96c0d3790200044e0bfc8bcbe5db4',
+                'sys_created_on': '2012-02-18 08:14:21',
+                'name': 'MacBook Pro 15'
+            }
+        ]
+    }
+    return response
+
+
+def mock_collect_components_batch():
+    """
+    Mock behaviour(response) from ServiceNow API for Components(CIs)
+    """
+    response = {
+        'result': [
+            {
+                'sys_class_name': 'cmdb_ci_computer',
+                'sys_id': '00a96c0d3790200044e0bfc8bcbe5db4',
+                'sys_created_on': '2012-02-18 08:14:21',
+                'name': 'MacBook Pro 15'
+            },
+            {
+                "sys_class_name": "cmdb_ci_computer",
+                "sys_id": "00a9a80d3790200044e0bfc8bcbe5d1c",
+                "sys_created_on": "2012-02-18 08:13:32",
+                "name": "MacBook Air 13\""
+            },
+            {
+                "sys_class_name": "cmdb_ci_computer",
+                "sys_id": "00a9e80d3790200044e0bfc8bcbe5d42",
+                "sys_created_on": "2012-02-18 08:13:48",
+                "name": "MacBook Pro 17\""
+            },
+            {
+                "sys_class_name": "cmdb_ci_computer",
+                "sys_id": "01a9e40d3790200044e0bfc8bcbe5dab",
+                "sys_created_on": "2012-02-18 08:12:30",
+                "name": "ThinkStation C20"
+            },
+            {
+                "sys_class_name": "cmdb_ci_computer",
+                "sys_id": "01a9ec0d3790200044e0bfc8bcbe5dc3",
+                "sys_created_on": "2012-02-18 08:14:42",
+                "name": "ThinkStation C20"
+            }
+        ]
+    }
+    return response
 
 
 def mock_collect_filter_components():
     """
     Mock behaviour(response) from ServiceNow API for Components(CIs)
     """
-    response = {'result': [{'sys_class_name': 'cmdb_ci_cluster', 'sys_id': '00a96c0d3790200044e0bfc8bcbe5db4',
-                            'sys_created_on': '2012-02-18 18:14:21', 'name': 'Test Cluster'}]}
-    return json.dumps(response)
+    response = {
+        'result': [
+            {
+                'sys_class_name': 'cmdb_ci_cluster',
+                'sys_id': '00a96c0d3790200044e0bfc8bcbe5db4',
+                'sys_created_on': '2012-02-18 18:14:21',
+                'name': 'Test Cluster'
+            }
+        ]
+    }
+    return response
 
 
 def mock_relation_types():
     """
     Mock behaviour for relation types
     """
-    response = {'result': [{'parent_descriptor': 'Cools', 'sys_id': '53979c53c0a801640116ad2044643fb2'}]}
-    return json.dumps(response)
+    response = {
+        'result': [
+            {
+                'parent_descriptor': 'Cools',
+                'sys_id': '53979c53c0a801640116ad2044643fb2'
+            }
+        ]
+    }
+    return response
 
 
 def mock_relation_components():
@@ -58,19 +122,22 @@ def mock_relation_components():
     """
     response = {
         'result': [
-            {'type': {
-                'link': 'https://dev60476.service-now.com/api/now/table/cmdb_rel_type/1a9cb166f1571100a92eb60da2bce5c5',
-                'value': '1a9cb166f1571100a92eb60da2bce5c5'},
+            {
+                'type': {
+                    'link': 'https://dev60476.service-now.com/api/now/table/cmdb_rel_type/1a9cb166f1571100a92eb60da2bc',
+                    'value': '1a9cb166f1571100a92eb60da2bce5c5'
+                },
                 'parent': {
                     'link': 'https://dev60476.service-now.com/api/now/table/cmdb_ci/451047c6c0a8016400de0ae6df9b9d76',
                     'value': '451047c6c0a8016400de0ae6df9b9d76'},
                 'child': {
                     'link': 'https://dev60476.service-now.com/api/now/table/cmdb_ci/53979c53c0a801640116ad2044643fb2',
                     'value': '53979c53c0a801640116ad2044643fb2'
-                }}
+                }
+            }
         ]
     }
-    return json.dumps(response)
+    return response
 
 
 def mock_relation_with_filter():
@@ -91,14 +158,13 @@ def mock_relation_with_filter():
                 }}
         ]
     }
-    return json.dumps(response)
+    return response
 
 
 mock_instance = {
     'url': "https://dev60476.service-now.com",
     'user': 'name',
-    'password': 'secret',
-    'batch_size': 100
+    'password': 'secret'
 }
 
 instance_config = InstanceInfo(
@@ -164,7 +230,7 @@ class TestServicenow(unittest.TestCase):
         Test _process_components to return topology for components
         """
         self.check._collect_components = mock.MagicMock()
-        self.check._collect_components.return_value = json.loads(mock_collect_components())
+        self.check._collect_components.return_value = mock_collect_components()
         self.check._process_components(instance_config, batch_size=100, timeout=10)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
@@ -185,7 +251,7 @@ class TestServicenow(unittest.TestCase):
         Test to collect relation types from ServiceNow API and put in relation_types
         """
         self.check._collect_relation_types = mock.MagicMock()
-        self.check._collect_relation_types.return_value = json.loads(mock_relation_types())
+        self.check._collect_relation_types.return_value = mock_relation_types()
         out = self.check._process_and_cache_relation_types(instance_config, 10)
 
         self.assertEqual(len(out), 1)
@@ -202,7 +268,7 @@ class TestServicenow(unittest.TestCase):
         """
         relation_types = {'1a9cb166f1571100a92eb60da2bce5c5': 'Cools'}
         self.check._collect_component_relations = mock.MagicMock()
-        self.check._collect_component_relations.return_value = json.loads(mock_relation_components())
+        self.check._collect_component_relations.return_value = mock_relation_components()
         self.check._process_component_relations(instance_config, 100, 10, relation_types)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
@@ -267,7 +333,7 @@ class TestServicenow(unittest.TestCase):
         self.check.get_sys_class_component_filter_query.return_value = "sysparm_query=sys_class_namecmdb_ci_netgear" \
                                                                        "%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server"
         self.check._get_json = mock.MagicMock()
-        self.check._get_json.return_value = json.loads(mock_collect_components())
+        self.check._get_json.return_value = mock_collect_components()
         self.check._process_components(instance_config, batch_size=100, timeout=10)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
@@ -294,7 +360,7 @@ class TestServicenow(unittest.TestCase):
                                                                       "cmdb_ci_netgear%5Echild.sys_class_nameIN" \
                                                                       "cmdb_ci_netgear"
         self.check._get_json = mock.MagicMock()
-        self.check._get_json.return_value = json.loads(mock_relation_components())
+        self.check._get_json.return_value = mock_relation_components()
         relation_types = {'1a9cb166f1571100a92eb60da2bce5c5': 'Cools'}
         self.check._process_component_relations(instance_config, 100, 10, relation_types)
 
@@ -316,7 +382,7 @@ class TestServicenow(unittest.TestCase):
         self.assertEqual(query_filter, expected_query)
 
         self.check._get_json = mock.MagicMock()
-        self.check._get_json.return_value = json.loads(mock_collect_filter_components())
+        self.check._get_json.return_value = mock_collect_filter_components()
         self.check._process_components(instance_config, batch_size=100, timeout=10)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
@@ -339,7 +405,7 @@ class TestServicenow(unittest.TestCase):
         self.assertEqual(query_filter, expected_query)
 
         self.check._get_json = mock.MagicMock()
-        self.check._get_json.return_value = json.loads(mock_relation_with_filter())
+        self.check._get_json.return_value = mock_relation_with_filter()
         relation_types = {'1a9cb166f1571100a92eb60da2bce5c5': 'Cools'}
         self.check._process_component_relations(instance_config, 100, 10, relation_types)
 
