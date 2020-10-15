@@ -624,6 +624,11 @@ class __AgentCheckPy3(AgentCheckBase):
                     'to `skip_proxy` and will be removed in a future release.'
                 ),
             ],
+            'source_type_name': [
+                False,
+                "DEPRECATION NOTICE: The `source_type_name` event parameters has been deprecated "
+                "in favour of `event_type` and will be removed in a future release.",
+            ],
         }
         self.set_metric_limits()
 
@@ -700,6 +705,9 @@ class __AgentCheckPy3(AgentCheckBase):
             event['timestamp'] = int(event['timestamp'])
         if event.get('aggregation_key'):
             event['aggregation_key'] = ensure_unicode(event['aggregation_key'])
+        if event.get('source_type_name'):
+            self._log_deprecation("source_type_name")
+            event['event_type'] = ensure_unicode(event['source_type_name'])
 
         if 'context' in event:
             telemetry.submit_topology_event(self, self.check_id, event)
@@ -802,6 +810,11 @@ class __AgentCheckPy2(AgentCheckBase):
                 "DEPRECATION NOTICE: The `no_proxy` config option has been renamed "
                 "to `skip_proxy` and will be removed in a future release.",
             ],
+            'source_type_name': [
+                False,
+                "DEPRECATION NOTICE: The `source_type_name` event parameters has been deprecated "
+                "in favour of `event_type` and will be removed in a future release.",
+            ],
         }
 
         self.set_metric_limits()
@@ -878,6 +891,9 @@ class __AgentCheckPy2(AgentCheckBase):
             event['timestamp'] = int(event['timestamp'])
         if event.get('aggregation_key'):
             event['aggregation_key'] = ensure_bytes(event['aggregation_key'])
+        if event.get('source_type_name'):
+            self._log_deprecation("source_type_name")
+            event['event_type'] = ensure_bytes(event['source_type_name'])
 
         if 'context' in event:
             telemetry.submit_topology_event(self, self.check_id, event)
