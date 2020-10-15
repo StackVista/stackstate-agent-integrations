@@ -193,12 +193,16 @@ class DynatraceEventCheck(AgentCheck):
         """
         events = self.state.data.get(self.url + "/events")
         if events:
-            for entityId in events.keys():
+            # in Python 3.x because keys returns an iterator instead of a list. so to support both versions
+            # create a list of keys
+            for entityId in list(events):
                 open_events = []
                 event_type_values = events.get(entityId)
                 # if we have open events for an entityId then create event with the health check
                 if event_type_values:
-                    for event_type in event_type_values.keys():
+                    # in Python 3.x because keys returns an iterator instead of a list. so to support both versions
+                    # create a list of keys
+                    for event_type in list(event_type_values):
                         event_status = event_type_values.get(event_type).get("eventStatus")
                         if event_status == "CLOSED":
                             del self.state.data[self.url + "/events"][entityId][event_type]

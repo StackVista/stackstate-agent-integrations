@@ -45,7 +45,7 @@ class DynatraceEventState(object):
     def persist(self):
         try:
             log.debug("Persisting status to %s" % DYNATRACE_STATE_FILE)
-            f = open(DYNATRACE_STATE_FILE, 'w+')
+            f = open(DYNATRACE_STATE_FILE, 'wb+')
             try:
                 pickle.dump(self, f)
             finally:
@@ -69,7 +69,7 @@ class DynatraceEventState(object):
     @classmethod
     def load_latest_status(cls):
         try:
-            f = open(DYNATRACE_STATE_FILE)
+            f = open(DYNATRACE_STATE_FILE, 'rb')
             try:
                 r = pickle.load(f)
                 return r
