@@ -6,7 +6,7 @@
       "health:CRITICAL"
     ],
     "source_type_name": "Dynatrace Events",
-    "msg_text": "|  EventType  |  SeverityLevel  |  Impact  |  Open Since  |  Tags  |  Source  |\n\n        |-------------|-----------------|----------|--------------|--------|----------|\n\n        |  FAILURE_RATE_INCREASED  |  ERROR  |  SERVICE  |  Sep 23, 2020, 20:55:00  |  [{\"context\": \"CONTEXTLESS\", \"key\": \"app-ivory\"}, {\"context\": \"CONTEXTLESS\", \"key\": \"comp-ivory_to_ctp\"}, {\"context\": \"CONTEXTLESS\", \"key\": \"product-bcops\"}, {\"context\": \"CONTEXTLESS\", \"key\": \"stage\", \"value\": \"prod\"}]  |  dynatrace-builtin  |\n",
+    "msg_text": "|  EventType  |  SeverityLevel  |  Impact  |  Open Since  |  Tags  |  Source  |\n\n        |-------------|-----------------|----------|--------------|--------|----------|\n\n        |  FAILURE_RATE_INCREASED  |  ERROR  |  SERVICE  |  Sep 23, 2020, 15:25:00  |  [{\"context\": \"CONTEXTLESS\", \"key\": \"app-ivory\"}, {\"context\": \"CONTEXTLESS\", \"key\": \"comp-ivory_to_ctp\"}, {\"context\": \"CONTEXTLESS\", \"key\": \"product-bcops\"}, {\"context\": \"CONTEXTLESS\", \"key\": \"stage\", \"value\": \"prod\"}]  |  dynatrace-builtin  |\n",
     "timestamp": 1602685050
   },
   {
@@ -126,7 +126,7 @@
       "health:CRITICAL"
     ],
     "source_type_name": "Dynatrace Events",
-    "msg_text": "|  EventType  |  SeverityLevel  |  Impact  |  Open Since  |  Tags  |  Source  |\n\n        |-------------|-----------------|----------|--------------|--------|----------|\n\n        |  FAILURE_RATE_INCREASED  |  ERROR  |  SERVICE  |  Sep 23, 2020, 20:57:00  |  [{\"context\": \"CONTEXTLESS\", \"key\": \"component\", \"value\": \"ant-*\"}, {\"context\": \"CONTEXTLESS\", \"key\": \"k8s-namespace\", \"value\": \"schaden-anliegentracking-prod-axa-ch\"}, {\"context\": \"CONTEXTLESS\", \"key\": \"stage\", \"value\": \"prod\"}]  |  dynatrace-builtin  |\n",
+    "msg_text": "|  EventType  |  SeverityLevel  |  Impact  |  Open Since  |  Tags  |  Source  |\n\n        |-------------|-----------------|----------|--------------|--------|----------|\n\n        |  FAILURE_RATE_INCREASED  |  ERROR  |  SERVICE  |  Sep 23, 2020, 15:27:00  |  [{\"context\": \"CONTEXTLESS\", \"key\": \"component\", \"value\": \"ant-*\"}, {\"context\": \"CONTEXTLESS\", \"key\": \"k8s-namespace\", \"value\": \"schaden-anliegentracking-prod-axa-ch\"}, {\"context\": \"CONTEXTLESS\", \"key\": \"stage\", \"value\": \"prod\"}]  |  dynatrace-builtin  |\n",
     "timestamp": 1602685050
   },
   {

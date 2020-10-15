@@ -4,9 +4,14 @@
 
 from stackstate_checks.base import AgentCheck
 
-import cPickle as pickle
 import logging
 import os
+
+try:
+    import cPickle as pickle
+except ImportError:
+    # python 3 support as pickle module
+    import pickle
 
 log = logging.getLogger(__name__)
 

@@ -53,7 +53,8 @@ class TopologyStub(object):
 
     def submit_relation(self, check, check_id, instance_key, source_id, target_id, type, data):
         if not self._is_duplicate_relation(check_id, instance_key, source_id, target_id, type, data):
-            self._ensure_instance(check_id, instance_key)["relations"].append(relation(source_id, target_id, type, data))
+            self._ensure_instance(check_id, instance_key)["relations"].append(relation(source_id, target_id, type,
+                                                                                       data))
 
     def submit_start_snapshot(self, check, check_id, instance_key):
         self._ensure_instance(check_id, instance_key)["start_snapshot"] = True
