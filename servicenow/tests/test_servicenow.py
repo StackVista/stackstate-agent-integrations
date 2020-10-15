@@ -414,3 +414,17 @@ class TestServicenow(unittest.TestCase):
         # Since the filter gets specific relation only so returned one relation for filtered resource types
         self.assertEqual(len(topo_instances['relations']), 1)
         self.assertEqual(topo_instances['relations'][0]['type'], 'Cools')
+
+    def test_batch_collect(self):
+        """
+        Test batch collecting components
+        """
+        self.check._collect_components = mock.MagicMock()
+        self.check._collect_components.side_effect = [
+            mock_collect_components_batch(),
+            mock_collect_components()
+        ]
+        self.check._process_components(instance_config, batch_size=5, timeout=10)
+
+        topology_instance = topology.get_snapshot(self.check.check_id)
+        self.assertEqual(len(topology_instance['components']), 6)
