@@ -87,8 +87,8 @@ class DynatraceEventCheck(AgentCheck):
         """
         Wrapper to collect events, filters those events and persist the state
         """
-        self.collect_events()
-        self.send_filtered_events()
+        touched_entities = self.collect_events()
+        self.send_filtered_events(touched_entities)
         self.log.debug("Persisting the data...")
         self.state.persist()
         self.log.debug("Data in memory is: {}".format(self.state.data))
@@ -112,7 +112,7 @@ class DynatraceEventCheck(AgentCheck):
     def collect_events(self):
         """
         Checks for EventLimitReachedException and process each event API response for next cursor
-        untill is None or it reach events_process_limit
+        until is None or it reach events_process_limit
         """
         from_time = self.state.data.get(self.url)
         if not from_time:
@@ -121,19 +121,21 @@ class DynatraceEventCheck(AgentCheck):
         if self.event_limit_exceeded_condition(events_response):
             raise EventLimitReachedException("Maximum event limit to process is {} but received total {} events".
                                              format(self.events_process_limit, events_response.get("totalEventCount")))
-        # touched_entities = []
+        touched_entities = []
         events_processed = 0
         while events_response:
             next_cursor = events_response.get("nextCursor")
-            events_processed = self.process_events_response(events_response, events_processed)
-            # touched_entities.append(events)
+            entities, events_processed = self.process_events_response(events_response, events_processed)
+            touched_entities.extend(entities)
             if next_cursor and events_processed < self.events_process_limit:
                 events_response = self.get_events(cursor=next_cursor)
             else:
                 self.state.data[self.url] = events_response.get("to")
                 events_response = None
+        return list(set(touched_entities))
 
     def process_events_response(self, events_response, events_processed):
+        touched_entities = []
         if "error" in events_response:
             self.log.exception("Error in pulling the events : {}".format(events_response.get("error").get("message")))
             raise Exception("Error in pulling the events : {}".format(events_response.get("error").get("message")))
@@ -157,6 +159,7 @@ class DynatraceEventCheck(AgentCheck):
             if entity_events is None:
                 self.log.debug("Creating a new event type for an entityId")
                 self.state.data[self.url + "/events"][entityId] = {event_type: item}
+                touched_entities.append(entityId)
             # Check if event already exist for that entityId
             else:
                 event = entity_events.get(event_type)
@@ -166,16 +169,19 @@ class DynatraceEventCheck(AgentCheck):
                 if event is None and event_status == "OPEN":
                     self.log.debug("Creating a new open event type for an existing entityId")
                     self.state.data[self.url + "/events"][entityId][event_type] = item
+                    touched_entities.append(item)
                 # new event for same entityId with latest time
                 elif start_time > end_time and status == event_status:
                     self.log.info("Updating the existing event type for an existing entityId with new event")
                     self.state.data[self.url + "/events"][entityId][event_type] = item
+                    touched_entities.append(item)
                 # new event with CLOSED status come in for existing OPEN event for an even type of that entityId
                 elif status == "CLOSED" and event_status == "OPEN":
                     self.log.info("Deleting an existing open event type for an existing entityId ")
+                    touched_entities.append(item)
                     del self.state.data[self.url + "/events"][entityId][event_type]
             events_processed += 1
-        return events_processed
+        return touched_entities, events_processed
 
     def event_limit_exceeded_condition(self, events_response):
         """
@@ -187,16 +193,16 @@ class DynatraceEventCheck(AgentCheck):
         if self.state.data.get(self.url) is not None and total_event_count > self.events_process_limit:
             return True
 
-    def send_filtered_events(self):
+    def send_filtered_events(self, touched_entities):
         """
         Method to filter the closed events and create the health event for open and cleared events
         """
         events = self.state.data.get(self.url + "/events")
-        if events:
-            # in Python 3.x because keys returns an iterator instead of a list. so to support both versions
-            # create a list of keys
-            for entityId in list(events):
+        # if any entities are touched then process only those touched entities from state
+        if touched_entities:
+            for entityId in touched_entities:
                 open_events = []
+                # check from state for that entityID and evaluate again
                 event_type_values = events.get(entityId)
                 # if we have open events for an entityId then create event with the health check
                 if event_type_values:
@@ -210,16 +216,19 @@ class DynatraceEventCheck(AgentCheck):
                             self.log.debug("Appending an open event for entityID {}: {}".format
                                            (entityId, event_type_values[event_type]))
                             open_events.append(event_type_values[event_type])
+                    # after removing the CLOSED events, entityID would be empty then
+                    # we send the clear health for that entityId and delete the empty entityId from state
                     if not self.state.data[self.url + "/events"][entityId]:
                         self.create_event(entityId, healthState="OK", detailedmsg="")
                         del self.state.data[self.url + "/events"][entityId]
+                    # if we have multiple open events for entityID then aggregate in `create_health_event`
                     if len(open_events) > 0:
                         self.create_health_event(entityId, open_events)
                 else:
-                    # else we send the clear health for that entityId and delete the empty entityId
+                    # the case could be we closed the event in `process_events_response` and now entityID is empty then
+                    # we send the clear health for that entityId and delete the empty entityId from state
                     self.create_event(entityId, healthState="OK", detailedmsg="")
                     del self.state.data[self.url + "/events"][entityId]
-        self.log.debug("After filtering the closed events :- {}".format(self.state.data))
 
     def clear_state(self):
         """
