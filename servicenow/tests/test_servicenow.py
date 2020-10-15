@@ -144,6 +144,11 @@ instance_config = InstanceInfo(
 )
 
 
+def mock_get_json(url, timeout, auth=None, verify=True):
+    """Mock method for testing _get_json_batch"""
+    return url
+
+
 @pytest.mark.usefixtures("instance")
 class TestServicenow(unittest.TestCase):
     """Basic Test for servicenow integration."""
@@ -247,8 +252,7 @@ class TestServicenow(unittest.TestCase):
         """
         Test to check the method _get_json with positive response and get a OK service check
         """
-        url = self.instance.get('url') + "/api/now/table/cmdb_ci"
-        auth = (self.instance.get('user'), self.instance.get('password'))
+        url, auth = self._get_url_auth()
         mock_req_get.return_value = mock.MagicMock(status_code=200, text=json.dumps({'key': 'value'}))
         self.check._get_json(url, timeout=10, auth=auth)
         service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_NAME)
@@ -259,8 +263,7 @@ class TestServicenow(unittest.TestCase):
         """
         Test for Check Exception if response code is not 200
         """
-        url = self.instance.get('url') + "/api/now/table/cmdb_ci"
-        auth = (self.instance.get('user'), self.instance.get('password'))
+        url, auth = self._get_url_auth()
         mock_req_get.return_value = mock.MagicMock(status_code=300, text=json.dumps({'key': 'value'}))
         self.assertRaises(CheckException, self.check._get_json, url, 10, auth)
         service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_NAME)
@@ -273,8 +276,7 @@ class TestServicenow(unittest.TestCase):
         """
         Test for situation when we get error in json and request status is OK
         """
-        url = self.instance.get('url') + "/api/now/table/cmdb_ci"
-        auth = (self.instance.get('user'), self.instance.get('password'))
+        url, auth = self._get_url_auth()
         response_txt = json.dumps({'error': {'message': 'test error'}})
         mock_req_get.return_value = mock.MagicMock(status_code=200, text=response_txt)
         self.assertRaises(CheckException, self.check._get_json, url, 10, auth)
@@ -418,3 +420,29 @@ class TestServicenow(unittest.TestCase):
         self.assertRaises(ConfigurationError, self.check.check, {'user': 'name', 'url': "https://website.com"})
         self.assertRaises(ConfigurationError, self.check.check, {'password': 'secret', 'url': "https://website.com"})
         self.assertRaises(ConfigurationError, self.check.get_instance_key, {})
+
+    def test_json_batch(self):
+        """
+        Test if batch path construction
+        """
+        self.check._get_json = mock_get_json
+        url, auth = self._get_url_auth()
+        offset = 10
+        batch_size = 200
+        expected_url = '{}?sysparm_query=ORDERBYsys_created_on&sysparm_offset={}&sysparm_limit={}'.format(url,
+                                                                                                          offset,
+                                                                                                          batch_size)
+        new_url = self.check._get_json_batch(url=url, offset=10, batch_size=200, timeout=10, auth=auth)
+        self.assertEqual(expected_url, new_url)
+
+        url2 = '{}?k=v'.format(url)
+        expected_url2 = '{}&sysparm_query=ORDERBYsys_created_on&sysparm_offset={}&sysparm_limit={}'.format(url2,
+                                                                                                           offset,
+                                                                                                           batch_size)
+        new_url = self.check._get_json_batch(url=url2, offset=10, batch_size=200, timeout=10, auth=auth)
+        self.assertEqual(expected_url2, new_url)
+
+    def _get_url_auth(self):
+        url = "{}/api/now/table/cmdb_ci".format(self.instance.get('url'))
+        auth = (self.instance.get('user'), self.instance.get('password'))
+        return url, auth
