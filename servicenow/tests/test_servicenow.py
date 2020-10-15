@@ -94,7 +94,6 @@ mock_relation_types = {
     ]
 }
 
-
 # Mock response from ServiceNow API for relation between components
 mock_relation_components = {
     'result': [
@@ -114,7 +113,6 @@ mock_relation_components = {
     ]
 }
 
-
 # Mock response from ServiceNow API for relation between components
 mock_relation_with_filter = {
     'result': [
@@ -130,7 +128,6 @@ mock_relation_with_filter = {
             }}
     ]
 }
-
 
 mock_instance = {
     'url': "https://dev60476.service-now.com",
@@ -391,10 +388,7 @@ class TestServicenow(unittest.TestCase):
         Test batch collecting components
         """
         self.check._collect_components = mock.MagicMock()
-        self.check._collect_components.side_effect = [
-            mock_collect_components_batch,
-            mock_collect_components
-        ]
+        self.check._collect_components.side_effect = [mock_collect_components_batch, mock_collect_components]
         self.check._process_components(instance_config, batch_size=5, timeout=10)
 
         topology_instance = topology.get_snapshot(self.check.check_id)
