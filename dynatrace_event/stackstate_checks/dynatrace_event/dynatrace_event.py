@@ -169,17 +169,17 @@ class DynatraceEventCheck(AgentCheck):
                 if event is None and event_status == "OPEN":
                     self.log.debug("Creating a new open event type for an existing entityId")
                     self.state.data[self.url + "/events"][entityId][event_type] = item
-                    touched_entities.append(item)
+                    touched_entities.append(entityId)
                 # new event for same entityId with latest time
                 elif start_time > end_time and status == event_status:
                     self.log.info("Updating the existing event type for an existing entityId with new event")
                     self.state.data[self.url + "/events"][entityId][event_type] = item
-                    touched_entities.append(item)
+                    touched_entities.append(entityId)
                 # new event with CLOSED status come in for existing OPEN event for an even type of that entityId
                 elif status == "CLOSED" and event_status == "OPEN":
                     self.log.info("Deleting an existing open event type for an existing entityId ")
-                    touched_entities.append(item)
                     del self.state.data[self.url + "/events"][entityId][event_type]
+                    touched_entities.append(entityId)
             events_processed += 1
         return touched_entities, events_processed
 
@@ -216,18 +216,17 @@ class DynatraceEventCheck(AgentCheck):
                             self.log.debug("Appending an open event for entityID {}: {}".format
                                            (entityId, event_type_values[event_type]))
                             open_events.append(event_type_values[event_type])
-                    # after removing the CLOSED events, entityID would be empty then
-                    # we send the clear health for that entityId and delete the empty entityId from state
+                    # create the health event for open_events and if open_events
+                    # are empty then create CLEAR health state
+                    self.create_health_event(entityId, open_events)
+                    # After removing the CLOSED events, if entityID is empty
+                    # then delete the empty entityId from state
                     if not self.state.data[self.url + "/events"][entityId]:
-                        self.create_event(entityId, healthState="OK", detailedmsg="")
                         del self.state.data[self.url + "/events"][entityId]
-                    # if we have multiple open events for entityID then aggregate in `create_health_event`
-                    if len(open_events) > 0:
-                        self.create_health_event(entityId, open_events)
                 else:
                     # the case could be we closed the event in `process_events_response` and now entityID is empty then
                     # we send the clear health for that entityId and delete the empty entityId from state
-                    self.create_event(entityId, healthState="OK", detailedmsg="")
+                    self.create_event(entityId, healthState="CLEAR", detailedmsg="")
                     del self.state.data[self.url + "/events"][entityId]
 
     def clear_state(self):
@@ -236,7 +235,7 @@ class DynatraceEventCheck(AgentCheck):
         """
         events = self.state.data.get(self.url + "/events")
         for entityId in events.keys():
-            health_state = "OK"
+            health_state = "CLEAR"
             detailed_msg = ""
             self.log.debug("Clearing the health state for entity {0} with health: {1}".format(entityId, health_state))
             self.create_event(entityId, health_state, detailed_msg)
@@ -248,27 +247,30 @@ class DynatraceEventCheck(AgentCheck):
         :param entityId: EntityId for which different events are considered
         :param open_events: Open events with different severity level for an EntityId
         """
-        health_states = {"UNKNOWN": 0, "OK": 1, "DEVIATING": 2, "CRITICAL": 3}
+        health_states = {"UNKNOWN": 0, "CLEAR": 1, "DEVIATING": 2, "CRITICAL": 3}
         severity_level = {"AVAILABILITY": "DEVIATING", "CUSTOM_ALERT": "DEVIATING", "PERFORMANCE": "DEVIATING",
                           "RESOURCE_CONTENTION": "DEVIATING", "ERROR": "CRITICAL", "MONITORING_UNAVAILABLE": "CRITICAL"}
         health_state = "UNKNOWN"
         detailed_msg = """|  EventType  |  SeverityLevel  |  Impact  |  Open Since  |  Tags  |  Source  |\n
         |-------------|-----------------|----------|--------------|--------|----------|\n
         """
-        for events in open_events:
-            severity = events.get("severityLevel")
-            impact = events.get("impactLevel")
-            event_type = events.get("eventType")
-            event_health_state = severity_level.get(severity)
-            open_since = (datetime.fromtimestamp(events.get("startTime")/1000)).strftime("%b %-d, %Y, %H:%M:%S")
-            tags = json.dumps(events.get("tags"), sort_keys=True)
-            events_source = "dynatrace-"+events.get("source")
-            detailed_msg += "|  {0}  |  {1}  |  {2}  |  {3}  |  {4}  |  {5}  |\n" \
-                            "".format(event_type, severity, impact, open_since, tags, events_source)
-            if health_states.get(event_health_state) > health_states.get(health_state):
-                health_state = event_health_state
-        self.log.debug("Logging an event for entity {0} with health: {1}".format(entityId, health_state))
-        self.create_event(entityId, health_state, detailed_msg)
+        if open_events:
+            for events in open_events:
+                severity = events.get("severityLevel")
+                impact = events.get("impactLevel")
+                event_type = events.get("eventType")
+                event_health_state = severity_level.get(severity)
+                open_since = (datetime.fromtimestamp(events.get("startTime")/1000)).strftime("%b %-d, %Y, %H:%M:%S")
+                tags = json.dumps(events.get("tags"), sort_keys=True)
+                events_source = "dynatrace-"+events.get("source")
+                detailed_msg += "|  {0}  |  {1}  |  {2}  |  {3}  |  {4}  |  {5}  |\n" \
+                                "".format(event_type, severity, impact, open_since, tags, events_source)
+                if health_states.get(event_health_state) > health_states.get(health_state):
+                    health_state = event_health_state
+            self.log.debug("Logging an event for entity {0} with health: {1}".format(entityId, health_state))
+            self.create_event(entityId, health_state, detailed_msg)
+        else:
+            self.create_event(entityId, healthState="OK", detailedmsg="")
 
     def should_stop_processing(self, events_processed):
         """

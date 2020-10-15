@@ -67,6 +67,27 @@ class TestDynatraceEventCheck(unittest.TestCase):
         events = aggregator.events
         self.assertEqual(len(events), 0)
 
+    def test_check_for_event_limit_reached_condition(self):
+        """
+        Testing Dynatrace should throw `EventLimitReachedException` if the number of events
+        between subsequent check runs exceed the `events_process_limit` and reset the state completely
+        """
+        self.check.get_json_response = mock.MagicMock(return_value=read_data("full_events.json"))
+        self.check._current_time_seconds = mock.MagicMock(return_value=1602685050)
+        self.check.url = self.instance.get('url')
+
+        self.check.check(self.instance)
+        # first run events will be stored in the state file
+        self.assertIsNotNone(self.check.state)
+        self.assertIn(self.instance.get('url'), self.check.state.data)
+
+        # agent stopped for few days and started again
+        self.check.get_json_response = mock.MagicMock(return_value=read_data("full_events.json"))
+        # since response contains more than 1000 events, this check run should throw EventLimitReachedException
+        self.assertRaises(EventLimitReachedException, self.check.check(self.instance))
+        # check if the state is reset meaning there should be no data for this instance
+        self.assertFalse(self.check.state.data)
+
     def test_check_for_events_process_limit(self):
         """
         Testing Dynatrace should respect `events_process_limit` config and just produce those number of events
@@ -159,28 +180,6 @@ class TestDynatraceEventCheck(unittest.TestCase):
             }
         }
         self.assertEqual(self.check.state.data, dynatrace_state)
-
-    def test_check_for_event_limit_reached_condition(self):
-        """
-        Testing Dynatrace should throw `EventLimitReachedException` if the number of events
-        between subsequent check runs exceed the `events_process_limit` and reset the state completely
-        """
-        self.check.get_json_response = mock.MagicMock(return_value=read_data("full_events.json"))
-        self.check._current_time_seconds = mock.MagicMock(return_value=1602685050)
-        self.check.url = self.instance.get('url')
-
-        self.check.check(self.instance)
-
-        # first run events will be stored in the state file
-        self.assertIsNotNone(self.check.state)
-        self.assertIn(self.instance.get('url'), self.check.state.data)
-
-        # agent stopped for few days and started again
-        self.check.get_json_response = mock.MagicMock(return_value=read_data("events.json"))
-        # since response contains more than 1000 events, this check run should throw EventLimitReachedException
-        self.assertRaises(EventLimitReachedException, self.check.check(self.instance))
-        # check if the state is reset meaning there should be no data for this instance
-        self.assertFalse(self.check.state.data)
 
     def test_check_for_error_in_events(self):
         """
