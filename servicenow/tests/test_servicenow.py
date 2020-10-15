@@ -9,6 +9,7 @@ import unittest
 import pytest
 
 # project
+from stackstate_checks.base.errors import CheckException
 from stackstate_checks.servicenow import ServicenowCheck, InstanceInfo
 from stackstate_checks.base.stubs import topology, aggregator
 from stackstate_checks.base import AgentIntegrationTestUtil, AgentCheck, ConfigurationError
@@ -242,7 +243,7 @@ class TestServicenow(unittest.TestCase):
         self.assertEqual(topo_instances['relations'][0]['type'], 'Cools')
 
     @mock.patch('requests.get')
-    def test_get_json(self, mock_req_get):
+    def test_get_json_ok_status(self, mock_req_get):
         """
         Test to check the method _get_json with positive response and get a OK service check
         """
@@ -253,13 +254,30 @@ class TestServicenow(unittest.TestCase):
         service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_NAME)
         self.assertEqual(len(service_checks), 0)
 
-        # Test for Check Exception if response code is not 200
+    @mock.patch('requests.get')
+    def test_get_json_error_status(self, mock_req_get):
+        """
+        Test for Check Exception if response code is not 200
+        """
+        url = self.instance.get('url') + "/api/now/table/cmdb_ci"
+        auth = (self.instance.get('user'), self.instance.get('password'))
         mock_req_get.return_value = mock.MagicMock(status_code=300, text=json.dumps({'key': 'value'}))
-        self.assertRaises(Exception, self.check._get_json, url, 10, auth)
+        self.assertRaises(CheckException, self.check._get_json, url, 10, auth)
         service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_NAME)
         self.assertEqual(len(service_checks), 1)
         self.assertEqual(service_checks[0].name, self.check.SERVICE_CHECK_NAME)
         self.assertEqual(service_checks[0].status, AgentCheck.CRITICAL)
+
+    @mock.patch('requests.get')
+    def test_get_json_ok_status_with_error_in_response(self, mock_req_get):
+        """
+        Test for situation when we get error in json and request status is OK
+        """
+        url = self.instance.get('url') + "/api/now/table/cmdb_ci"
+        auth = (self.instance.get('user'), self.instance.get('password'))
+        response_txt = json.dumps({'error': {'message': 'test error'}})
+        mock_req_get.return_value = mock.MagicMock(status_code=200, text=response_txt)
+        self.assertRaises(CheckException, self.check._get_json, url, 10, auth)
 
     def test_get_sys_class_component_filter_query(self):
         """

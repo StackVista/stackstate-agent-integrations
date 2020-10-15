@@ -11,6 +11,8 @@ from stackstate_checks.base import ConfigurationError, AgentCheck, TopologyInsta
 # inbuilt
 import yaml
 
+from stackstate_checks.base.errors import CheckException
+
 EVENT_TYPE = SOURCE_TYPE_NAME = 'servicenow'
 
 
@@ -236,8 +238,9 @@ class ServicenowCheck(AgentCheck):
             limit_args = "?"
         else:
             limit_args = "&"
-        limit_args = limit_args + "sysparm_query=ORDERBYsys_created_on&sysparm_offset={}&sysparm_limit={}". \
-            format(offset, batch_size)
+        limit_args = "{}sysparm_query=ORDERBYsys_created_on&sysparm_offset={}&sysparm_limit={}".format(limit_args,
+                                                                                                       offset,
+                                                                                                       batch_size)
         limited_url = url + limit_args
         return self._get_json(limited_url, timeout, auth)
 
@@ -262,7 +265,7 @@ class ServicenowCheck(AgentCheck):
             if status is AgentCheck.CRITICAL:
                 self.service_check(self.SERVICE_CHECK_NAME, status, tags=tags,
                                    message=msg)
-                raise Exception("Cannot connect to ServiceNow CMDB, please check your configuration.")
+                raise CheckException("Cannot connect to ServiceNow CMDB, please check your configuration.")
 
         if resp.encoding is None:
             resp.encoding = 'UTF8'
@@ -270,8 +273,8 @@ class ServicenowCheck(AgentCheck):
             resp = yaml.safe_load(resp.text.encode("utf-8"))
         except Exception as e:
             self.log.exception(str(e))
-            raise Exception("Exception occured while parsing response and the error is : {}".format(str(e)))
+            raise CheckException("Exception occured while parsing response and the error is : {}".format(str(e)))
 
         if "error" in resp and resp["error"]:
-            raise Exception("Problem in collecting CIs : {}".format(resp["error"].get("message")))
+            raise CheckException("Problem in collecting CIs : {}".format(resp["error"].get("message")))
         return resp
