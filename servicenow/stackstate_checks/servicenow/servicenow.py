@@ -242,10 +242,10 @@ class ServicenowCheck(AgentCheck):
 
     def _get_json_batch(self, url, offset, batch_size, timeout, auth):
         if "?" not in url:
-            limit_args = "?"
+            query_delimiter = "?"
         else:
-            limit_args = "&"
-        limit_args = "{}sysparm_query=ORDERBYsys_created_on&sysparm_offset={}&sysparm_limit={}".format(limit_args,
+            query_delimiter = "&"
+        limit_args = "{}sysparm_query=ORDERBYsys_created_on&sysparm_offset={}&sysparm_limit={}".format(query_delimiter,
                                                                                                        offset,
                                                                                                        batch_size)
         limited_url = url + limit_args
