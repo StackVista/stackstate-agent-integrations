@@ -31,11 +31,12 @@ def _get_mandatory_instance_values(instance):
 
 
 class InstanceInfo:
-    def __init__(self, instance_tags, base_url, auth, sys_class_filter):
+    def __init__(self, instance_tags, base_url, auth, sys_class_filter, batch_size):
         self.instance_tags = instance_tags
         self.base_url = base_url
         self.auth = auth
         self.sys_class_filter = sys_class_filter
+        self.batch_size = batch_size
 
 
 class ServicenowCheck(AgentCheck):
@@ -56,13 +57,13 @@ class ServicenowCheck(AgentCheck):
         default_timeout = self.init_config.get('default_timeout', 20)
         timeout = float(instance.get('timeout', default_timeout))
 
-        instance_config = InstanceInfo(instance_tags, base_url, auth, sys_class_filter)
+        instance_config = InstanceInfo(instance_tags, base_url, auth, sys_class_filter, batch_size)
 
         try:
             self.start_snapshot()
             relation_types = self._process_and_cache_relation_types(instance_config, timeout)
-            self._process_components(instance_config, batch_size, timeout)
-            self._process_component_relations(instance_config, batch_size, timeout, relation_types)
+            self._process_components(instance_config, timeout)
+            self._process_component_relations(instance_config, timeout, relation_types)
             # Report ServiceCheck OK
             msg = "ServiceNow CMDB instance detected at %s " % base_url
             tags = ["url:%s" % base_url]
@@ -115,7 +116,7 @@ class ServicenowCheck(AgentCheck):
                     result[k] = v
         return result
 
-    def _collect_components(self, instance_config, offset, batch_size, timeout):
+    def _collect_components(self, instance_config, offset, timeout):
         """
         collect components from ServiceNow CMDB's cmdb_ci table
         (API Doc- https://developer.servicenow.com/app.do#!/rest_api_doc?v=london&id=r_TableAPI-GET)
@@ -131,9 +132,9 @@ class ServicenowCheck(AgentCheck):
         if sys_class_filter_query:
             url = url + "?{}".format(sys_class_filter_query)
             self.log.debug("URL for component collection after applying filter:- %s", url)
-        return self._get_json_batch(url, offset, batch_size, timeout, auth)
+        return self._get_json_batch(url, offset, instance_config.batch_size, timeout, auth)
 
-    def _process_components(self, instance_config, batch_size, timeout):
+    def _process_components(self, instance_config, timeout):
         """
         process components fetched from CMDB
         :return: nothing
@@ -144,7 +145,7 @@ class ServicenowCheck(AgentCheck):
 
         completed = False
         while not completed:
-            components = self._collect_components(instance_config, offset, batch_size, timeout)
+            components = self._collect_components(instance_config, offset, timeout)
             if "result" in components and isinstance(components["result"], list):
                 number_of_components_in_current_batch = len(components.get("result"))
                 for component in components.get('result'):
@@ -168,9 +169,9 @@ class ServicenowCheck(AgentCheck):
                     self.component(external_id, comp_type, data)
             else:
                 raise CheckException('Collect components has no result')
-            completed = number_of_components_in_current_batch < batch_size
+            completed = number_of_components_in_current_batch < instance_config.batch_size
             batch_number += 1
-            offset += batch_size
+            offset += instance_config.batch_size
             self.log.info(
                 'Processed batch no. {} with {} items.'.format(batch_number, number_of_components_in_current_batch)
             )
@@ -202,7 +203,7 @@ class ServicenowCheck(AgentCheck):
                 relation_types[id] = parent_descriptor
         return relation_types
 
-    def _collect_component_relations(self, instance_config, timeout, offset, batch_size):
+    def _collect_component_relations(self, instance_config, timeout, offset):
         """
         collect relations between components from cmdb_rel_ci and publish these in batches.
         """
@@ -215,15 +216,15 @@ class ServicenowCheck(AgentCheck):
             url = url + "?{}".format(sys_class_filter_query)
             self.log.debug("URL for relation collection after applying filter:- %s", url)
 
-        return self._get_json_batch(url, offset, batch_size, timeout, auth)
+        return self._get_json_batch(url, offset, instance_config.batch_size, timeout, auth)
 
-    def _process_component_relations(self, instance_config, batch_size, timeout, relation_types):
+    def _process_component_relations(self, instance_config, timeout, relation_types):
         offset = 0
         instance_tags = instance_config.instance_tags
 
         completed = False
         while not completed:
-            relations = self._collect_component_relations(instance_config, timeout, offset, batch_size)
+            relations = self._collect_component_relations(instance_config, timeout, offset)
             total_relations = len(relations.get("result"))
             if "result" in relations and isinstance(relations["result"], list):
                 for relation in relations.get('result'):
@@ -236,8 +237,8 @@ class ServicenowCheck(AgentCheck):
                     data.update({"tags": instance_tags})
 
                     self.relation(parent_sys_id, child_sys_id, relation_type, data)
-            completed = total_relations < batch_size
-            offset += batch_size
+            completed = total_relations < instance_config.batch_size
+            offset += instance_config.batch_size
 
     def _get_json_batch(self, url, offset, batch_size, timeout, auth):
         if "?" not in url:

@@ -142,7 +142,8 @@ instance_config = InstanceInfo(
     instance_tags=[],
     base_url=mock_instance.get('url'),
     auth=(mock_instance.get('user'), mock_instance.get('password')),
-    sys_class_filter=[]
+    sys_class_filter=[],
+    batch_size=100
 )
 
 
@@ -205,7 +206,7 @@ class TestServicenow(unittest.TestCase):
         """
         self.check._collect_components = mock.MagicMock()
         self.check._collect_components.return_value = mock_collect_components
-        self.check._process_components(instance_config, batch_size=100, timeout=10)
+        self.check._process_components(instance_config, timeout=10)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 1)
@@ -243,7 +244,7 @@ class TestServicenow(unittest.TestCase):
         relation_types = {'1a9cb166f1571100a92eb60da2bce5c5': 'Cools'}
         self.check._collect_component_relations = mock.MagicMock()
         self.check._collect_component_relations.return_value = mock_relation_components
-        self.check._process_component_relations(instance_config, 100, 10, relation_types)
+        self.check._process_component_relations(instance_config, 10, relation_types)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 0)
@@ -308,9 +309,8 @@ class TestServicenow(unittest.TestCase):
         """
         Test _process_components to return whole topology when query changed in between
         """
-        instance_config = InstanceInfo([], self.instance.get('url'), ('admin', 'Service@123'),
-                                       self.instance.get('include_resource_types'))
         sys_class_filter = self.instance.get('include_resource_types')
+        instance_config.sys_class_filter = sys_class_filter
         query_filter = self.check.get_sys_class_component_filter_query(sys_class_filter)
         expected_query = "sysparm_query=sys_class_nameINcmdb_ci_netgear%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server"
         # asserting the actual query
@@ -322,7 +322,7 @@ class TestServicenow(unittest.TestCase):
                                                                        "%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server"
         self.check._get_json = mock.MagicMock()
         self.check._get_json.return_value = mock_collect_components
-        self.check._process_components(instance_config, batch_size=100, timeout=10)
+        self.check._process_components(instance_config, timeout=10)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 1)
@@ -333,9 +333,8 @@ class TestServicenow(unittest.TestCase):
         """
         Test _process_components to return whole topology when query changed in between
         """
-        instance_config = InstanceInfo([], self.instance.get('url'), ('admin', 'Service@123'),
-                                       self.instance.get('include_resource_types'))
         sys_class_filter = self.instance.get('include_resource_types')
+        instance_config.sys_class_filter = sys_class_filter
         query_filter = self.check.get_sys_class_relation_filter_query(sys_class_filter)
         expected_query = "sysparm_query=parent.sys_class_nameINcmdb_ci_netgear%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server" \
                          "%5Echild.sys_class_nameINcmdb_ci_netgear%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server"
@@ -350,7 +349,7 @@ class TestServicenow(unittest.TestCase):
         self.check._get_json = mock.MagicMock()
         self.check._get_json.return_value = mock_relation_components
         relation_types = {'1a9cb166f1571100a92eb60da2bce5c5': 'Cools'}
-        self.check._process_component_relations(instance_config, 100, 10, relation_types)
+        self.check._process_component_relations(instance_config, 10, relation_types)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 0)
@@ -361,9 +360,8 @@ class TestServicenow(unittest.TestCase):
         """
         Test _process_components to return whole topology when query changed in between
         """
-        instance_config = InstanceInfo([], self.instance.get('url'), ('admin', 'Service@123'),
-                                       self.instance.get('include_resource_types'))
         sys_class_filter = self.instance.get('include_resource_types')
+        instance_config.sys_class_filter = sys_class_filter
         query_filter = self.check.get_sys_class_component_filter_query(sys_class_filter)
         expected_query = "sysparm_query=sys_class_nameINcmdb_ci_netgear%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server"
         # asserting the actual query
@@ -371,7 +369,7 @@ class TestServicenow(unittest.TestCase):
 
         self.check._get_json = mock.MagicMock()
         self.check._get_json.return_value = mock_collect_filter_components
-        self.check._process_components(instance_config, batch_size=100, timeout=10)
+        self.check._process_components(instance_config, timeout=10)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 1)
@@ -383,9 +381,8 @@ class TestServicenow(unittest.TestCase):
         """
         Test _process_components to return whole topology when query changed in between
         """
-        instance_config = InstanceInfo([], self.instance.get('url'), ('admin', 'Service@123'),
-                                       self.instance.get('include_resource_types'))
         sys_class_filter = self.instance.get('include_resource_types')
+        instance_config.sys_class_filter = sys_class_filter
         query_filter = self.check.get_sys_class_relation_filter_query(sys_class_filter)
         expected_query = "sysparm_query=parent.sys_class_nameINcmdb_ci_netgear%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server" \
                          "%5Echild.sys_class_nameINcmdb_ci_netgear%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server"
@@ -395,7 +392,7 @@ class TestServicenow(unittest.TestCase):
         self.check._get_json = mock.MagicMock()
         self.check._get_json.return_value = mock_relation_with_filter
         relation_types = {'1a9cb166f1571100a92eb60da2bce5c5': 'Cools'}
-        self.check._process_component_relations(instance_config, 100, 10, relation_types)
+        self.check._process_component_relations(instance_config, 10, relation_types)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 0)
@@ -409,7 +406,8 @@ class TestServicenow(unittest.TestCase):
         """
         self.check._collect_components = mock.MagicMock()
         self.check._collect_components.side_effect = [mock_collect_components_batch, mock_collect_components]
-        self.check._process_components(instance_config, batch_size=5, timeout=10)
+        instance_config.batch_size = 5
+        self.check._process_components(instance_config, timeout=10)
 
         topology_instance = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topology_instance['components']), 6)
@@ -448,13 +446,13 @@ class TestServicenow(unittest.TestCase):
         """Test if collect component returns no result or its not list"""
         self.check._collect_components = mock.MagicMock()
         self.check._collect_components.return_value = {}
-        self.assertRaises(CheckException, self.check._process_components, instance_config, 100, 10)
+        self.assertRaises(CheckException, self.check._process_components, instance_config, 10)
 
     def test_collect_components_returns_empty_result(self):
         """Test if collect component returns no result or its not list"""
         self.check._collect_components = mock.MagicMock()
         self.check._collect_components.return_value = mock_empty_result
-        self.check._process_components(instance_config, batch_size=5, timeout=10)
+        self.check._process_components(instance_config, timeout=10)
 
         # no snapshot is created
         self.assertRaises(KeyError, topology.get_snapshot, self.check.check_id)
@@ -465,7 +463,8 @@ class TestServicenow(unittest.TestCase):
         """
         self.check._collect_components = mock.MagicMock()
         self.check._collect_components.side_effect = [mock_collect_components_batch, mock_empty_result]
-        self.check._process_components(instance_config, batch_size=5, timeout=10)
+        instance_config.batch_size = 5
+        self.check._process_components(instance_config, timeout=10)
 
         topology_instance = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topology_instance['components']), 5)
