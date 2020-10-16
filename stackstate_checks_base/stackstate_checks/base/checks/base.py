@@ -744,8 +744,12 @@ class __AgentCheckPy3(AgentCheckBase):
             instance = self.instances[0]
             self.create_integration_instance(copy.deepcopy(instance))
             self.check(copy.deepcopy(instance))
+            self.service_check(self.name or 'check_run', AgentCheck.OK)
+            if self._get_instance_key_value().with_snapshots:
+                topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key())
             result = ''
         except Exception as e:
+            self.service_check(self.name or 'check_run', AgentCheck.CRITICAL)
             result = json.dumps([
                 {
                     'message': str(e),
@@ -755,8 +759,6 @@ class __AgentCheckPy3(AgentCheckBase):
         finally:
             if self.metric_limiter:
                 self.metric_limiter.reset()
-            if self._get_instance_key_value().with_snapshots:
-                topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key())
 
         return result
 
