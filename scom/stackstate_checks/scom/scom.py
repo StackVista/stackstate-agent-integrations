@@ -3,8 +3,9 @@ import base64
 from requests_ntlm import HttpNtlmAuth
 import time
 import re
+import json
 from stackstate_checks.base import AgentCheck, ConfigurationError, TopologyInstance
-
+import subprocess
 try:
     from urlparse import urlparse
 except ImportError:
@@ -55,7 +56,24 @@ class SCOM(AgentCheck):
 
         instance_url = instance['hostip']
         return TopologyInstance(self.INSTANCE_TYPE, instance_url)
-
+    def sendAlertsPowershell(self,scom_server):
+        cmd = subprocess.Popen(["powershell.exe","Start-OperationsManagerClientShell -managementServerName "+scom_server+"\n","Get-SCOMAlert | select \"monitoringobjectid\", \"name\", \"monitoringobjectdisplayname\", \"description\", \"resolutionstate\", \"monitoringobjectpath\" -ExpandProperty  timeadded| ConvertTo-Json \n"],stdout=subprocess.PIPE)
+        out = cmd.communicate()[0]
+        alerts = json.loads(out)
+        for event in alerts:
+            self.event({
+                "timestamp": int(time.time()),
+                "msg_title": event.get("Name"),
+                "msg_text": event.get("Description"),
+                "source_type_name": "Alert",
+                "host": event.get("MonitoringObjectDisplayName"),
+                "tags": [
+                    "id:%s" % event.get("MonitoringObjectId"),
+                    "server:%s" % event.get("MonitoringObjectPath"),
+                    "resolution_state:%s" % event.get("ResolutionState"),
+                    "time_added:%s" % event.get("DateTime")
+                ]
+            })
     def sendAlerts(self, session, scom_ip, domain, username, password, component_id):
         data = {
             "criteria": "(MonitoringObjectId = '" + component_id + "')",
@@ -92,23 +110,30 @@ class SCOM(AgentCheck):
             list.update({str(detail.get("name").encode('utf-8')):str(detail.get("value").encode('utf-8'))})
         return list
 
-    def nextNodes(self, serviceid, session, scom_ip, domain, username, password, system_type):
+    def nextNodes(self, serviceid, session, scom_ip, domain, username, password, system_type,integration_mode):
         ids = []
         response = (session.get('http://' + scom_ip + '/OperationsManager/data/objectInformation/' + serviceid,
                                 auth=HttpNtlmAuth(domain + '\\' + username, password))).json()
         data = response.get("relatedObjects", [])
         for idd in data:
             ids.append(idd.get("id"))
+            type_data = {
+                            "criteria": "(Id = '"+str(idd.get("id"))+"')"
+                            }
+            type_response = (session.post('http://'+ scom_ip +'/OperationsManager/data/scomObjects',
+                                auth=HttpNtlmAuth(domain + '\\' + username, password),
+                                json=type_data["criteria"])).json()
+            component_type = type_response.get("scopeDatas")[0].get("className").lower().replace(" ","-")
             dataA = {"name": str(idd.get("displayName")),
                      "id": str(idd.get("id")),
                      "domain": system_type,
                      "labels": [
-                         system_type
+                         str(component_type)
                      ]
                      }
             dataB = self.getComponentDetails(idd.get("id"), session, scom_ip, domain, username, password)
             dataA.update(dataB)
-            self.component(str(idd.get("id")), str(system_type + "_component"), dataA)
+            self.component(str(idd.get("id")), str(component_type), dataA)
             self.event({
                 "timestamp": int(time.time()),
                 "msg_title": "Health Status",
@@ -122,16 +147,17 @@ class SCOM(AgentCheck):
                 ]
             })
             self.relation(str(serviceid), str(idd.get("id")), "hosted_on", {})
-            self.sendAlerts(session, scom_ip, domain, username, password, idd.get("id"))
+            if "api" in integration_mode:
+               self.sendAlerts(session, scom_ip, domain, username, password, idd.get("id"))
         return ids
 
-    def serviceTree(self, serviceidtree, session, scom_ip, domain, username, password, system_type):
+    def serviceTree(self, serviceidtree, session, scom_ip, domain, username, password, system_type,integration_mode):
         for serviceid in serviceidtree:
             if not hasChild(serviceid, session, scom_ip, domain, username, password):
                 continue
             else:
-                self.serviceTree(self.nextNodes(serviceid, session, scom_ip, domain, username, password, system_type),
-                                 session, scom_ip, domain, username, password, system_type)
+                self.serviceTree(self.nextNodes(serviceid, session, scom_ip, domain, username, password, system_type,integration_mode),
+                                 session, scom_ip, domain, username, password, system_type,integration_mode)
 
     def check(self, instance):
         # read configuration file/yaml configuration
@@ -140,11 +166,13 @@ class SCOM(AgentCheck):
         username = str(instance.get('username'))
         password = str(instance.get('password'))
         auth_method = str(instance.get('auth_mode'))
+        integration_mode = str(instance.get('integration_mode'))
         streams = instance.get('streams')
         session = Session()
         self.log.info(
             'Connection Status Code ' + init_session(session, auth_method, domain, username, password, scom_ip))
         # topology_instance_key = {"type": "scom", "url": scom_ip}
+        print(init_session(session, auth_method, domain, username, password, scom_ip))
         try:
             self.start_snapshot()
             for stream in streams:
@@ -157,6 +185,13 @@ class SCOM(AgentCheck):
                 root_ids = []
                 root_tree = response.get("rows", [])
                 for component in root_tree:
+                    type_data = {
+                            "criteria": "(Id = '"+component.get("id")+"')"
+                            }
+                    type_response = (session.post('http://'+ scom_ip +'/OperationsManager/data/scomObjects',
+                                auth=HttpNtlmAuth(domain + '\\' + username, password),
+                                json=type_data["criteria"])).json()
+                    component_type = type_response.get("scopeDatas")[0].get("className").lower().replace(" ","-")
                     dataA = {"name": str(component.get("displayname")),
                              "id": str(component.get("id")),
                              "domain": str(stream.get('name')),
@@ -166,7 +201,7 @@ class SCOM(AgentCheck):
                              }
                     dataB = self.getComponentDetails(component.get("id"), session, scom_ip, domain, username, password)
                     dataA.update(dataB)
-                    self.component(str(component.get("id")), str(stream.get('name') + "_component"), dataA)
+                    self.component(str(component.get("id")), str(component_type), dataA)
                     health = session.get(
                         'http://' + scom_ip + '/OperationsManager/data/healthstate/' + component.get("id", None),
                         auth=HttpNtlmAuth(domain + '\\' + username, password))
@@ -182,9 +217,12 @@ class SCOM(AgentCheck):
                             "id:%s" % component.get("id")
                         ]
                     })
-                    self.sendAlerts(session, scom_ip, domain, username, password, component.get("id"))
+                    if "api" in integration_mode:
+                       self.sendAlerts(session, scom_ip, domain, username, password, component.get("id"))
                     root_ids.append(component.get("id"))
-                self.serviceTree(root_ids, session, scom_ip, domain, username, password, stream.get('name'))
+                self.serviceTree(root_ids, session, scom_ip, domain, username, password, stream.get('name'),integration_mode)
+            if "powershell" in integration_mode:
+               self.sendAlertsPowershell(scom_ip)
             self.stop_snapshot()
             session.close()
         except Exception as e:
