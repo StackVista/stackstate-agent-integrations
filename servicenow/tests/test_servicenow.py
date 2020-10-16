@@ -242,10 +242,11 @@ class TestServicenow(unittest.TestCase):
         """
         Test to collect the component relations and process it as a topology
         """
-        relation_types = {'1a9cb166f1571100a92eb60da2bce5c5': 'Cools'}
+        self.check._process_and_cache_relation_types = mock.MagicMock()
+        self.check._process_and_cache_relation_types.return_value = {'1a9cb166f1571100a92eb60da2bce5c5': 'Cools'}
         self.check._collect_component_relations = mock.MagicMock()
         self.check._collect_component_relations.return_value = mock_relation_components
-        self.check._process_component_relations(instance_config, relation_types)
+        self.check._process_component_relations(instance_config)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 0)
@@ -349,8 +350,9 @@ class TestServicenow(unittest.TestCase):
                                                                       "cmdb_ci_netgear"
         self.check._get_json = mock.MagicMock()
         self.check._get_json.return_value = mock_relation_components
-        relation_types = {'1a9cb166f1571100a92eb60da2bce5c5': 'Cools'}
-        self.check._process_component_relations(instance_config, relation_types)
+        self.check._process_and_cache_relation_types = mock.MagicMock()
+        self.check._process_and_cache_relation_types.return_value = {'1a9cb166f1571100a92eb60da2bce5c5': 'Cools'}
+        self.check._process_component_relations(instance_config)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 0)
@@ -392,8 +394,10 @@ class TestServicenow(unittest.TestCase):
 
         self.check._get_json = mock.MagicMock()
         self.check._get_json.return_value = mock_relation_with_filter
-        relation_types = {'1a9cb166f1571100a92eb60da2bce5c5': 'Cools'}
-        self.check._process_component_relations(instance_config, relation_types)
+        self.check._process_and_cache_relation_types = mock.MagicMock()
+        self.check._process_and_cache_relation_types.return_value = {'1a9cb166f1571100a92eb60da2bce5c5': 'Cools'}
+
+        self.check._process_component_relations(instance_config)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 0)

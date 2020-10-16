@@ -62,9 +62,8 @@ class ServicenowCheck(AgentCheck):
 
         try:
             self.start_snapshot()
-            relation_types = self._process_and_cache_relation_types(instance_config)
             self._process_components(instance_config)
-            self._process_component_relations(instance_config, relation_types)
+            self._process_component_relations(instance_config)
             self.stop_snapshot()
             # Report ServiceCheck OK
             msg = "ServiceNow CMDB instance detected at %s " % base_url
@@ -219,9 +218,10 @@ class ServicenowCheck(AgentCheck):
 
         return self._get_json_batch(url, offset, instance_config.batch_size, instance_config.timeout, auth)
 
-    def _process_component_relations(self, instance_config, relation_types):
+    def _process_component_relations(self, instance_config):
         offset = 0
         instance_tags = instance_config.instance_tags
+        relation_types = self._process_and_cache_relation_types(instance_config)
 
         completed = False
         while not completed:
