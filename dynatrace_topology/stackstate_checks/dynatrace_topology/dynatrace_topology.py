@@ -200,7 +200,6 @@ class DynatraceTopologyCheck(AgentCheck):
                 self.component(externalId, component_type, data)
                 self.collect_relations(item, externalId)
         else:
-            self.log.warning("Problem getting the {0} or No {1} found.".format(component_type, component_type))
             raise DynatraceError(response["error"].get("message"), response["error"].get("code"), component_type)
 
     def get_labels_from_dynatrace_tags(self, item):
