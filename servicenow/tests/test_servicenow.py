@@ -470,7 +470,6 @@ class TestServicenow(unittest.TestCase):
         topology_instance = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topology_instance['components']), 5)
 
-
     def _get_url_auth(self):
         url = "{}/api/now/table/cmdb_ci".format(self.instance.get('url'))
         auth = (self.instance.get('user'), self.instance.get('password'))
