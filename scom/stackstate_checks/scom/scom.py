@@ -185,8 +185,8 @@ class SCOM(AgentCheck):
                     self.sendAlerts(session, scom_ip, domain, username, password, component.get("id"))
                     root_ids.append(component.get("id"))
                 self.serviceTree(root_ids, session, scom_ip, domain, username, password, stream.get('name'))
-            self.service_check("scom", AgentCheck.OK, message="SCOM synchronized successfully")
             self.stop_snapshot()
+            self.service_check("scom", AgentCheck.OK, message="SCOM synchronized successfully")
             session.close()
         except Exception as e:
             self.log.exception("SCOM Error: %s" % str(e))
