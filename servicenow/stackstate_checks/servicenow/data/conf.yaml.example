@@ -6,7 +6,10 @@ instances:
   - url: "https://dev60476.service-now.com"
     user: admin
     password: Service@123
-    batch_size: 100
+
+    # Batch size for paginating results. Default value is 10000
+    # batch_size: 1000
+
     # Currently StackState support the below resource/sys class types and apart from this will belong to
     # the generic servicenow component types
 #    include_resource_types: # optional and by default includes all resource types(sys Class Names)
