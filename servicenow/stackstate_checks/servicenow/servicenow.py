@@ -62,8 +62,8 @@ class ServicenowCheck(AgentCheck):
 
         try:
             self.start_snapshot()
-            self._process_components(instance_config)
-            self._process_component_relations(instance_config)
+            self._collect_and_process(self._collect_components, self._process_components, instance_config)
+            self._collect_and_process(self._collect_relations, self._process_relations, instance_config)
             self.stop_snapshot()
             # Report ServiceCheck OK
             msg = "ServiceNow CMDB instance detected at %s " % base_url
@@ -134,47 +134,49 @@ class ServicenowCheck(AgentCheck):
             self.log.debug("URL for component collection after applying filter:- %s", url)
         return self._get_json_batch(url, offset, instance_config.batch_size, instance_config.timeout, auth)
 
-    def _process_components(self, instance_config):
+    def _collect_and_process(self, collect_function, process_function, instance_config):
         """
-        process components fetched from CMDB
+        batch processing of components or relations fetched from CMDB
         :return: nothing
         """
-        instance_tags = instance_config.instance_tags
         offset = 0
         batch_number = 0
-
         completed = False
+
         while not completed:
-            components = self._collect_components(instance_config, offset)
-            if "result" in components and isinstance(components["result"], list):
-                number_of_components_in_current_batch = len(components.get("result"))
-                for component in components.get('result'):
-                    data = {}
-                    component = self.filter_empty_metadata(component)
-                    identifiers = []
-                    comp_name = component.get('name')
-                    comp_type = component.get('sys_class_name')
-                    external_id = component.get('sys_id')
-
-                    if 'fqdn' in component and component['fqdn']:
-                        identifiers.append("urn:host:/{}".format(component['fqdn']))
-                    if 'host_name' in component and component['host_name']:
-                        identifiers.append("urn:host:/{}".format(component['host_name']))
-                    else:
-                        identifiers.append("urn:host:/{}".format(comp_name))
-                    identifiers.append(external_id)
-                    data.update(component)
-                    data.update({"identifiers": identifiers, "tags": instance_tags})
-
-                    self.component(external_id, comp_type, data)
+            elements = collect_function(instance_config, offset)
+            if "result" in elements and isinstance(elements["result"], list):
+                number_of_elements_in_current_batch = len(elements.get("result"))
+                process_function(elements, instance_config)
             else:
-                raise CheckException('Collect components has no result')
-            completed = number_of_components_in_current_batch < instance_config.batch_size
+                raise CheckException('Method {} has no result'.format(collect_function))
+            completed = number_of_elements_in_current_batch < instance_config.batch_size
             batch_number += 1
             offset += instance_config.batch_size
             self.log.info(
-                'Processed batch no. {} with {} items.'.format(batch_number, number_of_components_in_current_batch)
+                'Processed batch no. {} with {} items.'.format(batch_number, number_of_elements_in_current_batch)
             )
+
+    def _process_components(self, components, instance_config):
+        for component in components.get('result'):
+            data = {}
+            component = self.filter_empty_metadata(component)
+            identifiers = []
+            comp_name = component.get('name')
+            comp_type = component.get('sys_class_name')
+            external_id = component.get('sys_id')
+
+            if 'fqdn' in component and component['fqdn']:
+                identifiers.append("urn:host:/{}".format(component['fqdn']))
+            if 'host_name' in component and component['host_name']:
+                identifiers.append("urn:host:/{}".format(component['host_name']))
+            else:
+                identifiers.append("urn:host:/{}".format(comp_name))
+            identifiers.append(external_id)
+            data.update(component)
+            data.update({"identifiers": identifiers, "tags": instance_config.instance_tags})
+
+            self.component(external_id, comp_type, data)
 
     def _collect_relation_types(self, instance_config):
         """
@@ -188,9 +190,9 @@ class ServicenowCheck(AgentCheck):
 
         return self._get_json(url, instance_config.timeout, auth)
 
-    def _process_and_cache_relation_types(self, instance_config):
+    def _process_relation_types(self, instance_config):
         """
-        collect available relations from cmdb_rel_ci and cache them in self.relation_types dict.
+        collect available relations from cmdb_rel_ci
         :return: nothing
         """
         relation_types = {}
@@ -203,7 +205,7 @@ class ServicenowCheck(AgentCheck):
                 relation_types[id] = parent_descriptor
         return relation_types
 
-    def _collect_component_relations(self, instance_config, offset):
+    def _collect_relations(self, instance_config, offset):
         """
         collect relations between components from cmdb_rel_ci and publish these in batches.
         """
@@ -218,28 +220,18 @@ class ServicenowCheck(AgentCheck):
 
         return self._get_json_batch(url, offset, instance_config.batch_size, instance_config.timeout, auth)
 
-    def _process_component_relations(self, instance_config):
-        offset = 0
-        instance_tags = instance_config.instance_tags
-        relation_types = self._process_and_cache_relation_types(instance_config)
+    def _process_relations(self, relations, instance_config):
+        relation_types = self._process_relation_types(instance_config)
+        for relation in relations.get('result'):
+            parent_sys_id = relation['parent']['value']
+            child_sys_id = relation['child']['value']
+            type_sys_id = relation['type']['value']
 
-        completed = False
-        while not completed:
-            relations = self._collect_component_relations(instance_config, offset)
-            total_relations = len(relations.get("result"))
-            if "result" in relations and isinstance(relations["result"], list):
-                for relation in relations.get('result'):
-                    parent_sys_id = relation['parent']['value']
-                    child_sys_id = relation['child']['value']
-                    type_sys_id = relation['type']['value']
+            relation_type = relation_types[type_sys_id]
+            data = self.filter_empty_metadata(relation)
+            data.update({"tags": instance_config.instance_tags})
 
-                    relation_type = relation_types[type_sys_id]
-                    data = self.filter_empty_metadata(relation)
-                    data.update({"tags": instance_tags})
-
-                    self.relation(parent_sys_id, child_sys_id, relation_type, data)
-            completed = total_relations < instance_config.batch_size
-            offset += instance_config.batch_size
+            self.relation(parent_sys_id, child_sys_id, relation_type, data)
 
     def _get_json_batch(self, url, offset, batch_size, timeout, auth):
         if "?" not in url:
