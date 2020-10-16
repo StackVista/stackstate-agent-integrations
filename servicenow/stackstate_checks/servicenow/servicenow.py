@@ -140,6 +140,7 @@ class ServicenowCheck(AgentCheck):
         """
         instance_tags = instance_config.instance_tags
         offset = 0
+        batch_number = 0
 
         completed = False
         while not completed:
@@ -168,7 +169,11 @@ class ServicenowCheck(AgentCheck):
             else:
                 raise CheckException('Collect components has no result')
             completed = number_of_components_in_current_batch < batch_size
+            batch_number += 1
             offset += batch_size
+            self.log.info(
+                'Processed batch no. {} with {} items.'.format(batch_number, number_of_components_in_current_batch)
+            )
 
     def _collect_relation_types(self, instance_config, timeout):
         """
