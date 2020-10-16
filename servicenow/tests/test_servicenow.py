@@ -130,6 +130,8 @@ mock_relation_with_filter = {
     ]
 }
 
+mock_empty_result = {'result': []}
+
 mock_instance = {
     'url': "https://dev60476.service-now.com",
     'user': 'name',
@@ -178,7 +180,7 @@ class TestServicenow(unittest.TestCase):
         AgentIntegrationTestUtil.assert_integration_snapshot(self.check,
                                                              'servicenow_cmdb:https://dev60476.service-now.com')
 
-    def test_check_exception(self):
+    def test_when_check_has_exception_stop_snapshot_is_false(self):
         """
         Test to raise a check exception when collecting components
         """
@@ -441,6 +443,33 @@ class TestServicenow(unittest.TestCase):
                                                                                                            batch_size)
         new_url = self.check._get_json_batch(url=url2, offset=10, batch_size=200, timeout=10, auth=auth)
         self.assertEqual(expected_url2, new_url)
+
+    def test_collect_components_returns_no_result(self):
+        """Test if collect component returns no result or its not list"""
+        self.check._collect_components = mock.MagicMock()
+        self.check._collect_components.return_value = {}
+        self.assertRaises(CheckException, self.check._process_components, instance_config, 100, 10)
+
+    def test_collect_components_returns_empty_result(self):
+        """Test if collect component returns no result or its not list"""
+        self.check._collect_components = mock.MagicMock()
+        self.check._collect_components.return_value = mock_empty_result
+        self.check._process_components(instance_config, batch_size=5, timeout=10)
+
+        # no snapshot is created
+        self.assertRaises(KeyError, topology.get_snapshot, self.check.check_id)
+
+    def test_batch_collect_exact_result_as_batch_size(self):
+        """
+        Test batch collecting components
+        """
+        self.check._collect_components = mock.MagicMock()
+        self.check._collect_components.side_effect = [mock_collect_components_batch, mock_empty_result]
+        self.check._process_components(instance_config, batch_size=5, timeout=10)
+
+        topology_instance = topology.get_snapshot(self.check.check_id)
+        self.assertEqual(len(topology_instance['components']), 5)
+
 
     def _get_url_auth(self):
         url = "{}/api/now/table/cmdb_ci".format(self.instance.get('url'))

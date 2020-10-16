@@ -7,11 +7,10 @@ import requests
 
 # project
 from stackstate_checks.base import ConfigurationError, AgentCheck, TopologyInstance
+from stackstate_checks.base.errors import CheckException
 
 # inbuilt
 import yaml
-
-from stackstate_checks.base.errors import CheckException
 
 EVENT_TYPE = SOURCE_TYPE_NAME = 'servicenow'
 
@@ -145,8 +144,8 @@ class ServicenowCheck(AgentCheck):
         completed = False
         while not completed:
             components = self._collect_components(instance_config, offset, batch_size, timeout)
-            total_components = len(components.get("result"))
             if "result" in components and isinstance(components["result"], list):
+                number_of_components_in_current_batch = len(components.get("result"))
                 for component in components.get('result'):
                     data = {}
                     component = self.filter_empty_metadata(component)
@@ -166,7 +165,9 @@ class ServicenowCheck(AgentCheck):
                     data.update({"identifiers": identifiers, "tags": instance_tags})
 
                     self.component(external_id, comp_type, data)
-            completed = total_components < batch_size
+            else:
+                raise CheckException('Collect components has no result')
+            completed = number_of_components_in_current_batch < batch_size
             offset += batch_size
 
     def _collect_relation_types(self, instance_config, timeout):
@@ -273,7 +274,7 @@ class ServicenowCheck(AgentCheck):
             resp = yaml.safe_load(resp.text.encode("utf-8"))
         except Exception as e:
             self.log.exception(str(e))
-            raise CheckException("Exception occured while parsing response and the error is : {}".format(str(e)))
+            raise CheckException("Exception occurred while parsing response and the error is : {}".format(str(e)))
 
         if "error" in resp and resp["error"]:
             raise CheckException("Problem in collecting CIs : {}".format(resp["error"].get("message")))
