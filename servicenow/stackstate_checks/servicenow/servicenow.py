@@ -282,6 +282,6 @@ class ServicenowCheck(AgentCheck):
             self.log.exception(str(e))
             raise CheckException("Exception occurred while parsing response and the error is : {}".format(str(e)))
 
-        if "error" in resp and resp["error"]:
+        if resp.get("error"):
             raise CheckException("Problem in collecting CIs : {}".format(resp["error"].get("message")))
         return resp
