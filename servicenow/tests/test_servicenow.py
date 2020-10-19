@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # (C) StackState 2020
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
@@ -132,7 +134,7 @@ mock_empty_result = {'result': []}
 
 mock_result_with_utf8 = {
     "result": {
-        "name": "Avery® Wizard 2.1 forMicrosoft® Word 2000",
+        "name": u"Avery® Wizard 2.1 forMicrosoft® Word 2000",
         "sys_class_name": "cmdb_ci_spkg",
         "sys_id": "46b9874fa9fe1981017a4a80aaa07919"
     }
@@ -490,7 +492,7 @@ class TestServicenow(unittest.TestCase):
         url, auth = self._get_url_auth()
         mock_req_get.return_value = mock.MagicMock(status_code=200, text=json.dumps(mock_result_with_utf8))
         response = self.check._get_json(url, timeout=10, auth=auth)
-        self.assertEqual('Avery® Wizard 2.1 forMicrosoft® Word 2000', response.get('result').get('name'))
+        self.assertEqual(u'Avery® Wizard 2.1 forMicrosoft® Word 2000', response.get('result').get('name'))
 
     def _get_url_auth(self):
         url = "{}/api/now/table/cmdb_ci".format(self.instance.get('url'))
