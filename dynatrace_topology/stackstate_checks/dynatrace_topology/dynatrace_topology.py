@@ -296,9 +296,9 @@ class DynatraceTopologyCheck(AgentCheck):
                 if self.cert:
                     session.cert = (self.cert, self.keyfile)
                 resp = session.get(endpoint)
-            if resp.status_code != 200:
-                raise Exception("Got %s when hitting %s" % (resp.status_code, endpoint))
-            return yaml.safe_load(resp.text)
+                if resp.status_code != 200:
+                    raise Exception("Got %s when hitting %s" % (resp.status_code, endpoint))
+                return yaml.safe_load(resp.text)
         except requests.exceptions.Timeout:
             msg = "{} seconds timeout when hitting {}".format(timeout, endpoint)
             raise Exception("Exception occured for endpoint {0} with message: {1}".format(endpoint, msg))

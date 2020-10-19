@@ -24,7 +24,7 @@ instances:
     # path to public key of certificate for https verification
     # keyfile: /path/to/key.pem
 
-    # domain to filter out different instances
+    # domain to use for the components
     # domain: customer
 
     # Environment to use for putting the data in
