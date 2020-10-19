@@ -130,6 +130,14 @@ mock_relation_with_filter = {
 
 mock_empty_result = {'result': []}
 
+mock_result_with_utf8 = {
+    "result": {
+        "name": "Avery® Wizard 2.1 forMicrosoft® Word 2000",
+        "sys_class_name": "cmdb_ci_spkg",
+        "sys_id": "46b9874fa9fe1981017a4a80aaa07919"
+    }
+}
+
 mock_instance = {
     'url': "https://dev60476.service-now.com",
     'user': 'name',
@@ -473,6 +481,16 @@ class TestServicenow(unittest.TestCase):
 
         topology_instance = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topology_instance['components']), 5)
+
+    @mock.patch('requests.get')
+    def test_get_json_utf_encoding(self, mock_req_get):
+        """
+        Test to check the method _get_json response with unicode character in name
+        """
+        url, auth = self._get_url_auth()
+        mock_req_get.return_value = mock.MagicMock(status_code=200, text=json.dumps(mock_result_with_utf8))
+        response = self.check._get_json(url, timeout=10, auth=auth)
+        self.assertEqual('Avery® Wizard 2.1 forMicrosoft® Word 2000', response.get('result').get('name'))
 
     def _get_url_auth(self):
         url = "{}/api/now/table/cmdb_ci".format(self.instance.get('url'))
