@@ -22,7 +22,7 @@
                     }
                 ],
                 "path": "/Exchange.HighAvailability/ServerLocator",
-                "domain": "https://ton48129.live.dynatrace.com",
+                "domain": "dynatrace",
                 "environment": "production",
                 "identifiers": [
                     "urn:dynatrace:/SERVICE-923B9ABBC3F9DB68"
@@ -64,7 +64,7 @@
                 ],
                 "path": "/Microsoft.Exchange.Directory.TopologyService",
                 "port": 890,
-                "domain": "https://ton48129.live.dynatrace.com",
+                "domain": "dynatrace",
                 "environment": "production",
                 "identifiers": [
                     "urn:dynatrace:/SERVICE-8745799105D02C01"
@@ -127,7 +127,7 @@
                         "version": "4.8.3928.0"
                     }
                 ],
-                "domain": "https://ton48129.live.dynatrace.com",
+                "domain": "dynatrace",
                 "environment": "production",
                 "identifiers": [
                     "urn:dynatrace:/SERVICE-329B4CC95B522941"

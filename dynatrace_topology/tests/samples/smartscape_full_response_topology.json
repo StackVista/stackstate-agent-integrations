@@ -22,7 +22,7 @@
           }
         ],
         "path": "/Exchange.HighAvailability/ServerLocator",
-        "domain": "https://ton48129.live.dynatrace.com",
+        "domain": "dynatrace",
         "environment": "production",
         "identifiers": [
           "urn:dynatrace:/SERVICE-923B9ABBC3F9DB68"
@@ -64,7 +64,7 @@
         ],
         "path": "/Microsoft.Exchange.Directory.TopologyService",
         "port": 890,
-        "domain": "https://ton48129.live.dynatrace.com",
+        "domain": "dynatrace",
         "environment": "production",
         "identifiers": [
           "urn:dynatrace:/SERVICE-8745799105D02C01"
@@ -127,7 +127,7 @@
             "version": "4.8.3928.0"
           }
         ],
-        "domain": "https://ton48129.live.dynatrace.com",
+        "domain": "dynatrace",
         "environment": "production",
         "identifiers": [
           "urn:dynatrace:/SERVICE-329B4CC95B522941"
@@ -155,7 +155,7 @@
         "bitness": "64bit",
         "discoveredName": "EdgeTransport.exe",
         "displayName": "EdgeTransport.exe",
-        "domain": "https://ton48129.live.dynatrace.com",
+        "domain": "dynatrace",
         "entityId": "PROCESS_GROUP_INSTANCE-F25A8361C6742030",
         "environment": "production",
         "firstSeenTimestamp": 1600180620000,
@@ -228,7 +228,7 @@
         "bitness": "64bit",
         "discoveredName": "Elasticsearch stackstate",
         "displayName": "Elasticsearch stackstate (stackstate-prod-0)",
-        "domain": "https://ton48129.live.dynatrace.com",
+        "domain": "dynatrace",
         "entityId": "PROCESS_GROUP_INSTANCE-3A6855F295757634",
         "environment": "production",
         "firstSeenTimestamp": 1600092000000,
@@ -305,7 +305,7 @@
         "bitness": "64bit",
         "discoveredName": "IIS",
         "displayName": "IIS",
-        "domain": "https://ton48129.live.dynatrace.com",
+        "domain": "dynatrace",
         "entityId": "PROCESS_GROUP_INSTANCE-D87BE1EAFC600996",
         "environment": "production",
         "firstSeenTimestamp": 1600180620000,
@@ -403,7 +403,7 @@
           2525,
           6671
         ],
-        "domain": "https://ton48129.live.dynatrace.com",
+        "domain": "dynatrace",
         "environment": "production",
         "identifiers": [
           "urn:dynatrace:/PROCESS_GROUP-518359807AEC7140"
@@ -471,7 +471,7 @@
           9200,
           9300
         ],
-        "domain": "https://ton48129.live.dynatrace.com",
+        "domain": "dynatrace",
         "environment": "production",
         "identifiers": [
           "urn:dynatrace:/PROCESS_GROUP-647A29F2E878C508"
@@ -529,7 +529,7 @@
           443,
           444
         ],
-        "domain": "https://ton48129.live.dynatrace.com",
+        "domain": "dynatrace",
         "environment": "production",
         "identifiers": [
           "urn:dynatrace:/PROCESS_GROUP-3D9D854163F8F07A"
@@ -590,7 +590,7 @@
         "localHostName": "ip-172-31-29-43.eu-west-1.compute.internal",
         "amiId": "ami-044b14bf9ccadeee9",
         "awsInstanceId": "i-0de40b60fae0f6846",
-        "domain": "https://ton48129.live.dynatrace.com",
+        "domain": "dynatrace",
         "environment": "production",
         "identifiers": [
           "urn:dynatrace:/HOST-6AAE0F78BCF2E0F4",
@@ -650,7 +650,7 @@
         "localHostName": "ip-172-31-30-110.eu-west-1.compute.internal",
         "amiId": "ami-076c188b0006a9c1c",
         "awsInstanceId": "i-0eee811b00ae31c95",
-        "domain": "https://ton48129.live.dynatrace.com",
+        "domain": "dynatrace",
         "environment": "production",
         "identifiers": [
           "urn:dynatrace:/HOST-AA6A5D81A0006807",
@@ -694,7 +694,7 @@
             "name": "Applications except easyTravel"
           }
         ],
-        "domain": "https://ton48129.live.dynatrace.com",
+        "domain": "dynatrace",
         "environment": "production",
         "identifiers": [
           "urn:dynatrace:/APPLICATION-EA7C4B59F27D43EB"
@@ -734,7 +734,7 @@
             "name": "easyTravel"
           }
         ],
-        "domain": "https://ton48129.live.dynatrace.com",
+        "domain": "dynatrace",
         "environment": "production",
         "identifiers": [
           "urn:dynatrace:/APPLICATION-BBFA55551D507E2B"
@@ -772,7 +772,7 @@
             "name": "easyTravel"
           }
         ],
-        "domain": "https://ton48129.live.dynatrace.com",
+        "domain": "dynatrace",
         "environment": "production",
         "identifiers": [
           "urn:dynatrace:/MOBILE_APPLICATION-752C288D59734C79"

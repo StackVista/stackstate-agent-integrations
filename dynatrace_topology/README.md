@@ -13,13 +13,20 @@ This check synchronizes [Dynatrace][1] smartscape topology through the StackStat
 
 ### Prerequisite
 
-* An API Token from Dynatrace must have access to read the smartscape topology.
-* Below API endpoints are used for this integration :
-    * _/api/v1/entity/infrastructure/processes_
-    * _/api/v1/entity/infrastructure/hosts_
-    * _/api/v1/entity/applications_
-    * _/api/v1/entity/infrastructure/process-groups_
-    * _/api/v1/entity/services_
+* An API Token from Dynatrace must have access to read the smartscape topology basically `DataExport` API value.
+
+#### REST API Endpoints
+The API Token configured in StackState Agent V2 must have access to read the topology. The permission name required for this API token is `Access problems and event feed, metrics, and topology`. The API endpoints used in the StackState Agent V2 are defined below:
+* _/api/v1/entity/infrastructure/processes_
+* _/api/v1/entity/infrastructure/hosts_
+* _/api/v1/entity/applications_
+* _/api/v1/entity/infrastructure/process-groups_
+* _/api/v1/entity/services_
+
+**NOTE** 
+* Refer the Dynatrace documentation page on [how to create an API Token](https://www.dynatrace.com/support/help/shortlink/api-authentication#generate-a-token)
+* Read the Dynatrace documentation page on [permission required for your API Token](https://www.dynatrace.com/support/help/shortlink/api-authentication#token-permissions)
+
 
 ### Installation
 

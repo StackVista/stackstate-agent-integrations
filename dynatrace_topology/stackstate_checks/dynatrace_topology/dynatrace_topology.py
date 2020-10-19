@@ -45,7 +45,7 @@ class DynatraceTopologyCheck(AgentCheck):
         self.url = instance.get('url')
         self.token = instance.get('token')
         self.tags = instance.get('tags', [])
-        self.domain = instance.get('domain', self.url)
+        self.domain = instance.get('domain', 'dynatrace')
         self.environment = instance.get('environment', 'production')
         self.verify = instance.get('verify', True)
         self.cert = instance.get('cert', '')
@@ -288,17 +288,17 @@ class DynatraceTopologyCheck(AgentCheck):
         headers = {"Authorization": "Api-Token {}".format(self.token)}
         resp = None
         msg = None
-        self.log.info("URL is {}".format(endpoint))
+        self.log.debug("URL is {}".format(endpoint))
         try:
-            session = Session()
-            session.headers.update(headers)
-            session.verify = self.verify
-            if self.cert:
-                session.cert = (self.cert, self.keyfile)
-            resp = session.get(endpoint)
+            with Session() as session:
+                session.headers.update(headers)
+                session.verify = self.verify
+                if self.cert:
+                    session.cert = (self.cert, self.keyfile)
+                resp = session.get(endpoint)
             if resp.status_code != 200:
                 raise Exception("Got %s when hitting %s" % (resp.status_code, endpoint))
+            return yaml.safe_load(resp.text)
         except requests.exceptions.Timeout:
             msg = "{} seconds timeout when hitting {}".format(timeout, endpoint)
             raise Exception("Exception occured for endpoint {0} with message: {1}".format(endpoint, msg))
-        return yaml.safe_load(resp.text)

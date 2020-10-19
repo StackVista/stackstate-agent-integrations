@@ -24,7 +24,7 @@
             "name": "Applications except easyTravel"
           }
         ],
-        "domain": "https://ton48129.live.dynatrace.com",
+        "domain": "dynatrace",
         "environment": "production",
         "identifiers": [
           "urn:dynatrace:/APPLICATION-EA7C4B59F27D43EB"
@@ -64,7 +64,7 @@
             "name": "easyTravel"
           }
         ],
-        "domain": "https://ton48129.live.dynatrace.com",
+        "domain": "dynatrace",
         "environment": "production",
         "identifiers": [
           "urn:dynatrace:/APPLICATION-BBFA55551D507E2B"
@@ -102,7 +102,7 @@
             "name": "easyTravel"
           }
         ],
-        "domain": "https://ton48129.live.dynatrace.com",
+        "domain": "dynatrace",
         "environment": "production",
         "identifiers": [
           "urn:dynatrace:/MOBILE_APPLICATION-752C288D59734C79"
