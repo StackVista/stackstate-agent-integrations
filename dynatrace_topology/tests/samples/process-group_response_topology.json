@@ -40,7 +40,7 @@
         "domain": "",
         "environment": "production",
         "identifiers": [
-          "urn:process-group:/PROCESS_GROUP-518359807AEC7140"
+          "urn:dynatrace:/PROCESS_GROUP-518359807AEC7140"
         ],
         "instance": "https://ton48129.live.dynatrace.com",
         "tags": [
@@ -108,7 +108,7 @@
         "domain": "",
         "environment": "production",
         "identifiers": [
-          "urn:process-group:/PROCESS_GROUP-647A29F2E878C508"
+          "urn:dynatrace:/PROCESS_GROUP-647A29F2E878C508"
         ],
         "instance": "https://ton48129.live.dynatrace.com",
         "tags": [
@@ -166,7 +166,7 @@
         "domain": "",
         "environment": "production",
         "identifiers": [
-          "urn:process-group:/PROCESS_GROUP-3D9D854163F8F07A"
+          "urn:dynatrace:/PROCESS_GROUP-3D9D854163F8F07A"
         ],
         "instance": "https://ton48129.live.dynatrace.com",
         "tags": [

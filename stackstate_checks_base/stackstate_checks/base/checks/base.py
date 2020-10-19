@@ -212,7 +212,8 @@ class AgentCheckBase(object):
         raise ValueError("Got unexpected {} for argument {}, expected {}".format(type(value), argumentName, expected))
 
     def _check_struct_value(self, argumentName, value):
-        if value is None or isinstance(value, string_types) or isinstance(value, integer_types):
+        if value is None or isinstance(value, string_types) or isinstance(value, integer_types) or \
+                isinstance(value, float) or isinstance(value, bool):
             return
         elif isinstance(value, dict):
             for k in value:

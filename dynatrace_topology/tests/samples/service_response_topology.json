@@ -25,7 +25,7 @@
                 "domain": "",
                 "environment": "production",
                 "identifiers": [
-                    "urn:service:/SERVICE-923B9ABBC3F9DB68"
+                    "urn:dynatrace:/SERVICE-923B9ABBC3F9DB68"
                 ],
                 "instance": "https://ton48129.live.dynatrace.com",
                 "tags": [
@@ -67,7 +67,7 @@
                 "domain": "",
                 "environment": "production",
                 "identifiers": [
-                    "urn:service:/SERVICE-8745799105D02C01"
+                    "urn:dynatrace:/SERVICE-8745799105D02C01"
                 ],
                 "instance": "https://ton48129.live.dynatrace.com",
                 "tags": [
@@ -130,7 +130,7 @@
                 "domain": "",
                 "environment": "production",
                 "identifiers": [
-                    "urn:service:/SERVICE-329B4CC95B522941"
+                    "urn:dynatrace:/SERVICE-329B4CC95B522941"
                 ],
                 "instance": "https://ton48129.live.dynatrace.com",
                 "tags": [

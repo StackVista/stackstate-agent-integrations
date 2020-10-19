@@ -37,20 +37,11 @@ class TopologyStub(object):
             self._snapshots[check_id] = snapshot(instance_key)
         return self._snapshots[check_id]
 
-    def _is_duplicate_relation(self, check_id, instance_key, source_id, target_id, type, data):
-        return relation(source_id, target_id, type, data) in self._ensure_instance(check_id, instance_key)["relations"]
-
-    def _is_duplicate_component(self, check_id, instance_key, id, type, data):
-        return component(id, type, data) in self._ensure_instance(check_id, instance_key)["components"]
-
     def submit_component(self, check, check_id, instance_key, id, type, data):
-        if not self._is_duplicate_component(check_id, instance_key, id, type, data):
-            self._ensure_instance(check_id, instance_key)["components"].append(component(id, type, data))
+        self._ensure_instance(check_id, instance_key)["components"].append(component(id, type, data))
 
     def submit_relation(self, check, check_id, instance_key, source_id, target_id, type, data):
-        if not self._is_duplicate_relation(check_id, instance_key, source_id, target_id, type, data):
-            self._ensure_instance(check_id, instance_key)["relations"].append(relation(source_id, target_id, type,
-                                                                                       data))
+        self._ensure_instance(check_id, instance_key)["relations"].append(relation(source_id, target_id, type, data))
 
     def submit_start_snapshot(self, check, check_id, instance_key):
         self._ensure_instance(check_id, instance_key)["start_snapshot"] = True

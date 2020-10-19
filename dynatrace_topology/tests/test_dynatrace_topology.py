@@ -45,8 +45,8 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         Testing Dynatrace check should not produce any topology
         """
 
-        self.check.get_json_response = mock.MagicMock()
-        self.check.get_json_response.return_value = []
+        self.check.get_dynatrace_json_response = mock.MagicMock()
+        self.check.get_dynatrace_json_response.return_value = []
         self.check.url = self.instance.get('url')
 
         self.check.run()
@@ -66,8 +66,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         self.check.collect_applications = mock.MagicMock(return_value=[])
         self.check.collect_hosts = mock.MagicMock(return_value=[])
 
-        self.check.get_json_response = mock.MagicMock()
-        self.check.get_json_response.return_value = read_data("process_response.json")
+        self.check.get_dynatrace_json_response = mock.MagicMock(return_value=read_data("process_response.json"))
         self.check.url = self.instance.get('url')
 
         self.check.run()
@@ -95,8 +94,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         self.check.collect_applications = mock.MagicMock(return_value=[])
         self.check.collect_processes = mock.MagicMock(return_value=[])
 
-        self.check.get_json_response = mock.MagicMock()
-        self.check.get_json_response.return_value = read_data("host_response.json")
+        self.check.get_dynatrace_json_response = mock.MagicMock(return_value=read_data("host_response.json"))
         self.check.url = self.instance.get('url')
 
         self.check.run()
@@ -124,8 +122,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         self.check.collect_applications = mock.MagicMock(return_value=[])
         self.check.collect_processes = mock.MagicMock(return_value=[])
 
-        self.check.get_json_response = mock.MagicMock()
-        self.check.get_json_response.return_value = read_data("service_response.json")
+        self.check.get_dynatrace_json_response = mock.MagicMock(return_value=read_data("service_response.json"))
         self.check.url = self.instance.get('url')
 
         self.check.run()
@@ -153,8 +150,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         self.check.collect_services = mock.MagicMock(return_value=[])
         self.check.collect_processes = mock.MagicMock(return_value=[])
 
-        self.check.get_json_response = mock.MagicMock()
-        self.check.get_json_response.return_value = read_data("application_response.json")
+        self.check.get_dynatrace_json_response = mock.MagicMock(return_value=read_data("application_response.json"))
         self.check.url = self.instance.get('url')
 
         self.check.run()
@@ -182,8 +178,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         self.check.collect_services = mock.MagicMock(return_value=[])
         self.check.collect_processes = mock.MagicMock(return_value=[])
 
-        self.check.get_json_response = mock.MagicMock()
-        self.check.get_json_response.return_value = read_data("process-group_response.json")
+        self.check.get_dynatrace_json_response = mock.MagicMock(return_value=read_data("process-group_response.json"))
         self.check.url = self.instance.get('url')
 
         self.check.run()
@@ -199,16 +194,6 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         self.assertEqual(len(relations), len(actual_relations))
         for relation in relations:
             self.assertIn(relation, actual_relations)
-
-    def test_filter_data_without_from_to_relationships(self):
-        """
-        Test to check if data remains same as no relationships existed
-        """
-        data = read_data("host_response.json")[0]
-        del data["fromRelationships"]
-        del data["toRelationships"]
-        result = self.check.filter_data(data.copy())
-        self.assertEqual(data, result)
 
     def test_collect_relations(self):
         """
@@ -232,8 +217,8 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         Test to raise a check exception when collecting components and snapshot should be False
         """
 
-        self.check.get_json_response = mock.MagicMock()
-        self.check.get_json_response.side_effect = Exception("Exception occured")
+        self.check.get_dynatrace_json_response = mock.MagicMock()
+        self.check.get_dynatrace_json_response.side_effect = Exception("Exception occured")
 
         self.assertRaises(Exception, self.check.check(self.instance))
         # since the check raised exception, the topology snapshot is not completed
@@ -271,6 +256,8 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         self.assertEqual(len(components), len(actual_components))
         for component in components:
             self.assertIn(component, actual_components)
-        self.assertEqual(len(relations), len(actual_relations))
+
+        # Not comparing the numbers because we have duplicate relations created but
+        # duplicates will be auto filtered out by the agent externalId assigning behavior
         for relation in relations:
             self.assertIn(relation, actual_relations)

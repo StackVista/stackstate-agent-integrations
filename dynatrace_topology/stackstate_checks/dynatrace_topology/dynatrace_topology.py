@@ -66,16 +66,16 @@ class DynatraceTopologyCheck(AgentCheck):
         """
         start_time = datetime.now()
         self.log.info("Starting the collection of topology")
-        services = self.collect_services()
-        processes = self.collect_processes()
-        processes_groups = self.collect_process_groups()
-        hosts = self.collect_hosts()
         applications = self.collect_applications()
-        topology = {"service": services, "process": processes, "process-group": processes_groups, "host": hosts,
-                    "application": applications}
-        # process component for each type
+        services = self.collect_services()
+        processes_groups = self.collect_process_groups()
+        processes = self.collect_processes()
+        hosts = self.collect_hosts()
+        topology = {"application": applications, "service": services, "process-group": processes_groups,
+                    "process": processes, "host": hosts}
+        # collect topology for each component type
         for comp_type, response in topology.items():
-            self.process_component(response, comp_type)
+            self.collect_topology(response, comp_type)
         end_time = datetime.now()
         time_taken = end_time - start_time
         self.log.info("Time taken to collect the topology is: {} seconds".format(time_taken.total_seconds()))
@@ -89,18 +89,18 @@ class DynatraceTopologyCheck(AgentCheck):
         """
         outgoing_relations = component.get("fromRelationships", {})
         incoming_relations = component.get("toRelationships", {})
-        for relation_type in outgoing_relations.keys():
+        for relation_type, relation_value in outgoing_relations.items():
             # Ignore `isSiteOf` relation since location components are not processed right now
             if relation_type != "isSiteOf":
-                for target_id in outgoing_relations[relation_type]:
+                for target_id in relation_value:
                     self.relation(externalId, target_id, relation_type, {})
-        for relation_type in incoming_relations.keys():
+        for relation_type, relation_value in incoming_relations.items():
             # Ignore `isSiteOf` relation since location components are not processed right now
             if relation_type != "isSiteOf":
-                for source_id in incoming_relations[relation_type]:
+                for source_id in relation_value:
                     self.relation(source_id, externalId, relation_type, {})
 
-    def filter_data(self, data):
+    def filter_item_topology_data(self, data):
         """
         Delete the un-necessary relationships from the data
         """
@@ -108,99 +108,121 @@ class DynatraceTopologyCheck(AgentCheck):
             del data["fromRelationships"]
         if "toRelationships" in data:
             del data["toRelationships"]
-        return data
+        if "tags" in data:
+            del data["tags"]
 
     def collect_processes(self):
         """
         Collects the response from the Dynatrace Process API endpoint
         """
-        endpoint = self.url + "/api/v1/entity/infrastructure/processes"
-        processes = self.get_json_response(endpoint)
+        endpoint = self.get_dynatrace_endpoint("api/v1/entity/infrastructure/processes")
+        processes = self.get_dynatrace_json_response(endpoint)
         return processes
 
     def collect_hosts(self):
         """
         Collects the response from the Dynatrace Host API endpoint
         """
-        endpoint = self.url + "/api/v1/entity/infrastructure/hosts"
-        hosts = self.get_json_response(endpoint)
+        endpoint = self.get_dynatrace_endpoint("api/v1/entity/infrastructure/hosts")
+        hosts = self.get_dynatrace_json_response(endpoint)
         return hosts
 
     def collect_applications(self):
         """
         Collects the response from the Dynatrace Application API endpoint
         """
-        endpoint = self.url + "/api/v1/entity/applications"
-        applications = self.get_json_response(endpoint)
+        endpoint = self.get_dynatrace_endpoint("api/v1/entity/applications")
+        applications = self.get_dynatrace_json_response(endpoint)
         return applications
 
     def collect_process_groups(self):
         """
         Collects the response from the Dynatrace Process-Group API endpoint
         """
-        endpoint = self.url + "/api/v1/entity/infrastructure/process-groups"
-        process_groups = self.get_json_response(endpoint)
+        endpoint = self.get_dynatrace_endpoint("api/v1/entity/infrastructure/process-groups")
+        process_groups = self.get_dynatrace_json_response(endpoint)
         return process_groups
 
     def collect_services(self):
         """
         Collects the response from the Dynatrace Service API endpoint
         """
-        endpoint = self.url + "/api/v1/entity/services"
-        services = self.get_json_response(endpoint)
+        endpoint = self.get_dynatrace_endpoint("api/v1/entity/services")
+        services = self.get_dynatrace_json_response(endpoint)
         return services
 
-    def process_component(self, response, component_type):
+    def get_dynatrace_endpoint(self, path):
+        """
+        Creates the API endpoint from the path
+        :param path: the path of the dynatrace endpoint
+        :return: the full url of the endpoint
+        """
+        if self.url.endswith("/"):
+            endpoint = self.url + path
+        else:
+            endpoint = self.url + "/" + path
+        return endpoint
+
+    def clean_unsupported_metadata(self, component):
+        """
+        Convert the data type to string in case of `boolean` and `float`.
+        Currently we get `float` values for `Hosts`
+        :param component: metadata with unsupported data types
+        :return: metadata with supported data types
+        """
+        for key in component.keys():
+            if type(component[key]) is float:
+                component[key] = str(component[key])
+            elif type(component[key]) is bool:
+                component[key] = str(component[key])
+        return component
+
+    def get_host_identifiers(self, component):
+        host_identifiers = []
+        if component.get("esxiHostName"):
+            host_identifiers.append("urn:host:/{}".format(component.get("esxiHostName")))
+        if component.get("oneAgentCustomHostName"):
+            host_identifiers.append("urn:host:/{}".format(component.get("oneAgentCustomHostName")))
+        if component.get("azureHostNames"):
+            host_identifiers.append("urn:host:/{}".format(component.get("azureHostNames")))
+        if component.get("publicHostName"):
+            host_identifiers.append("urn:host:/{}".format(component.get("publicHostName")))
+        if component.get("localHostName"):
+            host_identifiers.append("urn:host:/{}".format(component.get("localHostName")))
+        host_identifiers.append("urn:host:/{}".format(component.get("displayName")))
+        return host_identifiers
+
+    def collect_topology(self, response, component_type):
         """
         Process each component type and map those with specific data
         :param response: Response of each component type endpoint
         :param component_type: Component type
         :return: create the component on stackstate API
         """
-        urn = ''
-        if "error" not in response:
-            for item in response:
-                # special case for host type as we get some float values
-                if component_type == "host":
-                    for key in item.keys():
-                        if type(item[key]) is float:
-                            item[key] = str(item[key])
-                identifiers = []
-                data = dict()
-                externalId = item.get("entityId")
-                if component_type == "service":
-                    urn = "urn:service:/{}".format(externalId)
-                elif component_type == "process-group":
-                    urn = "urn:process-group:/{}".format(externalId)
-                elif component_type == "application":
-                    urn = "urn:application:/{}".format(externalId)
-                elif component_type == "process":
-                    urn = "urn:process:/{}".format(externalId)
-                elif component_type == "host":
-                    displayName = item.get("displayName")
-                    urn = "urn:host:/{}".format(displayName)
-                identifiers.append(urn)
-                # derive useful labels and get labels from dynatrace tags
-                labels = self.get_labels(item)
-                labels += self.get_labels_from_dynatrace_tags(item)
-                if "tags" in item:
-                    del item["tags"]
-                # prefix the labels with `dynatrace-` for all labels
-                labels = ["dynatrace-{}".format(label) for label in labels]
-                data.update(item)
-                data.update({
-                    "identifiers": identifiers,
-                    "tags": self.tags,
-                    "domain": self.domain,
-                    "environment": self.environment,
-                    "instance": self.url,
-                    "labels": labels
-                })
-                data = self.filter_data(data)
-                self.component(externalId, component_type, data)
-                self.collect_relations(item, externalId)
-        else:
+        if "error" in response:
             raise DynatraceError(response["error"].get("message"), response["error"].get("code"), component_type)
+        for item in response:
+            item = self.clean_unsupported_metadata(item)
+            data = dict()
+            external_id = item["entityId"]
+            identifiers = ["urn:dynatrace:/{}".format(external_id)]
+            if component_type == "host":
+                host_identifiers = self.get_host_identifiers(item)
+                identifiers.extend(host_identifiers)
+            # derive useful labels and get labels from dynatrace tags
+            labels = self.get_labels(item)
+            data.update(item)
+            self.filter_item_topology_data(data)
+            data.update({
+                "identifiers": identifiers,
+                "tags": self.tags,
+                "domain": self.domain,
+                "environment": self.environment,
+                "instance": self.url,
+                "labels": labels
+            })
+            self.component(external_id, component_type, data)
+            self.collect_relations(item, external_id)
 
     def get_labels_from_dynatrace_tags(self, item):
         """
@@ -211,46 +233,51 @@ class DynatraceTopologyCheck(AgentCheck):
         tags = []
         for tag in item.get("tags", []):
             tag_label = ''
-            if bool(tag['context']) and tag.get('context') != 'CONTEXTLESS':
+            if tag.get('context') and tag.get('context') != 'CONTEXTLESS':
                 tag_label += '[{0}]'.format(tag['context'])
-            if bool(tag.get('key')):
+            if tag.get('key'):
                 tag_label += "{0}".format(tag['key'])
-            if bool(tag.get('value')):
+            if tag.get('value'):
                 tag_label += ":{0}".format(tag['value'])
             tags.append(tag_label)
         return tags
 
     def get_labels(self, item):
         """
-        get labels for each component
+        Extract labels and tags for each component
         :param item: the component item
         :return: the list of added labels for a component
         """
         labels = []
         # append management zones in labels for each existing component
-        if "managementZones" in item:
-            for zone in item["managementZones"]:
+        for zone in item.get("managementZones", []):
+            if zone.get("name"):
                 labels.append("managementZones:{}".format(zone.get("name")))
-        if "entityId" in item:
+        if item.get("entityId"):
             labels.append(item["entityId"])
         if "monitoringState" in item:
             actual_state = item["monitoringState"].get("actualMonitoringState")
             expected_state = item["monitoringState"].get("expectedMonitoringState")
-            labels.append("actualMonitoringState:{}".format(actual_state))
-            labels.append("expectedMonitoringState:{}".format(expected_state))
-        if "softwareTechnologies" in item:
-            for technologies in item["softwareTechnologies"]:
-                tech_label = ''
-                if bool(technologies['type']):
-                    tech_label += technologies['type']
-                if bool(technologies['edition']):
-                    tech_label += ":{}".format(technologies['edition'])
-                if bool(technologies['version']):
-                    tech_label += ":{}".format(technologies['version'])
-                labels.append(tech_label)
+            if actual_state:
+                labels.append("actualMonitoringState:{}".format(actual_state))
+            if expected_state:
+                labels.append("expectedMonitoringState:{}".format(expected_state))
+        for technologies in item.get("softwareTechnologies", []):
+            tech_label = ''
+            if technologies.get('type'):
+                tech_label += technologies['type']
+            if technologies.get('edition'):
+                tech_label += ":{}".format(technologies['edition'])
+            if technologies.get('version'):
+                tech_label += ":{}".format(technologies['version'])
+            labels.append(tech_label)
+        labels_from_tags = self.get_labels_from_dynatrace_tags(item)
+        labels.extend(labels_from_tags)
+        # prefix the labels with `dynatrace-` for all labels
+        labels = ["dynatrace-{}".format(label) for label in labels]
         return labels
 
-    def get_json_response(self, endpoint, timeout=10):
+    def get_dynatrace_json_response(self, endpoint, timeout=10):
         """
         Make a request to Dynatrace endpoint through session
         :param endpoint: Dynatrace API Endpoint to call
