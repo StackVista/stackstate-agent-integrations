@@ -2,6 +2,7 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 from stackstate_checks.base import AgentCheck, ConfigurationError, TopologyInstance
+from stackstate_checks.utils.identifiers import Identifiers
 from .dynatrace_exception import DynatraceError
 
 import requests
@@ -44,7 +45,7 @@ class DynatraceTopologyCheck(AgentCheck):
         self.url = instance.get('url')
         self.token = instance.get('token')
         self.tags = instance.get('tags', [])
-        self.domain = instance.get('domain', '')
+        self.domain = instance.get('domain', self.url)
         self.environment = instance.get('environment', 'production')
         self.verify = instance.get('verify', True)
         self.cert = instance.get('cert', '')
@@ -180,16 +181,16 @@ class DynatraceTopologyCheck(AgentCheck):
     def get_host_identifiers(self, component):
         host_identifiers = []
         if component.get("esxiHostName"):
-            host_identifiers.append("urn:host:/{}".format(component.get("esxiHostName")))
+            host_identifiers.append(Identifiers.create_host_identifier(component.get("esxiHostName")))
         if component.get("oneAgentCustomHostName"):
-            host_identifiers.append("urn:host:/{}".format(component.get("oneAgentCustomHostName")))
+            host_identifiers.append(Identifiers.create_host_identifier(component.get("oneAgentCustomHostName")))
         if component.get("azureHostNames"):
-            host_identifiers.append("urn:host:/{}".format(component.get("azureHostNames")))
+            host_identifiers.append(Identifiers.create_host_identifier(component.get("azureHostNames")))
         if component.get("publicHostName"):
-            host_identifiers.append("urn:host:/{}".format(component.get("publicHostName")))
+            host_identifiers.append(Identifiers.create_host_identifier(component.get("publicHostName")))
         if component.get("localHostName"):
-            host_identifiers.append("urn:host:/{}".format(component.get("localHostName")))
-        host_identifiers.append("urn:host:/{}".format(component.get("displayName")))
+            host_identifiers.append(Identifiers.create_host_identifier(component.get("localHostName")))
+        host_identifiers.append(Identifiers.create_host_identifier(component.get("displayName")))
         return host_identifiers
 
     def collect_topology(self, response, component_type):
@@ -205,7 +206,7 @@ class DynatraceTopologyCheck(AgentCheck):
             item = self.clean_unsupported_metadata(item)
             data = dict()
             external_id = item["entityId"]
-            identifiers = ["urn:dynatrace:/{}".format(external_id)]
+            identifiers = [Identifiers.create_custom_identifier("dynatrace", external_id)]
             if component_type == "host":
                 host_identifiers = self.get_host_identifiers(item)
                 identifiers.extend(host_identifiers)

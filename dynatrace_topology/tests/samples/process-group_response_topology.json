@@ -37,7 +37,7 @@
           2525,
           6671
         ],
-        "domain": "",
+        "domain": "https://ton48129.live.dynatrace.com",
         "environment": "production",
         "identifiers": [
           "urn:dynatrace:/PROCESS_GROUP-518359807AEC7140"
@@ -105,7 +105,7 @@
           9200,
           9300
         ],
-        "domain": "",
+        "domain": "https://ton48129.live.dynatrace.com",
         "environment": "production",
         "identifiers": [
           "urn:dynatrace:/PROCESS_GROUP-647A29F2E878C508"
@@ -163,7 +163,7 @@
           443,
           444
         ],
-        "domain": "",
+        "domain": "https://ton48129.live.dynatrace.com",
         "environment": "production",
         "identifiers": [
           "urn:dynatrace:/PROCESS_GROUP-3D9D854163F8F07A"

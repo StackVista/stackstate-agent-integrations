@@ -41,7 +41,7 @@
                 "localHostName": "ip-172-31-29-43.eu-west-1.compute.internal",
                 "amiId": "ami-044b14bf9ccadeee9",
                 "awsInstanceId": "i-0de40b60fae0f6846",
-                "domain": "",
+                "domain": "https://ton48129.live.dynatrace.com",
                 "environment": "production",
                 "identifiers": [
                     "urn:dynatrace:/HOST-6AAE0F78BCF2E0F4",
@@ -101,7 +101,7 @@
                 "localHostName": "ip-172-31-30-110.eu-west-1.compute.internal",
                 "amiId": "ami-076c188b0006a9c1c",
                 "awsInstanceId": "i-0eee811b00ae31c95",
-                "domain": "",
+                "domain": "https://ton48129.live.dynatrace.com",
                 "environment": "production",
                 "identifiers": [
                     "urn:dynatrace:/HOST-AA6A5D81A0006807",
