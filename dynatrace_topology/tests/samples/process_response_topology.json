@@ -1,0 +1,276 @@
+{
+  "components": [
+    {
+      "data": {
+        "bitness": "64bit",
+        "discoveredName": "EdgeTransport.exe",
+        "displayName": "EdgeTransport.exe",
+        "domain": "dynatrace",
+        "entityId": "PROCESS_GROUP_INSTANCE-F25A8361C6742030",
+        "environment": "production",
+        "firstSeenTimestamp": 1600180620000,
+        "identifiers": [
+          "urn:dynatrace:/PROCESS_GROUP_INSTANCE-F25A8361C6742030"
+        ],
+        "instance": "https://ton48129.live.dynatrace.com",
+        "labels": [
+          "dynatrace-PROCESS_GROUP_INSTANCE-F25A8361C6742030",
+          "dynatrace-actualMonitoringState:OFF",
+          "dynatrace-expectedMonitoringState:OFF",
+          "dynatrace-CLR:FullCLR:4.8.3928.0",
+          "dynatrace-DOTNET:.NET Framework:4.8.3928.0"
+        ],
+        "lastSeenTimestamp": 1601448300000,
+        "listenPorts": [
+          6681,
+          465,
+          2525,
+          6671
+        ],
+        "metadata": {
+          "commandLineArgs": [
+            "C:\\Program\\ Files\\Microsoft\\Exchange\\ Server\\V15\\Bin\\EdgeTransport.exe -pipe:2144 -stopkey:Global\\ExchangeStopKey-34b894c1-c976-43db-a83d-cbc89ea5c5e0 -resetkey:Global\\ExchangeResetKey-4a9e8cc5-6ad9-4cc4-8610-36c9627cbcbe -readykey:Global\\ExchangeReadyKey-89d0548b-6776-4101-aed9-dbf884236629 -hangkey:Global\\ExchangeHangKey-b5611f0f-6ac3-4a4f-a405-f99ac6a7d673 -startUpProgressKey:Global\\ExchangeProgressKey-81c9a718-f3c5-40a3-a6b3-74b8d26b7dd2 -workerListening"
+          ],
+          "executablePaths": [
+            "C:/Program Files/Microsoft/Exchange Server/V*/Bin/EdgeTransport.exe",
+            "C:\\PROGRAM FILES\\MICROSOFT\\EXCHANGE SERVER\\V15\\BIN\\EDGETRANSPORT.EXE"
+          ],
+          "executables": [
+            "EdgeTransport.exe"
+          ]
+        },
+        "monitoringState": {
+          "actualMonitoringState": "OFF",
+          "expectedMonitoringState": "OFF",
+          "restartRequired": false
+        },
+        "softwareTechnologies": [
+          {
+            "edition": "FullCLR",
+            "type": "CLR",
+            "version": "4.8.3928.0"
+          },
+          {
+            "edition": ".NET Framework",
+            "type": "DOTNET",
+            "version": "4.8.3928.0"
+          }
+        ],
+        "tags": [
+          "integration-type:dynatrace",
+          "integration-url:https://ton48129.live.dynatrace.com"
+        ]
+      },
+      "id": "PROCESS_GROUP_INSTANCE-F25A8361C6742030",
+      "type": "process"
+    },
+    {
+      "data": {
+        "agentVersions": [
+          {
+            "major": 1,
+            "minor": 201,
+            "revision": 109,
+            "sourceRevision": "",
+            "timestamp": "20200921-085558"
+          }
+        ],
+        "bitness": "64bit",
+        "discoveredName": "Elasticsearch stackstate",
+        "displayName": "Elasticsearch stackstate (stackstate-prod-0)",
+        "domain": "dynatrace",
+        "entityId": "PROCESS_GROUP_INSTANCE-3A6855F295757634",
+        "environment": "production",
+        "firstSeenTimestamp": 1600092000000,
+        "identifiers": [
+          "urn:dynatrace:/PROCESS_GROUP_INSTANCE-3A6855F295757634"
+        ],
+        "instance": "https://ton48129.live.dynatrace.com",
+        "labels": [
+          "dynatrace-PROCESS_GROUP_INSTANCE-3A6855F295757634",
+          "dynatrace-actualMonitoringState:ON",
+          "dynatrace-expectedMonitoringState:ON",
+          "dynatrace-NETTY:HTTP Server:4.1.36.Final",
+          "dynatrace-JAVA:OpenJDK:1.8.0_265",
+          "dynatrace-ELASTIC_SEARCH"
+        ],
+        "lastSeenTimestamp": 1601448360000,
+        "listenPorts": [
+          9200,
+          9300
+        ],
+        "metadata": {
+          "commandLineArgs": [
+            "/usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java -Des.path.home=/opt/stackstate/elasticsearch7 -Des.path.logs=/opt/stackstate/var/log/elasticsearch7 -Des.path.data=/opt/stackstate/var/lib/elasticsearch7 -Des.path.conf=/opt/stackstate/etc/elasticsearch7 -Des.distribution.flavor=oss -Des.distribution.type=tar -Des.bundled_jdk=false -Des.networkaddress.cache.ttl=60 -Des.networkaddress.cache.negative.ttl=10 -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=100 -XX:+AlwaysPreTouch -Xss1m -Dfile.encoding=UTF-8 -Djna.nosys=true -Djava.awt.headless=true -XX:-OmitStackTraceInFastThrow -Dio.netty.noUnsafe=true -Dio.netty.noKeySetOptimization=true -Dio.netty.recycler.maxCapacityPerThread=0 -Dlog4j.shutdownHookEnabled=false -Xmx2G -Xms2G -XX:+ExitOnOutOfMemoryError -cp /opt/stackstate/etc/elasticsearch7:/opt/stackstate/elasticsearch7/lib/* -Dlog4j2.disable.jmx=true -Djava.io.tmpdir=/opt/stackstate/tmp org.elasticsearch.bootstrap.Elasticsearch --quiet"
+          ],
+          "elasticSearchClusterNames": [
+            "stackstate"
+          ],
+          "elasticSearchNodeNames": [
+            "stackstate-prod-0"
+          ],
+          "executablePaths": [
+            "/usr/lib/jvm/java-*-openjdk-amd*/jre/bin/java",
+            "/usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java"
+          ],
+          "executables": [
+            "java"
+          ],
+          "javaMainClasses": [
+            "org.elasticsearch.bootstrap.Elasticsearch"
+          ]
+        },
+        "monitoringState": {
+          "actualMonitoringState": "ON",
+          "expectedMonitoringState": "ON",
+          "restartRequired": true
+        },
+        "softwareTechnologies": [
+          {
+            "edition": "HTTP Server",
+            "type": "NETTY",
+            "version": "4.1.36.Final"
+          },
+          {
+            "edition": "OpenJDK",
+            "type": "JAVA",
+            "version": "1.8.0_265"
+          },
+          {
+            "edition": null,
+            "type": "ELASTIC_SEARCH",
+            "version": null
+          }
+        ],
+        "tags": [
+          "integration-type:dynatrace",
+          "integration-url:https://ton48129.live.dynatrace.com"
+        ]
+      },
+      "id": "PROCESS_GROUP_INSTANCE-3A6855F295757634",
+      "type": "process"
+    },
+    {
+      "data": {
+        "bitness": "64bit",
+        "discoveredName": "IIS",
+        "displayName": "IIS",
+        "domain": "dynatrace",
+        "entityId": "PROCESS_GROUP_INSTANCE-D87BE1EAFC600996",
+        "environment": "production",
+        "firstSeenTimestamp": 1600180620000,
+        "identifiers": [
+          "urn:dynatrace:/PROCESS_GROUP_INSTANCE-D87BE1EAFC600996"
+        ],
+        "instance": "https://ton48129.live.dynatrace.com",
+        "labels": [
+          "dynatrace-PROCESS_GROUP_INSTANCE-D87BE1EAFC600996",
+          "dynatrace-actualMonitoringState:OFF",
+          "dynatrace-expectedMonitoringState:ON",
+          "dynatrace-IIS",
+          "dynatrace-CLR:FullCLR:4.8.3928.0",
+          "dynatrace-DOTNET:.NET Framework:4.8.3928.0"
+        ],
+        "lastSeenTimestamp": 1601448300000,
+        "listenPorts": [
+          80,
+          81,
+          443,
+          444
+        ],
+        "metadata": {
+          "executablePaths": [
+            "C:\\WINDOWS\\SYSTEM32\\SVCHOST.EXE"
+          ],
+          "executables": [
+            "svchost.exe"
+          ]
+        },
+        "monitoringState": {
+          "actualMonitoringState": "OFF",
+          "expectedMonitoringState": "ON",
+          "restartRequired": true
+        },
+        "softwareTechnologies": [
+          {
+            "edition": null,
+            "type": "IIS",
+            "version": null
+          },
+          {
+            "edition": "FullCLR",
+            "type": "CLR",
+            "version": "4.8.3928.0"
+          },
+          {
+            "edition": ".NET Framework",
+            "type": "DOTNET",
+            "version": "4.8.3928.0"
+          }
+        ],
+        "tags": [
+          "integration-type:dynatrace",
+          "integration-url:https://ton48129.live.dynatrace.com"
+        ]
+      },
+      "id": "PROCESS_GROUP_INSTANCE-D87BE1EAFC600996",
+      "type": "process"
+    }
+  ],
+  "relations": [
+    {
+      "data": {},
+      "source_id": "PROCESS_GROUP_INSTANCE-F25A8361C6742030",
+      "target_id": "HOST-6AAE0F78BCF2E0F4",
+      "type": "isProcessOf"
+    },
+    {
+      "data": {},
+      "source_id": "PROCESS_GROUP_INSTANCE-F25A8361C6742030",
+      "target_id": "PROCESS_GROUP-518359807AEC7140",
+      "type": "isInstanceOf"
+    },
+    {
+      "data": {},
+      "source_id": "PROCESS_GROUP_INSTANCE-F25A8361C6742030",
+      "target_id": "PROCESS_GROUP_INSTANCE-76212BDF04F05189",
+      "type": "isNetworkClientOf"
+    },
+    {
+      "data": {},
+      "source_id": "PROCESS_GROUP_INSTANCE-3A6855F295757634",
+      "target_id": "HOST-51A600E41F3ED899",
+      "type": "isProcessOf"
+    },
+    {
+      "data": {},
+      "source_id": "PROCESS_GROUP_INSTANCE-3A6855F295757634",
+      "target_id": "PROCESS_GROUP-647A29F2E878C508",
+      "type": "isInstanceOf"
+    },
+    {
+      "data": {},
+      "source_id": "PROCESS_GROUP_INSTANCE-D87BE1EAFC600996",
+      "target_id": "HOST-6AAE0F78BCF2E0F4",
+      "type": "isProcessOf"
+    },
+    {
+      "data": {},
+      "source_id": "PROCESS_GROUP_INSTANCE-D87BE1EAFC600996",
+      "target_id": "PROCESS_GROUP-3D9D854163F8F07A",
+      "type": "isInstanceOf"
+    },
+    {
+      "data": {},
+      "source_id": "SERVICE-DC8E0E65DC4E59C6",
+      "target_id": "PROCESS_GROUP_INSTANCE-D87BE1EAFC600996",
+      "type": "runsOnProcessGroupInstance"
+    },
+    {
+      "data": {},
+      "source_id": "PROCESS_GROUP_INSTANCE-0EC2543319EDF0A3",
+      "target_id": "PROCESS_GROUP_INSTANCE-D87BE1EAFC600996",
+      "type": "isNetworkClientOf"
+    }
+  ]
+}
