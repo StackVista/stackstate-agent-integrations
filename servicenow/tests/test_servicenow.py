@@ -516,11 +516,15 @@ class TestServicenow(unittest.TestCase):
 
     @mock.patch('requests.get')
     def test_get_json_malformed_json(self, mock_request_get):
+        """
+        Test malformed json that sometimes happens with
+        ServiceNow error 'Transaction cancelled: maximum execution time exceeded'
+        """
         url, auth = self._get_url_auth()
         mock_request_get.return_value = mock.MagicMock(status_code=200, text=mock_result_with_malformed_str)
         with self.assertRaises(CheckException) as context:
             self.check._get_json(url, 10, auth)
-        print("LOG: " + str(context.exception))
+        print("ERROR LOG: " + str(context.exception))
         self.assertTrue('Exception occurred while parsing response and the error', str(context.exception))
 
     def _get_url_auth(self):
