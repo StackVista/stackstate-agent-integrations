@@ -140,6 +140,26 @@ mock_result_with_utf8 = {
     }
 }
 
+mock_result_with_malformed_str = '''
+{
+  "result": [
+    {
+      "asset": {
+        "name": "apc3276",
+        "sys_id": "375924dfdb6fb2882f74f12aaf9619b8",
+        "sys_created_on": "2017-06-29 11:03:27",
+        "sys_class_name": "cmdb_ci_linux_server"
+      },
+    }""
+  ],
+  "error": {
+    "detail": "Transaction cancelled: maximum execution time exceeded. Check logs for error trace.",
+    "message": "Transaction cancelled: maximum execution time exceeded"
+  },
+  "status": "failure"
+}
+'''
+
 mock_instance = {
     'url': "https://dev60476.service-now.com",
     'user': 'name',
@@ -493,6 +513,15 @@ class TestServicenow(unittest.TestCase):
         mock_req_get.return_value = mock.MagicMock(status_code=200, text=json.dumps(mock_result_with_utf8))
         response = self.check._get_json(url, timeout=10, auth=auth)
         self.assertEqual(u'Avery® Wizard 2.1 forMicrosoft® Word 2000', response.get('result').get('name'))
+
+    @mock.patch('requests.get')
+    def test_get_json_malformed_json(self, mock_request_get):
+        url, auth = self._get_url_auth()
+        mock_request_get.return_value = mock.MagicMock(status_code=200, text=mock_result_with_malformed_str)
+        with self.assertRaises(CheckException) as context:
+            self.check._get_json(url, 10, auth)
+        print("LOG: " + str(context.exception))
+        self.assertTrue('Exception occurred while parsing response and the error', str(context.exception))
 
     def _get_url_auth(self):
         url = "{}/api/now/table/cmdb_ci".format(self.instance.get('url'))
