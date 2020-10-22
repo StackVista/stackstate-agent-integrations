@@ -543,6 +543,13 @@ class TestServicenow(unittest.TestCase):
         mock_request_get.return_value = mock.MagicMock(status_code=200, text=mock_result_malformed_str_with_error_msg)
         self.assertRaises(CheckException, self.check._get_json, url, 10, auth)
 
+    def test_batch_size(self):
+        """
+        Test max batch size value
+        """
+        instance = {'user': 'name', 'password': 'secret', 'url': "https://website.com", 'batch_size': 20000}
+        self.assertRaises(ConfigurationError, self.check.check, instance)
+
     def _get_url_auth(self):
         url = "{}/api/now/table/cmdb_ci".format(self.instance.get('url'))
         auth = (self.instance.get('user'), self.instance.get('password'))

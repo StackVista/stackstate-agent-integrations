@@ -16,6 +16,9 @@ import requests
 from stackstate_checks.base import ConfigurationError, AgentCheck, TopologyInstance
 from stackstate_checks.base.errors import CheckException
 
+BATCH_DEFAULT_SIZE = 2500
+BATCH_MAX_SIZE = 10000
+
 
 class InstanceInfo:
     def __init__(self, instance_tags, base_url, auth, sys_class_filter, batch_size, timeout):
@@ -38,7 +41,9 @@ class ServicenowCheck(AgentCheck):
     def check(self, instance):
         base_url, password, user = self._get_mandatory_instance_values(instance)
         auth = (user, password)
-        batch_size = instance.get('batch_size', 1000)
+        batch_size = instance.get('batch_size', 2500)
+        if batch_size > BATCH_MAX_SIZE:
+            raise ConfigurationError('Setting batch_size is {}. Max value is {}.'.format(batch_size, BATCH_MAX_SIZE))
         instance_tags = instance.get('tags', [])
         sys_class_filter = instance.get('include_resource_types', [])
 
