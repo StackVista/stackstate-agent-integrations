@@ -2,32 +2,19 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 
+import json
+
+try:
+    json_parse_exception = json.decoder.JSONDecodeError
+except AttributeError:  # Python 2
+    json_parse_exception = ValueError
+
 # 3rd party
 import requests
 
 # project
 from stackstate_checks.base import ConfigurationError, AgentCheck, TopologyInstance
 from stackstate_checks.base.errors import CheckException
-
-# inbuilt
-import yaml
-
-EVENT_TYPE = SOURCE_TYPE_NAME = 'servicenow'
-
-
-def _get_mandatory_instance_values(instance):
-    """
-    Check if mandatory instance values are present
-    :param instance:
-    :return: Strings base_url, password, user
-    """
-    try:
-        user = instance['user']
-        password = instance['password']
-        base_url = instance['url']
-    except KeyError as e:
-        raise ConfigurationError('ServiceNow CMDB topology instance missing "{}" value.'.format(e))
-    return base_url, password, user
 
 
 class InstanceInfo:
@@ -45,11 +32,11 @@ class ServicenowCheck(AgentCheck):
     SERVICE_CHECK_NAME = "servicenow.cmdb.topology_information"
 
     def get_instance_key(self, instance):
-        base_url, _, _ = _get_mandatory_instance_values(instance)
+        base_url, _, _ = self._get_mandatory_instance_values(instance)
         return TopologyInstance(self.INSTANCE_TYPE, base_url, with_snapshots=False)
 
     def check(self, instance):
-        base_url, password, user = _get_mandatory_instance_values(instance)
+        base_url, password, user = self._get_mandatory_instance_values(instance)
         auth = (user, password)
         batch_size = instance.get('batch_size', 1000)
         instance_tags = instance.get('tags', [])
@@ -70,7 +57,7 @@ class ServicenowCheck(AgentCheck):
             tags = ["url:%s" % base_url]
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=tags, message=msg)
         except Exception as e:
-            self.log.exception(str(e))
+            self.log.exception(e)
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, message=str(e), tags=instance_tags)
 
     def get_sys_class_component_filter_query(self, sys_class_filter):
@@ -100,7 +87,8 @@ class ServicenowCheck(AgentCheck):
         self.log.debug("sys param query for relation is :- " + sysparm_query)
         return sysparm_query
 
-    def filter_empty_metadata(self, data):
+    @staticmethod
+    def filter_empty_metadata(data):
         """
         Filter the empty key:value in metadata and also convert unicode values to sting
         :param data: metadata from servicenow
@@ -193,16 +181,15 @@ class ServicenowCheck(AgentCheck):
     def _process_relation_types(self, instance_config):
         """
         collect available relations from cmdb_rel_ci
-        :return: nothing
         """
         relation_types = {}
         state = self._collect_relation_types(instance_config)
 
         if "result" in state:
             for relation in state.get('result', []):
-                id = relation['sys_id']
+                sys_id = relation['sys_id']
                 parent_descriptor = relation['parent_descriptor']
-                relation_types[id] = parent_descriptor
+                relation_types[sys_id] = parent_descriptor
         return relation_types
 
     def _collect_relations(self, instance_config, offset):
@@ -221,6 +208,9 @@ class ServicenowCheck(AgentCheck):
         return self._get_json_batch(url, offset, instance_config.batch_size, instance_config.timeout, auth)
 
     def _process_relations(self, relations, instance_config):
+        """
+        process relations
+        """
         relation_types = self._process_relation_types(instance_config)
         for relation in relations.get('result'):
             parent_sys_id = relation['parent']['value']
@@ -244,37 +234,41 @@ class ServicenowCheck(AgentCheck):
         limited_url = url + limit_args
         return self._get_json(limited_url, timeout, auth)
 
-    def _get_json(self, url, timeout, auth=None, verify=True):
-        tags = ["url:%s" % url]
-        msg = None
-        status = None
-        resp = None
-        try:
-            resp = requests.get(url, timeout=timeout, auth=auth, verify=verify)
-            if resp.status_code != 200:
-                status = AgentCheck.CRITICAL
-                msg = "Got %s when hitting %s" % (resp.status_code, url)
-        except requests.exceptions.Timeout:
-            # If there's a timeout
-            msg = "%s seconds timeout when hitting %s" % (timeout, url)
-            status = AgentCheck.CRITICAL
-        except Exception as e:
-            msg = str(e)
-            status = AgentCheck.CRITICAL
-        finally:
-            if status is AgentCheck.CRITICAL:
-                self.service_check(self.SERVICE_CHECK_NAME, status, tags=tags,
-                                   message=msg)
-                raise CheckException("Cannot connect to ServiceNow CMDB, please check your configuration.")
+    @staticmethod
+    def _get_json(url, timeout, auth=None, verify=True):
+        execution_time_exceeded_error_message = 'Transaction cancelled: maximum execution time exceeded'
 
-        if resp.encoding is None:
-            resp.encoding = 'UTF8'
-        try:
-            resp = yaml.safe_load(resp.text.encode("utf-8"))
-        except Exception as e:
-            self.log.exception(str(e))
-            raise CheckException("Exception occurred while parsing response and the error is : {}".format(str(e)))
+        response = requests.get(url, timeout=timeout, auth=auth, verify=verify)
+        if response.status_code != 200:
+            raise CheckException("Got %s when hitting %s" % (response.status_code, url))
 
-        if resp.get("error"):
-            raise CheckException("Problem in collecting CIs : {}".format(resp["error"].get("message")))
-        return resp
+        try:
+            response_json = json.loads(response.text.encode('utf-8'))
+        except json_parse_exception as e:
+            # Fix for ServiceNow bug: Sometimes there is a response with status 200 and malformed json with
+            # error message 'Transaction cancelled: maximum execution time exceeded'.
+            # We send right error message because json_parse_exception is just side effect error.
+            if execution_time_exceeded_error_message in response.text:
+                raise CheckException(execution_time_exceeded_error_message)
+            else:
+                raise e
+
+        if response_json.get("error"):
+            raise CheckException(response_json["error"].get("message"))
+
+        return response_json
+
+    @staticmethod
+    def _get_mandatory_instance_values(instance):
+        """
+        Check if mandatory instance values are present
+        :param instance:
+        :return: Strings base_url, password, user
+        """
+        try:
+            user = instance['user']
+            password = instance['password']
+            base_url = instance['url']
+        except KeyError as e:
+            raise ConfigurationError('ServiceNow CMDB topology instance missing "{}" value.'.format(e))
+        return base_url, password, user

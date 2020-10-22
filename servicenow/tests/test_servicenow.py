@@ -4,7 +4,6 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 
-# 3p
 from copy import copy
 
 import mock
@@ -12,11 +11,11 @@ import json
 import unittest
 import pytest
 
-# project
 from stackstate_checks.base.errors import CheckException
 from stackstate_checks.servicenow import ServicenowCheck, InstanceInfo
 from stackstate_checks.base.stubs import topology, aggregator
 from stackstate_checks.base import AgentIntegrationTestUtil, AgentCheck, ConfigurationError
+from stackstate_checks.servicenow.servicenow import json_parse_exception
 
 
 def mock_process_and_cache_relation_types(*args):
@@ -140,7 +139,7 @@ mock_result_with_utf8 = {
     }
 }
 
-mock_result_with_malformed_str = '''
+mock_result_malformed_str_with_error_msg = '''
 {
   "result": [
     {
@@ -157,6 +156,21 @@ mock_result_with_malformed_str = '''
     "message": "Transaction cancelled: maximum execution time exceeded"
   },
   "status": "failure"
+}
+'''
+
+mock_result_with_malformed_str = '''
+{
+  "result": [
+    {
+      "asset": {
+        "name": "apc3276",
+        "sys_id": "375924dfdb6fb2882f74f12aaf9619b8",
+        "sys_created_on": "2017-06-29 11:03:27",
+        "sys_class_name": "cmdb_ci_linux_server"
+      },
+    }""
+  ]
 }
 '''
 
@@ -285,10 +299,10 @@ class TestServicenow(unittest.TestCase):
         Test to check the method _get_json with positive response and get a OK service check
         """
         url, auth = self._get_url_auth()
-        mock_req_get.return_value = mock.MagicMock(status_code=200, text=json.dumps({'key': 'value'}))
-        self.check._get_json(url, timeout=10, auth=auth)
-        service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_NAME)
-        self.assertEqual(len(service_checks), 0)
+        example = {'key': 'value'}
+        mock_req_get.return_value = mock.MagicMock(status_code=200, text=json.dumps(example))
+        result = self.check._get_json(url, timeout=10, auth=auth)
+        self.assertEqual(example, result)
 
     @mock.patch('requests.get')
     def test_get_json_error_status(self, mock_req_get):
@@ -298,10 +312,6 @@ class TestServicenow(unittest.TestCase):
         url, auth = self._get_url_auth()
         mock_req_get.return_value = mock.MagicMock(status_code=300, text=json.dumps({'key': 'value'}))
         self.assertRaises(CheckException, self.check._get_json, url, 10, auth)
-        service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_NAME)
-        self.assertEqual(len(service_checks), 1)
-        self.assertEqual(service_checks[0].name, self.check.SERVICE_CHECK_NAME)
-        self.assertEqual(service_checks[0].status, AgentCheck.CRITICAL)
 
     @mock.patch('requests.get')
     def test_get_json_ok_status_with_error_in_response(self, mock_req_get):
@@ -517,15 +527,21 @@ class TestServicenow(unittest.TestCase):
     @mock.patch('requests.get')
     def test_get_json_malformed_json(self, mock_request_get):
         """
+        Test just malformed json
+        """
+        url, auth = self._get_url_auth()
+        mock_request_get.return_value = mock.MagicMock(status_code=200, text=mock_result_with_malformed_str)
+        self.assertRaises(json_parse_exception, self.check._get_json, url, 10, auth)
+
+    @mock.patch('requests.get')
+    def test_get_json_malformed_json_and_execution_time_exceeded_error(self, mock_request_get):
+        """
         Test malformed json that sometimes happens with
         ServiceNow error 'Transaction cancelled: maximum execution time exceeded'
         """
         url, auth = self._get_url_auth()
-        mock_request_get.return_value = mock.MagicMock(status_code=200, text=mock_result_with_malformed_str)
-        with self.assertRaises(CheckException) as context:
-            self.check._get_json(url, 10, auth)
-        print("ERROR LOG: " + str(context.exception))
-        self.assertTrue('Exception occurred while parsing response and the error', str(context.exception))
+        mock_request_get.return_value = mock.MagicMock(status_code=200, text=mock_result_malformed_str_with_error_msg)
+        self.assertRaises(CheckException, self.check._get_json, url, 10, auth)
 
     def _get_url_auth(self):
         url = "{}/api/now/table/cmdb_ci".format(self.instance.get('url'))
