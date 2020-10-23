@@ -251,7 +251,7 @@ class ServicenowCheck(AgentCheck):
         except ParserError as e:
             # Fix for ServiceNow bug: Sometimes there is a response with status 200 and malformed json with
             # error message 'Transaction cancelled: maximum execution time exceeded'.
-            # We send right error message because json_parse_exception is just side effect error.
+            # We send right error message because ParserError is just side effect error.
             if execution_time_exceeded_error_message in response.text:
                 raise CheckException(execution_time_exceeded_error_message)
             else:
