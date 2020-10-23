@@ -2,12 +2,8 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 
-import json
-
-try:
-    json_parse_exception = json.decoder.JSONDecodeError
-except AttributeError:  # Python 2
-    json_parse_exception = ValueError
+import yaml
+from yaml.parser import ParserError
 
 # 3rd party
 import requests
@@ -248,8 +244,8 @@ class ServicenowCheck(AgentCheck):
             raise CheckException("Got %s when hitting %s" % (response.status_code, url))
 
         try:
-            response_json = json.loads(response.text.encode('utf-8'))
-        except json_parse_exception as e:
+            response_json = yaml.safe_load(response.text.encode('utf-8'))
+        except ParserError as e:
             # Fix for ServiceNow bug: Sometimes there is a response with status 200 and malformed json with
             # error message 'Transaction cancelled: maximum execution time exceeded'.
             # We send right error message because json_parse_exception is just side effect error.
