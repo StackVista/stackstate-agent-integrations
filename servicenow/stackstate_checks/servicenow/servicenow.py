@@ -39,7 +39,10 @@ class ServicenowCheck(AgentCheck):
         auth = (user, password)
         batch_size = instance.get('batch_size', 2500)
         if batch_size > BATCH_MAX_SIZE:
-            raise ConfigurationError('Setting batch_size is {}. Max value is {}.'.format(batch_size, BATCH_MAX_SIZE))
+            raise ConfigurationError(
+                'Setting batch_size is: {} That is greater than max value of {}.'.format(batch_size, BATCH_MAX_SIZE)
+            )
+
         instance_tags = instance.get('tags', [])
         sys_class_filter = instance.get('include_resource_types', [])
 
