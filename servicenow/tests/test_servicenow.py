@@ -10,6 +10,7 @@ import mock
 import json
 import unittest
 import pytest
+import requests
 from yaml.parser import ParserError
 
 from stackstate_checks.base.errors import CheckException
@@ -549,6 +550,20 @@ class TestServicenow(unittest.TestCase):
         """
         instance = {'user': 'name', 'password': 'secret', 'url': "https://website.com", 'batch_size': 20000}
         self.assertRaises(ConfigurationError, self.check.check, instance)
+
+    @mock.patch('requests.get')
+    def test_get_json_timeout(self, mock_request_get):
+        """
+        Test timeout exception exception gets critical service check
+        """
+        mock_request_get.side_effect = requests.exceptions.Timeout
+        self.check.check(mock_instance)
+        service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_NAME)
+        self.assertEqual(1, len(service_checks))
+        self.assertEqual(self.check.SERVICE_CHECK_NAME, service_checks[0].name)
+        self.assertEqual(AgentCheck.CRITICAL, service_checks[0].status)
+        self.assertEqual('Timeout: ', service_checks[0].message)
+
 
     def _get_url_auth(self):
         url = "{}/api/now/table/cmdb_ci".format(self.instance.get('url'))

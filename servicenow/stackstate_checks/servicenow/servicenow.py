@@ -62,7 +62,8 @@ class ServicenowCheck(AgentCheck):
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=tags, message=msg)
         except Exception as e:
             self.log.exception(e)
-            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, message=str(e), tags=instance_tags)
+            msg = '{}: {}'.format(type(e).__name__, str(e))
+            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, message=msg, tags=instance_tags)
 
     def get_sys_class_component_filter_query(self, sys_class_filter):
         """
@@ -150,6 +151,12 @@ class ServicenowCheck(AgentCheck):
             )
 
     def _process_components(self, components, instance_config):
+        """
+
+        :param components:
+        :param instance_config:
+        :return:
+        """
         for component in components.get('result'):
             data = {}
             component = self.filter_empty_metadata(component)
