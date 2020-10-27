@@ -10,6 +10,7 @@ from pynag.Utils import misc
 
 from stackstate_checks.base import ensure_bytes
 from stackstate_checks.nagios import NagiosCheck
+from stackstate_checks.nagios.nagios import EVENT_FIELDS
 
 from .common import (
     CHECK_NAME,
@@ -111,6 +112,44 @@ class TestEventLogTailer:
 
         log_file.close()
         assert len(aggregator.events) == ITERATIONS * 503
+
+    def test_create_event_tags(self):
+        """
+        Tags should have proper format otherwise 'Nagios Service Check.groovy' won't get health state correctly
+        """
+        config, nagios_cfg = get_config(
+            '\n'.join(["log_file={0}".format(NAGIOS_TEST_LOG)]),
+            events=True
+        )
+
+        # Set up the check
+        nagios = NagiosCheck(CHECK_NAME, {}, {}, instances=config['instances'])
+        nagios.get_topology = mocked_topology
+
+        # Run the check once
+        nagios.check(config['instances'][0])
+
+        nagios_tailer = nagios.nagios_tails[nagios_cfg.name][0]
+        event_type = 'SERVICE NOTIFICATION'
+        fields = EVENT_FIELDS.get(event_type, None)
+        parts = [
+            'nagiosadmin',
+            'nagios4',
+            'Root Partition',
+            'CRITICAL',
+            'notify-service-by-email',
+            'DISK CRITICAL - free space: / 1499 MB (2.46% inode=77%):'
+        ]
+        event = nagios_tailer.create_event(timestamp=1603813628, event_type=event_type, hostname='docker-desktop',
+                                           fields=fields._make(parts))
+        assert event['tags'] == [
+            'contact:nagiosadmin',
+            'host:nagios4',
+            'check_name:Root Partition',
+            'event_state:CRITICAL',
+            'notification_type:notify-service-by-email',
+            'payload:DISK CRITICAL - free space: / 1499 MB (2.46% inode=77%):'
+        ]
 
 
 @pytest.mark.unit
