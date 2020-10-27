@@ -564,7 +564,6 @@ class TestServicenow(unittest.TestCase):
         self.assertEqual(AgentCheck.CRITICAL, service_checks[0].status)
         self.assertEqual('Timeout: ', service_checks[0].message)
 
-
     def _get_url_auth(self):
         url = "{}/api/now/table/cmdb_ci".format(self.instance.get('url'))
         auth = (self.instance.get('user'), self.instance.get('password'))
