@@ -126,6 +126,14 @@ test_dynatrace_topology:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
 
+test_dynatrace_event:
+  <<: *linux_test
+  variables:
+    CHECK: "dynatrace_event"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
 test_kubelet:
   <<: *linux_test
   variables:
