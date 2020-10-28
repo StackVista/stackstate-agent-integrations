@@ -4,19 +4,20 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 
+import json
+import unittest
 from copy import copy
 
 import mock
-import json
-import unittest
 import pytest
 import requests
+from schematics.exceptions import DataError
 from yaml.parser import ParserError
 
+from stackstate_checks.base import AgentIntegrationTestUtil, AgentCheck
 from stackstate_checks.base.errors import CheckException
-from stackstate_checks.servicenow import ServicenowCheck, InstanceInfo
 from stackstate_checks.base.stubs import topology, aggregator
-from stackstate_checks.base import AgentIntegrationTestUtil, AgentCheck, ConfigurationError
+from stackstate_checks.servicenow import ServicenowCheck, InstanceInfo
 
 
 def mock_process_and_cache_relation_types(*args):
@@ -182,12 +183,15 @@ mock_instance = {
 }
 
 instance_config = InstanceInfo(
-    instance_tags=[],
-    base_url=mock_instance.get('url'),
-    auth=(mock_instance.get('user'), mock_instance.get('password')),
-    sys_class_filter=[],
-    batch_size=100,
-    timeout=10
+    {
+        'instance_tags': [],
+        'url': mock_instance.get('url'),
+        'user': mock_instance.get('user'),
+        'password': mock_instance.get('password'),
+        'include_resource_types': [],
+        'batch_size': 100,
+        'timeout': 10
+    }
 )
 
 
@@ -460,10 +464,10 @@ class TestServicenow(unittest.TestCase):
         """
         Test existence of mandatory instance values
         """
-        self.assertRaises(ConfigurationError, self.check.check, {'user': 'name', 'password': 'secret'})
-        self.assertRaises(ConfigurationError, self.check.check, {'user': 'name', 'url': "https://website.com"})
-        self.assertRaises(ConfigurationError, self.check.check, {'password': 'secret', 'url': "https://website.com"})
-        self.assertRaises(ConfigurationError, self.check.get_instance_key, {})
+        self.assertRaises(DataError, self.check.check, {'user': 'name', 'password': 'secret'})
+        self.assertRaises(DataError, self.check.check, {'user': 'name', 'url': "https://website.com"})
+        self.assertRaises(DataError, self.check.check, {'password': 'secret', 'url': "https://website.com"})
+        self.assertRaises(DataError, self.check.get_instance_key, {})
 
     def test_json_batch(self):
         """
@@ -549,7 +553,7 @@ class TestServicenow(unittest.TestCase):
         Test max batch size value
         """
         instance = {'user': 'name', 'password': 'secret', 'url': "https://website.com", 'batch_size': 20000}
-        self.assertRaises(ConfigurationError, self.check.check, instance)
+        self.assertRaises(DataError, self.check.check, instance)
 
     @mock.patch('requests.get')
     def test_get_json_timeout(self, mock_request_get):
