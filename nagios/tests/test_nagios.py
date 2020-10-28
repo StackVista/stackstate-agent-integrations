@@ -113,7 +113,7 @@ class TestEventLogTailer:
         log_file.close()
         assert len(aggregator.events) == ITERATIONS * 503
 
-    def test_create_event_tags(self):
+    def test_create_event(self):
         """
         Tags should have proper format otherwise 'Nagios Service Check.groovy' won't get health state correctly
         """
@@ -137,6 +137,11 @@ class TestEventLogTailer:
             timestamp=1603813628, event_type=event_type, hostname='docker-desktop', fields=fields._make(parts)
         )
 
+        assert event['timestamp'] == 1603813628
+        assert event['event_type'] == 'SERVICE NOTIFICATION'
+        assert event["msg_title"] == 'SERVICE NOTIFICATION'
+        assert event["source_type_name"] == 'SERVICE NOTIFICATION'
+        assert event["msg_text"] == 'CRITICAL'
         assert event['tags'] == [
             'contact:nagiosadmin',
             'host:nagios4',
