@@ -332,7 +332,7 @@ class NagiosEventLogTailer(NagiosTailer):
             # Chop parts we don't recognize
             parts = parts[:len(fields._fields)]
 
-            event = self.create_event(tstamp, event_type, self.hostname, fields._make(parts))
+            event = create_event(tstamp, event_type, self.hostname, fields._make(parts))
 
             self._event(event)
             self.log.debug("Nagios event: %s" % (event))
@@ -341,31 +341,6 @@ class NagiosEventLogTailer(NagiosTailer):
         except Exception:
             self.log.exception("Unable to create a nagios event from line: [%s]" % (line))
             return False
-
-    @staticmethod
-    def create_event(timestamp, event_type, hostname, fields):
-        """Factory method called by the parsers
-        """
-        event = fields._asdict()
-        tags = ['{}:{}'.format(k, v) for k, v in event.items()]
-
-        event.update(
-            {
-                'timestamp': timestamp,
-                'event_type': event_type,
-                "msg_title": event_type,
-                "source_type_name": event_type,
-                "msg_text": event.get('event_state', event_type),
-                "tags": tags
-            }
-        )
-
-        # if host is localhost, turn that into the internal host name
-        host = event.get('host', None)
-        if host == "localhost":
-            event["host"] = hostname
-
-        return event
 
 
 class NagiosPerfDataTailer(NagiosTailer):
@@ -458,3 +433,35 @@ class NagiosServicePerfDataTailer(NagiosPerfDataTailer):
 
 class InvalidDataTemplate(Exception):
     pass
+
+
+def create_event(timestamp, event_type, hostname, fields):
+    """
+    Factory method called by the parsers
+    """
+    event = fields._asdict()
+    tags = ['{}:{}'.format(k, v) for k, v in event.items()]
+
+    # if host is localhost, turn that into the internal host name
+    host = event.get('host', None)
+    if host == 'localhost':
+        event['host'] = hostname
+
+    # message title depends on event type
+    if 'HOST' in event_type:
+        msg_title = event['host']
+    else:
+        msg_title = event.get('check_name', 'host')
+
+    event.update(
+        {
+            'timestamp': timestamp,
+            'event_type': event_type,
+            "msg_title": msg_title,
+            "source_type_name": event_type,
+            "msg_text": event.get('event_state', event_type),
+            "tags": tags
+        }
+    )
+
+    return event

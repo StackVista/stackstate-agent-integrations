@@ -10,7 +10,7 @@ from pynag.Utils import misc
 
 from stackstate_checks.base import ensure_bytes
 from stackstate_checks.nagios import NagiosCheck
-from stackstate_checks.nagios.nagios import EVENT_FIELDS
+from stackstate_checks.nagios.nagios import EVENT_FIELDS, NagiosEventLogTailer, create_event
 
 from .common import (
     CHECK_NAME,
@@ -117,12 +117,6 @@ class TestEventLogTailer:
         """
         Tags should have proper format otherwise 'Nagios Service Check.groovy' won't get health state correctly
         """
-        config, nagios_cfg = get_config('\n'.join(["log_file={0}".format(NAGIOS_TEST_LOG)]), events=True)
-        nagios = NagiosCheck(CHECK_NAME, {}, {}, instances=config['instances'])
-        nagios.get_topology = mocked_topology
-        nagios.check(config['instances'][0])
-        nagios_tailer = nagios.nagios_tails[nagios_cfg.name][0]
-
         event_type = 'SERVICE NOTIFICATION'
         fields = EVENT_FIELDS.get(event_type, None)
         parts = [
@@ -133,13 +127,13 @@ class TestEventLogTailer:
             'notify-service-by-email',
             'DISK CRITICAL - free space: / 1499 MB (2.46% inode=77%):'
         ]
-        event = nagios_tailer.create_event(
+        event = create_event(
             timestamp=1603813628, event_type=event_type, hostname='docker-desktop', fields=fields._make(parts)
         )
 
         assert event['timestamp'] == 1603813628
         assert event['event_type'] == 'SERVICE NOTIFICATION'
-        assert event["msg_title"] == 'SERVICE NOTIFICATION'
+        assert event["msg_title"] == 'Root Partition'
         assert event["source_type_name"] == 'SERVICE NOTIFICATION'
         assert event["msg_text"] == 'CRITICAL'
         assert event['tags'] == [
@@ -150,6 +144,43 @@ class TestEventLogTailer:
             'notification_type:notify-service-by-email',
             'payload:DISK CRITICAL - free space: / 1499 MB (2.46% inode=77%):'
         ]
+
+    def test_event_message_title(self):
+        """
+        Check that right field is send as message title
+        """
+
+        event_type = 'SERVICE NOTIFICATION'
+        fields = EVENT_FIELDS.get(event_type, None)
+        parts = ['pagerduty', 'ip-10-114-245-230', 'RAID EBS', 'OK', 'notify-service-by-email', '']
+        event = create_event(
+            timestamp=1603813628, event_type=event_type, hostname='docker-desktop', fields=fields._make(parts)
+        )
+        assert event["msg_title"] == 'RAID EBS'
+
+        event_type = 'CURRENT HOST STATE'
+        fields = EVENT_FIELDS.get(event_type, None)
+        parts = ['domU-12-31-38-00-78-98', 'UP', 'HARD', '1', 'PING OK - Packet loss = 0%, RTA = 1.03 ms']
+        event = create_event(
+            timestamp=1603813628, event_type=event_type, hostname='docker-desktop', fields=fields._make(parts)
+        )
+        assert event["msg_title"] == 'domU-12-31-38-00-78-98'
+
+        event_type = 'CURRENT SERVICE STATE'
+        fields = EVENT_FIELDS.get(event_type, None)
+        parts = ['domU-12-31-38-00-78-98', 'Current Load', 'OK', 'HARD', '1', 'OK - load average: 0.04, 0.03, 0.00']
+        event = create_event(
+            timestamp=1603813628, event_type=event_type, hostname='docker-desktop', fields=fields._make(parts)
+        )
+        assert event["msg_title"] == 'Current Load'
+
+        event_type = 'SERVICE ALERT'
+        fields = EVENT_FIELDS.get(event_type, None)
+        parts = ['domU-12-31-39-02-ED-B2', 'cassandra JVM Heap', 'WARNING', 'SOFT', '1', '']
+        event = create_event(
+            timestamp=1603813628, event_type=event_type, hostname='docker-desktop', fields=fields._make(parts)
+        )
+        assert event["msg_title"] == 'cassandra JVM Heap'
 
 
 @pytest.mark.unit
