@@ -153,7 +153,7 @@ class TestEventLogTailer:
             {
                 'type': 'CURRENT HOST STATE',
                 'parts': ['domU-12-31-38-00-78-98', 'UP', 'HARD', '1', 'PING OK - Packet loss = 0%, RTA = 1.03 ms'],
-                'msg_title': 'domU-12-31-38-00-78-98'
+                'msg_title': 'CURRENT HOST STATE'
             },
             {
                 'type': 'CURRENT SERVICE STATE',
@@ -168,7 +168,7 @@ class TestEventLogTailer:
             {
                 'type': 'HOST ALERT',
                 'parts': ['domU-12-31-39-02-ED-B2', 'DOWN', 'SOFT', '1', 'PING CRITICAL - Packet loss = 100%'],
-                'msg_title': 'domU-12-31-39-02-ED-B2'
+                'msg_title': 'HOST ALERT'
             },
             {
                 'type': 'SERVICE NOTIFICATION',
@@ -188,7 +188,7 @@ class TestEventLogTailer:
             {
                 'type': 'HOST DOWNTIME ALERT',
                 'parts': ['ip-10-114-89-59', 'STARTED', 'Host has entered a period of scheduled downtime'],
-                'msg_title': 'ip-10-114-89-59'
+                'msg_title': 'HOST DOWNTIME ALERT'
             },
             {
                 'type': 'SERVICE DOWNTIME ALERT',

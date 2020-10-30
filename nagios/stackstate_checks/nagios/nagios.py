@@ -447,8 +447,8 @@ def create_event(timestamp, event_type, hostname, fields):
     if host == 'localhost':
         event['host'] = hostname
 
-    # message title depends on event type, its check_name for services, for hosts is hosts
-    msg_title = event.get('check_name', event.get('host', event_type))
+    # message title is check_name for services, otherwise we send event_type
+    msg_title = event.get('check_name', event_type)
 
     event.update(
         {
