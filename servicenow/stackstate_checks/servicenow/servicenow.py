@@ -8,7 +8,7 @@ from schematics import Model
 from schematics.types import URLType, StringType, ListType, IntType
 from yaml.parser import ParserError
 
-from stackstate_checks.base import AgentCheck, TopologyInstance
+from stackstate_checks.base import AgentCheck, TopologyInstance, Identifiers
 from stackstate_checks.base.errors import CheckException
 
 BATCH_DEFAULT_SIZE = 2500
@@ -152,12 +152,12 @@ class ServicenowCheck(AgentCheck):
             comp_type = component.get('sys_class_name')
             external_id = component.get('sys_id')
 
-            if 'fqdn' in component and component['fqdn']:
-                identifiers.append("urn:host:/{}".format(component['fqdn']))
-            if 'host_name' in component and component['host_name']:
-                identifiers.append("urn:host:/{}".format(component['host_name']))
+            if component.get('fqdn'):
+                identifiers.append(Identifiers.create_host_identifier(component['fqdn']))
+            if component.get('host_name'):
+                identifiers.append(Identifiers.create_host_identifier(component['host_name']))
             else:
-                identifiers.append("urn:host:/{}".format(comp_name))
+                identifiers.append(Identifiers.create_host_identifier(comp_name))
             identifiers.append(external_id)
             data.update(component)
             data.update({"identifiers": identifiers, "tags": instance_info.instance_tags})
@@ -193,7 +193,7 @@ class ServicenowCheck(AgentCheck):
         """
         auth = (instance_info.user, instance_info.password)
         url = instance_info.url + '/api/now/table/cmdb_rel_ci'
-        sys_class_filter_query = self.get_sys_class_relation_filter_query(instance_info.sys_class_filter)
+        sys_class_filter_query = self.get_sys_class_relation_filter_query(instance_info.include_resource_types)
         if sys_class_filter_query:
             url = url + "?{}".format(sys_class_filter_query)
             self.log.debug("URL for relation collection after applying filter:- %s", url)
