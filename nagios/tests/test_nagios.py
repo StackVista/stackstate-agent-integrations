@@ -10,8 +10,7 @@ from pynag.Utils import misc
 
 from stackstate_checks.base import ensure_bytes
 from stackstate_checks.nagios import NagiosCheck
-from stackstate_checks.nagios.nagios import EVENT_FIELDS, NagiosEventLogTailer, create_event
-
+from stackstate_checks.nagios.nagios import EVENT_FIELDS, create_event
 from .common import (
     CHECK_NAME,
     NAGIOS_TEST_LOG, NAGIOS_TEST_HOST_CFG, NAGIOS_TEST_SVC_TEMPLATE, NAGIOS_TEST_HOST_TEMPLATE, NAGIOS_TEST_SVC,
@@ -147,40 +146,68 @@ class TestEventLogTailer:
 
     def test_event_message_title(self):
         """
-        Check that right field is send as message title
+        Check that right field is used as message title
         """
 
-        event_type = 'SERVICE NOTIFICATION'
-        fields = EVENT_FIELDS.get(event_type, None)
-        parts = ['pagerduty', 'ip-10-114-245-230', 'RAID EBS', 'OK', 'notify-service-by-email', '']
-        event = create_event(
-            timestamp=1603813628, event_type=event_type, hostname='docker-desktop', fields=fields._make(parts)
-        )
-        assert event["msg_title"] == 'RAID EBS'
+        events = [
+            {
+                'type': 'CURRENT HOST STATE',
+                'parts': ['domU-12-31-38-00-78-98', 'UP', 'HARD', '1', 'PING OK - Packet loss = 0%, RTA = 1.03 ms'],
+                'msg_title': 'domU-12-31-38-00-78-98'
+            },
+            {
+                'type': 'CURRENT SERVICE STATE',
+                'parts': ['domU-12-31-38-00-78-98', 'Current Load', 'OK', 'HARD', '1', 'OK - load average: 0.04, 0.03'],
+                'msg_title': 'Current Load'
+            },
+            {
+                'type': 'SERVICE ALERT',
+                'parts': ['domU-12-31-39-02-ED-B2', 'cassandra JVM Heap', 'WARNING', 'SOFT', '1', ''],
+                'msg_title': 'cassandra JVM Heap'
+            },
+            {
+                'type': 'HOST ALERT',
+                'parts': ['domU-12-31-39-02-ED-B2', 'DOWN', 'SOFT', '1', 'PING CRITICAL - Packet loss = 100%'],
+                'msg_title': 'domU-12-31-39-02-ED-B2'
+            },
+            {
+                'type': 'SERVICE NOTIFICATION',
+                'parts': ['pagerduty', 'ip-10-114-245-230', 'RAID EBS', 'OK', 'notify-service-by-email', ''],
+                'msg_title': 'RAID EBS'
+            },
+            {
+                'type': 'SERVICE FLAPPING ALERT',
+                'parts': ['domU-12-31-39-16-52-37', 'cassandra JVM Heap', 'STARTED', 'Service started flapping'],
+                'msg_title': 'cassandra JVM Heap'
+            },
+            {
+                'type': 'ACKNOWLEDGE_SVC_PROBLEM',
+                'parts': ['domU-12-31-39-16-52-37', 'NTP', '2', '1', '0', 'nagiosadmin', 'alq'],
+                'msg_title': 'NTP'
+            },
+            {
+                'type': 'HOST DOWNTIME ALERT',
+                'parts': ['ip-10-114-89-59', 'STARTED', 'Host has entered a period of scheduled downtime'],
+                'msg_title': 'ip-10-114-89-59'
+            },
+            {
+                'type': 'SERVICE DOWNTIME ALERT',
+                'parts': ['ip-10-114-237-165', 'intake', 'STARTED',
+                          'Service has entered a period of scheduled downtime'],
+                'msg_title': 'intake'
+            }
+        ]
 
-        event_type = 'CURRENT HOST STATE'
-        fields = EVENT_FIELDS.get(event_type, None)
-        parts = ['domU-12-31-38-00-78-98', 'UP', 'HARD', '1', 'PING OK - Packet loss = 0%, RTA = 1.03 ms']
-        event = create_event(
-            timestamp=1603813628, event_type=event_type, hostname='docker-desktop', fields=fields._make(parts)
-        )
-        assert event["msg_title"] == 'domU-12-31-38-00-78-98'
+        for event in events:
+            self._check_event_msg_title(event_type=event['type'], parts=event['parts'], msg_title=event['msg_title'])
 
-        event_type = 'CURRENT SERVICE STATE'
+    @staticmethod
+    def _check_event_msg_title(event_type, parts, msg_title):
         fields = EVENT_FIELDS.get(event_type, None)
-        parts = ['domU-12-31-38-00-78-98', 'Current Load', 'OK', 'HARD', '1', 'OK - load average: 0.04, 0.03, 0.00']
         event = create_event(
             timestamp=1603813628, event_type=event_type, hostname='docker-desktop', fields=fields._make(parts)
         )
-        assert event["msg_title"] == 'Current Load'
-
-        event_type = 'SERVICE ALERT'
-        fields = EVENT_FIELDS.get(event_type, None)
-        parts = ['domU-12-31-39-02-ED-B2', 'cassandra JVM Heap', 'WARNING', 'SOFT', '1', '']
-        event = create_event(
-            timestamp=1603813628, event_type=event_type, hostname='docker-desktop', fields=fields._make(parts)
-        )
-        assert event["msg_title"] == 'cassandra JVM Heap'
+        assert event["msg_title"] == msg_title
 
 
 @pytest.mark.unit
