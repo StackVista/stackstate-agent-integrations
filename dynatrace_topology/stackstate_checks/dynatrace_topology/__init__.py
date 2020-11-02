@@ -2,10 +2,9 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 from .__about__ import __version__
-from .servicenow import ServicenowCheck, InstanceInfo
+from .dynatrace_topology import DynatraceTopologyCheck
 
 __all__ = [
     '__version__',
-    'ServicenowCheck',
-    'InstanceInfo'
+    'DynatraceTopologyCheck'
 ]

@@ -129,7 +129,7 @@ class AgentIntegrationSampleCheck(AgentCheck):
 
         self.event({
             "timestamp": int(1),
-            "source_type_name": "HTTP_TIMEOUT",
+            "event_type": "HTTP_TIMEOUT",
             "msg_title": "URL timeout",
             "msg_text": "Http request to %s timed out after %s seconds." % (instance_url, timeout),
             "aggregation_key": "instance-request-%s" % instance_url,
