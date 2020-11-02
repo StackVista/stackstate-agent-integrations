@@ -442,11 +442,6 @@ def create_event(timestamp, event_type, hostname, fields):
     event = fields._asdict()
     tags = ['{}:{}'.format(k, v) for k, v in event.items()]
 
-    # if host is localhost, turn that into the internal host name
-    host = event.get('host', None)
-    if host == 'localhost':
-        event['host'] = hostname
-
     # message title is check_name for services, otherwise we send event_type
     msg_title = event.get('check_name', event_type)
 
@@ -460,5 +455,10 @@ def create_event(timestamp, event_type, hostname, fields):
             "tags": tags
         }
     )
+
+    # if host is localhost, turn that into the internal host name
+    host = event.get('host', None)
+    if host == 'localhost':
+        event['host'] = hostname
 
     return event
