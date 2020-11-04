@@ -553,6 +553,7 @@ class VSphereCheck(AgentCheck):
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=service_check_tags)
         except Exception:
             # Try to reconnect, if the connection is definitely broken.
+            del self.server_instances[i_key]
             self.server_instances[i_key] = self._smart_connect(instance, service_check_tags)
         return self.server_instances[i_key]
 
