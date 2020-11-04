@@ -10,8 +10,7 @@ from pynag.Utils import misc
 
 from stackstate_checks.base import ensure_bytes
 from stackstate_checks.nagios import NagiosCheck
-from stackstate_checks.nagios.nagios import EVENT_FIELDS
-
+from stackstate_checks.nagios.nagios import EVENT_FIELDS, create_event
 from .common import (
     CHECK_NAME,
     NAGIOS_TEST_LOG, NAGIOS_TEST_HOST_CFG, NAGIOS_TEST_SVC_TEMPLATE, NAGIOS_TEST_HOST_TEMPLATE, NAGIOS_TEST_SVC,
@@ -117,12 +116,6 @@ class TestEventLogTailer:
         """
         Tags should have proper format otherwise 'Nagios Service Check.groovy' won't get health state correctly
         """
-        config, nagios_cfg = get_config('\n'.join(["log_file={0}".format(NAGIOS_TEST_LOG)]), events=True)
-        nagios = NagiosCheck(CHECK_NAME, {}, {}, instances=config['instances'])
-        nagios.get_topology = mocked_topology
-        nagios.check(config['instances'][0])
-        nagios_tailer = nagios.nagios_tails[nagios_cfg.name][0]
-
         event_type = 'SERVICE NOTIFICATION'
         fields = EVENT_FIELDS.get(event_type, None)
         parts = [
@@ -133,13 +126,13 @@ class TestEventLogTailer:
             'notify-service-by-email',
             'DISK CRITICAL - free space: / 1499 MB (2.46% inode=77%):'
         ]
-        event = nagios_tailer.create_event(
+        event = create_event(
             timestamp=1603813628, event_type=event_type, hostname='docker-desktop', fields=fields._make(parts)
         )
 
         assert event['timestamp'] == 1603813628
         assert event['event_type'] == 'SERVICE NOTIFICATION'
-        assert event["msg_title"] == 'SERVICE NOTIFICATION'
+        assert event["msg_title"] == 'Root Partition'
         assert event["source_type_name"] == 'SERVICE NOTIFICATION'
         assert event["msg_text"] == 'CRITICAL'
         assert event['tags'] == [
@@ -150,6 +143,84 @@ class TestEventLogTailer:
             'notification_type:notify-service-by-email',
             'payload:DISK CRITICAL - free space: / 1499 MB (2.46% inode=77%):'
         ]
+
+    def test_event_message_title(self):
+        """
+        Check that right field is used as message title
+        """
+
+        events = [
+            {
+                'type': 'CURRENT HOST STATE',
+                'parts': ['domU-12-31-38-00-78-98', 'UP', 'HARD', '1', 'PING OK - Packet loss = 0%, RTA = 1.03 ms'],
+                'expected_msg_title': 'CURRENT HOST STATE'
+            },
+            {
+                'type': 'CURRENT SERVICE STATE',
+                'parts': ['domU-12-31-38-00-78-98', 'Current Load', 'OK', 'HARD', '1', 'OK - load average: 0.04, 0.03'],
+                'expected_msg_title': 'Current Load'
+            },
+            {
+                'type': 'SERVICE ALERT',
+                'parts': ['domU-12-31-39-02-ED-B2', 'cassandra JVM Heap', 'WARNING', 'SOFT', '1', ''],
+                'expected_msg_title': 'cassandra JVM Heap'
+            },
+            {
+                'type': 'HOST ALERT',
+                'parts': ['domU-12-31-39-02-ED-B2', 'DOWN', 'SOFT', '1', 'PING CRITICAL - Packet loss = 100%'],
+                'expected_msg_title': 'HOST ALERT'
+            },
+            {
+                'type': 'SERVICE NOTIFICATION',
+                'parts': ['pagerduty', 'ip-10-114-245-230', 'RAID EBS', 'OK', 'notify-service-by-email', ''],
+                'expected_msg_title': 'RAID EBS'
+            },
+            {
+                'type': 'SERVICE FLAPPING ALERT',
+                'parts': ['domU-12-31-39-16-52-37', 'cassandra JVM Heap', 'STARTED', 'Service started flapping'],
+                'expected_msg_title': 'cassandra JVM Heap'
+            },
+            {
+                'type': 'ACKNOWLEDGE_SVC_PROBLEM',
+                'parts': ['domU-12-31-39-16-52-37', 'NTP', '2', '1', '0', 'nagiosadmin', 'alq'],
+                'expected_msg_title': 'NTP'
+            },
+            {
+                'type': 'HOST DOWNTIME ALERT',
+                'parts': ['ip-10-114-89-59', 'STARTED', 'Host has entered a period of scheduled downtime'],
+                'expected_msg_title': 'HOST DOWNTIME ALERT'
+            },
+            {
+                'type': 'SERVICE DOWNTIME ALERT',
+                'parts': ['ip-10-114-237-165', 'intake', 'STARTED',
+                          'Service has entered a period of scheduled downtime'],
+                'expected_msg_title': 'intake'
+            },
+            {
+                'type': 'ACKNOWLEDGE_HOST_PROBLEM',
+                'parts': ['domU-12-31-39-16-52-37', '2', '1', '0', 'nagiosadmin', 'alq'],
+                'expected_msg_title': 'ACKNOWLEDGE_HOST_PROBLEM'
+            },
+            {
+                'type': 'PASSIVE SERVICE CHECK',
+                'parts': ['ip-10-114-237-165', 'some_service', 'OK', 'Service works!'],
+                'expected_msg_title': 'some_service'
+            }
+
+        ]
+
+        for event in events:
+            self._assert_event_msg_title(
+                event_type=event['type'], parts=event['parts'], expected_msg_title=event['expected_msg_title']
+            )
+
+    @staticmethod
+    def _assert_event_msg_title(event_type, parts, expected_msg_title):
+        fields = EVENT_FIELDS.get(event_type, None)
+        event = create_event(
+            timestamp=1603813628, event_type=event_type, hostname='docker-desktop', fields=fields._make(parts)
+        )
+        assert event["msg_title"] == expected_msg_title
 
 
 @pytest.mark.unit
