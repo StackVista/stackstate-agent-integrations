@@ -12,6 +12,7 @@ from stackstate_checks.base.errors import CheckException
 # inbuilt
 import yaml
 
+BATCH_DEFAULT_SIZE = 2500
 EVENT_TYPE = SOURCE_TYPE_NAME = 'servicenow'
 
 
@@ -51,7 +52,7 @@ class ServicenowCheck(AgentCheck):
     def check(self, instance):
         base_url, password, user = _get_mandatory_instance_values(instance)
         auth = (user, password)
-        batch_size = instance.get('batch_size', 10000)
+        batch_size = instance.get('batch_size', BATCH_DEFAULT_SIZE)
         instance_tags = instance.get('tags', [])
         sys_class_filter = instance.get('include_resource_types', [])
 

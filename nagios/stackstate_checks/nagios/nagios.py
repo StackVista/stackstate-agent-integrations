@@ -347,7 +347,7 @@ class NagiosEventLogTailer(NagiosTailer):
         """Factory method called by the parsers
         """
         event = fields._asdict()
-        tags = ['{}: {}'.format(k, v) for k, v in event.items()]
+        tags = ['{}:{}'.format(k, v) for k, v in event.items()]
 
         event.update(
             {
