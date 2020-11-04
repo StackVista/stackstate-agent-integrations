@@ -7,7 +7,7 @@ import json
 from stackstate_checks.base import AgentCheck, ConfigurationError, TopologyInstance
 import subprocess
 import os.path
-class SCOM2(AgentCheck):
+class SCOM(AgentCheck):
 
     INSTANCE_TYPE = 'scom'
     requests_counter = 0
