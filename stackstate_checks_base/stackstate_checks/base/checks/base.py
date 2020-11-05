@@ -71,7 +71,7 @@ class TopologyInstanceBase(object):
     """
     Data structure for defining a topology instance, a unique identifier for a topology source.
     """
-    def __init__(self, type, url, with_snapshots=True):
+    def __init__(self, type, url, with_snapshots=False):
         self.type = type
         self.url = url
         self.with_snapshots = with_snapshots
@@ -394,15 +394,15 @@ class AgentCheckBase(object):
 
         return data
 
-    @deprecated(version='2.6.0', reason="Topology Snapshots is enabled by default for all TopologyInstance checks, "
-                                        "to disable snapshots use TopologyInstance(type, url, with_snapshots=False) "
-                                        "when overriding get_instance_key")
+    # @deprecated(version='2.6.0', reason="Topology Snapshots is enabled by default for all TopologyInstance checks, "
+    #                                     "to disable snapshots use TopologyInstance(type, url, with_snapshots=False) "
+    #                                     "when overriding get_instance_key")
     def start_snapshot(self):
         topology.submit_start_snapshot(self, self.check_id, self._get_instance_key())
 
-    @deprecated(version='2.6.0', reason="Topology Snapshots is enabled by default for all TopologyInstance checks, "
-                                        "to disable snapshots use TopologyInstance(type, url, with_snapshots=False) "
-                                        "when overriding get_instance_key")
+    # @deprecated(version='2.6.0', reason="Topology Snapshots is enabled by default for all TopologyInstance checks, "
+    #                                     "to disable snapshots use TopologyInstance(type, url, with_snapshots=False) "
+    #                                     "when overriding get_instance_key")
     def stop_snapshot(self):
         topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key())
 
@@ -761,6 +761,8 @@ class __AgentCheckPy3(AgentCheckBase):
             instance = self.instances[0]
             self.create_integration_instance(copy.deepcopy(instance))
             self.check(copy.deepcopy(instance))
+            if self._get_instance_key_value().with_snapshots:
+                topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key())
             result = ''
         except Exception as e:
             result = json.dumps([
@@ -772,8 +774,6 @@ class __AgentCheckPy3(AgentCheckBase):
         finally:
             if self.metric_limiter:
                 self.metric_limiter.reset()
-            if self._get_instance_key_value().with_snapshots:
-                topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key())
 
         return result
 
@@ -969,6 +969,8 @@ class __AgentCheckPy2(AgentCheckBase):
             instance = self.instances[0]
             self.create_integration_instance(copy.deepcopy(instance))
             self.check(copy.deepcopy(instance))
+            if self._get_instance_key_value().with_snapshots:
+                topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key())
             result = b''
         except Exception as e:
             result = json.dumps([
@@ -980,8 +982,6 @@ class __AgentCheckPy2(AgentCheckBase):
         finally:
             if self.metric_limiter:
                 self.metric_limiter.reset()
-            if self._get_instance_key_value().with_snapshots:
-                topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key())
 
         return result
 
