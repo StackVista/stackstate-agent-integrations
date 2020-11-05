@@ -971,6 +971,8 @@ class __AgentCheckPy2(AgentCheckBase):
             instance = self.instances[0]
             self.create_integration_instance(copy.deepcopy(instance))
             self.check(copy.deepcopy(instance))
+            if self._get_instance_key_value().with_snapshots:
+                topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key())
             result = b''
         except Exception as e:
             result = json.dumps([
@@ -982,8 +984,6 @@ class __AgentCheckPy2(AgentCheckBase):
         finally:
             if self.metric_limiter:
                 self.metric_limiter.reset()
-            if self._get_instance_key_value().with_snapshots:
-                topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key())
 
         return result
 
