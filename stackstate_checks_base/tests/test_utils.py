@@ -3,8 +3,13 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 from decimal import ROUND_HALF_DOWN, ROUND_HALF_UP
 
+import pytest
 from stackstate_checks.utils.common import pattern_filter, round_value
 from stackstate_checks.utils.limiter import Limiter
+from stackstate_checks.utils.persistent_state import PersistentState, PersistentInstance
+
+from schematics.models import Model
+from schematics.types import IntType
 
 
 class Item:
@@ -119,3 +124,53 @@ class TestRounding():
         assert round_value(2.555, precision=2) == 2.560
         assert round_value(4.2345, precision=2) == 4.23
         assert round_value(4.2345, precision=3) == 4.235
+
+
+class TestStorageSchema(Model):
+    offset = IntType(required=True, default=0)
+
+
+class TestPersistentState:
+    StateManager = PersistentState()
+
+    def test_in_memory_state(self):
+        state = {'a': 'b', 'c': 1, 'd': ['e', 'f', 'g'], 'h': {'i': 'j', 'k': True}}
+        instance = PersistentInstance("in.memory.state", "")
+        assert TestPersistentState.StateManager.get_state(instance) is None
+        TestPersistentState.StateManager.set_state(instance, state)
+        assert TestPersistentState.StateManager.get_state(instance) == state
+        TestPersistentState.StateManager.clear(instance)
+        assert TestPersistentState.StateManager.get_state(instance) is None
+
+    def test_in_memory_state_with_schema(self):
+        state = TestStorageSchema({'offset': 10})
+        instance = PersistentInstance("in.memory.state.schema", "")
+        assert TestPersistentState.StateManager.get_state(instance) is None
+        TestPersistentState.StateManager.set_state(instance, state)
+        assert TestPersistentState.StateManager.get_state(instance, TestStorageSchema) == state
+        TestPersistentState.StateManager.clear(instance)
+        assert TestPersistentState.StateManager.get_state(instance) is None
+
+    def test_state_flushing(self):
+        state = {'a': 'b', 'c': 1, 'd': ['e', 'f', 'g'], 'h': {'i': 'j', 'k': True}}
+        instance = PersistentInstance("on.disk.state", "on.disk.state")
+        assert TestPersistentState.StateManager.get_state(instance) is None
+        TestPersistentState.StateManager.set_state(instance, state)
+        assert TestPersistentState.StateManager.get_state(instance) == state
+        TestPersistentState.StateManager.flush(instance)
+        assert TestPersistentState.StateManager.get_state(instance) == state
+        TestPersistentState.StateManager.clear(instance)
+        assert TestPersistentState.StateManager.get_state(instance) is None
+
+    def test_state_flushing_with_schema(self):
+        state = TestStorageSchema({'offset': 10})
+        instance = PersistentInstance("on.disk.state.schema", "on.disk.state.schema")
+        assert TestPersistentState.StateManager.get_state(instance) is None
+        TestPersistentState.StateManager.set_state(instance, state)
+        retrieved_state = TestPersistentState.StateManager.get_state(instance, TestStorageSchema)
+        assert retrieved_state == state
+        assert retrieved_state.offset == state.offset
+        TestPersistentState.StateManager.flush(instance)
+        assert TestPersistentState.StateManager.get_state(instance, TestStorageSchema) == state
+        TestPersistentState.StateManager.clear(instance)
+        assert TestPersistentState.StateManager.get_state(instance) is None

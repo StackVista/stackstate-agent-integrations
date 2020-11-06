@@ -12,6 +12,7 @@ from .utils.identifiers import Identifiers
 from .utils.telemetry import MetricStream, MetricHealthChecks, EventStream, EventHealthChecks, HealthState,\
     ServiceCheckStream, ServiceCheckHealthChecks, TopologyEventContext, SourceLink, Event
 from .utils.agent_integration_test_util import AgentIntegrationTestUtil
+from .utils.persistent_state import PersistentInstance, PersistentState
 
 # Windows-only
 try:
@@ -49,5 +50,7 @@ __all__ = [
     'AgentIntegrationTestUtil',
     'TopologyEventContext',
     'SourceLink',
-    'Event'
+    'Event',
+    'PersistentInstance',
+    'PersistentState'
 ]
