@@ -4,19 +4,20 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 
-# 3p
+import json
+import unittest
 from copy import copy
 
 import mock
-import json
-import unittest
 import pytest
+import requests
+from schematics.exceptions import DataError
+from yaml.parser import ParserError
 
-# project
+from stackstate_checks.base import AgentIntegrationTestUtil, AgentCheck
 from stackstate_checks.base.errors import CheckException
-from stackstate_checks.servicenow import ServicenowCheck, InstanceInfo
 from stackstate_checks.base.stubs import topology, aggregator
-from stackstate_checks.base import AgentIntegrationTestUtil, AgentCheck, ConfigurationError
+from stackstate_checks.servicenow import ServicenowCheck, InstanceInfo
 
 
 def mock_process_and_cache_relation_types(*args):
@@ -140,6 +141,41 @@ mock_result_with_utf8 = {
     }
 }
 
+mock_result_malformed_str_with_error_msg = '''
+{
+  "result": [
+    {
+      "asset": {
+        "name": "apc3276",
+        "sys_id": "375924dfdb6fb2882f74f12aaf9619b8",
+        "sys_created_on": "2017-06-29 11:03:27",
+        "sys_class_name": "cmdb_ci_linux_server"
+      },
+    }""
+  ],
+  "error": {
+    "detail": "Transaction cancelled: maximum execution time exceeded. Check logs for error trace.",
+    "message": "Transaction cancelled: maximum execution time exceeded"
+  },
+  "status": "failure"
+}
+'''
+
+mock_result_with_malformed_str = '''
+{
+  "result": [
+    {
+      "asset": {
+        "name": "apc3276",
+        "sys_id": "375924dfdb6fb2882f74f12aaf9619b8",
+        "sys_created_on": "2017-06-29 11:03:27",
+        "sys_class_name": "cmdb_ci_linux_server"
+      },
+    }""
+  ]
+}
+'''
+
 mock_instance = {
     'url': "https://dev60476.service-now.com",
     'user': 'name',
@@ -147,12 +183,15 @@ mock_instance = {
 }
 
 instance_config = InstanceInfo(
-    instance_tags=[],
-    base_url=mock_instance.get('url'),
-    auth=(mock_instance.get('user'), mock_instance.get('password')),
-    sys_class_filter=[],
-    batch_size=100,
-    timeout=10
+    {
+        'instance_tags': [],
+        'url': mock_instance.get('url'),
+        'user': mock_instance.get('user'),
+        'password': mock_instance.get('password'),
+        'include_resource_types': [],
+        'batch_size': 100,
+        'timeout': 10
+    }
 )
 
 
@@ -265,10 +304,10 @@ class TestServicenow(unittest.TestCase):
         Test to check the method _get_json with positive response and get a OK service check
         """
         url, auth = self._get_url_auth()
-        mock_req_get.return_value = mock.MagicMock(status_code=200, text=json.dumps({'key': 'value'}))
-        self.check._get_json(url, timeout=10, auth=auth)
-        service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_NAME)
-        self.assertEqual(len(service_checks), 0)
+        example = {'key': 'value'}
+        mock_req_get.return_value = mock.MagicMock(status_code=200, text=json.dumps(example))
+        result = self.check._get_json(url, timeout=10, auth=auth)
+        self.assertEqual(example, result)
 
     @mock.patch('requests.get')
     def test_get_json_error_status(self, mock_req_get):
@@ -278,10 +317,6 @@ class TestServicenow(unittest.TestCase):
         url, auth = self._get_url_auth()
         mock_req_get.return_value = mock.MagicMock(status_code=300, text=json.dumps({'key': 'value'}))
         self.assertRaises(CheckException, self.check._get_json, url, 10, auth)
-        service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_NAME)
-        self.assertEqual(len(service_checks), 1)
-        self.assertEqual(service_checks[0].name, self.check.SERVICE_CHECK_NAME)
-        self.assertEqual(service_checks[0].status, AgentCheck.CRITICAL)
 
     @mock.patch('requests.get')
     def test_get_json_ok_status_with_error_in_response(self, mock_req_get):
@@ -429,10 +464,10 @@ class TestServicenow(unittest.TestCase):
         """
         Test existence of mandatory instance values
         """
-        self.assertRaises(ConfigurationError, self.check.check, {'user': 'name', 'password': 'secret'})
-        self.assertRaises(ConfigurationError, self.check.check, {'user': 'name', 'url': "https://website.com"})
-        self.assertRaises(ConfigurationError, self.check.check, {'password': 'secret', 'url': "https://website.com"})
-        self.assertRaises(ConfigurationError, self.check.get_instance_key, {})
+        self.assertRaises(DataError, self.check.check, {'user': 'name', 'password': 'secret'})
+        self.assertRaises(DataError, self.check.check, {'user': 'name', 'url': "https://website.com"})
+        self.assertRaises(DataError, self.check.check, {'password': 'secret', 'url': "https://website.com"})
+        self.assertRaises(DataError, self.check.get_instance_key, {})
 
     def test_json_batch(self):
         """
@@ -493,6 +528,45 @@ class TestServicenow(unittest.TestCase):
         mock_req_get.return_value = mock.MagicMock(status_code=200, text=json.dumps(mock_result_with_utf8))
         response = self.check._get_json(url, timeout=10, auth=auth)
         self.assertEqual(u'Avery® Wizard 2.1 forMicrosoft® Word 2000', response.get('result').get('name'))
+
+    @mock.patch('requests.get')
+    def test_get_json_malformed_json(self, mock_request_get):
+        """
+        Test just malformed json
+        """
+        url, auth = self._get_url_auth()
+        mock_request_get.return_value = mock.MagicMock(status_code=200, text=mock_result_with_malformed_str)
+        self.assertRaises(ParserError, self.check._get_json, url, 10, auth)
+
+    @mock.patch('requests.get')
+    def test_get_json_malformed_json_and_execution_time_exceeded_error(self, mock_request_get):
+        """
+        Test malformed json that sometimes happens with
+        ServiceNow error 'Transaction cancelled: maximum execution time exceeded'
+        """
+        url, auth = self._get_url_auth()
+        mock_request_get.return_value = mock.MagicMock(status_code=200, text=mock_result_malformed_str_with_error_msg)
+        self.assertRaises(CheckException, self.check._get_json, url, 10, auth)
+
+    def test_batch_size(self):
+        """
+        Test max batch size value
+        """
+        instance = {'user': 'name', 'password': 'secret', 'url': "https://website.com", 'batch_size': 20000}
+        self.assertRaises(DataError, self.check.check, instance)
+
+    @mock.patch('requests.get')
+    def test_get_json_timeout(self, mock_request_get):
+        """
+        Test timeout exception exception gets critical service check
+        """
+        mock_request_get.side_effect = requests.exceptions.Timeout
+        self.check.check(mock_instance)
+        service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_NAME)
+        self.assertEqual(1, len(service_checks))
+        self.assertEqual(self.check.SERVICE_CHECK_NAME, service_checks[0].name)
+        self.assertEqual(AgentCheck.CRITICAL, service_checks[0].status)
+        self.assertEqual('Timeout: ', service_checks[0].message)
 
     def _get_url_auth(self):
         url = "{}/api/now/table/cmdb_ci".format(self.instance.get('url'))
