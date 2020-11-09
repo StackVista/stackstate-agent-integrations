@@ -4,7 +4,7 @@
 from decimal import ROUND_HALF_DOWN, ROUND_HALF_UP
 
 import pytest
-import os 
+import os
 from stackstate_checks.utils.common import pattern_filter, round_value
 from stackstate_checks.utils.limiter import Limiter
 from stackstate_checks.utils.persistent_state import PersistentState, PersistentInstance, StateNotPersistedException, \
