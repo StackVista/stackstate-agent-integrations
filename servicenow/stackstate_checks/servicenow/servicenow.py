@@ -47,6 +47,8 @@ CR_IMPACT = {
     '3': 'Low'
 }
 
+cmdb_ci_names = {}
+
 
 class InstanceInfo(Model):
     url = URLType(required=True)
@@ -98,8 +100,9 @@ class ServicenowCheck(AgentCheck):
 
         try:
             self.start_snapshot()
-            self._collect_and_process(self._collect_components, self._process_components, instance_info)
-            self._collect_and_process(self._collect_relations, self._process_relations, instance_info)
+            # self._collect_and_process(self._collect_components, self._process_components, instance_info)
+            # self._collect_and_process(self._collect_relations, self._process_relations, instance_info)
+            self._process_change_requests(instance_info)
             self.stop_snapshot()
             msg = "ServiceNow CMDB instance detected at %s " % instance_info.url
             tags = ["url:%s" % instance_info.url]
@@ -279,38 +282,61 @@ class ServicenowCheck(AgentCheck):
         return self._get_json(url, instance_info.timeout, auth)
 
     def _process_change_requests(self, instance_info):
-        change_requests = self._collect_change_requests(instance_info)
-        for cr in change_requests:
-            change_request = ChangeRequest(cr, strict=False)
-            change_request.validate()
-            external_id = change_request.cmdb_ci.value
-            tags = [
-                'priority:{}'.format(change_request.priority),
-                'risk:{}'.format(change_request.risk),
-                'state:{}'.format(change_request.state),
-                'category:{}'.format(change_request.category),
-                'conflict_status:{}'.format(change_request.conflict_status),
-                'assigned_to:{}'.format(change_request.assigned_to)
-            ]
-            identifiers = [external_id, Identifiers.create_host_identifier(change_request.name)]
-
-            self.event({
-                'timestamp': datetime.datetime.timestamp(change_request.sys_updated_on),
-                'event_type': change_request.type,
-                'msg_title': change_request.short_description,
-                'msg_text': change_request.description,
-                'aggregation_key': 'TODO',
-                'context': {
-                    'data': {
-                        'cmdb_ci': identifiers,
-                        'impact': change_request.impact,
-                        'requested_by': change_request.requested_by,
-                        'conflict_last_run': change_request.conflict_last_run,
-                        'assignment_group': change_request.assignment_group
+        result = self._collect_change_requests(instance_info)
+        for cr in result['result']:
+            identifiers = []
+            # TODO try with the Schematics
+            # change_request = ChangeRequest(cr, strict=False)
+            # change_request.validate()
+            cmdb_ci = cr.get('cmdb_ci')
+            if cmdb_ci:
+                external_id = cmdb_ci['value']
+                name = self._get_name(cmdb_ci, instance_info)
+                identifiers.append(external_id)
+                identifiers.append(Identifiers.create_host_identifier(name))
+                tags = [
+                    'priority:{}'.format(cr.get('priority')),
+                    'risk:{}'.format(cr.get('risk')),
+                    'state:{}'.format(cr.get('state')),
+                    'category:{}'.format(cr.get('category')),
+                    'conflict_status:{}'.format(cr.get('conflict_status')),
+                    'assigned_to:{}'.format(cr.get('assigned_to'))
+                ]
+                self.event({
+                    'timestamp': datetime.datetime.timestamp(
+                        datetime.datetime.strptime(cr.get('sys_updated_on'), '%Y-%m-%d %H:%M:%S')
+                    ),
+                    'event_type': cr.get('type'),
+                    'msg_title': cr.get('short_description'),
+                    'msg_text': cr.get('description'),
+                    # TODO do we need an aggregation_key
+                    # 'aggregation_key': '???',
+                    'context': {
+                        'source': 'servicenow',
+                        'category': 'change_request',
+                        'element_identifiers': identifiers,
+                        'data': {
+                            'impact': cr.get('impact'),
+                            'requested_by': cr.get('requested_by'),
+                            'conflict_last_run': cr.get('conflict_last_run'),
+                            'assignment_group': cr.get('assignment_group')
+                        },
                     },
-                },
-                'tags': tags
-            })
+                    'tags': tags
+                })
+
+    def _get_name(self, cmdb_ci, instance_info):
+        try:
+            name = cmdb_ci_names[cmdb_ci['value']]
+        except KeyError:
+            auth = (instance_info.user, instance_info.password)
+            response = self._get_json(cmdb_ci['link'], instance_info.timeout, auth)
+            if response.get('result'):
+                name = response.get('result')['name']
+                cmdb_ci_names[cmdb_ci['value']] = name
+            else:
+                name = 'Unknown'
+        return name
 
     def _get_json_batch(self, url, offset, batch_size, timeout, auth):
         if "?" not in url:
