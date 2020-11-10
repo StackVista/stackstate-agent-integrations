@@ -174,8 +174,6 @@ class AgentCheckBase(object):
 
         self.default_integration_http_timeout = float(self.agentConfig.get('default_integration_http_timeout', 9))
 
-        self.state_manager = PersistentState(self.log)
-
     def set_metric_limits(self):
         try:
             metric_limit = self.instances[0].get('max_returned_metrics', self.DEFAULT_METRIC_LIMIT)
@@ -620,6 +618,7 @@ class __AgentCheckPy3(AgentCheckBase):
         """
         # the agent5 'AgentCheck' setup a log attribute.
         self.log = logging.getLogger('{}.{}'.format(__name__, self.name))
+        self.state_manager = PersistentState(self.log)
         self._deprecations = {
             'increment': [
                 False,
@@ -783,7 +782,7 @@ class __AgentCheckPy3(AgentCheckBase):
             self.create_integration_instance(copy.deepcopy(instance))
             self.check(copy.deepcopy(instance))
             result = ''
-            StateManager.flush(self._get_state_instance())
+            self.state_manager.flush(self._get_state_instance())
         except Exception as e:
             result = json.dumps([
                 {
@@ -811,6 +810,7 @@ class __AgentCheckPy2(AgentCheckBase):
         """
         # the agent5 'AgentCheck' setup a log attribute.
         self.log = logging.getLogger('{}.{}'.format(__name__, self.name))
+        self.state_manager = PersistentState(self.log)
         self.check_id = b''
 
         self._deprecations = {
@@ -992,7 +992,7 @@ class __AgentCheckPy2(AgentCheckBase):
             self.create_integration_instance(copy.deepcopy(instance))
             self.check(copy.deepcopy(instance))
             result = b''
-            StateManager.flush(self._get_state_instance())
+            self.state_manager.flush(self._get_state_instance())
         except Exception as e:
             result = json.dumps([
                 {
