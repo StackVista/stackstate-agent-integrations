@@ -4,10 +4,12 @@
 from decimal import ROUND_HALF_DOWN, ROUND_HALF_UP
 
 import pytest
+import os
 from stackstate_checks.utils.common import pattern_filter, round_value
 from stackstate_checks.utils.limiter import Limiter
-from stackstate_checks.utils.persistent_state import PersistentState, PersistentInstance
-
+from stackstate_checks.utils.persistent_state import PersistentState, PersistentInstance, StateNotPersistedException, \
+    StateCorruptedException, StateReadException
+from six import PY3
 from schematics.models import Model
 from schematics.types import IntType
 
@@ -131,46 +133,40 @@ class TestStorageSchema(Model):
 
 
 class TestPersistentState:
-    StateManager = PersistentState()
 
-    def test_in_memory_state(self):
-        state = {'a': 'b', 'c': 1, 'd': ['e', 'f', 'g'], 'h': {'i': 'j', 'k': True}}
-        instance = PersistentInstance("in.memory.state", "")
-        assert TestPersistentState.StateManager.get_state(instance) is None
-        TestPersistentState.StateManager.set_state(instance, state)
-        assert TestPersistentState.StateManager.get_state(instance) == state
-        TestPersistentState.StateManager.clear(instance)
-        assert TestPersistentState.StateManager.get_state(instance) is None
+    def test_exception_state_without_valid_location(self, state):
+        s = {'a': 'b', 'c': 1, 'd': ['e', 'f', 'g'], 'h': {'i': 'j', 'k': True}}
+        instance = PersistentInstance("state.without.location", "")
+        with pytest.raises(StateReadException) as e:
+            state.persistent_state.get_state(instance)
+        assert str(e.value) == """[Errno 2] No such file or directory: ''"""
 
-    def test_in_memory_state_with_schema(self):
-        state = TestStorageSchema({'offset': 10})
-        instance = PersistentInstance("in.memory.state.schema", "")
-        assert TestPersistentState.StateManager.get_state(instance) is None
-        TestPersistentState.StateManager.set_state(instance, state)
-        assert TestPersistentState.StateManager.get_state(instance, TestStorageSchema) == state
-        TestPersistentState.StateManager.clear(instance)
-        assert TestPersistentState.StateManager.get_state(instance) is None
+        with pytest.raises(StateNotPersistedException) as e:
+            state.persistent_state.set_state(instance, s)
+        assert str(e.value) == """[Errno 2] No such file or directory: ''"""
 
-    def test_state_flushing(self):
-        state = {'a': 'b', 'c': 1, 'd': ['e', 'f', 'g'], 'h': {'i': 'j', 'k': True}}
+    def test_exception_corrupted_state(self, state):
+        instance = PersistentInstance("state.with.corrupted.data", "state.with.corrupted.data")
+        # write "corrupted" data
+        with open(instance.file_location, 'w') as f:
+            f.write("{'a': 'b', 'c': 1, 'd':....")
+
+        with pytest.raises(StateCorruptedException) as e:
+            state.persistent_state.get_state(instance)
+        if PY3:
+            assert str(e.value) == """Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"""
+        else:
+            assert str(e.value) == """Expecting property name: line 1 column 2 (char 1)"""
+
+        os.remove(instance.file_location)
+
+    def test_state_flushing(self, state):
+        s = {'a': 'b', 'c': 1, 'd': ['e', 'f', 'g'], 'h': {'i': 'j', 'k': True}}
         instance = PersistentInstance("on.disk.state", "on.disk.state")
-        assert TestPersistentState.StateManager.get_state(instance) is None
-        TestPersistentState.StateManager.set_state(instance, state)
-        assert TestPersistentState.StateManager.get_state(instance) == state
-        TestPersistentState.StateManager.flush(instance)
-        assert TestPersistentState.StateManager.get_state(instance) == state
-        TestPersistentState.StateManager.clear(instance)
-        assert TestPersistentState.StateManager.get_state(instance) is None
+        state.assert_state(instance, s)
 
-    def test_state_flushing_with_schema(self):
-        state = TestStorageSchema({'offset': 10})
+    def test_state_flushing_with_schema(self, state):
+        s = TestStorageSchema({'offset': 10})
         instance = PersistentInstance("on.disk.state.schema", "on.disk.state.schema")
-        assert TestPersistentState.StateManager.get_state(instance) is None
-        TestPersistentState.StateManager.set_state(instance, state)
-        retrieved_state = TestPersistentState.StateManager.get_state(instance, TestStorageSchema)
-        assert retrieved_state == state
-        assert retrieved_state.offset == state.offset
-        TestPersistentState.StateManager.flush(instance)
-        assert TestPersistentState.StateManager.get_state(instance, TestStorageSchema) == state
-        TestPersistentState.StateManager.clear(instance)
-        assert TestPersistentState.StateManager.get_state(instance) is None
+        rs = state.assert_state(instance, s, TestStorageSchema)
+        assert rs.offset == s.offset

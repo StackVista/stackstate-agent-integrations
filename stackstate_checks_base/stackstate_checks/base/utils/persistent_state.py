@@ -42,9 +42,12 @@ class PersistentState:
             try:
                 with open(instance.file_location, 'r') as f:
                     data = json.loads(f.read())
-            except IOError:
+            except ValueError as e:
+                # log this
+                raise StateCorruptedException(e)
+            except IOError as e:
                 # log info
-                return
+                raise StateReadException(e)
         else:
             data = json.loads(self.data[instance.instance_key])
 
@@ -63,12 +66,34 @@ class PersistentState:
         elif isinstance(data, Model):
             data = json.dumps(data.to_native())
 
-        self.data[instance.instance_key] = data
+        # first time insert for this instance, flush right away to ensure that we can write to file
+        if instance.instance_key not in self.data:
+            self.data[instance.instance_key] = data
+            self.flush(instance)
+        else:
+            self.data[instance.instance_key] = data
 
     def flush(self, instance):
         """
 
         """
         if instance.instance_key in self.data:
-            with open(instance.file_location, 'w') as f:
-                f.write(self.data[instance.instance_key])
+            try:
+                with open(instance.file_location, 'w') as f:
+                    f.write(self.data[instance.instance_key])
+            except IOError as e:
+                # if we couldn't save, drop the state
+                del self.data[instance.instance_key]
+                raise StateNotPersistedException(e)
+
+
+class StateNotPersistedException(Exception):
+    pass
+
+
+class StateCorruptedException(Exception):
+    pass
+
+
+class StateReadException(Exception):
+    pass
