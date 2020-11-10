@@ -4,6 +4,7 @@
 import json
 import os
 import re
+import logging
 from base64 import urlsafe_b64encode
 
 import pytest
@@ -194,10 +195,12 @@ def sts_agent_check(request, aggregator):
 
 @pytest.fixture
 def state():
+    logger = logging.getLogger(__name__)
+
     class PersistentStateFixture:
 
         def __init__(self):
-            self.persistent_state = PersistentState()
+            self.persistent_state = PersistentState(logger)
 
         def assert_state(self, instance, state, state_schema=None):
             with pytest.raises(StateReadException):

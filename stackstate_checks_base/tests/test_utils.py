@@ -160,6 +160,17 @@ class TestPersistentState:
 
         os.remove(instance.file_location)
 
+    def test_exception_unsupported_data_type_state(self, state):
+        instance = PersistentInstance("state.with.unsupported.data", "state.with.unsupported.data")
+        with pytest.raises(ValueError) as e:
+            state.persistent_state.set_state(instance, 123)
+        if PY3:
+            assert str(e.value) == "Got unexpected <class 'int'> for argument state, expected dictionary " \
+                                   "or schematics.models.Model"
+        else:
+            assert str(e.value) == "Got unexpected <type 'int'> for argument state, expected dictionary " \
+                                   "or schematics.models.Model"
+
     def test_state_flushing(self, state):
         s = {'a': 'b', 'c': 1, 'd': ['e', 'f', 'g'], 'h': {'i': 'j', 'k': True}}
         instance = PersistentInstance("on.disk.state", "on.disk.state")

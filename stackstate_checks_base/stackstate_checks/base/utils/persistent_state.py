@@ -93,6 +93,9 @@ class PersistentState:
             state = json.dumps(state)
         elif isinstance(state, Model):
             state = json.dumps(state.to_native())
+        else:
+            raise ValueError("Got unexpected {} for argument state, expected dictionary or schematics.models.Model"
+                             .format(type(state)))
 
         # first time insert for this instance, flush right away to ensure that we can write to file
         if instance.instance_key not in self.state:
