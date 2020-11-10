@@ -68,8 +68,6 @@ ONE_PER_CONTEXT_METRIC_TYPES = [
     aggregator.MONOTONIC_COUNT,
 ]
 
-StateManager = PersistentState()
-
 
 class TopologyInstanceBase(object):
     """
@@ -176,6 +174,8 @@ class AgentCheckBase(object):
 
         self.default_integration_http_timeout = float(self.agentConfig.get('default_integration_http_timeout', 9))
 
+        self.state_manager = PersistentState(self.log)
+
     def set_metric_limits(self):
         try:
             metric_limit = self.instances[0].get('max_returned_metrics', self.DEFAULT_METRIC_LIMIT)
@@ -197,13 +197,13 @@ class AgentCheckBase(object):
         return PersistentInstance(instance_key, "{}/{}.state".format(self.get_check_config_path(), instance_key))
 
     def set_state(self, data):
-        StateManager.set_state(self._get_state_instance(), data)
+        self.state_manager.set_state(self._get_state_instance(), data)
 
     def get_state(self, schema=None):
-        StateManager.get_state(self._get_state_instance(), schema)
+        self.state_manager.get_state(self._get_state_instance(), schema)
 
     def clear_state(self):
-        StateManager.clear(self._get_state_instance())
+        self.state_manager.clear(self._get_state_instance())
 
     @staticmethod
     def load_config(yaml_str):
