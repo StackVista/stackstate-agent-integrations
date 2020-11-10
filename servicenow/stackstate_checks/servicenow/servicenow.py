@@ -2,6 +2,7 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import datetime
+import urllib
 
 import requests
 import yaml
@@ -9,7 +10,8 @@ from schematics import Model
 from schematics.types import URLType, StringType, ListType, IntType, BaseType
 from yaml.parser import ParserError
 
-from stackstate_checks.base import AgentCheck, TopologyInstance, Identifiers
+from stackstate_checks.base import AgentCheck, TopologyInstance, Identifiers, PersistentInstance, PersistentState, \
+    StateReadException
 from stackstate_checks.base.errors import CheckException
 
 BATCH_DEFAULT_SIZE = 2500
@@ -89,6 +91,13 @@ class ServicenowCheck(AgentCheck):
     INSTANCE_TYPE = "servicenow_cmdb"
     SERVICE_CHECK_NAME = "servicenow.cmdb.topology_information"
 
+    def __init__(self, name, init_config, instances=None):
+        AgentCheck.__init__(self, name, init_config, instances)
+        self.persistent_state = None
+        # TODO file location
+        self.persistent_instance = PersistentInstance('servicenow.change_requests', 'servicenow_crs.json')
+        self.cr_persistence_key = None
+
     def get_instance_key(self, instance):
         instance_info = InstanceInfo(instance)
         instance_info.validate()
@@ -97,12 +106,15 @@ class ServicenowCheck(AgentCheck):
     def check(self, instance):
         instance_info = InstanceInfo(instance)
         instance_info.validate()
+        self.cr_persistence_key = '{}/change_requests'.format(instance_info.url)
+        self._load_state(instance_info)
 
         try:
             self.start_snapshot()
             self._collect_and_process(self._collect_components, self._process_components, instance_info)
             self._collect_and_process(self._collect_relations, self._process_relations, instance_info)
             self._process_change_requests(instance_info)
+            self.persistent_state.flush(self.persistent_instance)
             self.stop_snapshot()
             msg = "ServiceNow CMDB instance detected at %s " % instance_info.url
             tags = ["url:%s" % instance_info.url]
@@ -276,17 +288,56 @@ class ServicenowCheck(AgentCheck):
 
             self.relation(parent_sys_id, child_sys_id, relation_type, data)
 
-    def _collect_change_requests(self, instance_info):
+    def _collect_change_requests(self, instance_info, latest_sys_updated_on=None):
         auth = (instance_info.user, instance_info.password)
         url = instance_info.url + '/api/now/table/change_request'
+        if latest_sys_updated_on:
+            reformatted_date = ','.join("'{}'".format(i) for i in latest_sys_updated_on.split(' '))
+            quoted_date = urllib.parse.quote(reformatted_date)
+            url += "?sysparm_query=sys_updated_on>javascript%3Ags.dateGenerate({})".format(quoted_date)
+        self.log.debug('url for getting CRs: %s', url)
         return self._get_json(url, instance_info.timeout, auth)
 
     def _process_change_requests(self, instance_info):
-        result = self._collect_change_requests(instance_info)
+        state = self.persistent_state.get_state(self.persistent_instance)
+        latest_sys_updated_on = state.get(instance_info.url)
+        result = self._collect_change_requests(instance_info, latest_sys_updated_on)
+        change_requests_state = state[self.cr_persistence_key]
         for change_request in result['result']:
-            self.create_event_from_cr(change_request, instance_info)
+            old_state = change_requests_state.get(change_request['number'])
+            cmdb_ci = change_request.get('cmdb_ci')
+            if cmdb_ci and old_state is None or old_state != change_request['state']:
+                # TODO: add checking for latest_sys_updated_on
+                self._create_event_from_cr(change_request, instance_info)
+                change_requests_state[change_request['number']] = change_request['state']
+        self.persistent_state.set_state(self.persistent_instance, state)
 
-    def create_event_from_cr(self, change_request, instance_info):
+    def _load_state(self, instance_info):
+        """
+        Persistent State structure:
+        {
+            url: timestamp,
+            url/change_requests: {
+                change_request_number: state
+            }
+        }
+        timestamp is the date/time of the last sys_updated_on from processed CRs
+
+        :param instance_info: current instance check is processing
+        :return: None
+        """
+        self.persistent_state = PersistentState()
+        try:
+            self.persistent_state.get_state(self.persistent_instance)
+        except StateReadException:
+            self.log.info('First run! Creating new persistent state.')
+            empty_state = {
+                instance_info.url: '',
+                self.cr_persistence_key: {}
+            }
+            self.persistent_state.set_state(self.persistent_instance, data=empty_state)
+
+    def _create_event_from_cr(self, change_request, instance_info):
         identifiers = []
         # TODO try with the Schematics
         # change_request = ChangeRequest(cr, strict=False)
@@ -299,6 +350,7 @@ class ServicenowCheck(AgentCheck):
             # name = self._get_name(cmdb_ci, instance_info)
             # identifiers.append(Identifiers.create_host_identifier(name))
             tags = [
+                'number:{}'.format(change_request.get('number')),
                 'priority:{}'.format(change_request.get('priority')),
                 'risk:{}'.format(change_request.get('risk')),
                 'state:{}'.format(change_request.get('state')),
