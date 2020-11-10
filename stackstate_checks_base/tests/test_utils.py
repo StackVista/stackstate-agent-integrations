@@ -5,6 +5,7 @@ from decimal import ROUND_HALF_DOWN, ROUND_HALF_UP
 
 import pytest
 import os
+import platform
 from stackstate_checks.utils.common import pattern_filter, round_value
 from stackstate_checks.utils.limiter import Limiter
 from stackstate_checks.utils.persistent_state import PersistentState, PersistentInstance, StateNotPersistedException, \
@@ -139,11 +140,18 @@ class TestPersistentState:
         instance = PersistentInstance("state.without.location", "")
         with pytest.raises(StateReadException) as e:
             state.persistent_state.get_state(instance)
-        assert str(e.value) == """[Errno 2] No such file or directory: ''"""
+
+        if platform.system() == "Windows":
+            assert str(e.value) == """[Errno 22] invalid mode ('r') or filename: ''"""
+        else:
+            assert str(e.value) == """[Errno 2] No such file or directory: ''"""
 
         with pytest.raises(StateNotPersistedException) as e:
             state.persistent_state.set_state(instance, s)
-        assert str(e.value) == """[Errno 2] No such file or directory: ''"""
+        if platform.system() == "Windows":
+            assert str(e.value) == """[Errno 22] invalid mode ('w') or filename: ''"""
+        else:
+            assert str(e.value) == """[Errno 2] No such file or directory: ''"""
 
     def test_exception_corrupted_state(self, state):
         instance = PersistentInstance("state.with.corrupted.data", "state.with.corrupted.data")
