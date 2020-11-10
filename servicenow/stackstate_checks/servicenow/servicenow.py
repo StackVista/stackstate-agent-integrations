@@ -1,11 +1,12 @@
 # (C) StackState 2020
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
+import datetime
 
 import requests
 import yaml
 from schematics import Model
-from schematics.types import URLType, StringType, ListType, IntType
+from schematics.types import URLType, StringType, ListType, IntType, BaseType
 from yaml.parser import ParserError
 
 from stackstate_checks.base import AgentCheck, TopologyInstance, Identifiers
@@ -14,6 +15,37 @@ from stackstate_checks.base.errors import CheckException
 BATCH_DEFAULT_SIZE = 2500
 BATCH_MAX_SIZE = 10000
 TIMEOUT = 20
+
+CR_STATE = {
+    '-5': 'New',
+    '-4': 'Assess',
+    '-3': 'Authorize',
+    '-2': 'Scheduled',
+    '-1': 'Implement',
+    '0': 'Review',
+    '3': 'Closed',
+    '4': 'Canceled'
+}
+
+CR_PRIORITY = {
+    '1': 'Critical',
+    '2': 'High',
+    '3': 'Moderate',
+    '4': 'Low'
+}
+
+CR_RISK = {
+    '1': 'Very High',
+    '2': 'High',
+    '3': 'Moderate',
+    '4': 'Low'
+}
+
+CR_IMPACT = {
+    '1': 'High',
+    '2': 'Medium',
+    '3': 'Low'
+}
 
 
 class InstanceInfo(Model):
@@ -24,6 +56,31 @@ class InstanceInfo(Model):
     batch_size = IntType(default=BATCH_DEFAULT_SIZE, max_value=BATCH_MAX_SIZE)
     timeout = IntType(default=TIMEOUT)
     instance_tags = ListType(StringType, default=[])
+
+
+class LinkType(BaseType):
+    link = URLType()
+    value = StringType()
+
+
+class ChangeRequest(Model):
+    number = StringType(required=True)
+    cmdb_ci = LinkType(required=True)
+    state = StringType(required=True)
+    business_service = StringType()
+    service_offering = StringType()
+    short_description = StringType()
+    description = StringType()
+    type = StringType()
+    priority = StringType(required=True)
+    impact = StringType(required=True)
+    risk = StringType(required=True)
+    requested_by = LinkType()
+    category = StringType()
+    conflict_status = StringType()
+    conflict_last_run = StringType()
+    assignment_group = LinkType()
+    assigned_to = LinkType()
 
 
 class ServicenowCheck(AgentCheck):
@@ -139,7 +196,7 @@ class ServicenowCheck(AgentCheck):
 
     def _process_components(self, components, instance_info):
         """
-
+        Gets SNOW components name, external_id and other identifiers
         :param components:
         :param instance_info:
         :return:
@@ -215,6 +272,45 @@ class ServicenowCheck(AgentCheck):
             data.update({"tags": instance_info.instance_tags})
 
             self.relation(parent_sys_id, child_sys_id, relation_type, data)
+
+    def _collect_change_requests(self, instance_info):
+        auth = (instance_info.user, instance_info.password)
+        url = instance_info.url + '/api/now/table/change_request'
+        return self._get_json(url, instance_info.timeout, auth)
+
+    def _process_change_requests(self, instance_info):
+        change_requests = self._collect_change_requests(instance_info)
+        for cr in change_requests:
+            change_request = ChangeRequest(cr, strict=False)
+            change_request.validate()
+            external_id = change_request.cmdb_ci.value
+            tags = [
+                'priority:{}'.format(change_request.priority),
+                'risk:{}'.format(change_request.risk),
+                'state:{}'.format(change_request.state),
+                'category:{}'.format(change_request.category),
+                'conflict_status:{}'.format(change_request.conflict_status),
+                'assigned_to:{}'.format(change_request.assigned_to)
+            ]
+            identifiers = [external_id, Identifiers.create_host_identifier(change_request.name)]
+
+            self.event({
+                'timestamp': datetime.datetime.timestamp(change_request.sys_updated_on),
+                'event_type': change_request.type,
+                'msg_title': change_request.short_description,
+                'msg_text': change_request.description,
+                'aggregation_key': 'TODO',
+                'context': {
+                    'data': {
+                        'cmdb_ci': identifiers,
+                        'impact': change_request.impact,
+                        'requested_by': change_request.requested_by,
+                        'conflict_last_run': change_request.conflict_last_run,
+                        'assignment_group': change_request.assignment_group
+                    },
+                },
+                'tags': tags
+            })
 
     def _get_json_batch(self, url, offset, batch_size, timeout, auth):
         if "?" not in url:
