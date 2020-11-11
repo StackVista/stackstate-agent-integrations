@@ -319,12 +319,15 @@ class TestLimits():
 
 
 class TopologyCheck(AgentCheck):
-    def __init__(self, key=None):
-        super(TopologyCheck, self).__init__()
+    def __init__(self, key=None, *args, **kwargs):
+        super(TopologyCheck, self).__init__(*args, **kwargs)
         self.key = key or TopologyInstance("mytype", "someurl")
 
     def get_instance_key(self, instance):
         return self.key
+
+    def check(self, instance):
+        pass
 
 
 class TestTopology:
@@ -340,6 +343,14 @@ class TestTopology:
         check.relation("source-id", "target-id", "my-type", data)
         topology.assert_snapshot(check.check_id, check.key,
                                  relations=[relation("source-id", "target-id", "my-type", data)])
+
+    def test_auto_snapshotting(self, topology):
+        instances = [{'a': 'b'}]
+        # set instances for python 3 agent check base
+        check = TopologyCheck(TopologyInstance("mytype", "someurl", with_snapshots=True), "test", {}, instances)
+        check.run()
+        # assert auto snapshotting occurred
+        topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
 
     def test_start_snapshot(self, topology):
         check = TopologyCheck()
