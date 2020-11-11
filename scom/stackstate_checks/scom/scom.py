@@ -54,7 +54,7 @@ class SCOM(AgentCheck):
             raise ConfigurationError('Missing url in topology instance configuration.')
 
         instance_url = instance['hostip']
-        return TopologyInstance(self.INSTANCE_TYPE, instance_url, with_snapshots=False)
+        return TopologyInstance(self.INSTANCE_TYPE, instance_url)
 
     def sendAlerts(self, session, scom_ip, domain, username, password, component_id):
         data = {
