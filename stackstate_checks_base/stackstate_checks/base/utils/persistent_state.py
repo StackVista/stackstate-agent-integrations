@@ -4,7 +4,7 @@
 
 import os
 import json
-from schematics.models import Model
+from schematics import Model
 
 
 class PersistentInstance:
