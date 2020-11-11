@@ -326,8 +326,23 @@ class TopologyCheck(AgentCheck):
     def get_instance_key(self, instance):
         return self.key
 
+
+class TopologyAutoSnapshotCheck(TopologyCheck):
+    def __init__(self):
+        instances = [{'a': 'b'}]
+        super(TopologyAutoSnapshotCheck, self)\
+            .__init__(TopologyInstance("mytype", "someurl", with_snapshots=True), "test", {}, instances)
+
     def check(self, instance):
         pass
+
+
+class TopologyBrokenCheck(TopologyAutoSnapshotCheck):
+    def __init__(self):
+        super(TopologyBrokenCheck, self).__init__()
+
+    def check(self, instance):
+        raise Exception("some error in my check")
 
 
 class TestTopology:
@@ -345,21 +360,25 @@ class TestTopology:
                                  relations=[relation("source-id", "target-id", "my-type", data)])
 
     def test_auto_snapshotting(self, topology):
-        instances = [{'a': 'b'}]
-        # set instances for python 3 agent check base
-        check = TopologyCheck(TopologyInstance("mytype", "someurl", with_snapshots=True), "test", {}, instances)
+        check = TopologyAutoSnapshotCheck()
         check.run()
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
 
+    def test_no_stop_snapshot_on_exception(self, topology):
+        check = TopologyBrokenCheck()
+        check.run()
+        # assert stop snapshot is false when an exception is thrown in check.run()
+        topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=False)
+
     def test_start_snapshot(self, topology):
         check = TopologyCheck()
-        topology.submit_start_snapshot(check, check.check_id, check._get_instance_key())
+        check.start_snapshot()
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True)
 
     def test_stop_snapshot(self, topology):
         check = TopologyCheck()
-        topology.submit_stop_snapshot(check, check.check_id, check._get_instance_key())
+        check.stop_snapshot()
         topology.assert_snapshot(check.check_id, check.key, stop_snapshot=True)
 
     def test_none_data_ok(self, topology):

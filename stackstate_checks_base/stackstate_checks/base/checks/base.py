@@ -50,8 +50,7 @@ from ..utils.common import ensure_bytes, ensure_unicode
 from ..utils.proxy import config_proxy_skip
 from ..utils.limiter import Limiter
 from ..utils.identifiers import Identifiers
-from ..utils.telemetry import EventStream, TopologyEventContext, MetricStream, ServiceCheckStream, \
-    ServiceCheckHealthChecks, Event
+from ..utils.telemetry import EventStream, MetricStream, ServiceCheckStream, ServiceCheckHealthChecks, Event
 from deprecated.sphinx import deprecated
 
 if datadog_agent.get_config('disable_unsafe_yaml'):
@@ -394,13 +393,13 @@ class AgentCheckBase(object):
 
         return data
 
-    @deprecated(version='2.10.0', reason="Topology Snapshots is enabled by default for all TopologyInstance checks, "
+    @deprecated(version='2.9.0', reason="Topology Snapshots is enabled by default for all TopologyInstance checks, "
                                          "to disable snapshots use TopologyInstance(type, url, with_snapshots=False) "
                                          "when overriding get_instance_key")
     def start_snapshot(self):
         topology.submit_start_snapshot(self, self.check_id, self._get_instance_key())
 
-    @deprecated(version='2.10.0', reason="Topology Snapshots is enabled by default for all TopologyInstance checks, "
+    @deprecated(version='2.9.0', reason="Topology Snapshots is enabled by default for all TopologyInstance checks, "
                                          "to disable snapshots use TopologyInstance(type, url, with_snapshots=False) "
                                          "when overriding get_instance_key")
     def stop_snapshot(self):
