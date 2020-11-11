@@ -212,7 +212,8 @@ class AgentCheckBase(object):
         raise ValueError("Got unexpected {} for argument {}, expected {}".format(type(value), argumentName, expected))
 
     def _check_struct_value(self, argumentName, value):
-        if value is None or isinstance(value, string_types) or isinstance(value, integer_types):
+        if value is None or isinstance(value, string_types) or isinstance(value, integer_types) or \
+                isinstance(value, float) or isinstance(value, bool):
             return
         elif isinstance(value, dict):
             for k in value:
@@ -580,6 +581,14 @@ class AgentCheckBase(object):
             proxies['no'] = proxies.pop('no_proxy')
 
         return proxies if proxies else no_proxy_settings
+
+    @staticmethod
+    def get_agent_confd_path():
+        return datadog_agent.get_config("confd_path")
+
+    @staticmethod
+    def get_config(key):
+        return datadog_agent.get_config(key)
 
 
 class __AgentCheckPy3(AgentCheckBase):
