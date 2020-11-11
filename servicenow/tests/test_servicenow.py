@@ -208,7 +208,7 @@ class TestServicenow(unittest.TestCase):
         """
         Initialize and patch the check, i.e.
         """
-        self.check = ServicenowCheck('servicenow_test', init_config={}, instances=[self.instance])
+        self.check = ServicenowCheck('servicenow_test', {}, {}, [self.instance])
         topology.reset()
         aggregator.reset()
 

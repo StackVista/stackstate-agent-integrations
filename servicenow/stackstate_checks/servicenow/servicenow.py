@@ -66,8 +66,8 @@ class ServicenowCheck(AgentCheck):
     INSTANCE_TYPE = "servicenow_cmdb"
     SERVICE_CHECK_NAME = "servicenow.cmdb.topology_information"
 
-    def __init__(self, name, init_config, instances=None):
-        AgentCheck.__init__(self, name, init_config, instances)
+    def __init__(self, name, init_config, agentConfig, instances=None):
+        AgentCheck.__init__(self, name, init_config, agentConfig, instances)
         self.persistent_state = None
         # TODO file location
         self.persistent_instance = PersistentInstance('servicenow.change_requests', 'servicenow_crs.json')
