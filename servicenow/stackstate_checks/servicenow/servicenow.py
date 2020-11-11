@@ -440,5 +440,7 @@ class ServicenowCheck(AgentCheck):
         if response_json.get("error"):
             raise CheckException(response_json["error"].get("message"))
 
-        self.log.debug('Got %d results in response', len(response_json['result']))
+        if response_json.get('result'):
+            self.log.debug('Got %d results in response', len(response_json['result']))
+
         return response_json
