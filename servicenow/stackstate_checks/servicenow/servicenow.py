@@ -302,14 +302,16 @@ class ServicenowCheck(AgentCheck):
         state = self.persistent_state.get_state(self.persistent_instance)
         latest_sys_updated_on = state.get(instance_info.url)
         result = self._collect_change_requests(instance_info, latest_sys_updated_on)
-        change_requests_state = state[self.cr_persistence_key]
+        crs_persisted_state = state[self.cr_persistence_key]
         for change_request in result['result']:
-            old_state = change_requests_state.get(change_request['number'])
             cmdb_ci = change_request.get('cmdb_ci')
-            if cmdb_ci and old_state is None or old_state != change_request['state']:
-                # TODO: add checking for latest_sys_updated_on
-                self._create_event_from_cr(change_request, instance_info)
-                change_requests_state[change_request['number']] = change_request['state']
+            if cmdb_ci:
+                # TODO: add limit for max number of events that we'll process
+                old_state = crs_persisted_state.get(change_request['number'])
+                if old_state is None or old_state != change_request['state']:
+                    # TODO: add checking for latest_sys_updated_on
+                    self._create_event_from_cr(change_request, instance_info)
+                    crs_persisted_state[change_request['number']] = change_request['state']
         self.persistent_state.set_state(self.persistent_instance, state)
 
     def _load_state(self, instance_info):
@@ -343,44 +345,43 @@ class ServicenowCheck(AgentCheck):
         # change_request = ChangeRequest(cr, strict=False)
         # change_request.validate()
         cmdb_ci = change_request.get('cmdb_ci')
-        if cmdb_ci:
-            external_id = cmdb_ci['value']
-            identifiers.append(external_id)
-            # TODO check if we'll get the names
-            # name = self._get_name(cmdb_ci, instance_info)
-            # identifiers.append(Identifiers.create_host_identifier(name))
-            tags = [
-                'number:{}'.format(change_request.get('number')),
-                'priority:{}'.format(change_request.get('priority')),
-                'risk:{}'.format(change_request.get('risk')),
-                'state:{}'.format(change_request.get('state')),
-                'category:{}'.format(change_request.get('category')),
-                'conflict_status:{}'.format(change_request.get('conflict_status')),
-                'assigned_to:{}'.format(change_request.get('assigned_to'))
-            ]
-            self.event({
-                'timestamp': datetime.datetime.timestamp(
-                    datetime.datetime.strptime(change_request.get('sys_updated_on'), '%Y-%m-%d %H:%M:%S')
-                ),
-                'event_type': change_request.get('type'),
-                'msg_title': change_request.get('short_description'),
-                'msg_text': change_request.get('description'),
-                # TODO do we need an aggregation_key
-                # 'aggregation_key': '???',
-                'context': {
-                    'source': 'servicenow',
-                    'category': 'change_request',
-                    'element_identifiers': identifiers,
-                    'data': {
-                        'cmdb_ci': cmdb_ci,
-                        'impact': change_request.get('impact'),
-                        'requested_by': change_request.get('requested_by'),
-                        'conflict_last_run': change_request.get('conflict_last_run'),
-                        'assignment_group': change_request.get('assignment_group')
-                    },
+        external_id = cmdb_ci['value']
+        identifiers.append(external_id)
+        # TODO check if we'll get the names
+        # name = self._get_name(cmdb_ci, instance_info)
+        # identifiers.append(Identifiers.create_host_identifier(name))
+        tags = [
+            'number:{}'.format(change_request.get('number')),
+            'priority:{}'.format(change_request.get('priority')),
+            'risk:{}'.format(change_request.get('risk')),
+            'state:{}'.format(change_request.get('state')),
+            'category:{}'.format(change_request.get('category')),
+            'conflict_status:{}'.format(change_request.get('conflict_status')),
+            'assigned_to:{}'.format(change_request.get('assigned_to'))
+        ]
+        self.event({
+            'timestamp': datetime.datetime.timestamp(
+                datetime.datetime.strptime(change_request.get('sys_updated_on'), '%Y-%m-%d %H:%M:%S')
+            ),
+            'event_type': change_request.get('type'),
+            'msg_title': change_request.get('short_description'),
+            'msg_text': change_request.get('description'),
+            # TODO do we need an aggregation_key
+            # 'aggregation_key': '???',
+            'context': {
+                'source': 'servicenow',
+                'category': 'change_request',
+                'element_identifiers': identifiers,
+                'data': {
+                    'cmdb_ci': cmdb_ci,
+                    'impact': change_request.get('impact'),
+                    'requested_by': change_request.get('requested_by'),
+                    'conflict_last_run': change_request.get('conflict_last_run'),
+                    'assignment_group': change_request.get('assignment_group')
                 },
-                'tags': tags
-            })
+            },
+            'tags': tags
+        })
 
     def _get_name(self, element, instance_info):
         try:
