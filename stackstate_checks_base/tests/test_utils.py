@@ -8,7 +8,7 @@ import os
 import platform
 from stackstate_checks.utils.common import pattern_filter, round_value
 from stackstate_checks.utils.limiter import Limiter
-from stackstate_checks.utils.persistent_state import PersistentState, PersistentInstance, StateNotPersistedException, \
+from stackstate_checks.utils.persistent_state import StateManager, StateDescriptor, StateNotPersistedException, \
     StateCorruptedException, StateReadException
 from six import PY3
 from schematics.models import Model
@@ -137,24 +137,19 @@ class TestPersistentState:
 
     def test_exception_state_without_valid_location(self, state):
         s = {'a': 'b', 'c': 1, 'd': ['e', 'f', 'g'], 'h': {'i': 'j', 'k': True}}
-        instance = PersistentInstance("state.without.location", "")
-        with pytest.raises(StateReadException) as e:
-            state.persistent_state.get_state(instance)
-
-        if platform.system() == "Windows":
-            assert str(e.value) == """[Errno 22] invalid mode ('r') or filename: ''"""
-        else:
-            assert str(e.value) == """[Errno 2] No such file or directory: ''"""
+        instance = StateDescriptor("", "/my//broken...path//::--")
+        assert state.persistent_state.get_state(instance) is None
 
         with pytest.raises(StateNotPersistedException) as e:
             state.persistent_state.set_state(instance, s)
+            state.persistent_state.flush(instance)
         if platform.system() == "Windows":
-            assert str(e.value) == """[Errno 22] invalid mode ('w') or filename: ''"""
+            assert str(e.value) == """[Errno 22] invalid mode ('w') or filename: '/my//broken...path//::--/.state'"""
         else:
-            assert str(e.value) == """[Errno 2] No such file or directory: ''"""
+            assert str(e.value) == """[Errno 2] No such file or directory: '/my//broken...path//::--/.state'"""
 
     def test_exception_corrupted_state(self, state):
-        instance = PersistentInstance("state.with.corrupted.data", "state.with.corrupted.data")
+        instance = StateDescriptor("state.with.corrupted.data", ".")
         # write "corrupted" data
         with open(instance.file_location, 'w') as f:
             f.write("{'a': 'b', 'c': 1, 'd':....")
@@ -169,7 +164,7 @@ class TestPersistentState:
         os.remove(instance.file_location)
 
     def test_exception_unsupported_data_type_state(self, state):
-        instance = PersistentInstance("state.with.unsupported.data", "state.with.unsupported.data")
+        instance = StateDescriptor("state.with.unsupported.data", ".")
         with pytest.raises(ValueError) as e:
             state.persistent_state.set_state(instance, 123)
         if PY3:
@@ -181,11 +176,11 @@ class TestPersistentState:
 
     def test_state_flushing(self, state):
         s = {'a': 'b', 'c': 1, 'd': ['e', 'f', 'g'], 'h': {'i': 'j', 'k': True}}
-        instance = PersistentInstance("on.disk.state", "on.disk.state")
+        instance = StateDescriptor("on.disk.state", ".")
         state.assert_state(instance, s)
 
     def test_state_flushing_with_schema(self, state):
         s = TestStorageSchema({'offset': 10})
-        instance = PersistentInstance("on.disk.state.schema", "on.disk.state.schema")
+        instance = StateDescriptor("on.disk.state.schema", ".")
         rs = state.assert_state(instance, s, TestStorageSchema)
         assert rs.offset == s.offset

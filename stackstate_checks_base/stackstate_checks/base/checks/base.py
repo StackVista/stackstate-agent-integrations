@@ -52,7 +52,7 @@ from ..utils.limiter import Limiter
 from ..utils.identifiers import Identifiers
 from ..utils.telemetry import EventStream, TopologyEventContext, MetricStream, ServiceCheckStream, \
     ServiceCheckHealthChecks, Event
-from ..utils.persistent_state import PersistentInstance, PersistentState
+from ..utils.persistent_state import StateDescriptor, StateManager
 from deprecated.sphinx import deprecated
 from schematics.types import BaseType
 
@@ -164,6 +164,7 @@ class AgentCheckBase(object):
         self.cluster_name = datadog_agent.get_clustername()
 
         self.log = None
+        self.state_manager = StateManager(self.log)
         self._deprecations = {}
         # Set proxy settings
         self.proxies = self._get_requests_proxy()
@@ -173,6 +174,31 @@ class AgentCheckBase(object):
             self._use_agent_proxy = is_affirmative(self.init_config.get('use_agent_proxy', True))
 
         self.default_integration_http_timeout = float(self.agentConfig.get('default_integration_http_timeout', 9))
+
+    def _check_run_base(self, default_result):
+        try:
+            if self._get_instance_key_value().with_snapshots:
+                topology.submit_start_snapshot(self, self.check_id, self._get_instance_key())
+            instance = self.instances[0]
+            self.create_integration_instance(copy.deepcopy(instance))
+            self.check(copy.deepcopy(instance))
+            result = default_result
+            self.state_manager.flush(self._get_state_descriptor())
+        except Exception as e:
+            self.state_manager.rollback(self._get_state_descriptor())
+            result = json.dumps([
+                {
+                    "message": str(e),
+                    "traceback": traceback.format_exc(),
+                }
+            ])
+        finally:
+            if self.metric_limiter:
+                self.metric_limiter.reset()
+            if self._get_instance_key_value().with_snapshots:
+                topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key())
+
+        return result
 
     def set_metric_limits(self):
         try:
@@ -189,19 +215,10 @@ class AgentCheckBase(object):
         if metric_limit > 0:
             self.metric_limiter = Limiter(self.name, 'metrics', metric_limit, self.warning)
 
-    def _get_state_instance(self):
+    def _get_state_descriptor(self):
         instance = self._get_instance_key_value()
         instance_key = "instance.{}.{}".format(instance.type, instance.url)
-        return PersistentInstance(instance_key, "{}/{}.state".format(self.get_check_config_path(), instance_key))
-
-    def set_state(self, data):
-        self.state_manager.set_state(self._get_state_instance(), data)
-
-    def get_state(self, schema=None):
-        self.state_manager.get_state(self._get_state_instance(), schema)
-
-    def clear_state(self):
-        self.state_manager.clear(self._get_state_instance())
+        return StateDescriptor(instance_key, self.get_check_config_path())
 
     @staticmethod
     def load_config(yaml_str):
@@ -618,7 +635,6 @@ class __AgentCheckPy3(AgentCheckBase):
         """
         # the agent5 'AgentCheck' setup a log attribute.
         self.log = logging.getLogger('{}.{}'.format(__name__, self.name))
-        self.state_manager = PersistentState(self.log)
         self._deprecations = {
             'increment': [
                 False,
@@ -775,28 +791,7 @@ class __AgentCheckPy3(AgentCheckBase):
         self.warnings.append(warning_message)
 
     def run(self):
-        try:
-            if self._get_instance_key_value().with_snapshots:
-                topology.submit_start_snapshot(self, self.check_id, self._get_instance_key())
-            instance = self.instances[0]
-            self.create_integration_instance(copy.deepcopy(instance))
-            self.check(copy.deepcopy(instance))
-            result = ''
-            self.state_manager.flush(self._get_state_instance())
-        except Exception as e:
-            result = json.dumps([
-                {
-                    'message': str(e),
-                    'traceback': traceback.format_exc(),
-                }
-            ])
-        finally:
-            if self.metric_limiter:
-                self.metric_limiter.reset()
-            if self._get_instance_key_value().with_snapshots:
-                topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key())
-
-        return result
+        return self._check_run_base('')
 
 
 class __AgentCheckPy2(AgentCheckBase):
@@ -810,7 +805,6 @@ class __AgentCheckPy2(AgentCheckBase):
         """
         # the agent5 'AgentCheck' setup a log attribute.
         self.log = logging.getLogger('{}.{}'.format(__name__, self.name))
-        self.state_manager = PersistentState(self.log)
         self.check_id = b''
 
         self._deprecations = {
@@ -985,28 +979,7 @@ class __AgentCheckPy2(AgentCheckBase):
         self.warnings.append(warning_message)
 
     def run(self):
-        try:
-            if self._get_instance_key_value().with_snapshots:
-                topology.submit_start_snapshot(self, self.check_id, self._get_instance_key())
-            instance = self.instances[0]
-            self.create_integration_instance(copy.deepcopy(instance))
-            self.check(copy.deepcopy(instance))
-            result = b''
-            self.state_manager.flush(self._get_state_instance())
-        except Exception as e:
-            result = json.dumps([
-                {
-                    "message": str(e),
-                    "traceback": traceback.format_exc(),
-                }
-            ])
-        finally:
-            if self.metric_limiter:
-                self.metric_limiter.reset()
-            if self._get_instance_key_value().with_snapshots:
-                topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key())
-
-        return result
+        return self._check_run_base(b'')
 
 
 if PY3:

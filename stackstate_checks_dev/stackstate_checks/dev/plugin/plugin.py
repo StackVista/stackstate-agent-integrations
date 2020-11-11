@@ -12,7 +12,7 @@ import pytest
 from .._env import E2E_FIXTURE_NAME, TESTING_PLUGIN, e2e_active, get_env_vars, E2E_PARENT_PYTHON, \
     format_config, AGENT_COLLECTOR_SEPARATOR, replay_check_run
 
-from stackstate_checks.utils.persistent_state import PersistentState, StateReadException
+from stackstate_checks.utils.persistent_state import StateManager, StateReadException
 
 
 try:
@@ -200,11 +200,10 @@ def state():
     class PersistentStateFixture:
 
         def __init__(self):
-            self.persistent_state = PersistentState(logger)
+            self.persistent_state = StateManager(logger)
 
         def assert_state(self, instance, state, state_schema=None):
-            with pytest.raises(StateReadException):
-                self.persistent_state.get_state(instance, state_schema)
+            assert self.persistent_state.get_state(instance, state_schema) is None
             self.persistent_state.set_state(instance, state)
             assert self.persistent_state.get_state(instance, state_schema) == state
             self.persistent_state.flush(instance)

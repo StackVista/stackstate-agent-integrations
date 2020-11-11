@@ -12,7 +12,7 @@ from .utils.identifiers import Identifiers
 from .utils.telemetry import MetricStream, MetricHealthChecks, EventStream, EventHealthChecks, HealthState,\
     ServiceCheckStream, ServiceCheckHealthChecks, TopologyEventContext, SourceLink, Event
 from .utils.agent_integration_test_util import AgentIntegrationTestUtil
-from .utils.persistent_state import PersistentInstance, PersistentState, StateNotPersistedException, \
+from .utils.persistent_state import StateDescriptor, StateManager, StateNotPersistedException, \
     StateCorruptedException, StateReadException
 
 # Windows-only
@@ -52,8 +52,8 @@ __all__ = [
     'TopologyEventContext',
     'SourceLink',
     'Event',
-    'PersistentInstance',
-    'PersistentState',
+    'StateDescriptor',
+    'StateManager',
     'StateNotPersistedException',
     'StateCorruptedException',
     'StateReadException'
