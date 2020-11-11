@@ -18,39 +18,9 @@ from stackstate_checks.base.errors import CheckException
 BATCH_DEFAULT_SIZE = 2500
 BATCH_MAX_SIZE = 10000
 TIMEOUT = 20
-
-CR_STATE = {
-    '-5': 'New',
-    '-4': 'Assess',
-    '-3': 'Authorize',
-    '-2': 'Scheduled',
-    '-1': 'Implement',
-    '0': 'Review',
-    '3': 'Closed',
-    '4': 'Canceled'
-}
-
-CR_PRIORITY = {
-    '1': 'Critical',
-    '2': 'High',
-    '3': 'Moderate',
-    '4': 'Low'
-}
-
-CR_RISK = {
-    '1': 'Very High',
-    '2': 'High',
-    '3': 'Moderate',
-    '4': 'Low'
-}
-
-CR_IMPACT = {
-    '1': 'High',
-    '2': 'Medium',
-    '3': 'Low'
-}
-
-snow_names_cache = {}
+CRS_OLDEST_UPDATE_IN_NUMBER_OF_DAYS = 100
+CRS_DEFAULT_MAX_SIZE = 1000
+TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 
 class InstanceInfo(Model):
@@ -61,6 +31,8 @@ class InstanceInfo(Model):
     batch_size = IntType(default=BATCH_DEFAULT_SIZE, max_value=BATCH_MAX_SIZE)
     timeout = IntType(default=TIMEOUT)
     instance_tags = ListType(StringType, default=[])
+    crs_updated_in_days = IntType(default=CRS_OLDEST_UPDATE_IN_NUMBER_OF_DAYS)
+    crs_max_number = IntType(default=CRS_DEFAULT_MAX_SIZE)
 
 
 class ChangeRequest(Model):
@@ -82,6 +54,12 @@ class ChangeRequest(Model):
     conflict_last_run = StringType()
     assignment_group = DictType(StringType)
     assigned_to = DictType(StringType)
+
+
+class State(Model):
+    service_now_url = URLType(required=True)
+    latest_sys_updated_on = DateTimeType(required=True)
+    change_requests = DictType(StringType)
 
 
 class ServicenowCheck(AgentCheck):
@@ -306,7 +284,7 @@ class ServicenowCheck(AgentCheck):
 
     def _process_change_requests(self, instance_info):
         state = self.persistent_state.get_state(self.persistent_instance)
-        latest_sys_updated_on = datetime.datetime.strptime(state.get(instance_info.url), '%Y-%m-%d %H:%M:%S')
+        latest_sys_updated_on = datetime.datetime.strptime(state.get(instance_info.url), TIME_FORMAT)
         response = self._collect_change_requests(instance_info, latest_sys_updated_on)
         sanitized_result = self._sanitize_response(response['result'])
         crs_persisted_state = state[self.cr_persistence_key]
@@ -343,12 +321,13 @@ class ServicenowCheck(AgentCheck):
         """
         # TODO switch to schematics model
         self.persistent_state = PersistentState()
+        start_dt = datetime.datetime.now() - datetime.timedelta(days=CRS_OLDEST_UPDATE_IN_NUMBER_OF_DAYS)
         try:
             self.persistent_state.get_state(self.persistent_instance)
         except StateReadException:
             self.log.info('First run! Creating new persistent state.')
             empty_state = {
-                instance_info.url: '2000-01-01 00:00:00',
+                instance_info.url: start_dt.strftime(TIME_FORMAT),
                 self.cr_persistence_key: {}
             }
             self.persistent_state.set_state(self.persistent_instance, data=empty_state)
@@ -394,19 +373,6 @@ class ServicenowCheck(AgentCheck):
             },
             'tags': tags
         })
-
-    def _get_name(self, element, instance_info):
-        try:
-            name = snow_names_cache[element['value']]
-        except KeyError:
-            auth = (instance_info.user, instance_info.password)
-            response = self._get_json(element['link'], instance_info.timeout, auth)
-            if response.get('result'):
-                name = response.get('result')['name']
-                snow_names_cache[element['value']] = name
-            else:
-                name = 'Unknown'
-        return name
 
     def _get_json_batch(self, url, offset, batch_size, timeout, auth):
         if "?" not in url:
