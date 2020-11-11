@@ -7,7 +7,8 @@ import urllib
 import requests
 import yaml
 from schematics import Model
-from schematics.types import URLType, StringType, ListType, IntType, BaseType
+from schematics.exceptions import DataError
+from schematics.types import URLType, StringType, ListType, IntType, DictType, DateTimeType
 from yaml.parser import ParserError
 
 from stackstate_checks.base import AgentCheck, TopologyInstance, Identifiers, PersistentInstance, PersistentState, \
@@ -62,29 +63,25 @@ class InstanceInfo(Model):
     instance_tags = ListType(StringType, default=[])
 
 
-class LinkType(BaseType):
-    link = URLType()
-    value = StringType()
-
-
 class ChangeRequest(Model):
     number = StringType(required=True)
-    cmdb_ci = LinkType(required=True)
+    cmdb_ci = DictType(StringType, required=True)
     state = StringType(required=True)
+    sys_updated_on = DateTimeType()
     business_service = StringType()
     service_offering = StringType()
-    short_description = StringType()
+    short_description = StringType(required=True)
     description = StringType()
     type = StringType()
     priority = StringType(required=True)
     impact = StringType(required=True)
     risk = StringType(required=True)
-    requested_by = LinkType()
+    requested_by = DictType(StringType)
     category = StringType()
     conflict_status = StringType()
     conflict_last_run = StringType()
-    assignment_group = LinkType()
-    assigned_to = LinkType()
+    assignment_group = DictType(StringType)
+    assigned_to = DictType(StringType)
 
 
 class ServicenowCheck(AgentCheck):
@@ -289,29 +286,45 @@ class ServicenowCheck(AgentCheck):
             self.relation(parent_sys_id, child_sys_id, relation_type, data)
 
     def _collect_change_requests(self, instance_info, latest_sys_updated_on=None):
+        # TODO: add limit for max number of events that we'll process
         auth = (instance_info.user, instance_info.password)
         url = instance_info.url + '/api/now/table/change_request'
         if latest_sys_updated_on:
-            reformatted_date = ','.join("'{}'".format(i) for i in latest_sys_updated_on.split(' '))
+            reformatted_date = ','.join("'{}'".format(i) for i in str(latest_sys_updated_on).split(' '))
             quoted_date = urllib.parse.quote(reformatted_date)
-            url += "?sysparm_query=sys_updated_on>javascript%3Ags.dateGenerate({})".format(quoted_date)
+            params = '?sysparm_query=sys_updated_on>javascript%3Ags.dateGenerate({})'.format(quoted_date)
+            params += '&sysparm_display_value=true'
+            url += params
         self.log.debug('url for getting CRs: %s', url)
         return self._get_json(url, instance_info.timeout, auth)
 
+    def _sanitize_response(self, cr_list):
+        sanitized_crs = []
+        for cr in cr_list:
+            sanitized_crs.append(self.filter_empty_metadata(cr))
+        return sanitized_crs
+
     def _process_change_requests(self, instance_info):
         state = self.persistent_state.get_state(self.persistent_instance)
-        latest_sys_updated_on = state.get(instance_info.url)
-        result = self._collect_change_requests(instance_info, latest_sys_updated_on)
+        latest_sys_updated_on = datetime.datetime.strptime(state.get(instance_info.url), '%Y-%m-%d %H:%M:%S')
+        response = self._collect_change_requests(instance_info, latest_sys_updated_on)
+        sanitized_result = self._sanitize_response(response['result'])
         crs_persisted_state = state[self.cr_persistence_key]
-        for change_request in result['result']:
-            cmdb_ci = change_request.get('cmdb_ci')
-            if cmdb_ci:
-                # TODO: add limit for max number of events that we'll process
-                old_state = crs_persisted_state.get(change_request['number'])
-                if old_state is None or old_state != change_request['state']:
-                    # TODO: add checking for latest_sys_updated_on
-                    self._create_event_from_cr(change_request, instance_info)
-                    crs_persisted_state[change_request['number']] = change_request['state']
+        for cr in sanitized_result:
+            try:
+                change_request = ChangeRequest(cr, strict=False)
+                change_request.validate()
+            except DataError as e:
+                self.log.info('%s - DataError: %s. This CR is skipped.', cr.get('number'), e)
+                continue
+            if change_request.cmdb_ci:
+                if change_request.sys_updated_on > latest_sys_updated_on:
+                    latest_sys_updated_on = change_request.sys_updated_on
+                    state[instance_info.url] = str(latest_sys_updated_on)
+                old_state = crs_persisted_state.get(change_request.number)
+                if old_state is None or old_state != change_request.state:
+                    self._create_event_from_change_request(change_request, instance_info)
+                    crs_persisted_state[change_request.number] = change_request.state
         self.persistent_state.set_state(self.persistent_instance, state)
 
     def _load_state(self, instance_info):
@@ -328,45 +341,44 @@ class ServicenowCheck(AgentCheck):
         :param instance_info: current instance check is processing
         :return: None
         """
+        # TODO switch to schematics model
         self.persistent_state = PersistentState()
         try:
             self.persistent_state.get_state(self.persistent_instance)
         except StateReadException:
             self.log.info('First run! Creating new persistent state.')
             empty_state = {
-                instance_info.url: '',
+                instance_info.url: '2000-01-01 00:00:00',
                 self.cr_persistence_key: {}
             }
             self.persistent_state.set_state(self.persistent_instance, data=empty_state)
 
-    def _create_event_from_cr(self, change_request, instance_info):
+    def _create_event_from_change_request(self, change_request, instance_info):
+        cmdb_ci = change_request.cmdb_ci
         identifiers = []
-        # TODO try with the Schematics
-        # change_request = ChangeRequest(cr, strict=False)
-        # change_request.validate()
-        cmdb_ci = change_request.get('cmdb_ci')
-        external_id = cmdb_ci['value']
+        external_id = cmdb_ci['link'].split('/').pop()
         identifiers.append(external_id)
-        # TODO check if we'll get the names
-        # name = self._get_name(cmdb_ci, instance_info)
-        # identifiers.append(Identifiers.create_host_identifier(name))
+        identifiers.append(Identifiers.create_host_identifier(cmdb_ci['display_value']))
+        msg_title = '{}: {}'.format(change_request.number, change_request.short_description)
+        if change_request.description:
+            msg_text = change_request.description
+        else:
+            msg_text = change_request.short_description
         tags = [
-            'number:{}'.format(change_request.get('number')),
-            'priority:{}'.format(change_request.get('priority')),
-            'risk:{}'.format(change_request.get('risk')),
-            'state:{}'.format(change_request.get('state')),
-            'category:{}'.format(change_request.get('category')),
-            'conflict_status:{}'.format(change_request.get('conflict_status')),
-            'assigned_to:{}'.format(change_request.get('assigned_to'))
+            'number:{}'.format(change_request.number),
+            'priority:{}'.format(change_request.priority),
+            'risk:{}'.format(change_request.risk),
+            'state:{}'.format(change_request.state),
+            'category:{}'.format(change_request.category),
+            'conflict_status:{}'.format(change_request.conflict_status),
+            'assigned_to:{}'.format(change_request.assigned_to)
         ]
         self.event({
-            'timestamp': datetime.datetime.timestamp(
-                datetime.datetime.strptime(change_request.get('sys_updated_on'), '%Y-%m-%d %H:%M:%S')
-            ),
-            'event_type': change_request.get('type'),
-            'msg_title': change_request.get('short_description'),
-            'msg_text': change_request.get('description'),
-            # TODO do we need an aggregation_key
+            'timestamp': datetime.datetime.timestamp(change_request.sys_updated_on),
+            'event_type': change_request.type,
+            'msg_title': msg_title,
+            'msg_text': msg_text,
+            # TODO do we need an aggregation_key?
             # 'aggregation_key': '???',
             'context': {
                 'source': 'servicenow',
@@ -374,10 +386,10 @@ class ServicenowCheck(AgentCheck):
                 'element_identifiers': identifiers,
                 'data': {
                     'cmdb_ci': cmdb_ci,
-                    'impact': change_request.get('impact'),
-                    'requested_by': change_request.get('requested_by'),
-                    'conflict_last_run': change_request.get('conflict_last_run'),
-                    'assignment_group': change_request.get('assignment_group')
+                    'impact': change_request.impact,
+                    'requested_by': change_request.requested_by,
+                    'conflict_last_run': change_request.conflict_last_run,
+                    'assignment_group': change_request.assignment_group
                 },
             },
             'tags': tags
@@ -407,8 +419,7 @@ class ServicenowCheck(AgentCheck):
         limited_url = url + limit_args
         return self._get_json(limited_url, timeout, auth)
 
-    @staticmethod
-    def _get_json(url, timeout, auth=None, verify=True):
+    def _get_json(self, url, timeout, auth=None, verify=True):
         execution_time_exceeded_error_message = 'Transaction cancelled: maximum execution time exceeded'
 
         response = requests.get(url, timeout=timeout, auth=auth, verify=verify)
@@ -429,4 +440,5 @@ class ServicenowCheck(AgentCheck):
         if response_json.get("error"):
             raise CheckException(response_json["error"].get("message"))
 
+        self.log.debug('Got %d results in response', len(response_json['result']))
         return response_json
