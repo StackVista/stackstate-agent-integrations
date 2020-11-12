@@ -284,10 +284,11 @@ class ServicenowCheck(AgentCheck):
 
     def _process_change_requests(self, instance_info):
         state = self.persistent_state.get_state(self.persistent_instance)
-        latest_sys_updated_on = datetime.datetime.strptime(state.get(instance_info.url), TIME_FORMAT)
+        instance_state = state.get(instance_info.url)
+        latest_sys_updated_on = datetime.datetime.strptime(instance_state.get('latest_sys_updated_on'), TIME_FORMAT)
         response = self._collect_change_requests(instance_info, latest_sys_updated_on)
         sanitized_result = self._sanitize_response(response['result'])
-        crs_persisted_state = state[self.cr_persistence_key]
+        crs_persisted_state = instance_state.get('change_requests', {})
         for cr in sanitized_result:
             try:
                 change_request = ChangeRequest(cr, strict=False)
@@ -298,7 +299,7 @@ class ServicenowCheck(AgentCheck):
             if change_request.cmdb_ci:
                 if change_request.sys_updated_on > latest_sys_updated_on:
                     latest_sys_updated_on = change_request.sys_updated_on
-                    state[instance_info.url] = str(latest_sys_updated_on)
+                    state[instance_info.url]['latest_sys_updated_on'] = str(latest_sys_updated_on)
                 old_state = crs_persisted_state.get(change_request.number)
                 if old_state is None or old_state != change_request.state:
                     self._create_event_from_change_request(change_request, instance_info)
@@ -309,13 +310,13 @@ class ServicenowCheck(AgentCheck):
         """
         Persistent State structure:
         {
-            url: timestamp,
-            url/change_requests: {
-                change_request_number: state
-            }
+            url: {
+                latest_sys_updated_on: timestamp
+                change_requests: {
+                    change_request_number: state
+                }
+            },
         }
-        timestamp is the date/time of the last sys_updated_on from processed CRs
-
         :param instance_info: current instance check is processing
         :return: None
         """
@@ -327,8 +328,10 @@ class ServicenowCheck(AgentCheck):
         except StateReadException:
             self.log.info('First run! Creating new persistent state.')
             empty_state = {
-                instance_info.url: start_dt.strftime(TIME_FORMAT),
-                self.cr_persistence_key: {}
+                instance_info.url: {
+                    'latest_sys_updated_on': start_dt.strftime(TIME_FORMAT),
+                    'change_requests': {}
+                }
             }
             self.persistent_state.set_state(self.persistent_instance, data=empty_state)
 
