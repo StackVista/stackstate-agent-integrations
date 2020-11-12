@@ -130,6 +130,11 @@ class AgentCheckBase(object):
     """
     DEFAULT_METRIC_LIMIT = 0
 
+    """
+    INSTANCE_SCHEMA
+    """
+    INSTANCE_SCHEMA = None
+
     def __init__(self, *args, **kwargs):
         self.check_id = ''
         self.metrics = defaultdict(list)
@@ -176,16 +181,26 @@ class AgentCheckBase(object):
         self.default_integration_http_timeout = float(self.agentConfig.get('default_integration_http_timeout', 9))
 
     def _check_run_base(self, default_result):
+        state_descriptor = self._get_state_descriptor()
         try:
             if self._get_instance_key_value().with_snapshots:
                 topology.submit_start_snapshot(self, self.check_id, self._get_instance_key())
             instance = self.instances[0]
+            # create integration instance with a copy of instance
             self.create_integration_instance(copy.deepcopy(instance))
-            self.check(copy.deepcopy(instance))
+            # create a copy of the instance, get state if any and add it to the instance object for the check
+            check_instance = copy.deepcopy(instance)
+            check_instance['state'] = self.state_manager.get_state(self._get_state_descriptor())
+            # if this check has a instance schema defined, cast it into that type and validate it
+            if self.INSTANCE_SCHEMA:
+                check_instance = self.INSTANCE_SCHEMA(check_instance, strict=False)  # strict=False ignores extra fields
+                check_instance.validate()
+            self.check(check_instance)
             result = default_result
-            self.state_manager.flush(self._get_state_descriptor())
+            self.state_manager.set_state(state_descriptor, check_instance.get('state'))
+            self.state_manager.flush(state_descriptor)
         except Exception as e:
-            self.state_manager.rollback(self._get_state_descriptor())
+            self.state_manager.rollback(state_descriptor)
             result = json.dumps([
                 {
                     "message": str(e),

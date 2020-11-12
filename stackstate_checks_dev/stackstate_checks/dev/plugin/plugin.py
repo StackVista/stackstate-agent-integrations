@@ -209,8 +209,8 @@ def state():
             self.persistent_state.flush(instance)
             assert self.persistent_state.get_state(instance, state_schema) == state
             self.persistent_state.clear(instance)
-            with pytest.raises(StateReadException):
-                self.persistent_state.get_state(instance, state_schema)
+            assert os.path.isfile(instance.file_location) is False
+            assert self.persistent_state.get_state(instance, state_schema) is None
 
             return state
 

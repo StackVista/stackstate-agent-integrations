@@ -91,7 +91,7 @@ class StateManager:
         else:
             state = json.loads(self.state[instance.instance_key])
 
-        if schema:
+        if state and schema:
             state = schema(state)
             state.validate()
 
