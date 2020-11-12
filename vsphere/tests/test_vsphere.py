@@ -1000,3 +1000,26 @@ class TestVsphereTopo(unittest.TestCase):
         self.assertIs(type(vm['topo_tags']['name']), str)
         self.assertEqual(vm['hostname'], 'Ubuntu')
         self.assertEqual(vm['topo_tags']['name'], 'Ubuntu')
+
+    def test_get_topologyitems_for_vm_with_session_relogin(self):
+        """
+        Test if it reconnects the sever and returns the vm even the server fails to make calls
+        """
+        instance = {'name': 'vsphere_mock', 'host': "ESXi"}
+
+        server_mock = MagicMock()
+        server_mock.configure_mock(**{'RetrieveContent.return_value': self.mock_content("vm")})
+        # make this server call fails and see if it reconnects
+        server_mock.configure_mock(**{'CurrentTime.side_effect': Exception("Unauthenticated")})
+        self.check._smart_connect = MagicMock(return_value=server_mock)
+
+        # mock the vpshere client connect
+        self.check.vsphere_client_connect = MagicMock()
+        # get the client
+        client = vsphere_client()
+        client.tagging.TagAssociation.list_attached_tags = MagicMock(return_value=[])
+        self.check.client = client
+
+        topo_dict = self.check.get_topologyitems_sync(instance)
+        # Even the server failed to connect, it reconnects and process the vm
+        self.assertEqual(len(topo_dict["vms"]), 1)
