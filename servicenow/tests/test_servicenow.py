@@ -101,14 +101,14 @@ mock_relation_components = {
     'result': [
         {
             'type': {
-                'link': 'https://dev60476.service-now.com/api/now/table/cmdb_rel_type/1a9cb166f1571100a92eb60da2bc',
+                'link': 'https://instance.service-now.com/api/now/table/cmdb_rel_type/1a9cb166f1571100a92eb60da2bc',
                 'value': '1a9cb166f1571100a92eb60da2bce5c5'
             },
             'parent': {
-                'link': 'https://dev60476.service-now.com/api/now/table/cmdb_ci/451047c6c0a8016400de0ae6df9b9d76',
+                'link': 'https://instance.service-now.com/api/now/table/cmdb_ci/451047c6c0a8016400de0ae6df9b9d76',
                 'value': '451047c6c0a8016400de0ae6df9b9d76'},
             'child': {
-                'link': 'https://dev60476.service-now.com/api/now/table/cmdb_ci/53979c53c0a801640116ad2044643fb2',
+                'link': 'https://instance.service-now.com/api/now/table/cmdb_ci/53979c53c0a801640116ad2044643fb2',
                 'value': '53979c53c0a801640116ad2044643fb2'
             }
         }
@@ -119,13 +119,13 @@ mock_relation_components = {
 mock_relation_with_filter = {
     'result': [
         {'type': {
-            'link': 'https://dev60476.service-now.com/api/now/table/cmdb_rel_type/1a9cb166f1571100a92eb60da2bce5c5',
+            'link': 'https://instance.service-now.com/api/now/table/cmdb_rel_type/1a9cb166f1571100a92eb60da2bce5c5',
             'value': '1a9cb166f1571100a92eb60da2bce5c5'},
             'parent': {
-                'link': 'https://dev60476.service-now.com/api/now/table/cmdb_ci/451047c6c0a8016400de0ae6df9b9d76',
+                'link': 'https://instance.service-now.com/api/now/table/cmdb_ci/451047c6c0a8016400de0ae6df9b9d76',
                 'value': '451047c6c0a8016400de0ae6df9b9d76'},
             'child': {
-                'link': 'https://dev60476.service-now.com/api/now/table/cmdb_ci/53979c53c0a801640116ad2044643fb2',
+                'link': 'https://instance.service-now.com/api/now/table/cmdb_ci/53979c53c0a801640116ad2044643fb2',
                 'value': '53979c53c0a801640116ad2044643fb2'
             }}
     ]
@@ -177,7 +177,7 @@ mock_result_with_malformed_str = '''
 '''
 
 mock_instance = {
-    'url': "https://dev60476.service-now.com",
+    'url': "https://instance.service-now.com",
     'user': 'name',
     'password': 'secret'
 }
@@ -226,7 +226,7 @@ class TestServicenow(unittest.TestCase):
         self.assertEqual(len(topo_instances['relations']), 0)
 
         AgentIntegrationTestUtil.assert_integration_snapshot(self.check,
-                                                             'servicenow_cmdb:https://dev60476.service-now.com')
+                                                             'servicenow_cmdb:https://instance.service-now.com')
 
     def test_when_check_has_exception_stop_snapshot_is_false(self):
         """

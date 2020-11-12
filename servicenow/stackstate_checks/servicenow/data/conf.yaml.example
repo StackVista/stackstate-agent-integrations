@@ -3,9 +3,9 @@ init_config:
 instances:
 
   # URL of ServiceNow instance
-  - url: "https://dev60476.service-now.com"
-    user: admin
-    password: Service@123
+  - url: "https://instance.service-now.com"
+    user: username
+    password: secret
 
     # Batch size for paginating results. Default value is 2500. Max value is 10000.
     # batch_size: 2500
