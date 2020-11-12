@@ -128,8 +128,16 @@ class StateManager:
         `instance` the persistence instance for which the state is flushed to disk.
         """
         if instance.instance_key in self.state:
+            # check if folder and file exists before writing
+            if not os.path.exists(os.path.dirname(instance.file_location)):
+                try:
+                    os.makedirs(os.path.dirname(instance.file_location))
+                except OSError as e:
+                    if e.errno != errno.EEXIST:
+                        raise StateNotPersistedException(e)
+
             try:
-                with open(instance.file_location, 'w') as f:
+                with open(instance.file_location, 'w+') as f:
                     f.write(json.dumps(self.state[instance.instance_key]))
             except IOError as e:
                 # if we couldn't save, drop the state

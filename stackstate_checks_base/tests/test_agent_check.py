@@ -4,6 +4,9 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import mock
+import shutil
+from schematics import Model
+from schematics.types import IntType, StringType, ModelType
 import pytest
 from six import PY3
 
@@ -345,6 +348,69 @@ class TopologyBrokenCheck(TopologyAutoSnapshotCheck):
         raise Exception("some error in my check")
 
 
+class TopologyStatefulCheck(TopologyAutoSnapshotCheck):
+    def __init__(self):
+        super(TopologyStatefulCheck, self).__init__()
+
+    @staticmethod
+    def get_agent_conf_d_path():
+        return "./test_data"
+
+    def check(self, instance):
+        state = {
+            'string': 'string',
+            'int': 1,
+            'float': 1.0,
+            'bool': True,
+            'list': ['a', 'b', 'c'],
+            'dict': {'a': 'b'}
+        }
+        instance.update({'state': state})
+
+
+class TopologyClearStatefulCheck(TopologyStatefulCheck):
+    def __init__(self):
+        super(TopologyClearStatefulCheck, self).__init__()
+
+    def check(self, instance):
+        instance.update({'state': None})
+
+
+class TopologyRollbackStatefulCheck(TopologyStatefulCheck):
+    def __init__(self):
+        super(TopologyRollbackStatefulCheck, self).__init__()
+
+    def check(self, instance):
+        state = {
+            'string': 'string',
+            'int': 1,
+            'float': 1.0,
+            'bool': True,
+            'list': ['a', 'b', 'c'],
+            'dict': {'a': 'b'}
+        }
+        instance.update({'state': state})
+
+        raise Exception("some error in my check")
+
+
+class StateSchema(Model):
+    offset = IntType(required=True)
+
+
+class CheckInstanceSchema(Model):
+    a = StringType(required=True)
+    state = ModelType(StateSchema, required=True, default=StateSchema({'offset': 0}))
+
+
+class TopologyStatefulSchemaCheck(TopologyStatefulCheck):
+    INSTANCE_SCHEMA = CheckInstanceSchema
+
+    def check(self, instance):
+        print(instance.a)
+        instance.state.offset = 20
+
+
 class TestTopology:
     def test_component(self, topology):
         check = TopologyCheck()
@@ -361,9 +427,7 @@ class TestTopology:
 
     def test_auto_snapshotting(self, topology):
         check = TopologyAutoSnapshotCheck()
-        a = check.run()
-
-        print(a)
+        check.run()
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
 
@@ -382,6 +446,78 @@ class TestTopology:
         check = TopologyCheck()
         check.stop_snapshot()
         topology.assert_snapshot(check.check_id, check.key, stop_snapshot=True)
+
+    def test_stateful_check(self, topology):
+        check = TopologyStatefulCheck()
+        state_descriptor = check._get_state_descriptor()
+        assert check.state_manager.get_state(state_descriptor) is None
+        check.run()
+        assert check.state_manager.get_state(state_descriptor) == {
+            'string': 'string',
+            'int': 1,
+            'float': 1.0,
+            'bool': True,
+            'list': ['a', 'b', 'c'],
+            'dict': {'a': 'b'}
+        }
+        # assert auto snapshotting occurred
+        topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
+
+        # remove all test data
+        check.state_manager.clear(state_descriptor)
+        shutil.rmtree(check.get_agent_conf_d_path())
+
+    def test_clear_stateful_check(self, topology):
+        check = TopologyClearStatefulCheck()
+        state_descriptor = check._get_state_descriptor()
+        # set state and flush
+        check.state_manager.set_state(state_descriptor, {
+            'string': 'string',
+            'int': 1,
+            'float': 1.0,
+            'bool': True,
+            'list': ['a', 'b', 'c'],
+            'dict': {'a': 'b'}
+        })
+        check.state_manager.flush(state_descriptor)
+        # run the agent check, clearing the state
+        check.run()
+        assert check.state_manager.get_state(state_descriptor) is None
+        # assert auto snapshotting occurred
+        topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
+
+        # remove all test data
+        check.state_manager.clear(state_descriptor)
+        shutil.rmtree(check.get_agent_conf_d_path())
+
+    def test_rollback_stateful_check(self, topology):
+        check = TopologyRollbackStatefulCheck()
+        state_descriptor = check._get_state_descriptor()
+        # set state and flush
+        check.state_manager.set_state(state_descriptor, {'my_old': 'state'})
+        check.state_manager.flush(state_descriptor)
+        # run the agent check, trying to update the state and raising an exception
+        check.run()
+        assert check.state_manager.get_state(state_descriptor) == {'my_old': 'state'}
+        # assert auto snapshotting occurred
+        topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=False)
+
+        # remove all test data
+        check.state_manager.clear(state_descriptor)
+        shutil.rmtree(check.get_agent_conf_d_path())
+
+    def test_stateful_schema_check(self, topology):
+        check = TopologyStatefulSchemaCheck()
+        state_descriptor = check._get_state_descriptor()
+        assert check.state_manager.get_state(state_descriptor) is None
+        check.run()
+        assert check.state_manager.get_state(state_descriptor, StateSchema) == StateSchema({'offset': 20})
+        # assert auto snapshotting occurred
+        topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
+
+        # remove all test data
+        check.state_manager.clear(state_descriptor)
+        shutil.rmtree(check.get_agent_conf_d_path())
 
     def test_none_data_ok(self, topology):
         check = TopologyCheck()

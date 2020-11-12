@@ -11,7 +11,7 @@ from stackstate_checks.utils.limiter import Limiter
 from stackstate_checks.utils.persistent_state import StateManager, StateDescriptor, StateNotPersistedException, \
     StateCorruptedException, StateReadException
 from six import PY3
-from schematics.models import Model
+from schematics import Model
 from schematics.types import IntType
 
 
@@ -146,7 +146,7 @@ class TestPersistentState:
         if platform.system() == "Windows":
             assert str(e.value) == """[Errno 22] invalid mode ('w') or filename: '/my//broken...path//::--/.state'"""
         else:
-            assert str(e.value) == """[Errno 2] No such file or directory: '/my//broken...path//::--/.state'"""
+            assert str(e.value) == """[Errno 13] Permission denied: '/my'"""
 
     def test_exception_corrupted_state(self, state):
         instance = StateDescriptor("state.with.corrupted.data", ".")

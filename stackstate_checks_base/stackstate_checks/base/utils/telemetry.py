@@ -1,7 +1,7 @@
 from six import iteritems, string_types
 from enum import Enum
 import uuid
-from schematics.models import Model
+from schematics import Model
 from schematics.types import StringType, URLType, ModelType, ListType, IntType, BaseType
 from schematics.exceptions import ValidationError
 

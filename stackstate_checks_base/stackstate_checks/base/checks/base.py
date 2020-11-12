@@ -641,11 +641,10 @@ class AgentCheckBase(object):
         return proxies if proxies else no_proxy_settings
 
     def get_check_config_path(self):
-        return "{}/{}.d".format(AgentCheck.get_config("confd_path"), self.name)
+        return "{}/{}.d".format(self.get_agent_conf_d_path(), self.name)
 
-    @staticmethod
-    def get_agent_confd_path():
-        return AgentCheck.get_config("confd_path")
+    def get_agent_conf_d_path(self):
+        return self.get_config("confd_path")
 
     @staticmethod
     def get_config(key):
