@@ -174,20 +174,23 @@ class ServicenowCheck(AgentCheck):
         offset = 0
         batch_number = 0
         completed = False
+        collection = []
 
         while not completed:
             elements = collect_function(instance_info, offset)
             if "result" in elements and isinstance(elements["result"], list):
                 number_of_elements_in_current_batch = len(elements.get("result"))
-                process_function(elements, instance_info)
             else:
                 raise CheckException('Method {} has no result'.format(collect_function))
             completed = number_of_elements_in_current_batch < instance_info.batch_size
+            collection.extend(elements['result'])
             batch_number += 1
             offset += instance_info.batch_size
             self.log.info(
                 'Processed batch no. {} with {} items.'.format(batch_number, number_of_elements_in_current_batch)
             )
+
+        process_function({'result': collection}, instance_info)
 
     def _process_components(self, components, instance_info):
         """
