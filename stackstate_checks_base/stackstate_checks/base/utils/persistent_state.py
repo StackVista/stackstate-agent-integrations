@@ -75,7 +75,7 @@ class StateManager:
             raise StateCorruptedException(e)
         except IOError as e:
             # File not found / no file for this state so the state doesn't exist. Catch exception and return None
-            if e.errno == errno.ENOENT:
+            if e.errno == errno.ENOENT or e.errno == errno.EINVAL:
                 self.log.debug("PersistentState: No state file found for instance: {} expecting it at: {}. {}"
                                .format(instance.instance_key, instance.file_location, e))
                 return None
@@ -134,6 +134,8 @@ class StateManager:
                     os.makedirs(os.path.dirname(instance.file_location))
                 except OSError as e:
                     if e.errno != errno.EEXIST:
+                        # if we couldn't save, drop the state
+                        del self.state[instance.instance_key]
                         raise StateNotPersistedException(e)
 
             try:

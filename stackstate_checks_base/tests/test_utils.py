@@ -137,16 +137,18 @@ class TestPersistentState:
 
     def test_exception_state_without_valid_location(self, state):
         s = {'a': 'b', 'c': 1, 'd': ['e', 'f', 'g'], 'h': {'i': 'j', 'k': True}}
-        instance = StateDescriptor("", "/my//broken...path//::--")
+        instance = StateDescriptor("", "")
+        # set an invalid file_location
+        instance.file_location = ""
         assert state.persistent_state.get_state(instance) is None
 
         with pytest.raises(StateNotPersistedException) as e:
             state.persistent_state.set_state(instance, s)
             state.persistent_state.flush(instance)
         if platform.system() == "Windows":
-            assert str(e.value) == """[Errno 22] invalid mode ('w') or filename: '/my//broken...path//::--/.state'"""
+            assert str(e.value) == """[Errno 22] invalid mode ('w') or filename: ''"""
         else:
-            assert str(e.value) == """[Errno 13] Permission denied: '/my'"""
+            assert str(e.value) == """[Errno 2] No such file or directory: ''"""
 
     def test_exception_corrupted_state(self, state):
         instance = StateDescriptor("state.with.corrupted.data", ".")

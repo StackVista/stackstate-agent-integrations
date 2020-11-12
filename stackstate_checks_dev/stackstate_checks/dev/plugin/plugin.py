@@ -12,7 +12,7 @@ import pytest
 from .._env import E2E_FIXTURE_NAME, TESTING_PLUGIN, e2e_active, get_env_vars, E2E_PARENT_PYTHON, \
     format_config, AGENT_COLLECTOR_SEPARATOR, replay_check_run
 
-from stackstate_checks.utils.persistent_state import StateManager, StateReadException
+from stackstate_checks.utils.persistent_state import StateManager
 
 
 try:
