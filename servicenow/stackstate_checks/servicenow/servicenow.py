@@ -2,7 +2,13 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import datetime
-import urllib
+import json
+import os
+
+try:
+    from urllib.parse import quote
+except ImportError:
+    from urllib import quote
 
 import requests
 import yaml
@@ -11,8 +17,7 @@ from schematics.exceptions import DataError
 from schematics.types import URLType, StringType, ListType, IntType, DictType, DateTimeType
 from yaml.parser import ParserError
 
-from stackstate_checks.base import AgentCheck, TopologyInstance, Identifiers, PersistentInstance, PersistentState, \
-    StateReadException
+from stackstate_checks.base import AgentCheck, TopologyInstance, Identifiers
 from stackstate_checks.base.errors import CheckException
 
 BATCH_DEFAULT_SIZE = 2500
@@ -269,7 +274,7 @@ class ServicenowCheck(AgentCheck):
         url = instance_info.url + '/api/now/table/change_request'
         if latest_sys_updated_on:
             reformatted_date = ','.join("'{}'".format(i) for i in str(latest_sys_updated_on).split(' '))
-            quoted_date = urllib.parse.quote(reformatted_date)
+            quoted_date = quote(reformatted_date)
             params = '?sysparm_query=sys_updated_on>javascript%3Ags.dateGenerate({})'.format(quoted_date)
             params += '&sysparm_display_value=true'
             url += params
@@ -302,7 +307,7 @@ class ServicenowCheck(AgentCheck):
                     state[instance_info.url]['latest_sys_updated_on'] = str(latest_sys_updated_on)
                 old_state = crs_persisted_state.get(change_request.number)
                 if old_state is None or old_state != change_request.state:
-                    self._create_event_from_change_request(change_request, instance_info)
+                    self._create_event_from_change_request(change_request)
                     crs_persisted_state[change_request.number] = change_request.state
         self.persistent_state.set_state(self.persistent_instance, state)
 
@@ -335,13 +340,14 @@ class ServicenowCheck(AgentCheck):
             }
             self.persistent_state.set_state(self.persistent_instance, data=empty_state)
 
-    def _create_event_from_change_request(self, change_request, instance_info):
+    def _create_event_from_change_request(self, change_request):
         cmdb_ci = change_request.cmdb_ci
         identifiers = []
         external_id = cmdb_ci['link'].split('/').pop()
         identifiers.append(external_id)
         identifiers.append(Identifiers.create_host_identifier(cmdb_ci['display_value']))
         msg_title = '{}: {}'.format(change_request.number, change_request.short_description)
+        timestamp = (change_request.sys_updated_on - datetime.datetime.utcfromtimestamp(0)).total_seconds()
         if change_request.description:
             msg_text = change_request.description
         else:
@@ -356,7 +362,7 @@ class ServicenowCheck(AgentCheck):
             'assigned_to:{}'.format(change_request.assigned_to)
         ]
         self.event({
-            'timestamp': datetime.datetime.timestamp(change_request.sys_updated_on),
+            'timestamp': timestamp,
             'event_type': change_request.type,
             'msg_title': msg_title,
             'msg_text': msg_text,
@@ -413,3 +419,95 @@ class ServicenowCheck(AgentCheck):
             self.log.debug('Got %d results in response', len(response_json['result']))
 
         return response_json
+
+
+class PersistentInstance:
+    def __init__(self, instance_key, file_location):
+        self.instance_key = instance_key
+        self.file_location = file_location
+
+
+class PersistentState:
+    """
+
+    """
+
+    def __init__(self):
+        self.data = dict()
+
+    def clear(self, instance):
+        """
+
+        """
+        if instance.instance_key in self.data:
+            del self.data[instance.instance_key]
+
+        try:
+            os.remove(instance.file_location)
+        except OSError:
+            # log info
+            pass
+
+    def get_state(self, instance, schema=None):
+        """
+
+        """
+        if instance.instance_key not in self.data:
+            try:
+                with open(instance.file_location, 'r') as f:
+                    data = json.loads(f.read())
+            except ValueError as e:
+                # log this
+                raise StateCorruptedException(e)
+            except IOError as e:
+                # log info
+                raise StateReadException(e)
+        else:
+            data = json.loads(self.data[instance.instance_key])
+
+        if schema:
+            data = schema(data)
+            data.validate()
+
+        return data
+
+    def set_state(self, instance, data):
+        """
+
+        """
+        if isinstance(data, dict):
+            data = json.dumps(data)
+        elif isinstance(data, Model):
+            data = json.dumps(data.to_native())
+
+        # first time insert for this instance, flush right away to ensure that we can write to file
+        if instance.instance_key not in self.data:
+            self.data[instance.instance_key] = data
+            self.flush(instance)
+        else:
+            self.data[instance.instance_key] = data
+
+    def flush(self, instance):
+        """
+
+        """
+        if instance.instance_key in self.data:
+            try:
+                with open(instance.file_location, 'w') as f:
+                    f.write(self.data[instance.instance_key])
+            except IOError as e:
+                # if we couldn't save, drop the state
+                del self.data[instance.instance_key]
+                raise StateNotPersistedException(e)
+
+
+class StateNotPersistedException(Exception):
+    pass
+
+
+class StateCorruptedException(Exception):
+    pass
+
+
+class StateReadException(Exception):
+    pass
