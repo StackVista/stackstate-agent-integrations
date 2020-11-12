@@ -146,7 +146,7 @@ class TestPersistentState:
             state.persistent_state.set_state(instance, s)
             state.persistent_state.flush(instance)
         if platform.system() == "Windows":
-            assert str(e.value) == """[Errno 22] invalid mode ('w') or filename: ''"""
+            assert str(e.value) == """[Error 3] The system cannot find the path specified: ''"""
         else:
             assert str(e.value) == """[Errno 2] No such file or directory: ''"""
 
