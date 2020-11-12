@@ -12,9 +12,9 @@ def sts_environment():
     If you want to run an environment this object can not be empty.
     """
     return {
-        "url": "https://instance.service-now.com",
-        "user": "some_user",
-        "password": "secret",
+        "url": "https://dev66356.service-now.com",
+        "user": "admin",
+        "password": "Stackstate@123",
         "batch_size": 100,
         "include_resource_types": [
             "cmdb_ci_netgear",

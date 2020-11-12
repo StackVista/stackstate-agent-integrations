@@ -277,12 +277,12 @@ class ServicenowCheck(AgentCheck):
         # TODO: add limit for max number of events that we'll process
         auth = (instance_info.user, instance_info.password)
         url = instance_info.url + '/api/now/table/change_request'
+        params = '?sysparm_display_value=true'
         if latest_sys_updated_on:
             reformatted_date = ','.join("'{}'".format(i) for i in str(latest_sys_updated_on).split(' '))
             quoted_date = quote(reformatted_date)
-            params = '?sysparm_query=sys_updated_on>javascript%3Ags.dateGenerate({})'.format(quoted_date)
-            params += '&sysparm_display_value=true'
-            url += params
+            params += '&sysparm_query=sys_updated_on>javascript%3Ags.dateGenerate({})'.format(quoted_date)
+        url += params
         self.log.debug('url for getting CRs: %s', url)
         return self._get_json(url, instance_info.timeout, auth)
 
