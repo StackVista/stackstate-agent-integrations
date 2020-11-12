@@ -70,8 +70,8 @@ class StateManager:
         except IOError as e:
             # File not found / no file for this state so the state doesn't exist. Catch exception and return None
             if e.errno == errno.ENOENT:
-                self.log.info("PersistentState: No state file found for instance: {} expecting it at: {}. {}"
-                              .format(instance.instance_key, instance.file_location, e))
+                self.log.debug("PersistentState: No state file found for instance: {} expecting it at: {}. {}"
+                               .format(instance.instance_key, instance.file_location, e))
                 return None
 
             self.log.error("PersistentState: Error occurred while retrieving state file for instance: {} "
