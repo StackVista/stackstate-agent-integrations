@@ -361,7 +361,9 @@ class TestTopology:
 
     def test_auto_snapshotting(self, topology):
         check = TopologyAutoSnapshotCheck()
-        check.run()
+        a = check.run()
+
+        print(a)
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
 

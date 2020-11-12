@@ -48,6 +48,12 @@ class StateManager:
             try:
                 os.remove(instance.file_location)
             except OSError as e:
+                # File not found / no file for this state so the state doesn't exist. Catch exception and return None
+                if e.errno == errno.ENOENT:
+                    self.log.debug("PersistentState: No state file found for instance: {} expecting it at: {}. {}"
+                                   .format(instance.instance_key, instance.file_location, e))
+                    return None
+                
                 self.log.error("PersistentState: Failed to remove state file for instance: {}. {}"
                                .format(instance.instance_key, e))
                 pass
@@ -108,6 +114,8 @@ class StateManager:
             state = json.dumps(state)
         elif isinstance(state, Model):
             state = json.dumps(state.to_native())
+        elif state is None:
+            self.clear(instance)
         else:
             raise ValueError("Got unexpected {} for argument state, expected dictionary or schematics.models.Model"
                              .format(type(state)))

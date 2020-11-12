@@ -168,7 +168,7 @@ class AgentCheckBase(object):
         # returns the cluster name if the check is running in Kubernetes / OpenShift
         self.cluster_name = datadog_agent.get_clustername()
 
-        self.log = None
+        self.log = logging.getLogger('{}.{}'.format(__name__, self.name))
         self.state_manager = StateManager(self.log)
         self._deprecations = {}
         # Set proxy settings
@@ -183,6 +183,7 @@ class AgentCheckBase(object):
     def _check_run_base(self, default_result):
         state_descriptor = self._get_state_descriptor()
         try:
+            # start auto snapshot if with_snapshots is set to True
             if self._get_instance_key_value().with_snapshots:
                 topology.submit_start_snapshot(self, self.check_id, self._get_instance_key())
 
@@ -191,18 +192,25 @@ class AgentCheckBase(object):
             self.create_integration_instance(copy.deepcopy(instance))
             # create a copy of the instance, get state if any and add it to the instance object for the check
             check_instance = copy.deepcopy(instance)
-            check_instance['state'] = self.state_manager.get_state(self._get_state_descriptor())
+            current_state = self.state_manager.get_state(self._get_state_descriptor())
+            # if this instance has some stored state set it to 'state'
+            if current_state:
+                check_instance['state'] = current_state
             # if this check has a instance schema defined, cast it into that type and validate it
             if self.INSTANCE_SCHEMA:
                 check_instance = self.INSTANCE_SCHEMA(check_instance, strict=False)  # strict=False ignores extra fields
                 check_instance.validate()
             self.check(check_instance)
-            result = default_result
+
+            # set the state from the check instance
             self.state_manager.set_state(state_descriptor, check_instance.get('state'))
             self.state_manager.flush(state_descriptor)
 
+            # stop auto snapshot if with_snapshots is set to True
             if self._get_instance_key_value().with_snapshots:
                 topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key())
+
+            result = default_result
         except Exception as e:
             self.state_manager.rollback(state_descriptor)
             result = json.dumps([
@@ -650,8 +658,6 @@ class __AgentCheckPy3(AgentCheckBase):
         """
         args: `name`, `init_config`, `agentConfig` (deprecated), `instances`
         """
-        # the agent5 'AgentCheck' setup a log attribute.
-        self.log = logging.getLogger('{}.{}'.format(__name__, self.name))
         self._deprecations = {
             'increment': [
                 False,
@@ -820,8 +826,6 @@ class __AgentCheckPy2(AgentCheckBase):
         """
         args: `name`, `init_config`, `agentConfig` (deprecated), `instances`
         """
-        # the agent5 'AgentCheck' setup a log attribute.
-        self.log = logging.getLogger('{}.{}'.format(__name__, self.name))
         self.check_id = b''
 
         self._deprecations = {
