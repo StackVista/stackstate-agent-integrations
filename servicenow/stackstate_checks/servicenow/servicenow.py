@@ -91,10 +91,8 @@ class ServicenowCheck(AgentCheck):
 
         try:
             self.start_snapshot()
-            collected_components = self._batch_collect(self._collect_components, instance_info)
-            self._process_components(collected_components, instance_info)
-            collected_relations = self._batch_collect(self._collect_relations, instance_info)
-            self._process_relations(collected_relations, instance_info)
+            self._process_components(instance_info)
+            self._process_relations(instance_info)
             self._process_change_requests(instance_info)
             self.persistent_state.flush(self.persistent_instance)
             self.stop_snapshot()
@@ -194,14 +192,15 @@ class ServicenowCheck(AgentCheck):
 
         return {'result': collection}
 
-    def _process_components(self, components, instance_info):
+    def _process_components(self, instance_info):
         """
         Gets SNOW components name, external_id and other identifiers
-        :param components:
         :param instance_info:
         :return:
         """
-        for component in components.get('result'):
+        collected_components = self._batch_collect(self._collect_components, instance_info)
+
+        for component in collected_components.get('result'):
             data = {}
             component = self.filter_empty_metadata(component)
             identifiers = []
@@ -257,12 +256,13 @@ class ServicenowCheck(AgentCheck):
 
         return self._get_json_batch(url, offset, instance_info.batch_size, instance_info.timeout, auth)
 
-    def _process_relations(self, relations, instance_info):
+    def _process_relations(self, instance_info):
         """
         process relations
         """
         relation_types = self._process_relation_types(instance_info)
-        for relation in relations.get('result'):
+        collected_relations = self._batch_collect(self._collect_relations, instance_info)
+        for relation in collected_relations.get('result'):
             parent_sys_id = relation['parent']['value']
             child_sys_id = relation['child']['value']
             type_sys_id = relation['type']['value']
@@ -433,17 +433,10 @@ class PersistentInstance:
 
 
 class PersistentState:
-    """
-
-    """
-
     def __init__(self):
         self.data = dict()
 
     def clear(self, instance):
-        """
-
-        """
         if instance.instance_key in self.data:
             del self.data[instance.instance_key]
 
@@ -454,9 +447,6 @@ class PersistentState:
             pass
 
     def get_state(self, instance, schema=None):
-        """
-
-        """
         if instance.instance_key not in self.data:
             try:
                 with open(instance.file_location, 'r') as f:
@@ -477,9 +467,6 @@ class PersistentState:
         return data
 
     def set_state(self, instance, data):
-        """
-
-        """
         if isinstance(data, dict):
             data = json.dumps(data)
         elif isinstance(data, Model):
@@ -493,9 +480,6 @@ class PersistentState:
             self.data[instance.instance_key] = data
 
     def flush(self, instance):
-        """
-
-        """
         if instance.instance_key in self.data:
             try:
                 with open(instance.file_location, 'w') as f:

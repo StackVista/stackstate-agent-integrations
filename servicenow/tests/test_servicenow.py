@@ -254,7 +254,7 @@ class TestServicenow(unittest.TestCase):
         self.check._collect_components = mock.MagicMock()
         self.check._collect_components.return_value = mock_collect_components
         result = self.check._batch_collect(self.check._collect_components, instance_config)
-        self.check._process_components(result, instance_config)
+        self.check._process_components(instance_config)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 1)
@@ -293,8 +293,7 @@ class TestServicenow(unittest.TestCase):
         self.check._process_relation_types.return_value = {'1a9cb166f1571100a92eb60da2bce5c5': 'Cools'}
         self.check._collect_relations = mock.MagicMock()
         self.check._collect_relations.return_value = mock_relation_components
-        result = self.check._batch_collect(self.check._collect_relations, instance_config)
-        self.check._process_relations(result, instance_config)
+        self.check._process_relations(instance_config)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 0)
@@ -369,7 +368,7 @@ class TestServicenow(unittest.TestCase):
         self.check._get_json = mock.MagicMock()
         self.check._get_json.return_value = mock_collect_components
         result = self.check._batch_collect(self.check._collect_components, instance_config)
-        self.check._process_components(result, instance_config)
+        self.check._process_components(instance_config)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 1)
@@ -397,8 +396,7 @@ class TestServicenow(unittest.TestCase):
         self.check._get_json.return_value = mock_relation_components
         self.check._process_relation_types = mock.MagicMock()
         self.check._process_relation_types.return_value = {'1a9cb166f1571100a92eb60da2bce5c5': 'Cools'}
-        result = self.check._batch_collect(self.check._collect_relations, instance_config)
-        self.check._process_relations(result, instance_config)
+        self.check._process_relations(instance_config)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 0)
@@ -419,7 +417,7 @@ class TestServicenow(unittest.TestCase):
         self.check._get_json = mock.MagicMock()
         self.check._get_json.return_value = mock_collect_filter_components
         result = self.check._batch_collect(self.check._collect_components, instance_config)
-        self.check._process_components(result, instance_config)
+        self.check._process_components(instance_config)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 1)
@@ -444,8 +442,7 @@ class TestServicenow(unittest.TestCase):
         self.check._process_relation_types = mock.MagicMock()
         self.check._process_relation_types.return_value = {'1a9cb166f1571100a92eb60da2bce5c5': 'Cools'}
 
-        result = self.check._batch_collect(self.check._collect_relations, instance_config)
-        self.check._process_relations(result, instance_config)
+        self.check._process_relations(instance_config)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 0)
@@ -461,8 +458,8 @@ class TestServicenow(unittest.TestCase):
         self.check._collect_components.side_effect = [mock_collect_components_batch, mock_collect_components]
         new_inst_conf = copy(instance_config)
         new_inst_conf.batch_size = 5
-        result = self.check._batch_collect(self.check._collect_components, new_inst_conf)
-        self.check._process_components(result, new_inst_conf)
+        # result = self.check._batch_collect(self.check._collect_components, new_inst_conf)
+        self.check._process_components(new_inst_conf)
         topology_instance = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topology_instance['components']), 6)
 
@@ -519,8 +516,8 @@ class TestServicenow(unittest.TestCase):
         self.check._collect_components.side_effect = [mock_collect_components_batch, mock_empty_result]
         new_inst_conf = copy(instance_config)
         new_inst_conf.batch_size = 5
-        result = self.check._batch_collect(self.check._collect_components, new_inst_conf)
-        self.check._process_components(result, new_inst_conf)
+        # result = self.check._batch_collect(self.check._collect_components, new_inst_conf)
+        self.check._process_components(new_inst_conf)
 
         topology_instance = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topology_instance['components']), 5)
