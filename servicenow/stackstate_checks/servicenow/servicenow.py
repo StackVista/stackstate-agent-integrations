@@ -18,8 +18,8 @@ from stackstate_checks.base.errors import CheckException
 BATCH_DEFAULT_SIZE = 2500
 BATCH_MAX_SIZE = 10000
 TIMEOUT = 20
-CRS_OLDEST_UPDATE_IN_NUMBER_OF_DAYS = 100
-CRS_DEFAULT_MAX_SIZE = 1000
+CRS_BOOTSTRAP_DAYS_DEFAULT = 100
+CRS_DEFAULT_PROCESS_LIMIT = 1000
 TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 
@@ -31,8 +31,8 @@ class InstanceInfo(Model):
     batch_size = IntType(default=BATCH_DEFAULT_SIZE, max_value=BATCH_MAX_SIZE)
     timeout = IntType(default=TIMEOUT)
     instance_tags = ListType(StringType, default=[])
-    crs_updated_in_days = IntType(default=CRS_OLDEST_UPDATE_IN_NUMBER_OF_DAYS)
-    crs_max_number = IntType(default=CRS_DEFAULT_MAX_SIZE)
+    change_request_bootstrap_days = IntType(default=CRS_BOOTSTRAP_DAYS_DEFAULT)
+    change_request_process_limit = IntType(default=CRS_DEFAULT_PROCESS_LIMIT)
 
 
 class ChangeRequest(Model):
@@ -321,7 +321,7 @@ class ServicenowCheck(AgentCheck):
         """
         # TODO switch to schematics model
         self.persistent_state = PersistentState()
-        start_dt = datetime.datetime.now() - datetime.timedelta(days=CRS_OLDEST_UPDATE_IN_NUMBER_OF_DAYS)
+        start_dt = datetime.datetime.now() - datetime.timedelta(days=CRS_BOOTSTRAP_DAYS_DEFAULT)
         try:
             self.persistent_state.get_state(self.persistent_instance)
         except StateReadException:

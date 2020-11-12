@@ -11,10 +11,10 @@ instances:
     # batch_size: 2500
 
     # On first start we get all changed request that have been updated in last N days. Default value is 100.
-    # crs_updated_in_days: 30
+    # change_request_bootstrap_days: 30
 
     # Maximum number of change request that we process. Default value is 1000.
-    # crs_max_number: 200
+    # change_request_process_limit: 200
 
     # Currently StackState support the below resource/sys class types and apart from this will belong to
     # the generic servicenow component types
