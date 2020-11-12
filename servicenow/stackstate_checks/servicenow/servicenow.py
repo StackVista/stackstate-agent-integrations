@@ -150,7 +150,7 @@ class ServicenowCheck(AgentCheck):
                     result[k] = v
         return result
 
-    def _collect_components(self, instance_info, offset):
+    def _batch_collect_components(self, instance_info, offset):
         """
         collect components from ServiceNow CMDB's cmdb_ci table
         (API Doc- https://developer.servicenow.com/app.do#!/rest_api_doc?v=london&id=r_TableAPI-GET)
@@ -198,7 +198,7 @@ class ServicenowCheck(AgentCheck):
         :param instance_info:
         :return:
         """
-        collected_components = self._batch_collect(self._collect_components, instance_info)
+        collected_components = self._batch_collect(self._batch_collect_components, instance_info)
 
         for component in collected_components.get('result'):
             data = {}
@@ -243,7 +243,7 @@ class ServicenowCheck(AgentCheck):
                 relation_types[sys_id] = parent_descriptor
         return relation_types
 
-    def _collect_relations(self, instance_info, offset):
+    def _batch_collect_relations(self, instance_info, offset):
         """
         collect relations between components from cmdb_rel_ci and publish these in batches.
         """
@@ -261,7 +261,7 @@ class ServicenowCheck(AgentCheck):
         process relations
         """
         relation_types = self._process_relation_types(instance_info)
-        collected_relations = self._batch_collect(self._collect_relations, instance_info)
+        collected_relations = self._batch_collect(self._batch_collect_relations, instance_info)
         for relation in collected_relations.get('result'):
             parent_sys_id = relation['parent']['value']
             child_sys_id = relation['child']['value']

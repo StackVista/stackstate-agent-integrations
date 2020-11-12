@@ -251,9 +251,9 @@ class TestServicenow(unittest.TestCase):
         """
         Test _process_components to return topology for components
         """
-        self.check._collect_components = mock.MagicMock()
-        self.check._collect_components.return_value = mock_collect_components
-        result = self.check._batch_collect(self.check._collect_components, instance_config)
+        self.check._batch_collect_components = mock.MagicMock()
+        self.check._batch_collect_components.return_value = mock_collect_components
+        result = self.check._batch_collect(self.check._batch_collect_components, instance_config)
         self.check._process_components(instance_config)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
@@ -283,7 +283,7 @@ class TestServicenow(unittest.TestCase):
         """
         Test to raise a check Exception while collecting component relations from ServiceNow API
         """
-        self.assertRaises(Exception, self.check._collect_relations, instance_config, 10, 0, 100)
+        self.assertRaises(Exception, self.check._batch_collect_relations, instance_config, 10, 0, 100)
 
     def test_process_relations(self):
         """
@@ -291,8 +291,8 @@ class TestServicenow(unittest.TestCase):
         """
         self.check._process_relation_types = mock.MagicMock()
         self.check._process_relation_types.return_value = {'1a9cb166f1571100a92eb60da2bce5c5': 'Cools'}
-        self.check._collect_relations = mock.MagicMock()
-        self.check._collect_relations.return_value = mock_relation_components
+        self.check._batch_collect_relations = mock.MagicMock()
+        self.check._batch_collect_relations.return_value = mock_relation_components
         self.check._process_relations(instance_config)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
@@ -367,7 +367,7 @@ class TestServicenow(unittest.TestCase):
                                                                        "%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server"
         self.check._get_json = mock.MagicMock()
         self.check._get_json.return_value = mock_collect_components
-        result = self.check._batch_collect(self.check._collect_components, instance_config)
+        result = self.check._batch_collect(self.check._batch_collect_components, instance_config)
         self.check._process_components(instance_config)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
@@ -416,7 +416,7 @@ class TestServicenow(unittest.TestCase):
 
         self.check._get_json = mock.MagicMock()
         self.check._get_json.return_value = mock_collect_filter_components
-        result = self.check._batch_collect(self.check._collect_components, instance_config)
+        result = self.check._batch_collect(self.check._batch_collect_components, instance_config)
         self.check._process_components(instance_config)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
@@ -454,8 +454,8 @@ class TestServicenow(unittest.TestCase):
         """
         Test batch collecting components
         """
-        self.check._collect_components = mock.MagicMock()
-        self.check._collect_components.side_effect = [mock_collect_components_batch, mock_collect_components]
+        self.check._batch_collect_components = mock.MagicMock()
+        self.check._batch_collect_components.side_effect = [mock_collect_components_batch, mock_collect_components]
         new_inst_conf = copy(instance_config)
         new_inst_conf.batch_size = 5
         # result = self.check._batch_collect(self.check._collect_components, new_inst_conf)
@@ -495,15 +495,15 @@ class TestServicenow(unittest.TestCase):
 
     def test_collect_components_returns_no_result(self):
         """Test if collect component returns no result or its not list"""
-        self.check._collect_components = mock.MagicMock()
-        self.check._collect_components.return_value = {}
-        self.assertRaises(CheckException, self.check._batch_collect, self.check._collect_components, instance_config)
+        self.check._batch_collect_components = mock.MagicMock()
+        self.check._batch_collect_components.return_value = {}
+        self.assertRaises(CheckException, self.check._batch_collect, self.check._batch_collect_components, instance_config)
 
     def test_collect_components_returns_empty_result(self):
         """Test if collect component returns no result or its not list"""
-        self.check._collect_components = mock.MagicMock()
-        self.check._collect_components.return_value = mock_empty_result
-        self.check._batch_collect(self.check._collect_components, instance_config)
+        self.check._batch_collect_components = mock.MagicMock()
+        self.check._batch_collect_components.return_value = mock_empty_result
+        self.check._batch_collect(self.check._batch_collect_components, instance_config)
 
         # no snapshot is created
         self.assertRaises(KeyError, topology.get_snapshot, self.check.check_id)
@@ -512,8 +512,8 @@ class TestServicenow(unittest.TestCase):
         """
         Test batch collecting components
         """
-        self.check._collect_components = mock.MagicMock()
-        self.check._collect_components.side_effect = [mock_collect_components_batch, mock_empty_result]
+        self.check._batch_collect_components = mock.MagicMock()
+        self.check._batch_collect_components.side_effect = [mock_collect_components_batch, mock_empty_result]
         new_inst_conf = copy(instance_config)
         new_inst_conf.batch_size = 5
         # result = self.check._batch_collect(self.check._collect_components, new_inst_conf)
