@@ -91,8 +91,10 @@ class ServicenowCheck(AgentCheck):
 
         try:
             self.start_snapshot()
-            self._collect_and_process(self._collect_components, self._process_components, instance_info)
-            self._collect_and_process(self._collect_relations, self._process_relations, instance_info)
+            collected_components = self._batch_collect(self._collect_components, instance_info)
+            self._process_components(collected_components, instance_info)
+            collected_relations = self._batch_collect(self._collect_relations, instance_info)
+            self._process_relations(collected_relations, instance_info)
             self._process_change_requests(instance_info)
             self.persistent_state.flush(self.persistent_instance)
             self.stop_snapshot()
@@ -166,10 +168,10 @@ class ServicenowCheck(AgentCheck):
             self.log.debug("URL for component collection after applying filter:- %s", url)
         return self._get_json_batch(url, offset, instance_info.batch_size, instance_info.timeout, auth)
 
-    def _collect_and_process(self, collect_function, process_function, instance_info):
+    def _batch_collect(self, collect_function, instance_info):
         """
         batch processing of components or relations fetched from CMDB
-        :return: nothing
+        :return: collected components
         """
         offset = 0
         batch_number = 0
@@ -190,7 +192,7 @@ class ServicenowCheck(AgentCheck):
                 'Processed batch no. {} with {} items.'.format(batch_number, number_of_elements_in_current_batch)
             )
 
-        process_function({'result': collection}, instance_info)
+        return {'result': collection}
 
     def _process_components(self, components, instance_info):
         """
