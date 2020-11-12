@@ -174,6 +174,12 @@ class TestPersistentState:
             assert str(e.value) == "Got unexpected <type 'int'> for argument state, expected dictionary " \
                                    "or schematics.models.Model"
 
+    def test_clear_without_flushing_state(self, state):
+        s = {'a': 'b', 'c': 1, 'd': ['e', 'f', 'g'], 'h': {'i': 'j', 'k': True}}
+        instance = StateDescriptor("state.with.unsupported.data", ".")
+        state.persistent_state.set_state(instance, s)
+        assert state.persistent_state.clear(instance) is None
+
     def test_state_flushing(self, state):
         s = {'a': 'b', 'c': 1, 'd': ['e', 'f', 'g'], 'h': {'i': 'j', 'k': True}}
         instance = StateDescriptor("on.disk.state", ".")
@@ -184,3 +190,26 @@ class TestPersistentState:
         instance = StateDescriptor("on.disk.state.schema", ".")
         rs = state.assert_state(instance, s, TestStorageSchema)
         assert rs.offset == s.offset
+
+    def test_rollback_state(self, state):
+        s = TestStorageSchema({'offset': 10})
+        instance = StateDescriptor("rollback.state.schema", ".")
+
+        assert state.persistent_state.get_state(instance, TestStorageSchema) is None
+        state.persistent_state.set_state(instance, s)
+        assert state.persistent_state.get_state(instance, TestStorageSchema) == s
+        state.persistent_state.flush(instance)
+        assert state.persistent_state.get_state(instance, TestStorageSchema) == s
+
+        # update the state in memory
+        s.offset = 30
+        # set new state, without flushing to disk
+        state.persistent_state.set_state(instance, s)
+        assert state.persistent_state.get_state(instance, TestStorageSchema) == s
+
+        # rollback the state; state should have offset as 10
+        state.persistent_state.rollback(instance)
+        rs = state.persistent_state.get_state(instance, TestStorageSchema)
+        assert rs.offset == 10
+
+        os.remove(instance.file_location)

@@ -53,7 +53,7 @@ class StateManager:
                     self.log.debug("PersistentState: No state file found for instance: {} expecting it at: {}. {}"
                                    .format(instance.instance_key, instance.file_location, e))
                     return None
-                
+
                 self.log.error("PersistentState: Failed to remove state file for instance: {}. {}"
                                .format(instance.instance_key, e))
                 pass
@@ -95,7 +95,7 @@ class StateManager:
         if instance.instance_key not in self.state:
             state = self.read_state(instance)
         else:
-            state = json.loads(self.state[instance.instance_key])
+            state = self.state[instance.instance_key]
 
         if state and schema:
             state = schema(state)
@@ -111,11 +111,11 @@ class StateManager:
         `state` the state which will be saved in memory and file.
         """
         if isinstance(state, dict):
-            state = json.dumps(state)
+            pass
         elif isinstance(state, Model):
-            state = json.dumps(state.to_native())
+            state = state.to_native()
         elif state is None:
-            self.clear(instance)
+            return self.clear(instance)
         else:
             raise ValueError("Got unexpected {} for argument state, expected dictionary or schematics.models.Model"
                              .format(type(state)))
@@ -130,7 +130,7 @@ class StateManager:
         if instance.instance_key in self.state:
             try:
                 with open(instance.file_location, 'w') as f:
-                    f.write(self.state[instance.instance_key])
+                    f.write(json.dumps(self.state[instance.instance_key]))
             except IOError as e:
                 # if we couldn't save, drop the state
                 del self.state[instance.instance_key]

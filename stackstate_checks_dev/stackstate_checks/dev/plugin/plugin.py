@@ -207,6 +207,7 @@ def state():
             self.persistent_state.set_state(instance, state)
             assert self.persistent_state.get_state(instance, state_schema) == state
             self.persistent_state.flush(instance)
+            self.persistent_state.read_state(instance)
             assert self.persistent_state.get_state(instance, state_schema) == state
             self.persistent_state.clear(instance)
             assert os.path.isfile(instance.file_location) is False
