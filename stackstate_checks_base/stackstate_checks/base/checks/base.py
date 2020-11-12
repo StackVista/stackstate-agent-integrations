@@ -73,7 +73,7 @@ class TopologyInstanceBase(object):
     """
     Data structure for defining a topology instance, a unique identifier for a topology source.
     """
-    def __init__(self, type, url, with_snapshots=True):
+    def __init__(self, type, url, with_snapshots=False):
         self.type = type
         self.url = url
         self.with_snapshots = with_snapshots
@@ -185,6 +185,7 @@ class AgentCheckBase(object):
         try:
             if self._get_instance_key_value().with_snapshots:
                 topology.submit_start_snapshot(self, self.check_id, self._get_instance_key())
+
             instance = self.instances[0]
             # create integration instance with a copy of instance
             self.create_integration_instance(copy.deepcopy(instance))
@@ -199,6 +200,9 @@ class AgentCheckBase(object):
             result = default_result
             self.state_manager.set_state(state_descriptor, check_instance.get('state'))
             self.state_manager.flush(state_descriptor)
+
+            if self._get_instance_key_value().with_snapshots:
+                topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key())
         except Exception as e:
             self.state_manager.rollback(state_descriptor)
             result = json.dumps([
@@ -210,8 +214,6 @@ class AgentCheckBase(object):
         finally:
             if self.metric_limiter:
                 self.metric_limiter.reset()
-            if self._get_instance_key_value().with_snapshots:
-                topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key())
 
         return result
 
@@ -442,13 +444,13 @@ class AgentCheckBase(object):
 
         return data
 
-    @deprecated(version='2.6.0', reason="Topology Snapshots is enabled by default for all TopologyInstance checks, "
+    @deprecated(version='2.9.0', reason="Topology Snapshots is enabled by default for all TopologyInstance checks, "
                                         "to disable snapshots use TopologyInstance(type, url, with_snapshots=False) "
                                         "when overriding get_instance_key")
     def start_snapshot(self):
         topology.submit_start_snapshot(self, self.check_id, self._get_instance_key())
 
-    @deprecated(version='2.6.0', reason="Topology Snapshots is enabled by default for all TopologyInstance checks, "
+    @deprecated(version='2.9.0', reason="Topology Snapshots is enabled by default for all TopologyInstance checks, "
                                         "to disable snapshots use TopologyInstance(type, url, with_snapshots=False) "
                                         "when overriding get_instance_key")
     def stop_snapshot(self):
