@@ -378,9 +378,9 @@ class TopologyClearStatefulCheck(TopologyStatefulCheck):
         instance.update({'state': None})
 
 
-class TopologyRollbackStatefulCheck(TopologyStatefulCheck):
+class TopologyBrokenStatefulCheck(TopologyStatefulCheck):
     def __init__(self):
-        super(TopologyRollbackStatefulCheck, self).__init__()
+        super(TopologyBrokenStatefulCheck, self).__init__()
 
     def check(self, instance):
         instance.update({'state': TEST_STATE})
@@ -441,63 +441,36 @@ class TestTopology:
         check.stop_snapshot()
         topology.assert_snapshot(check.check_id, check.key, stop_snapshot=True)
 
-    def test_stateful_check(self, topology):
+    def test_stateful_check(self, topology, state):
         check = TopologyStatefulCheck()
-        state_descriptor = check._get_state_descriptor()
-        assert check.state_manager.get_state(state_descriptor) is None
-        check.run()
-        assert check.state_manager.get_state(state_descriptor) == TEST_STATE
+        state.assert_state_check(check, pre_run_state=None, post_run_state=TEST_STATE)
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
 
-        # remove all test data
-        check.state_manager.clear(state_descriptor)
-        shutil.rmtree(check.get_agent_conf_d_path())
-
-    def test_clear_stateful_check(self, topology):
+    def test_clear_stateful_check(self, topology, state):
         check = TopologyClearStatefulCheck()
-        state_descriptor = check._get_state_descriptor()
-        # set state and flush
-        check.state_manager.set_state(state_descriptor, TEST_STATE)
-        check.state_manager.flush(state_descriptor)
-        # run the agent check, clearing the state
-        check.run()
-        assert check.state_manager.get_state(state_descriptor) is None
+        # set the previous state and assert the state check function as expected
+        check.state_manager.set_state(check._get_state_descriptor(), TEST_STATE)
+        state.assert_state_check(check, pre_run_state=TEST_STATE, post_run_state=None)
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
 
-        # remove all test data
-        check.state_manager.clear(state_descriptor)
-        shutil.rmtree(check.get_agent_conf_d_path())
-
-    def test_rollback_stateful_check(self, topology):
-        check = TopologyRollbackStatefulCheck()
-        state_descriptor = check._get_state_descriptor()
-        # set state and flush
-        check.state_manager.set_state(state_descriptor, {'my_old': 'state'})
-        check.state_manager.flush(state_descriptor)
-        # run the agent check, trying to update the state and raising an exception
-        check.run()
-        assert check.state_manager.get_state(state_descriptor) == {'my_old': 'state'}
+    def test_no_state_change_on_exception_stateful_check(self, topology, state):
+        check = TopologyBrokenStatefulCheck()
+        # set the previous state and assert the state check function as expected
+        previous_state = {'my_old': 'state'}
+        check.state_manager.set_state(check._get_state_descriptor(), previous_state)
+        state.assert_state_check(check, pre_run_state=previous_state, post_run_state=previous_state)
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=False)
 
-        # remove all test data
-        check.state_manager.clear(state_descriptor)
-        shutil.rmtree(check.get_agent_conf_d_path())
-
-    def test_stateful_schema_check(self, topology):
+    def test_stateful_schema_check(self, topology, state):
         check = TopologyStatefulSchemaCheck()
-        state_descriptor = check._get_state_descriptor()
-        assert check.state_manager.get_state(state_descriptor) is None
-        check.run()
-        assert check.state_manager.get_state(state_descriptor, StateSchema) == StateSchema({'offset': 20})
+        # assert the state check function as expected
+        state.assert_state_check(check, pre_run_state=None, post_run_state=StateSchema({'offset': 20}),
+                                 state_schema=StateSchema)
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
-
-        # remove all test data
-        check.state_manager.clear(state_descriptor)
-        shutil.rmtree(check.get_agent_conf_d_path())
 
     def test_none_data_ok(self, topology):
         check = TopologyCheck()

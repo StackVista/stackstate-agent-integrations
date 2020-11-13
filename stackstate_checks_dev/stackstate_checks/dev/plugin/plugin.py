@@ -5,6 +5,7 @@ import json
 import os
 import re
 import logging
+import shutil
 from base64 import urlsafe_b64encode
 
 import pytest
@@ -201,6 +202,29 @@ def state():
 
         def __init__(self):
             self.persistent_state = StateManager(logger)
+
+        def assert_state_check(self, check, pre_run_state, post_run_state, state_schema=None):
+            """
+            assert_state_check does the following steps:
+            - assert the current state before the check has run, making sure it's the value of `pre_run_state`.
+            - perform the check run, (potentially) altering the state.
+            - assert the state after the check has run, making sure it's the value of `post_run_state`.
+            """
+            state_descriptor = check._get_state_descriptor()
+            try:
+                if pre_run_state:
+                    assert check.state_manager.get_state(state_descriptor, state_schema) == pre_run_state
+                else:
+                    assert check.state_manager.get_state(state_descriptor, state_schema) is None
+                check.run()
+                if post_run_state:
+                    assert check.state_manager.get_state(state_descriptor, state_schema) == post_run_state
+                else:
+                    assert check.state_manager.get_state(state_descriptor, state_schema) is None
+            finally:
+                # remove all test data
+                check.state_manager.clear(state_descriptor)
+                shutil.rmtree(check.get_agent_conf_d_path())
 
         def assert_state(self, instance, state, state_schema=None, with_clear=True):
             """

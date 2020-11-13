@@ -160,26 +160,6 @@ class StateManager:
 
                 raise StateNotPersistedException(e)
 
-    def rollback(self, instance, previous_state=None):
-        """
-        rollback resets the state data for this instance to the `previous_state` if specified, otherwise reads from disk
-        `instance` the persistence instance for which the state is flushed to disk.
-        `previous_state` if specified the state is set to this value.
-        """
-        if instance.instance_key in self.state:
-            if previous_state:
-                self.log.debug('PersistentState: Rolling back state for instance to previous state value: {}\n'
-                               'Current State: {}\n'
-                               'Previous State: {}'
-                               .format(instance.instance_key, self.state[instance.instance_key],
-                                       previous_state))
-                self.set_state(instance, previous_state)
-            else:
-                self.log.debug('PersistentState: Rolling back state for instance to previous written state value: {}\n'
-                               'Current State: {}\n'
-                               .format(instance.instance_key, self.state[instance.instance_key]))
-                self._read_state(instance)
-
 
 class StateNotPersistedException(Exception):
     """

@@ -192,17 +192,13 @@ class TestPersistentState:
         rs = state.assert_state(instance, s, TestStorageSchema)
         assert rs.offset == s.offset
 
-    def test_rollback_state(self, state):
+    def test_state_copy_no_modification_state(self, state):
         s = TestStorageSchema({'offset': 10})
         instance = StateDescriptor("rollback.state.schema", ".")
-        state.assert_state(instance, s, TestStorageSchema, with_clear=False)
+        s = state.assert_state(instance, s, TestStorageSchema, with_clear=False)
 
         # update the state in memory
         s.offset = 30
-        # set new state, without flushing to disk
-        state.persistent_state.set_state(instance, s, False)
 
-        # rollback the state; state should have offset as 10
-        state.persistent_state.rollback(instance)
-        s.offset = 10
+        # assert the state remains unchanged, state should have offset as 10
         state.assert_state(instance, s, TestStorageSchema)
