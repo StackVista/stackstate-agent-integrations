@@ -349,13 +349,13 @@ class TopologyBrokenCheck(TopologyAutoSnapshotCheck):
 
 
 TEST_STATE = {
-                'string': 'string',
-                'int': 1,
-                'float': 1.0,
-                'bool': True,
-                'list': ['a', 'b', 'c'],
-                'dict': {'a': 'b'}
-             }
+    'string': 'string',
+    'int': 1,
+    'float': 1.0,
+    'bool': True,
+    'list': ['a', 'b', 'c'],
+    'dict': {'a': 'b'}
+}
 
 
 class TopologyStatefulCheck(TopologyAutoSnapshotCheck):
