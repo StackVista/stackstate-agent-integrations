@@ -348,6 +348,16 @@ class TopologyBrokenCheck(TopologyAutoSnapshotCheck):
         raise Exception("some error in my check")
 
 
+TEST_STATE = {
+                'string': 'string',
+                'int': 1,
+                'float': 1.0,
+                'bool': True,
+                'list': ['a', 'b', 'c'],
+                'dict': {'a': 'b'}
+             }
+
+
 class TopologyStatefulCheck(TopologyAutoSnapshotCheck):
     def __init__(self):
         super(TopologyStatefulCheck, self).__init__()
@@ -357,15 +367,7 @@ class TopologyStatefulCheck(TopologyAutoSnapshotCheck):
         return "./test_data"
 
     def check(self, instance):
-        state = {
-            'string': 'string',
-            'int': 1,
-            'float': 1.0,
-            'bool': True,
-            'list': ['a', 'b', 'c'],
-            'dict': {'a': 'b'}
-        }
-        instance.update({'state': state})
+        instance.update({'state': TEST_STATE})
 
 
 class TopologyClearStatefulCheck(TopologyStatefulCheck):
@@ -381,15 +383,7 @@ class TopologyRollbackStatefulCheck(TopologyStatefulCheck):
         super(TopologyRollbackStatefulCheck, self).__init__()
 
     def check(self, instance):
-        state = {
-            'string': 'string',
-            'int': 1,
-            'float': 1.0,
-            'bool': True,
-            'list': ['a', 'b', 'c'],
-            'dict': {'a': 'b'}
-        }
-        instance.update({'state': state})
+        instance.update({'state': TEST_STATE})
 
         raise Exception("some error in my check")
 
@@ -452,14 +446,7 @@ class TestTopology:
         state_descriptor = check._get_state_descriptor()
         assert check.state_manager.get_state(state_descriptor) is None
         check.run()
-        assert check.state_manager.get_state(state_descriptor) == {
-            'string': 'string',
-            'int': 1,
-            'float': 1.0,
-            'bool': True,
-            'list': ['a', 'b', 'c'],
-            'dict': {'a': 'b'}
-        }
+        assert check.state_manager.get_state(state_descriptor) == TEST_STATE
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
 
@@ -471,14 +458,7 @@ class TestTopology:
         check = TopologyClearStatefulCheck()
         state_descriptor = check._get_state_descriptor()
         # set state and flush
-        check.state_manager.set_state(state_descriptor, {
-            'string': 'string',
-            'int': 1,
-            'float': 1.0,
-            'bool': True,
-            'list': ['a', 'b', 'c'],
-            'dict': {'a': 'b'}
-        })
+        check.state_manager.set_state(state_descriptor, TEST_STATE)
         check.state_manager.flush(state_descriptor)
         # run the agent check, clearing the state
         check.run()

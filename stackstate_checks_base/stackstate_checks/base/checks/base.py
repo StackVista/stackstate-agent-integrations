@@ -1,15 +1,15 @@
 # (C) Datadog, Inc. 2018
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
-from collections import defaultdict
-from os.path import basename
+import copy
+import inspect
+import json
 import logging
 import re
-import json
-import copy
 import traceback
 import unicodedata
-import inspect
+from collections import defaultdict
+from os.path import basename
 
 import yaml
 from six import PY3, iteritems, text_type, string_types, integer_types
@@ -50,11 +50,10 @@ from ..utils.common import ensure_bytes, ensure_unicode
 from ..utils.proxy import config_proxy_skip
 from ..utils.limiter import Limiter
 from ..utils.identifiers import Identifiers
-from ..utils.telemetry import EventStream, TopologyEventContext, MetricStream, ServiceCheckStream, \
+from ..utils.telemetry import EventStream, MetricStream, ServiceCheckStream, \
     ServiceCheckHealthChecks, Event
 from ..utils.persistent_state import StateDescriptor, StateManager
 from deprecated.sphinx import deprecated
-from schematics.types import BaseType
 
 if datadog_agent.get_config('disable_unsafe_yaml'):
     from ..ddyaml import monkey_patch_pyyaml
@@ -131,9 +130,14 @@ class AgentCheckBase(object):
     DEFAULT_METRIC_LIMIT = 0
 
     """
-    INSTANCE_SCHEMA
+    INSTANCE_SCHEMA allows checks to specify a schematics Schema that is used for the instance in self.check
     """
     INSTANCE_SCHEMA = None
+
+    """
+    STATE_FIELD_NAME is used to determine to which key the check state should be set, defaults to `state`
+    """
+    STATE_FIELD_NAME = 'state'
 
     def __init__(self, *args, **kwargs):
         self.check_id = ''
@@ -181,7 +185,6 @@ class AgentCheckBase(object):
         self.default_integration_http_timeout = float(self.agentConfig.get('default_integration_http_timeout', 9))
 
     def _check_run_base(self, default_result):
-        state_descriptor = self._get_state_descriptor()
         try:
             # start auto snapshot if with_snapshots is set to True
             if self._get_instance_key_value().with_snapshots:
@@ -192,10 +195,11 @@ class AgentCheckBase(object):
             self.create_integration_instance(copy.deepcopy(instance))
             # create a copy of the instance, get state if any and add it to the instance object for the check
             check_instance = copy.deepcopy(instance)
-            current_state = self.state_manager.get_state(self._get_state_descriptor())
             # if this instance has some stored state set it to 'state'
+            state_descriptor = self._get_state_descriptor()
+            current_state = copy.deepcopy(self.state_manager.get_state(state_descriptor))
             if current_state:
-                check_instance['state'] = current_state
+                check_instance[self.STATE_FIELD_NAME] = current_state
             # if this check has a instance schema defined, cast it into that type and validate it
             if self.INSTANCE_SCHEMA:
                 check_instance = self.INSTANCE_SCHEMA(check_instance, strict=False)  # strict=False ignores extra fields
@@ -203,8 +207,7 @@ class AgentCheckBase(object):
             self.check(check_instance)
 
             # set the state from the check instance
-            self.state_manager.set_state(state_descriptor, check_instance.get('state'))
-            self.state_manager.flush(state_descriptor)
+            self.state_manager.set_state(state_descriptor, check_instance.get(self.STATE_FIELD_NAME))
 
             # stop auto snapshot if with_snapshots is set to True
             if self._get_instance_key_value().with_snapshots:
@@ -212,7 +215,6 @@ class AgentCheckBase(object):
 
             result = default_result
         except Exception as e:
-            self.state_manager.rollback(state_descriptor)
             result = json.dumps([
                 {
                     "message": str(e),
@@ -224,6 +226,13 @@ class AgentCheckBase(object):
                 self.metric_limiter.reset()
 
         return result
+
+    def set_state(self, state, flush=True):
+        """
+        set_state can be used to immediately set (and optionally flush) state in the agent, instead of first completing
+        the check
+        """
+        self.state_manager.set_state(self._get_state_descriptor(), state, flush)
 
     def set_metric_limits(self):
         try:

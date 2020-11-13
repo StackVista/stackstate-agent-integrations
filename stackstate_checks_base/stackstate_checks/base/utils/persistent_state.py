@@ -19,7 +19,7 @@ class StateDescriptor:
         `file_location` is the location on disk where the state file is store
         """
         self.instance_key = instance_key
-        self.file_location = "{}/{}.state".format(check_conf_d_path, instance_key)
+        self.file_location = "{}.state".format(os.path.join(check_conf_d_path, instance_key))
 
 
 class StateManager:
@@ -56,11 +56,11 @@ class StateManager:
 
                 self.log.error("PersistentState: Failed to remove state file for instance: {}. {}"
                                .format(instance.instance_key, e))
-                pass
+                raise StateClearException(e)
 
             self.log.debug("PersistentState: Removed state for instance: {}".format(instance.instance_key))
 
-    def read_state(self, instance):
+    def _read_state(self, instance):
         """
         read_state reads state from the instance.file_location and loads it as json
         """
@@ -93,7 +93,7 @@ class StateManager:
         `schema` a optional schematics schema to which the stored state is validated and returned
         """
         if instance.instance_key not in self.state:
-            state = self.read_state(instance)
+            state = self._read_state(instance)
         else:
             state = self.state[instance.instance_key]
 
@@ -103,12 +103,13 @@ class StateManager:
 
         return state
 
-    def set_state(self, instance, state):
+    def set_state(self, instance, state, flush=True):
         """
         set_state stores the given state for this instance into the persistent state. If this is the first insertion,
         the state is flushed to disk to validate the instance file_location and writing permissions for this instance.
         `instance` the persistence instance to set the state for.
         `state` the state which will be saved in memory and file.
+        `flush` this toggles whether the state is written to disk immediately, if True it flushes.
         """
         if isinstance(state, dict):
             pass
@@ -117,10 +118,14 @@ class StateManager:
         elif state is None:
             return self.clear(instance)
         else:
-            raise ValueError("Got unexpected {} for argument state, expected dictionary or schematics.models.Model"
+            raise ValueError("Got unexpected {} for argument state, expected dictionary or "
+                             "schematics.Model"
                              .format(type(state)))
 
         self.state[instance.instance_key] = state
+
+        if flush:
+            self.flush(instance)
 
     def flush(self, instance):
         """
@@ -134,25 +139,46 @@ class StateManager:
                     os.makedirs(os.path.dirname(instance.file_location))
                 except OSError as e:
                     if e.errno != errno.EEXIST:
-                        # if we couldn't save, drop the state
-                        del self.state[instance.instance_key]
+                        # if we couldn't save, log the state
+                        self.log.error('PersistentState: Could not persist state for instance: {} at {}, '
+                                       'continuing with state: {}. '
+                                       'In an event of agent failure, replace the state file with this state.'
+                                       .format(instance.instance_key, instance.file_location,
+                                               self.state[instance.instance_key]))
                         raise StateNotPersistedException(e)
 
             try:
                 with open(instance.file_location, 'w+') as f:
                     f.write(json.dumps(self.state[instance.instance_key]))
             except IOError as e:
-                # if we couldn't save, drop the state
-                del self.state[instance.instance_key]
+                # if we couldn't save, log the state
+                self.log.error('PersistentState: Could not persist state for instance: {} at {}, '
+                               'continuing with state: {}. '
+                               'In an event of agent failure, replace the state file with this state.'
+                               .format(instance.instance_key, instance.file_location,
+                                       self.state[instance.instance_key]))
+
                 raise StateNotPersistedException(e)
 
-    def rollback(self, instance):
+    def rollback(self, instance, previous_state=None):
         """
-        flush writes the state data for this instance to disk
+        rollback resets the state data for this instance to the `previous_state` if specified, otherwise reads from disk
         `instance` the persistence instance for which the state is flushed to disk.
+        `previous_state` if specified the state is set to this value.
         """
         if instance.instance_key in self.state:
-            self.read_state(instance)
+            if previous_state:
+                self.log.debug('PersistentState: Rolling back state for instance to previous state value: {}\n'
+                               'Current State: {}\n'
+                               'Previous State: {}'
+                               .format(instance.instance_key, self.state[instance.instance_key],
+                                       previous_state))
+                self.set_state(instance, previous_state)
+            else:
+                self.log.debug('PersistentState: Rolling back state for instance to previous written state value: {}\n'
+                               'Current State: {}\n'
+                               .format(instance.instance_key, self.state[instance.instance_key]))
+                self._read_state(instance)
 
 
 class StateNotPersistedException(Exception):
@@ -172,5 +198,12 @@ class StateCorruptedException(Exception):
 class StateReadException(Exception):
     """
     StateReadException
+    """
+    pass
+
+
+class StateClearException(Exception):
+    """
+    StateClearException
     """
     pass

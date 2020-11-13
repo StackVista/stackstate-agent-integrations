@@ -202,17 +202,33 @@ def state():
         def __init__(self):
             self.persistent_state = StateManager(logger)
 
-        def assert_state(self, instance, state, state_schema=None):
-            assert self.persistent_state.get_state(instance, state_schema) is None
-            self.persistent_state.set_state(instance, state)
-            assert self.persistent_state.get_state(instance, state_schema) == state
-            self.persistent_state.flush(instance)
-            self.persistent_state.read_state(instance)
-            assert self.persistent_state.get_state(instance, state_schema) == state
-            self.persistent_state.clear(instance)
-            assert os.path.isfile(instance.file_location) is False
-            assert self.persistent_state.get_state(instance, state_schema) is None
+        def assert_state(self, instance, state, state_schema=None, with_clear=True):
+            """
+            assert_state does the following steps:
+            - assert that the state is empty when the test is started
+            - set the state, without flushing to disk
+            - get the state, retrieving it from memory and assert that it's the same as the input state
+            - set state, this time flushing it to disk
+            - read the state from disk, verify that it's written and read correctly
+            - assert that the state is still the same as the input state
+            if with_clear is True:
+            - clear the persistence state, removing it from memory and disk
+            - assert that the file does not exist
+            - assert that the state is removed from memory
+            """
+            try:
+                assert self.persistent_state.get_state(instance, state_schema) is None
+                self.persistent_state.set_state(instance, state, False)
+                assert self.persistent_state.get_state(instance, state_schema) == state
+                self.persistent_state.set_state(instance, state)
+                self.persistent_state._read_state(instance)
+                assert self.persistent_state.get_state(instance, state_schema) == state
+            finally:
+                if with_clear:
+                    self.persistent_state.clear(instance)
+                    assert os.path.isfile(instance.file_location) is False
+                    assert self.persistent_state.get_state(instance, state_schema) is None
 
-            return state
+                return state
 
     return PersistentStateFixture()
