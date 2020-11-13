@@ -278,6 +278,7 @@ class ServicenowCheck(AgentCheck):
         auth = (instance_info.user, instance_info.password)
         url = instance_info.url + '/api/now/table/change_request'
         params = '?sysparm_display_value=true'
+        params += '&sysparm_limit={}'.format(instance_info.change_request_process_limit)
         if latest_sys_updated_on:
             reformatted_date = ','.join("'{}'".format(i) for i in str(latest_sys_updated_on).split(' '))
             quoted_date = quote(reformatted_date)
