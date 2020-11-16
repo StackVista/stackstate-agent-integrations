@@ -899,7 +899,7 @@ class __AgentCheckPy2(AgentCheckBase):
     def event(self, event):
         self.validate_event(event)
         try:
-            event = self._ensure_dict_encoding(event)
+            event = self._fix_encoding(event)
         except UnicodeError:
             return
 
