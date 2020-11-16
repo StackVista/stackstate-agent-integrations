@@ -284,7 +284,7 @@ class ServicenowCheck(AgentCheck):
             quoted_date = quote(reformatted_date)
             params += '&sysparm_query=sys_updated_on>javascript%3Ags.dateGenerate({})'.format(quoted_date)
         url += params
-        self.log.debug('url for getting CRs: %s', url)
+        self.log.info('url for getting CRs: %s', url)
         return self._get_json(url, instance_info.timeout, auth)
 
     def _sanitize_response(self, cr_list):
@@ -300,12 +300,13 @@ class ServicenowCheck(AgentCheck):
         response = self._collect_change_requests(instance_info, latest_sys_updated_on)
         sanitized_result = self._sanitize_response(response['result'])
         crs_persisted_state = instance_state.get('change_requests', {})
+        self.log.info('CRs results: %d', len(sanitized_result))
         for cr in sanitized_result:
             try:
                 change_request = ChangeRequest(cr, strict=False)
                 change_request.validate()
             except DataError as e:
-                self.log.info('%s - DataError: %s. This CR is skipped.', cr.get('number'), e)
+                self.log.warning('%s - DataError: %s. This CR is skipped.', cr.get('number'), e)
                 continue
             if change_request.cmdb_ci:
                 if change_request.sys_updated_on > latest_sys_updated_on:
@@ -349,15 +350,25 @@ class ServicenowCheck(AgentCheck):
     def _create_event_from_change_request(self, change_request):
         cmdb_ci = change_request.cmdb_ci
         identifiers = []
+
         external_id = cmdb_ci['link'].split('/').pop()
         identifiers.append(external_id)
         identifiers.append(Identifiers.create_host_identifier(cmdb_ci['display_value']))
+
         msg_title = '{}: {}'.format(change_request.number, change_request.short_description)
         timestamp = (change_request.sys_updated_on - datetime.datetime.utcfromtimestamp(0)).total_seconds()
+
+        assignment_group = requested_by = None
+        if change_request.assignment_group:
+            assignment_group = change_request.assignment_group.get('display_value')
+        if change_request.requested_by:
+            requested_by = change_request.requested_by.get('display_value'),
+
         if change_request.description:
             msg_text = change_request.description
         else:
             msg_text = change_request.short_description
+
         tags = [
             'number:{}'.format(change_request.number),
             'priority:{}'.format(change_request.priority),
@@ -365,25 +376,25 @@ class ServicenowCheck(AgentCheck):
             'state:{}'.format(change_request.state),
             'category:{}'.format(change_request.category),
             'conflict_status:{}'.format(change_request.conflict_status),
-            'assigned_to:{}'.format(change_request.assigned_to)
+            'assigned_to:{}'.format(change_request.assigned_to.get('display_value'))
         ]
+
+        self.log.info('Creating event from CR: %s', change_request.number)
+
         self.event({
             'timestamp': timestamp,
             'event_type': change_request.type,
             'msg_title': msg_title,
             'msg_text': msg_text,
-            # TODO do we need an aggregation_key?
-            # 'aggregation_key': '???',
             'context': {
                 'source': 'servicenow',
                 'category': 'change_request',
                 'element_identifiers': identifiers,
                 'data': {
-                    'cmdb_ci': cmdb_ci,
                     'impact': change_request.impact,
-                    'requested_by': change_request.requested_by,
+                    'requested_by': requested_by,
                     'conflict_last_run': change_request.conflict_last_run,
-                    'assignment_group': change_request.assignment_group
+                    'assignment_group': assignment_group
                 },
             },
             'tags': tags
