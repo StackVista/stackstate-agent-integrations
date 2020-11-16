@@ -12,7 +12,7 @@ import unicodedata
 import inspect
 
 import yaml
-from six import PY3, iteritems, text_type, string_types, integer_types, iterlists
+from six import PY3, iteritems, text_type, string_types, integer_types
 
 try:
     import datadog_agent
