@@ -165,13 +165,13 @@ class TestEvents:
                         "key: element_identifiers, type: <class 'int'>"]
 
         expected_py2 = ["key: Fixed, type: <type 'dict'>",
-                       "key: timestamp, type: <type 'int'>",
-                       "key: msg_text, type: <type 'str'>",
-                       "key: msg_title, type: <type 'str'>",
-                       "key: context, type: <type 'dict'>",
-                       "key: element_identifiers, type: <type 'list'>",
-                       "key: element_identifiers, type: <type 'str'>",
-                       "key: element_identifiers, type: <type 'int'>"]
+                        "key: timestamp, type: <type 'int'>",
+                        "key: msg_text, type: <type 'str'>",
+                        "key: msg_title, type: <type 'str'>",
+                        "key: context, type: <type 'dict'>",
+                        "key: element_identifiers, type: <type 'list'>",
+                        "key: element_identifiers, type: <type 'str'>",
+                        "key: element_identifiers, type: <type 'int'>"]
 
         expected_types = expected_py3 if PY3 else expected_py2
         fixed_event = check._fix_encoding(event)
