@@ -46,13 +46,12 @@ except ImportError:
 
 from ..config import is_affirmative
 from ..constants import ServiceCheck
-from ..utils.common import ensure_bytes, ensure_unicode, to_string
+from ..utils.common import ensure_bytes, ensure_unicode
 from ..utils.proxy import config_proxy_skip
 from ..utils.limiter import Limiter
 from ..utils.identifiers import Identifiers
 from ..utils.telemetry import EventStream, MetricStream, ServiceCheckStream, ServiceCheckHealthChecks, Event
 from deprecated.sphinx import deprecated
-
 
 if datadog_agent.get_config('disable_unsafe_yaml'):
     from ..ddyaml import monkey_patch_pyyaml
@@ -582,12 +581,9 @@ class AgentCheckBase(object):
 
         return proxies if proxies else no_proxy_settings
 
-    def get_check_config_path(self):
-        return "{}/{}.d".format(AgentCheck.get_config("confd_path"), self.name)
-
     @staticmethod
     def get_agent_confd_path():
-        return AgentCheck.get_config("confd_path")
+        return datadog_agent.get_config("confd_path")
 
     @staticmethod
     def get_config(key):
@@ -879,11 +875,17 @@ class __AgentCheckPy2(AgentCheckBase):
 
     def event(self, event):
         self.validate_event(event)
-        try:
-            event = self._fix_encoding(event)
-        except UnicodeError:
-            return
-
+        # Enforce types of some fields, considerably facilitates handling in go bindings downstream
+        for key, value in list(iteritems(event)):
+            # transform any bytes objects to utf-8
+            if isinstance(value, bytes):
+                try:
+                    event[key] = event[key].encode('utf-8')
+                except UnicodeError:
+                    self.log.warning(
+                        'Error decoding unicode field `{}` to utf-8 encoded string, cannot submit event'.format(key)
+                    )
+                    return
         if event.get('tags'):
             event['tags'] = self._normalize_tags_type(event['tags'])
         if event.get('timestamp'):
@@ -898,38 +900,6 @@ class __AgentCheckPy2(AgentCheckBase):
             telemetry.submit_topology_event(self, self.check_id, event)
         else:
             aggregator.submit_event(self, self.check_id, event)
-
-    def _fix_encoding(self, value):
-        if isinstance(value, text_type):
-            try:
-                fixed_value = to_string(value)
-            except UnicodeError as e:
-                self.log.warning("Error encoding unicode value '%s' to utf-8 encoded string", value)
-                raise e
-            return fixed_value
-        elif isinstance(value, dict):
-            return self._ensure_dict_encoding(value)
-        elif isinstance(value, list):
-            return self._ensure_list_encoding(value)
-        return value
-
-    def _ensure_dict_encoding(self, dict_to_check):
-        for key, value in list(iteritems(dict_to_check)):
-            try:
-                dict_to_check[key] = self._fix_encoding(value)
-            except UnicodeError as e:
-                self.log.warning("Error encoding unicode field '%s' to utf-8 encoded string", key)
-                raise e
-        return dict_to_check
-
-    def _ensure_list_encoding(self, list_to_check):
-        for i, element in enumerate(list_to_check):
-            try:
-                list_to_check[i] = self._fix_encoding(element)
-            except UnicodeError as e:
-                self.log.warning("Error encoding unicode element no. %d of list.", i)
-                raise e
-        return list_to_check
 
     def _normalize_tags_type(self, tags, device_name=None, metric_name=None):
         """
