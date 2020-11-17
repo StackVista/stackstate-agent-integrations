@@ -12,12 +12,11 @@ import mock
 import pytest
 import requests
 from schematics.exceptions import DataError
-from yaml.parser import ParserError
 
 from stackstate_checks.base import AgentIntegrationTestUtil, AgentCheck
 from stackstate_checks.base.errors import CheckException
 from stackstate_checks.base.stubs import topology, aggregator
-from stackstate_checks.servicenow import ServicenowCheck, InstanceInfo
+from stackstate_checks.servicenow import ServicenowCheck, InstanceInfo, json_parse_exception
 
 
 def mock_process_and_cache_relation_types(*args):
@@ -253,7 +252,7 @@ class TestServicenow(unittest.TestCase):
         """
         self.check._batch_collect_components = mock.MagicMock()
         self.check._batch_collect_components.return_value = mock_collect_components
-        result = self.check._batch_collect(self.check._batch_collect_components, instance_config)
+        self.check._batch_collect(self.check._batch_collect_components, instance_config)
         self.check._process_components(instance_config)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
@@ -494,7 +493,9 @@ class TestServicenow(unittest.TestCase):
         """Test if collect component returns no result or its not list"""
         self.check._batch_collect_components = mock.MagicMock()
         self.check._batch_collect_components.return_value = {}
-        self.assertRaises(CheckException, self.check._batch_collect, self.check._batch_collect_components, instance_config)
+        self.assertRaises(
+            CheckException, self.check._batch_collect, self.check._batch_collect_components, instance_config
+        )
 
     def test_collect_components_returns_empty_result(self):
         """Test if collect component returns no result or its not list"""
@@ -536,7 +537,7 @@ class TestServicenow(unittest.TestCase):
         """
         url, auth = self._get_url_auth()
         mock_request_get.return_value = mock.MagicMock(status_code=200, text=mock_result_with_malformed_str)
-        self.assertRaises(ParserError, self.check._get_json, url, 10, auth)
+        self.assertRaises(json_parse_exception, self.check._get_json, url, 10, auth)
 
     @mock.patch('requests.get')
     def test_get_json_malformed_json_and_execution_time_exceeded_error(self, mock_request_get):

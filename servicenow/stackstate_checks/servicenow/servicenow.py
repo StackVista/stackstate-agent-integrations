@@ -6,16 +6,19 @@ import json
 import os
 
 try:
+    json_parse_exception = json.decoder.JSONDecodeError
+except AttributeError:  # Python 2
+    json_parse_exception = ValueError
+
+try:
     from urllib.parse import quote
 except ImportError:
     from urllib import quote
 
 import requests
-import yaml
 from schematics import Model
 from schematics.exceptions import DataError
 from schematics.types import URLType, StringType, ListType, IntType, DictType, DateTimeType
-from yaml.parser import ParserError
 
 from stackstate_checks.base import AgentCheck, TopologyInstance, Identifiers
 from stackstate_checks.base.errors import CheckException
@@ -419,9 +422,8 @@ class ServicenowCheck(AgentCheck):
             raise CheckException("Got %s when hitting %s" % (response.status_code, url))
 
         try:
-            # response_json = yaml.safe_load(response.text.encode('utf-8'))
             response_json = json.loads(response.text.encode('utf-8'))
-        except ParserError as e:
+        except json_parse_exception as e:
             # Fix for ServiceNow bug: Sometimes there is a response with status 200 and malformed json with
             # error message 'Transaction cancelled: maximum execution time exceeded'.
             # We send right error message because ParserError is just side effect error.
