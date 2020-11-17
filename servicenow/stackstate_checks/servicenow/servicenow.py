@@ -12,7 +12,7 @@ except AttributeError:  # Python 2
 
 try:
     from urllib.parse import quote
-except ImportError:
+except ImportError:  # Python 2
     from urllib import quote
 
 import requests
