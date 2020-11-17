@@ -877,14 +877,13 @@ class __AgentCheckPy2(AgentCheckBase):
         self.validate_event(event)
         # Enforce types of some fields, considerably facilitates handling in go bindings downstream
         for key, value in list(iteritems(event)):
-            # transform any bytes objects to utf-8
-            if isinstance(value, bytes):
+            # transform the unicode objects to plain strings with utf-8 encoding
+            if isinstance(value, text_type):
                 try:
                     event[key] = event[key].encode('utf-8')
                 except UnicodeError:
-                    self.log.warning(
-                        'Error decoding unicode field `{}` to utf-8 encoded string, cannot submit event'.format(key)
-                    )
+                    self.log.warning("Error encoding unicode field '%s' to utf-8 encoded string, can't submit event",
+                                     key)
                     return
         if event.get('tags'):
             event['tags'] = self._normalize_tags_type(event['tags'])
