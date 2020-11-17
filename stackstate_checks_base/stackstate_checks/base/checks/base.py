@@ -50,11 +50,9 @@ from ..utils.common import ensure_bytes, ensure_unicode, to_string
 from ..utils.proxy import config_proxy_skip
 from ..utils.limiter import Limiter
 from ..utils.identifiers import Identifiers
-from ..utils.telemetry import EventStream, TopologyEventContext, MetricStream, ServiceCheckStream, \
-    ServiceCheckHealthChecks, Event
-from ..utils.persistent_state import PersistentInstance, PersistentState
+from ..utils.telemetry import EventStream, MetricStream, ServiceCheckStream, ServiceCheckHealthChecks, Event
 from deprecated.sphinx import deprecated
-from schematics.types import BaseType
+
 
 if datadog_agent.get_config('disable_unsafe_yaml'):
     from ..ddyaml import monkey_patch_pyyaml
@@ -67,8 +65,6 @@ ONE_PER_CONTEXT_METRIC_TYPES = [
     aggregator.RATE,
     aggregator.MONOTONIC_COUNT,
 ]
-
-StateManager = PersistentState()
 
 
 class TopologyInstanceBase(object):
@@ -190,20 +186,6 @@ class AgentCheckBase(object):
             metric_limit = self.DEFAULT_METRIC_LIMIT
         if metric_limit > 0:
             self.metric_limiter = Limiter(self.name, 'metrics', metric_limit, self.warning)
-
-    def _get_state_instance(self):
-        instance = self._get_instance_key_value()
-        instance_key = "instance.{}.{}".format(instance.type, instance.url)
-        return PersistentInstance(instance_key, "{}/{}.state".format(self.get_check_config_path(), instance_key))
-
-    def set_state(self, data):
-        StateManager.set_state(self._get_state_instance(), data)
-
-    def get_state(self, schema=None):
-        StateManager.get_state(self._get_state_instance(), schema)
-
-    def clear_state(self):
-        StateManager.clear(self._get_state_instance())
 
     @staticmethod
     def load_config(yaml_str):
@@ -785,7 +767,6 @@ class __AgentCheckPy3(AgentCheckBase):
             if self._get_instance_key_value().with_snapshots:
                 topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key())
             result = ''
-            StateManager.flush(self._get_state_instance())
         except Exception as e:
             result = json.dumps([
                 {
@@ -1021,7 +1002,6 @@ class __AgentCheckPy2(AgentCheckBase):
             if self._get_instance_key_value().with_snapshots:
                 topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key())
             result = b''
-            StateManager.flush(self._get_state_instance())
         except Exception as e:
             result = json.dumps([
                 {

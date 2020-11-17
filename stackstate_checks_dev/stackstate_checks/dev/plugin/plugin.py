@@ -11,9 +11,6 @@ import pytest
 from .._env import E2E_FIXTURE_NAME, TESTING_PLUGIN, e2e_active, get_env_vars, E2E_PARENT_PYTHON, \
     format_config, AGENT_COLLECTOR_SEPARATOR, replay_check_run
 
-from stackstate_checks.utils.persistent_state import PersistentState, PersistentInstance, StateReadException
-
-
 try:
     from stackstate_checks.base.stubs import aggregator as __aggregator
 
@@ -190,26 +187,3 @@ def sts_agent_check(request, aggregator):
     # Give an explicit name so we don't shadow other uses
     with TempDir('sts_agent_check') as temp_dir:
         yield run_check
-
-
-@pytest.fixture
-def state():
-    class PersistentStateFixture:
-
-        def __init__(self):
-            self.persistent_state = PersistentState()
-
-        def assert_state(self, instance, state, state_schema=None):
-            with pytest.raises(StateReadException):
-                self.persistent_state.get_state(instance, state_schema)
-            self.persistent_state.set_state(instance, state)
-            assert self.persistent_state.get_state(instance, state_schema) == state
-            self.persistent_state.flush(instance)
-            assert self.persistent_state.get_state(instance, state_schema) == state
-            self.persistent_state.clear(instance)
-            with pytest.raises(StateReadException):
-                self.persistent_state.get_state(instance, state_schema)
-
-            return state
-
-    return PersistentStateFixture()
