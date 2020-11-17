@@ -362,7 +362,7 @@ class ServicenowCheck(AgentCheck):
         if change_request.assignment_group:
             assignment_group = change_request.assignment_group.get('display_value')
         if change_request.requested_by:
-            requested_by = change_request.requested_by.get('display_value'),
+            requested_by = change_request.requested_by.get('display_value')
 
         if change_request.description:
             msg_text = change_request.description
@@ -419,7 +419,8 @@ class ServicenowCheck(AgentCheck):
             raise CheckException("Got %s when hitting %s" % (response.status_code, url))
 
         try:
-            response_json = yaml.safe_load(response.text.encode('utf-8'))
+            # response_json = yaml.safe_load(response.text.encode('utf-8'))
+            response_json = json.loads(response.text.encode('utf-8'))
         except ParserError as e:
             # Fix for ServiceNow bug: Sometimes there is a response with status 200 and malformed json with
             # error message 'Transaction cancelled: maximum execution time exceeded'.
