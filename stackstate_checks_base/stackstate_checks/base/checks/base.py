@@ -46,7 +46,7 @@ except ImportError:
 
 from ..config import is_affirmative
 from ..constants import ServiceCheck
-from ..utils.common import ensure_bytes, ensure_unicode
+from ..utils.common import ensure_string, ensure_unicode, to_string
 from ..utils.proxy import config_proxy_skip
 from ..utils.limiter import Limiter
 from ..utils.identifiers import Identifiers
@@ -298,7 +298,7 @@ class AgentCheckBase(object):
         name = re.sub(br"_\.", b".", name)
 
         if prefix is not None:
-            return ensure_bytes(prefix) + b"." + name
+            return ensure_string(prefix) + b"." + name
         else:
             return name
 
@@ -312,14 +312,20 @@ class AgentCheckBase(object):
         Convert from CamelCase to camel_case
         And substitute illegal metric characters
         """
-        metric_name = self.FIRST_CAP_RE.sub(br'\1_\2', ensure_bytes(name))
+        metric_name = self.FIRST_CAP_RE.sub(br'\1_\2', ensure_string(name))
         metric_name = self.ALL_CAP_RE.sub(br'\1_\2', metric_name).lower()
         metric_name = self.METRIC_REPLACEMENT.sub(br'_', metric_name)
         return self.DOT_UNDERSCORE_CLEANUP.sub(br'.', metric_name).strip(b'_')
 
     def component(self, id, type, data, streams=None, checks=None):
         instance = self._get_instance_key_value()
-        data = self._map_component_data(id, type, instance, data, streams, checks)
+        try:
+            fixed_data = self._fix_encoding(data)
+            fixed_streams = self._fix_encoding(streams)
+            fixed_checks = self._fix_encoding(checks)
+        except UnicodeError:
+            return
+        data = self._map_component_data(id, type, instance, fixed_data, fixed_streams, fixed_checks)
         topology.submit_component(self, self.check_id, self._get_instance_key(), id, type, data)
 
     def _map_component_data(self, id, type, instance, data, streams=None, checks=None, add_instance_tags=True):
@@ -336,7 +342,13 @@ class AgentCheckBase(object):
         return data
 
     def relation(self, source, target, type, data, streams=None, checks=None):
-        data = self._map_relation_data(source, target, type, data, streams, checks)
+        try:
+            fixed_data = self._fix_encoding(data)
+            fixed_streams = self._fix_encoding(streams)
+            fixed_checks = self._fix_encoding(checks)
+        except UnicodeError:
+            return
+        data = self._map_relation_data(source, target, type, fixed_data, fixed_streams, fixed_checks)
         topology.submit_relation(self, self.check_id, self._get_instance_key(), source, target, type, data)
 
     def _map_relation_data(self, source, target, type, data, streams=None, checks=None):
@@ -581,6 +593,30 @@ class AgentCheckBase(object):
 
         return proxies if proxies else no_proxy_settings
 
+    # TODO collect all errors instead of the first one
+    def _fix_encoding(self, value, context=None):
+        if isinstance(value, text_type):
+            try:
+                fixed_value = to_string(value)
+            except UnicodeError as e:
+                self.log.warning("Error while encoding unicode to string: '{0}', at {1}".format(value, context))
+                raise e
+            return fixed_value
+        elif isinstance(value, dict):
+            for key, field in list(iteritems(value)):
+                value[key] = self._fix_encoding(field, "key '{0}' of dict".format(key))
+        elif isinstance(value, list):
+            for i, element in enumerate(value):
+                value[i] = self._fix_encoding(element, "index '{0}' of list".format(i))
+        elif isinstance(value, set):
+            # we convert a set to a list so we can update it in place
+            # and then at the end we turn the list back to a set
+            encoding_list = list(value)
+            for i, element in enumerate(encoding_list):
+                encoding_list[i] = self._fix_encoding(element, "element of set")
+            value = set(encoding_list)
+        return value
+
     @staticmethod
     def get_agent_confd_path():
         return datadog_agent.get_config("confd_path")
@@ -689,16 +725,11 @@ class __AgentCheckPy3(AgentCheckBase):
     def event(self, event):
         self.validate_event(event)
         # Enforce types of some fields, considerably facilitates handling in go bindings downstream
-        for key, value in list(iteritems(event)):
-            # transform any bytes objects to utf-8
-            if isinstance(value, bytes):
-                try:
-                    event[key] = event[key].decode('utf-8')
-                except UnicodeError:
-                    self.log.warning(
-                        'Error decoding unicode field `{}` to utf-8 encoded string, cannot submit event'.format(key)
-                    )
-                    return
+        try:
+            event = self._fix_encoding(event)
+        except UnicodeError:
+            return
+
         if event.get('tags'):
             event['tags'] = self._normalize_tags_type(event['tags'])
         if event.get('timestamp'):
@@ -857,7 +888,7 @@ class __AgentCheckPy2(AgentCheckBase):
             self.warning(err_msg)
             return
 
-        aggregator.submit_metric(self, self.check_id, mtype, ensure_bytes(name), value, tags, hostname)
+        aggregator.submit_metric(self, self.check_id, mtype, ensure_string(name), value, tags, hostname)
 
     def service_check(self, name, status, tags=None, hostname=None, message=None):
         tags = self._normalize_tags_type(tags)
@@ -866,34 +897,30 @@ class __AgentCheckPy2(AgentCheckBase):
         if message is None:
             message = b''
         else:
-            message = ensure_bytes(message)
+            message = ensure_string(message)
 
         instance = self._get_instance_key_value()
-        tags_bytes = list(map(lambda t: ensure_bytes(t), instance.tags()))
-        aggregator.submit_service_check(self, self.check_id, ensure_bytes(name), status,
+        tags_bytes = list(map(lambda t: ensure_string(t), instance.tags()))
+        aggregator.submit_service_check(self, self.check_id, ensure_string(name), status,
                                         tags + tags_bytes, hostname, message)
 
     def event(self, event):
         self.validate_event(event)
         # Enforce types of some fields, considerably facilitates handling in go bindings downstream
-        for key, value in list(iteritems(event)):
-            # transform the unicode objects to plain strings with utf-8 encoding
-            if isinstance(value, text_type):
-                try:
-                    event[key] = event[key].encode('utf-8')
-                except UnicodeError:
-                    self.log.warning("Error encoding unicode field '%s' to utf-8 encoded string, can't submit event",
-                                     key)
-                    return
+        try:
+            event = self._fix_encoding(event)
+        except UnicodeError:
+            return
+
         if event.get('tags'):
             event['tags'] = self._normalize_tags_type(event['tags'])
         if event.get('timestamp'):
             event['timestamp'] = int(event['timestamp'])
         if event.get('aggregation_key'):
-            event['aggregation_key'] = ensure_bytes(event['aggregation_key'])
+            event['aggregation_key'] = ensure_string(event['aggregation_key'])
         if event.get('source_type_name'):
             self._log_deprecation("source_type_name")
-            event['event_type'] = ensure_bytes(event['source_type_name'])
+            event['event_type'] = ensure_string(event['source_type_name'])
 
         if 'context' in event:
             telemetry.submit_topology_event(self, self.check_id, event)
@@ -950,7 +977,7 @@ class __AgentCheckPy2(AgentCheckBase):
         return data
 
     def warning(self, warning_message):
-        warning_message = ensure_bytes(warning_message)
+        warning_message = ensure_string(warning_message)
 
         frame = inspect.currentframe().f_back
         lineno = frame.f_lineno

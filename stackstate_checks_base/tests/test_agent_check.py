@@ -330,7 +330,7 @@ class TopologyCheck(AgentCheck):
 class TopologyAutoSnapshotCheck(TopologyCheck):
     def __init__(self):
         instances = [{'a': 'b'}]
-        super(TopologyAutoSnapshotCheck, self)\
+        super(TopologyAutoSnapshotCheck, self) \
             .__init__(TopologyInstance("mytype", "someurl", with_snapshots=True), "test", {}, instances)
 
     def check(self, instance):
