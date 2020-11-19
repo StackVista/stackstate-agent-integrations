@@ -77,7 +77,6 @@ class ServicenowCheck(AgentCheck):
     def __init__(self, name, init_config, agentConfig, instances=None):
         AgentCheck.__init__(self, name, init_config, agentConfig, instances)
         self.persistent_state = None
-        # TODO file location
         self.persistent_instance = PersistentInstance(
             'servicenow.change_requests', '/etc/stackstate-agent/servicenow_CRs.json'
         )
