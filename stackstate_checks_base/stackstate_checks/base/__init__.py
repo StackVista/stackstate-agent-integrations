@@ -7,7 +7,7 @@ from .checks.openmetrics import OpenMetricsBaseCheck
 
 from .config import is_affirmative
 from .errors import ConfigurationError
-from .utils.common import ensure_bytes, ensure_unicode, to_string
+from .utils.common import ensure_string, ensure_unicode, to_string
 from .utils.identifiers import Identifiers
 from .utils.telemetry import MetricStream, MetricHealthChecks, EventStream, EventHealthChecks, HealthState,\
     ServiceCheckStream, ServiceCheckHealthChecks, TopologyEventContext, SourceLink, Event
@@ -34,7 +34,7 @@ __all__ = [
     'OpenMetricsBaseCheck',
     'PDHBaseCheck',
     'ConfigurationError',
-    'ensure_bytes',
+    'ensure_string',
     'ensure_unicode',
     'is_affirmative',
     'to_string',
