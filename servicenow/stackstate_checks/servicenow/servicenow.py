@@ -77,9 +77,8 @@ class ServicenowCheck(AgentCheck):
     def __init__(self, name, init_config, agentConfig, instances=None):
         AgentCheck.__init__(self, name, init_config, agentConfig, instances)
         self.persistent_state = None
-        self.persistent_instance = PersistentInstance(
-            'servicenow.change_requests', '/etc/stackstate-agent/servicenow_CRs.json'
-        )
+        file_location = os.path.join(AgentCheck.get_agent_confd_path(), 'servicenow.d', 'servicenow_CRs.json')
+        self.persistent_instance = PersistentInstance('servicenow.change_requests', file_location)
         self.cr_persistence_key = None
 
     def get_instance_key(self, instance):
@@ -394,6 +393,7 @@ class ServicenowCheck(AgentCheck):
                 'source': 'servicenow',
                 'category': 'change_request',
                 'element_identifiers': identifiers,
+                'source_link': cmdb_ci['link'],
                 'data': {
                     'impact': change_request.impact,
                     'requested_by': requested_by,
