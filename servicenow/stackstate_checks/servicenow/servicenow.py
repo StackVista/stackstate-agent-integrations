@@ -393,7 +393,7 @@ class ServicenowCheck(AgentCheck):
                 'source': 'servicenow',
                 'category': 'change_request',
                 'element_identifiers': identifiers,
-                'source_link': cmdb_ci['link'],
+                'source_links': [],
                 'data': {
                     'impact': change_request.impact,
                     'requested_by': requested_by,
