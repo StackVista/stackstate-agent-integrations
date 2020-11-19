@@ -9,7 +9,6 @@ from six import PY3
 
 from stackstate_checks.checks import AgentCheck, TopologyInstance, AgentIntegrationInstance
 from stackstate_checks.base.stubs.topology import component, relation
-from stackstate_checks.utils.type_debugging import print_type
 
 
 def test_instance():
@@ -144,40 +143,6 @@ class TestEvents:
         }
         check.event(event)
         telemetry.assert_topology_event(event)
-
-    def test_fix_encoding(self):
-        check = AgentCheck()
-        event = {
-            'timestamp': 123456789,
-            'msg_title': 'new test event',
-            'msg_text': u'a few strange characters öüéñ',
-            'context': {
-                'element_identifiers': [u'urn:test:/value', 123456789],
-            }
-        }
-        expected_py3 = ["key: Fixed, type: <class 'dict'>",
-                        "key: timestamp, type: <class 'int'>",
-                        "key: msg_title, type: <class 'str'>",
-                        "key: msg_text, type: <class 'str'>",
-                        "key: context, type: <class 'dict'>",
-                        "key: element_identifiers, type: <class 'list'>",
-                        "key: element_identifiers, type: <class 'str'>",
-                        "key: element_identifiers, type: <class 'int'>"]
-
-        expected_py2 = ["key: Fixed, type: <type 'dict'>",
-                        "key: timestamp, type: <type 'int'>",
-                        "key: msg_text, type: <type 'str'>",
-                        "key: msg_title, type: <type 'str'>",
-                        "key: context, type: <type 'dict'>",
-                        "key: element_identifiers, type: <type 'list'>",
-                        "key: element_identifiers, type: <type 'str'>",
-                        "key: element_identifiers, type: <type 'int'>"]
-
-        expected_types = expected_py3 if PY3 else expected_py2
-        fixed_event = check._fix_encoding(event)
-        fixed_types = print_type('Fixed', fixed_event)
-        for expected in expected_types:
-            assert expected in fixed_types
 
 
 class TestServiceChecks:

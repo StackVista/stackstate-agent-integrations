@@ -19,3 +19,6 @@ def _print_type(parent, value, types_summary):
     elif isinstance(value, list):
         for list_item in value:
             _print_type(parent, list_item, types_summary)
+    elif isinstance(value, set):
+        for set_item in value:
+            _print_type(parent, set_item, types_summary)

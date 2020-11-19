@@ -581,37 +581,29 @@ class AgentCheckBase(object):
 
         return proxies if proxies else no_proxy_settings
 
-    def _fix_encoding(self, value):
+    # TODO collect all errors instead of the first one
+    def _fix_encoding(self, value, context=None):
         if isinstance(value, text_type):
             try:
                 fixed_value = to_string(value)
             except UnicodeError as e:
-                self.log.warning("Error encoding unicode value '%s' to utf-8 encoded string", value)
+                self.log.warning("Error while encoding unicode to string: '{0}', at {1}".format(value, context))
                 raise e
             return fixed_value
         elif isinstance(value, dict):
-            return self._ensure_dict_encoding(value)
+            for key, field in list(iteritems(value)):
+                value[key] = self._fix_encoding(field, "key '{0}' of dict".format(key))
         elif isinstance(value, list):
-            return self._ensure_list_encoding(value)
+            for i, element in enumerate(value):
+                value[i] = self._fix_encoding(element, "index '{0}' of list".format(i))
+        elif isinstance(value, set):
+            # we convert a set to a list so we can update it in place
+            # and then at the end we turn the list back to a set
+            encoding_list = list(value)
+            for i, element in enumerate(encoding_list):
+                encoding_list[i] = self._fix_encoding(element, "element of set")
+            value = set(encoding_list)
         return value
-
-    def _ensure_dict_encoding(self, dict_to_check):
-        for key, value in list(iteritems(dict_to_check)):
-            try:
-                dict_to_check[key] = self._fix_encoding(value)
-            except UnicodeError as e:
-                self.log.warning("Error encoding unicode field '%s' to utf-8 encoded string", key)
-                raise e
-        return dict_to_check
-
-    def _ensure_list_encoding(self, list_to_check):
-        for i, element in enumerate(list_to_check):
-            try:
-                list_to_check[i] = self._fix_encoding(element)
-            except UnicodeError as e:
-                self.log.warning("Error encoding unicode element no. %d of list.", i)
-                raise e
-        return list_to_check
 
     @staticmethod
     def get_agent_confd_path():
