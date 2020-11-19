@@ -319,7 +319,13 @@ class AgentCheckBase(object):
 
     def component(self, id, type, data, streams=None, checks=None):
         instance = self._get_instance_key_value()
-        data = self._map_component_data(id, type, instance, self._fix_encoding(data), streams, checks)
+        try:
+            fixed_data = self._fix_encoding(data)
+            fixed_streams = self._fix_encoding(streams)
+            fixed_checks = self._fix_encoding(checks)
+        except UnicodeError:
+            return
+        data = self._map_component_data(id, type, instance, fixed_data, fixed_streams, fixed_checks)
         topology.submit_component(self, self.check_id, self._get_instance_key(), id, type, data)
 
     def _map_component_data(self, id, type, instance, data, streams=None, checks=None, add_instance_tags=True):
@@ -336,7 +342,13 @@ class AgentCheckBase(object):
         return data
 
     def relation(self, source, target, type, data, streams=None, checks=None):
-        data = self._map_relation_data(source, target, type, self._fix_encoding(data), streams, checks)
+        try:
+            fixed_data = self._fix_encoding(data)
+            fixed_streams = self._fix_encoding(streams)
+            fixed_checks = self._fix_encoding(checks)
+        except UnicodeError:
+            return
+        data = self._map_relation_data(source, target, type, fixed_data, fixed_streams, fixed_checks)
         topology.submit_relation(self, self.check_id, self._get_instance_key(), source, target, type, data)
 
     def _map_relation_data(self, source, target, type, data, streams=None, checks=None):
