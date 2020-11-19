@@ -514,7 +514,6 @@ class TestServicenow(unittest.TestCase):
         self.check._batch_collect_components.side_effect = [mock_collect_components_batch, mock_empty_result]
         new_inst_conf = copy(instance_config)
         new_inst_conf.batch_size = 5
-        # result = self.check._batch_collect(self.check._collect_components, new_inst_conf)
         self.check._process_components(new_inst_conf)
 
         topology_instance = topology.get_snapshot(self.check.check_id)
