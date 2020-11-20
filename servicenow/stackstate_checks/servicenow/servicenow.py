@@ -56,12 +56,12 @@ class ChangeRequest(Model):
     priority = StringType(required=True)
     impact = StringType(required=True)
     risk = StringType(required=True)
-    requested_by = DictType(StringType)
+    requested_by = DictType(StringType, default={})
     category = StringType()
     conflict_status = StringType()
     conflict_last_run = StringType()
-    assignment_group = DictType(StringType)
-    assigned_to = DictType(StringType)
+    assignment_group = DictType(StringType, default={})
+    assigned_to = DictType(StringType, default={})
 
 
 class State(Model):
