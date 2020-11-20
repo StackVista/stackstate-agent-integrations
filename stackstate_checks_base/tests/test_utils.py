@@ -13,6 +13,7 @@ from stackstate_checks.utils.persistent_state import StateManager, StateDescript
 from six import PY3
 from schematics import Model
 from schematics.types import IntType
+from schematics.exceptions import DataError
 
 
 class Item:
@@ -137,8 +138,13 @@ class TestPersistentState:
 
     def test_exception_state_without_valid_location(self, state):
         s = {'a': 'b', 'c': 1, 'd': ['e', 'f', 'g'], 'h': {'i': 'j', 'k': True}}
-        instance = StateDescriptor("", "")
-        # set an invalid file_location
+
+        with pytest.raises(DataError) as e:
+            StateDescriptor("", "")
+        assert str(e.value) == """{"instance_key": ["Value must not be a empty string"]}"""
+
+        instance = StateDescriptor("test", "this")
+        # set an invalid file_location for this test
         instance.file_location = ""
         assert state.persistent_state.get_state(instance) is None
 

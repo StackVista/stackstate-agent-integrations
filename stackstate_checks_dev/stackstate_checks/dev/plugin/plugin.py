@@ -203,7 +203,7 @@ def state():
         def __init__(self):
             self.persistent_state = StateManager(logger)
 
-        def assert_state_check(self, check, pre_run_state, post_run_state, state_schema=None):
+        def assert_state_check(self, check, expected_pre_run_state, expected_post_run_state, state_schema=None):
             """
             assert_state_check does the following steps:
             - assert the current state before the check has run, making sure it's the value of `pre_run_state`.
@@ -212,13 +212,13 @@ def state():
             """
             state_descriptor = check._get_state_descriptor()
             try:
-                if pre_run_state:
-                    assert check.state_manager.get_state(state_descriptor, state_schema) == pre_run_state
+                if expected_pre_run_state:
+                    assert check.state_manager.get_state(state_descriptor, state_schema) == expected_pre_run_state
                 else:
                     assert check.state_manager.get_state(state_descriptor, state_schema) is None
                 check.run()
-                if post_run_state:
-                    assert check.state_manager.get_state(state_descriptor, state_schema) == post_run_state
+                if expected_post_run_state:
+                    assert check.state_manager.get_state(state_descriptor, state_schema) == expected_post_run_state
                 else:
                     assert check.state_manager.get_state(state_descriptor, state_schema) is None
             finally:

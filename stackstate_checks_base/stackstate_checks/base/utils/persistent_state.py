@@ -6,6 +6,15 @@ import os
 import json
 import errno
 from schematics import Model
+from .schemas import StrictStringType
+
+
+class StateDescriptorSchema(Model):
+    """
+    StateDescriptorSchema is used to validate data passed to the StateDescriptor
+    """
+    instance_key = StrictStringType(required=True, accept_empty=False)
+    file_location = StrictStringType(required=True, accept_empty=False)
 
 
 class StateDescriptor:
@@ -18,8 +27,10 @@ class StateDescriptor:
         the state
         `file_location` is the location on disk where the state file is store
         """
+        _file_location = "{}.state".format(os.path.join(check_conf_d_path, instance_key))
+        StateDescriptorSchema({'instance_key': instance_key, 'file_location': _file_location}).validate()
         self.instance_key = instance_key
-        self.file_location = "{}.state".format(os.path.join(check_conf_d_path, instance_key))
+        self.file_location = _file_location
 
 
 class StateManager:
@@ -76,8 +87,8 @@ class StateManager:
         except IOError as e:
             # File not found / no file for this state so the state doesn't exist. Catch exception and return None
             if e.errno == errno.ENOENT or e.errno == errno.EINVAL:
-                self.log.debug("PersistentState: No state file found for instance: {} expecting it at: {}. {}"
-                               .format(instance.instance_key, instance.file_location, e))
+                self.log.debug("PersistentState: No state file found for instance: {}"
+                               .format(instance.instance_key))
                 return None
 
             self.log.error("PersistentState: Error occurred while retrieving state file for instance: {} "
@@ -134,31 +145,21 @@ class StateManager:
         """
         if instance.instance_key in self.state:
             # check if folder and file exists before writing
-            if not os.path.exists(os.path.dirname(instance.file_location)):
-                try:
-                    os.makedirs(os.path.dirname(instance.file_location))
-                except OSError as e:
-                    if e.errno != errno.EEXIST:
-                        # if we couldn't save, log the state
-                        self.log.error('PersistentState: Could not persist state for instance: {} at {}, '
-                                       'continuing with state: {}. '
-                                       'In an event of agent failure, replace the state file with this state.'
-                                       .format(instance.instance_key, instance.file_location,
-                                               self.state[instance.instance_key]))
-                        raise StateNotPersistedException(e)
-
             try:
+                if not os.path.exists(os.path.dirname(instance.file_location)):
+                    os.makedirs(os.path.dirname(instance.file_location))
+
                 with open(instance.file_location, 'w+') as f:
                     f.write(json.dumps(self.state[instance.instance_key]))
-            except IOError as e:
-                # if we couldn't save, log the state
-                self.log.error('PersistentState: Could not persist state for instance: {} at {}, '
-                               'continuing with state: {}. '
-                               'In an event of agent failure, replace the state file with this state.'
-                               .format(instance.instance_key, instance.file_location,
-                                       self.state[instance.instance_key]))
-
-                raise StateNotPersistedException(e)
+            except OSError as e:
+                if e.errno != errno.EEXIST:
+                    # if we couldn't save, log the state
+                    self.log.error('PersistentState: Could not persist state for instance: {} at {}, '
+                                   'continuing with state: {}. '
+                                   'In an event of agent failure, replace the state file with this state.'
+                                   .format(instance.instance_key, instance.file_location,
+                                           self.state[instance.instance_key]))
+                    raise StateNotPersistedException(e)
 
 
 class StateNotPersistedException(Exception):
