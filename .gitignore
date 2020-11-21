@@ -52,6 +52,7 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 .benchmarks/
+stackstate_checks_base/test_data
 
 # Translations
 *.mo
