@@ -1,9 +1,12 @@
-from six import iteritems, string_types
+# (C) StackState 2020
+# All rights reserved
+# Licensed under a 3-clause BSD style license (see LICENSE)
+from six import iteritems
 from enum import Enum
 import uuid
-from schematics.models import Model
-from schematics.types import StringType, URLType, ModelType, ListType, IntType, BaseType
-from schematics.exceptions import ValidationError
+from schematics import Model
+from schematics.types import URLType, ModelType, ListType, IntType, BaseType
+from .schemas import StrictStringType
 
 
 class HealthState(Enum):
@@ -451,16 +454,6 @@ class ServiceCheckStream(TelemetryStream):
     `conditions` is a dictionary of key -> value arguments that are used to filter the event values for the stream.
     """
     pass
-
-
-class StrictStringType(StringType):
-    def convert(self, value, context=None):
-        if not isinstance(value, string_types):
-            raise ValidationError('Value must be a string')
-        value = super(StrictStringType, self).convert(value, context)
-        if value is None:
-            return self.default()
-        return value
 
 
 class SourceLink(Model):

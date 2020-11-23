@@ -4,6 +4,9 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import mock
+import shutil
+from schematics import Model
+from schematics.types import IntType, StringType, ModelType
 import pytest
 from six import PY3
 
@@ -345,6 +348,63 @@ class TopologyBrokenCheck(TopologyAutoSnapshotCheck):
         raise Exception("some error in my check")
 
 
+TEST_STATE = {
+    'string': 'string',
+    'int': 1,
+    'float': 1.0,
+    'bool': True,
+    'list': ['a', 'b', 'c'],
+    'dict': {'a': 'b'}
+}
+
+
+class TopologyStatefulCheck(TopologyAutoSnapshotCheck):
+    def __init__(self):
+        super(TopologyStatefulCheck, self).__init__()
+
+    @staticmethod
+    def get_agent_conf_d_path():
+        return "./test_data"
+
+    def check(self, instance):
+        instance.update({'state': TEST_STATE})
+
+
+class TopologyClearStatefulCheck(TopologyStatefulCheck):
+    def __init__(self):
+        super(TopologyClearStatefulCheck, self).__init__()
+
+    def check(self, instance):
+        instance.update({'state': None})
+
+
+class TopologyBrokenStatefulCheck(TopologyStatefulCheck):
+    def __init__(self):
+        super(TopologyBrokenStatefulCheck, self).__init__()
+
+    def check(self, instance):
+        instance.update({'state': TEST_STATE})
+
+        raise Exception("some error in my check")
+
+
+class StateSchema(Model):
+    offset = IntType(required=True)
+
+
+class CheckInstanceSchema(Model):
+    a = StringType(required=True)
+    state = ModelType(StateSchema, required=True, default=StateSchema({'offset': 0}))
+
+
+class TopologyStatefulSchemaCheck(TopologyStatefulCheck):
+    INSTANCE_SCHEMA = CheckInstanceSchema
+
+    def check(self, instance):
+        print(instance.a)
+        instance.state.offset = 20
+
+
 class TestTopology:
     def test_component(self, topology):
         check = TopologyCheck()
@@ -380,6 +440,37 @@ class TestTopology:
         check = TopologyCheck()
         check.stop_snapshot()
         topology.assert_snapshot(check.check_id, check.key, stop_snapshot=True)
+
+    def test_stateful_check(self, topology, state):
+        check = TopologyStatefulCheck()
+        state.assert_state_check(check, expected_pre_run_state=None, expected_post_run_state=TEST_STATE)
+        # assert auto snapshotting occurred
+        topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
+
+    def test_clear_stateful_check(self, topology, state):
+        check = TopologyClearStatefulCheck()
+        # set the previous state and assert the state check function as expected
+        check.state_manager.set_state(check._get_state_descriptor(), TEST_STATE)
+        state.assert_state_check(check, expected_pre_run_state=TEST_STATE, expected_post_run_state=None)
+        # assert auto snapshotting occurred
+        topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
+
+    def test_no_state_change_on_exception_stateful_check(self, topology, state):
+        check = TopologyBrokenStatefulCheck()
+        # set the previous state and assert the state check function as expected
+        previous_state = {'my_old': 'state'}
+        check.state_manager.set_state(check._get_state_descriptor(), previous_state)
+        state.assert_state_check(check, expected_pre_run_state=previous_state, expected_post_run_state=previous_state)
+        # assert auto snapshotting occurred
+        topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=False)
+
+    def test_stateful_schema_check(self, topology, state):
+        check = TopologyStatefulSchemaCheck()
+        # assert the state check function as expected
+        state.assert_state_check(check, expected_pre_run_state=None,
+                                 expected_post_run_state=StateSchema({'offset': 20}), state_schema=StateSchema)
+        # assert auto snapshotting occurred
+        topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
 
     def test_none_data_ok(self, topology):
         check = TopologyCheck()
