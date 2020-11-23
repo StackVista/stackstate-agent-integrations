@@ -125,7 +125,7 @@ class StateManager:
         if isinstance(state, dict):
             pass
         elif isinstance(state, Model):
-            state = state.to_primitive()
+            state = state.to_native()
         elif state is None:
             return self.clear(instance)
         else:
