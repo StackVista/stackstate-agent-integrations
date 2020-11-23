@@ -207,7 +207,7 @@ class TestServicenow(unittest.TestCase):
         """
         Initialize and patch the check, i.e.
         """
-        self.check = ServicenowCheck('servicenow_test', {}, {}, [self.instance])
+        self.check = ServicenowCheck('servicenow', {}, {}, [self.instance])
         topology.reset()
         aggregator.reset()
 
@@ -478,7 +478,7 @@ class TestServicenow(unittest.TestCase):
             }
         ]
         for test in tests:
-            check = ServicenowCheck('servicenow_test', {}, {}, [test['instance']])
+            check = ServicenowCheck('servicenow', {}, {}, [test['instance']])
             result = json.loads(check.run())
             self.assertEqual(test['error'], result[0]['message'])
         self.assertRaises(DataError, self.check.get_instance_key, {})
@@ -568,7 +568,7 @@ class TestServicenow(unittest.TestCase):
         Test max batch size value
         """
         instance = {'user': 'name', 'password': 'secret', 'url': "https://website.com", 'batch_size': 20000}
-        check = ServicenowCheck('servicenow_test', {}, {}, [instance])
+        check = ServicenowCheck('servicenow', {}, {}, [instance])
         result = json.loads(check.run())
         self.assertEqual('{"batch_size": ["Int value should be less than or equal to 10000."]}', result[0]['message'])
 
@@ -578,7 +578,7 @@ class TestServicenow(unittest.TestCase):
         Test timeout exception exception gets critical service check
         """
         mock_request_get.side_effect = requests.exceptions.Timeout
-        check = ServicenowCheck('servicenow_test', {}, {}, [mock_instance])
+        check = ServicenowCheck('servicenow', {}, {}, [mock_instance])
         check.run()
         service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_NAME)
         self.assertEqual(1, len(service_checks))
