@@ -3,7 +3,6 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import datetime
 import json
-import os
 
 try:
     json_parse_exception = json.decoder.JSONDecodeError
