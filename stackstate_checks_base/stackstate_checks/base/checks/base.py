@@ -253,7 +253,7 @@ class AgentCheckBase(object):
 
     def _get_state_descriptor(self):
         instance = self._get_instance_key_value()
-        instance_key = "instance.{}.{}".format(instance.type, instance.url)
+        instance_key = to_string(self.normalize("instance.{}.{}".format(instance.type, instance.url)))
         return StateDescriptor(instance_key, self.get_check_config_path())
 
     @staticmethod
@@ -357,7 +357,7 @@ class AgentCheckBase(object):
             if prefix is not None:
                 prefix = self.convert_to_underscore_separated(prefix)
         else:
-            name = re.sub(br"[,\+\*\-/()\[\]{}\s]", b"_", metric)
+            name = re.sub(br"[,\+\*\-/()\[\]{}\s:]", b"_", metric)
         # Eliminate multiple _
         name = re.sub(br"__+", b"_", name)
         # Don't start/end with _
