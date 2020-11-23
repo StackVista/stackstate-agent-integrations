@@ -370,6 +370,20 @@ class TopologyStatefulCheck(TopologyAutoSnapshotCheck):
         instance.update({'state': TEST_STATE})
 
 
+class TopologyStatefulStateDescriptorCleanupCheck(TopologyAutoSnapshotCheck):
+    def __init__(self):
+        instances = [{'a': 'b'}]
+        super(TopologyAutoSnapshotCheck, self) \
+            .__init__(TopologyInstance("mytype", "https://some.type.url", with_snapshots=True), "test", {}, instances)
+
+    @staticmethod
+    def get_agent_conf_d_path():
+        return "./test_data"
+
+    def check(self, instance):
+        instance.update({'state': TEST_STATE})
+
+
 class TopologyClearStatefulCheck(TopologyStatefulCheck):
     def __init__(self):
         super(TopologyClearStatefulCheck, self).__init__()
@@ -443,6 +457,15 @@ class TestTopology:
 
     def test_stateful_check(self, topology, state):
         check = TopologyStatefulCheck()
+        state.assert_state_check(check, expected_pre_run_state=None, expected_post_run_state=TEST_STATE)
+        # assert auto snapshotting occurred
+        topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
+
+    def test_stateful_state_descriptor_cleanup_check(self, topology, state):
+        check = TopologyStatefulStateDescriptorCleanupCheck()
+        state_descriptor = check._get_state_descriptor()
+        assert state_descriptor.instance_key == "instance.mytype.https_some.type.url"
+        assert check._get_instance_key() == {'type': 'mytype', 'url': 'https://some.type.url'}
         state.assert_state_check(check, expected_pre_run_state=None, expected_post_run_state=TEST_STATE)
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
