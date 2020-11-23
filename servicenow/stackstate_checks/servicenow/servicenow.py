@@ -17,7 +17,7 @@ except ImportError:  # Python 2
 import requests
 from schematics import Model
 from schematics.exceptions import DataError
-from schematics.types import URLType, StringType, ListType, IntType, DictType, DateTimeType, ModelType
+from schematics.types import URLType, StringType, ListType, IntType, DictType, DateTimeType, ModelType, BaseType
 
 from stackstate_checks.base import AgentCheck, TopologyInstance, Identifiers
 from stackstate_checks.base.errors import CheckException
@@ -28,6 +28,22 @@ TIMEOUT = 20
 CRS_BOOTSTRAP_DAYS_DEFAULT = 100
 CRS_DEFAULT_PROCESS_LIMIT = 1000
 TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
+
+
+class WrapperType(BaseType):
+    def __init__(self, field, value_mapping, **kwargs):
+        self.field = field(**kwargs)
+        self.value_mapping = value_mapping
+        super(WrapperType, self).__init__(**kwargs)
+
+    def convert(self, value, context=None):
+        if value is None:
+            return self.default()
+        value = self.value_mapping(value)
+        return self.field.convert(value)
+
+    def export(self, value, format, context=None):
+        self.field.export(value, format, context)
 
 
 class ChangeRequest(Model):
@@ -44,6 +60,8 @@ class ChangeRequest(Model):
     impact = StringType(required=True)
     risk = StringType(required=True)
     requested_by = DictType(StringType, default={})
+    # TODO WrapperType WIP
+    # requested_by = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
     category = StringType()
     conflict_status = StringType()
     conflict_last_run = StringType()
@@ -326,6 +344,8 @@ class ServicenowCheck(AgentCheck):
         if change_request.assignment_group:
             assignment_group = change_request.assignment_group.get('display_value')
         if change_request.requested_by:
+            # TODO WrapperType WIP
+            # requested_by = change_request.requested_by
             requested_by = change_request.requested_by.get('display_value')
 
         if change_request.description:
