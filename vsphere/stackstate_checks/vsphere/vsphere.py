@@ -1468,9 +1468,9 @@ class VSphereCheck(AgentCheck):
         self._vacuum_morlist(instance)
 
         # Second part: do the job
+        self.collect_topology(instance)
         self.collect_metrics(instance)
         self._query_event(instance)
-        self.collect_topology(instance)
 
         # For our own sanity
         self._clean()

@@ -1023,3 +1023,26 @@ class TestVsphereTopo(unittest.TestCase):
         topo_dict = self.check.get_topologyitems_sync(instance)
         # Even the server failed to connect, it reconnects and process the vm
         self.assertEqual(len(topo_dict["vms"]), 1)
+
+    def test_collect_metrics_max_query_metrics(self):
+        """
+        Test the component collection from the topology for VirtualMachine
+        """
+        # TODO this is needed because the topology retains data across tests
+        topology.reset()
+
+        self.check._is_excluded = MagicMock(return_value=True)
+
+        instance = {'name': 'vsphere_mock', 'host': 'test-esxi', 'max_query_metrics': 1}
+        topo_items = {'datastores': [], 'clustercomputeresource': [], 'computeresource': [], 'hosts': [],
+                      'datacenters': [], 'vms': [{'hostname': 'Ubuntu',
+                                                 'topo_tags': {'topo_type': 'vsphere-VirtualMachine', 'name': 'Ubuntu',
+                                                               'datastore': '54183927-04f91918-a72a-6805ca147c55'},
+                                                  'mor_type': 'vm'}]}
+        self.check.get_topologyitems_sync = MagicMock(return_value=topo_items)
+        self.check.collect_topology(instance)
+        snapshot = topology.get_snapshot(self.check.check_id)
+
+        # Check if the returned topology contains 1 component
+        self.assertEqual(len(snapshot['components']), 1)
+        self.assertEqual(snapshot['components'][0]['id'], 'urn:vsphere:/test-esxi/vsphere-VirtualMachine/Ubuntu')
