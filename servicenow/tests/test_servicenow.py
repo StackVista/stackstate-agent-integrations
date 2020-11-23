@@ -233,7 +233,7 @@ class TestServicenow(unittest.TestCase):
         """
         self.check._get_json = mock.MagicMock()
         self.check._get_json.side_effect = Exception("Test exception occurred")
-        self.assertRaises(Exception, self.check.check(mock_instance))
+        self.check.run()
 
         # since the check raised exception, the topology snapshot is not completed
         topo_instance = topology.get_snapshot(self.check.check_id)
@@ -463,9 +463,24 @@ class TestServicenow(unittest.TestCase):
         """
         Test existence of mandatory instance values
         """
-        self.assertRaises(DataError, self.check.check, {'user': 'name', 'password': 'secret'})
-        self.assertRaises(DataError, self.check.check, {'user': 'name', 'url': "https://website.com"})
-        self.assertRaises(DataError, self.check.check, {'password': 'secret', 'url': "https://website.com"})
+        tests = [
+            {
+                'instance': {'user': 'name', 'password': 'secret'},
+                'error': '{"url": ["This field is required."]}'
+            },
+            {
+                'instance': {'user': 'name', 'url': "https://website.com"},
+                'error': '{"password": ["This field is required."]}'
+            },
+            {
+                'instance': {'password': 'secret', 'url': "https://website.com"},
+                'error': '{"user": ["This field is required."]}'
+            }
+        ]
+        for test in tests:
+            check = ServicenowCheck('servicenow_test', {}, {}, [test['instance']])
+            result = json.loads(check.run())
+            self.assertEqual(test['error'], result[0]['message'])
         self.assertRaises(DataError, self.check.get_instance_key, {})
 
     def test_json_batch(self):
@@ -553,7 +568,9 @@ class TestServicenow(unittest.TestCase):
         Test max batch size value
         """
         instance = {'user': 'name', 'password': 'secret', 'url': "https://website.com", 'batch_size': 20000}
-        self.assertRaises(DataError, self.check.check, instance)
+        check = ServicenowCheck('servicenow_test', {}, {}, [instance])
+        result = json.loads(check.run())
+        self.assertEqual('{"batch_size": ["Int value should be less than or equal to 10000."]}', result[0]['message'])
 
     @mock.patch('requests.get')
     def test_get_json_timeout(self, mock_request_get):
@@ -561,7 +578,8 @@ class TestServicenow(unittest.TestCase):
         Test timeout exception exception gets critical service check
         """
         mock_request_get.side_effect = requests.exceptions.Timeout
-        self.check.check(mock_instance)
+        check = ServicenowCheck('servicenow_test', {}, {}, [mock_instance])
+        check.run()
         service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_NAME)
         self.assertEqual(1, len(service_checks))
         self.assertEqual(self.check.SERVICE_CHECK_NAME, service_checks[0].name)
