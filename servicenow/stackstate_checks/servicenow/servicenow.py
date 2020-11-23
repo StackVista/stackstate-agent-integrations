@@ -18,7 +18,7 @@ except ImportError:  # Python 2
 import requests
 from schematics import Model
 from schematics.exceptions import DataError
-from schematics.types import URLType, StringType, ListType, IntType, DictType, DateTimeType
+from schematics.types import URLType, StringType, ListType, IntType, DictType, DateTimeType, ModelType
 
 from stackstate_checks.base import AgentCheck, TopologyInstance, Identifiers
 from stackstate_checks.base.errors import CheckException
@@ -31,22 +31,10 @@ CRS_DEFAULT_PROCESS_LIMIT = 1000
 TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 
-class InstanceInfo(Model):
-    url = URLType(required=True)
-    user = StringType(required=True)
-    password = StringType(required=True)
-    include_resource_types = ListType(StringType, default=[])
-    batch_size = IntType(default=BATCH_DEFAULT_SIZE, max_value=BATCH_MAX_SIZE)
-    timeout = IntType(default=TIMEOUT)
-    instance_tags = ListType(StringType, default=[])
-    change_request_bootstrap_days = IntType(default=CRS_BOOTSTRAP_DAYS_DEFAULT)
-    change_request_process_limit = IntType(default=CRS_DEFAULT_PROCESS_LIMIT)
-
-
 class ChangeRequest(Model):
     number = StringType(required=True)
-    cmdb_ci = DictType(StringType, required=True)
     state = StringType(required=True)
+    cmdb_ci = DictType(StringType, required=True)
     sys_updated_on = DateTimeType()
     business_service = StringType()
     service_offering = StringType()
@@ -65,39 +53,48 @@ class ChangeRequest(Model):
 
 
 class State(Model):
-    service_now_url = URLType(required=True)
     latest_sys_updated_on = DateTimeType(required=True)
-    change_requests = DictType(StringType)
+    change_requests = DictType(StringType, default={})
+
+
+class InstanceInfo(Model):
+    url = URLType(required=True)
+    user = StringType(required=True)
+    password = StringType(required=True)
+    include_resource_types = ListType(StringType, default=[])
+    batch_size = IntType(default=BATCH_DEFAULT_SIZE, max_value=BATCH_MAX_SIZE)
+    timeout = IntType(default=TIMEOUT)
+    instance_tags = ListType(StringType, default=[])
+    change_request_bootstrap_days = IntType(default=CRS_BOOTSTRAP_DAYS_DEFAULT)
+    change_request_process_limit = IntType(default=CRS_DEFAULT_PROCESS_LIMIT)
+    state = ModelType(State)
 
 
 class ServicenowCheck(AgentCheck):
     INSTANCE_TYPE = "servicenow_cmdb"
     SERVICE_CHECK_NAME = "servicenow.cmdb.topology_information"
-
-    def __init__(self, name, init_config, agentConfig, instances=None):
-        AgentCheck.__init__(self, name, init_config, agentConfig, instances)
-        self.persistent_state = None
-        file_location = os.path.join(AgentCheck.get_agent_confd_path(), 'servicenow.d', 'servicenow_CRs.json')
-        self.persistent_instance = PersistentInstance('servicenow.change_requests', file_location)
-        self.cr_persistence_key = None
+    INSTANCE_SCHEMA = InstanceInfo
 
     def get_instance_key(self, instance):
         instance_info = InstanceInfo(instance)
         instance_info.validate()
         return TopologyInstance(self.INSTANCE_TYPE, str(instance_info.url), with_snapshots=False)
 
-    def check(self, instance):
-        instance_info = InstanceInfo(instance)
-        instance_info.validate()
-        self.cr_persistence_key = '{}/change_requests'.format(instance_info.url)
-        self._load_state(instance_info)
-
+    def check(self, instance_info):
         try:
+            if not instance_info.state:
+                instance_info.state = State(
+                    {
+                        'latest_sys_updated_on': datetime.datetime.now() - datetime.timedelta(
+                            days=instance_info.change_request_bootstrap_days
+                        )
+                    }
+                )
+
             self.start_snapshot()
             self._process_components(instance_info)
             self._process_relations(instance_info)
             self._process_change_requests(instance_info)
-            self.persistent_state.flush(self.persistent_instance)
             self.stop_snapshot()
             msg = "ServiceNow CMDB instance detected at %s " % instance_info.url
             tags = ["url:%s" % instance_info.url]
@@ -297,12 +294,8 @@ class ServicenowCheck(AgentCheck):
         return sanitized_crs
 
     def _process_change_requests(self, instance_info):
-        state = self.persistent_state.get_state(self.persistent_instance)
-        instance_state = state.get(instance_info.url)
-        latest_sys_updated_on = datetime.datetime.strptime(instance_state.get('latest_sys_updated_on'), TIME_FORMAT)
-        response = self._collect_change_requests(instance_info, latest_sys_updated_on)
+        response = self._collect_change_requests(instance_info, instance_info.state.latest_sys_updated_on)
         sanitized_result = self._sanitize_response(response['result'])
-        crs_persisted_state = instance_state.get('change_requests', {})
         self.log.info('CRs results: %d', len(sanitized_result))
         for cr in sanitized_result:
             try:
@@ -312,43 +305,12 @@ class ServicenowCheck(AgentCheck):
                 self.log.warning('%s - DataError: %s. This CR is skipped.', cr.get('number'), e)
                 continue
             if change_request.cmdb_ci:
-                if change_request.sys_updated_on > latest_sys_updated_on:
-                    latest_sys_updated_on = change_request.sys_updated_on
-                    state[instance_info.url]['latest_sys_updated_on'] = str(latest_sys_updated_on)
-                old_state = crs_persisted_state.get(change_request.number)
+                if change_request.sys_updated_on > instance_info.state.latest_sys_updated_on:
+                    instance_info.state.latest_sys_updated_on = change_request.sys_updated_on
+                old_state = instance_info.state.change_requests.get(change_request.number)
                 if old_state is None or old_state != change_request.state:
                     self._create_event_from_change_request(change_request)
-                    crs_persisted_state[change_request.number] = change_request.state
-        self.persistent_state.set_state(self.persistent_instance, state)
-
-    def _load_state(self, instance_info):
-        """
-        Persistent State structure:
-        {
-            url: {
-                latest_sys_updated_on: timestamp
-                change_requests: {
-                    change_request_number: state
-                }
-            },
-        }
-        :param instance_info: current instance check is processing
-        :return: None
-        """
-        # TODO switch to schematics model
-        self.persistent_state = PersistentState()
-        start_dt = datetime.datetime.now() - datetime.timedelta(days=CRS_BOOTSTRAP_DAYS_DEFAULT)
-        try:
-            self.persistent_state.get_state(self.persistent_instance)
-        except StateReadException:
-            self.log.info('First run! Creating new persistent state.')
-            empty_state = {
-                instance_info.url: {
-                    'latest_sys_updated_on': start_dt.strftime(TIME_FORMAT),
-                    'change_requests': {}
-                }
-            }
-            self.persistent_state.set_state(self.persistent_instance, data=empty_state)
+                    instance_info.state.change_requests[change_request.number] = change_request.state
 
     def _create_event_from_change_request(self, change_request):
         cmdb_ci = change_request.cmdb_ci
@@ -440,79 +402,3 @@ class ServicenowCheck(AgentCheck):
             self.log.debug('Got %d results in response', len(response_json['result']))
 
         return response_json
-
-
-class PersistentInstance:
-    def __init__(self, instance_key, file_location):
-        self.instance_key = instance_key
-        self.file_location = file_location
-
-
-class PersistentState:
-    def __init__(self):
-        self.data = dict()
-
-    def clear(self, instance):
-        if instance.instance_key in self.data:
-            del self.data[instance.instance_key]
-
-        try:
-            os.remove(instance.file_location)
-        except OSError:
-            # log info
-            pass
-
-    def get_state(self, instance, schema=None):
-        if instance.instance_key not in self.data:
-            try:
-                with open(instance.file_location, 'r') as f:
-                    data = json.loads(f.read())
-            except ValueError as e:
-                # log this
-                raise StateCorruptedException(e)
-            except IOError as e:
-                # log info
-                raise StateReadException(e)
-        else:
-            data = json.loads(self.data[instance.instance_key])
-
-        if schema:
-            data = schema(data)
-            data.validate()
-
-        return data
-
-    def set_state(self, instance, data):
-        if isinstance(data, dict):
-            data = json.dumps(data)
-        elif isinstance(data, Model):
-            data = json.dumps(data.to_native())
-
-        # first time insert for this instance, flush right away to ensure that we can write to file
-        if instance.instance_key not in self.data:
-            self.data[instance.instance_key] = data
-            self.flush(instance)
-        else:
-            self.data[instance.instance_key] = data
-
-    def flush(self, instance):
-        if instance.instance_key in self.data:
-            try:
-                with open(instance.file_location, 'w') as f:
-                    f.write(self.data[instance.instance_key])
-            except IOError as e:
-                # if we couldn't save, drop the state
-                del self.data[instance.instance_key]
-                raise StateNotPersistedException(e)
-
-
-class StateNotPersistedException(Exception):
-    pass
-
-
-class StateCorruptedException(Exception):
-    pass
-
-
-class StateReadException(Exception):
-    pass
