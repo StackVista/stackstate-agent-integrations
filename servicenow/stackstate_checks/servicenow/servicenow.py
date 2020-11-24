@@ -52,7 +52,7 @@ class ChangeRequest(Model):
     business_service = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
     service_offering = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
     short_description = WrapperType(StringType, required=True, value_mapping=lambda x: x['display_value'])
-    description = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
+    description = WrapperType(StringType, default='No description', value_mapping=lambda x: x['display_value'])
     type = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
     priority = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
     impact = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
