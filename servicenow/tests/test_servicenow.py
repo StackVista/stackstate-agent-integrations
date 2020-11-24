@@ -194,9 +194,9 @@ instance_config = InstanceInfo(
 )
 
 
-def mock_get_json(url, timeout, auth=None, verify=True):
+def mock_get_json(url, timeout, params, auth=None, verify=True):
     """Mock method for testing _get_json_batch"""
-    return url
+    return params
 
 
 @pytest.mark.usefixtures("instance")
@@ -306,7 +306,7 @@ class TestServicenow(unittest.TestCase):
         url, auth = self._get_url_auth()
         example = {'key': 'value'}
         mock_req_get.return_value = mock.MagicMock(status_code=200, text=json.dumps(example))
-        result = self.check._get_json(url, timeout=10, auth=auth)
+        result = self.check._get_json(url, timeout=10, params={}, auth=auth)
         self.assertEqual(example, result)
 
     @mock.patch('requests.get')
@@ -483,26 +483,37 @@ class TestServicenow(unittest.TestCase):
             self.assertEqual(test['error'], result[0]['message'])
         self.assertRaises(DataError, self.check.get_instance_key, {})
 
+    def test_append_to_sysparm_query(self):
+        params = self.check._append_to_sysparm_query(params={}, param_to_add='first_one')
+        self.assertEqual({'sysparm_query': 'first_one'}, params)
+        params = self.check._append_to_sysparm_query(params=params, param_to_add='second_one')
+        self.assertEqual({'sysparm_query': 'first_one^second_one'}, params)
+
     def test_json_batch(self):
         """
         Test if batch path construction
         """
         self.check._get_json = mock_get_json
-        url, auth = self._get_url_auth()
         offset = 10
         batch_size = 200
-        expected_url = '{}?sysparm_query=ORDERBYsys_created_on&sysparm_offset={}&sysparm_limit={}'.format(url,
-                                                                                                          offset,
-                                                                                                          batch_size)
-        new_url = self.check._get_json_batch(url=url, offset=10, batch_size=200, timeout=10, auth=auth)
-        self.assertEqual(expected_url, new_url)
+        params = self.check._prepare_json_batch(params={}, offset=offset, batch_size=batch_size)
+        self.assertEqual(offset, params.get('sysparm_offset'))
+        self.assertEqual(batch_size, params.get('sysparm_limit'))
+        self.assertEqual('ORDERBYsys_created_on', params.get('sysparm_query'))
 
-        url2 = '{}?k=v'.format(url)
-        expected_url2 = '{}&sysparm_query=ORDERBYsys_created_on&sysparm_offset={}&sysparm_limit={}'.format(url2,
-                                                                                                           offset,
-                                                                                                           batch_size)
-        new_url = self.check._get_json_batch(url=url2, offset=10, batch_size=200, timeout=10, auth=auth)
-        self.assertEqual(expected_url2, new_url)
+    def test_json_batch_adding_param(self):
+        """
+        Test if batch path construction
+        """
+        self.check._get_json = mock_get_json
+        offset = 10
+        batch_size = 200
+        params = self.check._prepare_json_batch(params={'sysparm_query': 'company.nameSTARTSWITHaxa'},
+                                                offset=offset,
+                                                batch_size=batch_size)
+        self.assertEqual(offset, params.get('sysparm_offset'))
+        self.assertEqual(batch_size, params.get('sysparm_limit'))
+        self.assertEqual('company.nameSTARTSWITHaxa^ORDERBYsys_created_on', params.get('sysparm_query'))
 
     def test_collect_components_returns_no_result(self):
         """Test if collect component returns no result or its not list"""
@@ -541,7 +552,7 @@ class TestServicenow(unittest.TestCase):
         """
         url, auth = self._get_url_auth()
         mock_req_get.return_value = mock.MagicMock(status_code=200, text=json.dumps(mock_result_with_utf8))
-        response = self.check._get_json(url, timeout=10, auth=auth)
+        response = self.check._get_json(url, timeout=10, params={}, auth=auth)
         self.assertEqual(u'Avery® Wizard 2.1 forMicrosoft® Word 2000', response.get('result').get('name'))
 
     @mock.patch('requests.get')

@@ -9,11 +9,6 @@ try:
 except AttributeError:  # Python 2
     json_parse_exception = ValueError
 
-try:
-    from urllib.parse import quote
-except ImportError:  # Python 2
-    from urllib import quote
-
 import requests
 from schematics import Model
 from schematics.exceptions import DataError
@@ -27,7 +22,6 @@ BATCH_MAX_SIZE = 10000
 TIMEOUT = 20
 CRS_BOOTSTRAP_DAYS_DEFAULT = 100
 CRS_DEFAULT_PROCESS_LIMIT = 1000
-TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 
 class WrapperType(BaseType):
@@ -40,7 +34,10 @@ class WrapperType(BaseType):
         if value is None:
             return self.default()
         if context.new:
-            value = self.value_mapping(value)
+            try:
+                value = self.value_mapping(value)
+            except KeyError:
+                value = ''
         return self.field.convert(value)
 
     def export(self, value, format, context=None):
@@ -55,14 +52,14 @@ class ChangeRequest(Model):
     business_service = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
     service_offering = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
     short_description = WrapperType(StringType, required=True, value_mapping=lambda x: x['display_value'])
-    description = WrapperType(StringType, required=True, value_mapping=lambda x: x['display_value'])
+    description = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
     type = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
     priority = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
     impact = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
     risk = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
     requested_by = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
     category = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
-    conflict_status = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
+    conflict_status = WrapperType(StringType, value_mapping=lambda x: x['value'])
     conflict_last_run = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
     assignment_group = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
     assigned_to = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
@@ -150,8 +147,7 @@ class ServicenowCheck(AgentCheck):
         self.log.debug("sys param query for relation is :- " + sysparm_query)
         return sysparm_query
 
-    @staticmethod
-    def filter_empty_metadata(data):
+    def filter_empty_metadata(self, data):
         """
         Filter the empty key:value in metadata and also convert unicode values to sting
         :param data: metadata from servicenow
@@ -160,10 +156,13 @@ class ServicenowCheck(AgentCheck):
         result = {}
         if isinstance(data, dict):
             for k, v in data.items():
-                if v:
-                    if str(type(v)) == "<type 'unicode'>":
-                        # only possible in Python 2
-                        v = v.encode('utf-8')
+                if isinstance(v, dict):
+                    result[k] = self.filter_empty_metadata(v)
+                elif v:
+                    # TODO do we need this? Are we not doing that in base with _fix_encoding?
+                    # if str(type(v)) == "<type 'unicode'>":
+                    #     # only possible in Python 2
+                    #     v = v.encode('utf-8')
                     result[k] = v
         return result
 
@@ -179,9 +178,11 @@ class ServicenowCheck(AgentCheck):
         url = instance_info.url + '/api/now/table/cmdb_ci'
         sys_class_filter_query = self.get_sys_class_component_filter_query(instance_info.include_resource_types)
         if sys_class_filter_query:
-            url = url + "?sysparm_query={}".format(sys_class_filter_query)
-            self.log.debug("URL for component collection after applying filter:- %s", url)
-        return self._get_json_batch(url, offset, instance_info.batch_size, instance_info.timeout, auth)
+            params = {'sysparm_query': sys_class_filter_query}
+        else:
+            params = {}
+        params = self._prepare_json_batch(params, offset, instance_info.batch_size)
+        return self._get_json(url, instance_info.timeout, params, auth)
 
     def _batch_collect(self, collect_function, instance_info):
         """
@@ -243,8 +244,11 @@ class ServicenowCheck(AgentCheck):
         :return: dict, raw response from CMDB
         """
         auth = (instance_info.user, instance_info.password)
-        url = instance_info.url + '/api/now/table/cmdb_rel_type?sysparm_fields=sys_id,parent_descriptor'
-        return self._get_json(url, instance_info.timeout, auth)
+        url = instance_info.url + '/api/now/table/cmdb_rel_type'
+        params = {
+            'sysparm_fields': 'sys_id,parent_descriptor'
+        }
+        return self._get_json(url, instance_info.timeout, params, auth)
 
     def _process_relation_types(self, instance_info):
         """
@@ -268,10 +272,15 @@ class ServicenowCheck(AgentCheck):
         url = instance_info.url + '/api/now/table/cmdb_rel_ci'
         sys_class_filter_query = self.get_sys_class_relation_filter_query(instance_info.include_resource_types)
         if sys_class_filter_query:
-            url = url + "?sysparm_query={}".format(sys_class_filter_query)
-            self.log.debug("URL for relation collection after applying filter:- %s", url)
+            params = {
+                'sysparm_query': sys_class_filter_query
+            }
+        else:
+            params = {}
 
-        return self._get_json_batch(url, offset, instance_info.batch_size, instance_info.timeout, auth)
+        params = self._prepare_json_batch(params, offset, instance_info.batch_size)
+
+        return self._get_json(url, instance_info.timeout, params, auth)
 
     def _process_relations(self, instance_info):
         """
@@ -294,17 +303,16 @@ class ServicenowCheck(AgentCheck):
         # TODO: add limit for max number of events that we'll process
         auth = (instance_info.user, instance_info.password)
         url = instance_info.url + '/api/now/table/change_request'
-        params = '?sysparm_display_value=all&sysparm_exclude_reference_link=true'
-        params += '&sysparm_limit={}'.format(instance_info.change_request_process_limit)
-        if instance_info.state.latest_sys_updated_on:
-            reformatted_date = ','.join(
-                "'{}'".format(i) for i in str(instance_info.state.latest_sys_updated_on).split(' ')
-            )
-            quoted_date = quote(reformatted_date)
-            params += '&sysparm_query=sys_updated_on>javascript%3Ags.dateGenerate({})'.format(quoted_date)
-        url += params
-        self.log.info('url for getting CRs: %s', url)
-        return self._get_json(url, instance_info.timeout, auth)
+        reformatted_date = instance_info.state.latest_sys_updated_on.strftime("'%Y-%m-%d', '%H:%M:%S'")
+        sysparm_query = 'sys_updated_on>javascript:gs.dateGenerate({})'.format(reformatted_date)
+        self.log.debug('sysparm_query: %s', sysparm_query)
+        params = {
+            'sysparm_display_value': 'all',
+            'sysparm_exclude_reference_link': 'true',
+            'sysparm_limit': instance_info.change_request_process_limit,
+            'sysparm_query': sysparm_query
+        }
+        return self._get_json(url, instance_info.timeout, params, auth)
 
     def _sanitize_response(self, cr_list):
         sanitized_crs = []
@@ -315,7 +323,6 @@ class ServicenowCheck(AgentCheck):
     def _process_change_requests(self, instance_info):
         response = self._collect_change_requests(instance_info)
         sanitized_result = self._sanitize_response(response['result'])
-        self.log.info('CRs results: %d', len(sanitized_result))
         for cr in sanitized_result:
             try:
                 change_request = ChangeRequest(cr, strict=False)
@@ -370,21 +377,30 @@ class ServicenowCheck(AgentCheck):
             'tags': tags
         })
 
-    def _get_json_batch(self, url, offset, batch_size, timeout, auth):
-        if "?" not in url:
-            query_delimiter = "?"
+    @staticmethod
+    def _append_to_sysparm_query(params, param_to_add):
+        sysparm_query = params.pop('sysparm_query', '')
+        if sysparm_query:
+            sysparm_query += '^{}'.format(param_to_add)
         else:
-            query_delimiter = "&"
-        limit_args = "{}sysparm_query=ORDERBYsys_created_on&sysparm_offset={}&sysparm_limit={}".format(query_delimiter,
-                                                                                                       offset,
-                                                                                                       batch_size)
-        limited_url = url + limit_args
-        return self._get_json(limited_url, timeout, auth)
+            sysparm_query = param_to_add
+        params.update({'sysparm_query': sysparm_query})
+        return params
 
-    def _get_json(self, url, timeout, auth=None, verify=True):
+    def _prepare_json_batch(self, params, offset, batch_size):
+        params = self._append_to_sysparm_query(params, "ORDERBYsys_created_on")
+        params.update(
+            {
+                'sysparm_offset': offset,
+                'sysparm_limit': batch_size
+            }
+        )
+        return params
+
+    def _get_json(self, url, timeout, params, auth=None, verify=True):
         execution_time_exceeded_error_message = 'Transaction cancelled: maximum execution time exceeded'
 
-        response = requests.get(url, timeout=timeout, auth=auth, verify=verify)
+        response = requests.get(url, timeout=timeout, params=params, auth=auth, verify=verify)
         if response.status_code != 200:
             raise CheckException("Got %s when hitting %s" % (response.status_code, url))
 
