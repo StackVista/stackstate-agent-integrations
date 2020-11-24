@@ -131,9 +131,9 @@ class ServicenowCheck(AgentCheck):
         """
         sysparm_query = ""
         if len(sys_class_filter) > 0:
-            sysparm_query = "sysparm_query=sys_class_nameIN{}".format(sys_class_filter[0])
+            sysparm_query = "sys_class_nameIN{}".format(sys_class_filter[0])
             for sys_class in sys_class_filter[1:]:
-                sysparm_query = sysparm_query + "%2C{}".format(sys_class)
+                sysparm_query += "%2C{}".format(sys_class)
         self.log.debug("sys param query for component is :- " + sysparm_query)
         return sysparm_query
 
@@ -141,7 +141,7 @@ class ServicenowCheck(AgentCheck):
         sysparm_parent_query = ""
         sysparm_child_query = ""
         if len(sys_class_filter) > 0:
-            sysparm_parent_query = "sysparm_query=parent.sys_class_nameIN{}".format(sys_class_filter[0])
+            sysparm_parent_query = "parent.sys_class_nameIN{}".format(sys_class_filter[0])
             sysparm_child_query = "%5Echild.sys_class_nameIN{}".format(sys_class_filter[0])
             for sys_class in sys_class_filter[1:]:
                 sysparm_parent_query = sysparm_parent_query + "%2C{}".format(sys_class)
@@ -179,7 +179,7 @@ class ServicenowCheck(AgentCheck):
         url = instance_info.url + '/api/now/table/cmdb_ci'
         sys_class_filter_query = self.get_sys_class_component_filter_query(instance_info.include_resource_types)
         if sys_class_filter_query:
-            url = url + "?{}".format(sys_class_filter_query)
+            url = url + "?sysparm_query={}".format(sys_class_filter_query)
             self.log.debug("URL for component collection after applying filter:- %s", url)
         return self._get_json_batch(url, offset, instance_info.batch_size, instance_info.timeout, auth)
 
@@ -268,7 +268,7 @@ class ServicenowCheck(AgentCheck):
         url = instance_info.url + '/api/now/table/cmdb_rel_ci'
         sys_class_filter_query = self.get_sys_class_relation_filter_query(instance_info.include_resource_types)
         if sys_class_filter_query:
-            url = url + "?{}".format(sys_class_filter_query)
+            url = url + "?sysparm_query={}".format(sys_class_filter_query)
             self.log.debug("URL for relation collection after applying filter:- %s", url)
 
         return self._get_json_batch(url, offset, instance_info.batch_size, instance_info.timeout, auth)
