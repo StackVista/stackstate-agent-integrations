@@ -183,6 +183,7 @@ class SCOM(AgentCheck):
             target_id = str(rel["target"]["Id"])
             self.relation(source_id,target_id,"Is_connected_to",{})
         self.send_alerts_powershell(scom_server)
+
     def check(self, instance):
         scom_ip = str(instance.get('hostip'))
         domain = str(instance.get('domain'))
@@ -196,16 +197,17 @@ class SCOM(AgentCheck):
         try:
             self.start_snapshot()
             if integration_mode == 'api':
-               self.scom_api_check(criteria,auth_method, domain, username, password, scom_ip)
+                self.scom_api_check(criteria,auth_method, domain, username, password, scom_ip)
             else:
-               self.scom_powershell_check(scom_ip)
+                self.scom_powershell_check(scom_ip)
             if self.requests_counter > self.requests_threshold:
-               self.log.info("maximum number of requests reached! "+str(self.requests_counter))
+                self.log.info("maximum number of requests reached! "+str(self.requests_counter))
             else:
-               self.log.info("Total number of requests: "+str(self.requests_counter))
+                self.log.info("Total number of requests: "+str(self.requests_counter))
             self.requests_counter = 0
-        except Exception as e:
             self.stop_snapshot()
+            self.service_check("scom", AgentCheck.OK, message="SCOM synchronized successfully")
+        except Exception as e:
             self.log.exception("SCOM Error: %s" % str(e))
             self.service_check("scom", AgentCheck.CRITICAL, message=str(e))
             raise e

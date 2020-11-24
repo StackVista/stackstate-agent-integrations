@@ -1,15 +1,16 @@
 # (C) Datadog, Inc. 2018
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
-from collections import defaultdict
-from os.path import basename
+import os
+import copy
+import inspect
+import json
 import logging
 import re
-import json
-import copy
 import traceback
 import unicodedata
-import inspect
+from collections import defaultdict
+from os.path import basename
 
 import yaml
 from six import PY3, iteritems, text_type, string_types, integer_types
@@ -46,12 +47,13 @@ except ImportError:
 
 from ..config import is_affirmative
 from ..constants import ServiceCheck
-from ..utils.common import ensure_bytes, ensure_unicode
+from ..utils.common import ensure_string, ensure_unicode, to_string
 from ..utils.proxy import config_proxy_skip
 from ..utils.limiter import Limiter
 from ..utils.identifiers import Identifiers
-from ..utils.telemetry import EventStream, TopologyEventContext, MetricStream, ServiceCheckStream, \
+from ..utils.telemetry import EventStream, MetricStream, ServiceCheckStream, \
     ServiceCheckHealthChecks, Event
+from ..utils.persistent_state import StateDescriptor, StateManager
 from deprecated.sphinx import deprecated
 
 if datadog_agent.get_config('disable_unsafe_yaml'):
@@ -71,7 +73,7 @@ class TopologyInstanceBase(object):
     """
     Data structure for defining a topology instance, a unique identifier for a topology source.
     """
-    def __init__(self, type, url, with_snapshots=True):
+    def __init__(self, type, url, with_snapshots=False):
         self.type = type
         self.url = url
         self.with_snapshots = with_snapshots
@@ -128,6 +130,16 @@ class AgentCheckBase(object):
     """
     DEFAULT_METRIC_LIMIT = 0
 
+    """
+    INSTANCE_SCHEMA allows checks to specify a schematics Schema that is used for the instance in self.check
+    """
+    INSTANCE_SCHEMA = None
+
+    """
+    STATE_FIELD_NAME is used to determine to which key the check state should be set, defaults to `state`
+    """
+    STATE_FIELD_NAME = 'state'
+
     def __init__(self, *args, **kwargs):
         self.check_id = ''
         self.metrics = defaultdict(list)
@@ -161,7 +173,8 @@ class AgentCheckBase(object):
         # returns the cluster name if the check is running in Kubernetes / OpenShift
         self.cluster_name = datadog_agent.get_clustername()
 
-        self.log = None
+        self.log = logging.getLogger('{}.{}'.format(__name__, self.name))
+        self.state_manager = StateManager(self.log)
         self._deprecations = {}
         # Set proxy settings
         self.proxies = self._get_requests_proxy()
@@ -171,6 +184,57 @@ class AgentCheckBase(object):
             self._use_agent_proxy = is_affirmative(self.init_config.get('use_agent_proxy', True))
 
         self.default_integration_http_timeout = float(self.agentConfig.get('default_integration_http_timeout', 9))
+
+    def _check_run_base(self, default_result):
+        try:
+            # start auto snapshot if with_snapshots is set to True
+            if self._get_instance_key_value().with_snapshots:
+                topology.submit_start_snapshot(self, self.check_id, self._get_instance_key())
+
+            instance = self.instances[0]
+            # create integration instance with a copy of instance
+            self.create_integration_instance(copy.deepcopy(instance))
+            # create a copy of the instance, get state if any and add it to the instance object for the check
+            check_instance = copy.deepcopy(instance)
+            # if this instance has some stored state set it to 'state'
+            state_descriptor = self._get_state_descriptor()
+            current_state = copy.deepcopy(self.state_manager.get_state(state_descriptor))
+            if current_state:
+                check_instance[self.STATE_FIELD_NAME] = current_state
+            # if this check has a instance schema defined, cast it into that type and validate it
+            if self.INSTANCE_SCHEMA:
+                check_instance = self.INSTANCE_SCHEMA(check_instance, strict=False)  # strict=False ignores extra fields
+                check_instance.validate()
+            self.check(check_instance)
+
+            # set the state from the check instance
+            self.state_manager.set_state(state_descriptor, check_instance.get(self.STATE_FIELD_NAME))
+
+            # stop auto snapshot if with_snapshots is set to True
+            if self._get_instance_key_value().with_snapshots:
+                topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key())
+
+            result = default_result
+        except Exception as e:
+            result = json.dumps([
+                {
+                    "message": str(e),
+                    "traceback": traceback.format_exc(),
+                }
+            ])
+        finally:
+            if self.metric_limiter:
+                self.metric_limiter.reset()
+
+        return result
+
+    def commit_state(self, state, flush=True):
+        """
+        commit_state can be used to immediately set (and optionally flush) state in the agent, instead of first
+        completing
+        the check
+        """
+        self.state_manager.set_state(self._get_state_descriptor(), state, flush)
 
     def set_metric_limits(self):
         try:
@@ -186,6 +250,12 @@ class AgentCheckBase(object):
             metric_limit = self.DEFAULT_METRIC_LIMIT
         if metric_limit > 0:
             self.metric_limiter = Limiter(self.name, 'metrics', metric_limit, self.warning)
+
+    def _get_state_descriptor(self):
+        instance = self._get_instance_key_value()
+        instance_key = to_string(self.normalize("instance.{}.{}".format(instance.type, instance.url),
+                                                extra_disallowed_chars=b":"))
+        return StateDescriptor(instance_key, self.get_check_config_path())
 
     @staticmethod
     def load_config(yaml_str):
@@ -272,7 +342,7 @@ class AgentCheckBase(object):
     def warning(self, warning_message):
         pass
 
-    def normalize(self, metric, prefix=None, fix_case=False):
+    def normalize(self, metric, prefix=None, fix_case=False, extra_disallowed_chars=None):
         """
         Turn a metric into a well-formed metric name
         prefix.b.c
@@ -287,6 +357,8 @@ class AgentCheckBase(object):
             name = self.convert_to_underscore_separated(metric)
             if prefix is not None:
                 prefix = self.convert_to_underscore_separated(prefix)
+        elif extra_disallowed_chars:
+            name = re.sub(br"[,\+\*\-/()\[\]{}\s" + extra_disallowed_chars + br"]", b"_", metric)
         else:
             name = re.sub(br"[,\+\*\-/()\[\]{}\s]", b"_", metric)
         # Eliminate multiple _
@@ -299,7 +371,7 @@ class AgentCheckBase(object):
         name = re.sub(br"_\.", b".", name)
 
         if prefix is not None:
-            return ensure_bytes(prefix) + b"." + name
+            return ensure_string(prefix) + b"." + name
         else:
             return name
 
@@ -313,14 +385,20 @@ class AgentCheckBase(object):
         Convert from CamelCase to camel_case
         And substitute illegal metric characters
         """
-        metric_name = self.FIRST_CAP_RE.sub(br'\1_\2', ensure_bytes(name))
+        metric_name = self.FIRST_CAP_RE.sub(br'\1_\2', ensure_string(name))
         metric_name = self.ALL_CAP_RE.sub(br'\1_\2', metric_name).lower()
         metric_name = self.METRIC_REPLACEMENT.sub(br'_', metric_name)
         return self.DOT_UNDERSCORE_CLEANUP.sub(br'.', metric_name).strip(b'_')
 
     def component(self, id, type, data, streams=None, checks=None):
         instance = self._get_instance_key_value()
-        data = self._map_component_data(id, type, instance, data, streams, checks)
+        try:
+            fixed_data = self._fix_encoding(data)
+            fixed_streams = self._fix_encoding(streams)
+            fixed_checks = self._fix_encoding(checks)
+        except UnicodeError:
+            return
+        data = self._map_component_data(id, type, instance, fixed_data, fixed_streams, fixed_checks)
         topology.submit_component(self, self.check_id, self._get_instance_key(), id, type, data)
 
     def _map_component_data(self, id, type, instance, data, streams=None, checks=None, add_instance_tags=True):
@@ -337,7 +415,13 @@ class AgentCheckBase(object):
         return data
 
     def relation(self, source, target, type, data, streams=None, checks=None):
-        data = self._map_relation_data(source, target, type, data, streams, checks)
+        try:
+            fixed_data = self._fix_encoding(data)
+            fixed_streams = self._fix_encoding(streams)
+            fixed_checks = self._fix_encoding(checks)
+        except UnicodeError:
+            return
+        data = self._map_relation_data(source, target, type, fixed_data, fixed_streams, fixed_checks)
         topology.submit_relation(self, self.check_id, self._get_instance_key(), source, target, type, data)
 
     def _map_relation_data(self, source, target, type, data, streams=None, checks=None):
@@ -394,13 +478,13 @@ class AgentCheckBase(object):
 
         return data
 
-    @deprecated(version='2.6.0', reason="Topology Snapshots is enabled by default for all TopologyInstance checks, "
+    @deprecated(version='2.9.0', reason="Topology Snapshots is enabled by default for all TopologyInstance checks, "
                                         "to disable snapshots use TopologyInstance(type, url, with_snapshots=False) "
                                         "when overriding get_instance_key")
     def start_snapshot(self):
         topology.submit_start_snapshot(self, self.check_id, self._get_instance_key())
 
-    @deprecated(version='2.6.0', reason="Topology Snapshots is enabled by default for all TopologyInstance checks, "
+    @deprecated(version='2.9.0', reason="Topology Snapshots is enabled by default for all TopologyInstance checks, "
                                         "to disable snapshots use TopologyInstance(type, url, with_snapshots=False) "
                                         "when overriding get_instance_key")
     def stop_snapshot(self):
@@ -582,9 +666,35 @@ class AgentCheckBase(object):
 
         return proxies if proxies else no_proxy_settings
 
-    @staticmethod
-    def get_agent_confd_path():
-        return datadog_agent.get_config("confd_path")
+    # TODO collect all errors instead of the first one
+    def _fix_encoding(self, value, context=None):
+        if isinstance(value, text_type):
+            try:
+                fixed_value = to_string(value)
+            except UnicodeError as e:
+                self.log.warning("Error while encoding unicode to string: '{0}', at {1}".format(value, context))
+                raise e
+            return fixed_value
+        elif isinstance(value, dict):
+            for key, field in list(iteritems(value)):
+                value[key] = self._fix_encoding(field, "key '{0}' of dict".format(key))
+        elif isinstance(value, list):
+            for i, element in enumerate(value):
+                value[i] = self._fix_encoding(element, "index '{0}' of list".format(i))
+        elif isinstance(value, set):
+            # we convert a set to a list so we can update it in place
+            # and then at the end we turn the list back to a set
+            encoding_list = list(value)
+            for i, element in enumerate(encoding_list):
+                encoding_list[i] = self._fix_encoding(element, "element of set")
+            value = set(encoding_list)
+        return value
+
+    def get_check_config_path(self):
+        return "{}.d".format(os.path.join(self.get_agent_conf_d_path(), self.name))
+
+    def get_agent_conf_d_path(self):
+        return self.get_config("confd_path")
 
     @staticmethod
     def get_config(key):
@@ -597,8 +707,6 @@ class __AgentCheckPy3(AgentCheckBase):
         """
         args: `name`, `init_config`, `agentConfig` (deprecated), `instances`
         """
-        # the agent5 'AgentCheck' setup a log attribute.
-        self.log = logging.getLogger('{}.{}'.format(__name__, self.name))
         self._deprecations = {
             'increment': [
                 False,
@@ -690,16 +798,11 @@ class __AgentCheckPy3(AgentCheckBase):
     def event(self, event):
         self.validate_event(event)
         # Enforce types of some fields, considerably facilitates handling in go bindings downstream
-        for key, value in list(iteritems(event)):
-            # transform any bytes objects to utf-8
-            if isinstance(value, bytes):
-                try:
-                    event[key] = event[key].decode('utf-8')
-                except UnicodeError:
-                    self.log.warning(
-                        'Error decoding unicode field `{}` to utf-8 encoded string, cannot submit event'.format(key)
-                    )
-                    return
+        try:
+            event = self._fix_encoding(event)
+        except UnicodeError:
+            return
+
         if event.get('tags'):
             event['tags'] = self._normalize_tags_type(event['tags'])
         if event.get('timestamp'):
@@ -755,27 +858,7 @@ class __AgentCheckPy3(AgentCheckBase):
         self.warnings.append(warning_message)
 
     def run(self):
-        try:
-            if self._get_instance_key_value().with_snapshots:
-                topology.submit_start_snapshot(self, self.check_id, self._get_instance_key())
-            instance = self.instances[0]
-            self.create_integration_instance(copy.deepcopy(instance))
-            self.check(copy.deepcopy(instance))
-            result = ''
-        except Exception as e:
-            result = json.dumps([
-                {
-                    'message': str(e),
-                    'traceback': traceback.format_exc(),
-                }
-            ])
-        finally:
-            if self.metric_limiter:
-                self.metric_limiter.reset()
-            if self._get_instance_key_value().with_snapshots:
-                topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key())
-
-        return result
+        return self._check_run_base('')
 
 
 class __AgentCheckPy2(AgentCheckBase):
@@ -787,8 +870,6 @@ class __AgentCheckPy2(AgentCheckBase):
         """
         args: `name`, `init_config`, `agentConfig` (deprecated), `instances`
         """
-        # the agent5 'AgentCheck' setup a log attribute.
-        self.log = logging.getLogger('{}.{}'.format(__name__, self.name))
         self.check_id = b''
 
         self._deprecations = {
@@ -858,7 +939,7 @@ class __AgentCheckPy2(AgentCheckBase):
             self.warning(err_msg)
             return
 
-        aggregator.submit_metric(self, self.check_id, mtype, ensure_bytes(name), value, tags, hostname)
+        aggregator.submit_metric(self, self.check_id, mtype, ensure_string(name), value, tags, hostname)
 
     def service_check(self, name, status, tags=None, hostname=None, message=None):
         tags = self._normalize_tags_type(tags)
@@ -867,34 +948,30 @@ class __AgentCheckPy2(AgentCheckBase):
         if message is None:
             message = b''
         else:
-            message = ensure_bytes(message)
+            message = ensure_string(message)
 
         instance = self._get_instance_key_value()
-        tags_bytes = list(map(lambda t: ensure_bytes(t), instance.tags()))
-        aggregator.submit_service_check(self, self.check_id, ensure_bytes(name), status,
+        tags_bytes = list(map(lambda t: ensure_string(t), instance.tags()))
+        aggregator.submit_service_check(self, self.check_id, ensure_string(name), status,
                                         tags + tags_bytes, hostname, message)
 
     def event(self, event):
         self.validate_event(event)
         # Enforce types of some fields, considerably facilitates handling in go bindings downstream
-        for key, value in list(iteritems(event)):
-            # transform the unicode objects to plain strings with utf-8 encoding
-            if isinstance(value, text_type):
-                try:
-                    event[key] = event[key].encode('utf-8')
-                except UnicodeError:
-                    self.log.warning("Error encoding unicode field '%s' to utf-8 encoded string, can't submit event",
-                                     key)
-                    return
+        try:
+            event = self._fix_encoding(event)
+        except UnicodeError:
+            return
+
         if event.get('tags'):
             event['tags'] = self._normalize_tags_type(event['tags'])
         if event.get('timestamp'):
             event['timestamp'] = int(event['timestamp'])
         if event.get('aggregation_key'):
-            event['aggregation_key'] = ensure_bytes(event['aggregation_key'])
+            event['aggregation_key'] = ensure_string(event['aggregation_key'])
         if event.get('source_type_name'):
             self._log_deprecation("source_type_name")
-            event['event_type'] = ensure_bytes(event['source_type_name'])
+            event['event_type'] = ensure_string(event['source_type_name'])
 
         if 'context' in event:
             telemetry.submit_topology_event(self, self.check_id, event)
@@ -951,7 +1028,7 @@ class __AgentCheckPy2(AgentCheckBase):
         return data
 
     def warning(self, warning_message):
-        warning_message = ensure_bytes(warning_message)
+        warning_message = ensure_string(warning_message)
 
         frame = inspect.currentframe().f_back
         lineno = frame.f_lineno
@@ -963,27 +1040,7 @@ class __AgentCheckPy2(AgentCheckBase):
         self.warnings.append(warning_message)
 
     def run(self):
-        try:
-            if self._get_instance_key_value().with_snapshots:
-                topology.submit_start_snapshot(self, self.check_id, self._get_instance_key())
-            instance = self.instances[0]
-            self.create_integration_instance(copy.deepcopy(instance))
-            self.check(copy.deepcopy(instance))
-            result = b''
-        except Exception as e:
-            result = json.dumps([
-                {
-                    "message": str(e),
-                    "traceback": traceback.format_exc(),
-                }
-            ])
-        finally:
-            if self.metric_limiter:
-                self.metric_limiter.reset()
-            if self._get_instance_key_value().with_snapshots:
-                topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key())
-
-        return result
+        return self._check_run_base(b'')
 
 
 if PY3:
