@@ -354,7 +354,7 @@ class ServicenowCheck(AgentCheck):
             'assigned_to:{}'.format(change_request.assigned_to)
         ]
 
-        self.log.info('Creating event from CR: %s', change_request.number)
+        self.log.debug('Creating event from CR: %s', change_request.number)
 
         self.event({
             'timestamp': timestamp,
