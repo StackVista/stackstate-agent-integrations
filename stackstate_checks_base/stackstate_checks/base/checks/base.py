@@ -253,7 +253,8 @@ class AgentCheckBase(object):
 
     def _get_state_descriptor(self):
         instance = self._get_instance_key_value()
-        instance_key = "instance.{}.{}".format(instance.type, instance.url)
+        instance_key = to_string(self.normalize("instance.{}.{}".format(instance.type, instance.url),
+                                                extra_disallowed_chars=b":"))
         return StateDescriptor(instance_key, self.get_check_config_path())
 
     @staticmethod
@@ -341,7 +342,7 @@ class AgentCheckBase(object):
     def warning(self, warning_message):
         pass
 
-    def normalize(self, metric, prefix=None, fix_case=False):
+    def normalize(self, metric, prefix=None, fix_case=False, extra_disallowed_chars=None):
         """
         Turn a metric into a well-formed metric name
         prefix.b.c
@@ -356,6 +357,8 @@ class AgentCheckBase(object):
             name = self.convert_to_underscore_separated(metric)
             if prefix is not None:
                 prefix = self.convert_to_underscore_separated(prefix)
+        elif extra_disallowed_chars:
+            name = re.sub(br"[,\+\*\-/()\[\]{}\s" + extra_disallowed_chars + br"]", b"_", metric)
         else:
             name = re.sub(br"[,\+\*\-/()\[\]{}\s]", b"_", metric)
         # Eliminate multiple _

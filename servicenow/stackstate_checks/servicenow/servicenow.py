@@ -2,15 +2,12 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 
-# 3rd party
+import json
+
 import requests
 
-# project
 from stackstate_checks.base import ConfigurationError, AgentCheck, TopologyInstance
 from stackstate_checks.base.errors import CheckException
-
-# inbuilt
-import yaml
 
 BATCH_DEFAULT_SIZE = 2500
 EVENT_TYPE = SOURCE_TYPE_NAME = 'servicenow'
@@ -271,11 +268,11 @@ class ServicenowCheck(AgentCheck):
         if resp.encoding is None:
             resp.encoding = 'UTF8'
         try:
-            resp = yaml.safe_load(resp.text.encode("utf-8"))
+            response = json.loads(resp.text.encode('utf-8'))
         except Exception as e:
             self.log.exception(str(e))
             raise CheckException("Exception occurred while parsing response and the error is : {}".format(str(e)))
 
-        if resp.get("error"):
+        if response.get("error"):
             raise CheckException("Problem in collecting CIs : {}".format(resp["error"].get("message")))
-        return resp
+        return response
