@@ -80,6 +80,7 @@ class InstanceInfo(Model):
     instance_tags = ListType(StringType, default=[])
     change_request_bootstrap_days = IntType(default=CRS_BOOTSTRAP_DAYS_DEFAULT)
     change_request_process_limit = IntType(default=CRS_DEFAULT_PROCESS_LIMIT)
+    sysparm_query = StringType()
     state = ModelType(State)
 
 
@@ -181,6 +182,8 @@ class ServicenowCheck(AgentCheck):
             params = {'sysparm_query': sys_class_filter_query}
         else:
             params = {}
+        if instance_info.sysparm_query:
+            params = self._append_to_sysparm_query(params, instance_info.sysparm_query)
         params = self._prepare_json_batch_params(params, offset, instance_info.batch_size)
         return self._get_json(url, instance_info.timeout, params, auth)
 

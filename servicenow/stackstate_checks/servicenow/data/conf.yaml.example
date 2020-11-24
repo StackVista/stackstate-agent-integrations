@@ -56,3 +56,6 @@ instances:
 #        - cmdb_ci_rack
 #        - cmdb_ci_server
 #        - cmdb_ci_network_adapter
+
+    # ServiceNow Custom filter
+    # sysparm_query: company.nameSTARTSWITHaxa
