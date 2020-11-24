@@ -39,7 +39,8 @@ class WrapperType(BaseType):
     def convert(self, value, context=None):
         if value is None:
             return self.default()
-        value = self.value_mapping(value)
+        if context.new:
+            value = self.value_mapping(value)
         return self.field.convert(value)
 
     def export(self, value, format, context=None):
@@ -59,14 +60,15 @@ class ChangeRequest(Model):
     priority = StringType(required=True)
     impact = StringType(required=True)
     risk = StringType(required=True)
-    requested_by = DictType(StringType, default={})
-    # TODO WrapperType WIP
-    # requested_by = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
+    requested_by = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
+    #requested_by = DictType(StringType, default={})
     category = StringType()
     conflict_status = StringType()
     conflict_last_run = StringType()
-    assignment_group = DictType(StringType, default={})
-    assigned_to = DictType(StringType, default={})
+    assignment_group = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
+    # assignment_group = DictType(StringType, default={})
+    assigned_to = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
+    # assigned_to = DictType(StringType, default={})
 
 
 class State(Model):
@@ -341,12 +343,12 @@ class ServicenowCheck(AgentCheck):
         timestamp = (change_request.sys_updated_on - datetime.datetime.utcfromtimestamp(0)).total_seconds()
 
         assignment_group = requested_by = None
-        if change_request.assignment_group:
-            assignment_group = change_request.assignment_group.get('display_value')
-        if change_request.requested_by:
+        # if change_request.assignment_group:
+        #     assignment_group = change_request.assignment_group.get('display_value')
+        # if change_request.requested_by:
             # TODO WrapperType WIP
             # requested_by = change_request.requested_by
-            requested_by = change_request.requested_by.get('display_value')
+            #requested_by = change_request.requested_by.get('display_value')
 
         if change_request.description:
             msg_text = change_request.description
@@ -360,7 +362,7 @@ class ServicenowCheck(AgentCheck):
             'state:{}'.format(change_request.state),
             'category:{}'.format(change_request.category),
             'conflict_status:{}'.format(change_request.conflict_status),
-            'assigned_to:{}'.format(change_request.assigned_to.get('display_value'))
+            'assigned_to:{}'.format(change_request.assigned_to)
         ]
 
         self.log.info('Creating event from CR: %s', change_request.number)
@@ -377,9 +379,9 @@ class ServicenowCheck(AgentCheck):
                 'source_links': [],
                 'data': {
                     'impact': change_request.impact,
-                    'requested_by': requested_by,
+                    'requested_by': change_request.requested_by,
                     'conflict_last_run': change_request.conflict_last_run,
-                    'assignment_group': assignment_group
+                    'assignment_group': change_request.assignment_group
                 },
             },
             'tags': tags
