@@ -48,27 +48,24 @@ class WrapperType(BaseType):
 
 
 class ChangeRequest(Model):
-    number = StringType(required=True)
-    state = StringType(required=True)
+    number = WrapperType(StringType, required=True, value_mapping=lambda x: x['display_value'])
+    state = WrapperType(StringType, required=True, value_mapping=lambda x: x['display_value'])
     cmdb_ci = DictType(StringType, required=True)
-    sys_updated_on = DateTimeType()
-    business_service = StringType()
-    service_offering = StringType()
-    short_description = StringType(required=True)
-    description = StringType()
-    type = StringType()
-    priority = StringType(required=True)
-    impact = StringType(required=True)
-    risk = StringType(required=True)
+    sys_updated_on = WrapperType(DateTimeType, value_mapping=lambda x: x['value'])
+    business_service = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
+    service_offering = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
+    short_description = WrapperType(StringType, required=True, value_mapping=lambda x: x['display_value'])
+    description = WrapperType(StringType, required=True, value_mapping=lambda x: x['display_value'])
+    type = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
+    priority = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
+    impact = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
+    risk = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
     requested_by = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
-    #requested_by = DictType(StringType, default={})
-    category = StringType()
-    conflict_status = StringType()
-    conflict_last_run = StringType()
+    category = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
+    conflict_status = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
+    conflict_last_run = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
     assignment_group = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
-    # assignment_group = DictType(StringType, default={})
     assigned_to = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
-    # assigned_to = DictType(StringType, default={})
 
 
 class State(Model):
@@ -102,6 +99,7 @@ class ServicenowCheck(AgentCheck):
     def check(self, instance_info):
         try:
             if not instance_info.state:
+                # Create empty state
                 instance_info.state = State(
                     {
                         'latest_sys_updated_on': datetime.datetime.now() - datetime.timedelta(
@@ -292,14 +290,16 @@ class ServicenowCheck(AgentCheck):
 
             self.relation(parent_sys_id, child_sys_id, relation_type, data)
 
-    def _collect_change_requests(self, instance_info, latest_sys_updated_on=None):
+    def _collect_change_requests(self, instance_info):
         # TODO: add limit for max number of events that we'll process
         auth = (instance_info.user, instance_info.password)
         url = instance_info.url + '/api/now/table/change_request'
-        params = '?sysparm_display_value=true'
+        params = '?sysparm_display_value=all&sysparm_exclude_reference_link=true'
         params += '&sysparm_limit={}'.format(instance_info.change_request_process_limit)
-        if latest_sys_updated_on:
-            reformatted_date = ','.join("'{}'".format(i) for i in str(latest_sys_updated_on).split(' '))
+        if instance_info.state.latest_sys_updated_on:
+            reformatted_date = ','.join(
+                "'{}'".format(i) for i in str(instance_info.state.latest_sys_updated_on).split(' ')
+            )
             quoted_date = quote(reformatted_date)
             params += '&sysparm_query=sys_updated_on>javascript%3Ags.dateGenerate({})'.format(quoted_date)
         url += params
@@ -313,7 +313,7 @@ class ServicenowCheck(AgentCheck):
         return sanitized_crs
 
     def _process_change_requests(self, instance_info):
-        response = self._collect_change_requests(instance_info, instance_info.state.latest_sys_updated_on)
+        response = self._collect_change_requests(instance_info)
         sanitized_result = self._sanitize_response(response['result'])
         self.log.info('CRs results: %d', len(sanitized_result))
         for cr in sanitized_result:
@@ -321,7 +321,7 @@ class ServicenowCheck(AgentCheck):
                 change_request = ChangeRequest(cr, strict=False)
                 change_request.validate()
             except DataError as e:
-                self.log.warning('%s - DataError: %s. This CR is skipped.', cr.get('number'), e)
+                self.log.warning('%s - DataError: %s. This CR is skipped.', cr['number']['value'], e)
                 continue
             if change_request.cmdb_ci:
                 if change_request.sys_updated_on > instance_info.state.latest_sys_updated_on:
@@ -332,29 +332,12 @@ class ServicenowCheck(AgentCheck):
                     instance_info.state.change_requests[change_request.number] = change_request.state
 
     def _create_event_from_change_request(self, change_request):
-        cmdb_ci = change_request.cmdb_ci
-        identifiers = []
-
-        external_id = cmdb_ci['link'].split('/').pop()
-        identifiers.append(external_id)
-        identifiers.append(Identifiers.create_host_identifier(cmdb_ci['display_value']))
-
-        msg_title = '{}: {}'.format(change_request.number, change_request.short_description)
+        identifiers = [
+            change_request.cmdb_ci['value'],
+            Identifiers.create_host_identifier(change_request.cmdb_ci['display_value'])
+        ]
         timestamp = (change_request.sys_updated_on - datetime.datetime.utcfromtimestamp(0)).total_seconds()
-
-        assignment_group = requested_by = None
-        # if change_request.assignment_group:
-        #     assignment_group = change_request.assignment_group.get('display_value')
-        # if change_request.requested_by:
-            # TODO WrapperType WIP
-            # requested_by = change_request.requested_by
-            #requested_by = change_request.requested_by.get('display_value')
-
-        if change_request.description:
-            msg_text = change_request.description
-        else:
-            msg_text = change_request.short_description
-
+        msg_title = '{}: {}'.format(change_request.number, change_request.short_description)
         tags = [
             'number:{}'.format(change_request.number),
             'priority:{}'.format(change_request.priority),
@@ -371,7 +354,7 @@ class ServicenowCheck(AgentCheck):
             'timestamp': timestamp,
             'event_type': change_request.type,
             'msg_title': msg_title,
-            'msg_text': msg_text,
+            'msg_text': change_request.description,
             'context': {
                 'source': 'servicenow',
                 'category': 'change_request',
