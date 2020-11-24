@@ -496,7 +496,7 @@ class TestServicenow(unittest.TestCase):
         self.check._get_json = mock_get_json
         offset = 10
         batch_size = 200
-        params = self.check._prepare_json_batch(params={}, offset=offset, batch_size=batch_size)
+        params = self.check._prepare_json_batch_params(params={}, offset=offset, batch_size=batch_size)
         self.assertEqual(offset, params.get('sysparm_offset'))
         self.assertEqual(batch_size, params.get('sysparm_limit'))
         self.assertEqual('ORDERBYsys_created_on', params.get('sysparm_query'))
@@ -508,9 +508,9 @@ class TestServicenow(unittest.TestCase):
         self.check._get_json = mock_get_json
         offset = 10
         batch_size = 200
-        params = self.check._prepare_json_batch(params={'sysparm_query': 'company.nameSTARTSWITHaxa'},
-                                                offset=offset,
-                                                batch_size=batch_size)
+        params = self.check._prepare_json_batch_params(params={'sysparm_query': 'company.nameSTARTSWITHaxa'},
+                                                       offset=offset,
+                                                       batch_size=batch_size)
         self.assertEqual(offset, params.get('sysparm_offset'))
         self.assertEqual(batch_size, params.get('sysparm_limit'))
         self.assertEqual('company.nameSTARTSWITHaxa^ORDERBYsys_created_on', params.get('sysparm_query'))

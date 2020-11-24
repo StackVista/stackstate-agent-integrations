@@ -181,7 +181,7 @@ class ServicenowCheck(AgentCheck):
             params = {'sysparm_query': sys_class_filter_query}
         else:
             params = {}
-        params = self._prepare_json_batch(params, offset, instance_info.batch_size)
+        params = self._prepare_json_batch_params(params, offset, instance_info.batch_size)
         return self._get_json(url, instance_info.timeout, params, auth)
 
     def _batch_collect(self, collect_function, instance_info):
@@ -208,7 +208,7 @@ class ServicenowCheck(AgentCheck):
                 'Processed batch no. {} with {} items.'.format(batch_number, number_of_elements_in_current_batch)
             )
 
-        return {'result': collection}
+        return collection
 
     def _process_components(self, instance_info):
         """
@@ -218,7 +218,7 @@ class ServicenowCheck(AgentCheck):
         """
         collected_components = self._batch_collect(self._batch_collect_components, instance_info)
 
-        for component in collected_components.get('result'):
+        for component in collected_components:
             data = {}
             component = self.filter_empty_metadata(component)
             identifiers = []
@@ -278,7 +278,7 @@ class ServicenowCheck(AgentCheck):
         else:
             params = {}
 
-        params = self._prepare_json_batch(params, offset, instance_info.batch_size)
+        params = self._prepare_json_batch_params(params, offset, instance_info.batch_size)
 
         return self._get_json(url, instance_info.timeout, params, auth)
 
@@ -288,7 +288,7 @@ class ServicenowCheck(AgentCheck):
         """
         relation_types = self._process_relation_types(instance_info)
         collected_relations = self._batch_collect(self._batch_collect_relations, instance_info)
-        for relation in collected_relations.get('result'):
+        for relation in collected_relations:
             parent_sys_id = relation['parent']['value']
             child_sys_id = relation['child']['value']
             type_sys_id = relation['type']['value']
@@ -300,7 +300,6 @@ class ServicenowCheck(AgentCheck):
             self.relation(parent_sys_id, child_sys_id, relation_type, data)
 
     def _collect_change_requests(self, instance_info):
-        # TODO: add limit for max number of events that we'll process
         auth = (instance_info.user, instance_info.password)
         url = instance_info.url + '/api/now/table/change_request'
         reformatted_date = instance_info.state.latest_sys_updated_on.strftime("'%Y-%m-%d', '%H:%M:%S'")
@@ -387,7 +386,7 @@ class ServicenowCheck(AgentCheck):
         params.update({'sysparm_query': sysparm_query})
         return params
 
-    def _prepare_json_batch(self, params, offset, batch_size):
+    def _prepare_json_batch_params(self, params, offset, batch_size):
         params = self._append_to_sysparm_query(params, "ORDERBYsys_created_on")
         params.update(
             {
