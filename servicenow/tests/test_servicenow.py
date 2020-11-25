@@ -16,7 +16,7 @@ from schematics.exceptions import DataError
 from stackstate_checks.base import AgentIntegrationTestUtil, AgentCheck
 from stackstate_checks.base.errors import CheckException
 from stackstate_checks.base.stubs import topology, aggregator
-from stackstate_checks.servicenow import ServicenowCheck, InstanceInfo, json_parse_exception
+from stackstate_checks.servicenow import ServicenowCheck, InstanceInfo
 
 
 def mock_process_and_cache_relation_types(*args):
@@ -562,7 +562,7 @@ class TestServicenow(unittest.TestCase):
         """
         url, auth = self._get_url_auth()
         mock_request_get.return_value = mock.MagicMock(status_code=200, text=mock_result_with_malformed_str)
-        self.assertRaises(json_parse_exception, self.check._get_json, url, 10, auth)
+        self.assertRaises(CheckException, self.check._get_json, url, 10, auth)
 
     @mock.patch('requests.get')
     def test_get_json_malformed_json_and_execution_time_exceeded_error(self, mock_request_get):

@@ -357,7 +357,8 @@ class ServicenowCheck(AgentCheck):
                     'impact': change_request.impact,
                     'requested_by': change_request.requested_by,
                     'conflict_last_run': change_request.conflict_last_run,
-                    'assignment_group': change_request.assignment_group
+                    'assignment_group': change_request.assignment_group,
+                    'service_offering': change_request.service_offering,
                 },
             },
             'tags': tags
@@ -388,21 +389,30 @@ class ServicenowCheck(AgentCheck):
 
         response = requests.get(url, timeout=timeout, params=params, auth=auth, verify=verify)
         if response.status_code != 200:
-            raise CheckException("Got %s when hitting %s" % (response.status_code, response.url))
+            raise CheckException('Got status: {} when hitting {}'.format(response.status_code, response.url))
 
         try:
             response_json = json.loads(response.text.encode('utf-8'))
+        except UnicodeEncodeError as e:
+            raise CheckException('Encoding error {} in response from url {}'.format(e, response.url))
         except json_parse_exception as e:
             # Fix for ServiceNow bug: Sometimes there is a response with status 200 and malformed json with
             # error message 'Transaction cancelled: maximum execution time exceeded'.
             # We send right error message because ParserError is just side effect error.
             if execution_time_exceeded_error_message in response.text:
-                raise CheckException(execution_time_exceeded_error_message)
+                error_msg = 'ServiceNow Error "{}" in response from url {}'.format(
+                    execution_time_exceeded_error_message, response.url
+                )
             else:
-                raise e
+                error_msg = 'Json parse exception {} in response from url {}'.format(e, response.url)
+            raise CheckException(error_msg)
 
-        if response_json.get("error"):
-            raise CheckException(response_json["error"].get("message"))
+        if response_json.get('error'):
+            raise CheckException(
+                'ServiceNow error {} in response from url {}'.format(
+                    response_json['error'].get('message'), response.url
+                )
+            )
 
         if response_json.get('result'):
             self.log.debug('Got %d results in response', len(response_json['result']))
