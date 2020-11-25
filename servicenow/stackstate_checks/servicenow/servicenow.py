@@ -4,6 +4,8 @@
 import datetime
 import json
 
+from stackstate_checks.base.utils.schemas import StrictStringType
+
 try:
     json_parse_exception = json.decoder.JSONDecodeError
 except AttributeError:  # Python 2
@@ -31,13 +33,10 @@ class WrapperType(BaseType):
         super(WrapperType, self).__init__(**kwargs)
 
     def convert(self, value, context=None):
-        if value is None:
-            return self.default()
         if context.new:
-            try:
-                value = self.value_mapping(value)
-            except KeyError:
-                value = ''
+            value = self.value_mapping(value)
+            if not value and self.default:
+                return self.default
         return self.field.convert(value)
 
     def export(self, value, format, context=None):
@@ -47,7 +46,7 @@ class WrapperType(BaseType):
 class ChangeRequest(Model):
     number = WrapperType(StringType, required=True, value_mapping=lambda x: x['display_value'])
     state = WrapperType(StringType, required=True, value_mapping=lambda x: x['display_value'])
-    cmdb_ci = DictType(StringType, required=True)
+    cmdb_ci = DictType(StrictStringType(accept_empty=False), required=True)
     sys_updated_on = WrapperType(DateTimeType, value_mapping=lambda x: x['value'])
     business_service = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
     service_offering = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
@@ -148,22 +147,17 @@ class ServicenowCheck(AgentCheck):
         self.log.debug("sys param query for relation is :- " + sysparm_query)
         return sysparm_query
 
-    def filter_empty_metadata(self, data):
+    @staticmethod
+    def filter_empty_metadata(data):
         """
-        Filter the empty key:value in metadata and also convert unicode values to sting
+        Filter the empty key:value in metadata dictionary
         :param data: metadata from servicenow
         :return: filtered metadata
         """
         result = {}
         if isinstance(data, dict):
             for k, v in data.items():
-                if isinstance(v, dict):
-                    result[k] = self.filter_empty_metadata(v)
-                elif v:
-                    # TODO do we need this? Are we not doing that in base with _fix_encoding?
-                    # if str(type(v)) == "<type 'unicode'>":
-                    #     # only possible in Python 2
-                    #     v = v.encode('utf-8')
+                if v:
                     result[k] = v
         return result
 
@@ -316,16 +310,9 @@ class ServicenowCheck(AgentCheck):
         }
         return self._get_json(url, instance_info.timeout, params, auth)
 
-    def _sanitize_response(self, cr_list):
-        sanitized_crs = []
-        for cr in cr_list:
-            sanitized_crs.append(self.filter_empty_metadata(cr))
-        return sanitized_crs
-
     def _process_change_requests(self, instance_info):
         response = self._collect_change_requests(instance_info)
-        sanitized_result = self._sanitize_response(response['result'])
-        for cr in sanitized_result:
+        for cr in response['result']:
             try:
                 change_request = ChangeRequest(cr, strict=False)
                 change_request.validate()
@@ -404,7 +391,7 @@ class ServicenowCheck(AgentCheck):
 
         response = requests.get(url, timeout=timeout, params=params, auth=auth, verify=verify)
         if response.status_code != 200:
-            raise CheckException("Got %s when hitting %s" % (response.status_code, url))
+            raise CheckException("Got %s when hitting %s" % (response.status_code, response.url))
 
         try:
             response_json = json.loads(response.text.encode('utf-8'))
