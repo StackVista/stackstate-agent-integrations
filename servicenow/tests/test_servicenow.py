@@ -12,6 +12,7 @@ import mock
 import pytest
 import requests
 from schematics.exceptions import DataError
+from six import PY3
 
 from stackstate_checks.base import AgentIntegrationTestUtil, AgentCheck
 from stackstate_checks.base.errors import CheckException
@@ -605,8 +606,11 @@ class TestServicenow(unittest.TestCase):
         url, auth = self._get_url_auth()
         mock_request_get.return_value = mock.MagicMock(status_code=200, text=mock_result_with_malformed_str,
                                                        url='http:/test.org')
-        expected_msg = 'Json parse error: "Expecting property name enclosed in double quotes: ' \
-                       'line 11 column 5 (char 232)" in response from url http:/test.org'
+        msg_py3 = 'Json parse error: "Expecting property name enclosed in double quotes: ' \
+                  'line 11 column 5 (char 232)" in response from url http:/test.org'
+        msg_py2 = 'Json parse error: "Expecting property name: ' \
+                  'line 11 column 5 (char 232)" in response from url http:/test.org'
+        expected_msg = msg_py3 if PY3 else msg_py2
         with self.assertRaises(CheckException) as context:
             self.check._get_json(url, 10, {}, auth)
         self.assertEqual(expected_msg, str(context.exception))
