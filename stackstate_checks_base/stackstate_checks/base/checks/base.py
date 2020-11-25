@@ -393,9 +393,9 @@ class AgentCheckBase(object):
     def component(self, id, type, data, streams=None, checks=None):
         instance = self._get_instance_key_value()
         try:
-            fixed_data = self._fix_encoding(data)
-            fixed_streams = self._fix_encoding(streams)
-            fixed_checks = self._fix_encoding(checks)
+            fixed_data = self._sanitize(data)
+            fixed_streams = self._sanitize(streams)
+            fixed_checks = self._sanitize(checks)
         except UnicodeError:
             return
         data = self._map_component_data(id, type, instance, fixed_data, fixed_streams, fixed_checks)
@@ -416,9 +416,9 @@ class AgentCheckBase(object):
 
     def relation(self, source, target, type, data, streams=None, checks=None):
         try:
-            fixed_data = self._fix_encoding(data)
-            fixed_streams = self._fix_encoding(streams)
-            fixed_checks = self._fix_encoding(checks)
+            fixed_data = self._sanitize(data)
+            fixed_streams = self._sanitize(streams)
+            fixed_checks = self._sanitize(checks)
         except UnicodeError:
             return
         data = self._map_relation_data(source, target, type, fixed_data, fixed_streams, fixed_checks)
@@ -667,7 +667,7 @@ class AgentCheckBase(object):
         return proxies if proxies else no_proxy_settings
 
     # TODO collect all errors instead of the first one
-    def _fix_encoding(self, field, context=None):
+    def _sanitize(self, field, context=None):
         """
         Fixes encoding and strips empty elements.
         :param field: Field can be of the following types: str, dict, list, set
@@ -684,17 +684,17 @@ class AgentCheckBase(object):
         elif isinstance(field, dict):
             field = {k: v for k, v in iteritems(field) if v}
             for key, value in list(iteritems(field)):
-                field[key] = self._fix_encoding(value, "key '{0}' of dict".format(key))
+                field[key] = self._sanitize(value, "key '{0}' of dict".format(key))
         elif isinstance(field, list):
             field = [element for element in field if element]
             for i, element in enumerate(field):
-                field[i] = self._fix_encoding(element, "index '{0}' of list".format(i))
+                field[i] = self._sanitize(element, "index '{0}' of list".format(i))
         elif isinstance(field, set):
             # we convert a set to a list so we can update it in place
             # and then at the end we turn the list back to a set
             encoding_list = [element for element in list(field) if element]
             for i, element in enumerate(encoding_list):
-                encoding_list[i] = self._fix_encoding(element, "element of set")
+                encoding_list[i] = self._sanitize(element, "element of set")
             field = set(encoding_list)
         return field
 
@@ -807,7 +807,7 @@ class __AgentCheckPy3(AgentCheckBase):
         self.validate_event(event)
         # Enforce types of some fields, considerably facilitates handling in go bindings downstream
         try:
-            event = self._fix_encoding(event)
+            event = self._sanitize(event)
         except UnicodeError:
             return
 
@@ -967,7 +967,7 @@ class __AgentCheckPy2(AgentCheckBase):
         self.validate_event(event)
         # Enforce types of some fields, considerably facilitates handling in go bindings downstream
         try:
-            event = self._fix_encoding(event)
+            event = self._sanitize(event)
         except UnicodeError:
             return
 
