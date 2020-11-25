@@ -8,6 +8,6 @@ instances:
     username: # SCOM read-only username
     password: # SCOM password
     auth_mode: Network
-    streams:
-      - name: SQL
-        class: Microsoft.SQLServer.Generic.Presentation.ServerRolesGroup
+    integration_mode: api # api or powershell
+    max_number_of_requests: 10000
+    criteria : "(FullName LIKE 'Microsoft.Windows.Computer:%')"
