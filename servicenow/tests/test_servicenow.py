@@ -597,6 +597,20 @@ class TestServicenow(unittest.TestCase):
         self.assertEqual(AgentCheck.CRITICAL, service_checks[0].status)
         self.assertEqual('Timeout: ', service_checks[0].message)
 
+    @mock.patch('requests.get')
+    def test_get_json_error_msg(self, mock_request_get):
+        """
+        Test just malformed json
+        """
+        url, auth = self._get_url_auth()
+        mock_request_get.return_value = mock.MagicMock(status_code=200, text=mock_result_with_malformed_str,
+                                                       url='http:/test.org')
+        expected_msg = 'Json parse error: "Expecting property name enclosed in double quotes: ' \
+                       'line 11 column 5 (char 232)" in response from url http:/test.org'
+        with self.assertRaises(CheckException) as context:
+            self.check._get_json(url, 10, {}, auth)
+        self.assertEqual(expected_msg, str(context.exception))
+
     def _get_url_auth(self):
         url = "{}/api/now/table/cmdb_ci".format(self.instance.get('url'))
         auth = (self.instance.get('user'), self.instance.get('password'))

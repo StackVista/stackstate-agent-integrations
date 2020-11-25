@@ -394,7 +394,7 @@ class ServicenowCheck(AgentCheck):
         try:
             response_json = json.loads(response.text.encode('utf-8'))
         except UnicodeEncodeError as e:
-            raise CheckException('Encoding error {} in response from url {}'.format(e, response.url))
+            raise CheckException('Encoding error: "{}" in response from url {}'.format(e, response.url))
         except json_parse_exception as e:
             # Fix for ServiceNow bug: Sometimes there is a response with status 200 and malformed json with
             # error message 'Transaction cancelled: maximum execution time exceeded'.
@@ -404,12 +404,12 @@ class ServicenowCheck(AgentCheck):
                     execution_time_exceeded_error_message, response.url
                 )
             else:
-                error_msg = 'Json parse exception {} in response from url {}'.format(e, response.url)
+                error_msg = 'Json parse error: "{}" in response from url {}'.format(e, response.url)
             raise CheckException(error_msg)
 
         if response_json.get('error'):
             raise CheckException(
-                'ServiceNow error {} in response from url {}'.format(
+                'ServiceNow error: "{}" in response from url {}'.format(
                     response_json['error'].get('message'), response.url
                 )
             )
