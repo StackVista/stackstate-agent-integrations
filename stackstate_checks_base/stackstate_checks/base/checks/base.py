@@ -667,28 +667,36 @@ class AgentCheckBase(object):
         return proxies if proxies else no_proxy_settings
 
     # TODO collect all errors instead of the first one
-    def _fix_encoding(self, value, context=None):
-        if isinstance(value, text_type):
+    def _fix_encoding(self, field, context=None):
+        """
+        Fixes encoding and strips empty elements.
+        :param field: Field can be of the following types: str, dict, list, set
+        :param context: Context for error message.
+        :return:
+        """
+        if isinstance(field, text_type):
             try:
-                fixed_value = to_string(value)
+                fixed_value = to_string(field)
             except UnicodeError as e:
-                self.log.warning("Error while encoding unicode to string: '{0}', at {1}".format(value, context))
+                self.log.warning("Error while encoding unicode to string: '{0}', at {1}".format(field, context))
                 raise e
             return fixed_value
-        elif isinstance(value, dict):
-            for key, field in list(iteritems(value)):
-                value[key] = self._fix_encoding(field, "key '{0}' of dict".format(key))
-        elif isinstance(value, list):
-            for i, element in enumerate(value):
-                value[i] = self._fix_encoding(element, "index '{0}' of list".format(i))
-        elif isinstance(value, set):
+        elif isinstance(field, dict):
+            field = {k: v for k, v in iteritems(field) if v}
+            for key, value in list(iteritems(field)):
+                field[key] = self._fix_encoding(value, "key '{0}' of dict".format(key))
+        elif isinstance(field, list):
+            field = [element for element in field if element]
+            for i, element in enumerate(field):
+                field[i] = self._fix_encoding(element, "index '{0}' of list".format(i))
+        elif isinstance(field, set):
             # we convert a set to a list so we can update it in place
             # and then at the end we turn the list back to a set
-            encoding_list = list(value)
+            encoding_list = [element for element in list(field) if element]
             for i, element in enumerate(encoding_list):
                 encoding_list[i] = self._fix_encoding(element, "element of set")
-            value = set(encoding_list)
-        return value
+            field = set(encoding_list)
+        return field
 
     def get_check_config_path(self):
         return "{}.d".format(os.path.join(self.get_agent_conf_d_path(), self.name))
@@ -1049,3 +1057,4 @@ if PY3:
 else:
     AgentCheck = __AgentCheckPy2
     del __AgentCheckPy3
+

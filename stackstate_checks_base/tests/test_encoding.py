@@ -54,3 +54,17 @@ class TestEvents(unittest.TestCase):
         fixed_types = print_type('Fixed', fixed_event)
         for expected in expected_types:
             assert expected in fixed_types
+
+    def test_removal_of_empty_elements(self):
+        check = AgentCheck()
+        event = {
+            'A': {
+                'AA': u'AA123',
+                'AB': ''
+            },
+            'B': ['b1', '', 'b3']
+        }
+        fixed_event = check._fix_encoding(event)
+        self.assertIn('AA', fixed_event['A'].keys())
+        self.assertNotIn('AB', fixed_event['A'].keys())
+        self.assertEqual(2, len(fixed_event['B']))
