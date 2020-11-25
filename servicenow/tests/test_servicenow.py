@@ -600,7 +600,7 @@ class TestServicenow(unittest.TestCase):
     @mock.patch('requests.get')
     def test_get_json_error_msg(self, mock_request_get):
         """
-        Test just malformed json
+        Test malformed json error message
         """
         url, auth = self._get_url_auth()
         mock_request_get.return_value = mock.MagicMock(status_code=200, text=mock_result_with_malformed_str,
