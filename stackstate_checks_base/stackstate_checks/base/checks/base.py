@@ -676,15 +676,17 @@ class AgentCheckBase(object):
                 raise e
             return fixed_value
         elif isinstance(value, dict):
+            value = {k: v for k, v in iteritems(value) if v}
             for key, field in list(iteritems(value)):
                 value[key] = self._fix_encoding(field, "key '{0}' of dict".format(key))
         elif isinstance(value, list):
+            value = [element for element in value if element]
             for i, element in enumerate(value):
                 value[i] = self._fix_encoding(element, "index '{0}' of list".format(i))
         elif isinstance(value, set):
             # we convert a set to a list so we can update it in place
             # and then at the end we turn the list back to a set
-            encoding_list = list(value)
+            encoding_list = [element for element in list(value) if element]
             for i, element in enumerate(encoding_list):
                 encoding_list[i] = self._fix_encoding(element, "element of set")
             value = set(encoding_list)
