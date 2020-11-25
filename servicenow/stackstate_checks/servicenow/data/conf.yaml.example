@@ -16,6 +16,10 @@ instances:
     # Maximum number of change request that we process. Default value is 1000.
     # change_request_process_limit: 1000
 
+    # ServiceNow Custom filter. Check ServiceNow documentation about filtering with sysparm_query parameter.
+    # https://developer.servicenow.com/dev.do#!/learn/learning-plans/orlando/servicenow_application_developer/app_store_learnv2_rest_orlando_more_about_query_parameters
+    # sysparm_query: company.nameSTARTSWITHxyz
+
     # Currently StackState support the below resource/sys class types and apart from this will belong to
     # the generic servicenow component types
 #    include_resource_types: # optional and by default includes all resource types(sys Class Names)
@@ -56,6 +60,3 @@ instances:
 #        - cmdb_ci_rack
 #        - cmdb_ci_server
 #        - cmdb_ci_network_adapter
-
-    # ServiceNow Custom filter
-    # sysparm_query: company.nameSTARTSWITHaxa
