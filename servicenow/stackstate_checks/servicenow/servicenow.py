@@ -14,15 +14,16 @@ except AttributeError:  # Python 2
 import requests
 from schematics import Model
 from schematics.exceptions import DataError
-from schematics.types import URLType, StringType, ListType, IntType, DictType, DateTimeType, ModelType, BaseType
+from schematics.types import URLType, StringType, ListType, IntType, DictType, DateTimeType, ModelType, BaseType, \
+    BooleanType
 
 from stackstate_checks.base import AgentCheck, TopologyInstance, Identifiers, to_string
 from stackstate_checks.base.errors import CheckException
 
 BATCH_DEFAULT_SIZE = 2500
 BATCH_MAX_SIZE = 10000
-# TODO add conf.yaml setting for timeout
 TIMEOUT = 20
+VERIFY_HTTPS = True
 CRS_BOOTSTRAP_DAYS_DEFAULT = 100
 CRS_DEFAULT_PROCESS_LIMIT = 1000
 
@@ -77,6 +78,7 @@ class InstanceInfo(Model):
     include_resource_types = ListType(StringType, default=[])
     batch_size = IntType(default=BATCH_DEFAULT_SIZE, max_value=BATCH_MAX_SIZE)
     timeout = IntType(default=TIMEOUT)
+    verify_https = BooleanType(default=VERIFY_HTTPS)
     instance_tags = ListType(StringType, default=[])
     change_request_bootstrap_days = IntType(default=CRS_BOOTSTRAP_DAYS_DEFAULT)
     change_request_process_limit = IntType(default=CRS_DEFAULT_PROCESS_LIMIT)
@@ -131,7 +133,7 @@ class ServicenowCheck(AgentCheck):
             sysparm_query = "sys_class_nameIN{}".format(sys_class_filter[0])
             if len(sys_class_filter[1:]) > 0:
                 sysparm_query = "{},{}".format(sysparm_query, ",".join(sys_class_filter[1:]))
-        self.log.debug("sys param query for component is :- " + sysparm_query)
+        self.log.debug("sysparm_query for component: " + sysparm_query)
         return sysparm_query
 
     def get_sys_class_relation_filter_query(self, sys_class_filter):
@@ -144,7 +146,7 @@ class ServicenowCheck(AgentCheck):
                 sysparm_parent_query = "{},{}".format(sysparm_parent_query, ",".join(sys_class_filter[1:]))
                 sysparm_child_query = "{},{}".format(sysparm_child_query, ",".join(sys_class_filter[1:]))
         sysparm_query = sysparm_parent_query + sysparm_child_query
-        self.log.debug("sys param query for relation is :- " + sysparm_query)
+        self.log.debug("sysparm_query for relation: " + sysparm_query)
         return sysparm_query
 
     @staticmethod
@@ -177,7 +179,7 @@ class ServicenowCheck(AgentCheck):
         else:
             params = {}
         params = self._prepare_json_batch_params(params, offset, instance_info.batch_size)
-        return self._get_json(url, instance_info.timeout, params, auth)
+        return self._get_json(url, instance_info.timeout, params, auth, instance_info.verify_https)
 
     def _batch_collect(self, collect_function, instance_info):
         """
@@ -243,7 +245,7 @@ class ServicenowCheck(AgentCheck):
         params = {
             'sysparm_fields': 'sys_id,parent_descriptor'
         }
-        return self._get_json(url, instance_info.timeout, params, auth)
+        return self._get_json(url, instance_info.timeout, params, auth, instance_info.verify_https)
 
     def _process_relation_types(self, instance_info):
         """
@@ -275,7 +277,7 @@ class ServicenowCheck(AgentCheck):
 
         params = self._prepare_json_batch_params(params, offset, instance_info.batch_size)
 
-        return self._get_json(url, instance_info.timeout, params, auth)
+        return self._get_json(url, instance_info.timeout, params, auth, instance_info.verify_https)
 
     def _process_relations(self, instance_info):
         """
@@ -306,7 +308,7 @@ class ServicenowCheck(AgentCheck):
             'sysparm_limit': instance_info.change_request_process_limit,
             'sysparm_query': sysparm_query
         }
-        return self._get_json(url, instance_info.timeout, params, auth)
+        return self._get_json(url, instance_info.timeout, params, auth, instance_info.verify_https)
 
     def _process_change_requests(self, instance_info):
         response = self._collect_change_requests(instance_info)
@@ -385,7 +387,6 @@ class ServicenowCheck(AgentCheck):
         )
         return params
 
-    # TODO verify should be in conf.yaml
     def _get_json(self, url, timeout, params, auth=None, verify=True):
         execution_time_exceeded_error_message = 'Transaction cancelled: maximum execution time exceeded'
 
