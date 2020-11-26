@@ -168,6 +168,8 @@ class ZabbixCheck(AgentCheck):
 
                 self.event({
                     'timestamp': int(time.time()),
+                    'msg_title': "Zabbix event on host '{}': severity: {}".format(zabbix_host.name, severity),
+                    'msg_text': "Zabbix event on host '{}': severity: {}".format(zabbix_host.name, severity),
                     'source_type_name': self.INSTANCE_TYPE,
                     'host': self.hostname,
                     'tags': [
