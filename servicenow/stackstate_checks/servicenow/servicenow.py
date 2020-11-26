@@ -127,7 +127,9 @@ class ServicenowCheck(AgentCheck):
         """
         sysparm_query = ""
         if len(sys_class_filter) > 0:
-            sysparm_query = "sys_class_nameIN{},{}".format(sys_class_filter[0], ",".join(sys_class_filter[1:]))
+            sysparm_query = "sys_class_nameIN{}".format(sys_class_filter[0])
+            if len(sys_class_filter[1:]) > 0:
+                sysparm_query = "{},{}".format(sysparm_query, ",".join(sys_class_filter[1:]))
         self.log.debug("sys param query for component is :- " + sysparm_query)
         return sysparm_query
 
@@ -135,10 +137,11 @@ class ServicenowCheck(AgentCheck):
         sysparm_parent_query = ""
         sysparm_child_query = ""
         if len(sys_class_filter) > 0:
-            sysparm_parent_query = "parent.sys_class_nameIN{},{}".format(sys_class_filter[0],
-                                                                         ",".join(sys_class_filter[1:]))
-            sysparm_child_query = "^child.sys_class_nameIN{},{}".format(sys_class_filter[0],
-                                                                        ",".join(sys_class_filter[1:]))
+            sysparm_parent_query = "parent.sys_class_nameIN{}".format(sys_class_filter[0])
+            sysparm_child_query = "^child.sys_class_nameIN{}".format(sys_class_filter[0])
+            if len(sys_class_filter[1:]) > 0:
+                sysparm_parent_query = "{},{}".format(sysparm_parent_query, ",".join(sys_class_filter[1:]))
+                sysparm_child_query = "{},{}".format(sysparm_child_query, ",".join(sys_class_filter[1:]))
         sysparm_query = sysparm_parent_query + sysparm_child_query
         self.log.debug("sys param query for relation is :- " + sysparm_query)
         return sysparm_query
