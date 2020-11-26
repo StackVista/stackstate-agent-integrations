@@ -596,7 +596,5 @@ def test_collect_only_hosts_create_service_https(aggregator, https_instance):
 
 
 def _read_test_file(filename):
-    f = open("./tests/" + filename)
-    c = f.read()
-    f.close()
-    return c
+    with open("./tests/" + filename, "r") as f:
+        return f.read()
