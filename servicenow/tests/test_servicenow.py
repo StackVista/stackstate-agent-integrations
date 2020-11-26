@@ -339,6 +339,15 @@ class TestServicenow(unittest.TestCase):
         expected_query = "sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server"
         self.assertEqual(expected_query, query)
 
+    def test_get_sys_class_component_filter_query_only_one_element(self):
+        """
+        Test to check if the method creates the proper param query for only one element
+        """
+        sys_class_filter = ['cmdb_ci_app_server_java']
+        query = self.check.get_sys_class_component_filter_query(sys_class_filter)
+        expected_query = 'sys_class_nameINcmdb_ci_app_server_java'
+        self.assertEqual(expected_query, query)
+
     def test_get_sys_class_relation_filter_query(self):
         """
         Test to check if the method creates the proper param query
@@ -349,6 +358,16 @@ class TestServicenow(unittest.TestCase):
         expected_query = 'parent.sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server' \
                          '^child.sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server'
         self.assertEqual(expected_query, query)
+
+    def test_get_sys_class_relation_filter_query_only_one_element(self):
+        """
+        Test to check if the method creates the proper param query for only one
+        """
+        sys_class_filter = ['cmdb_ci_app_server_java']
+        query = self.check.get_sys_class_relation_filter_query(sys_class_filter)
+        expected_query = 'parent.sys_class_nameINcmdb_ci_app_server_java^child.sys_class_nameINcmdb_ci_app_server_java'
+        self.assertEqual(expected_query, query)
+
 
     def test_process_components_with_sys_filter_change(self):
         """
