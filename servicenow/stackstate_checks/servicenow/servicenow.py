@@ -16,11 +16,12 @@ from schematics import Model
 from schematics.exceptions import DataError
 from schematics.types import URLType, StringType, ListType, IntType, DictType, DateTimeType, ModelType, BaseType
 
-from stackstate_checks.base import AgentCheck, TopologyInstance, Identifiers
+from stackstate_checks.base import AgentCheck, TopologyInstance, Identifiers, to_string
 from stackstate_checks.base.errors import CheckException
 
 BATCH_DEFAULT_SIZE = 2500
 BATCH_MAX_SIZE = 10000
+# TODO add conf.yaml setting for timeout
 TIMEOUT = 20
 CRS_BOOTSTRAP_DAYS_DEFAULT = 100
 CRS_DEFAULT_PROCESS_LIMIT = 1000
@@ -149,7 +150,7 @@ class ServicenowCheck(AgentCheck):
     @staticmethod
     def filter_empty_metadata(data):
         """
-        Filter the empty key:value in metadata dictionary
+        Filter the empty key:value in metadata dictionary and fix utf-8 encoding problems
         :param data: metadata from servicenow
         :return: filtered metadata
         """
@@ -157,7 +158,7 @@ class ServicenowCheck(AgentCheck):
         if isinstance(data, dict):
             for k, v in data.items():
                 if v:
-                    result[k] = v
+                    result[k] = to_string(v)
         return result
 
     def _batch_collect_components(self, instance_info, offset):
@@ -384,6 +385,7 @@ class ServicenowCheck(AgentCheck):
         )
         return params
 
+    # TODO verify should be in conf.yaml
     def _get_json(self, url, timeout, params, auth=None, verify=True):
         execution_time_exceeded_error_message = 'Transaction cancelled: maximum execution time exceeded'
 

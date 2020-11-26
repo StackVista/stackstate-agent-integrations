@@ -368,7 +368,6 @@ class TestServicenow(unittest.TestCase):
         expected_query = 'parent.sys_class_nameINcmdb_ci_app_server_java^child.sys_class_nameINcmdb_ci_app_server_java'
         self.assertEqual(expected_query, query)
 
-
     def test_process_components_with_sys_filter_change(self):
         """
         Test _process_components to return whole topology when query changed in between
@@ -633,6 +632,33 @@ class TestServicenow(unittest.TestCase):
         with self.assertRaises(CheckException) as context:
             self.check._get_json(url, 10, {}, auth)
         self.assertEqual(expected_msg, str(context.exception))
+
+    def test_process_components_encoding_errors(self):
+        """
+        This would provoke following error with py27:
+        "UnicodeEncodeError: 'ascii' codec can't encode character u'\xeb' in position 4: ordinal not in range(128)"
+        in the function stackstate_checks.base.Identifiers.create_host_identifier
+        """
+        collect_components_with_fqdn_umlaut = {
+            'result': [
+                {
+                    'sys_class_name': 'cmdb_ci_computer',
+                    'sys_id': '00a96c0d3790200044e0bfc8bcbe5db4',
+                    'sys_created_on': '2012-02-18 08:14:21',
+                    'name': 'Some computer',
+                    'fqdn': u'abcdë.com'
+                }
+            ]
+        }
+        self.check._batch_collect_components = mock.MagicMock()
+        self.check._batch_collect_components.return_value = collect_components_with_fqdn_umlaut
+        self.check._batch_collect(self.check._batch_collect_components, instance_config)
+        self.check._process_components(instance_config)
+        topo_instances = topology.get_snapshot(self.check.check_id)
+        self.assertEqual(
+            ['urn:host:/abcdë.com', 'urn:host:/Some computer', '00a96c0d3790200044e0bfc8bcbe5db4'],
+            topo_instances['components'][0]['data']['identifiers']
+        )
 
     def _get_url_auth(self):
         url = "{}/api/now/table/cmdb_ci".format(self.instance.get('url'))
