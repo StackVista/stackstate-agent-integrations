@@ -6,6 +6,7 @@ import pytest
 import unittest
 import json
 import requests_mock
+from six import PY3
 
 from stackstate_checks.dynatrace_topology import DynatraceTopologyCheck
 from stackstate_checks.base.stubs import topology, aggregator
@@ -18,7 +19,7 @@ def _read_data(filename):
 
 def _read_test_file(filename):
     with open("./tests/samples/" + filename, "r") as f:
-        return f.read()
+        return f.read() if PY3 else f.read().decode("utf-8")
 
 
 def sort_topology_data(topo_instances):
@@ -237,13 +238,13 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
 
         # sort the keys of components and relations, so we match it in actual
         components, relations = sort_topology_data(topo_instances)
-        actual_components, actual_relations = sort_topology_data(expected_topology)
+        expected_components, expected_relations = sort_topology_data(expected_topology)
 
-        self.assertEqual(len(components), len(actual_components))
+        self.assertEqual(len(components), len(expected_components))
         for component in components:
-            self.assertIn(component, actual_components)
+            self.assertIn(component, expected_components)
 
         # Not comparing the numbers because we have duplicate relations created but
-        # duplicates will be auto filtered out by the agent externalId assigning behavior
+        # duplicates will be filtered out by the agent externalId assigning behavior
         for relation in relations:
-            self.assertIn(relation, actual_relations)
+            self.assertIn(relation, expected_relations)

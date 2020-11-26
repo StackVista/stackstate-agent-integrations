@@ -74,7 +74,7 @@
             "java"
           ],
           "elasticSearchNodeNames": [
-            "stackstate-prod-0"
+            "stackstate-prod-0-with-unicode-char-"
           ],
           "javaMainClasses": [
             "org.elasticsearch.bootstrap.Elasticsearch"
