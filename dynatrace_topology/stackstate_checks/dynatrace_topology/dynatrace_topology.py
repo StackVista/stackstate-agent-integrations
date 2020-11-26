@@ -286,8 +286,6 @@ class DynatraceTopologyCheck(AgentCheck):
         :return: Response of each endpoint
         """
         headers = {"Authorization": "Api-Token {}".format(self.token)}
-        resp = None
-        msg = None
         self.log.debug("URL is {}".format(endpoint))
         try:
             with Session() as session:
@@ -301,4 +299,4 @@ class DynatraceTopologyCheck(AgentCheck):
                 return yaml.safe_load(resp.text)
         except requests.exceptions.Timeout:
             msg = "{} seconds timeout when hitting {}".format(timeout, endpoint)
-            raise Exception("Exception occured for endpoint {0} with message: {1}".format(endpoint, msg))
+            raise Exception("Exception occurred for endpoint {0} with message: {1}".format(endpoint, msg))
