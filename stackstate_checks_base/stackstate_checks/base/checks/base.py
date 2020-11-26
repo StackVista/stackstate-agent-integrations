@@ -400,6 +400,7 @@ class AgentCheckBase(object):
             return
         data = self._map_component_data(id, type, instance, fixed_data, fixed_streams, fixed_checks)
         topology.submit_component(self, self.check_id, self._get_instance_key(), id, type, data)
+        return {"id": id, "type": type, "data": data}
 
     def _map_component_data(self, id, type, instance, data, streams=None, checks=None, add_instance_tags=True):
         self._check_is_string("id", id)
@@ -423,6 +424,7 @@ class AgentCheckBase(object):
             return
         data = self._map_relation_data(source, target, type, fixed_data, fixed_streams, fixed_checks)
         topology.submit_relation(self, self.check_id, self._get_instance_key(), source, target, type, data)
+        return {"source_id": source, "target_id": target, "type": type, "data": data}
 
     def _map_relation_data(self, source, target, type, data, streams=None, checks=None):
         self._check_is_string("source", source)
@@ -682,21 +684,33 @@ class AgentCheckBase(object):
                 raise e
             return fixed_value
         elif isinstance(field, dict):
-            field = {k: v for k, v in iteritems(field) if v}
+            field = {k: v for k, v in iteritems(field) if self._is_field_empty(v)}
             for key, value in list(iteritems(field)):
                 field[key] = self._sanitize(value, "key '{0}' of dict".format(key))
         elif isinstance(field, list):
-            field = [element for element in field if element]
+            field = [element for element in field if self._is_field_empty(element)]
             for i, element in enumerate(field):
                 field[i] = self._sanitize(element, "index '{0}' of list".format(i))
         elif isinstance(field, set):
             # we convert a set to a list so we can update it in place
             # and then at the end we turn the list back to a set
-            encoding_list = [element for element in list(field) if element]
+            encoding_list = [element for element in list(field) if self._is_field_empty(element)]
             for i, element in enumerate(encoding_list):
                 encoding_list[i] = self._sanitize(element, "element of set")
             field = set(encoding_list)
         return field
+
+    def _is_field_empty(self, field):
+        # for string types we don't want to keep the zero '' values
+        if isinstance(field, string_types):
+            if field:
+                return True
+        # keep zero values in data set
+        else:
+            if field is not None:
+                return True
+
+        return False
 
     def get_check_config_path(self):
         return "{}.d".format(os.path.join(self.get_agent_conf_d_path(), self.name))
@@ -819,7 +833,8 @@ class __AgentCheckPy3(AgentCheckBase):
             event['aggregation_key'] = ensure_unicode(event['aggregation_key'])
         if event.get('source_type_name'):
             self._log_deprecation("source_type_name")
-            event['event_type'] = ensure_unicode(event['source_type_name'])
+            if 'event_type' not in event:
+                event['event_type'] = ensure_string(event['source_type_name'])
 
         if 'context' in event:
             telemetry.submit_topology_event(self, self.check_id, event)
@@ -979,7 +994,8 @@ class __AgentCheckPy2(AgentCheckBase):
             event['aggregation_key'] = ensure_string(event['aggregation_key'])
         if event.get('source_type_name'):
             self._log_deprecation("source_type_name")
-            event['event_type'] = ensure_string(event['source_type_name'])
+            if 'event_type' not in event:
+                event['event_type'] = ensure_string(event['source_type_name'])
 
         if 'context' in event:
             telemetry.submit_topology_event(self, self.check_id, event)
@@ -1057,4 +1073,3 @@ if PY3:
 else:
     AgentCheck = __AgentCheckPy2
     del __AgentCheckPy3
-

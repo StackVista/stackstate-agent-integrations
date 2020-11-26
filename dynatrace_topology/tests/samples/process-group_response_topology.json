@@ -96,9 +96,7 @@
             "version": "1.8.0_265"
           },
           {
-            "type": "ELASTIC_SEARCH",
-            "edition": null,
-            "version": null
+            "type": "ELASTIC_SEARCH"
           }
         ],
         "listenPorts": [
@@ -142,9 +140,7 @@
         },
         "softwareTechnologies": [
           {
-            "type": "IIS",
-            "edition": null,
-            "version": null
+            "type": "IIS"
           },
           {
             "type": "CLR",

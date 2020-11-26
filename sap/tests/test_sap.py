@@ -43,7 +43,7 @@ def test_cannot_connect_to_host_control(aggregator, instance):
         AgentIntegrationTestUtil.assert_integration_snapshot(sap_check, 'sap:LAB-SAP-001')
 
         aggregator.assert_event(
-            msg_text="",
+            msg_text="Exception: ''",
             tags=[
                 "status:sap-host-control-error",
                 "host:LAB-SAP-001"
@@ -89,7 +89,7 @@ def test_check_run_no_sap_instances(aggregator, instance):
         AgentIntegrationTestUtil.assert_integration_snapshot(sap_check, 'sap:LAB-SAP-001')
 
         aggregator.assert_event(
-            msg_text="",
+            msg_text="Host control 'LAB-SAP-001' status update.",
             tags=[
                 "status:sap-host-control-success",
                 "host:LAB-SAP-001"
@@ -181,7 +181,7 @@ def test_collect_only_hosts(aggregator, instance):
         )
 
         aggregator.assert_event(
-            msg_text="",
+            msg_text="Host control 'LAB-SAP-001' status update.",
             tags=[
                 "status:sap-host-control-success",
                 "host:LAB-SAP-001"
@@ -467,7 +467,7 @@ def test_collect_databases(aggregator, instance):
         )
 
         aggregator.assert_event(
-            msg_text="",
+            msg_text="Database 'DON' status update.",
             tags=[
                 "status:SAPHostControl-DB-RUNNING",
                 "database_name:DON",
@@ -475,28 +475,28 @@ def test_collect_databases(aggregator, instance):
         )
 
         aggregator.assert_event(
-            msg_text="",
+            msg_text="Database component 'Instance' status update.",
             tags=[
                 "status:SAPHostControl-DB-RUNNING",
                 "database_component_name:Instance",
                 ]
         )
         aggregator.assert_event(
-            msg_text="",
+            msg_text="Database component 'Database' status update.",
             tags=[
                 "status:SAPHostControl-DB-RUNNING",
                 "database_component_name:Database",
                 ]
         )
         aggregator.assert_event(
-            msg_text="",
+            msg_text="Database component 'Archiver' status update.",
             tags=[
                 "status:SAPHostControl-DB-RUNNING",
                 "database_component_name:Archiver",
                 ]
         )
         aggregator.assert_event(
-            msg_text="",
+            msg_text="Database component 'Listener' status update.",
             tags=[
                 "status:SAPHostControl-DB-RUNNING",
                 "database_component_name:Listener",
@@ -533,8 +533,7 @@ def test_collect_only_hosts_create_service_https(aggregator, https_instance):
                 {"id": "urn:host:/LAB-SAP-001", "type": "sap-host",
                  "data": {"host": "LAB-SAP-001",
                           'tags': ['customer:Stackstate', 'foo:bar', 'integration-type:sap',
-                                   'integration-url:LAB-SAP-001'],
-                          "domain": None, "environment": None}},
+                                   'integration-url:LAB-SAP-001']}},
                 {"id": "urn:sap:/instance:LAB-SAP-001:67",
                  "type": "sap-instance",
                  "data": {"host": "LAB-SAP-001",
@@ -545,9 +544,7 @@ def test_collect_only_hosts_create_service_https(aggregator, https_instance):
                           "sid": "CDA",
                           "system_number": "67",
                           "type": "Solution Manager Diagnostic Agent",
-                          "version": "753, patch 200, changelist 1844229",
-                          "domain": None,
-                          "environment": None}},
+                          "version": "753, patch 200, changelist 1844229"}},
                 {"id": "urn:sap:/instance:LAB-SAP-001:00",
                  "type": "sap-instance",
                  "data": {"host": "LAB-SAP-001",
@@ -558,9 +555,7 @@ def test_collect_only_hosts_create_service_https(aggregator, https_instance):
                           "sid": "DON",
                           "system_number": "00",
                           "type": "ABAP Instance",
-                          "version": "753, patch 401, changelist 1927964",
-                          "domain": None,
-                          "environment": None}},
+                          "version": "753, patch 401, changelist 1927964"}},
                 {"id": "urn:sap:/instance:LAB-SAP-001:01",
                  "type": "sap-instance",
                  "data": {"host": "LAB-SAP-001",
@@ -571,20 +566,18 @@ def test_collect_only_hosts_create_service_https(aggregator, https_instance):
                           "sid": "DON",
                           "system_number": "01",
                           "type": "Central Services Instance",
-                          "version": "753, patch 401, changelist 1927964",
-                          "domain": None,
-                          "environment": None}}
+                          "version": "753, patch 401, changelist 1927964"}}
             ],
             relations=[
-                {'data': {"domain": None, "environment": None, "tags": ['customer:Stackstate', 'foo:bar']},
+                {'data': {"tags": ['customer:Stackstate', 'foo:bar']},
                  'source_id': 'urn:sap:/instance:LAB-SAP-001:67',
                  'target_id': 'urn:host:/LAB-SAP-001',
                  'type': 'is hosted on'},
-                {'data': {"domain": None, "environment": None, "tags": ['customer:Stackstate', 'foo:bar']},
+                {'data': {"tags": ['customer:Stackstate', 'foo:bar']},
                  'source_id': 'urn:sap:/instance:LAB-SAP-001:00',
                  'target_id': 'urn:host:/LAB-SAP-001',
                  'type': 'is hosted on'},
-                {'data': {"domain": None, "environment": None, "tags": ['customer:Stackstate', 'foo:bar']},
+                {'data': {"tags": ['customer:Stackstate', 'foo:bar']},
                  'source_id': 'urn:sap:/instance:LAB-SAP-001:01',
                  'target_id': 'urn:host:/LAB-SAP-001',
                  'type': 'is hosted on'}
@@ -592,7 +585,7 @@ def test_collect_only_hosts_create_service_https(aggregator, https_instance):
         )
 
         aggregator.assert_event(
-            msg_text="",
+            msg_text="Host control 'LAB-SAP-001' status update.",
             tags=[
                 "status:sap-host-control-success",
                 "host:LAB-SAP-001"

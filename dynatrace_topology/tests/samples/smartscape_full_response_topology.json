@@ -103,7 +103,6 @@
         "softwareTechnologies": [
           {
             "type": "IIS_APP_POOL",
-            "edition": null,
             "version": "10.0.14393.0"
           },
           {
@@ -113,7 +112,6 @@
           },
           {
             "type": "WCF",
-            "edition": null,
             "version": "4.8.3928.0"
           },
           {
@@ -123,7 +121,6 @@
           },
           {
             "type": "ASP_NET",
-            "edition": null,
             "version": "4.8.3928.0"
           }
         ],
@@ -221,7 +218,6 @@
             "major": 1,
             "minor": 201,
             "revision": 109,
-            "sourceRevision": "",
             "timestamp": "20200921-085558"
           }
         ],
@@ -287,9 +283,7 @@
             "version": "1.8.0_265"
           },
           {
-            "edition": null,
             "type": "ELASTIC_SEARCH",
-            "version": null
           }
         ],
         "tags": [
@@ -343,9 +337,7 @@
         },
         "softwareTechnologies": [
           {
-            "edition": null,
             "type": "IIS",
-            "version": null
           },
           {
             "edition": "FullCLR",
@@ -463,8 +455,6 @@
           },
           {
             "type": "ELASTIC_SEARCH",
-            "edition": null,
-            "version": null
           }
         ],
         "listenPorts": [
@@ -509,8 +499,6 @@
         "softwareTechnologies": [
           {
             "type": "IIS",
-            "edition": null,
-            "version": null
           },
           {
             "type": "CLR",
@@ -574,12 +562,10 @@
           "major": 1,
           "minor": 201,
           "revision": 127,
-          "timestamp": "20200925-143440",
-          "sourceRevision": ""
+          "timestamp": "20200925-143440"
         },
         "consumedHostUnits": "0.5",
         "userLevel": "SUPERUSER",
-        "oneAgentCustomHostName": "",
         "awsSecurityGroup": [
           "melnemrSG"
         ],
@@ -634,12 +620,10 @@
           "major": 1,
           "minor": 201,
           "revision": 127,
-          "timestamp": "20200925-143440",
-          "sourceRevision": ""
+          "timestamp": "20200925-143440"
         },
         "consumedHostUnits": 1,
         "userLevel": "SUPERUSER",
-        "oneAgentCustomHostName": "",
         "awsSecurityGroup": [
           "melnemrSG"
         ],
