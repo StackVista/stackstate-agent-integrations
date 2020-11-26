@@ -43,12 +43,20 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         # this is needed because the topology retains data across tests
         topology.reset()
 
+    @staticmethod
+    def _set_http_responses(m, hosts="[]", apps="[]", svcs="[]", procs="[]", proc_groups="[]"):
+        m.get("/api/v1/entity/infrastructure/hosts", text=hosts)
+        m.get("/api/v1/entity/applications", text=apps)
+        m.get("/api/v1/entity/services", text=svcs)
+        m.get("/api/v1/entity/infrastructure/processes", text=procs)
+        m.get("/api/v1/entity/infrastructure/process-groups", text=proc_groups)
+
     @requests_mock.Mocker()
     def test_collect_empty_topology(self, m):
         """
         Testing Dynatrace check should not produce any topology
         """
-        m.get("/api/v1/entity", text="[]")
+        self._set_http_responses(m)
 
         self.check.url = self.instance.get('url')
 
@@ -63,11 +71,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         """
         Testing Dynatrace check should collect processes
         """
-        m.get("/api/v1/entity/infrastructure/hosts", text="[]")
-        m.get("/api/v1/entity/applications", text="[]")
-        m.get("/api/v1/entity/infrastructure/process-groups", text="[]")
-        m.get("/api/v1/entity/services", text="[]")
-        m.get("/api/v1/entity/infrastructure/processes", text=_read_test_file("process_response.json"))
+        self._set_http_responses(m, procs=_read_test_file("process_response.json"))
 
         self.check.url = self.instance.get('url')
 
@@ -90,11 +94,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         """
         Testing Dynatrace check should collect hosts
         """
-        m.get("/api/v1/entity/applications", text="[]")
-        m.get("/api/v1/entity/infrastructure/process-groups", text="[]")
-        m.get("/api/v1/entity/services", text="[]")
-        m.get("/api/v1/entity/infrastructure/processes", text="[]")
-        m.get("/api/v1/entity/infrastructure/hosts", text=_read_test_file("host_response.json"))
+        self._set_http_responses(m, hosts=_read_test_file("host_response.json"))
 
         self.check.url = self.instance.get('url')
 
@@ -117,11 +117,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         """
         Testing Dynatrace check should collect services and tags coming from Kubernetes
         """
-        m.get("/api/v1/entity/applications", text="[]")
-        m.get("/api/v1/entity/infrastructure/process-groups", text="[]")
-        m.get("/api/v1/entity/infrastructure/processes", text="[]")
-        m.get("/api/v1/entity/infrastructure/hosts", text="[]")
-        m.get("/api/v1/entity/services", text=_read_test_file("service_response.json"))
+        self._set_http_responses(m, svcs=_read_test_file("service_response.json"))
 
         self.check.url = self.instance.get('url')
 
@@ -144,11 +140,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         """
         Testing Dynatrace check should collect applications and also the tags properly coming from dynatrace
         """
-        m.get("/api/v1/entity/infrastructure/process-groups", text="[]")
-        m.get("/api/v1/entity/infrastructure/processes", text="[]")
-        m.get("/api/v1/entity/infrastructure/hosts", text="[]")
-        m.get("/api/v1/entity/services", text="[]")
-        m.get("/api/v1/entity/applications", text=_read_test_file("application_response.json"))
+        self._set_http_responses(m, apps=_read_test_file("application_response.json"))
 
         self.check.url = self.instance.get('url')
 
@@ -171,11 +163,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         """
         Testing Dynatrace check should collect process-groups
         """
-        m.get("/api/v1/entity/infrastructure/processes", text="[]")
-        m.get("/api/v1/entity/infrastructure/hosts", text="[]")
-        m.get("/api/v1/entity/services", text="[]")
-        m.get("/api/v1/entity/applications", text="[]")
-        m.get("/api/v1/entity/infrastructure/process-groups", text=_read_test_file("process-group_response.json"))
+        self._set_http_responses(m, proc_groups=_read_test_file("process-group_response.json"))
 
         self.check.url = self.instance.get('url')
 
@@ -233,21 +221,23 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         Test e2e to collect full topology for all component types from Dynatrace
         :return:
         """
-        m.get("/api/v1/entity/infrastructure/processes", text=_read_test_file("process_response.json"))
-        m.get("/api/v1/entity/infrastructure/hosts", text=_read_test_file("host_response.json"))
-        m.get("/api/v1/entity/services", text=_read_test_file("service_response.json"))
-        m.get("/api/v1/entity/applications", text=_read_test_file("application_response.json"))
-        m.get("/api/v1/entity/infrastructure/process-groups", text=_read_test_file("process-group_response.json"))
+        self._set_http_responses(m,
+                                 hosts=_read_test_file("host_response.json"),
+                                 apps=_read_test_file("application_response.json"),
+                                 svcs=_read_test_file("service_response.json"),
+                                 procs=_read_test_file("process_response.json"),
+                                 proc_groups=_read_test_file("process-group_response.json")
+                                 )
 
         self.check.url = self.instance.get('url')
         self.check.run()
 
         topo_instances = topology.get_snapshot(self.check.check_id)
-        actual_topology = _read_data("smartscape_full_response_topology.json")
+        expected_topology = _read_data("smartscape_full_response_topology.json")
 
         # sort the keys of components and relations, so we match it in actual
         components, relations = sort_topology_data(topo_instances)
-        actual_components, actual_relations = sort_topology_data(actual_topology)
+        actual_components, actual_relations = sort_topology_data(expected_topology)
 
         self.assertEqual(len(components), len(actual_components))
         for component in components:
