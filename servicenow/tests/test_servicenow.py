@@ -685,7 +685,6 @@ def _read_data(filename):
 
 
 def _delete_state():
-    # TODO remove state from test/servicenow.d directory
     state_file = 'instance.servicenow_cmdb.https_instance.service_now.com.state'
     path_to_file = os.path.join(os.getcwd(), 'servicenow.d', state_file)
     if os.path.isfile(path_to_file):
