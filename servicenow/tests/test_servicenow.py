@@ -661,12 +661,12 @@ class TestServicenow(unittest.TestCase):
         """
         Test creating event from SNOW Change Request
         """
-        _delete_state()
+        self._delete_state()
         self.check._collect_relation_types = mock_collect_process
         self.check._batch_collect_components = mock_collect_process
         self.check._batch_collect_relations = mock_collect_process
         self.check._collect_change_requests = mock.MagicMock()
-        self.check._collect_change_requests.return_value = _read_data('CHG0000001.json')
+        self.check._collect_change_requests.return_value = self._read_data('CHG0000001.json')
         self.check.run()
         topology_events = telemetry._topology_events
         service_checks = aggregator.service_checks('servicenow.cmdb.topology_information')
@@ -678,14 +678,15 @@ class TestServicenow(unittest.TestCase):
         auth = (self.instance.get('user'), self.instance.get('password'))
         return url, auth
 
+    @staticmethod
+    def _read_data(filename):
+        path_to_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'samples', filename)
+        with open(path_to_file, "r") as f:
+            return json.load(f)
 
-def _read_data(filename):
-    with open("./samples/" + filename, "r") as f:
-        return json.load(f)
-
-
-def _delete_state():
-    state_file = 'instance.servicenow_cmdb.https_instance.service_now.com.state'
-    path_to_file = os.path.join(os.getcwd(), 'servicenow.d', state_file)
-    if os.path.isfile(path_to_file):
-        os.remove(path_to_file)
+    @staticmethod
+    def _delete_state():
+        state_file = 'instance.servicenow_cmdb.https_instance.service_now.com.state'
+        path_to_file = os.path.join(os.curdir, 'servicenow.d', state_file)
+        if os.path.isfile(path_to_file):
+            os.remove(path_to_file)
