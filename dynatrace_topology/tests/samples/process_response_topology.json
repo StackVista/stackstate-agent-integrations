@@ -136,7 +136,7 @@
             "version": "1.8.0_265"
           },
           {
-            "type": "ELASTIC_SEARCH",
+            "type": "ELASTIC_SEARCH"
           }
         ],
         "tags": [
@@ -164,7 +164,7 @@
           "dynatrace-PROCESS_GROUP_INSTANCE-D87BE1EAFC600996",
           "dynatrace-actualMonitoringState:OFF",
           "dynatrace-expectedMonitoringState:ON",
-          "dynatrace-IIS",
+          "dynatrace-IIS-with-unicode-char-",
           "dynatrace-CLR:FullCLR:4.8.3928.0",
           "dynatrace-DOTNET:.NET Framework:4.8.3928.0"
         ],
@@ -190,7 +190,7 @@
         },
         "softwareTechnologies": [
           {
-            "type": "IIS",
+            "type": "IIS-with-unicode-char-"
           },
           {
             "edition": "FullCLR",
