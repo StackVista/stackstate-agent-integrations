@@ -684,23 +684,27 @@ class AgentCheckBase(object):
                 raise e
             return fixed_value
         elif isinstance(field, dict):
-            field = {k: v for k, v in iteritems(field) if self._is_field_empty(v)}
+            field = {k: v for k, v in iteritems(field) if self._is_not_empty(v)}
             for key, value in list(iteritems(field)):
                 field[key] = self._sanitize(value, "key '{0}' of dict".format(key))
         elif isinstance(field, list):
-            field = [element for element in field if self._is_field_empty(element)]
+            field = [element for element in field if self._is_not_empty(element)]
             for i, element in enumerate(field):
                 field[i] = self._sanitize(element, "index '{0}' of list".format(i))
         elif isinstance(field, set):
             # we convert a set to a list so we can update it in place
             # and then at the end we turn the list back to a set
-            encoding_list = [element for element in list(field) if self._is_field_empty(element)]
+            encoding_list = [element for element in list(field) if self._is_not_empty(element)]
             for i, element in enumerate(encoding_list):
                 encoding_list[i] = self._sanitize(element, "element of set")
             field = set(encoding_list)
         return field
 
-    def _is_field_empty(self, field):
+    def _is_not_empty(self, field):
+        """
+        _is_not_empty checks whether field contains "interesting" or is not None and returns true
+        `field` the value to check
+        """
         # for string types we don't want to keep the zero '' values
         if isinstance(field, string_types):
             if field:
