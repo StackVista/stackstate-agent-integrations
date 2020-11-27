@@ -132,7 +132,7 @@ class ServicenowCheck(AgentCheck):
         """
         sysparm_query = ""
         if len(sys_class_filter) > 0:
-            sysparm_query = 'sys_class_nameIN{}'.format(sys_class_filter[0])
+            sysparm_query = "sys_class_nameIN{}".format(sys_class_filter[0])
             if len(sys_class_filter[1:]) > 0:
                 sysparm_query = '{},{}'.format(sysparm_query, ",".join(sys_class_filter[1:]))
         if sysparm_query:
@@ -143,11 +143,11 @@ class ServicenowCheck(AgentCheck):
         sysparm_parent_query = ""
         sysparm_child_query = ""
         if len(sys_class_filter) > 0:
-            sysparm_parent_query = 'parent.sys_class_nameIN{}'.format(sys_class_filter[0])
-            sysparm_child_query = '^child.sys_class_nameIN{}'.format(sys_class_filter[0])
+            sysparm_parent_query = "parent.sys_class_nameIN{}".format(sys_class_filter[0])
+            sysparm_child_query = "^child.sys_class_nameIN{}".format(sys_class_filter[0])
             if len(sys_class_filter[1:]) > 0:
-                sysparm_parent_query = '{},{}'.format(sysparm_parent_query, ",".join(sys_class_filter[1:]))
-                sysparm_child_query = '{},{}'.format(sysparm_child_query, ",".join(sys_class_filter[1:]))
+                sysparm_parent_query = "{},{}".format(sysparm_parent_query, ",".join(sys_class_filter[1:]))
+                sysparm_child_query = "{},{}".format(sysparm_child_query, ",".join(sys_class_filter[1:]))
         sysparm_query = sysparm_parent_query + sysparm_child_query
         if sysparm_query:
             self.log.debug('sysparm_query for relation: %s', sysparm_query)
@@ -288,7 +288,7 @@ class ServicenowCheck(AgentCheck):
 
             relation_type = relation_types[type_sys_id]
             data = self.filter_empty_metadata(relation)
-            data.update({'tags': instance_info.instance_tags})
+            data.update({"tags": instance_info.instance_tags})
 
             self.relation(parent_sys_id, child_sys_id, relation_type, data)
 
