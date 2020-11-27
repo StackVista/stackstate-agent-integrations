@@ -70,7 +70,6 @@ class StateManager:
                            .format(instance.instance_key, e))
             raise StateClearException(e)
 
-
     def _read_state(self, instance):
         """
         read_state reads state from the instance.file_location and loads it as json
