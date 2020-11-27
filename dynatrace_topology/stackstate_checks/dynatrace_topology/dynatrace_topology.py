@@ -7,7 +7,7 @@ from .dynatrace_exception import DynatraceError
 
 import requests
 from requests import Session
-import yaml
+import json
 from datetime import datetime
 
 
@@ -235,11 +235,11 @@ class DynatraceTopologyCheck(AgentCheck):
         for tag in item.get("tags", []):
             tag_label = ''
             if tag.get('context') and tag.get('context') != 'CONTEXTLESS':
-                tag_label += '[{0}]'.format(tag['context'])
+                tag_label += "[%s]" % tag['context']
             if tag.get('key'):
-                tag_label += "{0}".format(tag['key'])
+                tag_label += tag['key']
             if tag.get('value'):
-                tag_label += ":{0}".format(tag['value'])
+                tag_label += ":%s" % tag['value']
             tags.append(tag_label)
         return tags
 
@@ -253,29 +253,29 @@ class DynatraceTopologyCheck(AgentCheck):
         # append management zones in labels for each existing component
         for zone in item.get("managementZones", []):
             if zone.get("name"):
-                labels.append("managementZones:{}".format(zone.get("name")))
+                labels.append("managementZones:%s" % zone.get("name"))
         if item.get("entityId"):
             labels.append(item["entityId"])
         if "monitoringState" in item:
             actual_state = item["monitoringState"].get("actualMonitoringState")
             expected_state = item["monitoringState"].get("expectedMonitoringState")
             if actual_state:
-                labels.append("actualMonitoringState:{}".format(actual_state))
+                labels.append("actualMonitoringState:%s" % actual_state)
             if expected_state:
-                labels.append("expectedMonitoringState:{}".format(expected_state))
+                labels.append("expectedMonitoringState:%s" % expected_state)
         for technologies in item.get("softwareTechnologies", []):
             tech_label = ''
             if technologies.get('type'):
                 tech_label += technologies['type']
             if technologies.get('edition'):
-                tech_label += ":{}".format(technologies['edition'])
+                tech_label += ":%s" % technologies['edition']
             if technologies.get('version'):
-                tech_label += ":{}".format(technologies['version'])
+                tech_label += ":%s" % technologies['version']
             labels.append(tech_label)
         labels_from_tags = self.get_labels_from_dynatrace_tags(item)
         labels.extend(labels_from_tags)
         # prefix the labels with `dynatrace-` for all labels
-        labels = ["dynatrace-{}".format(label) for label in labels]
+        labels = ["dynatrace-%s" % label for label in labels]
         return labels
 
     def get_dynatrace_json_response(self, endpoint, timeout=10):
@@ -296,7 +296,7 @@ class DynatraceTopologyCheck(AgentCheck):
                 resp = session.get(endpoint)
                 if resp.status_code != 200:
                     raise Exception("Got %s when hitting %s" % (resp.status_code, endpoint))
-                return yaml.safe_load(resp.text)
+                return json.loads(resp.text)
         except requests.exceptions.Timeout:
             msg = "{} seconds timeout when hitting {}".format(timeout, endpoint)
             raise Exception("Exception occurred for endpoint {0} with message: {1}".format(endpoint, msg))

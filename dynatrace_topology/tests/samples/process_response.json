@@ -162,7 +162,7 @@
         },
         "softwareTechnologies": [
             {
-                "type": "IIS",
+                "type": "IIS-with-unicode-char-",
                 "edition": null,
                 "version": null
             },

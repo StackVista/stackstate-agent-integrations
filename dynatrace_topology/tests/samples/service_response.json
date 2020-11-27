@@ -82,7 +82,7 @@
             {
                 "context": "Kubernetes",
                 "key": "namespace",
-                "value": "default"
+                "value": "default-with-unicode-char-"
             }
         ],
         "fromRelationships": {
