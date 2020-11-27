@@ -134,7 +134,7 @@ class ServicenowCheck(AgentCheck):
         if len(sys_class_filter) > 0:
             sysparm_query = "sys_class_nameIN{}".format(sys_class_filter[0])
             if len(sys_class_filter[1:]) > 0:
-                sysparm_query = '{},{}'.format(sysparm_query, ",".join(sys_class_filter[1:]))
+                sysparm_query = "{},{}".format(sysparm_query, ",".join(sys_class_filter[1:]))
         if sysparm_query:
             self.log.debug('sysparm_query for component: %s', sysparm_query)
         return sysparm_query
