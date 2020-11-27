@@ -3,12 +3,24 @@ init_config:
 instances:
 
   # URL of ServiceNow instance
-  - url: "https://dev60476.service-now.com"
-    user: admin
-    password: Service@123
+  - url: "https://instance.service-now.com"
+    user: username
+    password: secret
 
-    # Batch size for paginating results. Default value is 2500
-    # batch_size: 1000
+    # Batch size for paginating results. Default value is 2500. Max value is 10000.
+    # batch_size: 2500
+
+    # On first start we get all changed request that have been updated in last N days. Default value is 100.
+    # change_request_bootstrap_days: 100
+
+    # Maximum number of change request that we process. Default value is 1000.
+    # change_request_process_limit: 1000
+
+    # Timeout for requests. Default value is 20.
+    # timeout: 20
+
+    # Verify https. Default value is true.
+    # verify_https: true
 
     # Currently StackState support the below resource/sys class types and apart from this will belong to
     # the generic servicenow component types
