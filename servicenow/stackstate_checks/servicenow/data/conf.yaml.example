@@ -18,7 +18,10 @@ instances:
 
     # ServiceNow Custom filter. Check ServiceNow documentation about filtering with sysparm_query parameter.
     # https://developer.servicenow.com/dev.do#!/learn/learning-plans/orlando/servicenow_application_developer/app_store_learnv2_rest_orlando_more_about_query_parameters
-    # sysparm_query: company.nameSTARTSWITHxyz
+    # CMDB Configuration Items query. Default value is undefined.
+    # cmdb_ci_sysparm_query: company.nameSTARTSWITHSAP
+    # CMDB Configuration Items Relations query. Default value is undefined.
+    # cmdb_rel_ci_sysparam_query: parent.nameSTARTSWITHSAP^ORchild.nameSTARTSWITHSAP
 
     # Timeout for requests. Default value is 20.
     # timeout: 20

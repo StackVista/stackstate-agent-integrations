@@ -500,10 +500,10 @@ class TestServicenow(unittest.TestCase):
         self.assertRaises(DataError, self.check.get_instance_key, {})
 
     def test_append_to_sysparm_query(self):
-        params = self.check._append_to_sysparm_query(params={}, param_to_add='first_one')
-        self.assertEqual({'sysparm_query': 'first_one'}, params)
-        params = self.check._append_to_sysparm_query(params=params, param_to_add='second_one')
-        self.assertEqual({'sysparm_query': 'first_one^second_one'}, params)
+        params = self.check._params_append_to_sysparm_query(params={}, param_to_add='first_one')
+        self.assertEqual({'cmdb_ci_sysparm_query': 'first_one'}, params)
+        params = self.check._params_append_to_sysparm_query(params=params, param_to_add='second_one')
+        self.assertEqual({'cmdb_ci_sysparm_query': 'first_one^second_one'}, params)
 
     def test_json_batch(self):
         """
@@ -515,7 +515,7 @@ class TestServicenow(unittest.TestCase):
         params = self.check._prepare_json_batch_params(params={}, offset=offset, batch_size=batch_size)
         self.assertEqual(offset, params.get('sysparm_offset'))
         self.assertEqual(batch_size, params.get('sysparm_limit'))
-        self.assertEqual('ORDERBYsys_created_on', params.get('sysparm_query'))
+        self.assertEqual('ORDERBYsys_created_on', params.get('cmdb_ci_sysparm_query'))
 
     def test_json_batch_adding_param(self):
         """
@@ -524,12 +524,12 @@ class TestServicenow(unittest.TestCase):
         self.check._get_json = mock_get_json
         offset = 10
         batch_size = 200
-        params = self.check._prepare_json_batch_params(params={'sysparm_query': 'company.nameSTARTSWITHaxa'},
+        params = self.check._prepare_json_batch_params(params={'cmdb_ci_sysparm_query': 'company.nameSTARTSWITHaxa'},
                                                        offset=offset,
                                                        batch_size=batch_size)
         self.assertEqual(offset, params.get('sysparm_offset'))
         self.assertEqual(batch_size, params.get('sysparm_limit'))
-        self.assertEqual('company.nameSTARTSWITHaxa^ORDERBYsys_created_on', params.get('sysparm_query'))
+        self.assertEqual('company.nameSTARTSWITHaxa^ORDERBYsys_created_on', params.get('cmdb_ci_sysparm_query'))
 
     def test_collect_components_returns_no_result(self):
         """Test if collect component returns no result or its not list"""

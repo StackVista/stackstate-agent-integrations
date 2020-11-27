@@ -82,6 +82,8 @@ class InstanceInfo(Model):
     instance_tags = ListType(StringType, default=[])
     change_request_bootstrap_days = IntType(default=CRS_BOOTSTRAP_DAYS_DEFAULT)
     change_request_process_limit = IntType(default=CRS_DEFAULT_PROCESS_LIMIT)
+    cmdb_ci_sysparm_query = StringType()
+    cmdb_rel_ci_sysparam_query = StringType()
     state = ModelType(State)
 
 
@@ -130,23 +132,25 @@ class ServicenowCheck(AgentCheck):
         """
         sysparm_query = ""
         if len(sys_class_filter) > 0:
-            sysparm_query = "sys_class_nameIN{}".format(sys_class_filter[0])
+            sysparm_query = 'sys_class_nameIN{}'.format(sys_class_filter[0])
             if len(sys_class_filter[1:]) > 0:
-                sysparm_query = "{},{}".format(sysparm_query, ",".join(sys_class_filter[1:]))
-        self.log.debug("sysparm_query for component: " + sysparm_query)
+                sysparm_query = '{},{}'.format(sysparm_query, ",".join(sys_class_filter[1:]))
+        if sysparm_query:
+            self.log.debug('sysparm_query for component: %s', sysparm_query)
         return sysparm_query
 
     def get_sys_class_relation_filter_query(self, sys_class_filter):
         sysparm_parent_query = ""
         sysparm_child_query = ""
         if len(sys_class_filter) > 0:
-            sysparm_parent_query = "parent.sys_class_nameIN{}".format(sys_class_filter[0])
-            sysparm_child_query = "^child.sys_class_nameIN{}".format(sys_class_filter[0])
+            sysparm_parent_query = 'parent.sys_class_nameIN{}'.format(sys_class_filter[0])
+            sysparm_child_query = '^child.sys_class_nameIN{}'.format(sys_class_filter[0])
             if len(sys_class_filter[1:]) > 0:
-                sysparm_parent_query = "{},{}".format(sysparm_parent_query, ",".join(sys_class_filter[1:]))
-                sysparm_child_query = "{},{}".format(sysparm_child_query, ",".join(sys_class_filter[1:]))
+                sysparm_parent_query = '{},{}'.format(sysparm_parent_query, ",".join(sys_class_filter[1:]))
+                sysparm_child_query = '{},{}'.format(sysparm_child_query, ",".join(sys_class_filter[1:]))
         sysparm_query = sysparm_parent_query + sysparm_child_query
-        self.log.debug("sysparm_query for relation: " + sysparm_query)
+        if sysparm_query:
+            self.log.debug('sysparm_query for relation: %s', sysparm_query)
         return sysparm_query
 
     @staticmethod
@@ -170,14 +174,11 @@ class ServicenowCheck(AgentCheck):
 
         :return: dict, raw response from CMDB
         """
-
         auth = (instance_info.user, instance_info.password)
         url = instance_info.url + '/api/now/table/cmdb_ci'
         sys_class_filter_query = self.get_sys_class_component_filter_query(instance_info.include_resource_types)
-        if sys_class_filter_query:
-            params = {'sysparm_query': sys_class_filter_query}
-        else:
-            params = {}
+        params = self._params_append_to_sysparm_query(add_to_query=sys_class_filter_query)
+        params = self._params_append_to_sysparm_query(add_to_query=instance_info.cmdb_ci_sysparm_query, params=params)
         params = self._prepare_json_batch_params(params, offset, instance_info.batch_size)
         return self._get_json(url, instance_info.timeout, params, auth, instance_info.verify_https)
 
@@ -268,15 +269,10 @@ class ServicenowCheck(AgentCheck):
         auth = (instance_info.user, instance_info.password)
         url = instance_info.url + '/api/now/table/cmdb_rel_ci'
         sys_class_filter_query = self.get_sys_class_relation_filter_query(instance_info.include_resource_types)
-        if sys_class_filter_query:
-            params = {
-                'sysparm_query': sys_class_filter_query
-            }
-        else:
-            params = {}
-
+        params = self._params_append_to_sysparm_query(add_to_query=sys_class_filter_query)
+        params = self._params_append_to_sysparm_query(add_to_query=instance_info.cmdb_rel_ci_sysparam_query,
+                                                      params=params)
         params = self._prepare_json_batch_params(params, offset, instance_info.batch_size)
-
         return self._get_json(url, instance_info.timeout, params, auth, instance_info.verify_https)
 
     def _process_relations(self, instance_info):
@@ -292,7 +288,7 @@ class ServicenowCheck(AgentCheck):
 
             relation_type = relation_types[type_sys_id]
             data = self.filter_empty_metadata(relation)
-            data.update({"tags": instance_info.instance_tags})
+            data.update({'tags': instance_info.instance_tags})
 
             self.relation(parent_sys_id, child_sys_id, relation_type, data)
 
@@ -367,18 +363,21 @@ class ServicenowCheck(AgentCheck):
             'tags': tags
         })
 
-    @staticmethod
-    def _append_to_sysparm_query(params, param_to_add):
-        sysparm_query = params.pop('sysparm_query', '')
-        if sysparm_query:
-            sysparm_query += '^{}'.format(param_to_add)
-        else:
-            sysparm_query = param_to_add
-        params.update({'sysparm_query': sysparm_query})
+    def _params_append_to_sysparm_query(self, add_to_query, params=None):
+        if params is None:
+            params = {}
+            self.log.debug('Creating new params dict.')
+        if add_to_query:
+            sysparm_query = params.pop('sysparm_query', '')
+            if sysparm_query:
+                sysparm_query += '^{}'.format(add_to_query)
+            else:
+                sysparm_query = add_to_query
+            params.update({'sysparm_query': sysparm_query})
         return params
 
     def _prepare_json_batch_params(self, params, offset, batch_size):
-        params = self._append_to_sysparm_query(params, "ORDERBYsys_created_on")
+        params = self._params_append_to_sysparm_query("ORDERBYsys_created_on", params)
         params.update(
             {
                 'sysparm_offset': offset,
