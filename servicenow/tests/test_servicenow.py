@@ -661,7 +661,6 @@ class TestServicenow(unittest.TestCase):
         """
         Test creating event from SNOW Change Request
         """
-        self._delete_state()
         self.check._collect_relation_types = mock_collect_process
         self.check._batch_collect_components = mock_collect_process
         self.check._batch_collect_relations = mock_collect_process
@@ -672,6 +671,7 @@ class TestServicenow(unittest.TestCase):
         service_checks = aggregator.service_checks('servicenow.cmdb.topology_information')
         self.assertEqual(AgentCheck.OK, service_checks[0].status)
         self.assertEqual(1, len(topology_events))
+        self.check.commit_state(None)
 
     def _get_url_auth(self):
         url = "{}/api/now/table/cmdb_ci".format(self.instance.get('url'))
@@ -683,10 +683,3 @@ class TestServicenow(unittest.TestCase):
         path_to_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'samples', filename)
         with open(path_to_file, "r") as f:
             return json.load(f)
-
-    @staticmethod
-    def _delete_state():
-        state_file = 'instance.servicenow_cmdb.https_instance.service_now.com.state'
-        path_to_file = os.path.join(os.curdir, 'servicenow.d', state_file)
-        if os.path.isfile(path_to_file):
-            os.remove(path_to_file)

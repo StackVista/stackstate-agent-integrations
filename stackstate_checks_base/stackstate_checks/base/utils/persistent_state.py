@@ -56,20 +56,20 @@ class StateManager:
         if instance.instance_key in self.state:
             del self.state[instance.instance_key]
 
-            try:
-                os.remove(instance.file_location)
-            except OSError as e:
-                # File not found / no file for this state so the state doesn't exist. Catch exception and return None
-                if e.errno == errno.ENOENT:
-                    self.log.debug("PersistentState: No state file found for instance: {} expecting it at: {}. {}"
-                                   .format(instance.instance_key, instance.file_location, e))
-                    return None
-
-                self.log.error("PersistentState: Failed to remove state file for instance: {}. {}"
-                               .format(instance.instance_key, e))
-                raise StateClearException(e)
-
+        try:
+            os.remove(instance.file_location)
             self.log.debug("PersistentState: Removed state for instance: {}".format(instance.instance_key))
+        except OSError as e:
+            # File not found / no file for this state so the state doesn't exist. Catch exception and return None
+            if e.errno == errno.ENOENT:
+                self.log.debug("PersistentState: No state file found for instance: {} expecting it at: {}. {}"
+                               .format(instance.instance_key, instance.file_location, e))
+                return None
+
+            self.log.error("PersistentState: Failed to remove state file for instance: {}. {}"
+                           .format(instance.instance_key, e))
+            raise StateClearException(e)
+
 
     def _read_state(self, instance):
         """
