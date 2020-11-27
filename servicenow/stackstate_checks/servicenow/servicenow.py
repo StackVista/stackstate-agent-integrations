@@ -83,7 +83,8 @@ class InstanceInfo(Model):
     change_request_bootstrap_days = IntType(default=CRS_BOOTSTRAP_DAYS_DEFAULT)
     change_request_process_limit = IntType(default=CRS_DEFAULT_PROCESS_LIMIT)
     cmdb_ci_sysparm_query = StringType()
-    cmdb_rel_ci_sysparam_query = StringType()
+    cmdb_rel_ci_sysparm_query = StringType()
+    change_request_sysparm_query = StringType()
     state = ModelType(State)
 
 
@@ -124,7 +125,7 @@ class ServicenowCheck(AgentCheck):
                 self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, message=msg, tags=instance_info.instance_tags
             )
 
-    def get_sys_class_component_filter_query(self, sys_class_filter):
+    def _get_sys_class_component_filter_query(self, sys_class_filter):
         """
         Return the sys_parm_query on the basis of sys_class_name filters from configuration
         :param sys_class_filter: a filter with list of sys_class_name
@@ -139,7 +140,7 @@ class ServicenowCheck(AgentCheck):
             self.log.debug('sysparm_query for component: %s', sysparm_query)
         return sysparm_query
 
-    def get_sys_class_relation_filter_query(self, sys_class_filter):
+    def _get_sys_class_relation_filter_query(self, sys_class_filter):
         sysparm_parent_query = ""
         sysparm_child_query = ""
         if len(sys_class_filter) > 0:
@@ -154,7 +155,7 @@ class ServicenowCheck(AgentCheck):
         return sysparm_query
 
     @staticmethod
-    def filter_empty_metadata(data):
+    def _filter_empty_metadata(data):
         """
         Filter the empty key:value in metadata dictionary and fix utf-8 encoding problems
         :param data: metadata from servicenow
@@ -176,7 +177,7 @@ class ServicenowCheck(AgentCheck):
         """
         auth = (instance_info.user, instance_info.password)
         url = instance_info.url + '/api/now/table/cmdb_ci'
-        sys_class_filter_query = self.get_sys_class_component_filter_query(instance_info.include_resource_types)
+        sys_class_filter_query = self._get_sys_class_component_filter_query(instance_info.include_resource_types)
         params = self._params_append_to_sysparm_query(add_to_query=sys_class_filter_query)
         params = self._params_append_to_sysparm_query(add_to_query=instance_info.cmdb_ci_sysparm_query, params=params)
         params = self._prepare_json_batch_params(params, offset, instance_info.batch_size)
@@ -218,7 +219,7 @@ class ServicenowCheck(AgentCheck):
 
         for component in collected_components:
             data = {}
-            component = self.filter_empty_metadata(component)
+            component = self._filter_empty_metadata(component)
             identifiers = []
             comp_name = component.get('name')
             comp_type = component.get('sys_class_name')
@@ -268,9 +269,9 @@ class ServicenowCheck(AgentCheck):
         """
         auth = (instance_info.user, instance_info.password)
         url = instance_info.url + '/api/now/table/cmdb_rel_ci'
-        sys_class_filter_query = self.get_sys_class_relation_filter_query(instance_info.include_resource_types)
+        sys_class_filter_query = self._get_sys_class_relation_filter_query(instance_info.include_resource_types)
         params = self._params_append_to_sysparm_query(add_to_query=sys_class_filter_query)
-        params = self._params_append_to_sysparm_query(add_to_query=instance_info.cmdb_rel_ci_sysparam_query,
+        params = self._params_append_to_sysparm_query(add_to_query=instance_info.cmdb_rel_ci_sysparm_query,
                                                       params=params)
         params = self._prepare_json_batch_params(params, offset, instance_info.batch_size)
         return self._get_json(url, instance_info.timeout, params, auth, instance_info.verify_https)
@@ -287,7 +288,7 @@ class ServicenowCheck(AgentCheck):
             type_sys_id = relation['type']['value']
 
             relation_type = relation_types[type_sys_id]
-            data = self.filter_empty_metadata(relation)
+            data = self._filter_empty_metadata(relation)
             data.update({"tags": instance_info.instance_tags})
 
             self.relation(parent_sys_id, child_sys_id, relation_type, data)
@@ -304,6 +305,7 @@ class ServicenowCheck(AgentCheck):
             'sysparm_limit': instance_info.change_request_process_limit,
             'sysparm_query': sysparm_query
         }
+        params = self._params_append_to_sysparm_query(instance_info.change_request_sysparm_query, params)
         return self._get_json(url, instance_info.timeout, params, auth, instance_info.verify_https)
 
     def _process_change_requests(self, instance_info):

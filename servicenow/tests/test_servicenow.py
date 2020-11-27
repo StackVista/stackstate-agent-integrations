@@ -332,7 +332,7 @@ class TestServicenow(unittest.TestCase):
         """
         sys_class_filter = self.instance.get('include_resource_types')
         self.assertEqual(len(sys_class_filter), 3)
-        query = self.check.get_sys_class_component_filter_query(sys_class_filter)
+        query = self.check._get_sys_class_component_filter_query(sys_class_filter)
         expected_query = "sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server"
         self.assertEqual(expected_query, query)
 
@@ -341,7 +341,7 @@ class TestServicenow(unittest.TestCase):
         Test to check if the method creates the proper param query for only one element
         """
         sys_class_filter = ['cmdb_ci_app_server_java']
-        query = self.check.get_sys_class_component_filter_query(sys_class_filter)
+        query = self.check._get_sys_class_component_filter_query(sys_class_filter)
         expected_query = 'sys_class_nameINcmdb_ci_app_server_java'
         self.assertEqual(expected_query, query)
 
@@ -351,7 +351,7 @@ class TestServicenow(unittest.TestCase):
         """
         sys_class_filter = self.instance.get('include_resource_types')
         self.assertEqual(len(sys_class_filter), 3)
-        query = self.check.get_sys_class_relation_filter_query(sys_class_filter)
+        query = self.check._get_sys_class_relation_filter_query(sys_class_filter)
         expected_query = 'parent.sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server' \
                          '^child.sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server'
         self.assertEqual(expected_query, query)
@@ -361,7 +361,7 @@ class TestServicenow(unittest.TestCase):
         Test to check if the method creates the proper param query for only one
         """
         sys_class_filter = ['cmdb_ci_app_server_java']
-        query = self.check.get_sys_class_relation_filter_query(sys_class_filter)
+        query = self.check._get_sys_class_relation_filter_query(sys_class_filter)
         expected_query = 'parent.sys_class_nameINcmdb_ci_app_server_java^child.sys_class_nameINcmdb_ci_app_server_java'
         self.assertEqual(expected_query, query)
 
@@ -371,15 +371,15 @@ class TestServicenow(unittest.TestCase):
         """
         sys_class_filter = self.instance.get('include_resource_types')
         instance_info.sys_class_filter = sys_class_filter
-        query_filter = self.check.get_sys_class_component_filter_query(sys_class_filter)
+        query_filter = self.check._get_sys_class_component_filter_query(sys_class_filter)
         expected_query = 'sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server'
         # asserting the actual query
         self.assertEqual(expected_query, query_filter)
 
-        self.check.get_sys_class_component_filter_query = mock.MagicMock()
+        self.check._get_sys_class_component_filter_query = mock.MagicMock()
         # changing the query in between and returning with incorrect query
-        self.check.get_sys_class_component_filter_query.return_value = "sys_class_namecmdb_ci_netgear" \
-                                                                       "%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server"
+        self.check._get_sys_class_component_filter_query.return_value = "sys_class_namecmdb_ci_netgear" \
+                                                                        "%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server"
         self.check._get_json = mock.MagicMock()
         self.check._get_json.return_value = mock_collect_components
         self.check._process_components(instance_info)
@@ -395,17 +395,17 @@ class TestServicenow(unittest.TestCase):
         """
         sys_class_filter = self.instance.get('include_resource_types')
         instance_info.sys_class_filter = sys_class_filter
-        query_filter = self.check.get_sys_class_relation_filter_query(sys_class_filter)
+        query_filter = self.check._get_sys_class_relation_filter_query(sys_class_filter)
         expected_query = 'parent.sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server' \
                          '^child.sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server'
         # asserting the actual query
         self.assertEqual(expected_query, query_filter)
 
-        self.check.get_sys_class_relation_filter_query = mock.MagicMock()
+        self.check._get_sys_class_relation_filter_query = mock.MagicMock()
         # changing the query in between and returning with incorrect query
-        self.check.get_sys_class_relation_filter_query.return_value = "parent.sys_class_nameN" \
-                                                                      "cmdb_ci_netgear%5Echild.sys_class_nameIN" \
-                                                                      "cmdb_ci_netgear"
+        self.check._get_sys_class_relation_filter_query.return_value = "parent.sys_class_nameN" \
+                                                                       "cmdb_ci_netgear%5Echild.sys_class_nameIN" \
+                                                                       "cmdb_ci_netgear"
         self.check._get_json = mock.MagicMock()
         self.check._get_json.return_value = mock_relation_components
         self.check._process_relation_types = mock.MagicMock()
@@ -423,7 +423,7 @@ class TestServicenow(unittest.TestCase):
         """
         sys_class_filter = self.instance.get('include_resource_types')
         instance_info.sys_class_filter = sys_class_filter
-        query_filter = self.check.get_sys_class_component_filter_query(sys_class_filter)
+        query_filter = self.check._get_sys_class_component_filter_query(sys_class_filter)
         expected_query = 'sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server'
         # asserting the actual query
         self.assertEqual(expected_query, query_filter)
@@ -444,7 +444,7 @@ class TestServicenow(unittest.TestCase):
         """
         sys_class_filter = self.instance.get('include_resource_types')
         instance_info.sys_class_filter = sys_class_filter
-        query_filter = self.check.get_sys_class_relation_filter_query(sys_class_filter)
+        query_filter = self.check._get_sys_class_relation_filter_query(sys_class_filter)
         expected_query = 'parent.sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server' \
                          '^child.sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server'
         # asserting the actual query
@@ -500,10 +500,15 @@ class TestServicenow(unittest.TestCase):
         self.assertRaises(DataError, self.check.get_instance_key, {})
 
     def test_append_to_sysparm_query(self):
+        """
+        Test append of sysparm_query to params dict and creation of new empty dict if we don't pass one as parameter.
+        """
         params = self.check._params_append_to_sysparm_query(add_to_query='first_one')
         self.assertEqual({'sysparm_query': 'first_one'}, params)
         params = self.check._params_append_to_sysparm_query(params=params, add_to_query='second_one')
         self.assertEqual({'sysparm_query': 'first_one^second_one'}, params)
+        params = self.check._params_append_to_sysparm_query(add_to_query='')
+        self.assertEqual({}, params)
 
     def test_json_batch(self):
         """
