@@ -20,6 +20,12 @@ instances:
     # https://developer.servicenow.com/dev.do#!/learn/learning-plans/orlando/servicenow_application_developer/app_store_learnv2_rest_orlando_more_about_query_parameters
     # sysparm_query: company.nameSTARTSWITHxyz
 
+    # Timeout for requests. Default value is 20.
+    # timeout: 20
+
+    # Verify https. Default value is true.
+    # verify_https: true
+
     # Currently StackState support the below resource/sys class types and apart from this will belong to
     # the generic servicenow component types
 #    include_resource_types: # optional and by default includes all resource types(sys Class Names)

@@ -5,6 +5,7 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 
 import json
+import os
 import unittest
 from copy import copy
 
@@ -12,19 +13,16 @@ import mock
 import pytest
 import requests
 from schematics.exceptions import DataError
+from six import PY3
 
 from stackstate_checks.base import AgentIntegrationTestUtil, AgentCheck
 from stackstate_checks.base.errors import CheckException
-from stackstate_checks.base.stubs import topology, aggregator
-from stackstate_checks.servicenow import ServicenowCheck, InstanceInfo, json_parse_exception
-
-
-def mock_process_and_cache_relation_types(*args):
-    return
+from stackstate_checks.base.stubs import topology, aggregator, telemetry
+from stackstate_checks.servicenow import ServicenowCheck, InstanceInfo
 
 
 def mock_collect_process(*args):
-    return
+    return {'result': []}
 
 
 # Mock behaviour(response) from ServiceNow API for Components(CIs)
@@ -181,7 +179,7 @@ mock_instance = {
     'password': 'secret'
 }
 
-instance_config = InstanceInfo(
+instance_info = InstanceInfo(
     {
         'instance_tags': [],
         'url': mock_instance.get('url'),
@@ -215,7 +213,7 @@ class TestServicenow(unittest.TestCase):
         """
         Testing Servicenow check.
         """
-        self.check._process_relation_types = mock_process_and_cache_relation_types
+        self.check._collect_relation_types = mock_collect_process
         self.check._batch_collect = mock_collect_process
 
         self.check.run()
@@ -252,8 +250,8 @@ class TestServicenow(unittest.TestCase):
         """
         self.check._batch_collect_components = mock.MagicMock()
         self.check._batch_collect_components.return_value = mock_collect_components
-        self.check._batch_collect(self.check._batch_collect_components, instance_config)
-        self.check._process_components(instance_config)
+        self.check._batch_collect(self.check._batch_collect_components, instance_info)
+        self.check._process_components(instance_info)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 1)
@@ -266,7 +264,7 @@ class TestServicenow(unittest.TestCase):
         """
         Test to raise a check exception when collecting relation types
         """
-        self.assertRaises(Exception, self.check._collect_relation_types, instance_config)
+        self.assertRaises(Exception, self.check._collect_relation_types, instance_info)
 
     def test_process_relation_types(self):
         """
@@ -274,7 +272,7 @@ class TestServicenow(unittest.TestCase):
         """
         self.check._collect_relation_types = mock.MagicMock()
         self.check._collect_relation_types.return_value = mock_relation_types
-        out = self.check._process_relation_types(instance_config)
+        out = self.check._process_relation_types(instance_info)
 
         self.assertEqual(len(out), 1)
 
@@ -282,7 +280,7 @@ class TestServicenow(unittest.TestCase):
         """
         Test to raise a check Exception while collecting component relations from ServiceNow API
         """
-        self.assertRaises(Exception, self.check._batch_collect_relations, instance_config, 10, 0, 100)
+        self.assertRaises(Exception, self.check._batch_collect_relations, instance_info, 10, 0, 100)
 
     def test_process_relations(self):
         """
@@ -292,7 +290,7 @@ class TestServicenow(unittest.TestCase):
         self.check._process_relation_types.return_value = {'1a9cb166f1571100a92eb60da2bce5c5': 'Cools'}
         self.check._batch_collect_relations = mock.MagicMock()
         self.check._batch_collect_relations.return_value = mock_relation_components
-        self.check._process_relations(instance_config)
+        self.check._process_relations(instance_info)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 0)
@@ -335,8 +333,17 @@ class TestServicenow(unittest.TestCase):
         sys_class_filter = self.instance.get('include_resource_types')
         self.assertEqual(len(sys_class_filter), 3)
         query = self.check.get_sys_class_component_filter_query(sys_class_filter)
-        expected_query = "sys_class_nameINcmdb_ci_netgear%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server"
-        self.assertEqual(query, expected_query)
+        expected_query = "sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server"
+        self.assertEqual(expected_query, query)
+
+    def test_get_sys_class_component_filter_query_only_one_element(self):
+        """
+        Test to check if the method creates the proper param query for only one element
+        """
+        sys_class_filter = ['cmdb_ci_app_server_java']
+        query = self.check.get_sys_class_component_filter_query(sys_class_filter)
+        expected_query = 'sys_class_nameINcmdb_ci_app_server_java'
+        self.assertEqual(expected_query, query)
 
     def test_get_sys_class_relation_filter_query(self):
         """
@@ -345,20 +352,29 @@ class TestServicenow(unittest.TestCase):
         sys_class_filter = self.instance.get('include_resource_types')
         self.assertEqual(len(sys_class_filter), 3)
         query = self.check.get_sys_class_relation_filter_query(sys_class_filter)
-        expected_query = "parent.sys_class_nameINcmdb_ci_netgear%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server" \
-                         "%5Echild.sys_class_nameINcmdb_ci_netgear%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server"
-        self.assertEqual(query, expected_query)
+        expected_query = 'parent.sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server' \
+                         '^child.sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server'
+        self.assertEqual(expected_query, query)
+
+    def test_get_sys_class_relation_filter_query_only_one_element(self):
+        """
+        Test to check if the method creates the proper param query for only one
+        """
+        sys_class_filter = ['cmdb_ci_app_server_java']
+        query = self.check.get_sys_class_relation_filter_query(sys_class_filter)
+        expected_query = 'parent.sys_class_nameINcmdb_ci_app_server_java^child.sys_class_nameINcmdb_ci_app_server_java'
+        self.assertEqual(expected_query, query)
 
     def test_process_components_with_sys_filter_change(self):
         """
         Test _process_components to return whole topology when query changed in between
         """
         sys_class_filter = self.instance.get('include_resource_types')
-        instance_config.sys_class_filter = sys_class_filter
+        instance_info.sys_class_filter = sys_class_filter
         query_filter = self.check.get_sys_class_component_filter_query(sys_class_filter)
-        expected_query = "sys_class_nameINcmdb_ci_netgear%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server"
+        expected_query = 'sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server'
         # asserting the actual query
-        self.assertEqual(query_filter, expected_query)
+        self.assertEqual(expected_query, query_filter)
 
         self.check.get_sys_class_component_filter_query = mock.MagicMock()
         # changing the query in between and returning with incorrect query
@@ -366,7 +382,7 @@ class TestServicenow(unittest.TestCase):
                                                                        "%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server"
         self.check._get_json = mock.MagicMock()
         self.check._get_json.return_value = mock_collect_components
-        self.check._process_components(instance_config)
+        self.check._process_components(instance_info)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 1)
@@ -378,12 +394,12 @@ class TestServicenow(unittest.TestCase):
         Test _process_components to return whole topology when query changed in between
         """
         sys_class_filter = self.instance.get('include_resource_types')
-        instance_config.sys_class_filter = sys_class_filter
+        instance_info.sys_class_filter = sys_class_filter
         query_filter = self.check.get_sys_class_relation_filter_query(sys_class_filter)
-        expected_query = "parent.sys_class_nameINcmdb_ci_netgear%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server" \
-                         "%5Echild.sys_class_nameINcmdb_ci_netgear%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server"
+        expected_query = 'parent.sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server' \
+                         '^child.sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server'
         # asserting the actual query
-        self.assertEqual(query_filter, expected_query)
+        self.assertEqual(expected_query, query_filter)
 
         self.check.get_sys_class_relation_filter_query = mock.MagicMock()
         # changing the query in between and returning with incorrect query
@@ -394,7 +410,7 @@ class TestServicenow(unittest.TestCase):
         self.check._get_json.return_value = mock_relation_components
         self.check._process_relation_types = mock.MagicMock()
         self.check._process_relation_types.return_value = {'1a9cb166f1571100a92eb60da2bce5c5': 'Cools'}
-        self.check._process_relations(instance_config)
+        self.check._process_relations(instance_info)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 0)
@@ -406,15 +422,15 @@ class TestServicenow(unittest.TestCase):
         Test _process_components to return whole topology when query changed in between
         """
         sys_class_filter = self.instance.get('include_resource_types')
-        instance_config.sys_class_filter = sys_class_filter
+        instance_info.sys_class_filter = sys_class_filter
         query_filter = self.check.get_sys_class_component_filter_query(sys_class_filter)
-        expected_query = "sys_class_nameINcmdb_ci_netgear%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server"
+        expected_query = 'sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server'
         # asserting the actual query
-        self.assertEqual(query_filter, expected_query)
+        self.assertEqual(expected_query, query_filter)
 
         self.check._get_json = mock.MagicMock()
         self.check._get_json.return_value = mock_collect_filter_components
-        self.check._process_components(instance_config)
+        self.check._process_components(instance_info)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 1)
@@ -427,19 +443,19 @@ class TestServicenow(unittest.TestCase):
         Test _process_components to return whole topology when query changed in between
         """
         sys_class_filter = self.instance.get('include_resource_types')
-        instance_config.sys_class_filter = sys_class_filter
+        instance_info.sys_class_filter = sys_class_filter
         query_filter = self.check.get_sys_class_relation_filter_query(sys_class_filter)
-        expected_query = "parent.sys_class_nameINcmdb_ci_netgear%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server" \
-                         "%5Echild.sys_class_nameINcmdb_ci_netgear%2Ccmdb_ci_cluster%2Ccmdb_ci_app_server"
+        expected_query = 'parent.sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server' \
+                         '^child.sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server'
         # asserting the actual query
-        self.assertEqual(query_filter, expected_query)
+        self.assertEqual(expected_query, query_filter)
 
         self.check._get_json = mock.MagicMock()
         self.check._get_json.return_value = mock_relation_with_filter
         self.check._process_relation_types = mock.MagicMock()
         self.check._process_relation_types.return_value = {'1a9cb166f1571100a92eb60da2bce5c5': 'Cools'}
 
-        self.check._process_relations(instance_config)
+        self.check._process_relations(instance_info)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 0)
@@ -453,7 +469,7 @@ class TestServicenow(unittest.TestCase):
         """
         self.check._batch_collect_components = mock.MagicMock()
         self.check._batch_collect_components.side_effect = [mock_collect_components_batch, mock_collect_components]
-        new_inst_conf = copy(instance_config)
+        new_inst_conf = copy(instance_info)
         new_inst_conf.batch_size = 5
         self.check._process_components(new_inst_conf)
         topology_instance = topology.get_snapshot(self.check.check_id)
@@ -520,14 +536,14 @@ class TestServicenow(unittest.TestCase):
         self.check._batch_collect_components = mock.MagicMock()
         self.check._batch_collect_components.return_value = {}
         self.assertRaises(
-            CheckException, self.check._batch_collect, self.check._batch_collect_components, instance_config
+            CheckException, self.check._batch_collect, self.check._batch_collect_components, instance_info
         )
 
     def test_collect_components_returns_empty_result(self):
         """Test if collect component returns no result or its not list"""
         self.check._batch_collect_components = mock.MagicMock()
         self.check._batch_collect_components.return_value = mock_empty_result
-        self.check._batch_collect(self.check._batch_collect_components, instance_config)
+        self.check._batch_collect(self.check._batch_collect_components, instance_info)
 
         # no snapshot is created
         self.assertRaises(KeyError, topology.get_snapshot, self.check.check_id)
@@ -538,7 +554,7 @@ class TestServicenow(unittest.TestCase):
         """
         self.check._batch_collect_components = mock.MagicMock()
         self.check._batch_collect_components.side_effect = [mock_collect_components_batch, mock_empty_result]
-        new_inst_conf = copy(instance_config)
+        new_inst_conf = copy(instance_info)
         new_inst_conf.batch_size = 5
         self.check._process_components(new_inst_conf)
 
@@ -562,7 +578,7 @@ class TestServicenow(unittest.TestCase):
         """
         url, auth = self._get_url_auth()
         mock_request_get.return_value = mock.MagicMock(status_code=200, text=mock_result_with_malformed_str)
-        self.assertRaises(json_parse_exception, self.check._get_json, url, 10, auth)
+        self.assertRaises(CheckException, self.check._get_json, url, 10, auth)
 
     @mock.patch('requests.get')
     def test_get_json_malformed_json_and_execution_time_exceeded_error(self, mock_request_get):
@@ -597,7 +613,73 @@ class TestServicenow(unittest.TestCase):
         self.assertEqual(AgentCheck.CRITICAL, service_checks[0].status)
         self.assertEqual('Timeout: ', service_checks[0].message)
 
+    @mock.patch('requests.get')
+    def test_get_json_error_msg(self, mock_request_get):
+        """
+        Test malformed json error message
+        """
+        url, auth = self._get_url_auth()
+        mock_request_get.return_value = mock.MagicMock(status_code=200, text=mock_result_with_malformed_str,
+                                                       url='http:/test.org')
+        msg_py3 = 'Json parse error: "Expecting property name enclosed in double quotes: ' \
+                  'line 11 column 5 (char 232)" in response from url http:/test.org'
+        msg_py2 = 'Json parse error: "Expecting property name: ' \
+                  'line 11 column 5 (char 232)" in response from url http:/test.org'
+        expected_msg = msg_py3 if PY3 else msg_py2
+        with self.assertRaises(CheckException) as context:
+            self.check._get_json(url, 10, {}, auth)
+        self.assertEqual(expected_msg, str(context.exception))
+
+    def test_process_components_encoding_errors(self):
+        """
+        This would provoke following error with py27:
+        "UnicodeEncodeError: 'ascii' codec can't encode character u'\xeb' in position 4: ordinal not in range(128)"
+        in the function stackstate_checks.base.Identifiers.create_host_identifier
+        """
+        collect_components_with_fqdn_umlaut = {
+            'result': [
+                {
+                    'sys_class_name': 'cmdb_ci_computer',
+                    'sys_id': '00a96c0d3790200044e0bfc8bcbe5db4',
+                    'sys_created_on': '2012-02-18 08:14:21',
+                    'name': 'Some computer',
+                    'fqdn': u'abcdë.com'
+                }
+            ]
+        }
+        self.check._batch_collect_components = mock.MagicMock()
+        self.check._batch_collect_components.return_value = collect_components_with_fqdn_umlaut
+        self.check._batch_collect(self.check._batch_collect_components, instance_info)
+        self.check._process_components(instance_info)
+        topo_instances = topology.get_snapshot(self.check.check_id)
+        self.assertEqual(
+            ['urn:host:/abcdë.com', 'urn:host:/Some computer', '00a96c0d3790200044e0bfc8bcbe5db4'],
+            topo_instances['components'][0]['data']['identifiers']
+        )
+
+    def test_creating_event_from_change_request(self):
+        """
+        Test creating event from SNOW Change Request
+        """
+        self.check._collect_relation_types = mock_collect_process
+        self.check._batch_collect_components = mock_collect_process
+        self.check._batch_collect_relations = mock_collect_process
+        self.check._collect_change_requests = mock.MagicMock()
+        self.check._collect_change_requests.return_value = self._read_data('CHG0000001.json')
+        self.check.run()
+        topology_events = telemetry._topology_events
+        service_checks = aggregator.service_checks('servicenow.cmdb.topology_information')
+        self.assertEqual(AgentCheck.OK, service_checks[0].status)
+        self.assertEqual(1, len(topology_events))
+        self.check.commit_state(None)
+
     def _get_url_auth(self):
         url = "{}/api/now/table/cmdb_ci".format(self.instance.get('url'))
         auth = (self.instance.get('user'), self.instance.get('password'))
         return url, auth
+
+    @staticmethod
+    def _read_data(filename):
+        path_to_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'samples', filename)
+        with open(path_to_file, "r") as f:
+            return json.load(f)
