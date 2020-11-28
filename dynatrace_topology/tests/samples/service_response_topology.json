@@ -144,7 +144,7 @@
                     "dynatrace-WCF:4.8.3928.0",
                     "dynatrace-CLR:FullCLR:4.0.30319.0",
                     "dynatrace-ASP_NET:4.8.3928.0",
-                    "dynatrace-[Kubernetes]namespace:default"
+                    "dynatrace-[Kubernetes]namespace:default-with-unicode-char-"
                 ]
             },
             "id": "SERVICE-329B4CC95B522941",
