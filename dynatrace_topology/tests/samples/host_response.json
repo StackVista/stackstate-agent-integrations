@@ -22,7 +22,7 @@
         },
         "osType": "WINDOWS",
         "osArchitecture": "X86",
-        "osVersion": "Windows Server 2016 Datacenter 1607, ver. 10.0.14393",
+        "osVersion": "Windows Server 2016 Datacenter 1607, ver. 10.0.14393 with unicode char: ",
         "hypervisorType": "XEN",
         "ipAddresses": [
             "3.249.27.126",

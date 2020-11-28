@@ -4,7 +4,7 @@
       "data": {
         "entityId": "APPLICATION-EA7C4B59F27D43EB",
         "displayName": "RUM Default Application",
-        "customizedName": "RUM Default Application",
+        "customizedName": "RUM Default Application with unicode char: ",
         "discoveredName": "RUM Default Application",
         "firstSeenTimestamp": 1422282024216,
         "lastSeenTimestamp": 1538579528065,
