@@ -22,6 +22,18 @@ instances:
     # Verify https. Default value is true.
     # verify_https: true
 
+    # ServiceNow Custom filter. Check ServiceNow documentation about filtering with sysparm_query parameter.
+    # https://developer.servicenow.com/dev.do#!/learn/learning-plans/orlando/servicenow_application_developer/app_store_learnv2_rest_orlando_more_about_query_parameters
+
+    # ServiceNow CMDB Configuration Items query. Default value is undefined.
+    # cmdb_ci_sysparm_query: company.nameSTARTSWITHaxa
+
+    # ServiceNow CMDB Configuration Items Relations query. Default value is undefined.
+    # cmdb_rel_ci_sysparm_query: parent.company.nameSTARTSWITHaxa^ORchild.company.nameSTARTSWITHaxa
+
+    # ServiceNow Change Request query. Default value is undefined.
+    # change_request_sysparm_query: company.nameSTARTSWITHaxa
+
     # Currently StackState support the below resource/sys class types and apart from this will belong to
     # the generic servicenow component types
 #    include_resource_types: # optional and by default includes all resource types(sys Class Names)
