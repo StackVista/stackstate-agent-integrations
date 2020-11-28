@@ -20,7 +20,7 @@ class SCOM(AgentCheck):
 
     def init_session(self,session, auth_method, domain, username, password, scom_ip):
         request_credentials = base64.b64encode(auth_method + ':' + domain + '\\' + username + ':' + password)
-        response = session.post('http://' + scom_ip + '/OperationsManager/authenticate',auth=HttpNtlmAuth(domain + '\\' + username, password), json=request_credentials)
+        response = session.post( scom_ip + '/OperationsManager/authenticate',auth=HttpNtlmAuth(domain + '\\' + username, password), verify=False, json=request_credentials)
         return str(response.status_code)
 
     def send_alerts(self, session,component_id, domain, username, password, scom_ip):
@@ -35,7 +35,7 @@ class SCOM(AgentCheck):
                     "monitoringobjectpath"
                 ]
         }
-        response = (session.post('http://' + scom_ip + '/OperationsManager/data/alert',auth=HttpNtlmAuth(domain + '\\' + username, password), json=data)).json()
+        response = (session.post(scom_ip + '/OperationsManager/data/alert',auth=HttpNtlmAuth(domain + '\\' + username, password), verify=False,json=data)).json()
         self.requests_counter += 1
         self.log.debug("Number of requets: "+str(self.requests_counter))
         events_data_tree = response.get("rows", [])
@@ -69,7 +69,7 @@ class SCOM(AgentCheck):
         if self.requests_counter > self.requests_threshold:
            session.close()
            return
-        response = (session.get('http://' + scom_ip + '/OperationsManager/data/objectInformation/' + component_id, auth=HttpNtlmAuth(domain + '\\' + username, password))).json()
+        response = (session.get(scom_ip + '/OperationsManager/data/objectInformation/' + component_id, verify=False,auth=HttpNtlmAuth(domain + '\\' + username, password))).json()
         self.requests_counter +=1
         self.log.debug("Number of requets: "+str(self.requests_counter))
         properties = response.get("monitoringObjectProperties", [])
@@ -104,11 +104,11 @@ class SCOM(AgentCheck):
         session = Session()
         self.log.info('Connection Status Code ' + self.init_session(session, auth_method, domain, username, password, scom_ip))
         types_dict = dict()
-        type_response = (session.post('http://' + scom_ip + '/OperationsManager/data/scomObjects',auth=HttpNtlmAuth(domain + '\\' + username, password), json="(Id LIKE '%')")).json()
+        type_response = (session.post(scom_ip + '/OperationsManager/data/scomObjects',auth=HttpNtlmAuth(domain + '\\' + username, password), verify=False,json="(Id LIKE '%')")).json()
         types = type_response.get("scopeDatas", [])
         for item in types:
-            types_dict.update({str(item.get("id")): str(item.get("className")).lower().replace(" ", "-")})
-        component_ids_response = (session.post('http://' + scom_ip + '/OperationsManager/data/scomObjects',auth=HttpNtlmAuth(domain + '\\' + username, password), json=criteria)).json()
+            types_dict.update({str(item.get("id")): (item.get("className") or "none").encode("utf-8")})
+        component_ids_response = (session.post( scom_ip + '/OperationsManager/data/scomObjects',auth=HttpNtlmAuth(domain + '\\' + username, password), verify=False,json=criteria)).json()
         if component_ids_response.get("errorMessage"):
            #print("Invalid criteria :" + str(component_ids_response.get("errorMessage")))
            self.log.error("Invalid criteria :" + str(component_ids_response.get("errorMessage")))
