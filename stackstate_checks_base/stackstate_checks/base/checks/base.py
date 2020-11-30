@@ -822,12 +822,13 @@ class __AgentCheckPy3(AgentCheckBase):
                                         hostname, message)
 
     def event(self, event):
-        self.validate_event(event)
         # Enforce types of some fields, considerably facilitates handling in go bindings downstream
         try:
             event = self._sanitize(event)
         except UnicodeError:
             return
+
+        self.validate_event(event)
 
         if event.get('tags'):
             event['tags'] = self._normalize_tags_type(event['tags'])
