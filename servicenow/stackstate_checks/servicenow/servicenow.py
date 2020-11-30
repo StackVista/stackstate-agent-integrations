@@ -37,9 +37,12 @@ class WrapperType(BaseType):
     def convert(self, value, context=None):
         if context.new:
             value = self.value_mapping(value)
-            if not value and self.default:
+        if value is None:
+            if self.default is not None:
                 return self.default
-        return self.field.convert(value)
+            else:
+                return value
+        return self.field.convert(value, context)
 
     def export(self, value, format, context=None):
         self.field.export(value, format, context)
@@ -49,21 +52,21 @@ class ChangeRequest(Model):
     number = WrapperType(StringType, required=True, value_mapping=lambda x: x['display_value'])
     state = WrapperType(StringType, required=True, value_mapping=lambda x: x['display_value'])
     cmdb_ci = DictType(StrictStringType(accept_empty=False), required=True)
-    sys_updated_on = WrapperType(DateTimeType, value_mapping=lambda x: x['value'])
-    business_service = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
-    service_offering = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
+    sys_updated_on = WrapperType(DateTimeType, required=True, value_mapping=lambda x: x['value'])
+    business_service = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
+    service_offering = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
     short_description = WrapperType(StringType, required=True, value_mapping=lambda x: x['display_value'])
     description = WrapperType(StringType, default='No description', value_mapping=lambda x: x['display_value'])
-    type = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
-    priority = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
-    impact = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
-    risk = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
+    type = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
+    priority = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
+    impact = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
+    risk = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
     requested_by = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
-    category = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
-    conflict_status = WrapperType(StringType, value_mapping=lambda x: x['value'])
-    conflict_last_run = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
-    assignment_group = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
-    assigned_to = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
+    category = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
+    conflict_status = WrapperType(StringType, value_mapping=lambda x: x['value'], default='')
+    conflict_last_run = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
+    assignment_group = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
+    assigned_to = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
 
 
 class State(Model):
@@ -204,7 +207,8 @@ class ServicenowCheck(AgentCheck):
             batch_number += 1
             offset += instance_info.batch_size
             self.log.info(
-                'Processed batch no. %d with %d items.' % (batch_number, number_of_elements_in_current_batch)
+                '%s processed batch no. %d with %d items.',
+                collect_function.__name__, batch_number, number_of_elements_in_current_batch
             )
 
         return collection
