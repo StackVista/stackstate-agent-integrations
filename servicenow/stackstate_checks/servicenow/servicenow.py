@@ -338,8 +338,10 @@ class ServicenowCheck(AgentCheck):
                 continue
             if change_request.cmdb_ci:
                 self.log.info(
-                    '%s: sys_updated_on value: %s display_value: %s',
+                    '%s: %s %s - sys_updated_on value: %s display_value: %s',
                     change_request.number,
+                    change_request.cmdb_ci['value'],
+                    change_request.cmdb_ci['display_value'],
                     cr['sys_updated_on']['value'],
                     cr['sys_updated_on']['display_value']
                 )
@@ -370,12 +372,13 @@ class ServicenowCheck(AgentCheck):
             'conflict_status:%s' % change_request.conflict_status,
             'assigned_to:%s' % change_request.assigned_to
         ]
+        event_type = 'Change Request %s' % change_request.type
 
-        self.log.info('Creating event from CR: %s', change_request.number)
+        self.log.info('Creating event from CR %s', change_request.number)
 
         self.event({
             'timestamp': timestamp,
-            'event_type': change_request.type,
+            'event_type': event_type,
             'msg_title': msg_title,
             'msg_text': change_request.description,
             'context': {
