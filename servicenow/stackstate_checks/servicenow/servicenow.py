@@ -314,6 +314,7 @@ class ServicenowCheck(AgentCheck):
 
     def _process_change_requests(self, instance_info):
         response = self._collect_change_requests(instance_info)
+        self.log.debug('Received %d Change Requests', len(response['result']))
         for cr in response['result']:
             try:
                 change_request = ChangeRequest(cr, strict=False)
@@ -322,6 +323,14 @@ class ServicenowCheck(AgentCheck):
                 self.log.warning('%s - DataError: %s. This CR is skipped.', cr['number']['value'], e)
                 continue
             if change_request.cmdb_ci:
+                self.log.debug(
+                    '%s: %s %s - sys_updated_on value: %s display_value: %s',
+                    change_request.number,
+                    change_request.cmdb_ci['value'],
+                    change_request.cmdb_ci['display_value'],
+                    cr['sys_updated_on']['value'],
+                    cr['sys_updated_on']['display_value']
+                )
                 if change_request.sys_updated_on > instance_info.state.latest_sys_updated_on:
                     instance_info.state.latest_sys_updated_on = change_request.sys_updated_on
                 old_state = instance_info.state.change_requests.get(change_request.number)
@@ -345,12 +354,13 @@ class ServicenowCheck(AgentCheck):
             'conflict_status:%s' % change_request.conflict_status,
             'assigned_to:%s' % change_request.assigned_to
         ]
+        event_type = 'Change Request %s' % change_request.type
 
         self.log.debug('Creating event from CR: %s', change_request.number)
 
         self.event({
             'timestamp': timestamp,
-            'event_type': change_request.type,
+            'event_type': event_type,
             'msg_title': msg_title,
             'msg_text': change_request.description,
             'context': {
