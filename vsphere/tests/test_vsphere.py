@@ -7,6 +7,10 @@ from pyVmomi import vim  # pylint: disable=E0611
 import simplejson as json
 import pytest
 
+try:
+    from Queue import Empty, Queue
+except ImportError:
+    from queue import Empty, Queue
 import requests
 from vmware.vapi.bindings.stub import ApiClient
 from vmware.vapi.lib.connect import get_requests_connector
@@ -33,6 +37,7 @@ class VsphereTag(TagModel):
     """
     Helper, generate a mocked TagModel from the given attributes.
     """
+
     def __init__(self, id, name, category_id):
         self.name = name
         self.description = "stackstate defined atributes"
@@ -45,6 +50,7 @@ class VsphereCategory(CategoryModel):
     """
     Helper, generate a mocked CategoryModel from the given attributes.
     """
+
     def __init__(self, id, name):
         self.name = name
         self.description = "stackstate category"
@@ -56,6 +62,7 @@ class MockedMOR(Mock):
     """
     Helper, generate a mocked Managed Object Reference (MOR) from the given attributes.
     """
+
     def __init__(self, **kwargs):
         # Deserialize `spec`
         if 'spec' in kwargs:
@@ -152,6 +159,7 @@ def create_topology(topology_json):
       assert isinstance(topo.childEntity[0].name) == "compute_resource1"
       ```
     """
+
     def rec_build(topology_desc):
         """
         Build MORs recursively.
@@ -371,7 +379,6 @@ class TestvSphereUnit(unittest.TestCase):
 
 @pytest.mark.usefixtures("instance")
 class TestVsphereTopo(unittest.TestCase):
-
     CHECK_NAME = "vsphere"
 
     def mock_content(self, vimtype):
@@ -897,8 +904,8 @@ class TestVsphereTopo(unittest.TestCase):
         instance = {'name': 'vsphere_mock', 'host': 'test-esxi'}
         topo_items = {'datastores': [], 'clustercomputeresource': [], 'computeresource': [], 'hosts': [],
                       'datacenters': [], 'vms': [{'hostname': 'Ubuntu',
-                                                 'topo_tags': {'topo_type': 'vsphere-VirtualMachine', 'name': 'Ubuntu',
-                                                               'datastore': '54183927-04f91918-a72a-6805ca147c55'},
+                                                  'topo_tags': {'topo_type': 'vsphere-VirtualMachine', 'name': 'Ubuntu',
+                                                                'datastore': '54183927-04f91918-a72a-6805ca147c55'},
                                                   'mor_type': 'vm'}]}
         self.check.get_topologyitems_sync = MagicMock(return_value=topo_items)
         self.check.collect_topology(instance)
@@ -1028,8 +1035,8 @@ class TestVsphereTopo(unittest.TestCase):
         Test the component collection from the topology for VirtualMachine
         """
         self.check._is_excluded = MagicMock(return_value=True)
-        if not self.check.pool_started:
-            self.check.start_pool()
+        self.check.start_pool()
+        test_queue = Queue()
 
         instance = {'name': 'vsphere_mock', 'host': 'test-esxi', 'max_query_metrics': 3}
 
@@ -1048,15 +1055,7 @@ class TestVsphereTopo(unittest.TestCase):
                     tags=['instance:test_instance', 'mor_name:' + mor['name']],
                 )
 
-            if mor['name'] == 'mor_name_2':
-                # For our own sanity
-                self.check._clean()
-                self.check.stop_pool()
-                # Check if the returned the correct metrics
-                aggregator.assert_metric('vsphere.test_metric', value=1.0,
-                                         tags=['instance:test_instance', 'mor_name:mor_name_1'], count=2)
-                aggregator.assert_metric('vsphere.test_metric', value=1.0,
-                                         tags=['instance:test_instance', 'mor_name:mor_name_2'], count=1)
+            test_queue.put('finished %s' % mor['name'])
 
         self.check._collect_metrics_atomic = _test_collect_metrics_atomic
         self.check.morlist = {
@@ -1079,3 +1078,15 @@ class TestVsphereTopo(unittest.TestCase):
             },
         }
         self.check.collect_metrics(instance)
+
+        test_queue.get()  # mor_name_1
+        test_queue.get()  # mor_name_2
+        # Check if the returned the correct metrics
+        aggregator.assert_metric('vsphere.test_metric', value=1.0,
+                                 tags=['instance:test_instance', 'mor_name:mor_name_1'], count=2)
+        aggregator.assert_metric('vsphere.test_metric', value=1.0,
+                                 tags=['instance:test_instance', 'mor_name:mor_name_2'], count=1)
+        aggregator.assert_metric('vsphere.test_metric', value=1.0,
+                                 tags=['instance:test_instance', 'mor_name:mor_name_3'], count=0)
+
+        self.check.stop_pool()
