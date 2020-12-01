@@ -231,11 +231,11 @@ class ServicenowCheck(AgentCheck):
                 external_id = component.get('sys_id')
 
                 if component.get('fqdn'):
-                    identifiers.append(Identifiers.create_host_identifier(component['fqdn']))
+                    identifiers.append(Identifiers.create_host_identifier(to_string(component['fqdn'])))
                 if component.get('host_name'):
-                    identifiers.append(Identifiers.create_host_identifier(component['host_name']))
+                    identifiers.append(Identifiers.create_host_identifier(to_string(component['host_name'])))
                 else:
-                    identifiers.append(Identifiers.create_host_identifier(comp_name))
+                    identifiers.append(Identifiers.create_host_identifier(to_string(comp_name)))
                 identifiers.append(external_id)
                 data.update(component)
                 data.update({"identifiers": identifiers, "tags": instance_info.instance_tags})
