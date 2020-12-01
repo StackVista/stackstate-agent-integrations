@@ -88,6 +88,7 @@ class InstanceInfo(Model):
     cmdb_ci_sysparm_query = StringType()
     cmdb_rel_ci_sysparm_query = StringType()
     change_request_sysparm_query = StringType()
+    custom_field_mapping = DictType(StringType)
     state = ModelType(State)
 
 
