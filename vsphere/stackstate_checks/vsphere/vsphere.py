@@ -27,7 +27,7 @@ from com.vmware.vapi.std_client import DynamicID
 
 # project
 from stackstate_checks.base.config import _is_affirmative
-from stackstate_checks.base import AgentCheck, TopologyInstance, ConfigurationError, ensure_unicode, to_string
+from stackstate_checks.base import AgentCheck, TopologyInstance, ConfigurationError
 from stackstate_checks.base.checks.libs.thread_pool import Pool
 from stackstate_checks.base.checks.libs.vmware.basic_metrics import BASIC_METRICS
 from stackstate_checks.base.checks.libs.vmware.all_metrics import ALL_METRICS
