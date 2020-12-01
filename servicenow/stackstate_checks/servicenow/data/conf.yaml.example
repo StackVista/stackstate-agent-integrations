@@ -34,10 +34,8 @@ instances:
     # ServiceNow Change Request query. There is no default value.
     # change_request_sysparm_query: company.nameSTARTSWITHaxa
 
-    # ServiceNow custom field mapping
-    # custom_field_mapping:
-    #   cmdb_ci: u_configuration_item
-    #   field: custom_field
+    # ServiceNow CMDB Configuration Item custom field mapping. The default value is cmdb_ci.
+    # custom_cmdb_ci_field: u_configuration_item
 
     # Currently StackState support the below resource/sys class types and apart from this will belong to
     # the generic servicenow component types

@@ -4,8 +4,6 @@
 import datetime
 import json
 
-from stackstate_checks.base.utils.schemas import StrictStringType
-
 try:
     json_parse_exception = json.decoder.JSONDecodeError
 except AttributeError:  # Python 2
@@ -14,8 +12,7 @@ except AttributeError:  # Python 2
 import requests
 from schematics import Model
 from schematics.exceptions import DataError
-from schematics.types import URLType, StringType, ListType, IntType, DictType, DateTimeType, ModelType, BaseType, \
-    BooleanType
+from schematics.types import URLType, StringType, ListType, IntType, DictType, DateTimeType, ModelType, BooleanType
 
 from stackstate_checks.base import AgentCheck, TopologyInstance, Identifiers, to_string
 from stackstate_checks.base.errors import CheckException
@@ -26,47 +23,38 @@ TIMEOUT = 20
 VERIFY_HTTPS = True
 CRS_BOOTSTRAP_DAYS_DEFAULT = 100
 CRS_DEFAULT_PROCESS_LIMIT = 1000
+CMDB_CI_DEFAULT_FIELD = 'cmdb_ci'
 
 
-class WrapperType(BaseType):
-    def __init__(self, field, value_mapping, **kwargs):
-        self.field = field(**kwargs)
-        self.value_mapping = value_mapping
-        super(WrapperType, self).__init__(**kwargs)
+class WrapperStringType(Model):
+    value = StringType(default='')
+    display_value = StringType(default='')
 
-    def convert(self, value, context=None):
-        if context.new:
-            value = self.value_mapping(value)
-        if value is None:
-            if self.default is not None:
-                return self.default
-            else:
-                return value
-        return self.field.convert(value, context)
 
-    def export(self, value, format, context=None):
-        self.field.export(value, format, context)
+class WrapperDateType(Model):
+    value = DateTimeType()
+    display_value = DateTimeType()
 
 
 class ChangeRequest(Model):
-    number = WrapperType(StringType, required=True, value_mapping=lambda x: x['display_value'])
-    state = WrapperType(StringType, required=True, value_mapping=lambda x: x['display_value'])
-    cmdb_ci = DictType(StrictStringType(accept_empty=False), required=True)
-    sys_updated_on = WrapperType(DateTimeType, required=True, value_mapping=lambda x: x['value'])
-    business_service = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
-    service_offering = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
-    short_description = WrapperType(StringType, required=True, value_mapping=lambda x: x['display_value'])
-    description = WrapperType(StringType, default='No description', value_mapping=lambda x: x['display_value'])
-    type = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
-    priority = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
-    impact = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
-    risk = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
-    requested_by = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
-    category = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
-    conflict_status = WrapperType(StringType, value_mapping=lambda x: x['value'], default='')
-    conflict_last_run = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
-    assignment_group = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
-    assigned_to = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
+    number = ModelType(WrapperStringType, required=True)
+    state = ModelType(WrapperStringType, required=True)
+    custom_cmdb_ci = ModelType(WrapperStringType, required=True)
+    sys_updated_on = ModelType(WrapperDateType, required=True)
+    business_service = ModelType(WrapperStringType)
+    service_offering = ModelType(WrapperStringType)
+    short_description = ModelType(WrapperStringType, default='No short description')
+    description = ModelType(WrapperStringType, default='No description')
+    type = ModelType(WrapperStringType)
+    priority = ModelType(WrapperStringType)
+    impact = ModelType(WrapperStringType)
+    risk = ModelType(WrapperStringType)
+    requested_by = ModelType(WrapperStringType)
+    category = ModelType(WrapperStringType)
+    conflict_status = ModelType(WrapperStringType)
+    conflict_last_run = ModelType(WrapperStringType)
+    assignment_group = ModelType(WrapperStringType)
+    assigned_to = ModelType(WrapperStringType)
 
 
 class State(Model):
@@ -88,7 +76,7 @@ class InstanceInfo(Model):
     cmdb_ci_sysparm_query = StringType()
     cmdb_rel_ci_sysparm_query = StringType()
     change_request_sysparm_query = StringType()
-    custom_field_mapping = DictType(StringType)
+    custom_cmdb_ci_field = StringType(default=CMDB_CI_DEFAULT_FIELD)
     state = ModelType(State)
 
 
@@ -330,69 +318,70 @@ class ServicenowCheck(AgentCheck):
     def _process_change_requests(self, instance_info):
         response = self._collect_change_requests(instance_info)
         self.log.info('Received %d Change Requests', len(response['result']))
-        for cr in response['result']:
+        for change_request in response['result']:
             try:
-                change_request = ChangeRequest(cr, strict=False)
-                change_request.validate()
+                mapping = {'custom_cmdb_ci': instance_info.custom_cmdb_ci_field}
+                cr = ChangeRequest(change_request, strict=False, deserialize_mapping=mapping)
+                cr.validate()
             except DataError as e:
-                self.log.warning('%s - DataError: %s. This CR is skipped.', cr['number']['value'], e)
+                self.log.warning('%s - DataError: %s. This CR is skipped.', change_request['number']['value'], e)
                 continue
-            if change_request.cmdb_ci:
+            if cr.custom_cmdb_ci.value:
                 self.log.info(
                     '%s: %s %s - sys_updated_on value: %s display_value: %s',
-                    change_request.number,
-                    change_request.cmdb_ci['value'],
-                    change_request.cmdb_ci['display_value'],
-                    cr['sys_updated_on']['value'],
-                    cr['sys_updated_on']['display_value']
+                    cr.number.display_value,
+                    cr.custom_cmdb_ci.value,
+                    cr.custom_cmdb_ci.display_value,
+                    cr.sys_updated_on.value,
+                    cr.sys_updated_on.display_value
                 )
-                if change_request.sys_updated_on > instance_info.state.latest_sys_updated_on:
-                    instance_info.state.latest_sys_updated_on = change_request.sys_updated_on
-                old_state = instance_info.state.change_requests.get(change_request.number)
-                if old_state is None or old_state != change_request.state:
+                if cr.sys_updated_on.value > instance_info.state.latest_sys_updated_on:
+                    instance_info.state.latest_sys_updated_on = cr.sys_updated_on.value
+                old_state = instance_info.state.change_requests.get(cr.number.display_value)
+                if old_state is None or old_state != cr.state.display_value:
                     try:
-                        self._create_event_from_change_request(change_request)
+                        self._create_event_from_change_request(cr)
                     except Exception as e:
                         # for POC we log create event, to catch all possible errors we missed
                         self.log.exception(e)
-                    instance_info.state.change_requests[change_request.number] = change_request.state
+                    instance_info.state.change_requests[cr.number.display_value] = cr.state.display_value
 
     def _create_event_from_change_request(self, change_request):
-        identifiers = [
-            change_request.cmdb_ci['value'],
-            Identifiers.create_host_identifier(change_request.cmdb_ci['display_value'])
-        ]
-        timestamp = (change_request.sys_updated_on - datetime.datetime.utcfromtimestamp(0)).total_seconds()
-        msg_title = '%s: %s' % (change_request.number, change_request.short_description)
+        host = Identifiers.create_host_identifier(to_string(change_request.custom_cmdb_ci.display_value))
+        identifiers = [change_request.custom_cmdb_ci.value, host]
+        timestamp = (change_request.sys_updated_on.value - datetime.datetime.utcfromtimestamp(0)).total_seconds()
+        msg_title = '%s: %s' % (change_request.number.display_value, change_request.short_description.display_value)
         tags = [
-            'number:%s' % change_request.number,
-            'priority:%s' % change_request.priority,
-            'risk:%s' % change_request.risk,
-            'state:%s' % change_request.state,
-            'category:%s' % change_request.category,
-            'conflict_status:%s' % change_request.conflict_status,
-            'assigned_to:%s' % change_request.assigned_to
+            'number:%s' % change_request.number.display_value,
+            'priority:%s' % change_request.priority.display_value,
+            'risk:%s' % change_request.risk.display_value,
+            'state:%s' % change_request.state.display_value,
+            'category:%s' % change_request.category.display_value,
+            'conflict_status:%s' % change_request.conflict_status.display_value,
+            'assigned_to:%s' % change_request.assigned_to.display_value,
+            'identifier_sys_id:%s' % change_request.custom_cmdb_ci.value,
+            'identifier_host:%s' % host,
         ]
-        event_type = 'Change Request %s' % change_request.type
+        event_type = 'Change Request %s' % change_request.type.display_value
 
-        self.log.info('Creating event from CR %s', change_request.number)
+        self.log.info('Creating event from CR %s', change_request.number.display_value)
 
         self.event({
             'timestamp': timestamp,
             'event_type': event_type,
             'msg_title': msg_title,
-            'msg_text': change_request.description,
+            'msg_text': change_request.description.display_value,
             'context': {
                 'source': 'servicenow',
                 'category': 'change_request',
                 'element_identifiers': identifiers,
                 'source_links': [],
                 'data': {
-                    'impact': change_request.impact,
-                    'requested_by': change_request.requested_by,
-                    'conflict_last_run': change_request.conflict_last_run,
-                    'assignment_group': change_request.assignment_group,
-                    'service_offering': change_request.service_offering,
+                    'impact': change_request.impact.display_value,
+                    'requested_by': change_request.requested_by.display_value,
+                    'conflict_last_run': change_request.conflict_last_run.display_value,
+                    'assignment_group': change_request.assignment_group.display_value,
+                    'service_offering': change_request.service_offering.display_value,
                 },
             },
             'tags': tags
