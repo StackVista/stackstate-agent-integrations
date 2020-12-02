@@ -425,13 +425,25 @@ class TestTopology:
     def test_component(self, topology):
         check = TopologyCheck()
         data = {"key": "value", "intlist": [1], "emptykey": None, "nestedobject": {"nestedkey": "nestedValue"}}
-        topology.assert_snapshot(check.check_id, check.key, components=[check.component("my-id", "my-type", data)])
+        created_component = check.component("my-id", "my-type", data)
+        assert data['key'] == created_component['data']['key']
+        assert data['intlist'] == created_component['data']['intlist']
+        assert data['nestedobject'] == created_component['data']['nestedobject']
+        assert created_component['id'] == 'my-id'
+        assert created_component['type'] == 'my-type'
+        topology.assert_snapshot(check.check_id, check.key, components=[created_component])
 
     def test_relation(self, topology):
         check = TopologyCheck()
         data = {"key": "value", "intlist": [1], "emptykey": None, "nestedobject": {"nestedkey": "nestedValue"}}
-        topology.assert_snapshot(check.check_id, check.key,
-                                 relations=[check.relation("source-id", "target-id", "my-type", data)])
+        created_relation = check.relation("source-id", "target-id", "my-type", data)
+        assert data['key'] == created_relation['data']['key']
+        assert data['intlist'] == created_relation['data']['intlist']
+        assert data['nestedobject'] == created_relation['data']['nestedobject']
+        assert created_relation['source_id'] == 'source-id'
+        assert created_relation['target_id'] == 'target-id'
+        assert created_relation['type'] == 'my-type'
+        topology.assert_snapshot(check.check_id, check.key, relations=[created_relation])
 
     def test_auto_snapshotting(self, topology):
         check = TopologyAutoSnapshotCheck()
