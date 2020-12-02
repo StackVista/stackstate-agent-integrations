@@ -317,6 +317,7 @@ class ServicenowCheck(AgentCheck):
 
     def _process_change_requests(self, instance_info):
         response = self._collect_change_requests(instance_info)
+        state = instance_info.state
         self.log.info('Received %d Change Requests', len(response['result']))
         for cr in response['result']:
             try:
@@ -335,16 +336,16 @@ class ServicenowCheck(AgentCheck):
                     change_request.sys_updated_on.value,
                     change_request.sys_updated_on.display_value
                 )
-                if change_request.sys_updated_on.value > instance_info.state.latest_sys_updated_on:
-                    instance_info.state.latest_sys_updated_on = change_request.sys_updated_on.value
-                old_state = instance_info.state.change_requests.get(change_request.number.display_value)
+                if change_request.sys_updated_on.value > state.latest_sys_updated_on:
+                    state.latest_sys_updated_on = change_request.sys_updated_on.value
+                old_state = state.change_requests.get(change_request.number.display_value)
                 if old_state is None or old_state != change_request.state.display_value:
                     try:
                         self._create_event_from_change_request(change_request)
                     except Exception as e:
                         # for POC we log create event, to catch all possible errors we missed
                         self.log.exception(e)
-                    instance_info.state.change_requests[change_request.number.display_value] = change_request.state.display_value
+                    state.change_requests[change_request.number.display_value] = change_request.state.display_value
 
     def _create_event_from_change_request(self, change_request):
         host = Identifiers.create_host_identifier(to_string(change_request.custom_cmdb_ci.display_value))
