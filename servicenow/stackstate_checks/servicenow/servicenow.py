@@ -230,11 +230,11 @@ class ServicenowCheck(AgentCheck):
             external_id = component.get('sys_id')
 
             if component.get('fqdn'):
-                identifiers.append(Identifiers.create_host_identifier(component['fqdn']))
+                identifiers.append(Identifiers.create_host_identifier(to_string(component['fqdn'])))
             if component.get('host_name'):
-                identifiers.append(Identifiers.create_host_identifier(component['host_name']))
+                identifiers.append(Identifiers.create_host_identifier(to_string(component['host_name'])))
             else:
-                identifiers.append(Identifiers.create_host_identifier(comp_name))
+                identifiers.append(Identifiers.create_host_identifier(to_string(comp_name)))
             identifiers.append(external_id)
             data.update(component)
             data.update({"identifiers": identifiers, "tags": instance_info.instance_tags})
@@ -339,10 +339,8 @@ class ServicenowCheck(AgentCheck):
                     instance_info.state.change_requests[change_request.number] = change_request.state
 
     def _create_event_from_change_request(self, change_request):
-        identifiers = [
-            change_request.cmdb_ci['value'],
-            Identifiers.create_host_identifier(change_request.cmdb_ci['display_value'])
-        ]
+        host = Identifiers.create_host_identifier(to_string(change_request.cmdb_ci['display_value']))
+        identifiers = [change_request.cmdb_ci['value'], host]
         timestamp = (change_request.sys_updated_on - datetime.datetime.utcfromtimestamp(0)).total_seconds()
         msg_title = '%s: %s' % (change_request.number, change_request.short_description)
         tags = [
