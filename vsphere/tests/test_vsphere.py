@@ -8,9 +8,9 @@ import simplejson as json
 import pytest
 
 try:
-    from Queue import Empty, Queue
+    from Queue import Queue
 except ImportError:
-    from queue import Empty, Queue
+    from queue import Queue
 import requests
 from vmware.vapi.bindings.stub import ApiClient
 from vmware.vapi.lib.connect import get_requests_connector
