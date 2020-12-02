@@ -318,33 +318,33 @@ class ServicenowCheck(AgentCheck):
     def _process_change_requests(self, instance_info):
         response = self._collect_change_requests(instance_info)
         self.log.info('Received %d Change Requests', len(response['result']))
-        for change_request in response['result']:
+        for cr in response['result']:
             try:
                 mapping = {'custom_cmdb_ci': instance_info.custom_cmdb_ci_field}
-                cr = ChangeRequest(change_request, strict=False, deserialize_mapping=mapping)
-                cr.validate()
+                change_request = ChangeRequest(cr, strict=False, deserialize_mapping=mapping)
+                change_request.validate()
             except DataError as e:
-                self.log.warning('%s - DataError: %s. This CR is skipped.', change_request['number']['value'], e)
+                self.log.warning('%s - DataError: %s. This CR is skipped.', cr['number']['value'], e)
                 continue
-            if cr.custom_cmdb_ci.value:
+            if change_request.custom_cmdb_ci.value:
                 self.log.info(
                     '%s: %s %s - sys_updated_on value: %s display_value: %s',
-                    cr.number.display_value,
-                    cr.custom_cmdb_ci.value,
-                    cr.custom_cmdb_ci.display_value,
-                    cr.sys_updated_on.value,
-                    cr.sys_updated_on.display_value
+                    change_request.number.display_value,
+                    change_request.custom_cmdb_ci.value,
+                    change_request.custom_cmdb_ci.display_value,
+                    change_request.sys_updated_on.value,
+                    change_request.sys_updated_on.display_value
                 )
-                if cr.sys_updated_on.value > instance_info.state.latest_sys_updated_on:
-                    instance_info.state.latest_sys_updated_on = cr.sys_updated_on.value
-                old_state = instance_info.state.change_requests.get(cr.number.display_value)
-                if old_state is None or old_state != cr.state.display_value:
+                if change_request.sys_updated_on.value > instance_info.state.latest_sys_updated_on:
+                    instance_info.state.latest_sys_updated_on = change_request.sys_updated_on.value
+                old_state = instance_info.state.change_requests.get(change_request.number.display_value)
+                if old_state is None or old_state != change_request.state.display_value:
                     try:
-                        self._create_event_from_change_request(cr)
+                        self._create_event_from_change_request(change_request)
                     except Exception as e:
                         # for POC we log create event, to catch all possible errors we missed
                         self.log.exception(e)
-                    instance_info.state.change_requests[cr.number.display_value] = cr.state.display_value
+                    instance_info.state.change_requests[change_request.number.display_value] = change_request.state.display_value
 
     def _create_event_from_change_request(self, change_request):
         host = Identifiers.create_host_identifier(to_string(change_request.custom_cmdb_ci.display_value))
