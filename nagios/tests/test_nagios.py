@@ -8,7 +8,7 @@ import mock
 import pytest
 from pynag.Utils import misc
 
-from stackstate_checks.base import ensure_bytes
+from stackstate_checks.base import ensure_string
 from stackstate_checks.nagios import NagiosCheck
 from stackstate_checks.nagios.nagios import EVENT_FIELDS, create_event
 from .common import (
@@ -439,7 +439,7 @@ class TestPerfDataTailer:
         nagios.check(config['instances'][0])
 
         with open(NAGIOS_TEST_SVC, "r") as f:
-            nagios_perf = ensure_bytes(f.read())
+            nagios_perf = ensure_string(f.read())
 
         perfdata_file.write(nagios_perf)
         perfdata_file.flush()
@@ -505,7 +505,7 @@ class TestPerfDataTailer:
         nagios.check(config['instances'][0])
 
         with open(NAGIOS_TEST_HOST, "r") as f:
-            nagios_perf = ensure_bytes(f.read())
+            nagios_perf = ensure_string(f.read())
 
         perfdata_file.write(nagios_perf)
         perfdata_file.flush()
@@ -591,7 +591,7 @@ def get_config(nagios_conf, events=False, service_perf=False, host_perf=False):
     """
     Helper to generate a valid Nagios configuration
     """
-    nagios_conf = ensure_bytes(nagios_conf)
+    nagios_conf = ensure_string(nagios_conf)
 
     nagios_cfg_file = tempfile.NamedTemporaryFile(mode="a+b", delete=False)
     nagios_cfg_file.write(nagios_conf)

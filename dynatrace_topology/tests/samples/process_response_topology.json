@@ -167,7 +167,7 @@
           "dynatrace-PROCESS_GROUP_INSTANCE-D87BE1EAFC600996",
           "dynatrace-actualMonitoringState:OFF",
           "dynatrace-expectedMonitoringState:ON",
-          "dynatrace-IIS",
+          "dynatrace-IIS-with-unicode-char-",
           "dynatrace-CLR:FullCLR:4.8.3928.0",
           "dynatrace-DOTNET:.NET Framework:4.8.3928.0"
         ],
@@ -194,7 +194,7 @@
         "softwareTechnologies": [
           {
             "edition": null,
-            "type": "IIS",
+            "type": "IIS-with-unicode-char-",
             "version": null
           },
           {
