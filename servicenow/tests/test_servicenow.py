@@ -678,6 +678,30 @@ class TestServicenow(unittest.TestCase):
         self.assertEqual(1, len(topology_events))
         self.check.commit_state(None)
 
+    @mock.patch('requests.get')
+    def test_batch_collect_components_sys_filter_with_query_filter(self, mock_req_get):
+        """
+        Test the query filter with resource types
+        """
+        mock_req_get.return_value = mock.MagicMock(status_code=200, text=json.dumps(mock_result_with_utf8))
+        params = self.check._params_append_to_sysparm_query(add_to_query='company.nameSTARTSWITHaxa')
+        params = self.check._params_append_to_sysparm_query(params=params, add_to_query='second_one')
+        self.assertEqual({'sysparm_query': 'company.nameSTARTSWITHaxa^second_one'}, params)
+        resp = self.check._batch_collect_components(instance_info, 25)
+        self.assertEqual(resp['result']['sys_id'], '46b9874fa9fe1981017a4a80aaa07919')
+
+    @mock.patch('requests.get')
+    def test_batch_collect_relations_sys_filter_with_query_filter(self, mock_req_get):
+        """
+        Test the query filter with resource types
+        """
+        mock_req_get.return_value = mock.MagicMock(status_code=200, text=json.dumps(mock_relation_components))
+        params = self.check._params_append_to_sysparm_query(add_to_query='company.nameSTARTSWITHaxa')
+        params = self.check._params_append_to_sysparm_query(params=params, add_to_query='second_one')
+        self.assertEqual({'sysparm_query': 'company.nameSTARTSWITHaxa^second_one'}, params)
+        resp = self.check._batch_collect_relations(instance_info, 25)
+        self.assertEqual(resp['result'][0]['type']['value'], '1a9cb166f1571100a92eb60da2bce5c5')
+
     def _get_url_auth(self):
         url = "{}/api/now/table/cmdb_ci".format(self.instance.get('url'))
         auth = (self.instance.get('user'), self.instance.get('password'))
