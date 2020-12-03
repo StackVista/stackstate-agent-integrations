@@ -13,6 +13,15 @@ import re
 import time
 import calendar
 
+from stackstate_checks.base import AgentIntegrationInstance
+
+try:
+    # this module is only available in agent 6
+    from datadog_agent import get_clustername
+except ImportError:
+    def get_clustername():
+        return "test-cluster-name"
+
 # 3p
 from requests.exceptions import ConnectionError
 
@@ -89,6 +98,9 @@ class Kubernetes(AgentCheck):
     """ Collect metrics and events from Kubernetes """
 
     pod_names_by_container = {}
+
+    def get_instance_key(self, instance):
+        return AgentIntegrationInstance("kubernetes", get_clustername())
 
     def __init__(self, name, init_config, agentConfig, instances=None):
         if instances is not None and len(instances) > 1:

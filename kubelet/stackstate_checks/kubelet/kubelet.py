@@ -18,6 +18,7 @@ from six.moves.urllib.parse import urljoin
 from stackstate_checks.base.utils.date import UTC, parse_rfc3339
 from stackstate_checks.base.utils.tagging import tagger
 from stackstate_checks.checks import AgentCheck
+from stackstate_checks.base import AgentIntegrationInstance
 from stackstate_checks.checks.openmetrics import OpenMetricsBaseCheck
 from stackstate_checks.errors import CheckException
 
@@ -123,6 +124,9 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
     """
 
     DEFAULT_METRIC_LIMIT = 0
+
+    def get_instance_key(self, instance):
+        return AgentIntegrationInstance("kubelet", get_clustername())
 
     def __init__(self, name, init_config, agentConfig, instances=None):
         self.NAMESPACE = 'kubernetes'

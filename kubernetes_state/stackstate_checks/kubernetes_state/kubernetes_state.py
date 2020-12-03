@@ -10,6 +10,7 @@ from copy import deepcopy
 from six import iteritems
 
 from stackstate_checks.checks.openmetrics import OpenMetricsBaseCheck
+from stackstate_checks.base import AgentIntegrationInstance
 from stackstate_checks.config import is_affirmative
 from stackstate_checks.errors import CheckException
 
@@ -32,6 +33,9 @@ class KubernetesState(OpenMetricsBaseCheck):
     Collect kube-state-metrics metrics in the Prometheus format
     See https://github.com/kubernetes/kube-state-metrics
     """
+
+    def get_instance_key(self, instance):
+        return AgentIntegrationInstance("kubernetes-state", get_clustername())
 
     class JobCount:
         def __init__(self):
@@ -56,7 +60,7 @@ class KubernetesState(OpenMetricsBaseCheck):
         instance = instances[0]
         clustername = get_clustername()
         if clustername != "":
-            instance.get('tags',[]).extend(['cluster_name:%s' % clustername])
+            instance.get('tags', []).extend(['cluster_name:%s' % clustername])
 
         kubernetes_state_instance = self._create_kubernetes_state_prometheus_instance(instance)
 
