@@ -506,8 +506,8 @@ class Event(Model):
     `event_type` the event name
     `event_context` enriches the event with some more context and allows correlation to topology in StackState
     """
-    msg_title = StrictStringType(required=True)
-    msg_text = StrictStringType(required=True)
+    msg_title = StrictStringType(required=True, default="")
+    msg_text = StrictStringType(required=True, default="")
     timestamp = IntType(required=True)
     event_type = StrictStringType(required=True, deserialize_from=['event_type', 'source_type_name'])
     priority = StrictStringType(required=False, choices=['normal', 'low'])
