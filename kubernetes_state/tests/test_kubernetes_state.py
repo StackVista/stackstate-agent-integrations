@@ -7,6 +7,7 @@ import mock
 import pytest
 
 from stackstate_checks.kubernetes_state import KubernetesState
+from stackstate_checks.base import AgentIntegrationInstance
 from stackstate_checks.utils.common import ensure_unicode
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -238,6 +239,11 @@ def check(instance):
     check = KubernetesState(CHECK_NAME, {}, {}, [instance])
     check.poll = mock.MagicMock(return_value=MockResponse(mock_from_file("prometheus.txt"), 'text/plain'))
     return check
+
+
+def test_check_instance_key(instance):
+    check = KubernetesState(CHECK_NAME, {}, {}, [instance])
+    assert check.get_instance_key(instance) == AgentIntegrationInstance(CHECK_NAME, 'test-cluster-name')
 
 
 def assert_not_all_zeroes(aggregator, metric_name):

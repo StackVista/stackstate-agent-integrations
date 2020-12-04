@@ -2,6 +2,7 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 from stackstate_checks.openmetrics import OpenMetricsCheck
+from stackstate_checks.base import AgentIntegrationInstance
 import pytest
 import mock
 from prometheus_client import generate_latest, CollectorRegistry, Gauge, Counter
@@ -43,6 +44,11 @@ def poll_mock():
         )
     ):
         yield
+
+
+def test_check_instance_key():
+    check = OpenMetricsCheck('openmetrics', None, {}, [instance])
+    assert check.get_instance_key(instance) == AgentIntegrationInstance('openmetrics', 'test-cluster-name')
 
 
 def test_openmetrics_check(aggregator):

@@ -104,6 +104,11 @@ class AgentIntegrationInstance(TopologyInstanceBase):
     def tags(self):
         return ["integration-type:{}".format(self.integration), "integration-url:{}".format(self.name)]
 
+    def __eq__(self, other):
+        if (isinstance(other, AgentIntegrationInstance)):
+            return self.integration == other.integration and self.name == other.name
+        return false
+
 
 class TopologyInstance(TopologyInstanceBase):
     """

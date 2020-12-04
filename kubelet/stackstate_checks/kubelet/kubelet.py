@@ -39,7 +39,7 @@ try:
 except ImportError:
 
     def get_clustername():
-        return ""
+        return "test-cluster-name"
 
 
 KUBELET_HEALTH_PATH = '/healthz'

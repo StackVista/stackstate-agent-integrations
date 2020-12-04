@@ -18,7 +18,7 @@ try:
 except ImportError:
 
     def get_clustername():
-        return ""
+        return "test-cluster-name"
 
 METRIC_TYPES = ['counter', 'gauge', 'summary']
 

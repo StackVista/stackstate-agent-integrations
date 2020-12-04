@@ -100,7 +100,7 @@ class Kubernetes(AgentCheck):
     pod_names_by_container = {}
 
     def get_instance_key(self, instance):
-        return AgentIntegrationInstance("kubernetes", get_clustername())
+        return AgentIntegrationInstance(self.name or 'kubernetes', get_clustername())
 
     def __init__(self, name, init_config, agentConfig, instances=None):
         if instances is not None and len(instances) > 1:

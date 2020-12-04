@@ -14,4 +14,4 @@ except ImportError:
 
 class OpenMetricsCheck(OpenMetricsBaseCheck):
     def get_instance_key(self, instance):
-        return AgentIntegrationInstance("openmetrics", get_clustername())
+        return AgentIntegrationInstance(self.name or 'openmetrics', get_clustername())

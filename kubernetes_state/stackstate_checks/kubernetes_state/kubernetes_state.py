@@ -35,7 +35,7 @@ class KubernetesState(OpenMetricsBaseCheck):
     """
 
     def get_instance_key(self, instance):
-        return AgentIntegrationInstance("kubernetes-state", get_clustername())
+        return AgentIntegrationInstance(self.name or 'kubernetes_state', get_clustername())
 
     class JobCount:
         def __init__(self):
