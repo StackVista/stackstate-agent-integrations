@@ -18,7 +18,7 @@ from six import PY3
 from stackstate_checks.base import AgentIntegrationTestUtil, AgentCheck
 from stackstate_checks.base.errors import CheckException
 from stackstate_checks.base.stubs import topology, aggregator, telemetry
-from stackstate_checks.servicenow import ServicenowCheck, InstanceInfo
+from stackstate_checks.servicenow import ServicenowCheck, InstanceInfo, State
 
 
 def mock_collect_process(*args):
@@ -178,6 +178,9 @@ mock_instance = {
     'user': 'name',
     'password': 'secret'
 }
+
+
+state = State({'latest_sys_updated_on': "2017-06-29 11:03:27"})
 
 instance_info = InstanceInfo(
     {
@@ -703,6 +706,52 @@ class TestServicenow(unittest.TestCase):
         self.assertEqual(AgentCheck.OK, service_checks[0].status)
         self.assertEqual(1, len(topology_events))
         self.check.commit_state(None)
+
+    def test_batch_collect_components_sys_filter_with_query_filter(self):
+        """
+        Test the query filter with resource types while collecting components batch
+        """
+        self.check._get_json = mock_get_json
+        instance_info['cmdb_ci_sysparm_query'] = "company.nameSTARTSWITHaxa"
+        instance_info['include_resource_types'] = ['cmdb_ci_netgear']
+        instance_info.batch_size = 100
+        params = self.check._batch_collect_components(instance_info, 0)
+        self.assertEqual(params.get("sysparm_offset"), 0)
+        self.assertEqual(params.get('sysparm_limit'), 100)
+        self.assertEqual(params.get('sysparm_query'), "sys_class_nameINcmdb_ci_netgear^company.nameSTARTSWITHaxa"
+                                                      "^ORDERBYsys_created_on")
+
+    def test_batch_collect_relations_sys_filter_with_query_filter(self):
+        """
+        Test the query filter with resource types while collecting relations batch
+        """
+        self.check._get_json = mock_get_json
+        instance_info['cmdb_ci_sysparm_query'] = None
+        instance_info['cmdb_rel_ci_sysparm_query'] = "parent.company.nameSTARTSWITHaxa^" \
+                                                     "ORchild.company.nameSTARTSWITHaxa"
+        instance_info['include_resource_types'] = ['cmdb_ci_netgear']
+        instance_info.batch_size = 100
+        params = self.check._batch_collect_relations(instance_info, 0)
+        self.assertEqual(params.get("sysparm_offset"), 0)
+        self.assertEqual(params.get('sysparm_limit'), 100)
+        self.assertEqual(params.get('sysparm_query'), "parent.sys_class_nameINcmdb_ci_netgear^child.sys_class_nameIN"
+                                                      "cmdb_ci_netgear^parent.company.nameSTARTSWITHaxa"
+                                                      "^ORchild.company.nameSTARTSWITHaxa^ORDERBYsys_created_on")
+
+    def test_collect_change_requests_sys_filter_with_query_filter(self):
+        """
+        Test the query filter with resource types while collecting change requests
+        """
+        self.check._get_json = mock_get_json
+        instance_info['change_request_sysparm_query'] = "company.nameSTARTSWITHaxa"
+        instance_info['include_resource_types'] = ['cmdb_ci_netgear']
+        instance_info['state'] = state
+        params = self.check._collect_change_requests(instance_info)
+        self.assertEqual(params.get("sysparm_display_value"), 'all')
+        self.assertEqual(params.get("sysparm_exclude_reference_link"), 'true')
+        self.assertEqual(params.get('sysparm_limit'), 1000)
+        self.assertEqual(params.get('sysparm_query'), "sys_updated_on>javascript:gs.dateGenerate('2017-06-29', "
+                                                      "'11:03:27')^company.nameSTARTSWITHaxa")
 
     def _get_url_auth(self):
         url = "{}/api/now/table/cmdb_ci".format(self.instance.get('url'))
