@@ -107,7 +107,7 @@ class AgentIntegrationInstance(TopologyInstanceBase):
     def __eq__(self, other):
         if (isinstance(other, AgentIntegrationInstance)):
             return self.integration == other.integration and self.name == other.name
-        return false
+        return False
 
 
 class TopologyInstance(TopologyInstanceBase):
@@ -261,7 +261,6 @@ class AgentCheckBase(object):
         instance_key = to_string(self.normalize("instance.{}.{}".format(instance.type, instance.url),
                                                 extra_disallowed_chars=b":"))
         return StateDescriptor(instance_key, self.get_check_config_path())
-
 
     @staticmethod
     def get_cluster_name():
