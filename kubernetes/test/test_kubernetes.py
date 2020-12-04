@@ -12,6 +12,8 @@ import simplejson as json
 from nose.plugins.attrib import attr
 
 # project
+from stackstate_checks.kubernetes import Kubernetes
+from stackstate_checks.base import AgentIntegrationInstance
 from tests.checks.common import AgentCheckTest, Fixtures
 from checks import AgentCheck
 from utils.kubernetes.kubeutil import KubeUtil, detect_is_k8s
@@ -75,12 +77,18 @@ class MockIterLinesResponse:
         for line in self.lines_array:
             yield line
 
+
 def KubeUtil_fake_retrieve_json_auth(url, timeout=10, params=None):
     if url.endswith("/namespaces"):
         return MockResponse(json.loads(Fixtures.read_file("namespaces.json", sdk_dir=FIXTURE_DIR, string_escape=False)), 200)
     if url.endswith("/events"):
         return MockResponse(json.loads(Fixtures.read_file("events.json", sdk_dir=FIXTURE_DIR, string_escape=False)), 200)
     return {}
+
+
+def test_check_instance_key():
+    check = Kubernetes('kubernetes', None, {}, [{}])
+    assert check.get_instance_key({}) == AgentIntegrationInstance('kubernetes', 'stubbed-cluster-name')
 
 
 @attr(requires='kubernetes')

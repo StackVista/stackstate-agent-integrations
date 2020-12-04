@@ -11,6 +11,7 @@ import pytest
 from six import iteritems
 
 from stackstate_checks.base.utils.date import UTC, parse_rfc3339
+from stackstate_checks.base import AgentIntegrationInstance
 from stackstate_checks.kubelet import KubeletCheck, KubeletCredentials
 
 # Skip the whole tests module on Windows
@@ -222,6 +223,11 @@ def test_kubelet_default_options():
 
     assert isinstance(check.cadvisor_scraper_config, dict)
     assert isinstance(check.kubelet_scraper_config, dict)
+
+
+def test_check_instance_key():
+    check = KubeletCheck('kubelet', None, {}, [{}])
+    assert check.get_instance_key({}) == AgentIntegrationInstance('kubelet', 'stubbed-cluster-name')
 
 
 def test_kubelet_check_prometheus_instance_tags(monkeypatch, aggregator, tagger):

@@ -7,18 +7,11 @@ from copy import deepcopy
 
 from six import iteritems
 
+from stackstate_checks.base import AgentCheck
 from stackstate_checks.base.utils.tagging import tagger
 from stackstate_checks.checks.openmetrics import OpenMetricsBaseCheck
 
 from .common import get_pod_by_uid, is_static_pending_pod, replace_container_rt_prefix
-
-try:
-    # this module is only available in agent 6
-    from datadog_agent import get_clustername
-except ImportError:
-
-    def get_clustername():
-        return ""
 
 METRIC_TYPES = ['counter', 'gauge', 'summary']
 
@@ -105,9 +98,9 @@ class CadvisorPrometheusScraperMixin(object):
             }
         )
 
-        clustername = get_clustername()
+        clustername = AgentCheck.get_cluster_name()
         if clustername != "":
-            cadvisor_instance.get('tags',[]).extend(['cluster_name:%s' % clustername])
+            cadvisor_instance.get('tags', []).extend(['cluster_name:%s' % clustername])
 
         return cadvisor_instance
 
