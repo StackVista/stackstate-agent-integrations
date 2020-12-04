@@ -187,10 +187,10 @@ JOINED_METRICS = {
 }
 
 HOSTNAMES = {
-    NAMESPACE + '.pod.ready': 'minikube-test-cluster-name',
-    NAMESPACE + '.pod.scheduled': 'minikube-test-cluster-name',
-    NAMESPACE + '.container.status_report.count.waiting': 'minikube-test-cluster-name',
-    NAMESPACE + '.container.status_report.count.terminated': 'minikube-test-cluster-name',
+    NAMESPACE + '.pod.ready': 'minikube-stubbed-cluster-name',
+    NAMESPACE + '.pod.scheduled': 'minikube-stubbed-cluster-name',
+    NAMESPACE + '.container.status_report.count.waiting': 'minikube-stubbed-cluster-name',
+    NAMESPACE + '.container.status_report.count.terminated': 'minikube-stubbed-cluster-name',
 }
 
 ZERO_METRICS = [
@@ -243,7 +243,7 @@ def check(instance):
 
 def test_check_instance_key(instance):
     check = KubernetesState(CHECK_NAME, {}, {}, [instance])
-    assert check.get_instance_key(instance) == AgentIntegrationInstance(CHECK_NAME, 'test-cluster-name')
+    assert check.get_instance_key(instance) == AgentIntegrationInstance(CHECK_NAME, 'stubbed-cluster-name')
 
 
 def assert_not_all_zeroes(aggregator, metric_name):
@@ -264,18 +264,18 @@ def resourcequota_was_collected(aggregator):
 def test_cluster_name_metrics(aggregator, instance, check):
     # run check twice to have pod/node mapping
     for _ in range(2):
-        check.check(instance)
+        check.run()
 
     # Make sure we send counts for all statuses to avoid no-data graphing issues
     aggregator.assert_metric_has_tag(
-        NAMESPACE + '.pod.ready', 'cluster_name:test-cluster-name'
+        NAMESPACE + '.pod.ready', 'cluster_name:stubbed-cluster-name'
     )
 
 
 def test_update_kube_state_metrics(aggregator, instance, check):
     # run check twice to have pod/node mapping
     for _ in range(2):
-        check.check(instance)
+        check.run()
 
     aggregator.assert_service_check(NAMESPACE + '.node.ready', check.OK)
     aggregator.assert_service_check(NAMESPACE + '.node.out_of_disk', check.OK)
@@ -285,56 +285,56 @@ def test_update_kube_state_metrics(aggregator, instance, check):
 
     # Make sure we send counts for all statuses to avoid no-data graphing issues
     aggregator.assert_metric(
-        NAMESPACE + '.nodes.by_condition', tags=['condition:Ready', 'status:true', 'optional:tag1', 'cluster_name:test-cluster-name'], value=1
+        NAMESPACE + '.nodes.by_condition', tags=['condition:Ready', 'status:true', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=1
     )
     aggregator.assert_metric(
-        NAMESPACE + '.nodes.by_condition', tags=['condition:Ready', 'status:false', 'optional:tag1', 'cluster_name:test-cluster-name'], value=0
+        NAMESPACE + '.nodes.by_condition', tags=['condition:Ready', 'status:false', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=0
     )
     aggregator.assert_metric(
-        NAMESPACE + '.nodes.by_condition', tags=['condition:Ready', 'status:unknown', 'optional:tag1', 'cluster_name:test-cluster-name'], value=0
+        NAMESPACE + '.nodes.by_condition', tags=['condition:Ready', 'status:unknown', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=0
     )
 
     # Make sure we send counts for all phases to avoid no-data graphing issues
     aggregator.assert_metric(
-        NAMESPACE + '.pod.status_phase', tags=['namespace:default', 'phase:Pending', 'optional:tag1', 'cluster_name:test-cluster-name'], value=1
+        NAMESPACE + '.pod.status_phase', tags=['namespace:default', 'phase:Pending', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=1
     )
     aggregator.assert_metric(
-        NAMESPACE + '.pod.status_phase', tags=['namespace:default', 'phase:Running', 'optional:tag1', 'cluster_name:test-cluster-name'], value=3
+        NAMESPACE + '.pod.status_phase', tags=['namespace:default', 'phase:Running', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=3
     )
     aggregator.assert_metric(
-        NAMESPACE + '.pod.status_phase', tags=['namespace:default', 'phase:Succeeded', 'optional:tag1', 'cluster_name:test-cluster-name'], value=2
+        NAMESPACE + '.pod.status_phase', tags=['namespace:default', 'phase:Succeeded', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=2
     )
     aggregator.assert_metric(
-        NAMESPACE + '.pod.status_phase', tags=['namespace:default', 'phase:Failed', 'optional:tag1', 'cluster_name:test-cluster-name'], value=2
+        NAMESPACE + '.pod.status_phase', tags=['namespace:default', 'phase:Failed', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=2
     )
     aggregator.assert_metric(
-        NAMESPACE + '.pod.status_phase', tags=['namespace:default', 'phase:Unknown', 'optional:tag1', 'cluster_name:test-cluster-name'], value=1
+        NAMESPACE + '.pod.status_phase', tags=['namespace:default', 'phase:Unknown', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=1
     )
 
     # Persistentvolume counts
     aggregator.assert_metric(
         NAMESPACE + '.persistentvolumes.by_phase',
-        tags=['storageclass:local-data', 'phase:Available', 'optional:tag1', 'cluster_name:test-cluster-name'],
+        tags=['storageclass:local-data', 'phase:Available', 'optional:tag1', 'cluster_name:stubbed-cluster-name'],
         value=0,
     )
     aggregator.assert_metric(
         NAMESPACE + '.persistentvolumes.by_phase',
-        tags=['storageclass:local-data', 'phase:Bound', 'optional:tag1', 'cluster_name:test-cluster-name'],
+        tags=['storageclass:local-data', 'phase:Bound', 'optional:tag1', 'cluster_name:stubbed-cluster-name'],
         value=2,
     )
     aggregator.assert_metric(
         NAMESPACE + '.persistentvolumes.by_phase',
-        tags=['storageclass:local-data', 'phase:Failed', 'optional:tag1', 'cluster_name:test-cluster-name'],
+        tags=['storageclass:local-data', 'phase:Failed', 'optional:tag1', 'cluster_name:stubbed-cluster-name'],
         value=0,
     )
     aggregator.assert_metric(
         NAMESPACE + '.persistentvolumes.by_phase',
-        tags=['storageclass:local-data', 'phase:Pending', 'optional:tag1', 'cluster_name:test-cluster-name'],
+        tags=['storageclass:local-data', 'phase:Pending', 'optional:tag1', 'cluster_name:stubbed-cluster-name'],
         value=0,
     )
     aggregator.assert_metric(
         NAMESPACE + '.persistentvolumes.by_phase',
-        tags=['storageclass:local-data', 'phase:Released', 'optional:tag1', 'cluster_name:test-cluster-name'],
+        tags=['storageclass:local-data', 'phase:Released', 'optional:tag1', 'cluster_name:stubbed-cluster-name'],
         value=0,
     )
 
@@ -409,10 +409,10 @@ def test_pod_phase_gauges(aggregator, instance, check):
     for _ in range(2):
         check.check(instance)
     aggregator.assert_metric(
-        NAMESPACE + '.pod.status_phase', tags=['namespace:default', 'phase:Running', 'optional:tag1', 'cluster_name:test-cluster-name'], value=3
+        NAMESPACE + '.pod.status_phase', tags=['namespace:default', 'phase:Running', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=3
     )
     aggregator.assert_metric(
-        NAMESPACE + '.pod.status_phase', tags=['namespace:default', 'phase:Failed', 'optional:tag1', 'cluster_name:test-cluster-name'], value=2
+        NAMESPACE + '.pod.status_phase', tags=['namespace:default', 'phase:Failed', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=2
     )
 
 
@@ -436,19 +436,19 @@ def test_job_counts(aggregator, instance):
     for _ in range(2):
         check.check(instance)
     aggregator.assert_metric(
-        NAMESPACE + '.job.failed', tags=['namespace:default', 'job:hello', 'optional:tag1', 'cluster_name:test-cluster-name'], value=0
+        NAMESPACE + '.job.failed', tags=['namespace:default', 'job:hello', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=0
     )
     aggregator.assert_metric(
-        NAMESPACE + '.job.succeeded', tags=['namespace:default', 'job:hello', 'optional:tag1', 'cluster_name:test-cluster-name'], value=3
+        NAMESPACE + '.job.succeeded', tags=['namespace:default', 'job:hello', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=3
     )
 
     # Re-run check to make sure we don't count the same jobs
     check.check(instance)
     aggregator.assert_metric(
-        NAMESPACE + '.job.failed', tags=['namespace:default', 'job:hello', 'optional:tag1', 'cluster_name:test-cluster-name'], value=0
+        NAMESPACE + '.job.failed', tags=['namespace:default', 'job:hello', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=0
     )
     aggregator.assert_metric(
-        NAMESPACE + '.job.succeeded', tags=['namespace:default', 'job:hello', 'optional:tag1', 'cluster_name:test-cluster-name'], value=3
+        NAMESPACE + '.job.succeeded', tags=['namespace:default', 'job:hello', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=3
     )
 
     # Edit the payload and rerun the check
@@ -464,8 +464,8 @@ def test_job_counts(aggregator, instance):
     check.poll = mock.MagicMock(return_value=MockResponse(payload, 'text/plain'))
     check.check(instance)
     aggregator.assert_metric(
-        NAMESPACE + '.job.failed', tags=['namespace:default', 'job:hello', 'optional:tag1', 'cluster_name:test-cluster-name'], value=1
+        NAMESPACE + '.job.failed', tags=['namespace:default', 'job:hello', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=1
     )
     aggregator.assert_metric(
-        NAMESPACE + '.job.succeeded', tags=['namespace:default', 'job:hello', 'optional:tag1', 'cluster_name:test-cluster-name'], value=4
+        NAMESPACE + '.job.succeeded', tags=['namespace:default', 'job:hello', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=4
     )

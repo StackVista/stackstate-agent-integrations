@@ -48,7 +48,7 @@ def poll_mock():
 
 def test_check_instance_key():
     check = OpenMetricsCheck('openmetrics', None, {}, [instance])
-    assert check.get_instance_key(instance) == AgentIntegrationInstance('openmetrics', 'test-cluster-name')
+    assert check.get_instance_key(instance) == AgentIntegrationInstance('openmetrics', 'stubbed-cluster-name')
 
 
 def test_openmetrics_check(aggregator):

@@ -227,7 +227,7 @@ def test_kubelet_default_options():
 
 def test_check_instance_key():
     check = KubeletCheck('kubelet', None, {}, [{}])
-    assert check.get_instance_key({}) == AgentIntegrationInstance('kubelet', 'test-cluster-name')
+    assert check.get_instance_key({}) == AgentIntegrationInstance('kubelet', 'stubbed-cluster-name')
 
 
 def test_kubelet_check_prometheus_instance_tags(monkeypatch, aggregator, tagger):

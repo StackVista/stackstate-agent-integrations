@@ -4,14 +4,7 @@
 from stackstate_checks.base.checks.openmetrics import OpenMetricsBaseCheck
 from stackstate_checks.base import AgentIntegrationInstance
 
-try:
-    # this module is only available in agent 6
-    from datadog_agent import get_clustername
-except ImportError:
-    def get_clustername():
-        return "test-cluster-name"
-
 
 class OpenMetricsCheck(OpenMetricsBaseCheck):
     def get_instance_key(self, instance):
-        return AgentIntegrationInstance(self.name or 'openmetrics', get_clustername())
+        return AgentIntegrationInstance(self.name or 'openmetrics', self.cluster_name)

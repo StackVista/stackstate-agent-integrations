@@ -88,7 +88,7 @@ def KubeUtil_fake_retrieve_json_auth(url, timeout=10, params=None):
 
 def test_check_instance_key():
     check = Kubernetes('kubernetes', None, {}, [{}])
-    assert check.get_instance_key({}) == AgentIntegrationInstance('kubernetes', 'test-cluster-name')
+    assert check.get_instance_key({}) == AgentIntegrationInstance('kubernetes', 'stubbed-cluster-name')
 
 
 @attr(requires='kubernetes')
