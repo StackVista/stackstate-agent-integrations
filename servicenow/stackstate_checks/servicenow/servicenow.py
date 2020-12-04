@@ -37,9 +37,12 @@ class WrapperType(BaseType):
     def convert(self, value, context=None):
         if context.new:
             value = self.value_mapping(value)
-            if not value and self.default:
+        if value is None:
+            if self.default is not None:
                 return self.default
-        return self.field.convert(value)
+            else:
+                return value
+        return self.field.convert(value, context)
 
     def export(self, value, format, context=None):
         self.field.export(value, format, context)
@@ -49,21 +52,21 @@ class ChangeRequest(Model):
     number = WrapperType(StringType, required=True, value_mapping=lambda x: x['display_value'])
     state = WrapperType(StringType, required=True, value_mapping=lambda x: x['display_value'])
     cmdb_ci = DictType(StrictStringType(accept_empty=False), required=True)
-    sys_updated_on = WrapperType(DateTimeType, value_mapping=lambda x: x['value'])
-    business_service = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
-    service_offering = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
+    sys_updated_on = WrapperType(DateTimeType, required=True, value_mapping=lambda x: x['value'])
+    business_service = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
+    service_offering = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
     short_description = WrapperType(StringType, required=True, value_mapping=lambda x: x['display_value'])
     description = WrapperType(StringType, default='No description', value_mapping=lambda x: x['display_value'])
-    type = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
-    priority = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
-    impact = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
-    risk = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
+    type = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
+    priority = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
+    impact = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
+    risk = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
     requested_by = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
-    category = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
-    conflict_status = WrapperType(StringType, value_mapping=lambda x: x['value'])
-    conflict_last_run = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
-    assignment_group = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
-    assigned_to = WrapperType(StringType, value_mapping=lambda x: x['display_value'])
+    category = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
+    conflict_status = WrapperType(StringType, value_mapping=lambda x: x['value'], default='')
+    conflict_last_run = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
+    assignment_group = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
+    assigned_to = WrapperType(StringType, value_mapping=lambda x: x['display_value'], default='')
 
 
 class State(Model):
@@ -120,7 +123,7 @@ class ServicenowCheck(AgentCheck):
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=tags, message=msg)
         except Exception as e:
             self.log.exception(e)
-            msg = '{}: {}'.format(type(e).__name__, str(e))
+            msg = '%s: %s' % (type(e).__name__, str(e))
             self.service_check(
                 self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, message=msg, tags=instance_info.instance_tags
             )
@@ -133,9 +136,9 @@ class ServicenowCheck(AgentCheck):
         """
         sysparm_query = ""
         if len(sys_class_filter) > 0:
-            sysparm_query = "sys_class_nameIN{}".format(sys_class_filter[0])
+            sysparm_query = "sys_class_nameIN%s" % sys_class_filter[0]
             if len(sys_class_filter[1:]) > 0:
-                sysparm_query = "{},{}".format(sysparm_query, ",".join(sys_class_filter[1:]))
+                sysparm_query = "%s,%s" % (sysparm_query, ",".join(sys_class_filter[1:]))
         if sysparm_query:
             self.log.debug('sysparm_query for component: %s', sysparm_query)
         return sysparm_query
@@ -144,11 +147,11 @@ class ServicenowCheck(AgentCheck):
         sysparm_parent_query = ""
         sysparm_child_query = ""
         if len(sys_class_filter) > 0:
-            sysparm_parent_query = "parent.sys_class_nameIN{}".format(sys_class_filter[0])
-            sysparm_child_query = "^child.sys_class_nameIN{}".format(sys_class_filter[0])
+            sysparm_parent_query = "parent.sys_class_nameIN%s" % sys_class_filter[0]
+            sysparm_child_query = "^child.sys_class_nameIN%s" % sys_class_filter[0]
             if len(sys_class_filter[1:]) > 0:
-                sysparm_parent_query = "{},{}".format(sysparm_parent_query, ",".join(sys_class_filter[1:]))
-                sysparm_child_query = "{},{}".format(sysparm_child_query, ",".join(sys_class_filter[1:]))
+                sysparm_parent_query = "%s,%s" % (sysparm_parent_query, ",".join(sys_class_filter[1:]))
+                sysparm_child_query = "%s,%s" % (sysparm_child_query, ",".join(sys_class_filter[1:]))
         sysparm_query = sysparm_parent_query + sysparm_child_query
         if sysparm_query:
             self.log.debug('sysparm_query for relation: %s', sysparm_query)
@@ -198,13 +201,14 @@ class ServicenowCheck(AgentCheck):
             if "result" in elements and isinstance(elements["result"], list):
                 number_of_elements_in_current_batch = len(elements.get("result"))
             else:
-                raise CheckException('Method {} has no result'.format(collect_function))
+                raise CheckException('Method %s has no result' % collect_function)
             completed = number_of_elements_in_current_batch < instance_info.batch_size
             collection.extend(elements['result'])
             batch_number += 1
             offset += instance_info.batch_size
             self.log.info(
-                'Processed batch no. {} with {} items.'.format(batch_number, number_of_elements_in_current_batch)
+                '%s processed batch no. %d with %d items.',
+                collect_function.__name__, batch_number, number_of_elements_in_current_batch
             )
 
         return collection
@@ -226,11 +230,11 @@ class ServicenowCheck(AgentCheck):
             external_id = component.get('sys_id')
 
             if component.get('fqdn'):
-                identifiers.append(Identifiers.create_host_identifier(component['fqdn']))
+                identifiers.append(Identifiers.create_host_identifier(to_string(component['fqdn'])))
             if component.get('host_name'):
-                identifiers.append(Identifiers.create_host_identifier(component['host_name']))
+                identifiers.append(Identifiers.create_host_identifier(to_string(component['host_name'])))
             else:
-                identifiers.append(Identifiers.create_host_identifier(comp_name))
+                identifiers.append(Identifiers.create_host_identifier(to_string(comp_name)))
             identifiers.append(external_id)
             data.update(component)
             data.update({"identifiers": identifiers, "tags": instance_info.instance_tags})
@@ -297,7 +301,7 @@ class ServicenowCheck(AgentCheck):
         auth = (instance_info.user, instance_info.password)
         url = instance_info.url + '/api/now/table/change_request'
         reformatted_date = instance_info.state.latest_sys_updated_on.strftime("'%Y-%m-%d', '%H:%M:%S'")
-        sysparm_query = 'sys_updated_on>javascript:gs.dateGenerate({})'.format(reformatted_date)
+        sysparm_query = 'sys_updated_on>javascript:gs.dateGenerate(%s)' % reformatted_date
         self.log.debug('sysparm_query: %s', sysparm_query)
         params = {
             'sysparm_display_value': 'all',
@@ -310,6 +314,7 @@ class ServicenowCheck(AgentCheck):
 
     def _process_change_requests(self, instance_info):
         response = self._collect_change_requests(instance_info)
+        self.log.debug('Received %d Change Requests', len(response['result']))
         for cr in response['result']:
             try:
                 change_request = ChangeRequest(cr, strict=False)
@@ -318,6 +323,14 @@ class ServicenowCheck(AgentCheck):
                 self.log.warning('%s - DataError: %s. This CR is skipped.', cr['number']['value'], e)
                 continue
             if change_request.cmdb_ci:
+                self.log.debug(
+                    '%s: %s %s - sys_updated_on value: %s display_value: %s',
+                    change_request.number,
+                    change_request.cmdb_ci['value'],
+                    change_request.cmdb_ci['display_value'],
+                    cr['sys_updated_on']['value'],
+                    cr['sys_updated_on']['display_value']
+                )
                 if change_request.sys_updated_on > instance_info.state.latest_sys_updated_on:
                     instance_info.state.latest_sys_updated_on = change_request.sys_updated_on
                 old_state = instance_info.state.change_requests.get(change_request.number)
@@ -326,27 +339,26 @@ class ServicenowCheck(AgentCheck):
                     instance_info.state.change_requests[change_request.number] = change_request.state
 
     def _create_event_from_change_request(self, change_request):
-        identifiers = [
-            change_request.cmdb_ci['value'],
-            Identifiers.create_host_identifier(change_request.cmdb_ci['display_value'])
-        ]
+        host = Identifiers.create_host_identifier(to_string(change_request.cmdb_ci['display_value']))
+        identifiers = [change_request.cmdb_ci['value'], host]
         timestamp = (change_request.sys_updated_on - datetime.datetime.utcfromtimestamp(0)).total_seconds()
-        msg_title = '{}: {}'.format(change_request.number, change_request.short_description)
+        msg_title = '%s: %s' % (change_request.number, change_request.short_description)
         tags = [
-            'number:{}'.format(change_request.number),
-            'priority:{}'.format(change_request.priority),
-            'risk:{}'.format(change_request.risk),
-            'state:{}'.format(change_request.state),
-            'category:{}'.format(change_request.category),
-            'conflict_status:{}'.format(change_request.conflict_status),
-            'assigned_to:{}'.format(change_request.assigned_to)
+            'number:%s' % change_request.number,
+            'priority:%s' % change_request.priority,
+            'risk:%s' % change_request.risk,
+            'state:%s' % change_request.state,
+            'category:%s' % change_request.category,
+            'conflict_status:%s' % change_request.conflict_status,
+            'assigned_to:%s' % change_request.assigned_to
         ]
+        event_type = 'Change Request %s' % change_request.type
 
         self.log.debug('Creating event from CR: %s', change_request.number)
 
         self.event({
             'timestamp': timestamp,
-            'event_type': change_request.type,
+            'event_type': event_type,
             'msg_title': msg_title,
             'msg_text': change_request.description,
             'context': {
@@ -372,7 +384,7 @@ class ServicenowCheck(AgentCheck):
         if add_to_query:
             sysparm_query = params.pop('sysparm_query', '')
             if sysparm_query:
-                sysparm_query += '^{}'.format(add_to_query)
+                sysparm_query += '^%s' % add_to_query
             else:
                 sysparm_query = add_to_query
             params.update({'sysparm_query': sysparm_query})
@@ -393,29 +405,27 @@ class ServicenowCheck(AgentCheck):
 
         response = requests.get(url, timeout=timeout, params=params, auth=auth, verify=verify)
         if response.status_code != 200:
-            raise CheckException('Got status: {} when hitting {}'.format(response.status_code, response.url))
+            raise CheckException('Got status: %d when hitting %s' % (response.status_code, response.url))
 
         try:
             response_json = json.loads(response.text.encode('utf-8'))
         except UnicodeEncodeError as e:
-            raise CheckException('Encoding error: "{}" in response from url {}'.format(e, response.url))
+            raise CheckException('Encoding error: "%s" in response from url %s' % (e, response.url))
         except json_parse_exception as e:
             # Fix for ServiceNow bug: Sometimes there is a response with status 200 and malformed json with
             # error message 'Transaction cancelled: maximum execution time exceeded'.
             # We send right error message because ParserError is just side effect error.
             if execution_time_exceeded_error_message in response.text:
-                error_msg = 'ServiceNow Error "{}" in response from url {}'.format(
+                error_msg = 'ServiceNow Error "%s" in response from url %s' % (
                     execution_time_exceeded_error_message, response.url
                 )
             else:
-                error_msg = 'Json parse error: "{}" in response from url {}'.format(e, response.url)
+                error_msg = 'Json parse error: "%s" in response from url %s' % (e, response.url)
             raise CheckException(error_msg)
 
         if response_json.get('error'):
             raise CheckException(
-                'ServiceNow error: "{}" in response from url {}'.format(
-                    response_json['error'].get('message'), response.url
-                )
+                'ServiceNow error: "%s" in response from url %s' % (response_json['error'].get('message'), response.url)
             )
 
         if response_json.get('result'):

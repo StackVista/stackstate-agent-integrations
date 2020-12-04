@@ -211,6 +211,8 @@ class TestServicenow(unittest.TestCase):
         self.check = ServicenowCheck('servicenow', {}, {}, [self.instance])
         topology.reset()
         aggregator.reset()
+        telemetry.reset()
+        self.check.commit_state(None)
 
     def test_check(self):
         """
@@ -253,6 +255,7 @@ class TestServicenow(unittest.TestCase):
         """
         self.check._batch_collect_components = mock.MagicMock()
         self.check._batch_collect_components.return_value = mock_collect_components
+        self.check._batch_collect_components.__name__ = 'mock_batch_collect_components'
         self.check._batch_collect(self.check._batch_collect_components, instance_info)
         self.check._process_components(instance_info)
 
@@ -293,6 +296,7 @@ class TestServicenow(unittest.TestCase):
         self.check._process_relation_types.return_value = {'1a9cb166f1571100a92eb60da2bce5c5': 'Cools'}
         self.check._batch_collect_relations = mock.MagicMock()
         self.check._batch_collect_relations.return_value = mock_relation_components
+        self.check._batch_collect_relations.__name__ = 'mock_batch_collect_relations'
         self.check._process_relations(instance_info)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
@@ -472,6 +476,7 @@ class TestServicenow(unittest.TestCase):
         """
         self.check._batch_collect_components = mock.MagicMock()
         self.check._batch_collect_components.side_effect = [mock_collect_components_batch, mock_collect_components]
+        self.check._batch_collect_components.__name__ = 'mock_batch_collect_components'
         new_inst_conf = copy(instance_info)
         new_inst_conf.batch_size = 5
         self.check._process_components(new_inst_conf)
@@ -551,6 +556,7 @@ class TestServicenow(unittest.TestCase):
         """Test if collect component returns no result or its not list"""
         self.check._batch_collect_components = mock.MagicMock()
         self.check._batch_collect_components.return_value = mock_empty_result
+        self.check._batch_collect_components.__name__ = 'mock_batch_collect_components'
         self.check._batch_collect(self.check._batch_collect_components, instance_info)
 
         # no snapshot is created
@@ -562,6 +568,7 @@ class TestServicenow(unittest.TestCase):
         """
         self.check._batch_collect_components = mock.MagicMock()
         self.check._batch_collect_components.side_effect = [mock_collect_components_batch, mock_empty_result]
+        self.check._batch_collect_components.__name__ = 'mock_batch_collect_components'
         new_inst_conf = copy(instance_info)
         new_inst_conf.batch_size = 5
         self.check._process_components(new_inst_conf)
@@ -620,6 +627,7 @@ class TestServicenow(unittest.TestCase):
         self.assertEqual(self.check.SERVICE_CHECK_NAME, service_checks[0].name)
         self.assertEqual(AgentCheck.CRITICAL, service_checks[0].status)
         self.assertEqual('Timeout: ', service_checks[0].message)
+        self.check.commit_state(None)
 
     @mock.patch('requests.get')
     def test_get_json_error_msg(self, mock_request_get):
@@ -657,6 +665,7 @@ class TestServicenow(unittest.TestCase):
         }
         self.check._batch_collect_components = mock.MagicMock()
         self.check._batch_collect_components.return_value = collect_components_with_fqdn_umlaut
+        self.check._batch_collect_components.__name__ = 'mock_batch_collect_components'
         self.check._batch_collect(self.check._batch_collect_components, instance_info)
         self.check._process_components(instance_info)
         topo_instances = topology.get_snapshot(self.check.check_id)
@@ -674,6 +683,23 @@ class TestServicenow(unittest.TestCase):
         self.check._batch_collect_relations = mock_collect_process
         self.check._collect_change_requests = mock.MagicMock()
         self.check._collect_change_requests.return_value = self._read_data('CHG0000001.json')
+        self.check.run()
+        topology_events = telemetry._topology_events
+        service_checks = aggregator.service_checks('servicenow.cmdb.topology_information')
+        self.assertEqual(AgentCheck.OK, service_checks[0].status)
+        self.assertEqual(1, len(topology_events))
+        self.check.commit_state(None)
+
+    def test_creating_event_from_change_request_when_field_has_null_value(self):
+        """
+        SNOW CR Field can have null for display_value
+        "category": { "display_value": null, "value": "" }
+        """
+        self.check._collect_relation_types = mock_collect_process
+        self.check._batch_collect_components = mock_collect_process
+        self.check._batch_collect_relations = mock_collect_process
+        self.check._collect_change_requests = mock.MagicMock()
+        self.check._collect_change_requests.return_value = self._read_data('CHG0000002.json')
         self.check.run()
         topology_events = telemetry._topology_events
         service_checks = aggregator.service_checks('servicenow.cmdb.topology_information')
