@@ -66,7 +66,7 @@
         "value": "requested"
       },
       "cmdb_ci": {
-        "display_value": "Sales Force Automation",
+        "display_value": "Sales © Force Automation",
         "value": "a9c0c8d2c6112276018f7705562f9cb0"
       },
       "delivery_plan": {
@@ -142,8 +142,8 @@
         "value": "2020-09-12 01:00:00"
       },
       "short_description": {
-        "display_value": "Rollback Oracle Version",
-        "value": "Rollback Oracle Version"
+        "display_value": "Rollback Oracle ® Version",
+        "value": "Rollback Oracle ® Version"
       },
       "correlation_display": {
         "display_value": "",

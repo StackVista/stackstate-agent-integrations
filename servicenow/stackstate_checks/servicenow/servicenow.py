@@ -211,29 +211,24 @@ class ServicenowCheck(AgentCheck):
         collected_components = self._batch_collect(self._batch_collect_components, instance_info)
 
         for component in collected_components:
-            try:
-                data = {}
-                component = self._filter_empty_metadata(component)
-                identifiers = []
-                comp_name = component.get('name')
-                comp_type = component.get('sys_class_name')
-                external_id = component.get('sys_id')
+            data = {}
+            component = self._filter_empty_metadata(component)
+            identifiers = []
+            comp_name = component.get('name')
+            comp_type = component.get('sys_class_name')
+            external_id = component.get('sys_id')
 
-                if component.get('fqdn'):
-                    identifiers.append(Identifiers.create_host_identifier(to_string(component['fqdn'])))
-                if component.get('host_name'):
-                    identifiers.append(Identifiers.create_host_identifier(to_string(component['host_name'])))
-                else:
-                    identifiers.append(Identifiers.create_host_identifier(to_string(comp_name)))
-                identifiers.append(external_id)
-                data.update(component)
-                data.update({"identifiers": identifiers, "tags": instance_info.instance_tags})
+            if component.get('fqdn'):
+                identifiers.append(Identifiers.create_host_identifier(to_string(component['fqdn'])))
+            if component.get('host_name'):
+                identifiers.append(Identifiers.create_host_identifier(to_string(component['host_name'])))
+            else:
+                identifiers.append(Identifiers.create_host_identifier(to_string(comp_name)))
+            identifiers.append(external_id)
+            data.update(component)
+            data.update({"identifiers": identifiers, "tags": instance_info.instance_tags})
 
-                self.component(external_id, comp_type, data)
-            except Exception as e:
-                # for POC we just log exception and move on, so we can catch them all,
-                # and send the components without errors
-                self.log.exception(e)
+            self.component(external_id, comp_type, data)
 
     def _collect_relation_types(self, instance_info):
         """
@@ -254,15 +249,11 @@ class ServicenowCheck(AgentCheck):
         relation_types = {}
         types = self._collect_relation_types(instance_info)
 
-        try:
-            if "result" in types:
-                for relation in types.get('result', []):
-                    sys_id = relation['sys_id']
-                    parent_descriptor = relation['parent_descriptor']
-                    relation_types[sys_id] = parent_descriptor
-        except Exception as e:
-            # for POC we just log exception and move on, so we can catch them all, and send relations without errors
-            self.log.exception(e)
+        if "result" in types:
+            for relation in types.get('result', []):
+                sys_id = relation['sys_id']
+                parent_descriptor = relation['parent_descriptor']
+                relation_types[sys_id] = parent_descriptor
         return relation_types
 
     def _batch_collect_relations(self, instance_info, offset):
@@ -285,20 +276,15 @@ class ServicenowCheck(AgentCheck):
         relation_types = self._process_relation_types(instance_info)
         collected_relations = self._batch_collect(self._batch_collect_relations, instance_info)
         for relation in collected_relations:
-            try:
-                parent_sys_id = relation['parent']['value']
-                child_sys_id = relation['child']['value']
-                type_sys_id = relation['type']['value']
+            parent_sys_id = relation['parent']['value']
+            child_sys_id = relation['child']['value']
+            type_sys_id = relation['type']['value']
 
-                relation_type = relation_types[type_sys_id]
-                data = self._filter_empty_metadata(relation)
-                data.update({"tags": instance_info.instance_tags})
+            relation_type = relation_types[type_sys_id]
+            data = self._filter_empty_metadata(relation)
+            data.update({"tags": instance_info.instance_tags})
 
-                self.relation(parent_sys_id, child_sys_id, relation_type, data)
-            except Exception as e:
-                # for POC we log all relation exceptions, and move on, so we can catch the all unplanned ones
-                # and we still send OK relations
-                self.log.exception(e)
+            self.relation(parent_sys_id, child_sys_id, relation_type, data)
 
     def _collect_change_requests(self, instance_info):
         auth = (instance_info.user, instance_info.password)
@@ -340,11 +326,7 @@ class ServicenowCheck(AgentCheck):
                     state.latest_sys_updated_on = change_request.sys_updated_on.value
                 old_state = state.change_requests.get(change_request.number.display_value)
                 if old_state is None or old_state != change_request.state.display_value:
-                    try:
-                        self._create_event_from_change_request(change_request)
-                    except Exception as e:
-                        # for POC we log create event, to catch all possible errors we missed
-                        self.log.exception(e)
+                    self._create_event_from_change_request(change_request)
                     state.change_requests[change_request.number.display_value] = change_request.state.display_value
 
     def _create_event_from_change_request(self, change_request):
@@ -360,12 +342,10 @@ class ServicenowCheck(AgentCheck):
             'category:%s' % change_request.category.display_value,
             'conflict_status:%s' % change_request.conflict_status.display_value,
             'assigned_to:%s' % change_request.assigned_to.display_value,
-            'identifier_sys_id:%s' % change_request.custom_cmdb_ci.value,
-            'identifier_host:%s' % host,
         ]
         event_type = 'Change Request %s' % change_request.type.display_value
 
-        self.log.info('Creating event from CR %s', change_request.number.display_value)
+        self.log.debug('Creating event from CR %s', change_request.number.display_value)
 
         self.event({
             'timestamp': timestamp,
