@@ -15,7 +15,7 @@ import requests
 from schematics.exceptions import DataError
 from six import PY3
 
-from stackstate_checks.base import AgentIntegrationTestUtil, AgentCheck
+from stackstate_checks.base import AgentIntegrationTestUtil, AgentCheck, to_string
 from stackstate_checks.base.errors import CheckException
 from stackstate_checks.base.stubs import topology, aggregator, telemetry
 from stackstate_checks.servicenow import ServicenowCheck, InstanceInfo, State
@@ -686,6 +686,7 @@ class TestServicenow(unittest.TestCase):
         service_checks = aggregator.service_checks('servicenow.cmdb.topology_information')
         self.assertEqual(AgentCheck.OK, service_checks[0].status)
         self.assertEqual(1, len(topology_events))
+        self.assertEqual(to_string('CHG0000001: Rollback Oracle ® Version'), topology_events[0]['msg_title'])
         self.check.commit_state(None)
 
     def test_creating_event_from_change_request_when_field_has_null_value(self):
@@ -703,6 +704,7 @@ class TestServicenow(unittest.TestCase):
         service_checks = aggregator.service_checks('servicenow.cmdb.topology_information')
         self.assertEqual(AgentCheck.OK, service_checks[0].status)
         self.assertEqual(1, len(topology_events))
+        self.assertEqual('CHG0000002: Rollback Oracle Version', topology_events[0]['msg_title'])
         self.check.commit_state(None)
 
     def test_batch_collect_components_sys_filter_with_query_filter(self):
