@@ -179,7 +179,6 @@ mock_instance = {
     'password': 'secret'
 }
 
-
 state = State({'latest_sys_updated_on': "2017-06-29 11:03:27"})
 
 instance_info = InstanceInfo(
@@ -752,6 +751,30 @@ class TestServicenow(unittest.TestCase):
         self.assertEqual(params.get('sysparm_limit'), 1000)
         self.assertEqual(params.get('sysparm_query'), "sys_updated_on>javascript:gs.dateGenerate('2017-06-29', "
                                                       "'11:03:27')^company.nameSTARTSWITHaxa")
+
+    def test_custom_cmdb_ci_field(self):
+        """
+        Read from the custom field.
+        """
+        custom_field_instance = {
+            'url': "https://instance.service-now.com",
+            'user': 'name',
+            'password': 'secret',
+            'custom_cmdb_ci_field': 'u_configuration_item'
+        }
+        check = ServicenowCheck('servicenow', {}, {}, [custom_field_instance])
+        check._collect_relation_types = mock_collect_process
+        check._batch_collect_components = mock_collect_process
+        check._batch_collect_relations = mock_collect_process
+        check._collect_change_requests = mock.MagicMock()
+        check._collect_change_requests.return_value = self._read_data('CHG0000003.json')
+        check.run()
+        topology_events = telemetry._topology_events
+        service_checks = aggregator.service_checks('servicenow.cmdb.topology_information')
+        self.assertEqual(AgentCheck.OK, service_checks[0].status)
+        self.assertEqual(1, len(topology_events))
+        self.assertEqual(to_string('CHG0000003: Rollback Oracle ® Version'), topology_events[0]['msg_title'])
+        self.check.commit_state(None)
 
     def _get_url_auth(self):
         url = "{}/api/now/table/cmdb_ci".format(self.instance.get('url'))
