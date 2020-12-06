@@ -518,11 +518,10 @@ class TestServicenow(unittest.TestCase):
         params = self.check._params_append_to_sysparm_query(add_to_query='')
         self.assertEqual({}, params)
 
-    def test_json_batch(self):
+    def test_json_batch_params(self):
         """
-        Test if batch path construction
+        Test json batch params
         """
-        self.check._get_json = mock_get_json
         offset = 10
         batch_size = 200
         params = self.check._prepare_json_batch_params(params={}, offset=offset, batch_size=batch_size)
@@ -532,9 +531,8 @@ class TestServicenow(unittest.TestCase):
 
     def test_json_batch_adding_param(self):
         """
-        Test if batch path construction
+        Test batch path construction adding to sysparm_query
         """
-        self.check._get_json = mock_get_json
         offset = 10
         batch_size = 200
         params = self.check._prepare_json_batch_params(params={'sysparm_query': 'company.nameSTARTSWITHaxa'},
