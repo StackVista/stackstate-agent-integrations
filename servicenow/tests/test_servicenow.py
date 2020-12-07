@@ -704,6 +704,8 @@ class TestServicenow(unittest.TestCase):
         self.assertEqual(AgentCheck.OK, service_checks[0].status)
         self.assertEqual(1, len(topology_events))
         self.assertEqual('CHG0000002: Rollback Oracle Version', topology_events[0]['msg_title'])
+        category_tag = [e for e in topology_events[0]['tags'] if 'category' in e][0]
+        self.assertEqual('category:None', category_tag)
         self.check.commit_state(None)
 
     def test_batch_collect_components_sys_filter_with_query_filter(self):
