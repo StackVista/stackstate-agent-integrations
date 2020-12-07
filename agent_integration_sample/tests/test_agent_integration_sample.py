@@ -88,7 +88,6 @@ class TestAgentIntegration(unittest.TestCase):
                         'value': 'agent-integration'
                       }
                     ],
-                    'identifier': topo_instances['components'][1]['data']['service_checks'][0]['identifier'],
                     'name': 'Service Checks',
                     'stream_id': -1
                   }
@@ -130,7 +129,6 @@ class TestAgentIntegration(unittest.TestCase):
                         'value': 'sample'
                       }
                     ],
-                    'identifier': topo_instances['components'][2]['data']['service_checks'][0]['identifier'],
                     'name': 'Service Checks',
                     'stream_id': -1
                   }
@@ -214,7 +212,6 @@ class TestAgentIntegration(unittest.TestCase):
                         'value': 'eu-west-1'
                       }
                     ],
-                    'identifier': topo_instances['components'][3]['data']['metrics'][0]['identifier'],
                     'metric_field': 'system.cpu.usage',
                     'name': 'Host CPU Usage',
                     'priority': 'HIGH',
@@ -233,7 +230,6 @@ class TestAgentIntegration(unittest.TestCase):
                         'value': 'eu-west-1'
                       }
                     ],
-                    'identifier': topo_instances['components'][3]['data']['metrics'][1]['identifier'],
                     'metric_field': 'location.availability',
                     'name': 'Host Availability',
                     'priority': 'HIGH',
@@ -314,7 +310,6 @@ class TestAgentIntegration(unittest.TestCase):
                         'value': 'eu-west-1'
                       }
                     ],
-                    'identifier': topo_instances['components'][4]['data']['metrics'][0]['identifier'],
                     'metric_field': '2xx.responses',
                     'name': '2xx Responses',
                     'priority': 'HIGH',
@@ -333,7 +328,6 @@ class TestAgentIntegration(unittest.TestCase):
                         'value': 'eu-west-1'
                       }
                     ],
-                    'identifier': topo_instances['components'][4]['data']['metrics'][1]['identifier'],
                     'metric_field': '5xx.responses',
                     'name': '5xx Responses',
                     'priority': 'HIGH',
