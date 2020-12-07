@@ -10,15 +10,9 @@ from copy import deepcopy
 from six import iteritems
 
 from stackstate_checks.checks.openmetrics import OpenMetricsBaseCheck
+from stackstate_checks.base import AgentCheck, AgentIntegrationInstance
 from stackstate_checks.config import is_affirmative
 from stackstate_checks.errors import CheckException
-
-try:
-    # this module is only available in agent 6
-    from datadog_agent import get_clustername
-except ImportError:
-    def get_clustername():
-        return "test-cluster-name"
 
 METRIC_TYPES = ['counter', 'gauge']
 
@@ -32,6 +26,9 @@ class KubernetesState(OpenMetricsBaseCheck):
     Collect kube-state-metrics metrics in the Prometheus format
     See https://github.com/kubernetes/kube-state-metrics
     """
+
+    def get_instance_key(self, instance):
+        return AgentIntegrationInstance(self.name or 'kubernetes_state', self.cluster_name)
 
     class JobCount:
         def __init__(self):
@@ -54,9 +51,9 @@ class KubernetesState(OpenMetricsBaseCheck):
     def __init__(self, name, init_config, agentConfig, instances=None):
         # We do not support more than one instance of kube-state-metrics
         instance = instances[0]
-        clustername = get_clustername()
-        if clustername != "":
-            instance.get('tags',[]).extend(['cluster_name:%s' % clustername])
+        self.cluster_name = AgentCheck.get_cluster_name()
+        if self.cluster_name != "":
+            instance.get('tags', []).extend(['cluster_name:%s' % self.cluster_name])
 
         kubernetes_state_instance = self._create_kubernetes_state_prometheus_instance(instance)
 
@@ -314,9 +311,8 @@ class KubernetesState(OpenMetricsBaseCheck):
         ksm_instance['prometheus_url'] = endpoint
         ksm_instance['label_joins'].update(extra_labels)
 
-        clustername = get_clustername()
-        if clustername != "" and hostname_override:
-            ksm_instance['label_to_hostname_suffix'] = "-" + clustername
+        if self.cluster_name != "" and hostname_override:
+            ksm_instance['label_to_hostname_suffix'] = "-" + self.cluster_name
 
         if hostname_override:
             ksm_instance['label_to_hostname'] = 'node'
