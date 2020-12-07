@@ -378,7 +378,6 @@ class TelemetryStream(object):
         return {
             "name": self.name,
             "conditions": self.conditions,
-            "identifier": self.identifier,
         }
 
 

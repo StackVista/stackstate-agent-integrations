@@ -104,6 +104,11 @@ class AgentIntegrationInstance(TopologyInstanceBase):
     def tags(self):
         return ["integration-type:{}".format(self.integration), "integration-url:{}".format(self.name)]
 
+    def __eq__(self, other):
+        if (isinstance(other, AgentIntegrationInstance)):
+            return self.integration == other.integration and self.name == other.name
+        return False
+
 
 class TopologyInstance(TopologyInstanceBase):
     """
@@ -171,7 +176,7 @@ class AgentCheckBase(object):
         self.hostname = datadog_agent.get_hostname()
 
         # returns the cluster name if the check is running in Kubernetes / OpenShift
-        self.cluster_name = datadog_agent.get_clustername()
+        self.cluster_name = AgentCheckBase.get_cluster_name()
 
         self.log = logging.getLogger('{}.{}'.format(__name__, self.name))
         self.state_manager = StateManager(self.log)
@@ -256,6 +261,13 @@ class AgentCheckBase(object):
         instance_key = to_string(self.normalize("instance.{}.{}".format(instance.type, instance.url),
                                                 extra_disallowed_chars=b":"))
         return StateDescriptor(instance_key, self.get_check_config_path())
+
+    @staticmethod
+    def get_cluster_name():
+        """
+        returns the cluster name if the check is running in Kubernetes / OpenShift
+        """
+        return datadog_agent.get_clustername()
 
     @staticmethod
     def load_config(yaml_str):

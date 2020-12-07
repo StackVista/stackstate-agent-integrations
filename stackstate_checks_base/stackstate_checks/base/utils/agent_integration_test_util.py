@@ -46,7 +46,6 @@ class AgentIntegrationTestUtil(object):
                             {'key': 'host', 'value': 'stubbed.hostname'},
                             {'key': 'tags.integration-type', 'value': '{}'.format(instance["type"])},
                         ],
-                        'identifier': integration_component['data']['service_checks'][0]['identifier'],
                         'stream_id': -1,
                         'name': 'Service Checks'
                     }
@@ -103,7 +102,6 @@ class AgentIntegrationTestUtil(object):
                             {'key': 'tags.integration-type', 'value': '{}'.format(instance["type"])},
                             {'key': 'tags.integration-url', 'value': '{}'.format(instance["url"])},
                         ],
-                        'identifier': integration_component['data']['service_checks'][0]['identifier'],
                         'stream_id': -1,
                         'name': 'Service Checks'
                     }
