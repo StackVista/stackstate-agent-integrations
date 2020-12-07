@@ -767,13 +767,24 @@ class TestServicenow(unittest.TestCase):
         check._batch_collect_components = mock_collect_process
         check._batch_collect_relations = mock_collect_process
         check._collect_change_requests = mock.MagicMock()
-        check._collect_change_requests.return_value = self._read_data('CHG0000003.json')
+        response = self._read_data('CHG0000003.json')
+        self.assertEqual(
+            to_string('Sales © Force Automation'),
+            to_string(response['result'][0]['u_configuration_item']['display_value'])
+        )
+        self.assertEqual(to_string(
+            'Service Management Tools Portal - AXA WINTERTHUR - Production - Standard'),
+            response['result'][0]['cmdb_ci']['display_value']
+        )
+        check._collect_change_requests.return_value = response
         check.run()
         topology_events = telemetry._topology_events
         service_checks = aggregator.service_checks('servicenow.cmdb.topology_information')
         self.assertEqual(AgentCheck.OK, service_checks[0].status)
         self.assertEqual(1, len(topology_events))
         self.assertEqual(to_string('CHG0000003: Rollback Oracle ® Version'), topology_events[0]['msg_title'])
+        host_identifier = [e for e in topology_events[0]['context']['element_identifiers'] if 'urn:host:/' in e][0]
+        self.assertEqual(to_string('urn:host:/Sales © Force Automation'), host_identifier)
         self.check.commit_state(None)
 
     def _get_url_auth(self):
