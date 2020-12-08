@@ -103,12 +103,15 @@ class Identifiers(object):
     @staticmethod
     def append_lowercase_identifiers(identifiers):
         """
-        Appends lowercase identifiers of existing ones in list that are not lowercase.
+        Appends the lowercase version of existing identifiers to identifiers list.
+        It is done for the following namespaces: urn:host, urn:process, urn:container, urn:service, urn:service-instance
+
         :param identifiers: list of urn identifiers
         :return: list of identifiers with appended lowercase ones
         """
+        urn_types = ['urn:host:', 'urn:process:', 'urn:container:', 'urn:service:', 'urn:service-instance:']
         lowercase_identifiers = []
-        for identifier in [element for element in identifiers if 'urn:' in element]:
+        for identifier in [element for element in identifiers if element[:element.find('/')] in urn_types]:
             if identifier.lower() != identifier:
                 lowercase_identifiers.append(identifier.lower())
         return identifiers + lowercase_identifiers
