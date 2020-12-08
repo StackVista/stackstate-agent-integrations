@@ -99,3 +99,16 @@ class Identifiers(object):
         in the class definition.
         """
         return "urn:{}:/{}".format(identifier_namespace, identifier)
+
+    @staticmethod
+    def append_lowercase_identifiers(identifiers):
+        """
+        Appends lowercase identifiers of existing ones in list that are not lowercase.
+        :param identifiers: list of urn identifiers
+        :return: list of identifiers with appended lowercase ones
+        """
+        lowercase_identifiers = []
+        for identifier in [element for element in identifiers if 'urn:' in element]:
+            if identifier.lower() != identifier:
+                lowercase_identifiers.append(identifier.lower())
+        return identifiers + lowercase_identifiers
