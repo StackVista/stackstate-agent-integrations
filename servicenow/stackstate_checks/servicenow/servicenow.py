@@ -225,6 +225,7 @@ class ServicenowCheck(AgentCheck):
             else:
                 identifiers.append(Identifiers.create_host_identifier(to_string(comp_name)))
             identifiers.append(external_id)
+            identifiers = Identifiers.append_lowercase_identifiers(identifiers)
             data.update(component)
             data.update({"identifiers": identifiers, "tags": instance_info.instance_tags})
 
@@ -332,6 +333,7 @@ class ServicenowCheck(AgentCheck):
     def _create_event_from_change_request(self, change_request):
         host = Identifiers.create_host_identifier(to_string(change_request.custom_cmdb_ci.display_value))
         identifiers = [change_request.custom_cmdb_ci.value, host]
+        identifiers = Identifiers.append_lowercase_identifiers(identifiers)
         timestamp = (change_request.sys_updated_on.value - datetime.datetime.utcfromtimestamp(0)).total_seconds()
         msg_title = '%s: %s' % (change_request.number.display_value, change_request.short_description.display_value)
         tags = [
