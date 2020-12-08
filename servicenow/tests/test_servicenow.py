@@ -15,7 +15,7 @@ import requests
 from schematics.exceptions import DataError
 from six import PY3
 
-from stackstate_checks.base import AgentIntegrationTestUtil, AgentCheck
+from stackstate_checks.base import AgentIntegrationTestUtil, AgentCheck, to_string
 from stackstate_checks.base.errors import CheckException
 from stackstate_checks.base.stubs import topology, aggregator, telemetry
 from stackstate_checks.servicenow import ServicenowCheck, InstanceInfo, State
@@ -178,7 +178,6 @@ mock_instance = {
     'user': 'name',
     'password': 'secret'
 }
-
 
 state = State({'latest_sys_updated_on': "2017-06-29 11:03:27"})
 
@@ -518,11 +517,10 @@ class TestServicenow(unittest.TestCase):
         params = self.check._params_append_to_sysparm_query(add_to_query='')
         self.assertEqual({}, params)
 
-    def test_json_batch(self):
+    def test_json_batch_params(self):
         """
-        Test if batch path construction
+        Test json batch params
         """
-        self.check._get_json = mock_get_json
         offset = 10
         batch_size = 200
         params = self.check._prepare_json_batch_params(params={}, offset=offset, batch_size=batch_size)
@@ -532,9 +530,8 @@ class TestServicenow(unittest.TestCase):
 
     def test_json_batch_adding_param(self):
         """
-        Test if batch path construction
+        Test batch path construction adding to sysparm_query
         """
-        self.check._get_json = mock_get_json
         offset = 10
         batch_size = 200
         params = self.check._prepare_json_batch_params(params={'sysparm_query': 'company.nameSTARTSWITHaxa'},
@@ -688,6 +685,7 @@ class TestServicenow(unittest.TestCase):
         service_checks = aggregator.service_checks('servicenow.cmdb.topology_information')
         self.assertEqual(AgentCheck.OK, service_checks[0].status)
         self.assertEqual(1, len(topology_events))
+        self.assertEqual(to_string('CHG0000001: Rollback Oracle ® Version'), topology_events[0]['msg_title'])
         self.check.commit_state(None)
 
     def test_creating_event_from_change_request_when_field_has_null_value(self):
@@ -705,6 +703,9 @@ class TestServicenow(unittest.TestCase):
         service_checks = aggregator.service_checks('servicenow.cmdb.topology_information')
         self.assertEqual(AgentCheck.OK, service_checks[0].status)
         self.assertEqual(1, len(topology_events))
+        self.assertEqual('CHG0000002: Rollback Oracle Version', topology_events[0]['msg_title'])
+        category_tag = [e for e in topology_events[0]['tags'] if 'category' in e][0]
+        self.assertEqual('category:None', category_tag)
         self.check.commit_state(None)
 
     def test_batch_collect_components_sys_filter_with_query_filter(self):
@@ -752,6 +753,41 @@ class TestServicenow(unittest.TestCase):
         self.assertEqual(params.get('sysparm_limit'), 1000)
         self.assertEqual(params.get('sysparm_query'), "sys_updated_on>javascript:gs.dateGenerate('2017-06-29', "
                                                       "'11:03:27')^company.nameSTARTSWITHaxa")
+
+    def test_custom_cmdb_ci_field(self):
+        """
+        Read from the custom field.
+        """
+        custom_field_instance = {
+            'url': "https://instance.service-now.com",
+            'user': 'name',
+            'password': 'secret',
+            'custom_cmdb_ci_field': 'u_configuration_item'
+        }
+        check = ServicenowCheck('servicenow', {}, {}, [custom_field_instance])
+        check._collect_relation_types = mock_collect_process
+        check._batch_collect_components = mock_collect_process
+        check._batch_collect_relations = mock_collect_process
+        check._collect_change_requests = mock.MagicMock()
+        response = self._read_data('CHG0000003.json')
+        self.assertEqual(
+            to_string('Sales © Force Automation'),
+            to_string(response['result'][0]['u_configuration_item']['display_value'])
+        )
+        self.assertEqual(to_string(
+            'Service Management Tools Portal - AXA WINTERTHUR - Production - Standard'),
+            response['result'][0]['cmdb_ci']['display_value']
+        )
+        check._collect_change_requests.return_value = response
+        check.run()
+        topology_events = telemetry._topology_events
+        service_checks = aggregator.service_checks('servicenow.cmdb.topology_information')
+        self.assertEqual(AgentCheck.OK, service_checks[0].status)
+        self.assertEqual(1, len(topology_events))
+        self.assertEqual(to_string('CHG0000003: Rollback Oracle ® Version'), topology_events[0]['msg_title'])
+        host_identifier = [e for e in topology_events[0]['context']['element_identifiers'] if 'urn:host:/' in e][0]
+        self.assertEqual(to_string('urn:host:/Sales © Force Automation'), host_identifier)
+        self.check.commit_state(None)
 
     def _get_url_auth(self):
         url = "{}/api/now/table/cmdb_ci".format(self.instance.get('url'))
