@@ -402,6 +402,39 @@ class TopologyBrokenStatefulCheck(TopologyStatefulCheck):
         raise Exception("some error in my check")
 
 
+class IdentifierMappingTestAgentCheck(TopologyCheck):
+    def __init__(self):
+        instances = [
+            {'identifier_mappings':
+                {
+                    'host': {'field': 'url', 'prefix': 'urn:computer:/'},
+                    'vm': {'field': 'name', 'prefix': 'urn:computer:/'}
+                }
+            }
+        ]
+        super(IdentifierMappingTestAgentCheck, self)\
+            .__init__(TopologyInstance("host", "someurl"), "test", {}, instances)
+
+    def check(self, instance):
+        pass
+
+
+class NestedIdentifierMappingTestAgentCheck(TopologyCheck):
+    def __init__(self):
+        instances = [
+            {'identifier_mappings':
+                {
+                    'host': {'field': 'x.y.z.url', 'prefix': 'urn:computer:/'}
+                }
+            }
+        ]
+        super(NestedIdentifierMappingTestAgentCheck, self)\
+            .__init__(TopologyInstance("host", "someurl"), "test", {}, instances)
+
+    def check(self, instance):
+        pass
+
+
 class StateSchema(Model):
     offset = IntType(required=True)
 
@@ -561,3 +594,36 @@ expected TopologyInstance or AgentIntegrationInstance"""
         check = TopologyCheck()
         check.key = AgentIntegrationInstance("integration", "name")
         assert check.key.toDict() == {"type": "agent", "url": "integrations"}
+
+    def test_component_with_identifier_mapping(self, topology):
+        """
+        Test should generate identifier mapping based on the prefix and field value
+        """
+        check = IdentifierMappingTestAgentCheck()
+        data = {"url": "identifier-url", "emptykey": None, "nestedobject": {"nestedkey": "nestedValue"}}
+        check.component("my-id", "host", data)
+        component = topology.get_snapshot(check.check_id)['components'][0]
+        # there should be only one identifier mapped for host because only `host` type exist
+        assert component["data"]["identifiers"] == ["urn:computer:/identifier-url"]
+
+    def test_component_identifier_mapping_with_no_field(self, topology):
+        """
+        Test should not generate identifier mapping because field value doesn't exist in data
+        """
+        check = IdentifierMappingTestAgentCheck()
+        data = {"emptykey": None, "nestedobject": {"nestedkey": "nestedValue"}}
+        check.component("my-id", "host", data)
+        component = topology.get_snapshot(check.check_id)['components'][0]
+        # there should be no identifier mapped for host because field value `url` doesn't exist in data
+        assert component["data"].get("identifiers") is None
+
+    def test_component_identifier_mapping_with_nested_field(self, topology):
+        """
+        Test should generate identifier mapping because based on the prefix and nested field value
+        """
+        check = NestedIdentifierMappingTestAgentCheck()
+        data = {"emptykey": None, "x": {"y": {"z": {"url": "identifier-url"}}}}
+        check.component("my-id", "host", data)
+        component = topology.get_snapshot(check.check_id)['components'][0]
+        # there should be one identifier mapped for host because only `host` type exist on the nested field
+        assert component["data"]["identifiers"] == ["urn:computer:/identifier-url"]

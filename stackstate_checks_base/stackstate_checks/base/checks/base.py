@@ -11,6 +11,7 @@ import traceback
 import unicodedata
 from collections import defaultdict
 from os.path import basename
+from functools import reduce
 
 import yaml
 from six import PY3, iteritems, text_type, string_types, integer_types
@@ -420,6 +421,7 @@ class AgentCheckBase(object):
             data = {}
         self._check_struct("data", data)
         data = self._map_streams_and_checks(data, streams, checks)
+        data = self._map_identifier_mappings(type, data)
         if add_instance_tags:
             # add topology instance for view filtering
             data['tags'] = sorted(list(set(data.get('tags', []) + instance.tags())))
@@ -446,6 +448,26 @@ class AgentCheckBase(object):
         data = self._map_streams_and_checks(data, streams, checks)
         self._check_struct("data", data)
         return data
+
+    def deep_get(self, dictionary, keys, default=None):
+        return reduce(lambda d, key: d.get(key, default) if isinstance(d, dict) else default, keys.split("."),
+                      dictionary)
+
+    def _map_identifier_mappings(self, type, data):
+        instance = self.instances[0]
+        if "identifier_mappings" not in instance:
+            self.log.debug("No identifier_mappings section found in configuration. Skipping..")
+            return data
+        if type in instance["identifier_mappings"]:
+            type_mapping = instance["identifier_mappings"].get(type)
+            field_value = self.deep_get(data, type_mapping.get("field"))
+            if not field_value:
+                self.log.warning("The %s field is not found in data section." % (type_mapping.get("field")))
+                return data
+            identifiers = data.get("identifiers", [])
+            identifiers.append('%s%s' % (type_mapping.get("prefix"), field_value))
+            data["identifiers"] = identifiers
+            return data
 
     def _map_streams_and_checks(self, data, streams, checks):
         if streams:
