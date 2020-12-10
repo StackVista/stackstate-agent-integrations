@@ -405,11 +405,12 @@ class TopologyBrokenStatefulCheck(TopologyStatefulCheck):
 class IdentifierMappingTestAgentCheck(TopologyCheck):
     def __init__(self):
         instances = [
-            {'identifier_mappings':
-                {
-                    'host': {'field': 'url', 'prefix': 'urn:computer:/'},
-                    'vm': {'field': 'name', 'prefix': 'urn:computer:/'}
-                }
+            {
+                'identifier_mappings':
+                    {
+                        'host': {'field': 'url', 'prefix': 'urn:computer:/'},
+                        'vm': {'field': 'name', 'prefix': 'urn:computer:/'}
+                    }
             }
         ]
         super(IdentifierMappingTestAgentCheck, self)\
@@ -422,10 +423,11 @@ class IdentifierMappingTestAgentCheck(TopologyCheck):
 class NestedIdentifierMappingTestAgentCheck(TopologyCheck):
     def __init__(self):
         instances = [
-            {'identifier_mappings':
-                {
-                    'host': {'field': 'x.y.z.url', 'prefix': 'urn:computer:/'}
-                }
+            {
+                'identifier_mappings':
+                    {
+                        'host': {'field': 'x.y.z.url', 'prefix': 'urn:computer:/'}
+                    }
             }
         ]
         super(NestedIdentifierMappingTestAgentCheck, self)\

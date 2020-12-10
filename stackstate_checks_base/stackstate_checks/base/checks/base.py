@@ -171,7 +171,7 @@ class AgentCheckBase(object):
                 self.instances = args[2]
 
         # Agent 6+ will only have one instance
-        self.instance = self.instances[0] if self.instances else None
+        self.instance = self.instances[0] if self.instances else {}
 
         # `self.hostname` is deprecated, use `datadog_agent.get_hostname()` instead
         self.hostname = datadog_agent.get_hostname()
@@ -449,18 +449,17 @@ class AgentCheckBase(object):
         self._check_struct("data", data)
         return data
 
-    def deep_get(self, dictionary, keys, default=None):
+    def get_mapping_field_key(self, dictionary, keys, default=None):
         return reduce(lambda d, key: d.get(key, default) if isinstance(d, dict) else default, keys.split("."),
                       dictionary)
 
     def _map_identifier_mappings(self, type, data):
-        instance = self.instances[0]
-        if "identifier_mappings" not in instance:
+        if "identifier_mappings" not in self.instance:
             self.log.debug("No identifier_mappings section found in configuration. Skipping..")
             return data
-        if type in instance["identifier_mappings"]:
-            type_mapping = instance["identifier_mappings"].get(type)
-            field_value = self.deep_get(data, type_mapping.get("field"))
+        if type in self.instance["identifier_mappings"]:
+            type_mapping = self.instance["identifier_mappings"].get(type)
+            field_value = self.get_mapping_field_key(data, type_mapping.get("field"))
             if not field_value:
                 self.log.warning("The %s field is not found in data section." % (type_mapping.get("field")))
                 return data
