@@ -85,10 +85,8 @@ class ServicenowCheck(AgentCheck):
     SERVICE_CHECK_NAME = "servicenow.cmdb.topology_information"
     INSTANCE_SCHEMA = InstanceInfo
 
-    def get_instance_key(self, instance):
-        instance_info = InstanceInfo(instance)
-        instance_info.validate()
-        return TopologyInstance(self.INSTANCE_TYPE, str(instance_info.url), with_snapshots=False)
+    def get_instance_key(self, instance_info):
+        return TopologyInstance(self.INSTANCE_TYPE, str(instance_info.url))
 
     def check(self, instance_info):
         try:

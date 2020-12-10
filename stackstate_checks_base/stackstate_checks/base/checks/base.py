@@ -110,6 +110,15 @@ class AgentIntegrationInstance(TopologyInstanceBase):
         return False
 
 
+class DefaultIntegrationInstance(TopologyInstanceBase):
+
+    def __init__(self):
+        TopologyInstanceBase.__init__(self, type="agent", url="integrations", with_snapshots=False)
+
+    def tags(self):
+        return []
+
+
 class TopologyInstance(TopologyInstanceBase):
     """
     Data structure for defining a topology instance, a unique identifier for a topology source.
@@ -313,11 +322,17 @@ class AgentCheckBase(object):
             self._raise_unexpected_type(argumentName, value, "dictionary or None value")
 
     def _get_instance_key_value(self):
-        value = self.get_instance_key(self.instance)
+        check_instance = self.instance
+        # if this check has a instance schema defined, cast it into that type and validate it
+        if self.INSTANCE_SCHEMA:
+            check_instance = self.INSTANCE_SCHEMA(self.instance, strict=False)  # strict=False ignores extra fields
+            check_instance.validate()
+        value = self.get_instance_key(check_instance)
         if value is None:
             self._raise_unexpected_type("get_instance_key()", "None", "dictionary")
-        if not isinstance(value, (TopologyInstance, AgentIntegrationInstance)):
-            self._raise_unexpected_type("get_instance_key()", value, "TopologyInstance or AgentIntegrationInstance")
+        if not isinstance(value, (TopologyInstance, AgentIntegrationInstance, DefaultIntegrationInstance)):
+            self._raise_unexpected_type("get_instance_key()", value, "TopologyInstance, AgentIntegrationInstance or "
+                                                                     "DefaultIntegrationInstance")
         if not isinstance(value.type, str):
             raise ValueError("Instance requires a 'type' field of type 'string'")
         if not isinstance(value.url, str):
@@ -326,7 +341,7 @@ class AgentCheckBase(object):
         return value
 
     def get_instance_key(self, instance):
-        return AgentIntegrationInstance("default", "integration")
+        return DefaultIntegrationInstance()
 
     def _get_instance_key(self):
         return self._get_instance_key_value().toDict()
@@ -514,7 +529,12 @@ class AgentCheckBase(object):
         if isinstance(instance, AgentIntegrationInstance):
             instance_type = instance.integration
             instance_url = instance.name
+        elif isinstance(instance, DefaultIntegrationInstance):
+            # for DefaultIntegrationInstance we don't create integration instances
+            return
         else:
+            # set the check id for TopologyInstance types, in a AgentIntegrationInstance the data can go to the same
+            # check instance ending up on the agent integrations synchronization in StackState with no snapshots
             check_id = "{}:{}".format(instance_type, instance_url)
 
         # use this as the topology instance so that data ends up in the Agent Integration sync

@@ -12,10 +12,9 @@ from copy import copy
 import mock
 import pytest
 import requests
-from schematics.exceptions import DataError
 from six import PY3
 
-from stackstate_checks.base import AgentIntegrationTestUtil, AgentCheck, to_string
+from stackstate_checks.base import AgentIntegrationTestUtil, AgentCheck, to_string, TopologyInstance
 from stackstate_checks.base.errors import CheckException
 from stackstate_checks.base.stubs import topology, aggregator, telemetry
 from stackstate_checks.servicenow import ServicenowCheck, InstanceInfo, State
@@ -225,6 +224,9 @@ class TestServicenow(unittest.TestCase):
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 0)
         self.assertEqual(len(topo_instances['relations']), 0)
+
+        self.assertEqual(self.check._get_instance_key_value(),
+                         TopologyInstance('servicenow_cmdb', 'https://instance.service-now.com'))
 
         AgentIntegrationTestUtil.assert_integration_snapshot(self.check,
                                                              'servicenow_cmdb:https://instance.service-now.com')
@@ -504,7 +506,6 @@ class TestServicenow(unittest.TestCase):
             check = ServicenowCheck('servicenow', {}, {}, [test['instance']])
             result = json.loads(check.run())
             self.assertEqual(test['error'], result[0]['message'])
-        self.assertRaises(DataError, self.check.get_instance_key, {})
 
     def test_append_to_sysparm_query(self):
         """
