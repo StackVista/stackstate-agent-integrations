@@ -608,6 +608,18 @@ expected TopologyInstance or AgentIntegrationInstance"""
         # there should be only one identifier mapped for host because only `host` type exist
         assert component["data"]["identifiers"] == ["urn:computer:/identifier-url"]
 
+    def test_component_with_identifier_mapping_with_existing_identifier(self, topology):
+        """
+        Test should generate identifier mapping based on the prefix and field value with extra identifier
+        """
+        check = IdentifierMappingTestAgentCheck()
+        data = {"url": "identifier-url", "identifiers": ["urn:host:/host-1"],
+                "nestedobject": {"nestedkey": "nestedValue"}}
+        check.component("my-id", "host", data)
+        component = topology.get_snapshot(check.check_id)['components'][0]
+        # there should be 2 identifier mapped for host because there was an existing identifier
+        assert component["data"]["identifiers"] == ["urn:host:/host-1", "urn:computer:/identifier-url"]
+
     def test_component_identifier_mapping_with_no_field(self, topology):
         """
         Test should not generate identifier mapping because field value doesn't exist in data
@@ -629,3 +641,14 @@ expected TopologyInstance or AgentIntegrationInstance"""
         component = topology.get_snapshot(check.check_id)['components'][0]
         # there should be one identifier mapped for host because only `host` type exist on the nested field
         assert component["data"]["identifiers"] == ["urn:computer:/identifier-url"]
+
+    def test_component_nested_identifier_mapping_with_no_field(self, topology):
+        """
+        Test should not generate identifier mapping because nested field value doesn't exist in data
+        """
+        check = IdentifierMappingTestAgentCheck()
+        data = {"emptykey": None, "x": {"y": {"z": "identifier-url"}}}
+        check.component("my-id", "host", data)
+        component = topology.get_snapshot(check.check_id)['components'][0]
+        # there should be no identifier mapped for host because field value `x.y.z.url` doesn't exist in data
+        assert component["data"].get("identifiers") is None
