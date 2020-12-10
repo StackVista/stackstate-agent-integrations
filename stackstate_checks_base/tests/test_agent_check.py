@@ -647,7 +647,7 @@ expected TopologyInstance or AgentIntegrationInstance"""
         Test should not generate identifier mapping because nested field value doesn't exist in data
         """
         check = IdentifierMappingTestAgentCheck()
-        data = {"emptykey": None, "x": {"y": {"z": "identifier-url"}}}
+        data = {"emptykey": None}
         check.component("my-id", "host", data)
         component = topology.get_snapshot(check.check_id)['components'][0]
         # there should be no identifier mapped for host because field value `x.y.z.url` doesn't exist in data
