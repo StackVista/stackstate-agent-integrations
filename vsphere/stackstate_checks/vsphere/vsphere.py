@@ -35,11 +35,12 @@ from stackstate_checks.base.checks.libs.timer import Timer
 
 SOURCE_TYPE = 'vsphere'
 REAL_TIME_INTERVAL = 20  # Default vCenter sampling interval
-
 # Metrics are only collected on vSphere VMs marked by custom field value
 VM_MONITORING_FLAG = 'StackStateMonitored'
 # The size of the ThreadPool used to process the request queue
 DEFAULT_SIZE_POOL = 4
+# The maximum number of historical metrics allowed to be queried
+DEFAULT_MAX_HIST_METRICS = 64
 # The interval in seconds between two refresh of the entities list
 REFRESH_MORLIST_INTERVAL = 3 * 60
 # The interval in seconds between two refresh of metrics metadata (id<->name)
@@ -963,6 +964,27 @@ class VSphereCheck(AgentCheck):
             self.log.debug("Not collecting metrics for this instance, nothing to do yet: {0}".format(i_key))
             return
 
+        server_instance = self._get_server_instance(instance)
+        max_historical_metrics = DEFAULT_MAX_HIST_METRICS
+
+        try:
+            if 'max_query_metrics' in instance:
+                max_historical_metrics = int(instance['max_query_metrics'])
+                self.log.info("Collecting up to %d metrics", max_historical_metrics)
+            else:
+                vcenter_settings = server_instance.content.setting.QueryOptions("config.vpxd.stats.maxQueryMetrics")
+                max_historical_metrics = int(vcenter_settings[0].value)
+            if max_historical_metrics < 0:
+                max_historical_metrics = float('inf')
+        except Exception as e:
+            self.log.debug(
+                "Error getting maxQueryMetrics setting "
+                "(max_historical_metrics=%s, DEFAULT_MAX_HIST_METRICS=%s): %s",
+                max_historical_metrics,
+                DEFAULT_MAX_HIST_METRICS,
+                e,
+            )
+
         mors = self.morlist[i_key].items()
         self.log.debug("Collecting metrics of %d mors" % len(mors))
 
@@ -972,6 +994,17 @@ class VSphereCheck(AgentCheck):
             if mor['mor_type'] == 'vm':
                 vm_count += 1
             if 'metrics' not in mor or not mor['metrics']:
+                continue
+            if len(mor['metrics']) >= max_historical_metrics:
+                # Too many metrics to query for a single mor, ignore it
+                self.log.warning(
+                    "Metrics for '%s' are ignored because there are more (%d) than what you allowed (%d) on "
+                    "vCenter Server",
+                    # noqa: E501
+                    mor_name,
+                    len(mor['metrics']),
+                    max_historical_metrics,
+                )
                 continue
 
             self.pool.apply_async(self._collect_metrics_atomic, args=(instance, mor))
@@ -1435,9 +1468,9 @@ class VSphereCheck(AgentCheck):
         self._vacuum_morlist(instance)
 
         # Second part: do the job
+        self.collect_topology(instance)
         self.collect_metrics(instance)
         self._query_event(instance)
-        self.collect_topology(instance)
 
         # For our own sanity
         self._clean()
