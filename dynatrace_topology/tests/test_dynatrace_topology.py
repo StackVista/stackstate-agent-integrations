@@ -1,6 +1,7 @@
 # (C) StackState 2020
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
+import os
 
 import pytest
 import unittest
@@ -13,12 +14,14 @@ from stackstate_checks.base.stubs import topology, aggregator
 
 
 def _read_data(filename):
-    with open("./tests/samples/" + filename, "r") as f:
+    path_to_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'samples', filename)
+    with open(path_to_file, "r") as f:
         return json.load(f)
 
 
 def _read_test_file(filename):
-    with open("./tests/samples/" + filename, "r") as f:
+    path_to_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'samples', filename)
+    with open(path_to_file, "r") as f:
         return f.read() if PY3 else f.read().decode("utf-8")
 
 
