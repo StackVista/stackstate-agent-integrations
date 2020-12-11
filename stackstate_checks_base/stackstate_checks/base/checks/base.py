@@ -652,8 +652,8 @@ class AgentCheckBase(object):
         service_check_stream = ServiceCheckStream("Service Checks", conditions=conditions)
         service_check = ServiceCheckHealthChecks.service_check_health(service_check_stream.identifier,
                                                                       "Integration Instance Health")
-        topology.submit_component(self, check_id, integration_instance.to_dict(), agent_integration_instance_external_id,
-                                  "agent-integration-instance",
+        topology.submit_component(self, check_id, integration_instance.to_dict(),
+                                  agent_integration_instance_external_id, "agent-integration-instance",
                                   self._map_component_data(agent_integration_instance_external_id,
                                                            "agent-integration-instance",
                                                            instance, agent_integration_instance_data,
