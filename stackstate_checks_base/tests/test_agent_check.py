@@ -510,7 +510,7 @@ class TestTopology:
         check = TopologyStatefulStateDescriptorCleanupCheck()
         state_descriptor = check._get_state_descriptor()
         assert state_descriptor.instance_key == "instance.mytype.https_some.type.url"
-        assert check._get_instance_key() == {'type': 'mytype', 'url': 'https://some.type.url'}
+        assert check._get_instance_key_dict() == {'type': 'mytype', 'url': 'https://some.type.url'}
         state.assert_state_check(check, expected_pre_run_state=None, expected_post_run_state=TEST_STATE)
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
@@ -600,7 +600,7 @@ expected TopologyInstance, AgentIntegrationInstance or DefaultIntegrationInstanc
     def test_topology_instance(self, topology):
         check = TopologyCheck()
         check.key = TopologyInstance("mytype", "myurl")
-        assert check._get_instance_key() == {"type": "mytype", "url": "myurl"}
+        assert check._get_instance_key_dict() == {"type": "mytype", "url": "myurl"}
         check.create_integration_instance({})
         # assert integration topology is created for topology instances
         topo_instances = topology.get_snapshot('mytype:myurl')
@@ -608,7 +608,7 @@ expected TopologyInstance, AgentIntegrationInstance or DefaultIntegrationInstanc
 
     def test_agent_integration_instance(self, topology):
         check = AgentIntegrationInstanceCheck()
-        assert check._get_instance_key() == {"type": "agent", "url": "integrations"}
+        assert check._get_instance_key_dict() == {"type": "agent", "url": "integrations"}
         check.create_integration_instance({})
         # assert integration topology is created for agent integration instances
         topo_instances = topology.get_snapshot(check.check_id)
@@ -616,7 +616,7 @@ expected TopologyInstance, AgentIntegrationInstance or DefaultIntegrationInstanc
 
     def test_agent_telemetry_instance(self, topology):
         check = DefaultInstanceCheck()
-        assert check._get_instance_key() == {"type": "agent", "url": "integrations"}
+        assert check._get_instance_key_dict() == {"type": "agent", "url": "integrations"}
         check.create_integration_instance({})
         # assert no integration topology is created for default instances
         assert topology._snapshots == {}

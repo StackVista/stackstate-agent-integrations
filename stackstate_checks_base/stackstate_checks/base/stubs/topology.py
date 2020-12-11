@@ -57,7 +57,7 @@ class TopologyStub(object):
         assert self.get_snapshot(check_id) == {
             "start_snapshot": start_snapshot,
             "stop_snapshot": stop_snapshot,
-            "instance_key": instance_key.toDict(),
+            "instance_key": instance_key.to_dict(),
             "components": components,
             "relations": relations
         }

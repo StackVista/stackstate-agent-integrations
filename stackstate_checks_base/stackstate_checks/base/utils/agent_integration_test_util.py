@@ -25,7 +25,7 @@ class AgentIntegrationTestUtil(object):
 
     @staticmethod
     def expected_agent_integration_component(check, integration_component):
-        instance = check._get_instance_key()
+        instance = check._get_instance_key_dict()
         return {
             'data': {
                 'cluster': 'stubbed-cluster-name',
@@ -63,7 +63,7 @@ class AgentIntegrationTestUtil(object):
 
     @staticmethod
     def expected_agent_integration_relation(check):
-        instance = check._get_instance_key()
+        instance = check._get_instance_key_dict()
         return {
             'data': {},
             'target_id': 'urn:agent-integration:/stubbed.hostname:{}'.format(instance["type"]),
@@ -78,7 +78,7 @@ class AgentIntegrationTestUtil(object):
 
     @staticmethod
     def expected_agent_integration_instance_component(check, integration_component):
-        instance = check._get_instance_key()
+        instance = check._get_instance_key_dict()
         return {
             'data': {
                 'cluster': 'stubbed-cluster-name',
@@ -121,7 +121,7 @@ class AgentIntegrationTestUtil(object):
 
     @staticmethod
     def expected_agent_integration_instance_relation(check):
-        instance = check._get_instance_key()
+        instance = check._get_instance_key_dict()
         return {
             'data': {},
             'target_id': 'urn:agent-integration-instance:/stubbed.hostname:{}:{}'.format(instance["type"],

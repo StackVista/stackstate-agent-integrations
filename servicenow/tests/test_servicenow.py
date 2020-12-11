@@ -225,7 +225,7 @@ class TestServicenow(unittest.TestCase):
         self.assertEqual(len(topo_instances['components']), 0)
         self.assertEqual(len(topo_instances['relations']), 0)
 
-        self.assertEqual(self.check._get_instance_key_value(),
+        self.assertEqual(self.check._get_instance_key(),
                          TopologyInstance('servicenow_cmdb', 'https://instance.service-now.com'))
 
         AgentIntegrationTestUtil.assert_integration_snapshot(self.check,
