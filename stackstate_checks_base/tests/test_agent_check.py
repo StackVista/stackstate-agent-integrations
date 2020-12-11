@@ -11,6 +11,7 @@ import pytest
 from six import PY3
 
 from stackstate_checks.checks import AgentCheck, TopologyInstance, AgentIntegrationInstance
+from stackstate_checks.base.utils.agent_integration_test_util import AgentIntegrationTestUtil
 from stackstate_checks.base.stubs.topology import component, relation
 
 
@@ -321,6 +322,15 @@ class TestLimits():
         assert len(aggregator.metrics("metric")) == 10
 
 
+class DefaultInstanceCheck(AgentCheck):
+    pass
+
+
+class AgentIntegrationInstanceCheck(AgentCheck):
+    def get_instance_key(self, instance):
+        return AgentIntegrationInstance("test", "integration")
+
+
 class TopologyCheck(AgentCheck):
     def __init__(self, key=None, *args, **kwargs):
         super(TopologyCheck, self).__init__(*args, **kwargs)
@@ -500,7 +510,7 @@ class TestTopology:
         check = TopologyStatefulStateDescriptorCleanupCheck()
         state_descriptor = check._get_state_descriptor()
         assert state_descriptor.instance_key == "instance.mytype.https_some.type.url"
-        assert check._get_instance_key() == {'type': 'mytype', 'url': 'https://some.type.url'}
+        assert check._get_instance_key_dict() == {'type': 'mytype', 'url': 'https://some.type.url'}
         state.assert_state_check(check, expected_pre_run_state=None, expected_post_run_state=TEST_STATE)
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
@@ -575,10 +585,10 @@ expected string, int, dictionary, list or None value"""
             assert check.component("my-id", "my-type", None)
         if PY3:
             assert str(e.value) == """Got unexpected <class 'dict'> for argument get_instance_key(), \
-expected TopologyInstance or AgentIntegrationInstance"""
+expected TopologyInstance, AgentIntegrationInstance or DefaultIntegrationInstance"""
         else:
             assert str(e.value) == """Got unexpected <type 'dict'> for argument get_instance_key(), \
-expected TopologyInstance or AgentIntegrationInstance"""
+expected TopologyInstance, AgentIntegrationInstance or DefaultIntegrationInstance"""
 
     def test_illegal_instance_key_field_type(self):
         check = TopologyCheck()
@@ -587,15 +597,150 @@ expected TopologyInstance or AgentIntegrationInstance"""
             assert check.component("my-id", "my-type", None)
         assert str(e.value) == "Instance requires a 'url' field of type 'string'"
 
-    def test_topology_instance(self):
+    def test_topology_instance(self, topology):
         check = TopologyCheck()
         check.key = TopologyInstance("mytype", "myurl")
-        assert check.key.toDict() == {"type": "mytype", "url": "myurl"}
+        assert check._get_instance_key_dict() == {"type": "mytype", "url": "myurl"}
+        check.create_integration_instance({})
+        # assert integration topology is created for topology instances
+        topo_instances = topology.get_snapshot('mytype:myurl')
+        assert topo_instances == self.agent_integration_topology('mytype', 'myurl')
 
-    def test_agent_integration_instance(self):
-        check = TopologyCheck()
-        check.key = AgentIntegrationInstance("integration", "name")
-        assert check.key.toDict() == {"type": "agent", "url": "integrations"}
+    def test_agent_integration_instance(self, topology):
+        check = AgentIntegrationInstanceCheck()
+        assert check._get_instance_key_dict() == {"type": "agent", "url": "integrations"}
+        check.create_integration_instance({})
+        # assert integration topology is created for agent integration instances
+        topo_instances = topology.get_snapshot(check.check_id)
+        assert topo_instances == self.agent_integration_topology('test', 'integration')
+
+    def test_agent_telemetry_instance(self, topology):
+        check = DefaultInstanceCheck()
+        assert check._get_instance_key_dict() == {"type": "agent", "url": "integrations"}
+        check.create_integration_instance({})
+        # assert no integration topology is created for default instances
+        assert topology._snapshots == {}
+
+    def agent_integration_topology(self, type, url):
+        return {
+            'components': [
+                {
+                    'data': {
+                        'cluster': 'stubbed-cluster-name',
+                        'hostname': 'stubbed.hostname',
+                        'identifiers': [
+                            'urn:process:/stubbed.hostname:1:1234567890'
+                        ],
+                        'name': 'StackState Agent:stubbed.hostname',
+                        'tags': sorted([
+                            'hostname:stubbed.hostname',
+                            'stackstate-agent',
+                        ])
+                    },
+                    'id': 'urn:stackstate-agent:/stubbed.hostname',
+                    'type': 'stackstate-agent'
+                },
+                {
+                    'data': {
+                        'checks': [
+                            {
+                                'is_service_check_health_check': True,
+                                'name': 'Integration Health',
+                                'stream_id': -1
+                            }
+                        ],
+                        'cluster': 'stubbed-cluster-name',
+                        'service_checks': [
+                            {
+                                'conditions': [
+                                    {
+                                        'key': 'host',
+                                        'value': 'stubbed.hostname'
+                                    },
+                                    {
+                                        'key': 'tags.integration-type',
+                                        'value': type
+                                    }
+                                ],
+                                'name': 'Service Checks',
+                                'stream_id': -1
+                            }
+                        ],
+                        'hostname': 'stubbed.hostname',
+                        'integration': type,
+                        'name': 'stubbed.hostname:%s' % type,
+                        'tags': sorted([
+                            'hostname:stubbed.hostname',
+                            'integration-type:%s' % type,
+                        ])
+                    },
+                    'id': 'urn:agent-integration:/stubbed.hostname:%s' % type,
+                    'type': 'agent-integration'
+                },
+                {
+                    'data': {
+                        'checks': [
+                            {
+                                'is_service_check_health_check': True,
+                                'name': 'Integration Instance Health',
+                                'stream_id': -1
+                            }
+                        ],
+                        'cluster': 'stubbed-cluster-name',
+                        'service_checks': [
+                            {
+                                'conditions': [
+                                    {
+                                        'key': 'host',
+                                        'value': 'stubbed.hostname'
+                                    },
+                                    {
+                                        'key': 'tags.integration-type',
+                                        'value': type
+                                    },
+                                    {
+                                        'key': 'tags.integration-url',
+                                        'value': url
+                                    }
+                                ],
+                                'name': 'Service Checks',
+                                'stream_id': -1
+                            }
+                        ],
+                        'hostname': 'stubbed.hostname',
+                        'integration': type,
+                        'name': '%s:%s' % (type, url),
+                        'tags': sorted([
+                            'hostname:stubbed.hostname',
+                            'integration-type:%s' % type,
+                            'integration-url:%s' % url
+                        ])
+                    },
+                    'id': 'urn:agent-integration-instance:/stubbed.hostname:%s:%s' % (type, url),
+                    'type': 'agent-integration-instance'
+                },
+            ],
+            'instance_key': {
+                'type': 'agent',
+                'url': 'integrations'
+            },
+            'relations': [
+                {
+                    'data': {},
+                    'source_id': 'urn:stackstate-agent:/stubbed.hostname',
+                    'target_id': 'urn:agent-integration:/stubbed.hostname:%s' % type,
+                    'type': 'runs'
+                },
+                {
+                    'data': {},
+                    'source_id': 'urn:agent-integration:/stubbed.hostname:%s' % type,
+                    'target_id': 'urn:agent-integration-instance:/stubbed.hostname:%s:%s' % (type, url),
+                    'type': 'has'
+                },
+            ],
+            'start_snapshot': False,
+            'stop_snapshot': False
+        }
 
     def test_component_with_identifier_mapping(self, topology):
         """

@@ -14,7 +14,7 @@ from schematics import Model
 from schematics.exceptions import DataError
 from schematics.types import URLType, StringType, ListType, IntType, DictType, DateTimeType, ModelType, BooleanType
 
-from stackstate_checks.base import AgentCheck, TopologyInstance, Identifiers, to_string
+from stackstate_checks.base import AgentCheck, StackPackInstance, Identifiers, to_string
 from stackstate_checks.base.errors import CheckException
 
 BATCH_DEFAULT_SIZE = 2500
@@ -85,10 +85,8 @@ class ServicenowCheck(AgentCheck):
     SERVICE_CHECK_NAME = "servicenow.cmdb.topology_information"
     INSTANCE_SCHEMA = InstanceInfo
 
-    def get_instance_key(self, instance):
-        instance_info = InstanceInfo(instance)
-        instance_info.validate()
-        return TopologyInstance(self.INSTANCE_TYPE, str(instance_info.url), with_snapshots=False)
+    def get_instance_key(self, instance_info):
+        return StackPackInstance(self.INSTANCE_TYPE, str(instance_info.url))
 
     def check(self, instance_info):
         try:
