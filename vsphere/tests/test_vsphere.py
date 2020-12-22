@@ -1,4 +1,5 @@
 # stdlib
+import os
 import unittest
 
 # 3p
@@ -189,7 +190,8 @@ def create_topology(topology_json):
 
         return mor
 
-    with open("./tests/data/" + topology_json, "r") as f:
+    path_to_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', topology_json)
+    with open(path_to_file, "r") as f:
         return rec_build(json.load(f))
 
 
