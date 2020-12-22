@@ -7,7 +7,7 @@ import mock
 import json
 
 from stackstate_checks.zabbix import ZabbixCheck
-from stackstate_checks.base import ConfigurationError
+from stackstate_checks.base import ConfigurationError, AgentCheck
 from stackstate_checks.base.stubs import topology, aggregator
 
 CHECK_NAME = 'zabbix'
@@ -333,6 +333,9 @@ class TestZabbix(unittest.TestCase):
 
         self.assertEqual(len(topo_instances['components']), 1)
         self.assertEqual(len(topo_instances['relations']), 0)
+        # Start and Stop Snapshot should be True
+        self.assertEqual(topo_instances.get("start_snapshot"), True)
+        self.assertEqual(topo_instances.get("stop_snapshot"), True)
 
         component = topo_instances['components'][0]
         self.assertEqual(component['data']['domain'], 'Zabbix')
@@ -340,6 +343,10 @@ class TestZabbix(unittest.TestCase):
         for label in ['zabbix', 'host group:Zabbix servers', 'host group:MyHostGroup']:
             if label not in labels:
                 self.fail("Component does not have label '%s'." % label)
+
+        # check if OK service check generated
+        service_checks = aggregator.service_checks('Zabbix')
+        self.assertEqual(AgentCheck.OK, service_checks[0].status)
 
     def test_zabbix_problems(self):
 
@@ -563,6 +570,10 @@ class TestZabbix(unittest.TestCase):
             if tag not in tags:
                 self.fail("Event does not have tag '%s', got: %s." % (tag, tags))
         self.assertEqual(len(tags), 5)
+
+        # check if OK service check generated
+        service_checks = aggregator.service_checks('Zabbix')
+        self.assertEqual(AgentCheck.OK, service_checks[0].status)
 
     def test_zabbix_acknowledge_problem(self):
         """
