@@ -1321,13 +1321,12 @@ class VSphereCheck(AgentCheck):
         }
 
         # sanitize each resources to convert unicode into string types
-        vms = yaml.safe_load(json.dumps(self._vsphere_vms(content, domain, regexes)))
-        hosts = yaml.safe_load(json.dumps(self._vsphere_hosts(content, domain, regexes)))
-        datacenters = yaml.safe_load(json.dumps(self._vsphere_datacenters(content, domain)))
-        datastores = yaml.safe_load(json.dumps(self._vsphere_datastores(content, domain, regexes)))
-        clustercomputeresources = yaml.safe_load(json.dumps(self._vsphere_clustercomputeresources(content, domain,
-                                                                                                  regexes)))
-        computeresource = yaml.safe_load(json.dumps(self._vsphere_computeresources(content, domain, regexes)))
+        vms = self._fix_encoding(self._vsphere_vms(content, domain, regexes))
+        hosts = self._fix_encoding(self._vsphere_hosts(content, domain, regexes))
+        datacenters = self._fix_encoding(self._vsphere_datacenters(content, domain))
+        datastores = self._fix_encoding(self._vsphere_datastores(content, domain, regexes))
+        clustercomputeresources = self._fix_encoding(self._vsphere_clustercomputeresources(content, domain, regexes))
+        computeresource = self._fix_encoding(self._vsphere_computeresources(content, domain, regexes))
 
         # close the session after the processing of all Tags from the new Rest Client
         if self.session:
