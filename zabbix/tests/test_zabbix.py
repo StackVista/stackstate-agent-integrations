@@ -4,6 +4,7 @@
 import pytest
 import unittest
 import mock
+import json
 
 from stackstate_checks.zabbix import ZabbixCheck
 from stackstate_checks.base import ConfigurationError
@@ -632,3 +633,37 @@ class TestZabbix(unittest.TestCase):
             if tag not in tags:
                 self.fail("Event does not have tag '%s', got: %s." % (tag, tags))
         self.assertEqual(len(tags), 5)
+
+    @mock.patch('requests.get')
+    def test_method_request(self, mocked_get):
+        event_resp = {
+            "jsonrpc": "2.0",
+            "result": [
+                {
+                    "triggerid": "13491",
+                    "expression": u"{12900}=1",
+                    "description": u"Zabbix agent on {HOST.NAME} is unreachable for 5 minutes",
+                    "url": "",
+                    "status": "0",
+                    "value": "1",
+                    "priority": "3",
+                    "lastchange": "1549878981",
+                    "comments": "",
+                    "error": "",
+                    "templateid": "10047",
+                    "type": "0",
+                    "state": "0",
+                    "flags": "0",
+                    "recovery_mode": "0",
+                    "recovery_expression": "",
+                    "correlation_mode": "0",
+                    "correlation_tag": "",
+                    "manual_close": "0"
+                }
+            ],
+            "id": 1
+        }
+        mocked_get.return_value = mock.MagicMock(status_code=200, text=json.dumps(event_resp))
+        self.check.ssl_verify = False
+        resp = self.check.method_request("http://host/zabbix/api_jsonrpc.php", "events.get")
+        self.assertEqual(u"{12900}=1", resp.get("result")[0].get("expression"))
