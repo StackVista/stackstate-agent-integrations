@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # stdlib
 import os
 import unittest
@@ -7,6 +9,8 @@ from mock import Mock, MagicMock
 from pyVmomi import vim  # pylint: disable=E0611
 import simplejson as json
 import pytest
+
+from stackstate_checks.base import to_string
 
 try:
     from Queue import Queue
@@ -884,9 +888,6 @@ class TestVsphereTopo(unittest.TestCase):
         self.assertEqual(len(topo_dict["vms"][0]['topo_tags']['identifiers']), 1)
         self.assertEqual(topo_dict["vms"][0]['topo_tags']['identifiers'][0], 'vishal-test')
 
-        # check if type of name is string rather than unicode
-        self.assertEqual(type(topo_dict["vms"][0]['topo_tags']['name']), str)
-
         # Check if tags are as expected
         self.assertEqual(topo_dict["vms"][0]['topo_tags']['name'], 'Ubuntu')
         self.assertEqual(topo_dict["vms"][0]['topo_tags']['domain'], 'ESXi')
@@ -989,25 +990,48 @@ class TestVsphereTopo(unittest.TestCase):
         """
         Test if the vms containing unicode objects are converted to string data type properly
         """
-        instance = {'name': 'vsphere_mock', 'host': "ESXi"}
+        topology.reset()
 
-        server_mock = MagicMock()
-        server_mock.configure_mock(**{'RetrieveContent.return_value': self.mock_content("vm")})
-        self.check._get_server_instance = MagicMock(return_value=server_mock)
+        self.check._is_excluded = MagicMock(return_value=True)
 
-        # mock the vpshere client connect
-        self.check.vsphere_client_connect = MagicMock()
-        # get the client
-        client = vsphere_client()
-        client.tagging.TagAssociation.list_attached_tags = MagicMock(return_value=[])
-        self.check.client = client
+        instance = {
+            'name': 'vsphere_mock',
+            'host': "ESXi"
+        }
+        topo_items = {
+            'datacenters': [],
+            'vms': [
+                {'hostname': 'Ubuntu',
+                 'topo_tags': {
+                     'topo_type': 'vsphere-VirtualMachine',
+                     'name': 'Ubuntu™',
+                     'datastore': '54183927-04f91918-a72a-6805ca147c55'
+                 },
+                 'mor_type': 'vm'
+                 }
+            ],
+            'datastores': [],
+            'clustercomputeresource': [],
+            'computeresource': [],
+            'hosts': [],
+        }
+        self.check.get_topologyitems_sync = MagicMock(return_value=topo_items)
+        self.check.collect_topology(instance)
+        snapshot = topology.get_snapshot(self.check.check_id)
 
-        topo_dict = self.check.get_topologyitems_sync(instance)
-        vm = topo_dict["vms"][0]
-        self.assertIs(type(vm['hostname']), str)
-        self.assertIs(type(vm['topo_tags']['name']), str)
-        self.assertEqual(vm['hostname'], 'Ubuntu')
-        self.assertEqual(vm['topo_tags']['name'], 'Ubuntu')
+        self.assertEqual(len(snapshot['components']), 1)
+
+        # check if all elements in componet
+        component = snapshot['components'][0]
+        self.assertEqual(component['id'], 'urn:vsphere:/ESXi/vsphere-VirtualMachine/Ubuntu')
+        self.assertIs(type(component['id']), str)
+        self.assertIs(type(component['type']), str)
+        self.assertIs(type(component['data']['topo_type']), str)
+        self.assertIs(type(component['data']['name']), str)
+        self.assertEqual(to_string('Ubuntu™'), component['data']['name'])
+        self.assertIs(type(component['data']['datastore']), str)
+        for tag in component['data']['tags']:
+            self.assertIs(type(tag), str)
 
     def test_get_topologyitems_for_vm_with_session_relogin(self):
         """
