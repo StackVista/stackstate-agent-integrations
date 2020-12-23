@@ -15,8 +15,6 @@ import ssl
 import time
 import traceback
 import urllib3
-import json
-import yaml
 
 # 3p
 from pyVim import connect
