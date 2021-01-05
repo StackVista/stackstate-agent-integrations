@@ -227,8 +227,8 @@ class AgentCheckBase(object):
                 topology.submit_start_snapshot(self, self.check_id, self._get_instance_key_dict())
 
             instance = self.instances[0]
-            # create integration instance with a copy of instance
-            self.create_integration_instance(copy.deepcopy(instance))
+            # create integration instance components for monitoring purposes
+            self.create_integration_instance()
             # create a copy of the instance, get state if any and add it to the instance object for the check
             check_instance = copy.deepcopy(instance)
             # if this instance has some stored state set it to 'state'
@@ -564,7 +564,7 @@ class AgentCheckBase(object):
     def stop_snapshot(self):
         topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key_dict())
 
-    def create_integration_instance(self, check_instance):
+    def create_integration_instance(self):
         """
 
         Agent -> Agent Integration -> Agent Integration Instance
@@ -592,8 +592,7 @@ class AgentCheckBase(object):
         agent_data = {
             "name": "StackState Agent:{}".format(datadog_agent.get_hostname()),
             "hostname": datadog_agent.get_hostname(),
-            "tags": check_instance.get('tags', []) + ["hostname:{}".format(datadog_agent.get_hostname()),
-                                                      "stackstate-agent"],
+            "tags": ["hostname:{}".format(datadog_agent.get_hostname()), "stackstate-agent"],
             "identifiers": [Identifiers.create_process_identifier(
                 datadog_agent.get_hostname(), datadog_agent.get_pid(), datadog_agent.get_create_time()
             )]
@@ -609,7 +608,7 @@ class AgentCheckBase(object):
                                                                                   instance_type)
         agent_integration_data = {
             "name": "{}:{}".format(datadog_agent.get_hostname(), instance_type), "integration": instance_type,
-            "hostname": datadog_agent.get_hostname(), "tags": check_instance.get('tags', []) + [
+            "hostname": datadog_agent.get_hostname(), "tags": [
                 "hostname:{}".format(datadog_agent.get_hostname()), "integration-type:{}".format(instance_type)
             ]
         }
@@ -639,7 +638,7 @@ class AgentCheckBase(object):
         agent_integration_instance_data = {
             "name": agent_integration_instance_name, "integration": instance_type,
             "hostname": datadog_agent.get_hostname(),
-            "tags": check_instance.get('tags', []) + [
+            "tags": [
                 "hostname:{}".format(datadog_agent.get_hostname())
             ]
         }
