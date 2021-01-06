@@ -601,7 +601,7 @@ expected TopologyInstance, AgentIntegrationInstance or DefaultIntegrationInstanc
         check = TopologyCheck()
         check.key = TopologyInstance("mytype", "myurl")
         assert check._get_instance_key_dict() == {"type": "mytype", "url": "myurl"}
-        check.create_integration_instance({})
+        check.create_integration_instance()
         # assert integration topology is created for topology instances
         topo_instances = topology.get_snapshot('mytype:myurl')
         assert topo_instances == self.agent_integration_topology('mytype', 'myurl')
@@ -609,7 +609,7 @@ expected TopologyInstance, AgentIntegrationInstance or DefaultIntegrationInstanc
     def test_agent_integration_instance(self, topology):
         check = AgentIntegrationInstanceCheck()
         assert check._get_instance_key_dict() == {"type": "agent", "url": "integrations"}
-        check.create_integration_instance({})
+        check.create_integration_instance()
         # assert integration topology is created for agent integration instances
         topo_instances = topology.get_snapshot(check.check_id)
         assert topo_instances == self.agent_integration_topology('test', 'integration')
@@ -617,7 +617,7 @@ expected TopologyInstance, AgentIntegrationInstance or DefaultIntegrationInstanc
     def test_agent_telemetry_instance(self, topology):
         check = DefaultInstanceCheck()
         assert check._get_instance_key_dict() == {"type": "agent", "url": "integrations"}
-        check.create_integration_instance({})
+        check.create_integration_instance()
         # assert no integration topology is created for default instances
         assert topology._snapshots == {}
 
