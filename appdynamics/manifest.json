@@ -1,0 +1,23 @@
+{
+  "display_name": "AppDynamics",
+  "maintainer": "info@stackstate.com",
+  "manifest_version": "1.0.0",
+  "name": "appdynamics",
+  "metric_prefix": "appdynamics.",
+  "metric_to_check": "",
+  "creates_events": false,
+  "short_description": "AppDynamics topology and events",
+  "guid": "9fc9cb64-bd71-4150-b142-e554cdf984a1",
+  "support": "core",
+  "supported_os": [
+    "linux",
+    "mac_os",
+    "windows"
+  ],
+  "public_title": "StackState-AppDynamics Integration",
+  "categories": [
+    ""
+  ],
+  "type": "check",
+  "is_public": false
+}
