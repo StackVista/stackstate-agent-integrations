@@ -35,11 +35,12 @@ from stackstate_checks.base.checks.libs.timer import Timer
 
 SOURCE_TYPE = 'vsphere'
 REAL_TIME_INTERVAL = 20  # Default vCenter sampling interval
-
 # Metrics are only collected on vSphere VMs marked by custom field value
 VM_MONITORING_FLAG = 'StackStateMonitored'
 # The size of the ThreadPool used to process the request queue
 DEFAULT_SIZE_POOL = 4
+# The maximum number of historical metrics allowed to be queried
+DEFAULT_MAX_HIST_METRICS = 64
 # The interval in seconds between two refresh of the entities list
 REFRESH_MORLIST_INTERVAL = 3 * 60
 # The interval in seconds between two refresh of metrics metadata (id<->name)
@@ -378,6 +379,7 @@ class VSphereCheck(AgentCheck):
 
         # Connections open to vCenter instances
         self.server_instances = {}
+        self.session = None
 
         # Event configuration
         self.event_config = {}
@@ -488,14 +490,7 @@ class VSphereCheck(AgentCheck):
         now = time.time()
         return now - self.cache_times[i_key][entity][LAST] > self.cache_times[i_key][entity][INTERVAL]
 
-    def _get_server_instance(self, instance):
-        i_key = self._instance_key(instance)
-
-        service_check_tags = [
-            'vcenter_server:{0}'.format(instance.get('name')),
-            'vcenter_host:{0}'.format(instance.get('host')),
-        ]
-
+    def _smart_connect(self, instance, service_check_tags):
         # Check for ssl configs and generate an appropriate ssl context object
         ssl_verify = instance.get('ssl_verify', True)
         ssl_capath = instance.get('ssl_capath', None)
@@ -509,38 +504,58 @@ class VSphereCheck(AgentCheck):
 
         # If both configs are used, log a message explaining the default
         if not ssl_verify and ssl_capath:
-            self.log.debug("Your configuration is incorrectly attempting to "
-                           "specify both a CA path, and to disable SSL "
-                           "verification. You cannot do both. Proceeding with "
-                           "disabling ssl verification.")
+            self.log.debug(
+                "Your configuration is incorrectly attempting to "
+                "specify both a CA path, and to disable SSL "
+                "verification. You cannot do both. Proceeding with "
+                "disabling ssl verification."
+            )
+
+        try:
+            # Object returned by SmartConnect is a ServerInstance
+            # https://www.vmware.com/support/developer/vc-sdk/visdk2xpubs/ReferenceGuide/vim.ServiceInstance.html
+            server_instance = connect.SmartConnect(
+                host=instance.get('host'),
+                user=instance.get('username'),
+                pwd=instance.get('password'),
+                sslContext=context if not ssl_verify or ssl_capath else None,
+            )
+        except Exception as e:
+            err_msg = "Connection to {} failed: {}".format(instance.get('host'), e)
+            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=service_check_tags, message=err_msg)
+            raise Exception(err_msg)
+
+        # Check that we have sufficient permission for the calls we need to make
+        try:
+            server_instance.CurrentTime()
+        except Exception as e:
+            err_msg = (
+                "A connection to {} can be established, but performing operations on the server fails: {}"
+            ).format(instance.get('host'), e)
+            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=service_check_tags, message=err_msg)
+            raise Exception(err_msg)
+
+        return server_instance
+
+    def _get_server_instance(self, instance):
+        i_key = self._instance_key(instance)
+
+        service_check_tags = [
+            'vcenter_server:{0}'.format(instance.get('name')),
+            'vcenter_host:{0}'.format(instance.get('host')),
+        ]
 
         if i_key not in self.server_instances:
-            try:
-                # Object returned by SmartConnect is a ServerInstance
-                #   https://www.vmware.com/support/developer/vc-sdk/visdk2xpubs/ReferenceGuide/vim.ServiceInstance.html
-                server_instance = connect.SmartConnect(
-                    host=instance.get('host'),
-                    user=instance.get('username'),
-                    pwd=instance.get('password'),
-                    connectionPoolTimeout=-1,
-                    sslContext=context if not ssl_verify or ssl_capath else None
-                )
-            except Exception as e:
-                err_msg = "Connection to %s failed: %s" % (instance.get('host'), e)
-                self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL,
-                                   tags=service_check_tags, message=err_msg)
-                raise Exception(err_msg)
-            self.server_instances[i_key] = server_instance
+            self.server_instances[i_key] = self._smart_connect(instance, service_check_tags)
 
         # Test if the connection is working
         try:
-            self.server_instances[i_key].RetrieveContent()
+            self.server_instances[i_key].CurrentTime()
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=service_check_tags)
-        except Exception as e:
-            err_msg = "Connection to %s died unexpectedly: %s" % (instance.get('host'), e)
-            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL,
-                               tags=service_check_tags, message=err_msg)
-            raise Exception(err_msg)
+        except Exception:
+            # Try to reconnect, if the connection is definitely broken.
+            del self.server_instances[i_key]
+            self.server_instances[i_key] = self._smart_connect(instance, service_check_tags)
         return self.server_instances[i_key]
 
     def _compute_needed_metrics(self, instance, available_metrics):
@@ -949,6 +964,27 @@ class VSphereCheck(AgentCheck):
             self.log.debug("Not collecting metrics for this instance, nothing to do yet: {0}".format(i_key))
             return
 
+        server_instance = self._get_server_instance(instance)
+        max_historical_metrics = DEFAULT_MAX_HIST_METRICS
+
+        try:
+            if 'max_query_metrics' in instance:
+                max_historical_metrics = int(instance['max_query_metrics'])
+                self.log.info("Collecting up to %d metrics", max_historical_metrics)
+            else:
+                vcenter_settings = server_instance.content.setting.QueryOptions("config.vpxd.stats.maxQueryMetrics")
+                max_historical_metrics = int(vcenter_settings[0].value)
+            if max_historical_metrics < 0:
+                max_historical_metrics = float('inf')
+        except Exception as e:
+            self.log.debug(
+                "Error getting maxQueryMetrics setting "
+                "(max_historical_metrics=%s, DEFAULT_MAX_HIST_METRICS=%s): %s",
+                max_historical_metrics,
+                DEFAULT_MAX_HIST_METRICS,
+                e,
+            )
+
         mors = self.morlist[i_key].items()
         self.log.debug("Collecting metrics of %d mors" % len(mors))
 
@@ -958,6 +994,17 @@ class VSphereCheck(AgentCheck):
             if mor['mor_type'] == 'vm':
                 vm_count += 1
             if 'metrics' not in mor or not mor['metrics']:
+                continue
+            if len(mor['metrics']) >= max_historical_metrics:
+                # Too many metrics to query for a single mor, ignore it
+                self.log.warning(
+                    "Metrics for '%s' are ignored because there are more (%d) than what you allowed (%d) on "
+                    "vCenter Server",
+                    # noqa: E501
+                    mor_name,
+                    len(mor['metrics']),
+                    max_historical_metrics,
+                )
                 continue
 
             self.pool.apply_async(self._collect_metrics_atomic, args=(instance, mor))
@@ -1251,8 +1298,8 @@ class VSphereCheck(AgentCheck):
         return obj_list
 
     def vsphere_client_connect(self, instance):
-        session = requests.session()
-        session.verify = False
+        self.session = requests.session()
+        self.session.verify = False
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
         # Connect to vSphere client
@@ -1260,7 +1307,7 @@ class VSphereCheck(AgentCheck):
             server=instance.get('host'),
             username=instance.get('username'),
             password=instance.get('password'),
-            session=session)
+            session=self.session)
 
     def get_topologyitems_sync(self, instance):
         server_instance = self._get_server_instance(instance)
@@ -1281,6 +1328,10 @@ class VSphereCheck(AgentCheck):
         clustercomputeresources = yaml.safe_load(json.dumps(self._vsphere_clustercomputeresources(content, domain,
                                                                                                   regexes)))
         computeresource = yaml.safe_load(json.dumps(self._vsphere_computeresources(content, domain, regexes)))
+
+        # close the session after the processing of all Tags from the new Rest Client
+        if self.session:
+            self.session.close()
 
         return {
             "vms": vms,
@@ -1417,9 +1468,9 @@ class VSphereCheck(AgentCheck):
         self._vacuum_morlist(instance)
 
         # Second part: do the job
+        self.collect_topology(instance)
         self.collect_metrics(instance)
         self._query_event(instance)
-        self.collect_topology(instance)
 
         # For our own sanity
         self._clean()

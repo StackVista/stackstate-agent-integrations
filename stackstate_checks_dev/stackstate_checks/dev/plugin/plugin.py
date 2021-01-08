@@ -4,12 +4,17 @@
 import json
 import os
 import re
+import logging
+import shutil
 from base64 import urlsafe_b64encode
 
 import pytest
 
 from .._env import E2E_FIXTURE_NAME, TESTING_PLUGIN, e2e_active, get_env_vars, E2E_PARENT_PYTHON, \
     format_config, AGENT_COLLECTOR_SEPARATOR, replay_check_run
+
+from stackstate_checks.utils.persistent_state import StateManager
+
 
 try:
     from stackstate_checks.base.stubs import aggregator as __aggregator
@@ -187,3 +192,67 @@ def sts_agent_check(request, aggregator):
     # Give an explicit name so we don't shadow other uses
     with TempDir('sts_agent_check') as temp_dir:
         yield run_check
+
+
+@pytest.fixture
+def state():
+    logger = logging.getLogger(__name__)
+
+    class PersistentStateFixture:
+
+        def __init__(self):
+            self.persistent_state = StateManager(logger)
+
+        def assert_state_check(self, check, expected_pre_run_state, expected_post_run_state, state_schema=None):
+            """
+            assert_state_check does the following steps:
+            - assert the current state before the check has run, making sure it's the value of `pre_run_state`.
+            - perform the check run, (potentially) altering the state.
+            - assert the state after the check has run, making sure it's the value of `post_run_state`.
+            """
+            state_descriptor = check._get_state_descriptor()
+            try:
+                if expected_pre_run_state:
+                    assert check.state_manager.get_state(state_descriptor, state_schema) == expected_pre_run_state
+                else:
+                    assert check.state_manager.get_state(state_descriptor, state_schema) is None
+                check.run()
+                if expected_post_run_state:
+                    assert check.state_manager.get_state(state_descriptor, state_schema) == expected_post_run_state
+                else:
+                    assert check.state_manager.get_state(state_descriptor, state_schema) is None
+            finally:
+                # remove all test data
+                check.state_manager.clear(state_descriptor)
+                shutil.rmtree(check.get_agent_conf_d_path())
+
+        def assert_state(self, instance, state, state_schema=None, with_clear=True):
+            """
+            assert_state does the following steps:
+            - assert that the state is empty when the test is started
+            - set the state, without flushing to disk
+            - get the state, retrieving it from memory and assert that it's the same as the input state
+            - set state, this time flushing it to disk
+            - read the state from disk, verify that it's written and read correctly
+            - assert that the state is still the same as the input state
+            if with_clear is True:
+            - clear the persistence state, removing it from memory and disk
+            - assert that the file does not exist
+            - assert that the state is removed from memory
+            """
+            try:
+                assert self.persistent_state.get_state(instance, state_schema) is None
+                self.persistent_state.set_state(instance, state, False)
+                assert self.persistent_state.get_state(instance, state_schema) == state
+                self.persistent_state.set_state(instance, state)
+                self.persistent_state._read_state(instance)
+                assert self.persistent_state.get_state(instance, state_schema) == state
+            finally:
+                if with_clear:
+                    self.persistent_state.clear(instance)
+                    assert os.path.isfile(instance.file_location) is False
+                    assert self.persistent_state.get_state(instance, state_schema) is None
+
+                return state
+
+    return PersistentStateFixture()

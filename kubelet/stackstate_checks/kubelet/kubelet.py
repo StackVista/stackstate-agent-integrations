@@ -18,6 +18,7 @@ from six.moves.urllib.parse import urljoin
 from stackstate_checks.base.utils.date import UTC, parse_rfc3339
 from stackstate_checks.base.utils.tagging import tagger
 from stackstate_checks.checks import AgentCheck
+from stackstate_checks.base import AgentIntegrationInstance
 from stackstate_checks.checks.openmetrics import OpenMetricsBaseCheck
 from stackstate_checks.errors import CheckException
 
@@ -31,15 +32,6 @@ except ImportError:
 
     def get_config(key):
         return ""
-
-try:
-    # this module is only available in agent 6
-    from datadog_agent import get_clustername
-except ImportError:
-
-    def get_clustername():
-        return ""
-
 
 KUBELET_HEALTH_PATH = '/healthz'
 NODE_SPEC_PATH = '/spec'
@@ -124,11 +116,16 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
 
     DEFAULT_METRIC_LIMIT = 0
 
+    def get_instance_key(self, instance):
+        return AgentIntegrationInstance("kubelet", self.cluster_name)
+
     def __init__(self, name, init_config, agentConfig, instances=None):
         self.NAMESPACE = 'kubernetes'
         if instances is not None and len(instances) > 1:
             raise Exception('Kubelet check only supports one configured instance.')
         inst = instances[0] if instances else None
+
+        self.cluster_name = AgentCheck.get_cluster_name()
 
         cadvisor_instance = self._create_cadvisor_prometheus_instance(inst)
         kubelet_instance = self._create_kubelet_prometheus_instance(inst)
@@ -179,9 +176,8 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
             }
         )
 
-        clustername = get_clustername()
-        if clustername != "":
-            kubelet_instance['_metric_tags'] = [clustername]
+        if self.cluster_name != "":
+            kubelet_instance['_metric_tags'] = [self.cluster_name]
 
         return kubelet_instance
 

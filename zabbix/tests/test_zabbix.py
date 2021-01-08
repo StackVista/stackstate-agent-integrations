@@ -4,9 +4,10 @@
 import pytest
 import unittest
 import mock
+import json
 
 from stackstate_checks.zabbix import ZabbixCheck
-from stackstate_checks.base import ConfigurationError
+from stackstate_checks.base import ConfigurationError, AgentCheck
 from stackstate_checks.base.stubs import topology, aggregator
 
 CHECK_NAME = 'zabbix'
@@ -332,6 +333,9 @@ class TestZabbix(unittest.TestCase):
 
         self.assertEqual(len(topo_instances['components']), 1)
         self.assertEqual(len(topo_instances['relations']), 0)
+        # Start and Stop Snapshot should be True
+        self.assertEqual(topo_instances.get("start_snapshot"), True)
+        self.assertEqual(topo_instances.get("stop_snapshot"), True)
 
         component = topo_instances['components'][0]
         self.assertEqual(component['data']['domain'], 'Zabbix')
@@ -339,6 +343,10 @@ class TestZabbix(unittest.TestCase):
         for label in ['zabbix', 'host group:Zabbix servers', 'host group:MyHostGroup']:
             if label not in labels:
                 self.fail("Component does not have label '%s'." % label)
+
+        # check if OK service check generated
+        service_checks = aggregator.service_checks('Zabbix')
+        self.assertEqual(AgentCheck.OK, service_checks[0].status)
 
     def test_zabbix_problems(self):
 
@@ -563,6 +571,10 @@ class TestZabbix(unittest.TestCase):
                 self.fail("Event does not have tag '%s', got: %s." % (tag, tags))
         self.assertEqual(len(tags), 5)
 
+        # check if OK service check generated
+        service_checks = aggregator.service_checks('Zabbix')
+        self.assertEqual(AgentCheck.OK, service_checks[0].status)
+
     def test_zabbix_acknowledge_problem(self):
         """
         When there are problems, we are expecting all host components to go to yellow/red.
@@ -632,3 +644,37 @@ class TestZabbix(unittest.TestCase):
             if tag not in tags:
                 self.fail("Event does not have tag '%s', got: %s." % (tag, tags))
         self.assertEqual(len(tags), 5)
+
+    @mock.patch('requests.get')
+    def test_method_request(self, mocked_get):
+        event_resp = {
+            "jsonrpc": "2.0",
+            "result": [
+                {
+                    "triggerid": "13491",
+                    "expression": u"{12900}=1",
+                    "description": u"Zabbix agent on {HOST.NAME} is unreachable for 5 minutes",
+                    "url": "",
+                    "status": "0",
+                    "value": "1",
+                    "priority": "3",
+                    "lastchange": "1549878981",
+                    "comments": "",
+                    "error": "",
+                    "templateid": "10047",
+                    "type": "0",
+                    "state": "0",
+                    "flags": "0",
+                    "recovery_mode": "0",
+                    "recovery_expression": "",
+                    "correlation_mode": "0",
+                    "correlation_tag": "",
+                    "manual_close": "0"
+                }
+            ],
+            "id": 1
+        }
+        mocked_get.return_value = mock.MagicMock(status_code=200, text=json.dumps(event_resp))
+        self.check.ssl_verify = False
+        resp = self.check.method_request("http://host/zabbix/api_jsonrpc.php", "events.get")
+        self.assertEqual(u"{12900}=1", resp.get("result")[0].get("expression"))

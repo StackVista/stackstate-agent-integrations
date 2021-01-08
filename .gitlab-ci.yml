@@ -70,7 +70,7 @@ clear-win-caches:
 .linux_test: &linux_test
   <<: *linux_env
   stage: test
-  dependencies:
+  needs:
     - linux_deps
   services:
     - name: docker:19.03.5-dind
@@ -256,7 +256,7 @@ test_nagios:
 .windows_test: &windows_test
   <<: *windows_env
   stage: test
-  dependencies:
+  needs:
     - win_deps
   script:
     - checksdev test -c %CHECK%

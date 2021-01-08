@@ -144,7 +144,7 @@
           "dynatrace-WCF:4.8.3928.0",
           "dynatrace-CLR:FullCLR:4.0.30319.0",
           "dynatrace-ASP_NET:4.8.3928.0",
-          "dynatrace-[Kubernetes]namespace:default"
+          "dynatrace-[Kubernetes]namespace:default-with-unicode-char-"
         ]
       },
       "id": "SERVICE-329B4CC95B522941",
@@ -317,7 +317,7 @@
           "dynatrace-PROCESS_GROUP_INSTANCE-D87BE1EAFC600996",
           "dynatrace-actualMonitoringState:OFF",
           "dynatrace-expectedMonitoringState:ON",
-          "dynatrace-IIS",
+          "dynatrace-IIS-with-unicode-char-",
           "dynatrace-CLR:FullCLR:4.8.3928.0",
           "dynatrace-DOTNET:.NET Framework:4.8.3928.0"
         ],
@@ -344,7 +344,7 @@
         "softwareTechnologies": [
           {
             "edition": null,
-            "type": "IIS",
+            "type": "IIS-with-unicode-char-",
             "version": null
           },
           {
@@ -440,7 +440,7 @@
             "java"
           ],
           "elasticSearchNodeNames": [
-            "stackstate-prod-0"
+            "stackstate-prod-0-with-unicode-char-"
           ],
           "javaMainClasses": [
             "org.elasticsearch.bootstrap.Elasticsearch"
@@ -558,7 +558,7 @@
         "lastSeenTimestamp": 1601447916389,
         "osType": "WINDOWS",
         "osArchitecture": "X86",
-        "osVersion": "Windows Server 2016 Datacenter 1607, ver. 10.0.14393",
+        "osVersion": "Windows Server 2016 Datacenter 1607, ver. 10.0.14393 with unicode char: ",
         "hypervisorType": "XEN",
         "ipAddresses": [
           "3.249.27.126",
@@ -594,9 +594,10 @@
         "environment": "production",
         "identifiers": [
           "urn:dynatrace:/HOST-6AAE0F78BCF2E0F4",
-                    "urn:host:/ec2-3-249-27-126.eu-west-1.compute.amazonaws.com",
-                    "urn:host:/ip-172-31-29-43.eu-west-1.compute.internal",
-                    "urn:host:/EX01.stackstate.lab"
+          "urn:host:/ec2-3-249-27-126.eu-west-1.compute.amazonaws.com",
+          "urn:host:/ip-172-31-29-43.eu-west-1.compute.internal",
+          "urn:host:/EX01.stackstate.lab",
+          "urn:host:/ex01.stackstate.lab"
         ],
         "instance": "https://ton48129.live.dynatrace.com",
         "tags": [
@@ -654,9 +655,10 @@
         "environment": "production",
         "identifiers": [
           "urn:dynatrace:/HOST-AA6A5D81A0006807",
-                    "urn:host:/ec2-34-242-110-40.eu-west-1.compute.amazonaws.com",
-                    "urn:host:/ip-172-31-30-110.eu-west-1.compute.internal",
-                    "urn:host:/SQL01.stackstate.lab"
+          "urn:host:/ec2-34-242-110-40.eu-west-1.compute.amazonaws.com",
+          "urn:host:/ip-172-31-30-110.eu-west-1.compute.internal",
+          "urn:host:/SQL01.stackstate.lab",
+          "urn:host:/sql01.stackstate.lab"
         ],
         "instance": "https://ton48129.live.dynatrace.com",
         "tags": [
@@ -674,7 +676,7 @@
       "data": {
         "entityId": "APPLICATION-EA7C4B59F27D43EB",
         "displayName": "RUM Default Application",
-        "customizedName": "RUM Default Application",
+        "customizedName": "RUM Default Application with unicode char: ",
         "discoveredName": "RUM Default Application",
         "firstSeenTimestamp": 1422282024216,
         "lastSeenTimestamp": 1538579528065,

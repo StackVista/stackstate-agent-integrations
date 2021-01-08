@@ -4,10 +4,14 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import mock
+import shutil
+from schematics import Model
+from schematics.types import IntType, StringType, ModelType
 import pytest
 from six import PY3
 
 from stackstate_checks.checks import AgentCheck, TopologyInstance, AgentIntegrationInstance
+from stackstate_checks.base.utils.agent_integration_test_util import AgentIntegrationTestUtil
 from stackstate_checks.base.stubs.topology import component, relation
 
 
@@ -318,13 +322,146 @@ class TestLimits():
         assert len(aggregator.metrics("metric")) == 10
 
 
+class DefaultInstanceCheck(AgentCheck):
+    pass
+
+
+class AgentIntegrationInstanceCheck(AgentCheck):
+    def get_instance_key(self, instance):
+        return AgentIntegrationInstance("test", "integration")
+
+
 class TopologyCheck(AgentCheck):
-    def __init__(self, key=None):
-        super(TopologyCheck, self).__init__()
+    def __init__(self, key=None, *args, **kwargs):
+        super(TopologyCheck, self).__init__(*args, **kwargs)
         self.key = key or TopologyInstance("mytype", "someurl")
 
     def get_instance_key(self, instance):
         return self.key
+
+
+class TopologyAutoSnapshotCheck(TopologyCheck):
+    def __init__(self):
+        instances = [{'a': 'b'}]
+        super(TopologyAutoSnapshotCheck, self) \
+            .__init__(TopologyInstance("mytype", "someurl", with_snapshots=True), "test", {}, instances)
+
+    def check(self, instance):
+        pass
+
+
+class TopologyBrokenCheck(TopologyAutoSnapshotCheck):
+    def __init__(self):
+        super(TopologyBrokenCheck, self).__init__()
+
+    def check(self, instance):
+        raise Exception("some error in my check")
+
+
+TEST_STATE = {
+    'string': 'string',
+    'int': 1,
+    'float': 1.0,
+    'bool': True,
+    'list': ['a', 'b', 'c'],
+    'dict': {'a': 'b'}
+}
+
+
+class TopologyStatefulCheck(TopologyAutoSnapshotCheck):
+    def __init__(self):
+        super(TopologyStatefulCheck, self).__init__()
+
+    @staticmethod
+    def get_agent_conf_d_path():
+        return "./test_data"
+
+    def check(self, instance):
+        instance.update({'state': TEST_STATE})
+
+
+class TopologyStatefulStateDescriptorCleanupCheck(TopologyAutoSnapshotCheck):
+    def __init__(self):
+        instances = [{'a': 'b'}]
+        super(TopologyAutoSnapshotCheck, self) \
+            .__init__(TopologyInstance("mytype", "https://some.type.url", with_snapshots=True), "test", {}, instances)
+
+    @staticmethod
+    def get_agent_conf_d_path():
+        return "./test_data"
+
+    def check(self, instance):
+        instance.update({'state': TEST_STATE})
+
+
+class TopologyClearStatefulCheck(TopologyStatefulCheck):
+    def __init__(self):
+        super(TopologyClearStatefulCheck, self).__init__()
+
+    def check(self, instance):
+        instance.update({'state': None})
+
+
+class TopologyBrokenStatefulCheck(TopologyStatefulCheck):
+    def __init__(self):
+        super(TopologyBrokenStatefulCheck, self).__init__()
+
+    def check(self, instance):
+        instance.update({'state': TEST_STATE})
+
+        raise Exception("some error in my check")
+
+
+class IdentifierMappingTestAgentCheck(TopologyCheck):
+    def __init__(self):
+        instances = [
+            {
+                'identifier_mappings':
+                    {
+                        'host': {'field': 'url', 'prefix': 'urn:computer:/'},
+                        'vm': {'field': 'name', 'prefix': 'urn:computer:/'}
+                    }
+            }
+        ]
+        super(IdentifierMappingTestAgentCheck, self)\
+            .__init__(TopologyInstance("host", "someurl"), "test", {}, instances)
+
+    def check(self, instance):
+        pass
+
+
+class NestedIdentifierMappingTestAgentCheck(TopologyCheck):
+    def __init__(self):
+        instances = [
+            {
+                'identifier_mappings':
+                    {
+                        'host': {'field': 'x.y.z.url', 'prefix': 'urn:computer:/'}
+                    }
+            }
+        ]
+        super(NestedIdentifierMappingTestAgentCheck, self)\
+            .__init__(TopologyInstance("host", "someurl"), "test", {}, instances)
+
+    def check(self, instance):
+        pass
+
+
+class StateSchema(Model):
+    offset = IntType(required=True)
+
+
+class CheckInstanceSchema(Model):
+    a = StringType(required=True)
+    state = ModelType(StateSchema, required=True, default=StateSchema({'offset': 0}))
+
+
+class TopologyStatefulSchemaCheck(TopologyStatefulCheck):
+    INSTANCE_SCHEMA = CheckInstanceSchema
+
+    def check(self, instance):
+        print(instance.a)
+        instance.state.offset = 20
 
 
 class TestTopology:
@@ -341,15 +478,67 @@ class TestTopology:
         topology.assert_snapshot(check.check_id, check.key,
                                  relations=[relation("source-id", "target-id", "my-type", data)])
 
+    def test_auto_snapshotting(self, topology):
+        check = TopologyAutoSnapshotCheck()
+        check.run()
+        # assert auto snapshotting occurred
+        topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
+
+    def test_no_stop_snapshot_on_exception(self, topology):
+        check = TopologyBrokenCheck()
+        check.run()
+        # assert stop snapshot is false when an exception is thrown in check.run()
+        topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=False)
+
     def test_start_snapshot(self, topology):
         check = TopologyCheck()
-        topology.submit_start_snapshot(check, check.check_id, check._get_instance_key())
+        check.start_snapshot()
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True)
 
     def test_stop_snapshot(self, topology):
         check = TopologyCheck()
-        topology.submit_stop_snapshot(check, check.check_id, check._get_instance_key())
+        check.stop_snapshot()
         topology.assert_snapshot(check.check_id, check.key, stop_snapshot=True)
+
+    def test_stateful_check(self, topology, state):
+        check = TopologyStatefulCheck()
+        state.assert_state_check(check, expected_pre_run_state=None, expected_post_run_state=TEST_STATE)
+        # assert auto snapshotting occurred
+        topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
+
+    def test_stateful_state_descriptor_cleanup_check(self, topology, state):
+        check = TopologyStatefulStateDescriptorCleanupCheck()
+        state_descriptor = check._get_state_descriptor()
+        assert state_descriptor.instance_key == "instance.mytype.https_some.type.url"
+        assert check._get_instance_key_dict() == {'type': 'mytype', 'url': 'https://some.type.url'}
+        state.assert_state_check(check, expected_pre_run_state=None, expected_post_run_state=TEST_STATE)
+        # assert auto snapshotting occurred
+        topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
+
+    def test_clear_stateful_check(self, topology, state):
+        check = TopologyClearStatefulCheck()
+        # set the previous state and assert the state check function as expected
+        check.state_manager.set_state(check._get_state_descriptor(), TEST_STATE)
+        state.assert_state_check(check, expected_pre_run_state=TEST_STATE, expected_post_run_state=None)
+        # assert auto snapshotting occurred
+        topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
+
+    def test_no_state_change_on_exception_stateful_check(self, topology, state):
+        check = TopologyBrokenStatefulCheck()
+        # set the previous state and assert the state check function as expected
+        previous_state = {'my_old': 'state'}
+        check.state_manager.set_state(check._get_state_descriptor(), previous_state)
+        state.assert_state_check(check, expected_pre_run_state=previous_state, expected_post_run_state=previous_state)
+        # assert auto snapshotting occurred
+        topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=False)
+
+    def test_stateful_schema_check(self, topology, state):
+        check = TopologyStatefulSchemaCheck()
+        # assert the state check function as expected
+        state.assert_state_check(check, expected_pre_run_state=None,
+                                 expected_post_run_state=StateSchema({'offset': 20}), state_schema=StateSchema)
+        # assert auto snapshotting occurred
+        topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
 
     def test_none_data_ok(self, topology):
         check = TopologyCheck()
@@ -396,10 +585,10 @@ expected string, int, dictionary, list or None value"""
             assert check.component("my-id", "my-type", None)
         if PY3:
             assert str(e.value) == """Got unexpected <class 'dict'> for argument get_instance_key(), \
-expected TopologyInstance or AgentIntegrationInstance"""
+expected TopologyInstance, AgentIntegrationInstance or DefaultIntegrationInstance"""
         else:
             assert str(e.value) == """Got unexpected <type 'dict'> for argument get_instance_key(), \
-expected TopologyInstance or AgentIntegrationInstance"""
+expected TopologyInstance, AgentIntegrationInstance or DefaultIntegrationInstance"""
 
     def test_illegal_instance_key_field_type(self):
         check = TopologyCheck()
@@ -408,12 +597,203 @@ expected TopologyInstance or AgentIntegrationInstance"""
             assert check.component("my-id", "my-type", None)
         assert str(e.value) == "Instance requires a 'url' field of type 'string'"
 
-    def test_topology_instance(self):
+    def test_topology_instance(self, topology):
         check = TopologyCheck()
         check.key = TopologyInstance("mytype", "myurl")
-        assert check.key.toDict() == {"type": "mytype", "url": "myurl"}
+        assert check._get_instance_key_dict() == {"type": "mytype", "url": "myurl"}
+        check.create_integration_instance()
+        # assert integration topology is created for topology instances
+        topo_instances = topology.get_snapshot('mytype:myurl')
+        assert topo_instances == self.agent_integration_topology('mytype', 'myurl')
 
-    def test_agent_integration_instance(self):
-        check = TopologyCheck()
-        check.key = AgentIntegrationInstance("integration", "name")
-        assert check.key.toDict() == {"type": "agent", "url": "integrations"}
+    def test_agent_integration_instance(self, topology):
+        check = AgentIntegrationInstanceCheck()
+        assert check._get_instance_key_dict() == {"type": "agent", "url": "integrations"}
+        check.create_integration_instance()
+        # assert integration topology is created for agent integration instances
+        topo_instances = topology.get_snapshot(check.check_id)
+        assert topo_instances == self.agent_integration_topology('test', 'integration')
+
+    def test_agent_telemetry_instance(self, topology):
+        check = DefaultInstanceCheck()
+        assert check._get_instance_key_dict() == {"type": "agent", "url": "integrations"}
+        check.create_integration_instance()
+        # assert no integration topology is created for default instances
+        assert topology._snapshots == {}
+
+    def agent_integration_topology(self, type, url):
+        return {
+            'components': [
+                {
+                    'data': {
+                        'cluster': 'stubbed-cluster-name',
+                        'hostname': 'stubbed.hostname',
+                        'identifiers': [
+                            'urn:process:/stubbed.hostname:1:1234567890'
+                        ],
+                        'name': 'StackState Agent:stubbed.hostname',
+                        'tags': sorted([
+                            'hostname:stubbed.hostname',
+                            'stackstate-agent',
+                        ])
+                    },
+                    'id': 'urn:stackstate-agent:/stubbed.hostname',
+                    'type': 'stackstate-agent'
+                },
+                {
+                    'data': {
+                        'checks': [
+                            {
+                                'is_service_check_health_check': True,
+                                'name': 'Integration Health',
+                                'stream_id': -1
+                            }
+                        ],
+                        'cluster': 'stubbed-cluster-name',
+                        'service_checks': [
+                            {
+                                'conditions': [
+                                    {
+                                        'key': 'host',
+                                        'value': 'stubbed.hostname'
+                                    },
+                                    {
+                                        'key': 'tags.integration-type',
+                                        'value': type
+                                    }
+                                ],
+                                'name': 'Service Checks',
+                                'stream_id': -1
+                            }
+                        ],
+                        'hostname': 'stubbed.hostname',
+                        'integration': type,
+                        'name': 'stubbed.hostname:%s' % type,
+                        'tags': sorted([
+                            'hostname:stubbed.hostname',
+                            'integration-type:%s' % type,
+                        ])
+                    },
+                    'id': 'urn:agent-integration:/stubbed.hostname:%s' % type,
+                    'type': 'agent-integration'
+                },
+                {
+                    'data': {
+                        'checks': [
+                            {
+                                'is_service_check_health_check': True,
+                                'name': 'Integration Instance Health',
+                                'stream_id': -1
+                            }
+                        ],
+                        'cluster': 'stubbed-cluster-name',
+                        'service_checks': [
+                            {
+                                'conditions': [
+                                    {
+                                        'key': 'host',
+                                        'value': 'stubbed.hostname'
+                                    },
+                                    {
+                                        'key': 'tags.integration-type',
+                                        'value': type
+                                    },
+                                    {
+                                        'key': 'tags.integration-url',
+                                        'value': url
+                                    }
+                                ],
+                                'name': 'Service Checks',
+                                'stream_id': -1
+                            }
+                        ],
+                        'hostname': 'stubbed.hostname',
+                        'integration': type,
+                        'name': '%s:%s' % (type, url),
+                        'tags': sorted([
+                            'hostname:stubbed.hostname',
+                            'integration-type:%s' % type,
+                            'integration-url:%s' % url
+                        ])
+                    },
+                    'id': 'urn:agent-integration-instance:/stubbed.hostname:%s:%s' % (type, url),
+                    'type': 'agent-integration-instance'
+                },
+            ],
+            'instance_key': {
+                'type': 'agent',
+                'url': 'integrations'
+            },
+            'relations': [
+                {
+                    'data': {},
+                    'source_id': 'urn:stackstate-agent:/stubbed.hostname',
+                    'target_id': 'urn:agent-integration:/stubbed.hostname:%s' % type,
+                    'type': 'runs'
+                },
+                {
+                    'data': {},
+                    'source_id': 'urn:agent-integration:/stubbed.hostname:%s' % type,
+                    'target_id': 'urn:agent-integration-instance:/stubbed.hostname:%s:%s' % (type, url),
+                    'type': 'has'
+                },
+            ],
+            'start_snapshot': False,
+            'stop_snapshot': False
+        }
+
+    def test_component_with_identifier_mapping(self, topology):
+        """
+        Test should generate identifier mapping based on the prefix and field value
+        """
+        check = IdentifierMappingTestAgentCheck()
+        data = {"url": "identifier-url", "emptykey": None, "nestedobject": {"nestedkey": "nestedValue"}}
+        check.component("my-id", "host", data)
+        component = topology.get_snapshot(check.check_id)['components'][0]
+        # there should be only one identifier mapped for host because only `host` type exist
+        assert component["data"]["identifiers"] == ["urn:computer:/identifier-url"]
+
+    def test_component_with_identifier_mapping_with_existing_identifier(self, topology):
+        """
+        Test should generate identifier mapping based on the prefix and field value with extra identifier
+        """
+        check = IdentifierMappingTestAgentCheck()
+        data = {"url": "identifier-url", "identifiers": ["urn:host:/host-1"],
+                "nestedobject": {"nestedkey": "nestedValue"}}
+        check.component("my-id", "host", data)
+        component = topology.get_snapshot(check.check_id)['components'][0]
+        # there should be 2 identifier mapped for host because there was an existing identifier
+        assert component["data"]["identifiers"] == ["urn:host:/host-1", "urn:computer:/identifier-url"]
+
+    def test_component_identifier_mapping_with_no_field(self, topology):
+        """
+        Test should not generate identifier mapping because field value doesn't exist in data
+        """
+        check = IdentifierMappingTestAgentCheck()
+        data = {"emptykey": None, "nestedobject": {"nestedkey": "nestedValue"}}
+        check.component("my-id", "host", data)
+        component = topology.get_snapshot(check.check_id)['components'][0]
+        # there should be no identifier mapped for host because field value `url` doesn't exist in data
+        assert component["data"].get("identifiers") is None
+
+    def test_component_identifier_mapping_with_nested_field(self, topology):
+        """
+        Test should generate identifier mapping because based on the prefix and nested field value
+        """
+        check = NestedIdentifierMappingTestAgentCheck()
+        data = {"emptykey": None, "x": {"y": {"z": {"url": "identifier-url"}}}}
+        check.component("my-id", "host", data)
+        component = topology.get_snapshot(check.check_id)['components'][0]
+        # there should be one identifier mapped for host because only `host` type exist on the nested field
+        assert component["data"]["identifiers"] == ["urn:computer:/identifier-url"]
+
+    def test_component_nested_identifier_mapping_with_no_field(self, topology):
+        """
+        Test should not generate identifier mapping because nested field value doesn't exist in data
+        """
+        check = NestedIdentifierMappingTestAgentCheck()
+        data = {"emptykey": None}
+        check.component("my-id", "host", data)
+        component = topology.get_snapshot(check.check_id)['components'][0]
+        # there should be no identifier mapped for host because field value `x.y.z.url` doesn't exist in data
+        assert component["data"].get("identifiers") is None

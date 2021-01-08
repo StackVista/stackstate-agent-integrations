@@ -3,50 +3,80 @@ init_config:
 instances:
 
   # URL of ServiceNow instance
-  - url: "https://dev60476.service-now.com"
-    user: admin
-    password: Service@123
+  - url: "https://instance.service-now.com"
+    user: username
+    password: secret
 
-    # Batch size for paginating results. Default value is 10000
-    # batch_size: 1000
+    # Batch size for paginating results. Default value is 2500. Max value is 10000.
+    # batch_size: 2500
+
+    # On first start we get all changed request that have been updated in last N days. Default value is 100.
+    # change_request_bootstrap_days: 100
+
+    # Maximum number of change request that we process. Default value is 1000.
+    # change_request_process_limit: 1000
+
+    # Timeout for requests. Default value is 20.
+    # timeout: 20
+
+    # Verify https. Default value is true.
+    # verify_https: true
+
+    # ServiceNow Custom filter. Check ServiceNow documentation about filtering with sysparm_query parameter.
+    # https://developer.servicenow.com/dev.do#!/learn/learning-plans/orlando/servicenow_application_developer/app_store_learnv2_rest_orlando_more_about_query_parameters
+
+    # ServiceNow CMDB Configuration Items query. Default value is undefined and no filter will be applied.
+    # This filtering even applies to topology component listing
+    # cmdb_ci_sysparm_query: company.nameSTARTSWITHaxa
+
+    # ServiceNow CMDB Configuration Items Relations query. Default value is undefined and no filter will be applied.
+    # This filtering even applies to topology relation listing
+    # cmdb_rel_ci_sysparm_query: parent.company.nameSTARTSWITHaxa^ORchild.company.nameSTARTSWITHaxa
+
+    # ServiceNow Change Request query. Default value is undefined and no filter will be applied.
+    # This filtering even applies to topology events listing
+    # change_request_sysparm_query: company.nameSTARTSWITHaxa
+
+    # ServiceNow CMDB Configuration Item custom field mapping. The default value is cmdb_ci.
+    # custom_cmdb_ci_field: u_configuration_item
 
     # Currently StackState support the below resource/sys class types and apart from this will belong to
     # the generic servicenow component types
-#    include_resource_types: # optional and by default includes all resource types(sys Class Names)
-#        - cmdb_ci_netgear
-#        - cmdb_ci_ip_router
-#        - cmdb_ci_aix_server
-#        - cmdb_ci_storage_switch
-#        - cmdb_ci_win_cluster
-#        - cmdb_ci_email_server
-#        - cmdb_ci_web_server
-#        - cmdb_ci_app_server
-#        - cmdb_ci_printer
-#        - cmdb_ci_cluster
-#        - cmdb_ci_cluster_node
-#        - cmdb_ci_computer
-#        - cmdb_ci_msd
-#        - cmdb_ci
-#        - cmdb_ci_unix_server
-#        - cmdb_ci_win_cluster_node
-#        - cmdb_ci_datacenter
-#        - cmdb_ci_linux_server
-#        - cmdb_ci_db_ora_catalog
-#        - cmdb_ci_win_server
-#        - cmdb_ci_zone
-#        - cmdb_ci_appl
-#        - cmdb_ci_computer_room
-#        - cmdb_ci_ip_switch
-#        - service_offering
-#        - cmdb_ci_disk
-#        - cmdb_ci_peripheral
-#        - cmdb_ci_service_group
-#        - cmdb_ci_db_mysql_catalog
-#        - cmdb_ci_ups
-#        - cmdb_ci_service
-#        - cmdb_ci_app_server_java
-#        - cmdb_ci_spkg
-#        - cmdb_ci_database
-#        - cmdb_ci_rack
-#        - cmdb_ci_server
-#        - cmdb_ci_network_adapter
+    # include_resource_types: # optional and by default includes all resource types(sys Class Names)
+    #   - cmdb_ci_netgear
+    #   - cmdb_ci_ip_router
+    #   - cmdb_ci_aix_server
+    #   - cmdb_ci_storage_switch
+    #   - cmdb_ci_win_cluster
+    #   - cmdb_ci_email_server
+    #   - cmdb_ci_web_server
+    #   - cmdb_ci_app_server
+    #   - cmdb_ci_printer
+    #   - cmdb_ci_cluster
+    #   - cmdb_ci_cluster_node
+    #   - cmdb_ci_computer
+    #   - cmdb_ci_msd
+    #   - cmdb_ci
+    #   - cmdb_ci_unix_server
+    #   - cmdb_ci_win_cluster_node
+    #   - cmdb_ci_datacenter
+    #   - cmdb_ci_linux_server
+    #   - cmdb_ci_db_ora_catalog
+    #   - cmdb_ci_win_server
+    #   - cmdb_ci_zone
+    #   - cmdb_ci_appl
+    #   - cmdb_ci_computer_room
+    #   - cmdb_ci_ip_switch
+    #   - service_offering
+    #   - cmdb_ci_disk
+    #   - cmdb_ci_peripheral
+    #   - cmdb_ci_service_group
+    #   - cmdb_ci_db_mysql_catalog
+    #   - cmdb_ci_ups
+    #   - cmdb_ci_service
+    #   - cmdb_ci_app_server_java
+    #   - cmdb_ci_spkg
+    #   - cmdb_ci_database
+    #   - cmdb_ci_rack
+    #   - cmdb_ci_server
+    #   - cmdb_ci_network_adapter
