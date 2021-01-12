@@ -22,7 +22,7 @@ from stackstate_checks.vsphere.vsphere import (
     SHORT_ROLLUP
 )
 
-from utils import MockedMOR, assertMOR, disable_thread_pool, get_mocked_server, mock_alarm_event, vsphere_client, \
+from .utils import MockedMOR, assertMOR, disable_thread_pool, get_mocked_server, mock_alarm_event, vsphere_client, \
     VsphereTag, VsphereCategory
 
 
@@ -780,7 +780,6 @@ def test_get_topology_items_vms_hosts(vsphere, instance):
         assert vm_topo_tags["topo_type"] == "vsphere-VirtualMachine"
         assert vm_topo_tags["layer"] == "VSphere VMs"
         # check there should be no tags and labels extracted from vsphere client
-        print vm_topo_tags
         assert len(vm_topo_tags['identifiers']) == 0
         # Check if labels are added
         assert len(vm_topo_tags["labels"]) > 1
@@ -932,7 +931,6 @@ def test_check_vsphere_topology_with_vm_host(instance, topology):
             vsphere_check.check(instance)
 
             snapshot = topology.get_snapshot(vsphere_check.check_id)
-            print snapshot
             # 2 components (vm and host) should be created in the snapshot
             assert len(snapshot['components']) == 2
             # 1 relation (between vm and host) should be created in the snapshot

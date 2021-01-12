@@ -7,7 +7,7 @@ import time
 
 from six import iteritems
 
-from common import REALTIME_RESOURCES
+from .common import REALTIME_RESOURCES
 
 
 class MorNotFoundError(Exception):
