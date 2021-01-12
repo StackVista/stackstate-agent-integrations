@@ -169,7 +169,7 @@ class MorCache:
             mor_names.sort()
             total = len(mor_names)
             for idx in range(0, total, batch_size):
-                names_chunk = mor_names[idx : min(idx + batch_size, total)]
+                names_chunk = mor_names[idx: min(idx + batch_size, total)]
                 yield {name: mors_dict[name] for name in names_chunk}
 
     def purge(self, key, ttl):

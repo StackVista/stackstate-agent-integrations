@@ -915,7 +915,7 @@ class VSphereCheck(AgentCheck):
 
         # ## <TEST-INSTRUMENTATION>
         custom_tags = instance.get('tags', []) + ['instance:{}'.format(i_key)]
-        self.histogram('stackstate.agent.vsphere.metric_colection.time', t.total(), tags=custom_tags)
+        self.histogram('stackstate.agent.vsphere.metric_collection.time', t.total(), tags=custom_tags)
         # ## </TEST-INSTRUMENTATION>
 
     def collect_metrics(self, instance):
@@ -1040,20 +1040,15 @@ class VSphereCheck(AgentCheck):
                     # identifiers to be extracted from the component type
                     sts_identifiers, labels = self.extract_tags("VirtualMachine", obj._moId)
                     topology_tags["identifiers"] = sts_identifiers
-                    try:
-                        # extra metadata collection if present otherwise continue with the component creation with
-                        # collected metadata only
-                        datastores = []
-                        for ds in properties.get("datastore"):
-                            datastores.append(ds._moId)
-                        topology_tags["datastore"] = datastores
-                        add_label_pair(labels, "name", topology_tags["name"])
-                        add_label_pair(labels, "guestId", properties.get("config.guestId", ""))
-                        add_label_pair(labels, "guestFullName", properties.get("config.guestFullName", ""))
-                        add_label_pair(labels, "numCPU", properties.get("config.hardware.numCPU", ""))
-                        add_label_pair(labels, "memoryMB", properties.get("config.hardware.memoryMB", ""))
-                    except Exception as e:
-                        self.log.exception("Exception occurred during collecting metadata for VMs: {}".format(str(e)))
+                    datastores = []
+                    for ds in properties.get("datastore", []):
+                        datastores.append(ds._moId)
+                    topology_tags["datastore"] = datastores
+                    add_label_pair(labels, "name", topology_tags["name"])
+                    add_label_pair(labels, "guestId", properties.get("config.guestId", ""))
+                    add_label_pair(labels, "guestFullName", properties.get("config.guestFullName", ""))
+                    add_label_pair(labels, "numCPU", properties.get("config.hardware.numCPU", ""))
+                    add_label_pair(labels, "memoryMB", properties.get("config.hardware.memoryMB", ""))
                     topology_tags["labels"] = labels
                     obj_list.get("vms").append(dict(topo_tags=topology_tags))
                 elif isinstance(obj, vim.HostSystem):
@@ -1065,32 +1060,27 @@ class VSphereCheck(AgentCheck):
                     # identifiers to be extracted from the component type
                     sts_identifiers, labels = self.extract_tags("HostSystem", obj._moId)
                     topology_tags["identifiers"] = sts_identifiers
-                    try:
-                        # extra metadata collection if present otherwise continue with the component creation with
-                        # collected metadata only
-                        host_vms = []
-                        for vm in properties.get("vm"):
-                            vm_props = all_objects.get(vm)
-                            if not self._is_excluded(vm, vm_props, regexes, include_only_marked):
-                                host_vms.append(vm_props.get("name"))
-                        host_datastores = []
-                        for ds in properties.get("datastore"):
-                            ds_props = all_objects.get(ds)
-                            host_datastores.append(ds_props.get("name"))
-                        topology_tags["datastores"] = host_datastores
-                        topology_tags["vms"] = host_vms
+                    host_vms = []
+                    for vm in properties.get("vm", []):
+                        vm_props = all_objects.get(vm)
+                        if not self._is_excluded(vm, vm_props, regexes, include_only_marked):
+                            host_vms.append(vm_props.get("name"))
+                    host_datastores = []
+                    for ds in properties.get("datastore", []):
+                        ds_props = all_objects.get(ds)
+                        host_datastores.append(ds_props.get("name"))
+                    topology_tags["datastores"] = host_datastores
+                    topology_tags["vms"] = host_vms
 
-                        if isinstance(properties.get("parent"), vim.ComputeResource):
-                            resource_props = all_objects.get(properties.get("parent"))
-                            topology_tags["computeresource"] = resource_props.get("name")
+                    if isinstance(properties.get("parent"), vim.ComputeResource):
+                        resource_props = all_objects.get(properties.get("parent"))
+                        topology_tags["computeresource"] = resource_props.get("name")
 
-                        if isinstance(properties.get("parent"), vim.ClusterComputeResource):
-                            resource_props = all_objects.get(properties.get("parent"))
-                            topology_tags["clustercomputeresource"] = resource_props.get("name")
+                    if isinstance(properties.get("parent"), vim.ClusterComputeResource):
+                        resource_props = all_objects.get(properties.get("parent"))
+                        topology_tags["clustercomputeresource"] = resource_props.get("name")
 
-                        add_label_pair(labels, "name", topology_tags["name"])
-                    except Exception as e:
-                        self.log.exception("Exception occurred during collecting metadata for Hosts: {}".format(str(e)))
+                    add_label_pair(labels, "name", topology_tags["name"])
                     topology_tags["labels"] = labels
                     obj_list.get("hosts").append(dict(topo_tags=topology_tags))
                 elif isinstance(obj, vim.Datastore):
@@ -1103,23 +1093,17 @@ class VSphereCheck(AgentCheck):
                     # identifiers to be extracted from the component type
                     sts_identifiers, labels = self.extract_tags("Datastore", obj._moId)
                     topology_tags["identifiers"] = sts_identifiers
-                    try:
-                        # extra metadata collection if present otherwise continue with the component creation with
-                        # collected metadata only
-                        add_label_pair(labels, "name", topology_tags["name"])
-                        topology_tags["accessible"] = properties.get("summary.accessible")
-                        topology_tags["capacity"] = str(properties.get("summary.capacity"))
-                        topology_tags["type"] = properties.get("summary.type")
-                        topology_tags["url"] = properties.get("summary.url")
-                        vms = []
-                        for vm in properties.get("vm"):
-                            vm_props = all_objects.get(vm)
-                            if not self._is_excluded(vm, vm_props, regexes, include_only_marked):
-                                vms.append(vm_props.get("name"))
-                        topology_tags["vms"] = vms
-                    except Exception as e:
-                        self.log.exception(
-                            "Exception occurred during collecting metadata for DataStore: {}".format(str(e)))
+                    add_label_pair(labels, "name", topology_tags["name"])
+                    topology_tags["accessible"] = properties.get("summary.accessible")
+                    topology_tags["capacity"] = str(properties.get("summary.capacity"))
+                    topology_tags["type"] = properties.get("summary.type")
+                    topology_tags["url"] = properties.get("summary.url")
+                    vms = []
+                    for vm in properties.get("vm", []):
+                        vm_props = all_objects.get(vm)
+                        if not self._is_excluded(vm, vm_props, regexes, include_only_marked):
+                            vms.append(vm_props.get("name"))
+                    topology_tags["vms"] = vms
                     topology_tags["labels"] = labels
                     obj_list.get("datastores").append(dict(topo_tags=topology_tags))
                 elif isinstance(obj, vim.Datacenter):
@@ -1133,33 +1117,27 @@ class VSphereCheck(AgentCheck):
                     # identifiers to be extracted from the component type
                     sts_identifiers, labels = self.extract_tags("Datacenter", obj._moId)
                     topology_tags["identifiers"] = sts_identifiers
-                    try:
-                        # extra metadata collection if present otherwise continue with the component creation with
-                        # collected metadata only
-                        datastores = []
-                        for datastore in properties.get("datastore"):
-                            ds_props = all_objects.get(datastore)
-                            datastores.append(ds_props.get("name"))
-                        topology_tags["datastores"] = datastores
+                    datastores = []
+                    for datastore in properties.get("datastore", []):
+                        ds_props = all_objects.get(datastore)
+                        datastores.append(ds_props.get("name"))
+                    topology_tags["datastores"] = datastores
 
-                        computeresources = []
-                        clustercomputeresources = []
-                        host_folder = properties.get("hostFolder")
-                        host_folder_props = all_objects.get(host_folder)
-                        for computeres in host_folder_props.get("childEntity"):
-                            computeres_props = all_objects.get(computeres)
-                            if isinstance(computeres, vim.ComputeResource):
-                                computeresources.append(computeres_props.get("name"))
-                            elif isinstance(computeres, vim.CloudComputeResource):
-                                clustercomputeresources.append(computeres_props.get("name"))
+                    computeresources = []
+                    clustercomputeresources = []
+                    host_folder = properties.get("hostFolder")
+                    host_folder_props = all_objects.get(host_folder)
+                    for computeres in host_folder_props.get("childEntity", []):
+                        computeres_props = all_objects.get(computeres)
+                        if isinstance(computeres, vim.ComputeResource):
+                            computeresources.append(computeres_props.get("name"))
+                        elif isinstance(computeres, vim.CloudComputeResource):
+                            clustercomputeresources.append(computeres_props.get("name"))
 
-                        topology_tags["computeresources"] = computeresources
-                        topology_tags["clustercomputeresources"] = clustercomputeresources
+                    topology_tags["computeresources"] = computeresources
+                    topology_tags["clustercomputeresources"] = clustercomputeresources
 
-                        add_label_pair(labels, "name", topology_tags["name"])
-                    except Exception as e:
-                        self.log.exception("Exception occurred during collecting metadata for DataCenter: {}"
-                                           .format(str(e)))
+                    add_label_pair(labels, "name", topology_tags["name"])
                     topology_tags["labels"] = labels
                     obj_list.get("datacenters").append(dict(topo_tags=topology_tags))
                 elif isinstance(obj, vim.ClusterComputeResource):
@@ -1172,25 +1150,18 @@ class VSphereCheck(AgentCheck):
                     # identifiers to be extracted from the component type
                     sts_identifiers, labels = self.extract_tags("ClusterComputeResource", obj._moId)
                     topology_tags["identifiers"] = sts_identifiers
-                    try:
-                        # extra metadata collection if present otherwise continue with the component creation with
-                        # collected metadata only
-                        datastores = []
-                        for ds in properties.get("datastore"):
-                            ds_props = all_objects.get(ds)
-                            datastores.append(ds_props.get("name"))
-                        hosts = []
-                        for host in properties.get("host"):
-                            host_props = all_objects.get(host)
-                            if not self._is_excluded(host, host_props, regexes, include_only_marked):
-                                hosts.append(host_props.get("name"))
-                        topology_tags["hosts"] = hosts
-                        topology_tags["datastores"] = datastores
-                        add_label_pair(labels, "name", topology_tags["name"])
-                    except Exception as e:
-                        self.log.exception(
-                            "Exception occurred during collecting metadata for ClusterComputeResource: {}".
-                            format(str(e)))
+                    datastores = []
+                    for ds in properties.get("datastore", []):
+                        ds_props = all_objects.get(ds)
+                        datastores.append(ds_props.get("name"))
+                    hosts = []
+                    for host in properties.get("host", []):
+                        host_props = all_objects.get(host)
+                        if not self._is_excluded(host, host_props, regexes, include_only_marked):
+                            hosts.append(host_props.get("name"))
+                    topology_tags["hosts"] = hosts
+                    topology_tags["datastores"] = datastores
+                    add_label_pair(labels, "name", topology_tags["name"])
                     topology_tags["labels"] = labels
                     obj_list.get("clustercomputeresource").append(dict(topo_tags=topology_tags))
                 elif isinstance(obj, vim.ComputeResource):
@@ -1203,25 +1174,19 @@ class VSphereCheck(AgentCheck):
                     # identifiers to be extracted from the component type
                     sts_identifiers, labels = self.extract_tags("ComputeResource", obj._moId)
                     topology_tags["identifiers"] = sts_identifiers
-                    try:
-                        # extra metadata collection if present otherwise continue with the component creation with
-                        # collected metadata only
-                        datastores = []
-                        for ds in properties.get("datastore"):
-                            ds_props = all_objects.get(ds)
-                            datastores.append(ds_props.get("name"))
-                        hosts = []
-                        for host in properties.get("host"):
-                            host_props = all_objects.get(host)
-                            if not self._is_excluded(host, host_props, regexes, include_only_marked):
-                                hosts.append(host_props.get("name"))
+                    datastores = []
+                    for ds in properties.get("datastore", []):
+                        ds_props = all_objects.get(ds)
+                        datastores.append(ds_props.get("name"))
+                    hosts = []
+                    for host in properties.get("host", []):
+                        host_props = all_objects.get(host)
+                        if not self._is_excluded(host, host_props, regexes, include_only_marked):
+                            hosts.append(host_props.get("name"))
 
-                        topology_tags["hosts"] = hosts
-                        topology_tags["datastores"] = datastores
-                        add_label_pair(labels, "name", topology_tags["name"])
-                    except Exception as e:
-                        self.log.exception("Exception occurred during collecting metadata for ComputeResource: {}".
-                                           format(str(e)))
+                    topology_tags["hosts"] = hosts
+                    topology_tags["datastores"] = datastores
+                    add_label_pair(labels, "name", topology_tags["name"])
                     topology_tags["labels"] = labels
                     obj_list.get("computeresource").append(dict(topo_tags=topology_tags))
         return obj_list
@@ -1245,7 +1210,7 @@ class VSphereCheck(AgentCheck):
 
         server_instance = self._get_server_instance(instance)
         self.vsphere_client_connect(instance)
-        domain = instance["host"]
+        domain = instance.get("domain", instance.get("host"))
 
         regexes = {
             'host_include': instance.get('host_include_only_regex'),
@@ -1388,7 +1353,6 @@ class VSphereCheck(AgentCheck):
             self.stop_pool()
 
             # Third part
-            self.log.info("Starting the topology........")
             self.collect_topology(instance)
 
             if self.exception_printed > 0:

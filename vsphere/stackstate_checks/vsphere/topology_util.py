@@ -35,4 +35,5 @@ class vsphere_layers:
 
 
 def add_label_pair(label_list, key, value):
-    label_list.append("{0}:{1}".format(key, value))
+    if value:
+        label_list.append("{0}:{1}".format(key, value))
