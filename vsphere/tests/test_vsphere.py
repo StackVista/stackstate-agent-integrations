@@ -800,7 +800,7 @@ def test_get_topology_items_vms_hosts(vsphere, instance):
 
 def test_get_topology_items_ds_dc(vsphere, instance):
     """
-    Test if VMs and Hosts are collected
+    Test if Datastore and DataCenter is collected with their relations
     """
     # mock the CategoryModel and TagModel for response
     category = VsphereCategory('345', 'stackstate-label')
@@ -867,7 +867,7 @@ def test_get_topology_items_ds_dc(vsphere, instance):
 
 def test_get_topology_items_regex_vms(vsphere, instance):
     """
-    Test if VMs and Hosts are collected
+    Test to check no vm collected because of include_regex
     """
     # get the client
     client = vsphere_client()
@@ -900,6 +900,9 @@ def test_get_topology_items_regex_vms(vsphere, instance):
 
 
 def test_check_vsphere_topology_with_vm_host(instance, topology):
+    """
+    Test to check the topology collected only for VM and Host
+    """
     vsphere_check = VSphereCheck('vsphere', {}, [instance])
     vsphere_check.vsphere_client_connect = MagicMock()
 
@@ -1028,6 +1031,7 @@ def test_check_vsphere_full_topology(instance, topology):
             assert len(snapshot['components']) == 5
             # 5 relations should be created in the snapshot
             assert len(snapshot['relations']) == 5
+            # compare the full snapshot topology
             topology.assert_snapshot(
                 check_id=vsphere_check.check_id,
                 start_snapshot=True,
@@ -1192,6 +1196,9 @@ def test_get_topology_items_vms_no_unicode(instance, topology):
 
 
 def test_missing_conf(instance):
+    """
+    Test to check if ConfigurationError raised for missing host
+    """
     del instance["host"]
     vsphere_check = VSphereCheck("vsphere", {}, instances=[instance])
     with pytest.raises(ConfigurationError, match=r"Missing.*in instance configuration"):
