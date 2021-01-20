@@ -3,7 +3,7 @@
 This repository contains the Agent Integrations (also known as checks) that StackState officially develops and supports. 
 The [StackState Agent][1] packages are equipped with all the Integrations from this repository.
 
-For information on how to develop your own inegrations, see the [developer guide on the StackState docs site][2].
+For information on how to develop your own integrations, see the [developer guide on the StackState docs site][2].
 
 # Development
 
