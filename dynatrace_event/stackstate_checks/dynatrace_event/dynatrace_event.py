@@ -1,7 +1,10 @@
 # (C) StackState 2020
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
-from stackstate_checks.base import AgentCheck, ConfigurationError, TopologyInstance
+from schematics import Model
+from schematics.types import URLType, StringType, BooleanType, ListType, ModelType, DateTimeType, DictType, IntType
+
+from stackstate_checks.base import AgentCheck, ConfigurationError, TopologyInstance, StackPackInstance
 from .util import DynatraceEventState
 from .dynatrace_exception import EventLimitReachedException
 
@@ -12,75 +15,80 @@ from datetime import datetime, timedelta
 import time
 import json
 
+VERIFY_HTTPS = True
+EVENTS_BOOSTRAP_DAYS_DEFAULT = 5
+EVENTS_PROCESS_LIMIT_DEFAULT = 10000
+
+class State(Model):
+    latest_sys_updated_on = DateTimeType(required=True)
+    change_requests = DictType(StringType, default={})
+
+
+class InstanceInfo(Model):
+    url = URLType(required=True)
+    user = StringType(required=True)
+    password = StringType(required=True)
+    token = StringType(required=True)
+    instance_tags = ListType(StringType, default=[])
+    events_boostrap_days = IntType(default=EVENTS_BOOSTRAP_DAYS_DEFAULT)
+    events_process_limit = IntType(default=EVENTS_PROCESS_LIMIT_DEFAULT)
+    verify = BooleanType(default=VERIFY_HTTPS)
+    cert = StringType(default='')
+    keyfile = StringType(default='')
+    state = ModelType(State)
+
 
 class DynatraceEventCheck(AgentCheck):
-
     INSTANCE_TYPE = "dynatrace_event"
     SERVICE_CHECK_NAME = "dynatrace_event"
+    INSTANCE_SCHEMA = InstanceInfo
 
-    def __init__(self, name, init_config, instances=None):
-        AgentCheck.__init__(self, name, init_config, instances)
-        self.url = None
-        self.token = None
-        self.tags = None
-        self.events_boostrap_days = None
-        self.events_process_limit = None
-        self.state = None
-        self.verify = None
-        self.cert = None
-        self.keyfile = None
+    # def __init__(self, name, init_config, instances=None):
+    #     AgentCheck.__init__(self, name, init_config, instances)
+    #     self.url = None
+    #     self.token = None
+    #     self.tags = None
+    #     self.events_boostrap_days = None
+    #     self.events_process_limit = None
+    #     self.state = None
+    #     self.verify = None
+    #     self.cert = None
+    #     self.keyfile = None
 
-    def load_state(self):
-        """
-        Load the state from memory on each run if any events processed and stored
-        otherwise state will be empty
-        """
-        self.state = DynatraceEventState.load_latest_state()
-        if self.state is None:
-            self.state = DynatraceEventState()
+    def get_instance_key(self, instance_info):
+        return StackPackInstance(self.INSTANCE_TYPE, str(instance_info.url))
 
-    def get_instance_key(self, instance):
-        if 'url' not in instance:
-            raise ConfigurationError('Missing API url in configuration.')
-
-        return TopologyInstance(self.INSTANCE_TYPE, instance["url"])
-
-    def check(self, instance):
+    def check(self, instance_info):
         """
         Integration logic
         """
-        if 'url' not in instance:
-            raise ConfigurationError('Missing API user in configuration.')
-        if 'token' not in instance:
-            raise ConfigurationError('Missing API Token in configuration.')
-
-        self.url = instance.get('url')
-        self.token = instance.get('token')
-        self.events_boostrap_days = instance.get('events_boostrap_days', 5)
-        self.events_process_limit = instance.get('events_process_limit', 10000)
-        self.tags = instance.get('tags', [])
-        self.verify = instance.get('verify', True)
-        self.cert = instance.get('cert', '')
-        self.keyfile = instance.get('keyfile', '')
-        self.load_state()
-        self.log.debug("After loading the state: {}".format(self.state.data))
+        # self.load_state()
+        # self.log.debug("After loading the state: {}".format(self.state.data))
 
         try:
-            self.process_events()
+            if not instance_info.state:
+                # Create empty state
+                instance_info.state = State(
+                    {
+                        'latest_sys_updated_on': datetime.now() - timedelta(days=instance_info.events_boostrap_days)
+                    }
+                )
+
+            self.process_events(instance_info)
             msg = "Dynatrace events processed successfully"
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=self.tags, message=msg)
         except EventLimitReachedException as e:
             self.log.exception(str(e))
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=self.tags, message=str(e))
-            self.load_state()
+            # self.load_state()
             # for each entity in the old state send a CLEAR event and remove the instance from state
-            self.clear_state_and_send_clear_events()
-            self.state.persist()
+            self.clear_state_and_send_clear_events(instance_info)
+            # self.state.persist()
         except Exception as e:
             self.log.exception(str(e))
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=self.tags, message=str(e))
 
-    def process_events(self):
+    def process_events(self, instance_info):
         """
         Wrapper to collect events, filters those events and persist the state
         """
@@ -106,12 +114,12 @@ class DynatraceEventCheck(AgentCheck):
         events = self.get_dynatrace_event_json_response(endpoint)
         return events
 
-    def collect_events(self):
+    def collect_events(self, instance_info):
         """
         Checks for EventLimitReachedException and process each event API response for next cursor
         until is None or it reach events_process_limit
         """
-        from_time = self.state.data.get(self.url, {}).get("lastProcessedEventTimestamp")
+        from_time = instance_info.state.data.get(self.url, {}).get("lastProcessedEventTimestamp")
         if not from_time:
             from_time = int((datetime.now() - timedelta(days=self.events_boostrap_days)).strftime('%s')) * 1000
         events_response = self.get_events(from_time=from_time)
@@ -254,9 +262,9 @@ class DynatraceEventCheck(AgentCheck):
                 if not event_health_state:
                     self.log.warning("Unknown severity level encountered: {}".format(severity))
                     event_health_state = "UNKNOWN"
-                open_since = (datetime.fromtimestamp(events.get("startTime")/1000)).strftime("%b %-d, %Y, %H:%M:%S")
+                open_since = (datetime.fromtimestamp(events.get("startTime") / 1000)).strftime("%b %-d, %Y, %H:%M:%S")
                 tags = json.dumps(events.get("tags"), sort_keys=True)
-                events_source = "dynatrace-"+events.get("source")
+                events_source = "dynatrace-" + events.get("source")
                 detailed_msg += "|  {0}  |  {1}  |  {2}  |  {3}  |  {4}  |  {5}  |\n" \
                                 "".format(event_type, severity, impact, open_since, tags, events_source)
                 if health_states.get(event_health_state) > health_states.get(health_state):
