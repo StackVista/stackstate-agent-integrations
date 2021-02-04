@@ -31,7 +31,7 @@ simulated_log_entries = [
     '[%s] SERVICE ALERT: mysql;Simulate;WARNING;SOFT;4;Simulated service alert\n',
     '[%s] SERVICE ALERT: mysql;Simulate;CRITICAL;SOFT;4;Simulated service alert\n',
     '[%s] SERVICE NOTIFICATION: pagerduty;nagios4;Simulate;OK;notify-service-by-pagerduty;Simulated notification\n',
-    '[%s] SERVICE NOTIFICATION: pagerduty;nagios4;Simulate;CRITICAL;notify-service-by-pagerduty;Simulated notification\n',
+    '[%s] SERVICE NOTIFICATION: pagerduty;nagios4;Simulate;CRITICAL;notify-service-by-pagerduty;Simulated notif.\n',
     '[%s] SERVICE NOTIFICATION: pagerduty;mysql;Simulate;OK;notify-service-by-pagerduty;Simulated notification\n',
     '[%s] SERVICE NOTIFICATION: pagerduty;mysql;Simulate;CRITICAL;notify-service-by-pagerduty;Simulated notification\n',
     '[%s] HOST ALERT: nagios4;DOWN;SOFT;1;Simulated host alert',
@@ -63,4 +63,3 @@ print('Appending to nagios.log:\n %s' % new_log_line)
 
 with open(log_file, 'a') as file:
     file.write(new_log_line)
-
