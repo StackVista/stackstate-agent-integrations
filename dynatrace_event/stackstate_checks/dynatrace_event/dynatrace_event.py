@@ -43,18 +43,6 @@ class DynatraceEventCheck(AgentCheck):
     SERVICE_CHECK_NAME = "dynatrace_event"
     INSTANCE_SCHEMA = InstanceInfo
 
-    # def __init__(self, name, init_config, instances=None):
-    #     AgentCheck.__init__(self, name, init_config, instances)
-    #     self.url = None
-    #     self.token = None
-    #     self.tags = None
-    #     self.events_boostrap_days = None
-    #     self.events_process_limit = None
-    #     self.state = None
-    #     self.verify = None
-    #     self.cert = None
-    #     self.keyfile = None
-
     def get_instance_key(self, instance_info):
         return StackPackInstance(self.INSTANCE_TYPE, str(instance_info.url))
 
@@ -62,9 +50,6 @@ class DynatraceEventCheck(AgentCheck):
         """
         Integration logic
         """
-        # self.load_state()
-        # self.log.debug("After loading the state: {}".format(self.state.data))
-
         try:
             if not instance_info.state:
                 # Create empty state
@@ -81,10 +66,6 @@ class DynatraceEventCheck(AgentCheck):
             self.log.exception(str(e))
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=instance_info.instance_tags,
                                message=str(e))
-            # self.load_state()
-            # for each entity in the old state send a CLEAR event and remove the instance from state
-            self.clear_state_and_send_clear_events(instance_info)
-            # self.state.persist()
         except Exception as e:
             self.log.exception(str(e))
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=instance_info.instance_tags,
