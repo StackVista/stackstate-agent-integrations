@@ -1,16 +1,17 @@
 # (C) StackState 2020
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
-from stackstate_checks.base import AgentCheck, ConfigurationError, TopologyInstance
-
-import requests
-from requests import Session
-import yaml
-from datetime import datetime, timedelta
-import time
-import json
-
 import os
+import time
+from datetime import datetime, timedelta
+
+import yaml
+from requests import Session
+from requests.exceptions import Timeout
+from schematics import Model
+from schematics.types import StringType, IntType, ListType
+
+from stackstate_checks.base import AgentCheck, ConfigurationError, TopologyInstance
 
 try:
     import cPickle as pickle
@@ -20,6 +21,21 @@ except ImportError:
 
 # DYNATRACE_STATE_FILE = "/etc/stackstate-agent/conf.d/dynatrace_event.d/dynatrace_event_state.pickle"
 DYNATRACE_STATE_FILE = "/Users/hruhek/PycharmProjects/StackState/stackstate-agent-integrations/dynatrace_event/dynatrace_event_state.pickle"
+
+
+class DynatraceEvent(Model):
+    eventId = IntType()
+    startTime = IntType()
+    endTime = IntType()
+    entityId = StringType()
+    entityName = StringType()
+    severityLevel = StringType()
+    impactLevel = StringType()
+    eventType = StringType()
+    eventStatus = StringType()
+    tags = ListType(StringType)
+    id = StringType()
+    source = StringType()
 
 
 class DynatraceEventCheck(AgentCheck):
@@ -82,7 +98,8 @@ class DynatraceEventCheck(AgentCheck):
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=self.tags, message=str(e))
             self.load_state()
             # for each entity in the old state send a CLEAR event and remove the instance from state
-            self.clear_state_and_send_clear_events()
+            # TODO do we need this anymore?
+            # self.clear_state_and_send_clear_events()
             self.state.persist()
         except Exception as e:
             self.log.exception(str(e))
@@ -92,8 +109,9 @@ class DynatraceEventCheck(AgentCheck):
         """
         Wrapper to collect events, filters those events and persist the state
         """
-        touched_entities = self.collect_events()
-        self.send_filtered_events(touched_entities)
+        # self.send_filtered_events(events)
+        for event in self.collect_events():
+            self.new_create_event(event)
         self.log.debug("Persisting the data...")
         self.state.persist()
         self.log.debug("Data in memory is: {}".format(self.state.data))
@@ -126,58 +144,21 @@ class DynatraceEventCheck(AgentCheck):
         if self.event_limit_exceeded_condition(events_response):
             raise EventLimitReachedException("Maximum event limit to process is {} but received total {} events".
                                              format(self.events_process_limit, events_response.get("totalEventCount")))
-        touched_entities = []
+        events = []
         events_processed = 0
         while events_response:
-            entities, events_processed = self.process_events_response(events_response, events_processed)
-            touched_entities.extend(entities)
-            next_cursor = events_response.get("nextCursor")
-            if next_cursor and events_processed < self.events_process_limit:
-                events_response = self.get_events(cursor=next_cursor)
+            for event in events_response.get('events', []):
+                dynatrace_event = DynatraceEvent(event)
+                dynatrace_event.validate()
+                events.append(dynatrace_event)
+            events_processed += len(events_response)
+            if events_response.get("nextCursor") and events_processed < self.events_process_limit:
+                events_response = self.get_events(cursor=events_response.get("nextCursor"))
             else:
-                self.state.data[self.url]["lastProcessedEventTimestamp"] = events_response.get("to")
+                # TODO write lastProcessedEventTimestamp to state
+                # self.state.data[self.url]["lastProcessedEventTimestamp"] = events_response.get("to")
                 events_response = None
-        return list(set(touched_entities))
-
-    def process_events_response(self, events_response, events_processed):
-        touched_entities = []
-        if "error" in events_response:
-            raise Exception("Error in pulling the events : {}".format(events_response.get("error").get("message")))
-        for item in events_response["events"]:
-            # if the limit reached for event_process_limit then stop processing and break from loop
-            if events_processed >= self.events_process_limit:
-                self.log.debug("Events Process Limit reached : {}".format(events_processed))
-                break
-            entity_id = item.get("entityId")
-            current_event_status = item.get("eventStatus")
-            start_time = int(item.get("startTime"))
-            event_type = item.get("eventType")
-            state_events = self.state.data.get(self.url, {}).get("events", {})
-
-            # when the check runs first time or after the reset
-            if self.url not in self.state.data:
-                self.state.data[self.url] = {}
-                self.state.data[self.url]["events"] = {}
-
-            entity_events = state_events.get(entity_id, {})
-            event = entity_events.get(event_type)
-            end_time = entity_events.get(event_type, {}).get("endTime")
-            old_event_status = entity_events.get(event_type, {}).get("eventStatus")
-            # either closed or open events come, keep in state to compare in the past response
-            # if we have to remove this event type or need to keep it
-            if event is None:
-                self.state.data[self.url]["events"][entity_id] = {event_type: item}
-                touched_entities.append(entity_id)
-            # new event for same event type in entityId with latest time
-            elif start_time > end_time and old_event_status == current_event_status:
-                self.state.data[self.url]["events"][entity_id][event_type] = item
-                touched_entities.append(entity_id)
-            # new event with CLOSED status come in for existing OPEN event for an even type of that entityId
-            elif old_event_status == "CLOSED" and current_event_status == "OPEN":
-                del self.state.data[self.url]["events"][entity_id][event_type]
-                touched_entities.append(entity_id)
-            events_processed += 1
-        return touched_entities, events_processed
+        return events
 
     def event_limit_exceeded_condition(self, events_response):
         """
@@ -190,105 +171,38 @@ class DynatraceEventCheck(AgentCheck):
                 total_event_count >= self.events_process_limit:
             return True
 
-    def send_filtered_events(self, touched_entities):
+    def new_create_event(self, dynatrace_event):
         """
-        Method to filter the closed events and create the health event for open and cleared events
+        Create an standard or custom event based on the Dynatrace Severity level
         """
-        events = self.state.data.get(self.url).get("events")
-        # process only those touched entities from state
-        for entityId in touched_entities:
-            open_events = []
-            # check from state for that entityID and evaluate again
-            event_type_values = events.get(entityId)
-            # if we have open events for an entityId then create event with the health check
-            if event_type_values:
-                # in Python 3.x because keys returns an iterator instead of a list. so to support both versions
-                # create a list of keys
-                for event_type in list(event_type_values):
-                    event_status = event_type_values.get(event_type).get("eventStatus")
-                    if event_status == "CLOSED":
-                        del self.state.data[self.url]["events"][entityId][event_type]
-                    else:
-                        self.log.debug("Appending an open event for entityID {}: {}".format
-                                       (entityId, event_type_values[event_type]))
-                        open_events.append(event_type_values[event_type])
-                # since there are no open events, it means we processed everything
-                # then delete the empty entityId from state
-                if len(open_events) == 0:
-                    del self.state.data[self.url]["events"][entityId]
-                else:
-                    # create the health event for open_events and if open_events
-                    # are empty then create CLEAR health state
-                    self.create_health_event(entityId, open_events)
-            else:
-                # the case could be we closed the event in `process_events_response` and now entityID is empty then
-                # we send the clear health for that entityId and delete the empty entityId from state
-                self.create_health_event(entityId, [])
-                del self.state.data[self.url]["events"][entityId]
-
-    def clear_state_and_send_clear_events(self):
-        """
-        Method to send CLEAR health state for all existing open entity and clear the state for the instance
-        """
-        events = self.state.data.get(self.url).get("events")
-        for entityId in events.keys():
-            health_state = "CLEAR"
-            detailed_msg = ""
-            self.create_event(entityId, health_state, detailed_msg)
-        self.log.info("Clear state for {} entities sent".format(len(events.keys())))
-        self.state.clear(self.url)
-
-    def create_health_event(self, entity_id, open_events):
-        """
-        Process each severity level of the events for an entityId and create the event with highest health state
-        :param entityId: EntityId for which different events are considered
-        :param open_events: Open events with different severity level for an EntityId
-        """
-        # TODO document this
-        health_states = {"UNKNOWN": 0, "CLEAR": 1, "DEVIATING": 2, "CRITICAL": 3}
-        severity_level = {"AVAILABILITY": "CRITICAL", "CUSTOM_ALERT": "CRITICAL", "PERFORMANCE": "DEVIATING",
-                          "RESOURCE_CONTENTION": "DEVIATING", "ERROR": "CRITICAL",
-                          "MONITORING_UNAVAILABLE": "DEVIATING"}
-        health_state = "UNKNOWN"
-        detailed_msg = """|  EventType  |  SeverityLevel  |  Impact  |  Open Since  |  Tags  |  Source  |\n
-        |-------------|-----------------|----------|--------------|--------|----------|\n
-        """
-        if open_events:
-            for events in open_events:
-                severity = events.get("severityLevel")
-                impact = events.get("impactLevel")
-                event_type = events.get("eventType")
-                event_health_state = severity_level.get(severity)
-                if not event_health_state:
-                    self.log.warning("Unknown severity level encountered: {}".format(severity))
-                    event_health_state = "UNKNOWN"
-                open_since = (datetime.fromtimestamp(events.get("startTime")/1000)).strftime("%b %-d, %Y, %H:%M:%S")
-                tags = json.dumps(events.get("tags"), sort_keys=True)
-                events_source = "dynatrace-"+events.get("source")
-                detailed_msg += "|  {0}  |  {1}  |  {2}  |  {3}  |  {4}  |  {5}  |\n" \
-                                "".format(event_type, severity, impact, open_since, tags, events_source)
-                if health_states.get(event_health_state) > health_states.get(health_state):
-                    health_state = event_health_state
-            self.log.debug("Logging an event for entity {0} with health: {1}".format(entity_id, health_state))
-            self.create_event(entity_id, health_state, detailed_msg)
-        else:
-            self.create_event(entity_id, health_state="OK", detailed_msg="")
-
-    def create_event(self, entity_id, health_state, detailed_msg):
-        """
-        Create an event based on the data coming in from entity_event
-        """
-        tags = [
-            "entityId:{0}".format(entity_id),
-            "health:{0}".format(health_state)
-        ]
-        self.event({
-            "timestamp": self._current_time_seconds(),
+        event = {
+            "timestamp": int(time.time()),
             "source_type_name": "Dynatrace Events",
-            "msg_title": "",
-            "msg_text": detailed_msg,
-            "tags": tags
-        })
+            "msg_title": dynatrace_event.eventType + " on " + dynatrace_event.entityName,
+            "msg_text": dynatrace_event.eventType + " on " + dynatrace_event.entityName,
+            "tags": [
+                "entityId:{0}".format(dynatrace_event.entityId),
+                "severityLevel:{0}".format(dynatrace_event.severityLevel),
+                "eventType:{0}".format(dynatrace_event.eventType),
+                "impactLevel:{0}".format(dynatrace_event.impactLevel),
+                "eventStatus:{0}".format(dynatrace_event.eventStatus),
+            ]
+        }
+
+        # Events with a info severity (6) are send as custom events
+        if dynatrace_event.severityLevel == 6:
+            event["context"] = {
+                "source_identifier": "source_identifier_value",
+                "element_identifiers": ["urn:external-id-pattern"],
+                "source": "source",
+                "category": "category",
+                "data": dynatrace_event,
+                "source_links": [
+                    {"title": "my_event_external_link", "url": "link-to-dynatrace"}
+                ]
+            }
+
+        self.event(event)
 
     @staticmethod
     def _current_time_seconds():
@@ -312,7 +226,7 @@ class DynatraceEventCheck(AgentCheck):
                 if resp.status_code != 200:
                     raise Exception("Got %s when hitting %s" % (resp.status_code, endpoint))
                 return yaml.safe_load(resp.text)
-        except requests.exceptions.Timeout:
+        except Timeout:
             msg = "{} seconds timeout when hitting {}".format(timeout, endpoint)
             raise Exception("Exception occured for endpoint {0} with message: {1}".format(endpoint, msg))
 
