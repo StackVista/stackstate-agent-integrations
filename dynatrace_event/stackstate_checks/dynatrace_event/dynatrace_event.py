@@ -9,7 +9,7 @@ import yaml
 from requests import Session
 from requests.exceptions import Timeout
 from schematics import Model
-from schematics.types import StringType, IntType, ListType
+from schematics.types import StringType, IntType, ListType, DateTimeType, DictType, URLType, BooleanType, ModelType
 
 from stackstate_checks.base import AgentCheck, ConfigurationError, TopologyInstance
 
@@ -21,6 +21,10 @@ except ImportError:
 
 # DYNATRACE_STATE_FILE = "/etc/stackstate-agent/conf.d/dynatrace_event.d/dynatrace_event_state.pickle"
 DYNATRACE_STATE_FILE = "/Users/hruhek/PycharmProjects/StackState/stackstate-agent-integrations/dynatrace_event/dynatrace_event_state.pickle"
+
+VERIFY_HTTPS = True
+EVENTS_BOOSTRAP_DAYS_DEFAULT = 5
+EVENTS_PROCESS_LIMIT_DEFAULT = 10000
 
 
 class DynatraceEvent(Model):
@@ -36,6 +40,23 @@ class DynatraceEvent(Model):
     tags = ListType(StringType)
     id = StringType()
     source = StringType()
+
+
+class State(Model):
+    latest_sys_updated_on = DateTimeType(required=True)
+    change_requests = DictType(StringType, default={})
+
+
+class InstanceInfo(Model):
+    url = URLType(required=True)
+    token = StringType(required=True)
+    instance_tags = ListType(StringType, default=[])
+    events_boostrap_days = IntType(default=EVENTS_BOOSTRAP_DAYS_DEFAULT)
+    events_process_limit = IntType(default=EVENTS_PROCESS_LIMIT_DEFAULT)
+    verify = BooleanType(default=VERIFY_HTTPS)
+    cert = StringType(default='')
+    keyfile = StringType(default='')
+    state = ModelType(State)
 
 
 class DynatraceEventCheck(AgentCheck):
