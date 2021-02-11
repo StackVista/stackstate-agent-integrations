@@ -2,8 +2,6 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 from stackstate_checks.base import AgentCheck, ConfigurationError, TopologyInstance
-from .util import DynatraceEventState
-from .dynatrace_exception import EventLimitReachedException
 
 import requests
 from requests import Session
@@ -12,9 +10,19 @@ from datetime import datetime, timedelta
 import time
 import json
 
+import os
+
+try:
+    import cPickle as pickle
+except ImportError:
+    # python 3 support as pickle module
+    import pickle
+
+DYNATRACE_STATE_FILE = "/etc/stackstate-agent/conf.d/dynatrace_event.d/dynatrace_event_state.pickle"
+# DYNATRACE_STATE_FILE = "/Users/hruhek/PycharmProjects/StackState/stackstate-agent-integrations/dynatrace_event/dynatrace_event_state.pickle"
+
 
 class DynatraceEventCheck(AgentCheck):
-
     INSTANCE_TYPE = "dynatrace_event"
     SERVICE_CHECK_NAME = "dynatrace_event"
 
@@ -307,3 +315,75 @@ class DynatraceEventCheck(AgentCheck):
         except requests.exceptions.Timeout:
             msg = "{} seconds timeout when hitting {}".format(timeout, endpoint)
             raise Exception("Exception occured for endpoint {0} with message: {1}".format(endpoint, msg))
+
+
+class EventLimitReachedException(Exception):
+    """
+    Exception raised when maximum number of event reached
+    """
+    pass
+
+
+class DynatraceEventState(object):
+    """
+    A class to keep the state of the events coming from Dynatrace. The structure of state looks like below:
+
+    # timestamp   : last event processed timestamp
+    # entityId    : EntityId of Dynatrace for which event occured
+    # event_type  : Event Type of an event for the EntityId
+    # event       : Event details for the EntityId
+
+    state = {
+                "url": {
+                        "lastProcessedEventTimestamp": timestamp,
+                        "events": {
+                                    "entityId": {
+                                                    "event_type": event
+                                                }
+                                  }
+                        }
+            }
+
+    """
+
+    def __init__(self):
+        self.data = dict()
+
+    def persist(self):
+        try:
+            print("Persisting status to %s" % DYNATRACE_STATE_FILE)
+            f = open(DYNATRACE_STATE_FILE, 'wb+')
+            try:
+                pickle.dump(self, f)
+            finally:
+                f.close()
+        except Exception as e:
+            print("Error persisting the data: {}".format(str(e)))
+            raise e
+
+    def clear(self, instance):
+        """
+        Clear the instance state as it can have multiple instance state
+        :param instance: the instance for which state need to be cleared
+        :return: None
+        """
+        if instance in self.data:
+            del self.data[instance]
+        else:
+            print("There is no state existing for the instance {}".format(instance))
+
+    @classmethod
+    def load_latest_state(cls):
+        try:
+            if not os.path.exists(DYNATRACE_STATE_FILE):
+                return None
+            f = open(DYNATRACE_STATE_FILE, 'rb')
+            try:
+                r = pickle.load(f)
+                return r
+            except Exception as e:
+                print("Error loading the state : {}".format(str(e)))
+            finally:
+                f.close()
+        except (IOError, EOFError) as e:
+            raise e
