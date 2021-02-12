@@ -2,11 +2,10 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 from .__about__ import __version__
-from .dynatrace_event import DynatraceEventCheck, DynatraceEventState, EventLimitReachedException
+from .dynatrace_event import DynatraceEventCheck, EventLimitReachedException
 
 __all__ = [
     '__version__',
     'DynatraceEventCheck',
-    'DynatraceEventState',
     'EventLimitReachedException'
 ]
