@@ -423,7 +423,7 @@ class IdentifierMappingTestAgentCheck(TopologyCheck):
                     }
             }
         ]
-        super(IdentifierMappingTestAgentCheck, self) \
+        super(IdentifierMappingTestAgentCheck, self)\
             .__init__(TopologyInstance("host", "someurl"), "test", {}, instances)
 
     def check(self, instance):
@@ -440,7 +440,7 @@ class NestedIdentifierMappingTestAgentCheck(TopologyCheck):
                     }
             }
         ]
-        super(NestedIdentifierMappingTestAgentCheck, self) \
+        super(NestedIdentifierMappingTestAgentCheck, self)\
             .__init__(TopologyInstance("host", "someurl"), "test", {}, instances)
 
     def check(self, instance):

@@ -19,39 +19,31 @@ from six import PY3, iteritems, text_type, string_types, integer_types
 try:
     import datadog_agent
     from ..log import init_logging
-
     init_logging()
 except ImportError:
     from ..stubs import datadog_agent
     from ..stubs.log import init_logging
-
     init_logging()
 
 try:
     import aggregator
-
     using_stub_aggregator = False
 except ImportError:
     from ..stubs import aggregator
-
     using_stub_aggregator = True
 
 try:
     import topology
-
     using_stub_topology = False
 except ImportError:
     from ..stubs import topology
-
     using_stub_topology = True
 
 try:
     import telemetry
-
     using_stub_telemetry = False
 except ImportError:
     from ..stubs import telemetry
-
     using_stub_telemetry = True
 
 from ..config import is_affirmative
@@ -67,7 +59,6 @@ from deprecated.sphinx import deprecated
 
 if datadog_agent.get_config('disable_unsafe_yaml'):
     from ..ddyaml import monkey_patch_pyyaml
-
     monkey_patch_pyyaml()
 
 # Metric types for which it's only useful to submit once per set of tags
