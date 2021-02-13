@@ -464,89 +464,89 @@ class TopologyStatefulSchemaCheck(TopologyStatefulCheck):
         instance.state.offset = 20
 
 
-# class TagsAndConfigMappingAgentCheck(TopologyCheck):
-#     def __init__(self, include_instance_config):
-#         instance = {
-#             'identifier_mappings': {
-#                 'host': {'field': 'url', 'prefix': 'urn:computer:/'},
-#                 'vm': {'field': 'name', 'prefix': 'urn:computer:/'}
-#             },
-#         }
-#
-#         if include_instance_config:
-#             instance.update({
-#                 'stackstate-layer': 'instance-stackstate-layer',
-#                 'stackstate-environment': 'instance-stackstate-environment',
-#                 'stackstate-domain': 'instance-stackstate-domain',
-#                 'stackstate-identifiers': 'urn:process:/mapped-identifier:0:1234567890, \
-#                     urn:process:/mapped-identifier:1:1234567890 \
-#                     urn:process:/mapped-identifier:2:1234567890  ,  \
-#                     urn:process:/mapped-identifier:3:1234567890'
-#             })
-#
-#         super(TagsAndConfigMappingAgentCheck, self) \
-#             .__init__(TopologyInstance("host", "someurl"), "test", {}, [instance])
-#
-#     def check(self, instance):
-#         pass
+class TagsAndConfigMappingAgentCheck(TopologyCheck):
+    def __init__(self, include_instance_config):
+        instance = {
+            'identifier_mappings': {
+                'host': {'field': 'url', 'prefix': 'urn:computer:/'},
+                'vm': {'field': 'name', 'prefix': 'urn:computer:/'}
+            },
+        }
+
+        if include_instance_config:
+            instance.update({
+                'stackstate-layer': 'instance-stackstate-layer',
+                'stackstate-environment': 'instance-stackstate-environment',
+                'stackstate-domain': 'instance-stackstate-domain',
+                'stackstate-identifiers': 'urn:process:/mapped-identifier:0:1234567890, \
+                    urn:process:/mapped-identifier:1:1234567890 \
+                    urn:process:/mapped-identifier:2:1234567890  ,  \
+                    urn:process:/mapped-identifier:3:1234567890'
+            })
+
+        super(TagsAndConfigMappingAgentCheck, self) \
+            .__init__(TopologyInstance("host", "someurl"), "test", {}, [instance])
+
+    def check(self, instance):
+        pass
 
 
-# class TestTagsAndConfigMapping:
-#     def generic_tags_and_config_application(self, topology, include_instance_config, include_tags, extra_data=None):
-#         check = TagsAndConfigMappingAgentCheck(include_instance_config)
-#         data = {}
-#         if include_tags:
-#             data = {
-#                 'tags': ['stackstate-layer:tag-stackstate-layer',
-#                          'stackstate-environment:tag-stackstate-environment',
-#                          'stackstate-domain:tag-stackstate-domain',
-#                          'stackstate-identifiers:\
-#                              urn:process:/mapped-identifier:0:1234567890, \
-#                              urn:process:/mapped-identifier:1:1234567890 \
-#                              urn:process:/mapped-identifier:2:1234567890  ,  \
-#                              urn:process:/mapped-identifier:3:1234567890'
-#                          ]
-#             }
-#         if extra_data:
-#             data.update(extra_data)
-#         check.component("my-id", "host", data)
-#         return topology.get_snapshot(check.check_id)['components'][0]
-#
-#     def test_only_instance_config_application(self, topology):
-#         component = self.generic_tags_and_config_application(topology, True, False)
-#         assert component["data"]["layer"] == "instance-stackstate-layer"
-#         assert component["data"]["environment"] == "instance-stackstate-environment"
-#         assert component["data"]["domain"] == "instance-stackstate-domain"
-#
-#     def test_only_tags_application(self, topology):
-#         component = self.generic_tags_and_config_application(topology, False, True)
-#         assert component["data"]["layer"] == "tag-stackstate-layer"
-#         assert component["data"]["environment"] == "tag-stackstate-environment"
-#         assert component["data"]["domain"] == "tag-stackstate-domain"
-#
-#     def test_tags_overwrite(self, topology):
-#         component = self.generic_tags_and_config_application(topology, True, True)
-#         assert component["data"]["layer"] == "tag-stackstate-layer"
-#         assert component["data"]["environment"] == "tag-stackstate-environment"
-#         assert component["data"]["domain"] == "tag-stackstate-domain"
-#
-#     def test_identifier_config_application(self, topology):
-#         component = self.generic_tags_and_config_application(topology, True, False, {
-#             'identifiers': ['urn:process:/original-identifier:0:1234567890']
-#         })
-#         assert component["data"]["identifiers"] == ['urn:process:/original-identifier:0:1234567890']
-#
-#     def test_identifier_tags_application(self, topology):
-#         component = self.generic_tags_and_config_application(topology, True, True, {
-#             'identifiers': [
-#                 'urn:process:/original-identifier:0:1234567890'
-#             ]
-#         })
-#         assert component["data"]["identifiers"] == ['urn:process:/original-identifier:0:1234567890',
-#                                                     'urn:process:/mapped-identifier:0:1234567890',
-#                                                     'urn:process:/mapped-identifier:1:1234567890',
-#                                                     'urn:process:/mapped-identifier:2:1234567890',
-#                                                     'urn:process:/mapped-identifier:3:1234567890']
+class TestTagsAndConfigMapping:
+    def generic_tags_and_config_application(self, topology, include_instance_config, include_tags, extra_data=None):
+        check = TagsAndConfigMappingAgentCheck(include_instance_config)
+        data = {}
+        if include_tags:
+            data = {
+                'tags': ['stackstate-layer:tag-stackstate-layer',
+                         'stackstate-environment:tag-stackstate-environment',
+                         'stackstate-domain:tag-stackstate-domain',
+                         'stackstate-identifiers:\
+                             urn:process:/mapped-identifier:0:1234567890, \
+                             urn:process:/mapped-identifier:1:1234567890 \
+                             urn:process:/mapped-identifier:2:1234567890  ,  \
+                             urn:process:/mapped-identifier:3:1234567890'
+                         ]
+            }
+        if extra_data:
+            data.update(extra_data)
+        check.component("my-id", "host", data)
+        return topology.get_snapshot(check.check_id)['components'][0]
+
+    def test_only_instance_config_application(self, topology):
+        component = self.generic_tags_and_config_application(topology, True, False)
+        assert component["data"]["layer"] == "instance-stackstate-layer"
+        assert component["data"]["environment"] == "instance-stackstate-environment"
+        assert component["data"]["domain"] == "instance-stackstate-domain"
+
+    def test_only_tags_application(self, topology):
+        component = self.generic_tags_and_config_application(topology, False, True)
+        assert component["data"]["layer"] == "tag-stackstate-layer"
+        assert component["data"]["environment"] == "tag-stackstate-environment"
+        assert component["data"]["domain"] == "tag-stackstate-domain"
+
+    def test_tags_overwrite(self, topology):
+        component = self.generic_tags_and_config_application(topology, True, True)
+        assert component["data"]["layer"] == "tag-stackstate-layer"
+        assert component["data"]["environment"] == "tag-stackstate-environment"
+        assert component["data"]["domain"] == "tag-stackstate-domain"
+
+    def test_identifier_config_application(self, topology):
+        component = self.generic_tags_and_config_application(topology, True, False, {
+            'identifiers': ['urn:process:/original-identifier:0:1234567890']
+        })
+        assert component["data"]["identifiers"] == ['urn:process:/original-identifier:0:1234567890']
+
+    def test_identifier_tags_application(self, topology):
+        component = self.generic_tags_and_config_application(topology, True, True, {
+            'identifiers': [
+                'urn:process:/original-identifier:0:1234567890'
+            ]
+        })
+        assert component["data"]["identifiers"] == ['urn:process:/original-identifier:0:1234567890',
+                                                    'urn:process:/mapped-identifier:0:1234567890',
+                                                    'urn:process:/mapped-identifier:1:1234567890',
+                                                    'urn:process:/mapped-identifier:2:1234567890',
+                                                    'urn:process:/mapped-identifier:3:1234567890']
 
 class TestTopology:
     def test_component(self, topology):
