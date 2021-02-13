@@ -502,6 +502,12 @@ class AgentCheckBase(object):
         identifiers = data.get("identifiers", [])
         # Find the stackstate-identifiers within tags
         identifier_tag = next((tag for tag in tags if ("stackstate-identifiers:" in tag)), None)
+
+        print(instance)
+        print(check_instance)
+        print(tags)
+        print(identifiers)
+        print(identifier_tag)
         # We attempt to split and map out the identifiers specified in the identifier_tag
         # ** Does not support config **
         # if isinstance(identifier_tag, str):
