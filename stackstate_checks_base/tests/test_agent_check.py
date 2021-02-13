@@ -548,6 +548,7 @@ class TestTagsAndConfigMapping:
                                                     'urn:process:/mapped-identifier:2:1234567890',
                                                     'urn:process:/mapped-identifier:3:1234567890']
 
+
 class TestTopology:
     def test_component(self, topology):
         check = TopologyCheck()
