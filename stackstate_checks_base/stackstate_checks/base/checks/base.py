@@ -495,8 +495,8 @@ class AgentCheckBase(object):
 
     def _map_stackstate_tags_and_instance_config(self, data):
         # Get the first instance and create a deep copy
-        # instance = self.instances[0] if len(self.instances) else {}
-        # check_instance = copy.deepcopy(instance)
+        instance = self.instances[0] if len(self.instances) else {}
+        check_instance = copy.deepcopy(instance)
         # # Extract or create the tags and identifier objects
         # tags = data.get('tags', {})
         # identifiers = data.get("identifiers", [])
