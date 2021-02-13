@@ -494,20 +494,20 @@ class AgentCheckBase(object):
         topology.submit_relation(self, self.check_id, self._get_instance_key_dict(), source, target, type, data)
 
     def _map_stackstate_tags_and_instance_config(self, data):
+        return data
         # Get the first instance and create a deep copy
-        instance = self.instances[0] if len(self.instances) else {}
-        check_instance = copy.deepcopy(instance)
-        # Extract or create the tags and identifier objects
-        tags = data.get('tags', {})
-        identifiers = data.get("identifiers", [])
-        # Find the stackstate-identifiers within tags
-        identifier_tag = next((tag for tag in tags if ("stackstate-identifiers:" in tag)), None)
-
-        print(instance)
-        print(check_instance)
-        print(tags)
-        print(identifiers)
-        print(identifier_tag)
+        # instance = self.instances[0] if len(self.instances) else {}
+        # check_instance = copy.deepcopy(instance)
+        # # Extract or create the tags and identifier objects
+        # tags = data.get('tags', {})
+        # identifiers = data.get("identifiers", [])
+        # # Find the stackstate-identifiers within tags
+        # identifier_tag = next((tag for tag in tags if ("stackstate-identifiers:" in tag)), None)
+        # print(instance)
+        # print(check_instance)
+        # print(tags)
+        # print(identifiers)
+        # print(identifier_tag)
         # We attempt to split and map out the identifiers specified in the identifier_tag
         # ** Does not support config **
         # if isinstance(identifier_tag, str):
