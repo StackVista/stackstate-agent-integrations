@@ -494,7 +494,6 @@ class AgentCheckBase(object):
         topology.submit_relation(self, self.check_id, self._get_instance_key_dict(), source, target, type, data)
 
     def _map_stackstate_tags_and_instance_config(self, data):
-        return data
         # Get the first instance and create a deep copy
         # instance = self.instances[0] if len(self.instances) else {}
         # check_instance = copy.deepcopy(instance)
