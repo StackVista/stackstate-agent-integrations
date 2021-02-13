@@ -475,7 +475,7 @@ class AgentCheckBase(object):
         self._check_struct("data", data)
         data = self._map_streams_and_checks(data, streams, checks)
         data = self._map_identifier_mappings(type, data)
-        data = self._map_stackstate_tags_and_instance_config(data)
+        # data = self._map_stackstate_tags_and_instance_config(data)
 
         if add_instance_tags:
             # add topology instance for view filtering
@@ -493,55 +493,50 @@ class AgentCheckBase(object):
         data = self._map_relation_data(source, target, type, fixed_data, fixed_streams, fixed_checks)
         topology.submit_relation(self, self.check_id, self._get_instance_key_dict(), source, target, type, data)
 
-    def _map_stackstate_tags_and_instance_config(self, data):
-        # Get the first instance and create a deep copy
-        instance = self.instances[0] if len(self.instances) else {}
-        check_instance = copy.deepcopy(instance)
-
-        # Extract or create the tags and identifier objects
-        tags = data.get('tags', {})
-        identifiers = data.get("identifiers", [])
-
-        # Find the stackstate-identifiers within tags
-        identifier_tag = next((tag for tag in tags if ("stackstate-identifiers:" in tag)), None)
-
-        # We attempt to split and map out the identifiers specified in the identifier_tag
-        # ** Does not support config **
-        if isinstance(identifier_tag, str):
-            """
-            We are testing the following with the regex block below
-            - Match all spaces if any at the start followed by a must have comma then followed again by a possible
-                single or multiple spaces
-            - Second possibility is a single or multiple space only without a comma
-            The resulting regex will work on a complex line like the following example:
-                Input: a, b, c,d,e f g h, i , j ,k   ,l  ,  m
-                Result: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm']
-            """
-            identifier_tag_content = identifier_tag.split('stackstate-identifiers:')[1]
-            if len(identifier_tag_content) > 0:
-                identifier_list = re.split('(?:\\s+)?,(?:\\s+)?|\\s+', identifier_tag_content)
-                clean_identifier_list = list(filter(lambda item: len(item) > 0, identifier_list))
-                data["identifiers"] = identifiers + clean_identifier_list
-
-        # Generic mapping function for tags or config
-        # Attempt to find if the target exists on a tag or config and map that to the origin value
-        # There's a optional default value if required
-        # Value override order: tags < config.yaml < TODO: source mapping < Stackpack
-        def _map_config_or_tag(target, origin, default=None):
-            find_tag = next((tag for tag in tags if (target in tag)), None)
-            if isinstance(find_tag, str) and find_tag.index(":") > 0:
-                data[origin] = find_tag.split(target + ':')[1]
-            elif target in check_instance and isinstance(check_instance[target], str):
-                data[origin] = check_instance[target]
-            elif default is not None and isinstance(default, str):
-                data[origin] = default
-            return data
-
-        # Attempt to map stackstate-*** tags or configs
-        data = _map_config_or_tag('stackstate-layer', 'layer')
-        data = _map_config_or_tag('stackstate-environment', 'environment')
-        data = _map_config_or_tag('stackstate-domain', 'domain')
-        return data
+    # def _map_stackstate_tags_and_instance_config(self, data):
+    #     # Get the first instance and create a deep copy
+    #     instance = self.instances[0] if len(self.instances) else {}
+    #     check_instance = copy.deepcopy(instance)
+    #     # Extract or create the tags and identifier objects
+    #     tags = data.get('tags', {})
+    #     identifiers = data.get("identifiers", [])
+    #     # Find the stackstate-identifiers within tags
+    #     identifier_tag = next((tag for tag in tags if ("stackstate-identifiers:" in tag)), None)
+    #     # We attempt to split and map out the identifiers specified in the identifier_tag
+    #     # ** Does not support config **
+    #     if isinstance(identifier_tag, str):
+    #         """
+    #         We are testing the following with the regex block below
+    #         - Match all spaces if any at the start followed by a must have comma then followed again by a possible
+    #             single or multiple spaces
+    #         - Second possibility is a single or multiple space only without a comma
+    #         The resulting regex will work on a complex line like the following example:
+    #             Input: a, b, c,d,e f g h, i , j ,k   ,l  ,  m
+    #             Result: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm']
+    #         """
+    #         identifier_tag_content = identifier_tag.split('stackstate-identifiers:')[1]
+    #         if len(identifier_tag_content) > 0:
+    #             identifier_list = re.split('(?:\\s+)?,(?:\\s+)?|\\s+', identifier_tag_content)
+    #             clean_identifier_list = list(filter(lambda item: len(item) > 0, identifier_list))
+    #             data["identifiers"] = identifiers + clean_identifier_list
+    #     # Generic mapping function for tags or config
+    #     # Attempt to find if the target exists on a tag or config and map that to the origin value
+    #     # There's a optional default value if required
+    #     # Value override order: tags < config.yaml < TODO: source mapping < Stackpack
+    #     def _map_config_or_tag(target, origin, default=None):
+    #         find_tag = next((tag for tag in tags if (target in tag)), None)
+    #         if isinstance(find_tag, str) and find_tag.index(":") > 0:
+    #             data[origin] = find_tag.split(target + ':')[1]
+    #         elif target in check_instance and isinstance(check_instance[target], str):
+    #             data[origin] = check_instance[target]
+    #         elif default is not None and isinstance(default, str):
+    #             data[origin] = default
+    #         return data
+    #     # Attempt to map stackstate-*** tags or configs
+    #     data = _map_config_or_tag('stackstate-layer', 'layer')
+    #     data = _map_config_or_tag('stackstate-environment', 'environment')
+    #     data = _map_config_or_tag('stackstate-domain', 'domain')
+    #     return data
 
     def _map_relation_data(self, source, target, type, data, streams=None, checks=None):
         self._check_is_string("source", source)
