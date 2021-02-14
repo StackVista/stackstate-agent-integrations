@@ -490,7 +490,7 @@ class AgentCheckBase(object):
         check_instance = copy.deepcopy(instance)
 
         # Extract or create the tags and identifier objects
-        tags = data.get('tags', {})
+        tags = data.get('tags', [])
         identifiers = data.get("identifiers", [])
 
         # Find the stackstate-identifiers within tags
@@ -517,19 +517,20 @@ class AgentCheckBase(object):
         # Generic mapping function for tags or config
         # Attempt to find if the target exists on a tag or config and map that to the origin value
         # There's a optional default value if required
-        # Value override order: tags < config.yaml < TODO: source mapping < Stackpack
-        def _map_config_or_tag(target, origin, default=None):
+        # Value override order: tags < config.yaml
+        def _map_config_or_tag(target, origin, is_array=False, default=None):
             find_tag = next((tag for tag in tags if (target in tag)), None)
             if isinstance(find_tag, str) and find_tag.index(":") > 0:
-                data[origin] = find_tag.split(target + ':')[1]
+                data[origin] = [find_tag.split(target + ':')[1]] if is_array else find_tag.split(target + ':')[1]
             elif target in check_instance and isinstance(check_instance[target], str):
-                data[origin] = check_instance[target]
+                data[origin] = [check_instance[target]] if is_array else check_instance[target]
             elif default is not None and isinstance(default, str):
-                data[origin] = default
+                data[origin] = [default] if is_array else default
             return data
+
         # Attempt to map stackstate-*** tags or configs
         data = _map_config_or_tag('stackstate-layer', 'layer')
-        data = _map_config_or_tag('stackstate-environment', 'environment')
+        data = _map_config_or_tag('stackstate-environment', 'environments', True)
         data = _map_config_or_tag('stackstate-domain', 'domain')
         return data
 
