@@ -492,7 +492,7 @@ class TagsAndConfigMappingAgentCheck(TopologyCheck):
 
 
 class TestTagsAndConfigMapping:
-    def generic_tags_and_config_application(self, topology, include_instance_config, include_tags, extra_data=None):
+    def generic_tags_and_config_snapshot(self, topology, include_instance_config, include_tags, extra_data=None):
         check = TagsAndConfigMappingAgentCheck(include_instance_config)
         data = {}
         if include_tags:
@@ -512,37 +512,107 @@ class TestTagsAndConfigMapping:
         check.component("my-id", "host", data)
         return topology.get_snapshot(check.check_id)['components'][0]
 
-    def test_only_instance_config_application(self, topology):
-        component = self.generic_tags_and_config_application(topology, True, False)
+    def test_comma_and_spaces_regex(self):
+        check = TagsAndConfigMappingAgentCheck(True)
+        assert check.split_on_commas_and_spaces('a, b, c,d,e f g h, i , j ,k   ') == \
+               ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k"]
+        assert check.split_on_commas_and_spaces('a,  ,  ,, , j ,k   ') == ["a", "j", "k"]
+        assert check.split_on_commas_and_spaces(',,,,,,,,,,,           ,,,,,,,,,') == []
+        assert check.split_on_commas_and_spaces('') == []
+        assert check.split_on_commas_and_spaces('urn:test:0:123,urn:test:1:123,urn:test:2:123') == \
+               ["urn:test:0:123", "urn:test:1:123", "urn:test:2:123"]
+        assert check.split_on_commas_and_spaces('urn:test:0:123 urn:test:1:123 urn:test:2:123') == \
+               ["urn:test:0:123", "urn:test:1:123", "urn:test:2:123"]
+        assert check.split_on_commas_and_spaces('urn:test:0:123 urn:test:1:123,urn:test:2:123') == \
+               ["urn:test:0:123", "urn:test:1:123", "urn:test:2:123"]
+
+    def test_mapping_config_and_tags(self):
+        # We are create config variables with and without instance config
+        check_include_config = TagsAndConfigMappingAgentCheck(True)
+        check_exclude_config = TagsAndConfigMappingAgentCheck(False)
+
+        """
+            We are testing the following:
+                Config + No Data == Config Result is not in a Array
+                Config + No Data, True == Config Result is in a Array
+                Config + Data == Data Result is not in a Array (Must not be config)
+                Config + Data, True == Data Result is in a Array (Must not be config)
+                No Config + No Data + Default Value == Result must be the default value and not a Array
+                No Config + No Data + Default Value, True == Result must be the default value in a Array
+            Tags must overwrite configs
+        """
+        def generic_mapping_test(target, origin, default_value=None):
+            data = {
+                'tags': ['stackstate-layer:tag-stackstate-layer',
+                         'stackstate-environment:tag-stackstate-environment',
+                         'stackstate-domain:tag-stackstate-domain',
+                         'stackstate-identifiers:\
+                             urn:process:/mapped-identifier:0:1234567890'
+                         ]
+            }
+
+            # Include instance config in the tests
+            assert check_include_config._map_config_and_tags({}, target, origin) == \
+                   {origin: 'instance-' + target}
+            assert check_include_config._map_config_and_tags({}, target, origin, True) == \
+                   {origin: ['instance-' + target]}
+            assert check_include_config._map_config_and_tags(data, target, origin) == \
+                   {origin: 'tag-' + target, 'tags': data['tags']}
+            assert check_include_config._map_config_and_tags(data, target, origin, True) == \
+                   {origin: ['tag-' + target], 'tags': data['tags']}
+
+            # Exclude the instance config in the tests
+            assert check_exclude_config._map_config_and_tags({}, target, origin) == {}
+            assert check_exclude_config._map_config_and_tags({}, target, origin, True) == {}
+            assert check_exclude_config._map_config_and_tags(data, target, origin) == \
+                   {origin: 'tag-' + target, 'tags': data['tags']}
+            assert check_exclude_config._map_config_and_tags(data, target, origin, True) == \
+                   {origin: ['tag-' + target], 'tags': data['tags']}
+
+            # Default Config
+            assert check_exclude_config._map_config_and_tags({}, target, origin, False,
+                                                             default_value) == {origin: default_value}
+            assert check_exclude_config._map_config_and_tags({}, target, origin, True,
+                                                             default_value) == {origin: [default_value]}
+
+        # We are testing the environment, layer and domain for all the use cases
+        generic_mapping_test("stackstate-environment", "environments", "default-environment")
+        generic_mapping_test("stackstate-layer", "layer", "default-layer")
+        generic_mapping_test("stackstate-domain", "domain", "default-domain")
+
+    def test_instance_only_config(self, topology):
+        component = self.generic_tags_and_config_snapshot(topology, True, False)
         assert component["data"]["layer"] == "instance-stackstate-layer"
         assert component["data"]["environments"] == ["instance-stackstate-environment"]
         assert component["data"]["domain"] == "instance-stackstate-domain"
 
-    def test_only_tags_application(self, topology):
-        component = self.generic_tags_and_config_application(topology, False, True)
+    def test_tags_only(self, topology):
+        component = self.generic_tags_and_config_snapshot(topology, False, True)
         assert component["data"]["layer"] == "tag-stackstate-layer"
         assert component["data"]["environments"] == ["tag-stackstate-environment"]
         assert component["data"]["domain"] == "tag-stackstate-domain"
 
-    def test_tags_overwrite(self, topology):
-        component = self.generic_tags_and_config_application(topology, True, True)
+    def test_tags_overwrite_config(self, topology):
+        component = self.generic_tags_and_config_snapshot(topology, True, True)
         assert component["data"]["layer"] == "tag-stackstate-layer"
         assert component["data"]["environments"] == ["tag-stackstate-environment"]
         assert component["data"]["domain"] == "tag-stackstate-domain"
 
-    def test_identifier_config_application(self, topology):
-        component = self.generic_tags_and_config_application(topology, True, False, {
+    def test_identifier_config(self, topology):
+        component = self.generic_tags_and_config_snapshot(topology, True, False, {
             'identifiers': ['urn:process:/original-identifier:0:1234567890']
         })
         assert component["data"]["identifiers"] == ['urn:process:/original-identifier:0:1234567890']
 
-    def test_identifier_tags_application(self, topology):
-        component = self.generic_tags_and_config_application(topology, True, True, {
+    def test_identifier_tags(self, topology):
+        component = self.generic_tags_and_config_snapshot(topology, True, True, {
             'identifiers': [
                 'urn:process:/original-identifier:0:1234567890'
-            ]
+            ],
+            'url': '1234567890'
         })
         assert component["data"]["identifiers"] == ['urn:process:/original-identifier:0:1234567890',
+                                                    'urn:computer:/1234567890',
                                                     'urn:process:/mapped-identifier:0:1234567890',
                                                     'urn:process:/mapped-identifier:1:1234567890',
                                                     'urn:process:/mapped-identifier:2:1234567890',

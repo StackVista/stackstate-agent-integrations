@@ -19,31 +19,39 @@ from six import PY3, iteritems, text_type, string_types, integer_types
 try:
     import datadog_agent
     from ..log import init_logging
+
     init_logging()
 except ImportError:
     from ..stubs import datadog_agent
     from ..stubs.log import init_logging
+
     init_logging()
 
 try:
     import aggregator
+
     using_stub_aggregator = False
 except ImportError:
     from ..stubs import aggregator
+
     using_stub_aggregator = True
 
 try:
     import topology
+
     using_stub_topology = False
 except ImportError:
     from ..stubs import topology
+
     using_stub_topology = True
 
 try:
     import telemetry
+
     using_stub_telemetry = False
 except ImportError:
     from ..stubs import telemetry
+
     using_stub_telemetry = True
 
 from ..config import is_affirmative
@@ -59,6 +67,7 @@ from deprecated.sphinx import deprecated
 
 if datadog_agent.get_config('disable_unsafe_yaml'):
     from ..ddyaml import monkey_patch_pyyaml
+
     monkey_patch_pyyaml()
 
 # Metric types for which it's only useful to submit once per set of tags
@@ -485,10 +494,6 @@ class AgentCheckBase(object):
         topology.submit_relation(self, self.check_id, self._get_instance_key_dict(), source, target, type, data)
 
     def _map_stackstate_tags_and_instance_config(self, data):
-        # Get the first instance and create a deep copy
-        instance = self.instances[0] if self.instances is not None and len(self.instances) else {}
-        check_instance = copy.deepcopy(instance)
-
         # Extract or create the tags and identifier objects
         tags = data.get('tags', [])
         identifiers = data.get("identifiers", [])
@@ -499,39 +504,57 @@ class AgentCheckBase(object):
         # We attempt to split and map out the identifiers specified in the identifier_tag
         # ** Does not support config **
         if isinstance(identifier_tag, str):
-            """
-            We are testing the following with the regex block below
-            - Match all spaces if any at the start followed by a must have comma then followed again by a possible
-                single or multiple spaces
-            - Second possibility is a single or multiple space only without a comma
-            The resulting regex will work on a complex line like the following example:
-                Input: a, b, c,d,e f g h, i , j ,k   ,l  ,  m
-                Result: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm']
-            """
             identifier_tag_content = identifier_tag.split('stackstate-identifiers:')[1]
             if len(identifier_tag_content) > 0:
-                identifier_list = re.split('(?:\\s+)?,(?:\\s+)?|\\s+', identifier_tag_content)
-                clean_identifier_list = list(filter(lambda item: len(item) > 0, identifier_list))
-                data["identifiers"] = identifiers + clean_identifier_list
+                result = self.split_on_commas_and_spaces(identifier_tag_content)
+                data["identifiers"] = identifiers + result
 
-        # Generic mapping function for tags or config
-        # Attempt to find if the target exists on a tag or config and map that to the origin value
-        # There's a optional default value if required
-        # Value override order: tags < config.yaml
-        def _map_config_or_tag(target, origin, is_array=False, default=None):
-            find_tag = next((tag for tag in tags if (target in tag)), None)
-            if isinstance(find_tag, str) and find_tag.index(":") > 0:
-                data[origin] = [find_tag.split(target + ':')[1]] if is_array else find_tag.split(target + ':')[1]
-            elif target in check_instance and isinstance(check_instance[target], str):
-                data[origin] = [check_instance[target]] if is_array else check_instance[target]
-            elif default is not None and isinstance(default, str):
-                data[origin] = [default] if is_array else default
-            return data
+        # Attempt to map stackstate-*** tags and configs
+        data = self._map_config_and_tags(data, 'stackstate-layer', 'layer')
+        data = self._map_config_and_tags(data, 'stackstate-environment', 'environments', True)
+        data = self._map_config_and_tags(data, 'stackstate-domain', 'domain')
+        return data
 
-        # Attempt to map stackstate-*** tags or configs
-        data = _map_config_or_tag('stackstate-layer', 'layer')
-        data = _map_config_or_tag('stackstate-environment', 'environments', True)
-        data = _map_config_or_tag('stackstate-domain', 'domain')
+    # Regex function used to split a string on commas and/or spaces
+    def split_on_commas_and_spaces(self, content):
+        if isinstance(content, str):
+            """
+                We are testing the following with the regex block below
+                - Match all spaces if any at the start followed by a must have comma then followed again by a possible
+                    single or multiple spaces
+                - Second possibility is a single or multiple space only without a comma
+                The resulting regex will work on a complex line like the following example:
+                    Input: a, b, c,d,e f g h, i , j ,k   ,l  ,  m
+                    Result: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm']
+            """
+            content_list = re.split('(?:\\s+)?,(?:\\s+)?|\\s+', content)
+
+            # Clean out all empty string ''
+            clean_identifier_list = list(filter(lambda item: len(item) > 0, content_list))
+            return clean_identifier_list
+        else:
+            return []
+
+    # Generic mapping function for tags or config
+    # Attempt to find if the target exists on a tag or config and map that to the origin value
+    # There's a optional default value if required
+    # Value override order: tags < config.yaml
+    def _map_config_and_tags(self, data, target, origin, is_array=False, default=None):
+        # Get the first instance and create a deep copy
+        instance = self.instances[0] if self.instances is not None and len(self.instances) else {}
+        check_instance = copy.deepcopy(instance)
+
+        # Extract or create the tags
+        tags = data.get('tags', [])
+
+        # Attempt to find the tag and map its value to a object inside data
+        find_tag = next((tag for tag in tags if (target in tag)), None)
+        if isinstance(find_tag, str) and find_tag.index(":") > 0:
+            data[origin] = [find_tag.split(target + ':')[1]] if is_array is True else find_tag.split(target + ':')[1]
+        elif target in check_instance and isinstance(check_instance[target], str):
+            data[origin] = [check_instance[target]] if is_array is True else check_instance[target]
+        elif default is not None and isinstance(default, str):
+            data[origin] = [default] if is_array is True else default
         return data
 
     def _map_relation_data(self, source, target, type, data, streams=None, checks=None):
