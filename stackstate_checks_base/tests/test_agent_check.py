@@ -515,19 +515,19 @@ class TestTagsAndConfigMapping:
     def test_only_instance_config_application(self, topology):
         component = self.generic_tags_and_config_application(topology, True, False)
         assert component["data"]["layer"] == "instance-stackstate-layer"
-        assert component["data"]["environment"] == "instance-stackstate-environment"
+        assert component["data"]["environments"] == ["instance-stackstate-environment"]
         assert component["data"]["domain"] == "instance-stackstate-domain"
 
     def test_only_tags_application(self, topology):
         component = self.generic_tags_and_config_application(topology, False, True)
         assert component["data"]["layer"] == "tag-stackstate-layer"
-        assert component["data"]["environment"] == "tag-stackstate-environment"
+        assert component["data"]["environments"] == ["tag-stackstate-environment"]
         assert component["data"]["domain"] == "tag-stackstate-domain"
 
     def test_tags_overwrite(self, topology):
         component = self.generic_tags_and_config_application(topology, True, True)
         assert component["data"]["layer"] == "tag-stackstate-layer"
-        assert component["data"]["environment"] == "tag-stackstate-environment"
+        assert component["data"]["environments"] == ["tag-stackstate-environment"]
         assert component["data"]["domain"] == "tag-stackstate-domain"
 
     def test_identifier_config_application(self, topology):
