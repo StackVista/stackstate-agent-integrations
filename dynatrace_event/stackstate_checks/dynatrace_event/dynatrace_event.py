@@ -8,7 +8,7 @@ import yaml
 from requests import Session
 from requests.exceptions import Timeout
 from schematics import Model
-from schematics.types import StringType, IntType, ListType, DateTimeType, URLType, BooleanType, ModelType
+from schematics.types import StringType, IntType, ListType, DateTimeType, URLType, BooleanType, ModelType, DictType
 
 from stackstate_checks.base import AgentCheck, StackPackInstance
 
@@ -27,7 +27,7 @@ class DynatraceEvent(Model):
     impactLevel = StringType()
     eventType = StringType()
     eventStatus = StringType()
-    tags = ListType(StringType)
+    tags = ListType(DictType(StringType))
     id = StringType()
     source = StringType()
 
@@ -48,6 +48,11 @@ class InstanceInfo(Model):
     state = ModelType(State)
 
 
+def generate_bootstrap_timestamp(days):
+    bootstrap_date = datetime.now() - timedelta(days=days)
+    return int(bootstrap_date.strftime('%s')) * 1000
+
+
 class DynatraceEventCheck(AgentCheck):
     INSTANCE_TYPE = "dynatrace_event"
     SERVICE_CHECK_NAME = "dynatrace_event"
@@ -60,8 +65,7 @@ class DynatraceEventCheck(AgentCheck):
         try:
             if not instance_info.state:
                 # Create empty state
-                bootstrap_date = datetime.now() - timedelta(days=instance_info.events_boostrap_days)
-                empty_state_timestamp = int(bootstrap_date.strftime('%s')) * 1000
+                empty_state_timestamp = generate_bootstrap_timestamp(instance_info.events_boostrap_days)
                 instance_info.state = State(
                     {
                         'last_processed_event_timestamp': empty_state_timestamp
@@ -88,22 +92,23 @@ class DynatraceEventCheck(AgentCheck):
         events = self.collect_events(instance_info)
         self.log.debug("Collected %d", len(events))
         for event in events:
-            self.new_create_event(event)
+            self.create_event(event)
 
     def get_events(self, instance_info, from_time=None, cursor=None):
         """
         Get events from Dynatrace Event API endpoint
+        :param instance_info: object with instance info and its state
         :param from_time: timestamp from which to collect events
         :param cursor:
         :return: Event API endpoint response
         """
-        params = ''
+        params = {}
         if from_time:
-            params = "?from={0}".format(from_time)
+            params['from'] = from_time
         if cursor:
-            params = "?cursor={}".format(cursor)
-        endpoint = instance_info.url + "/api/v1/events{}".format(params)
-        events = self.get_dynatrace_event_json_response(instance_info, endpoint)
+            params['cursor'] = cursor
+        endpoint = instance_info.url + "/api/v1/events"
+        events = self.get_dynatrace_event_json_response(instance_info, endpoint, params)
         return events
 
     def collect_events(self, instance_info):
@@ -112,41 +117,43 @@ class DynatraceEventCheck(AgentCheck):
         until is None or it reach events_process_limit
         """
         events_response = self.get_events(instance_info, from_time=instance_info.state.last_processed_event_timestamp)
+        if "error" in events_response:
+            raise Exception("Error in pulling the events: {}".format(events_response.get("error").get("message")))
         total_event_count = events_response.get("totalEventCount", 0)
-        if self.event_limit_exceeded_condition(instance_info, total_event_count):
-            raise EventLimitReachedException("Maximum event limit to process is {} but received total {} events".
-                                             format(instance_info.events_process_limit, total_event_count))
-        events = []
+        self._event_limit_exceeded_condition(instance_info, total_event_count)
+        new_events = []
         events_processed = 0
         while events_response:
-            for event in events_response.get('events', []):
+            events = events_response.get('events', [])
+            for event in events:
                 dynatrace_event = DynatraceEvent(event, strict=False)
                 dynatrace_event.validate()
-                events.append(dynatrace_event)
-            events_processed += len(events_response)
+                new_events.append(dynatrace_event)
+            events_processed += len(events)
             if events_response.get("nextCursor") and events_processed < instance_info.events_process_limit:
                 events_response = self.get_events(instance_info, cursor=events_response.get("nextCursor"))
             else:
                 instance_info.state.last_processed_event_timestamp = events_response.get("to")
                 events_response = None
-        return events
+        return new_events
 
-    def event_limit_exceeded_condition(self, instance_info, total_event_count):
+    @staticmethod
+    def _event_limit_exceeded_condition(instance_info, total_event_count):
         """
-        Check if number of events between subsequent check runs exceed the `events_process_limit`
-        :return: boolean True or False
+        Raises EventLimitReachedException if number of events between subsequent check runs
+        exceed the `events_process_limit`
         """
-        # if events processed last time and total event count exceeded the limit
-        if instance_info.state.last_processed_event_timestamp is not None and \
+        if instance_info.state.last_processed_event_timestamp and \
                 total_event_count >= instance_info.events_process_limit:
-            return True
+            raise EventLimitReachedException("Maximum event limit to process is {} but received total {} events".
+                                             format(instance_info.events_process_limit, total_event_count))
 
-    def new_create_event(self, dynatrace_event):
+    def create_event(self, dynatrace_event):
         """
         Create an standard or custom event based on the Dynatrace Severity level
         """
         event = {
-            "timestamp": int(time.time()),
+            "timestamp": self._current_time_seconds(),
             "source_type_name": "Dynatrace Events",
             "msg_title": dynatrace_event.eventType + " on " + dynatrace_event.entityName,
             "msg_text": dynatrace_event.eventType + " on " + dynatrace_event.entityName,
@@ -182,7 +189,8 @@ class DynatraceEventCheck(AgentCheck):
         """
         return int(time.time())
 
-    def get_dynatrace_event_json_response(self, instance_info, endpoint, timeout=10):
+    @staticmethod
+    def get_dynatrace_event_json_response(instance_info, endpoint, params, timeout=10):
         headers = {"Authorization": "Api-Token {}".format(instance_info.token)}
         try:
             with Session() as session:
@@ -190,10 +198,10 @@ class DynatraceEventCheck(AgentCheck):
                 session.verify = instance_info.verify
                 if instance_info.cert:
                     session.cert = (instance_info.cert, instance_info.keyfile)
-                resp = session.get(endpoint)
+                resp = session.get(endpoint, params=params)
                 if resp.status_code != 200:
                     raise Exception("Got %s when hitting %s" % (resp.status_code, endpoint))
-                return yaml.safe_load(resp.text)
+                return resp.json()
         except Timeout:
             msg = "{} seconds timeout when hitting {}".format(timeout, endpoint)
             raise Exception("Exception occured for endpoint {0} with message: {1}".format(endpoint, msg))

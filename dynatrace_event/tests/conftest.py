@@ -3,6 +3,9 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import pytest
 
+from stackstate_checks.base.stubs import aggregator
+from stackstate_checks.dynatrace_event import DynatraceEventCheck
+
 
 @pytest.fixture(scope='session')
 def sts_environment():
@@ -10,16 +13,23 @@ def sts_environment():
     #  The start command places this as a `conf.yaml` in the `conf.d/mycheck/` directory.
     #  If you want to run an environment this object can not be empty.
     return {
-        "url": "https://ton48129.live.dynatrace.com",
-        "token": "PSxqSomuSxSeYWgg_vt_p"
+        "url": "https://instance.live.dynatrace.com",
+        "token": "some_token"
     }
 
 
-@pytest.fixture(scope="class")
-def instance(request):
-    cfg = {
-        "url": "https://ton48129.live.dynatrace.com",
-        "token": "PSxqSomuSxSeYWgg_vt_p",
+@pytest.fixture(scope='class')
+def instance():
+    return {
+        "url": "https://instance.live.dynatrace.com",
+        "token": "some_token",
         "events_process_limit": 10
     }
-    request.cls.instance = cfg
+
+
+@pytest.fixture
+def check(instance):
+    check = DynatraceEventCheck('dynatrace_event', {}, instances=[instance])
+    yield check
+    aggregator.reset()
+    check.commit_state(None)
