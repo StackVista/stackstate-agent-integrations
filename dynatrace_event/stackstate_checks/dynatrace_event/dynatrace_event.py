@@ -204,7 +204,7 @@ class DynatraceEventCheck(AgentCheck):
                 return resp.json()
         except Timeout:
             msg = "{} seconds timeout when hitting {}".format(timeout, endpoint)
-            raise Exception("Exception occured for endpoint {0} with message: {1}".format(endpoint, msg))
+            raise Exception("Exception occurred for endpoint {0} with message: {1}".format(endpoint, msg))
 
 
 class EventLimitReachedException(Exception):
