@@ -66,11 +66,7 @@ class DynatraceEventCheck(AgentCheck):
             if not instance_info.state:
                 # Create empty state
                 empty_state_timestamp = generate_bootstrap_timestamp(instance_info.events_boostrap_days)
-                instance_info.state = State(
-                    {
-                        'last_processed_event_timestamp': empty_state_timestamp
-                    }
-                )
+                instance_info.state = State({'last_processed_event_timestamp': empty_state_timestamp})
             self.process_events(instance_info)
             msg = "Dynatrace events processed successfully"
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=instance_info.instance_tags, message=msg)
@@ -93,7 +89,7 @@ class DynatraceEventCheck(AgentCheck):
         open_events = len([e for e in events if e.get('eventStatus') == 'OPEN'])
         self.log.debug("Collected %d events, %d are open and %d are closed.", len(events), open_events, closed_events)
         for event in events:
-            self.create_event(event)
+            self.create_event(event, instance_info.url)
 
     def get_events(self, instance_info, from_time=None, cursor=None):
         """
@@ -149,7 +145,7 @@ class DynatraceEventCheck(AgentCheck):
             raise EventLimitReachedException("Maximum event limit to process is {} but received total {} events".
                                              format(instance_info.events_process_limit, total_event_count))
 
-    def create_event(self, dynatrace_event):
+    def create_event(self, dynatrace_event, instance_url):
         """
         Create an standard or custom event based on the Dynatrace Severity level
         """
@@ -167,16 +163,17 @@ class DynatraceEventCheck(AgentCheck):
             ]
         }
 
-        # Events with a info severity (6) are send as custom events
-        if dynatrace_event.severityLevel == 6:
+        # Events with a info severity are send as custom events
+        if dynatrace_event.severityLevel == 'INFO':
             event["context"] = {
                 "source_identifier": "source_identifier_value",
-                "element_identifiers": ["urn:external-id-pattern"],
+                "element_identifiers": ["urn:{}".format(dynatrace_event.entityId)],
                 "source": "source",
                 "category": "category",
-                "data": dynatrace_event,
+                "data": dynatrace_event.to_primitive(),
                 "source_links": [
-                    {"title": "my_event_external_link", "url": "link-to-dynatrace"}
+                    # TODO the real event external link
+                    {"title": "my_event_external_link", "url": instance_url}
                 ]
             }
 

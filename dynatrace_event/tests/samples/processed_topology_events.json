@@ -1,0 +1,44 @@
+[
+  {
+    "timestamp": 1613485584,
+    "source_type_name": "Dynatrace Events",
+    "msg_title": "PROCESS_RESTART on aws-cni",
+    "msg_text": "PROCESS_RESTART on aws-cni",
+    "tags": [
+      "entityId:PROCESS_GROUP_INSTANCE-C3483A9911DDAC4A",
+      "severityLevel:INFO",
+      "eventType:PROCESS_RESTART",
+      "impactLevel:INFRASTRUCTURE",
+      "eventStatus:CLOSED"
+    ],
+    "context": {
+      "source_identifier": "source_identifier_value",
+      "element_identifiers": [
+        "urn:PROCESS_GROUP_INSTANCE-C3483A9911DDAC4A"
+      ],
+      "source": "source",
+      "category": "category",
+      "data": {
+        "eventId": 1896559972817125277,
+        "startTime": 1613424360000,
+        "endTime": 1613424370000,
+        "entityId": "PROCESS_GROUP_INSTANCE-C3483A9911DDAC4A",
+        "entityName": "aws-cni",
+        "severityLevel": "INFO",
+        "impactLevel": "INFRASTRUCTURE",
+        "eventType": "PROCESS_RESTART",
+        "eventStatus": "CLOSED",
+        "tags": [],
+        "id": "1896559972817125277_1613424360000",
+        "source": "builtin"
+      },
+      "source_links": [
+        {
+          "title": "my_event_external_link",
+          "url": "https://instance.live.dynatrace.com"
+        }
+      ]
+    },
+    "event_type": "Dynatrace Events"
+  }
+]

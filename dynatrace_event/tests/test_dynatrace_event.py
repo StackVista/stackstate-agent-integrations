@@ -1,19 +1,15 @@
 # (C) StackState 2021
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
-
 import json
 import os
-import unittest
 
 import mock
-import pytest
 import requests_mock
-import yaml
 
 from stackstate_checks.base import AgentCheck
-from stackstate_checks.base.stubs import aggregator
-from stackstate_checks.dynatrace_event.dynatrace_event import generate_bootstrap_timestamp
+from stackstate_checks.base.stubs import aggregator, telemetry
+from stackstate_checks.dynatrace_event.dynatrace_event import generate_bootstrap_timestamp, State
 
 
 def test_check_for_empty_events(check, instance):
@@ -38,7 +34,7 @@ def test_check_for_event_limit_reached_condition(check, instance):
     """
     with requests_mock.Mocker() as m:
         url = '{}/api/v1/events?from={}'.format(instance['url'], generate_bootstrap_timestamp(5))
-        m.get(url, status_code=200, text=read_data_from_file('full_events.json'))
+        m.get(url, status_code=200, text=read_data_from_file('21events.json'))
         check.run()
         service_checks = aggregator.service_checks('dynatrace_event')
         assert len(service_checks) == 1
@@ -54,13 +50,12 @@ def test_check_respects_events_process_limit_on_startup(check, instance):
         url1 = '{}/api/v1/events?from={}'.format(instance['url'], generate_bootstrap_timestamp(5))
         url2 = '{}/api/v1/events?cursor={}'.format(instance['url'], '123')
         url3 = '{}/api/v1/events?cursor={}'.format(instance['url'], '345')
-        m.get(url1, status_code=200, text=read_data_from_file("events01.json"))
-        m.get(url2, status_code=200, text=read_data_from_file("events02.json"))
-        m.get(url3, status_code=200, text=read_data_from_file("events03.json"))
+        m.get(url1, status_code=200, text=read_data_from_file("events_set1.json"))
+        m.get(url2, status_code=200, text=read_data_from_file("events_set2.json"))
+        m.get(url3, status_code=200, text=read_data_from_file("events_set3.json"))
         check.run()
-        events = sort_events_data(aggregator.events)
         service_checks = aggregator.service_checks('dynatrace_event')
-        assert len(events) == 12
+        assert len(aggregator.events) == 12
         assert len(service_checks) == 1
         assert service_checks[0].status == AgentCheck.OK
 
@@ -72,8 +67,8 @@ def test_check_for_error_in_events(check):
     error_msg = "mocked test error occurred"
     check.get_dynatrace_event_json_response = mock.MagicMock(return_value={"error": {"message": error_msg}})
     check.run()
-    assert len(aggregator.events) == 0
     service_checks = aggregator.service_checks('dynatrace_event')
+    assert len(aggregator.events) == 0
     assert len(service_checks) == 1
     assert service_checks[0].status == AgentCheck.CRITICAL
     assert service_checks[0].message == 'Error in pulling the events: {}'.format(error_msg)
@@ -88,8 +83,8 @@ def test_check_raise_exception_for_response_code_not_200(check, instance):
         url = '{}/api/v1/events?from={}'.format(instance['url'], generate_bootstrap_timestamp(5))
         m.get(url, status_code=500, text='error')
         check.run()
-        assert len(aggregator.events) == 0
         service_checks = aggregator.service_checks('dynatrace_event')
+        assert len(aggregator.events) == 0
         assert len(service_checks) == 1
         assert service_checks[0].status == AgentCheck.CRITICAL
         assert service_checks[0].message == 'Got 500 when hitting https://instance.live.dynatrace.com/api/v1/events'
@@ -97,92 +92,50 @@ def test_check_raise_exception_for_response_code_not_200(check, instance):
 
 def test_check_raise_exception(check):
     """
-    Test to raise a check exception when code that talks to API endpoint throws exception
+    Test to raise a exception from code that talks to API endpoint throws exception
     """
     check.get_dynatrace_event_json_response = mock.MagicMock(side_effect=Exception("Mocked exception occurred"))
     check.run()
-    assert len(aggregator.events) == 0
     service_checks = aggregator.service_checks("dynatrace_event")
+    assert len(aggregator.events) == 0
     assert len(service_checks) == 1
     assert service_checks[0].status == AgentCheck.CRITICAL
     assert service_checks[0].message == 'Mocked exception occurred'
 
 
-@pytest.mark.usefixtures("instance")
-class TestDynatraceEventCheck(unittest.TestCase):
-    """Basic Test for Dynatrace integration."""
-    CHECK_NAME = 'dynatrace_event'
-    SERVICE_CHECK_NAME = "dynatrace_event"
-
-    # def setUp(self):
-    #     """
-    #     Initialize and setup the check
-    #     """
-    #     config = {}
-    #     self.check = DynatraceEventCheck(self.CHECK_NAME, config, instances=[instance])
-    #
-    #     # self.events_d_path = os.getcwd() + "/dynatrace_event.d/"
-    #     #
-    #     # # patch the `DYNATRACE_STATE_FILE` path in util as the conf.d folder doesn't exist here
-    #     # util.DYNATRACE_STATE_FILE = self.events_d_path + "dynatrace_event_state.pickle"
-    #     #
-    #     # if not os.path.exists(self.events_d_path):
-    #     #     os.mkdir(os.getcwd() + "/dynatrace_event.d/")
-    #     #
-    #
-    #     # this is needed because the aggregator retains data across tests
-    #     aggregator.reset()
-
-    # def tearDown(self):
-    #     """
-    #     Destroy the environment
-    #     """
-    #     if os.path.exists(self.events_d_path):
-    #         shutil.rmtree(self.events_d_path)
-
-    def test_check_for_full_events(self):
-        """
-        Testing Dynatrace check should produce full events
-        """
-        self.check.get_dynatrace_event_json_response = mock.MagicMock(return_value=read_collection_from_file(
-            "full_events.json"))
-        self.check._current_time_seconds = mock.MagicMock(return_value=1602685050)
-        self.check.url = self.instance.get('url')
-        self.instance["events_process_limit"] = 1000
-
-        self.check.check(self.instance)
-
-        events = aggregator.events
-        events = sort_events_data(events)
-        print(events)
-        expected_out_events = sort_events_data(read_collection_from_file("full_health_output_events.json"))
-        self.assertEqual(len(events), len(expected_out_events))
-        for event in events:
-            self.assertIn(event, expected_out_events)
-
-
-class MockResponse:
+def test_check_for_generated_events(check, instance):
     """
-    Mocked Response for a session
+    Testing Dynatrace check should produce full events
     """
-
-    def __init__(self, response):
-        self.status_code = response.get("status_code")
-        self.text = response.get("text")
-
-
-def read_collection_from_file(filename):
-    path_to_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'samples', filename)
-    with open(path_to_file, "r") as f:
-        return yaml.safe_load(f)
+    empty_state_timestamp = generate_bootstrap_timestamp(5)
+    with requests_mock.Mocker() as m:
+        url = '{}/api/v1/events?from={}'.format(instance['url'], empty_state_timestamp)
+        m.get(url, status_code=200, text=read_data_from_file('9events.json'))
+        check._current_time_seconds = mock.MagicMock(return_value=1613485584)
+        check.run()
+        service_checks = aggregator.service_checks("dynatrace_event")
+        assert len(aggregator.events) == 8
+        assert len(telemetry._topology_events) == 1
+        assert len(service_checks) == 1
+        assert service_checks[0].status == AgentCheck.OK
+        processed_events = read_json_from_file('processed_events.json')
+        for event in processed_events:
+            aggregator.assert_event(event.get('msg_text'))
+        processed_topology_events = read_json_from_file('processed_topology_events.json')
+        for event in processed_topology_events:
+            telemetry.assert_topology_event(event)
 
 
 def read_data_from_file(filename):
-    path_to_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'samples', filename)
-    with open(path_to_file, "r") as f:
+    with open(get_path_to_file(filename), "r") as f:
         return f.read()
 
 
-def sort_events_data(events):
-    events = [json.dumps(event, sort_keys=True) for event in events]
-    return events
+def read_json_from_file(filename):
+    with open(get_path_to_file(filename), 'r') as f:
+        return json.load(f)
+
+
+def get_path_to_file(filename):
+    path_to_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'samples', filename)
+    return path_to_file
