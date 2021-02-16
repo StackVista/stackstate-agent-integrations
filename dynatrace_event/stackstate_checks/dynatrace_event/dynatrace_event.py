@@ -69,7 +69,6 @@ class DynatraceEventCheck(AgentCheck):
                 instance_info.state = State(
                     {
                         'last_processed_event_timestamp': empty_state_timestamp
-
                     }
                 )
             self.process_events(instance_info)
@@ -90,7 +89,9 @@ class DynatraceEventCheck(AgentCheck):
         Wrapper to collect events, filters those events and persist the state
         """
         events = self.collect_events(instance_info)
-        self.log.debug("Collected %d", len(events))
+        closed_events = len([e for e in events if e.get('eventStatus') == 'CLOSED'])
+        open_events = len([e for e in events if e.get('eventStatus') == 'OPEN'])
+        self.log.debug("Collected %d events, %d are open and %d are closed.", len(events), open_events, closed_events)
         for event in events:
             self.create_event(event)
 
