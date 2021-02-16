@@ -4,11 +4,10 @@
 import time
 from datetime import datetime, timedelta
 
-import yaml
 from requests import Session
 from requests.exceptions import Timeout
 from schematics import Model
-from schematics.types import StringType, IntType, ListType, DateTimeType, URLType, BooleanType, ModelType, DictType
+from schematics.types import StringType, IntType, ListType, URLType, BooleanType, ModelType, DictType
 
 from stackstate_checks.base import AgentCheck, StackPackInstance
 

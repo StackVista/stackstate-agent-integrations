@@ -9,7 +9,7 @@ import requests_mock
 
 from stackstate_checks.base import AgentCheck
 from stackstate_checks.base.stubs import aggregator, telemetry
-from stackstate_checks.dynatrace_event.dynatrace_event import generate_bootstrap_timestamp, State
+from stackstate_checks.dynatrace_event.dynatrace_event import generate_bootstrap_timestamp
 
 
 def test_check_for_empty_events(check, instance):
