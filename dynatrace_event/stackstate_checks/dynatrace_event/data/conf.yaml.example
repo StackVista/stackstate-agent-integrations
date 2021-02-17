@@ -30,6 +30,9 @@ instances:
     # path to public key of certificate for https verification
     # keyfile: /path/to/key.pem
 
+    # Timeout for requests. Default value is 10.
+    # timeout: 10
+
     # Custom tags which can be used to filter out
     # tags:
     #   - foo:bar

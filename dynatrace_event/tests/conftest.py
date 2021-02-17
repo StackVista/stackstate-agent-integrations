@@ -23,7 +23,8 @@ def test_instance():
     return {
         "url": "https://instance.live.dynatrace.com",
         "token": "some_token",
-        "events_process_limit": 10
+        "events_process_limit": 10,
+        "timeout": 20
     }
 
 

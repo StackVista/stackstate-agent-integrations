@@ -14,6 +14,7 @@ from stackstate_checks.base import AgentCheck, StackPackInstance
 VERIFY_HTTPS = True
 EVENTS_BOOSTRAP_DAYS_DEFAULT = 5
 EVENTS_PROCESS_LIMIT_DEFAULT = 10000
+TIMEOUT_DEFAULT = 10
 
 
 class DynatraceEvent(Model):
@@ -44,6 +45,7 @@ class InstanceInfo(Model):
     verify = BooleanType(default=VERIFY_HTTPS)
     cert = StringType()
     keyfile = StringType()
+    timeout = IntType(default=TIMEOUT_DEFAULT)
     state = ModelType(State)
 
 
@@ -197,7 +199,7 @@ class DynatraceEventCheck(AgentCheck):
         return int(time.time())
 
     @staticmethod
-    def _get_dynatrace_event_json_response(instance_info, endpoint, params, timeout=10):
+    def _get_dynatrace_event_json_response(instance_info, endpoint, params):
         headers = {"Authorization": "Api-Token {}".format(instance_info.token)}
         try:
             with Session() as session:
@@ -210,8 +212,7 @@ class DynatraceEventCheck(AgentCheck):
                     raise Exception("Got %s when hitting %s" % (resp.status_code, endpoint))
                 return resp.json()
         except Timeout:
-            # TODO put timeout in conf.yaml
-            msg = "{} seconds timeout when hitting {}".format(timeout, endpoint)
+            msg = "{} seconds timeout".format(instance_info.timeout)
             raise Exception("Exception occurred for endpoint {0} with message: {1}".format(endpoint, msg))
 
 

@@ -5,6 +5,7 @@ import json
 import os
 
 import mock
+import requests
 import requests_mock
 
 from stackstate_checks.base import AgentCheck, StateDescriptor
@@ -135,6 +136,18 @@ def test_state_data(state, dynatrace_event_check, test_instance):
     mocked_response_data = read_json_from_file(events_file)
     new_state = State({'last_processed_event_timestamp': mocked_response_data.get('to')})
     state.assert_state(state_instance, new_state)
+
+
+def test_timeout(dynatrace_event_check, test_instance):
+    with requests_mock.Mocker() as m:
+        url = '{}/api/v1/events?from={}'.format(test_instance['url'],
+                                                dynatrace_event_check._generate_bootstrap_timestamp(5))
+        m.get(url, exc=requests.exceptions.ConnectTimeout)
+        dynatrace_event_check.run()
+        aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.CRITICAL,
+                                        message='Exception occurred for endpoint '
+                                                'https://instance.live.dynatrace.com/api/v1/events with message: '
+                                                '20 seconds timeout')
 
 
 def read_file(filename):
