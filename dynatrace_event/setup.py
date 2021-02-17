@@ -33,7 +33,7 @@ setup(
     url='https://github.com/StackVista/stackstate-agent-integrations',
 
     # Author details
-    author='Vishal Kumar',
+    author='StackState',
     author_email='info@stackstate.com',
 
     # License
