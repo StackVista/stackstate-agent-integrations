@@ -27,7 +27,7 @@ def test_no_events(dynatrace_event_check, test_instance, state):
         assert len(aggregator.events) == 0
 
 
-def test_event_limit_reached_exception(dynatrace_event_check, test_instance):
+def test_events_process_limit(dynatrace_event_check, test_instance):
     """
     Testing Dynatrace should throw `EventLimitReachedException` if the number of events
     between subsequent check runs exceed the `events_process_limit`
@@ -37,11 +37,11 @@ def test_event_limit_reached_exception(dynatrace_event_check, test_instance):
                                                 dynatrace_event_check._generate_bootstrap_timestamp(5))
         m.get(url, status_code=200, text=read_file('21_events.json'))
         dynatrace_event_check.run()
-        aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.WARNING,
-                                        message='Maximum event limit to process is 10 but received total 21 events')
+        aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.WARNING)
+        assert len(aggregator.events) == 10
 
 
-def test_events_process_limit(dynatrace_event_check, test_instance):
+def test_events_process_limit_with_batches(dynatrace_event_check, test_instance):
     """
     Testing Dynatrace should respect `events_process_limit` config and just produce those number of events
     """
@@ -54,8 +54,8 @@ def test_events_process_limit(dynatrace_event_check, test_instance):
         m.get(url2, status_code=200, text=read_file("events_set2.json"))
         m.get(url3, status_code=200, text=read_file("events_set3.json"))
         dynatrace_event_check.run()
-        aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.OK)
-        assert len(aggregator.events) == 12
+        aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.WARNING)
+        assert len(aggregator.events) == 10
 
 
 def test_error_in_events(dynatrace_event_check):
@@ -102,9 +102,9 @@ def test_generated_events(dynatrace_event_check, test_instance):
     """
     Testing Dynatrace check should produce full events
     """
-    empty_state_timestamp = dynatrace_event_check._generate_bootstrap_timestamp(5)
     with requests_mock.Mocker() as m:
-        url = '{}/api/v1/events?from={}'.format(test_instance['url'], empty_state_timestamp)
+        url = '{}/api/v1/events?from={}'.format(test_instance['url'],
+                                                dynatrace_event_check._generate_bootstrap_timestamp(5))
         m.get(url, status_code=200, text=read_file('9_events.json'))
         dynatrace_event_check._current_time_seconds = mock.MagicMock(return_value=1613485584)
         dynatrace_event_check.run()

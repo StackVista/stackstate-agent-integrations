@@ -58,7 +58,7 @@ class DynatraceEventCheck(AgentCheck):
     def check(self, instance_info):
         try:
             if not instance_info.state:
-                # Create empty state
+                # Create state on the first run
                 empty_state_timestamp = self._generate_bootstrap_timestamp(instance_info.events_boostrap_days)
                 self.log.debug('Creating new empty state with timestamp: %s', empty_state_timestamp)
                 instance_info.state = State({'last_processed_event_timestamp': empty_state_timestamp})
@@ -78,66 +78,14 @@ class DynatraceEventCheck(AgentCheck):
         """
         Wrapper to collect events, filters those events and persist the state
         """
-        events = self._collect_events(instance_info)
+        events, events_limit_reached = self._collect_events(instance_info)
         closed_events = len([e for e in events if e.get('eventStatus') == 'CLOSED'])
         open_events = len([e for e in events if e.get('eventStatus') == 'OPEN'])
         self.log.debug("Collected %d events, %d are open and %d are closed.", len(events), open_events, closed_events)
         for event in events:
             self._create_event(event, instance_info.url)
-
-    def _get_events(self, instance_info, from_time=None, cursor=None):
-        """
-        Get events from Dynatrace Event API endpoint
-        :param instance_info: object with instance info and its state
-        :param from_time: timestamp from which to collect events
-        :param cursor:
-        :return: Event API endpoint response
-        """
-        params = {}
-        if from_time:
-            params['from'] = from_time
-        if cursor:
-            params['cursor'] = cursor
-        endpoint = instance_info.url + "/api/v1/events"
-        events = self._get_dynatrace_event_json_response(instance_info, endpoint, params)
-        return events
-
-    def _collect_events(self, instance_info):
-        """
-        Checks for EventLimitReachedException and process each event API response for next cursor
-        until is None or it reach events_process_limit
-        """
-        events_response = self._get_events(instance_info, from_time=instance_info.state.last_processed_event_timestamp)
-        if "error" in events_response:
-            raise Exception("Error in pulling the events: {}".format(events_response.get("error").get("message")))
-        total_event_count = events_response.get("totalEventCount", 0)
-        self._event_limit_exceeded_condition(instance_info, total_event_count)
-        new_events = []
-        events_processed = 0
-        while events_response:
-            events = events_response.get('events', [])
-            for event in events:
-                dynatrace_event = DynatraceEvent(event, strict=False)
-                dynatrace_event.validate()
-                new_events.append(dynatrace_event)
-            events_processed += len(events)
-            if events_response.get("nextCursor") and events_processed < instance_info.events_process_limit:
-                events_response = self._get_events(instance_info, cursor=events_response.get("nextCursor"))
-            else:
-                instance_info.state.last_processed_event_timestamp = events_response.get("to")
-                events_response = None
-        return new_events
-
-    @staticmethod
-    def _event_limit_exceeded_condition(instance_info, total_event_count):
-        """
-        Raises EventLimitReachedException if number of events between subsequent check runs
-        exceed the `events_process_limit`
-        """
-        if instance_info.state.last_processed_event_timestamp and \
-                total_event_count >= instance_info.events_process_limit:
-            raise EventLimitReachedException("Maximum event limit to process is {} but received total {} events".
-                                             format(instance_info.events_process_limit, total_event_count))
+        if events_limit_reached:
+            raise EventLimitReachedException(events_limit_reached)
 
     def _create_event(self, dynatrace_event, instance_url):
         """
@@ -172,6 +120,63 @@ class DynatraceEventCheck(AgentCheck):
             }
 
         self.event(event)
+
+    def _collect_events(self, instance_info):
+        """
+        Checks for EventLimitReachedException and process each event API response for next cursor
+        until is None or it reach events_process_limit
+        """
+        events_response = self._get_events(instance_info, from_time=instance_info.state.last_processed_event_timestamp)
+        if "error" in events_response:
+            raise Exception("Error in pulling the events: {}".format(events_response.get("error").get("message")))
+        new_events = []
+        events_processed = 0
+        event_limit_reached = None
+        try:
+            while events_response:
+                events = events_response.get('events', [])
+                for event in events:
+                    dynatrace_event = DynatraceEvent(event, strict=False)
+                    dynatrace_event.validate()
+                    new_events.append(dynatrace_event)
+                    events_processed += 1
+                    self._check_event_limit_exceeded_condition(instance_info, events_processed)
+                if events_response.get("nextCursor"):
+                    events_response = self._get_events(instance_info, cursor=events_response.get("nextCursor"))
+                else:
+                    instance_info.state.last_processed_event_timestamp = events_response.get("to")
+                    events_response = None
+        except EventLimitReachedException as e:
+            instance_info.state.last_processed_event_timestamp = events_response.get("to")
+            event_limit_reached = str(e)
+        return new_events, event_limit_reached
+
+    def _get_events(self, instance_info, from_time=None, cursor=None):
+        """
+        Get events from Dynatrace Event API endpoint
+        :param instance_info: object with instance info and its state
+        :param from_time: timestamp from which to collect events
+        :param cursor:
+        :return: Event API endpoint response
+        """
+        params = {}
+        if from_time:
+            params['from'] = from_time
+        if cursor:
+            params['cursor'] = cursor
+        endpoint = instance_info.url + "/api/v1/events"
+        events = self._get_dynatrace_event_json_response(instance_info, endpoint, params)
+        return events
+
+    @staticmethod
+    def _check_event_limit_exceeded_condition(instance_info, total_event_count):
+        """
+        Raises EventLimitReachedException if number of events between subsequent check runs
+        exceed the `events_process_limit`
+        """
+        if total_event_count >= instance_info.events_process_limit:
+            raise EventLimitReachedException("Maximum event limit to process is {} but received total {} events".
+                                             format(instance_info.events_process_limit, total_event_count))
 
     @staticmethod
     def _generate_bootstrap_timestamp(days):
