@@ -65,9 +65,8 @@ class DynatraceEventCheck(AgentCheck):
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=instance_info.instance_tags,
                                message="Dynatrace events processed successfully")
         except EventLimitReachedException as e:
-            # TODO Is this CRITICAL error?!?!
             self.log.exception(str(e))
-            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=instance_info.instance_tags,
+            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.WARNING, tags=instance_info.instance_tags,
                                message=str(e))
         except Exception as e:
             self.log.exception(str(e))

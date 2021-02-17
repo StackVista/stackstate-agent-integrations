@@ -34,7 +34,7 @@ def test_check_for_event_limit_reached_condition(check, instance):
         url = '{}/api/v1/events?from={}'.format(instance['url'], check.generate_bootstrap_timestamp(5))
         m.get(url, status_code=200, text=read_data_from_file('21events.json'))
         check.run()
-        aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.CRITICAL,
+        aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.WARNING,
                                         message='Maximum event limit to process is 10 but received total 21 events')
 
 
