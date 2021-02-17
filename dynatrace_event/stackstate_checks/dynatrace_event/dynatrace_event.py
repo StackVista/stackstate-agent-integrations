@@ -59,10 +59,10 @@ class DynatraceEventCheck(AgentCheck):
         try:
             if not instance_info.state:
                 # Create empty state
-                empty_state_timestamp = self.generate_bootstrap_timestamp(instance_info.events_boostrap_days)
+                empty_state_timestamp = self._generate_bootstrap_timestamp(instance_info.events_boostrap_days)
                 self.log.debug('Creating new empty state with timestamp: %s', empty_state_timestamp)
                 instance_info.state = State({'last_processed_event_timestamp': empty_state_timestamp})
-            self.process_events(instance_info)
+            self._process_events(instance_info)
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=instance_info.instance_tags,
                                message="Dynatrace events processed successfully")
         except EventLimitReachedException as e:
@@ -74,18 +74,18 @@ class DynatraceEventCheck(AgentCheck):
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=instance_info.instance_tags,
                                message=str(e))
 
-    def process_events(self, instance_info):
+    def _process_events(self, instance_info):
         """
         Wrapper to collect events, filters those events and persist the state
         """
-        events = self.collect_events(instance_info)
+        events = self._collect_events(instance_info)
         closed_events = len([e for e in events if e.get('eventStatus') == 'CLOSED'])
         open_events = len([e for e in events if e.get('eventStatus') == 'OPEN'])
         self.log.debug("Collected %d events, %d are open and %d are closed.", len(events), open_events, closed_events)
         for event in events:
-            self.create_event(event, instance_info.url)
+            self._create_event(event, instance_info.url)
 
-    def get_events(self, instance_info, from_time=None, cursor=None):
+    def _get_events(self, instance_info, from_time=None, cursor=None):
         """
         Get events from Dynatrace Event API endpoint
         :param instance_info: object with instance info and its state
@@ -102,12 +102,12 @@ class DynatraceEventCheck(AgentCheck):
         events = self._get_dynatrace_event_json_response(instance_info, endpoint, params)
         return events
 
-    def collect_events(self, instance_info):
+    def _collect_events(self, instance_info):
         """
         Checks for EventLimitReachedException and process each event API response for next cursor
         until is None or it reach events_process_limit
         """
-        events_response = self.get_events(instance_info, from_time=instance_info.state.last_processed_event_timestamp)
+        events_response = self._get_events(instance_info, from_time=instance_info.state.last_processed_event_timestamp)
         if "error" in events_response:
             raise Exception("Error in pulling the events: {}".format(events_response.get("error").get("message")))
         total_event_count = events_response.get("totalEventCount", 0)
@@ -122,7 +122,7 @@ class DynatraceEventCheck(AgentCheck):
                 new_events.append(dynatrace_event)
             events_processed += len(events)
             if events_response.get("nextCursor") and events_processed < instance_info.events_process_limit:
-                events_response = self.get_events(instance_info, cursor=events_response.get("nextCursor"))
+                events_response = self._get_events(instance_info, cursor=events_response.get("nextCursor"))
             else:
                 instance_info.state.last_processed_event_timestamp = events_response.get("to")
                 events_response = None
@@ -139,7 +139,7 @@ class DynatraceEventCheck(AgentCheck):
             raise EventLimitReachedException("Maximum event limit to process is {} but received total {} events".
                                              format(instance_info.events_process_limit, total_event_count))
 
-    def create_event(self, dynatrace_event, instance_url):
+    def _create_event(self, dynatrace_event, instance_url):
         """
         Create an standard or custom event based on the Dynatrace Severity level
         """
@@ -174,7 +174,7 @@ class DynatraceEventCheck(AgentCheck):
         self.event(event)
 
     @staticmethod
-    def generate_bootstrap_timestamp(days):
+    def _generate_bootstrap_timestamp(days):
         """
         Creates timestamp n days in the past from the current moment. It is used in tests too.
         :param days: how many days in the past

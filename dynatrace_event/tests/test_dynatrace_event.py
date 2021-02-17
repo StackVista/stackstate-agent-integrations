@@ -20,7 +20,7 @@ def test_check_for_empty_events(dynatrace_event_check, test_instance, state):
     """
     with requests_mock.Mocker() as m:
         url = '{}/api/v1/events?from={}'.format(test_instance['url'],
-                                                dynatrace_event_check.generate_bootstrap_timestamp(5))
+                                                dynatrace_event_check._generate_bootstrap_timestamp(5))
         m.get(url, status_code=200, text=read_file('no_events.json'))
         dynatrace_event_check.run()
         aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.OK)
@@ -34,7 +34,7 @@ def test_check_for_event_limit_reached_condition(dynatrace_event_check, test_ins
     """
     with requests_mock.Mocker() as m:
         url = '{}/api/v1/events?from={}'.format(test_instance['url'],
-                                                dynatrace_event_check.generate_bootstrap_timestamp(5))
+                                                dynatrace_event_check._generate_bootstrap_timestamp(5))
         m.get(url, status_code=200, text=read_file('21_events.json'))
         dynatrace_event_check.run()
         aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.WARNING,
@@ -47,7 +47,7 @@ def test_check_respects_events_process_limit_on_startup(dynatrace_event_check, t
     """
     with requests_mock.Mocker() as m:
         url1 = '{}/api/v1/events?from={}'.format(test_instance['url'],
-                                                 dynatrace_event_check.generate_bootstrap_timestamp(5))
+                                                 dynatrace_event_check._generate_bootstrap_timestamp(5))
         url2 = '{}/api/v1/events?cursor={}'.format(test_instance['url'], '123')
         url3 = '{}/api/v1/events?cursor={}'.format(test_instance['url'], '345')
         m.get(url1, status_code=200, text=read_file("events_set1.json"))
@@ -78,7 +78,7 @@ def test_check_raise_exception_for_response_code_not_200(dynatrace_event_check, 
 
     with requests_mock.Mocker() as m:
         url = '{}/api/v1/events?from={}'.format(test_instance['url'],
-                                                dynatrace_event_check.generate_bootstrap_timestamp(5))
+                                                dynatrace_event_check._generate_bootstrap_timestamp(5))
         m.get(url, status_code=500, text='error')
         dynatrace_event_check.run()
         error_message = 'Got 500 when hitting https://instance.live.dynatrace.com/api/v1/events'
@@ -102,7 +102,7 @@ def test_check_for_generated_events(dynatrace_event_check, test_instance):
     """
     Testing Dynatrace check should produce full events
     """
-    empty_state_timestamp = dynatrace_event_check.generate_bootstrap_timestamp(5)
+    empty_state_timestamp = dynatrace_event_check._generate_bootstrap_timestamp(5)
     with requests_mock.Mocker() as m:
         url = '{}/api/v1/events?from={}'.format(test_instance['url'], empty_state_timestamp)
         m.get(url, status_code=200, text=read_file('9_events.json'))
@@ -128,7 +128,7 @@ def test_state_data(state, dynatrace_event_check, test_instance):
     events_file = 'no_events.json'
     with requests_mock.Mocker() as m:
         url = '{}/api/v1/events?from={}'.format(test_instance['url'],
-                                                dynatrace_event_check.generate_bootstrap_timestamp(5))
+                                                dynatrace_event_check._generate_bootstrap_timestamp(5))
         m.get(url, status_code=200, text=read_file(events_file))
         dynatrace_event_check.run()
         aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.OK)
