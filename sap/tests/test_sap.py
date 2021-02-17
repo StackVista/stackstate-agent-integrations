@@ -653,7 +653,7 @@ def test_collect_metrics_ora(aggregator, instance):
         # prep en run function
         sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
         sap_check._get_config(instance)
-        sap_check.start_threads()
+        sap_check.start_threads(instance.get("thread_count"))
         sap_check._collect_metrics()
 
         # don't know, all other function use it

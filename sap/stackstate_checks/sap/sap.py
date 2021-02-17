@@ -18,7 +18,7 @@ from .proxy import SapProxy
 
 
 class SapCheck(AgentCheck):
-    queue = None
+    queue = {}
     INSTANCE_TYPE = "sap"
     SERVICE_CHECK_NAME = "sap.can_connect"
     DEFAULT_CACHE_TTL = 60  # Seconds
@@ -101,26 +101,6 @@ class SapCheck(AgentCheck):
         zeep_logger.setLevel(logging.WARN)
         zeep_logger.propagate = True
 
-    def thread_worker(self, backlog, timeout=DEFAULT_IDLE_THREAD_TTL):
-        """
-        Thread function that does the actual work of pushing data to server.
-        Takes (first) object from backlog queue, separates function from
-        parameters and calls function with parameters.
-        Infinite loop with timeout.
-        If backlog is empty for <timeout> seconds this function kills itself.
-        :param backlog: Queue object with function(with parameters) objects.
-        :param timeout: Number of seconds to wait for jobs in queue.
-        """
-        while True:  # infinite loop until backlog is empty
-            try:
-                func, args = backlog.get(timeout=timeout)  # Claim next item in queue, wait <timeout> seconds
-            except Queue.empty:
-                # sys.stdout.write("thread_worker: No more work in queue")
-                return  # Queue.empty -> stop which also kills the thread.
-            # sys.stdout.write("thread_worker->{}(..,{},..)".format(func, args[1]))
-            func(*args)
-            backlog.task_done()  # Delete claimed item from backlog
-
     def get_instance_key(self, instance):
         if "host" not in instance:
             raise ConfigurationError("Missing 'host' in instance configuration.")
@@ -129,16 +109,40 @@ class SapCheck(AgentCheck):
 
     def start_threads(self, count=DEFAULT_THREAD_COUNT, timeout=DEFAULT_IDLE_THREAD_TTL):
         """
-        Create and start <count> threads as background(daemon) processes.
+        Create and start <count> threads as background(daemon) processes.\n
+        Use count = 0 to disable multithreading\n
         :param count: The number of worker threads to create. Hardcoded limit of 16
         :param timeout: The number of seconds after an idle thread dies. Hardcoded limit of 3600 seconds (1 hour)
         """
-        if self.queue is None:
-            self.queue = Queue()  # Queue for events and metrics to send
-        if (int(count) in range(17)) and (int(timeout) in range(3601)):
+        if (int(count) in range(17)) and (int(timeout) in range(3601)) and (int(count) > 0):
+            # Create queue for events and metrics to send, only if none exists
+            if self.host not in self.queue.keys():
+                self.queue[self.host] = Queue()
+            sys.stdout.write("start_threads self.queue={}".format(self.queue))
             for _ in range(count):
-                # create and start worker threads
-                Thread(target=self.thread_worker, args=(self.queue, timeout), daemon=True).start()
+                # Create and start worker threads
+                Thread(target=self.thread_worker, args=(self.queue[self.host], timeout), daemon=True).start()
+
+    @staticmethod
+    def thread_worker(backlog, timeout=DEFAULT_IDLE_THREAD_TTL):
+        """
+        Thread function that does the actual work of pushing data to server.\n
+        Takes (first) object from backlog queue, separates function from
+        parameters and calls function with parameters.\n
+        Infinite loop with timeout.\n
+        If backlog is empty for <timeout> seconds this function kills itself.\n
+        :param backlog: Queue object with function(with parameters) objects.
+        :param timeout: Number of seconds to wait for jobs in queue.
+        """
+        while True:  # infinite loop until backlog is empty
+            try:
+                func, args = backlog.get(timeout=timeout)  # Claim next item in queue, wait <timeout> seconds
+            except backlog.Empty:
+                # sys.stdout.write("thread_worker: No more work in queue")
+                return  # stop which also kills the thread.
+            # sys.stdout.write("thread_worker->{}(..,{},..)".format(func, args[1]))
+            func(*args)
+            backlog.task_done()  # Delete claimed item from backlog
 
     def check(self, instance):
         url, user, password = self._get_config(instance)
@@ -172,7 +176,8 @@ class SapCheck(AgentCheck):
             self.log.exception(str(e))
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, message=str(e), tags=self.tags)
         finally:
-            self.queue.join()  # Waits/Blocks until self.queue is empty...
+            if self.host in self.queue.keys():
+                self.queue[self.host].join()  # Waits/Blocks until self.queue is empty...
             self.stop_snapshot()
             snapshot2_time = time.time()
             try:
@@ -212,7 +217,7 @@ class SapCheck(AgentCheck):
     def _collect_metrics(self):
         """
         We get all alerts and selected metrics from all the instances 
-        and databases. We send back only what is required. 
+        and databases. We send back only what is required.
         """
         proxy = self._get_proxy()
 
@@ -253,8 +258,10 @@ class SapCheck(AgentCheck):
                 description = lookup.get("description", metricid)
                 status = data.get(lookup.get("field"))
                 taglist = self.generate_tags(data=data, status=status, database=database)
-                self.queue.put( (self.send_event, [description, taglist]) )
-                #self.send_event(description, taglist)
+                if self.host in self.queue.keys():
+                    self.queue[self.host].put( (self.send_event, [description, taglist]) )
+                else:
+                    self.send_event(description, taglist)
 
     def get_database_gauges(self, gauges, name, proxy, dbtype):
         # SAP_ITSAMDatabaseMetric gauges
@@ -270,8 +277,10 @@ class SapCheck(AgentCheck):
                 lookup = self.dbmetric_gauges.get(metricid)
                 description = lookup.get("description", metricid)
                 value = data.get(lookup.get("field"))
-                self.queue.put( (self.send_gauge, [description, value, taglist]) )
-                #self.send_gauge(description, value, taglist)
+                if self.host in self.queue.keys():
+                    self.queue[self.host].put( (self.send_gauge, [description, value, taglist]) )
+                else:
+                    self.send_gauge(description, value, taglist)
 
     def get_computersystem(self, proxy):
         # GetComputerSystem gauges
@@ -283,8 +292,10 @@ class SapCheck(AgentCheck):
                 if item in self.system_gauges.keys():
                     description = self.system_gauges.get(item).get("description", item)
                     value = metric_item.get(item)
-                    self.queue.put( (self.send_gauge, [description, value, taglist]) )
-                    #self.send_gauge(description, value, taglist)
+                    if self.host in self.queue.keys():
+                        self.queue[self.host].put( (self.send_gauge, [description, value, taglist]) )
+                    else:
+                        self.send_gauge(description, value, taglist)
 
     def get_instance_params(self, instance_id, proxy):
         # SAP_ITSAMInstance/Parameter
@@ -296,8 +307,10 @@ class SapCheck(AgentCheck):
             if param in self.instance_gauges.keys():
                 description = self.instance_gauges.get(param).get("description", param)
                 value = params.get(param)
-                self.queue.put( (self.send_gauge, [description, value, taglist]) )
-                #self.send_gauge(description, value, taglist)
+                if self.host in self.queue.keys():
+                    self.queue[self.host].put( (self.send_gauge, [description, value, taglist]) )
+                else:
+                    self.send_gauge(description, value, taglist)
 
     def get_alerts(self, instance_id, proxy):
         # SAP_ITSAMInstance/Alert
@@ -309,8 +322,10 @@ class SapCheck(AgentCheck):
                 description = lookup.get("description", alert_name)
                 status = alert.get(lookup.get("field"), "Not specified")
                 taglist = self.generate_tags(data=alert, status=status, instance_id=instance_id)
-                self.queue.put( (self.send_event, [description, taglist]) )
-                #self.send_event(description, taglist)
+                if self.host in self.queue.keys():
+                    self.queue[self.host].put( (self.send_event, [description, taglist]) )
+                else:
+                    self.send_event(description, taglist)
 
     def _get_proxy(self):
         # 1128 is the port of the HostControl for HTTP protocol
@@ -323,16 +338,16 @@ class SapCheck(AgentCheck):
 
     def generate_tags(self, data, status, instance_id=None, database=None):
         """
-        Makes a list of tags of every key in 'data'
+        Makes a list of tags of every key in 'data'.\n
         :param data: Dict with keys and values to add to the tags
         :param status: Value of status tag
         :param instance_id: optional instance_id tag value
         :param database: optional database name tag value
         :return: List of tags
         """
-        blacklist = ['parent', 'CreationClassName']  # Tags we don't want/need
+        whitelist = []  # Tags we need
         taglist = []
-        for tag in self.tags:
+        for tag in self.tags:  # self.tags contains values from
             taglist.append(tag)
         if status:
             taglist.append("status:{0}".format(status))
@@ -340,15 +355,15 @@ class SapCheck(AgentCheck):
             taglist.append("instance_id:{0}".format(instance_id))
         if database:
             taglist.append("database:{0}".format(database))
-        # if data:
-        #     for k, v in data.items():
-        #         if not (k in blacklist):
-        #             taglist.append("{0}:{1}".format(k, v))
+        if data:
+            for k, v in data.items():
+                if k in whitelist:
+                    taglist.append("{0}:{1}".format(k, v))
         return taglist
 
     def send_event(self, description, taglist):
         """
-        Send an event based on provided data.
+        Send an event based on provided data.\n
         'status' is a mandatory field in data or taglist.
         :param description: The source_type_name
         :param taglist: List of tags to append to the event
@@ -482,7 +497,7 @@ class SapCheck(AgentCheck):
     def _collect_instance_processes_and_metrics(self, host_instances, proxy):
         for instance_id, instance_type in list(host_instances.items()):
             try:
-                #altijd
+                # Always
                 self._collect_processes(instance_id, proxy)
                 if instance_type.startswith("ABAP Instance"):
                     self._collect_worker_metrics(instance_id, instance_type, proxy)
@@ -739,15 +754,15 @@ class SapCheck(AgentCheck):
             component_data = {
                 "name": "SCC",
                 "description": "SAP Cloud Connector",
-                #"type": "SAP Cloud Connector",
-                #"sid": "SCC",
+                # "type": "SAP Cloud Connector",
+                # "sid": "SCC",
                 "host": self.host,
-                #"system_number": "99",
-                #"version": "v1",
+                # "system_number": "99",
+                # "version": "v1",
                 "domain": self.domain,
                 "environment": self.stackstate_environment,
                 "tags": self.tags
-                #"labels": []
+                # "labels": []
             }
             self.log.debug("{0}: -----> component_data : {1}".format(self.host, component_data))
             self.log.debug("{0}: -----> external_id : {1}".format(self.host, external_id))
@@ -764,7 +779,7 @@ class SapCheck(AgentCheck):
             self.event({
                 "timestamp": int(time.time()),
                 "source_type_name": "SAP:scc state",
-                #"source_type_name": "SAP:host instance",
+                # "source_type_name": "SAP:host instance",
                 "msg_title": "SCC status update.",
                 "msg_text": "",
                 "host": self.host,
@@ -777,7 +792,7 @@ class SapCheck(AgentCheck):
             # Lists sub accounts to the SAP Cloud and connection tunnels
             #
             subaccount_url = cloud_connector_url + "api/monitoring/subaccounts"
-            subaccount_reply=session.get(subaccount_url)
+            subaccount_reply = session.get(subaccount_url)
             if subaccount_reply.status_code == 200:
                 self.log.debug("{0}: Sub accounts reply from cloud connector : {1}".format(self.host, subaccount_reply.text.encode('utf-8')))
                 subaccounts = json.loads(subaccount_reply.text)
@@ -807,7 +822,7 @@ class SapCheck(AgentCheck):
                         "environment": self.stackstate_environment,
                         "host": self.host,
                         "tags": self.tags
-                        #"labels": []
+                        # "labels": []
                     }
                     self.log.debug("{0}: -----> component_data : {1}".format(self.host, component_data))
                     self.log.debug("{0}: -----> external_id : {1}".format(self.host, external_id))                            
@@ -844,15 +859,15 @@ class SapCheck(AgentCheck):
             #   List backend SAP systems and virtual names.
             #
             backends_url = cloud_connector_url + "api/monitoring/connections/backends"
-            backends_reply=session.get(backends_url)
+            backends_reply = session.get(backends_url)
             if backends_reply.status_code == 200:
                 self.log.debug("{0}: Backends reply from cloud connector : {1}".format(self.host, backends_reply.text.encode('utf-8')))
                 backends = json.loads(backends_reply.text)
                 self.log.info("{0}: JSON backends from cloud connector : {1}".format(self.host, backends))
                 for subaccount in backends["subaccounts"]:
-                    #subaccount["regionHost"]
-                    #subaccount["subaccount"]
-                    #subaccount["locationID"]
+                    # subaccount["regionHost"]
+                    # subaccount["subaccount"]
+                    # subaccount["locationID"]
                     virtualbackend = str(subaccount.get("virtualBackend"))
                     for backend in subaccount["backendConnections"]:
                         external_id = self._scc_backend_external_id(subaccount["subaccount"], virtualbackend)
@@ -898,16 +913,16 @@ class SapCheck(AgentCheck):
 
         session.close()
 
-    def _collect_saprouter(self,proxy):
+    def _collect_saprouter(self, proxy):
         """
         Discovers if OS process saprouter is running.
         :param proxy: proxy object
         """
-        results = proxy.get_cim_object("EnumerateInstances","SAP_ITSAMOSProcess?CommandLine=*saprouter*")
-        #self.log.info("{0}:----------->  results: {1}".format(self.host,results))
+        results = proxy.get_cim_object("EnumerateInstances", "SAP_ITSAMOSProcess?CommandLine=*saprouter*")
+        # self.log.info("{0}:----------->  results: {1}".format(self.host,results))
         if results:
             for result in results:
-                #self.log.info("{0}:----------->  result: {1}".format(self.host,result))
+                # self.log.info("{0}:----------->  result: {1}".format(self.host,result))
                 data = {i.mName: i.mValue for i in result.mProperties.item}
                 external_id = self._saprouter_external_id(data.get("PID"))
                 component_data = {
@@ -920,7 +935,7 @@ class SapCheck(AgentCheck):
                         "environment": self.stackstate_environment,
                         "host": self.host,
                         "tags": self.tags
-                        #"labels": []
+                        # "labels": []
                     }
                 self.component(external_id, "sap-saprouter", component_data)
 

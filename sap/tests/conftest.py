@@ -22,6 +22,7 @@ def instance():
         "user": "test",
         "pass": "test",
         "domain": "sap",
+        "thread_count": 0,
         "environment": "sap-prod"
     }
 
