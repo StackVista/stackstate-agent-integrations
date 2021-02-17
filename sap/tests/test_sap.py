@@ -32,11 +32,7 @@ def test_cannot_connect_to_host_control(aggregator, instance):
             start_snapshot=True,
             stop_snapshot=True,
             instance_key=TopologyInstance("sap", "LAB-SAP-001"),
-            components=[
-                {"id": "urn:host:/LAB-SAP-001", "type": "sap-host",
-                 "data": {"host": "LAB-SAP-001", 'tags': ['integration-type:sap', 'integration-url:LAB-SAP-001'],
-                          "domain": "sap", "environment": "sap-prod"}}
-            ],
+            components=[],
             relations=[],
         )
 
@@ -117,7 +113,7 @@ def test_collect_only_hosts(aggregator, instance):
 
         sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
         sap_check._get_config(instance)
-        sap_check._collect_hosts()
+        sap_check._collect_hosts(sap_check._get_proxy())
 
         topology.assert_snapshot(
             check_id=sap_check.check_id,
@@ -203,7 +199,7 @@ def test_collect_processes(aggregator, instance):
 
         sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
         sap_check._get_config(instance)
-        sap_check._collect_processes(instance_id, sap_check._get_proxy(instance_id))
+        sap_check._collect_processes(instance_id, sap_check._get_proxy())
 
         topology.assert_snapshot(
             check_id=sap_check.check_id,
@@ -327,7 +323,7 @@ def test_collect_worker_metrics(aggregator, instance):
 
         sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
         sap_check._get_config(instance)
-        sap_check._collect_worker_metrics(instance_id, "ABAP Instance", sap_check._get_proxy(instance_id))
+        sap_check._collect_worker_metrics(instance_id, "ABAP Instance", sap_check._get_proxy())
 
         expected_tags = ["instance_id:" + instance_id]
         aggregator.assert_metric(
@@ -357,7 +353,7 @@ def test_collect_memory_metric(aggregator, instance):
 
         sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
         sap_check._get_config(instance)
-        sap_check._collect_memory_metric(instance_id, sap_check._get_proxy(instance_id))
+        sap_check._collect_memory_metric(instance_id, sap_check._get_proxy())
 
         expected_tags = ["instance_id:" + instance_id]
         aggregator.assert_metric(
@@ -382,7 +378,7 @@ def test_collect_databases(aggregator, instance):
 
         sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
         sap_check._get_config(instance)
-        sap_check._collect_databases()
+        sap_check._collect_databases(sap_check._get_proxy())
 
         assert sap_check.verify is True
 
@@ -471,7 +467,7 @@ def test_collect_databases(aggregator, instance):
             tags=[
                 "status:SAPHostControl-DB-RUNNING",
                 "database_name:DON",
-                ]
+            ]
         )
 
         aggregator.assert_event(
@@ -479,28 +475,28 @@ def test_collect_databases(aggregator, instance):
             tags=[
                 "status:SAPHostControl-DB-RUNNING",
                 "database_component_name:Instance",
-                ]
+            ]
         )
         aggregator.assert_event(
             msg_text="",
             tags=[
                 "status:SAPHostControl-DB-RUNNING",
                 "database_component_name:Database",
-                ]
+            ]
         )
         aggregator.assert_event(
             msg_text="",
             tags=[
                 "status:SAPHostControl-DB-RUNNING",
                 "database_component_name:Archiver",
-                ]
+            ]
         )
         aggregator.assert_event(
             msg_text="",
             tags=[
                 "status:SAPHostControl-DB-RUNNING",
                 "database_component_name:Listener",
-                ]
+            ]
         )
 
         aggregator.all_metrics_asserted()
@@ -520,7 +516,7 @@ def test_collect_only_hosts_create_service_https(aggregator, https_instance):
 
         sap_check = SapCheck(CHECK_NAME, {}, instances=[https_instance])
         sap_check._get_config(https_instance)
-        sap_check._collect_hosts()
+        sap_check._collect_hosts(sap_check._get_proxy())
 
         assert sap_check.verify is False
 
@@ -600,6 +596,133 @@ def test_collect_only_hosts_create_service_https(aggregator, https_instance):
         )
 
         aggregator.all_metrics_asserted()
+
+
+def test_collect_metrics_ora(aggregator, instance):
+    host_control_url = "http://localhost:1128/SAPHostControl"
+    instance_id = 00
+
+    def match_get_instances(request):
+        # sys.stdout.write("match_get_instances")
+        # sys.stdout.write("request.text:\n\t{}".format(request.text))
+        return "SAPInstance" in request.text
+
+    def match_get_alerts(request):
+        # sys.stdout.write("match_get_alerts")
+        # sys.stdout.write("request.text:\n\t{}".format(request.text))
+        return "SAP_ITSAMInstance/Alert??Instancenumber=" in request.text
+
+    def match_get_sap_instance_params(request):
+        # sys.stdout.write("match_get_sap_instance_params")
+        # sys.stdout.write("request.text:\n\t{}".format(request.text))
+        return "SAP_ITSAMInstance/Parameter??Instancenumber=" in request.text
+
+    def match_get_computersystem(request):
+        # sys.stdout.write("match_get_computersystem")
+        # sys.stdout.write("request.text:\n\t{}".format(request.text))
+        return "ns0:GetComputerSystem" in request.text
+
+    def match_listdatabases(request):
+        # sys.stdout.write("match_listdatabases")
+        # sys.stdout.write("request.text:\n\t{}".format(request.text))
+        return "ns0:ListDatabases" in request.text
+
+    def match_database_metrics(request):
+        # sys.stdout.write("match_database_metrics")
+        # sys.stdout.write("request.text:\n\t{}".format(request.text))
+        return "SAP_ITSAMDatabaseMetric?Name=" in request.text
+
+    # TODO this is needed because the topology retains data across tests
+    topology.reset()
+    with requests_mock.mock() as m:
+        # Prep mock data
+        m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/SAPHostAgent.wsdl"))
+        m.post(host_control_url + ".cgi", additional_matcher=match_get_instances,
+               text=_read_test_file("samples/lab-sap-005 get_sap_instances.xml"))
+        m.post(host_control_url + ".cgi", additional_matcher=match_get_alerts,
+               text=_read_test_file("samples/lab-sap-005 get_alerts.xml"))
+        m.post(host_control_url + ".cgi", additional_matcher=match_get_sap_instance_params,
+               text=_read_test_file("samples/lab-sap-005 get_sap_instance_params.xml"))
+        m.post(host_control_url + ".cgi", additional_matcher=match_get_computersystem,
+               text=_read_test_file("samples/lab-sap-005 get_computerSystem.xml"))
+        m.post(host_control_url + ".cgi", additional_matcher=match_listdatabases,
+               text=_read_test_file("samples/lab-sap-005 listDatabases.xml"))
+        m.post(host_control_url + ".cgi", additional_matcher=match_database_metrics,
+               text=_read_test_file("samples/lab-sap-005 databaseMetric.xml"))
+
+        # prep en run function
+        sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
+        sap_check._get_config(instance)
+        sap_check.start_threads()
+        sap_check._collect_metrics()
+
+        # don't know, all other function use it
+        #assert sap_check.verify is False
+
+        aggregator.assert_event(
+            msg_text="SAPControl-GRAY",
+            tags=['status:SAPControl-GRAY', 'instance_id:00']
+        )
+        aggregator.assert_event(
+            msg_text="SAPControl-GREEN",
+            tags=['status:SAPControl-GREEN', 'instance_id:00']
+        )
+        aggregator.assert_event(
+            msg_text="SAPControl-GREEN",
+            tags=['status:SAPControl-GREEN', 'instance_id:01']
+        )
+        expected_tags = ["timestamp:", "instance_id:{0}".format(instance_id)]
+        aggregator.assert_metric(
+            name="phys_memsize",
+            value=24575,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=None #expected_tags
+        )
+        aggregator.assert_metric(
+            name="SAP:TotalSwapSpaceSize",
+            value=33186452,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=None #expected_tags
+        )
+        aggregator.assert_metric(
+            name="SAP:FreeSpaceInPagingFiles",
+            value=29405844,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=None #expected_tags
+        )
+        # Lot's more to check
+
+        aggregator.all_metrics_asserted()
+
+
+def test_get_config(https_instance):
+    # TODO this is needed because the topology retains data across tests
+    topology.reset()
+
+    sap_check = SapCheck(CHECK_NAME, {}, instances=[https_instance])
+    url, user, password = sap_check._get_config(https_instance)
+
+    assert url == "https://localhost"
+    assert user == "test"
+    assert password == "test"
+
+
+def test_generate_tags(https_instance):
+    # TODO this is needed because the topology retains data across tests
+    topology.reset()
+
+    sap_check = SapCheck(CHECK_NAME, {}, instances=[https_instance])
+    sap_check._get_config(https_instance)  # 'https_instance' contains "tags": ["customer:Stackstate", "foo:bar"]
+    tags = sap_check.generate_tags(data={'Trigger': 'findme', 'parent': 'filtered'}, status="someValue")
+    assert len(tags) == 3
+    assert "status:someValue" in tags
+    assert "customer:Stackstate" in tags
+    assert "foo:bar" in tags
+    # assert "Trigger:findme" in tags
+    assert "parent:filtered" not in tags
 
 
 def _read_test_file(filename):
