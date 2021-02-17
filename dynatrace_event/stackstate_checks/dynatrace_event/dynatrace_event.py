@@ -175,6 +175,11 @@ class DynatraceEventCheck(AgentCheck):
 
     @staticmethod
     def generate_bootstrap_timestamp(days):
+        """
+        Creates timestamp n days in the past from the current moment. It is used in tests too.
+        :param days: how many days in the past
+        :return:
+        """
         bootstrap_date = datetime.now() - timedelta(days=days)
         return int(bootstrap_date.strftime('%s')) * 1000
 

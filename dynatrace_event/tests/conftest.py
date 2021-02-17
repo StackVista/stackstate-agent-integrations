@@ -19,7 +19,7 @@ def sts_environment():
 
 
 @pytest.fixture(scope='class')
-def instance():
+def test_instance():
     return {
         "url": "https://instance.live.dynatrace.com",
         "token": "some_token",
@@ -28,8 +28,8 @@ def instance():
 
 
 @pytest.fixture
-def check(instance):
-    check = DynatraceEventCheck('dynatrace_event', {}, instances=[instance])
+def dynatrace_event_check(test_instance):
+    check = DynatraceEventCheck('dynatrace_event', {}, instances=[test_instance])
     yield check
     aggregator.reset()
     check.commit_state(None)
