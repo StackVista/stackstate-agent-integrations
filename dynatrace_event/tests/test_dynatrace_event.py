@@ -7,19 +7,20 @@ import os
 import mock
 import requests_mock
 
-from stackstate_checks.base import AgentCheck
+from stackstate_checks.base import AgentCheck, StateDescriptor
 from stackstate_checks.base.stubs import aggregator, telemetry
+from stackstate_checks.dynatrace_event.dynatrace_event import State
 
 CHECK_NAME = 'dynatrace_event'
 
 
-def test_check_for_empty_events(check, instance):
+def test_check_for_empty_events(check, instance, state):
     """
     Testing Dynatrace event check should not produce any events
     """
     with requests_mock.Mocker() as m:
         url = '{}/api/v1/events?from={}'.format(instance['url'], check.generate_bootstrap_timestamp(5))
-        m.get(url, status_code=200, text=read_data_from_file('no_events.json'))
+        m.get(url, status_code=200, text=read_file('no_events.json'))
         check.run()
         aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.OK)
         assert len(aggregator.events) == 0
@@ -32,7 +33,7 @@ def test_check_for_event_limit_reached_condition(check, instance):
     """
     with requests_mock.Mocker() as m:
         url = '{}/api/v1/events?from={}'.format(instance['url'], check.generate_bootstrap_timestamp(5))
-        m.get(url, status_code=200, text=read_data_from_file('21events.json'))
+        m.get(url, status_code=200, text=read_file('21_events.json'))
         check.run()
         aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.WARNING,
                                         message='Maximum event limit to process is 10 but received total 21 events')
@@ -46,9 +47,9 @@ def test_check_respects_events_process_limit_on_startup(check, instance):
         url1 = '{}/api/v1/events?from={}'.format(instance['url'], check.generate_bootstrap_timestamp(5))
         url2 = '{}/api/v1/events?cursor={}'.format(instance['url'], '123')
         url3 = '{}/api/v1/events?cursor={}'.format(instance['url'], '345')
-        m.get(url1, status_code=200, text=read_data_from_file("events_set1.json"))
-        m.get(url2, status_code=200, text=read_data_from_file("events_set2.json"))
-        m.get(url3, status_code=200, text=read_data_from_file("events_set3.json"))
+        m.get(url1, status_code=200, text=read_file("events_set1.json"))
+        m.get(url2, status_code=200, text=read_file("events_set2.json"))
+        m.get(url3, status_code=200, text=read_file("events_set3.json"))
         check.run()
         aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.OK)
         assert len(aggregator.events) == 12
@@ -98,7 +99,7 @@ def test_check_for_generated_events(check, instance):
     empty_state_timestamp = check.generate_bootstrap_timestamp(5)
     with requests_mock.Mocker() as m:
         url = '{}/api/v1/events?from={}'.format(instance['url'], empty_state_timestamp)
-        m.get(url, status_code=200, text=read_data_from_file('9events.json'))
+        m.get(url, status_code=200, text=read_file('9_events.json'))
         check._current_time_seconds = mock.MagicMock(return_value=1613485584)
         check.run()
         aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.OK)
@@ -112,7 +113,24 @@ def test_check_for_generated_events(check, instance):
             telemetry.assert_topology_event(event)
 
 
-def read_data_from_file(filename):
+def test_state_data(state, check, instance):
+    """
+    Check is the right timestamp is writen to the state
+    """
+    state_instance = StateDescriptor("instance.dynatrace_event.https_instance.live.dynatrace.com", "dynatrace_event.d")
+    state.assert_state(state_instance, None)
+    events_file = 'no_events.json'
+    with requests_mock.Mocker() as m:
+        url = '{}/api/v1/events?from={}'.format(instance['url'], check.generate_bootstrap_timestamp(5))
+        m.get(url, status_code=200, text=read_file(events_file))
+        check.run()
+        aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.OK)
+    mocked_response_data = read_json_from_file(events_file)
+    new_state = State({'last_processed_event_timestamp': mocked_response_data.get('to')})
+    state.assert_state(state_instance, new_state)
+
+
+def read_file(filename):
     with open(get_path_to_file(filename), "r") as f:
         return f.read()
 

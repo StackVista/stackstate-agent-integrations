@@ -60,6 +60,7 @@ class DynatraceEventCheck(AgentCheck):
             if not instance_info.state:
                 # Create empty state
                 empty_state_timestamp = self.generate_bootstrap_timestamp(instance_info.events_boostrap_days)
+                self.log.debug('Creating new empty state with timestamp: %s', empty_state_timestamp)
                 instance_info.state = State({'last_processed_event_timestamp': empty_state_timestamp})
             self.process_events(instance_info)
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=instance_info.instance_tags,
