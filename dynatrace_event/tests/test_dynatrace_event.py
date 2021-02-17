@@ -14,7 +14,7 @@ from stackstate_checks.dynatrace_event.dynatrace_event import State
 CHECK_NAME = 'dynatrace_event'
 
 
-def test_check_for_empty_events(dynatrace_event_check, test_instance, state):
+def test_no_events(dynatrace_event_check, test_instance, state):
     """
     Testing Dynatrace event check should not produce any events
     """
@@ -27,7 +27,7 @@ def test_check_for_empty_events(dynatrace_event_check, test_instance, state):
         assert len(aggregator.events) == 0
 
 
-def test_check_for_event_limit_reached_condition(dynatrace_event_check, test_instance):
+def test_event_limit_reached_exception(dynatrace_event_check, test_instance):
     """
     Testing Dynatrace should throw `EventLimitReachedException` if the number of events
     between subsequent check runs exceed the `events_process_limit`
@@ -41,7 +41,7 @@ def test_check_for_event_limit_reached_condition(dynatrace_event_check, test_ins
                                         message='Maximum event limit to process is 10 but received total 21 events')
 
 
-def test_check_respects_events_process_limit_on_startup(dynatrace_event_check, test_instance):
+def test_events_process_limit(dynatrace_event_check, test_instance):
     """
     Testing Dynatrace should respect `events_process_limit` config and just produce those number of events
     """
@@ -58,7 +58,7 @@ def test_check_respects_events_process_limit_on_startup(dynatrace_event_check, t
         assert len(aggregator.events) == 12
 
 
-def test_check_for_error_in_events(dynatrace_event_check):
+def test_error_in_events(dynatrace_event_check):
     """
     Testing Dynatrace check should produce service check when error thrown
     """
@@ -71,7 +71,7 @@ def test_check_for_error_in_events(dynatrace_event_check):
     assert len(aggregator.events) == 0
 
 
-def test_check_raise_exception_for_response_code_not_200(dynatrace_event_check, test_instance):
+def test_raise_exception_for_response_code_not_200(dynatrace_event_check, test_instance):
     """
     Test to raise a check exception when API endpoint when status code is not 200
     """
@@ -86,7 +86,7 @@ def test_check_raise_exception_for_response_code_not_200(dynatrace_event_check, 
         assert len(aggregator.events) == 0
 
 
-def test_check_raise_exception(dynatrace_event_check):
+def test_exception_is_propagated_to_service_check(dynatrace_event_check):
     """
     Test to raise a exception from code that talks to API endpoint throws exception
     """
@@ -98,7 +98,7 @@ def test_check_raise_exception(dynatrace_event_check):
                                     message='Mocked exception occurred')
 
 
-def test_check_for_generated_events(dynatrace_event_check, test_instance):
+def test_generated_events(dynatrace_event_check, test_instance):
     """
     Testing Dynatrace check should produce full events
     """
