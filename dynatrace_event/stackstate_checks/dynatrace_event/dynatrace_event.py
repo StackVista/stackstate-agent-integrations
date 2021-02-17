@@ -47,11 +47,6 @@ class InstanceInfo(Model):
     state = ModelType(State)
 
 
-def generate_bootstrap_timestamp(days):
-    bootstrap_date = datetime.now() - timedelta(days=days)
-    return int(bootstrap_date.strftime('%s')) * 1000
-
-
 class DynatraceEventCheck(AgentCheck):
     INSTANCE_TYPE = "dynatrace_event"
     SERVICE_CHECK_NAME = "dynatrace_event"
@@ -64,11 +59,11 @@ class DynatraceEventCheck(AgentCheck):
         try:
             if not instance_info.state:
                 # Create empty state
-                empty_state_timestamp = generate_bootstrap_timestamp(instance_info.events_boostrap_days)
+                empty_state_timestamp = self.generate_bootstrap_timestamp(instance_info.events_boostrap_days)
                 instance_info.state = State({'last_processed_event_timestamp': empty_state_timestamp})
             self.process_events(instance_info)
-            msg = "Dynatrace events processed successfully"
-            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=instance_info.instance_tags, message=msg)
+            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=instance_info.instance_tags,
+                               message="Dynatrace events processed successfully")
         except EventLimitReachedException as e:
             # TODO Is this CRITICAL error?!?!
             self.log.exception(str(e))
@@ -104,7 +99,7 @@ class DynatraceEventCheck(AgentCheck):
         if cursor:
             params['cursor'] = cursor
         endpoint = instance_info.url + "/api/v1/events"
-        events = self.get_dynatrace_event_json_response(instance_info, endpoint, params)
+        events = self._get_dynatrace_event_json_response(instance_info, endpoint, params)
         return events
 
     def collect_events(self, instance_info):
@@ -179,6 +174,11 @@ class DynatraceEventCheck(AgentCheck):
         self.event(event)
 
     @staticmethod
+    def generate_bootstrap_timestamp(days):
+        bootstrap_date = datetime.now() - timedelta(days=days)
+        return int(bootstrap_date.strftime('%s')) * 1000
+
+    @staticmethod
     def _current_time_seconds():
         """
         This method is mocked for testing. Do not change its behavior
@@ -187,7 +187,7 @@ class DynatraceEventCheck(AgentCheck):
         return int(time.time())
 
     @staticmethod
-    def get_dynatrace_event_json_response(instance_info, endpoint, params, timeout=10):
+    def _get_dynatrace_event_json_response(instance_info, endpoint, params, timeout=10):
         headers = {"Authorization": "Api-Token {}".format(instance_info.token)}
         try:
             with Session() as session:
@@ -200,6 +200,7 @@ class DynatraceEventCheck(AgentCheck):
                     raise Exception("Got %s when hitting %s" % (resp.status_code, endpoint))
                 return resp.json()
         except Timeout:
+            # TODO put timeout in conf.yaml
             msg = "{} seconds timeout when hitting {}".format(timeout, endpoint)
             raise Exception("Exception occurred for endpoint {0} with message: {1}".format(endpoint, msg))
 
