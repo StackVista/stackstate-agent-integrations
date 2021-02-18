@@ -1,0 +1,63 @@
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SAPControl="urn:SAPControl" xmlns:SAPCCMS="urn:SAPCCMS" xmlns:SAPHostControl="urn:SAPHostControl" xmlns:SAPLandscapeService="urn:SAPLandscapeService" xmlns:SAPMetricService="urn:SAPMetricService" xmlns:SAPOscol="urn:SAPOscol" xmlns:SAPDSR="urn:SAPDSR">
+   <SOAP-ENV:Header/>
+   <SOAP-ENV:Body>
+      <SAPHostControl:GetCIMObjectResponse>
+         <result>
+            <item>
+               <mProperties>
+                  <item>
+                     <mName>CreationClassName</mName>
+                     <mType>String</mType>
+                     <mValue>SAPInstance</mValue>
+                  </item>
+                  <item>
+                     <mName>SID</mName>
+                     <mType>String</mType>
+                     <mValue>ANT</mValue>
+                  </item>
+                  <item>
+                     <mName>SystemNumber</mName>
+                     <mType>String</mType>
+                     <mValue>02</mValue>
+                  </item>
+                  <item>
+                     <mName>InstanceName</mName>
+                     <mType>String</mType>
+                     <mValue>HDB02</mValue>
+                  </item>
+                  <item>
+                     <mName>InstanceType</mName>
+                     <mType>String</mType>
+                     <mValue>Hana Instance</mValue>
+                  </item>
+                  <item>
+                     <mName>Hostname</mName>
+                     <mType>String</mType>
+                     <mValue>lab-sap-003</mValue>
+                  </item>
+                  <item>
+                     <mName>FullQualifiedHostname</mName>
+                     <mType>String</mType>
+                     <mValue>lab-sap-003.lab.hosting.local</mValue>
+                  </item>
+                  <item>
+                     <mName>IPAddress</mName>
+                     <mType>String</mType>
+                     <mValue>172.21.16.164</mValue>
+                  </item>
+                  <item>
+                     <mName>Features</mName>
+                     <mType>String[] sep=|</mType>
+                     <mValue>HDB|HDB_WORKER</mValue>
+                  </item>
+                  <item>
+                     <mName>SapVersionInfo</mName>
+                     <mType>String</mType>
+                     <mValue>753, patch 516, changelist 1955044</mValue>
+                  </item>
+               </mProperties>
+            </item>
+         </result>
+      </SAPHostControl:GetCIMObjectResponse>
+   </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>

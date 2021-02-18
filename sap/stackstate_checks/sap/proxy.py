@@ -5,13 +5,13 @@ from requests import Session
 from requests.auth import HTTPBasicAuth
 from zeep import Client, Transport
 import base64
-from time import time
+
 
 class SapProxy(object):
 
     _alerts = {}
 
-    def __init__(self, url, user, password, verify=True, cert=None, keyfile=None, cache_ttl=None):
+    def __init__(self, url, user, password, verify=True, cert=None, keyfile=None):
         session = Session()
         if cert:
             session.verify = verify
@@ -34,7 +34,6 @@ class SapProxy(object):
         #   "http://192.168.0.1:1128/SAPHostControl.cgi" and same goes for https
         self.service = self.client.create_service("{urn:SAPHostControl}SAPHostControl", address+"/SAPHostControl.cgi")
 
-
     def get_alerts(self, instance_id):
         """
         Get all/any alerts for instance_id that match key and value.\n
@@ -51,7 +50,7 @@ class SapProxy(object):
         :param alerts: Result of 'SAP_ITSAMInstance/Alert'
         :return: List with dict. May be an empty list
         """
-        hits=[]
+        hits = []
         for a in alerts:
             properties = {i.mName: i.mValue for i in a.mProperties.item}
             hits.append(properties)
@@ -73,7 +72,6 @@ class SapProxy(object):
         # ListDatabases(aArguments: ns0:ArrayOfProperty) -> result: ns0:ArrayOfDatabase
         return self.service.GetComputerSystem(properties)
 
-
     def get_databases(self):
         """Retrieves all databases with their components from the host control"""
 
@@ -84,17 +82,14 @@ class SapProxy(object):
         # ListDatabases(aArguments: ns0:ArrayOfProperty) -> result: ns0:ArrayOfDatabase
         return self.service.ListDatabases(properties)
 
-
     def get_sap_instances(self):
         """Retrieves all SAP instances from the host control"""
         return self.get_cim_object("EnumerateInstances", "SAPInstance")
-
 
     def get_sap_instance_processes(self, instance_id):
         """Retrieves all processes on a host instance"""
         query = "SAP_ITSAMInstance/Process??Instancenumber={0}".format(instance_id)
         return self.get_cim_object("EnumerateInstances", query)
-
 
     def get_sap_instance_abap_free_workers(self, instance_id, worker_types):
         """Retrieves free workers metric from an ABAP host instance"""
@@ -117,7 +112,6 @@ class SapProxy(object):
 
         return num_free_workers
 
-
     def get_sap_instance_params(self, instance_id):
         """Retrieves SAP instance parameters from an host instance as a key value pair"""
         query = "SAP_ITSAMInstance/Parameter??Instancenumber={0}".format(instance_id)
@@ -134,7 +128,6 @@ class SapProxy(object):
                     params[name.decode()] = var.decode()
 
         return params
-
 
     def get_cim_object(self, key, value):
         # ns0:Property(mKey: xsd:string, mValue: xsd:string)

@@ -21,8 +21,7 @@ class SapCheck(AgentCheck):
     queue = {}
     INSTANCE_TYPE = "sap"
     SERVICE_CHECK_NAME = "sap.can_connect"
-    DEFAULT_CACHE_TTL = 60  # Seconds
-    DEFAULT_THREAD_COUNT = 4
+    DEFAULT_THREAD_COUNT = 0
     DEFAULT_IDLE_THREAD_TTL = 30  # Seconds
 
 # SAP_ITSAMInstance/Alert
@@ -136,7 +135,7 @@ class SapCheck(AgentCheck):
         while True:  # infinite loop until backlog is empty
             try:
                 func, args = backlog.get(timeout=timeout)  # Claim next item in queue, wait <timeout> seconds
-            except backlog.Empty:
+            except Empty:
                 # sys.stdout.write("thread_worker: No more work in queue")
                 return  # stop which also kills the thread.
             # sys.stdout.write("thread_worker->{}(..,{},..)".format(func, args[1]))
@@ -199,7 +198,6 @@ class SapCheck(AgentCheck):
         self.keyfile = instance.get("keyfile", "")
         self.domain = instance.get("domain", None)
         self.stackstate_environment = instance.get("environment", None)
-        self.cache_ttl = int(instance.get("cache_ttl", self.DEFAULT_CACHE_TTL))
         self.thread_count = int(instance.get('thread_count', self.DEFAULT_THREAD_COUNT))
         self.thread_timeout = int(instance.get('idle_thread_ttl', self.DEFAULT_IDLE_THREAD_TTL))
         self.tags = instance.get("tags", [])
@@ -276,7 +274,6 @@ class SapCheck(AgentCheck):
                     lookup = self.dbmetric_gauges.get(metricid)
                     description = lookup.get("description", metricid)
                     value = metricdata.get(lookup.get("field"))
-                    resource = metricdata.get("Resource")
                     taglist = ["host:{}".format(self.host), "database:{}".format(name)]
                     # sys.stdout.write("_get_database_gauges\ndescription={}\nvalue={}\ntaglist={}".format(description, value, taglist))
                     if self.host in self.queue.keys():
@@ -338,7 +335,7 @@ class SapCheck(AgentCheck):
             # for HTTPS protocol, 1129 is the port of the HostControl
             host_port = "1129"
         host_control_url = "{0}:{1}/SAPHostControl".format(self.url, host_port)
-        return SapProxy(host_control_url, self.user, self.password, self.verify, self.cert, self.keyfile, self.cache_ttl)
+        return SapProxy(host_control_url, self.user, self.password, self.verify, self.cert, self.keyfile)
 
     def generate_tags(self, data, status, instance_id=None, database=None):
         """
@@ -992,7 +989,7 @@ class SapCheck(AgentCheck):
         return "urn:sap:/saprouter:{0}:{1}".format(self.host, pid)
 
     def _scc_subaccount_status(self,  status):
-        switcher={
+        switcher = {
                 "Connected": "sapcontrol-green",
                 "ConnectFailure": "sapcontrol-red"
             }
