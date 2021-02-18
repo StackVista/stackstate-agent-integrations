@@ -37,13 +37,29 @@ class SapProxy(object):
 
     def get_alerts(self, instance_id):
         """
-        Get all/any alerts for instance_id that match key and value.
+        Get all/any alerts for instance_id that match key and value.\n
         :param instance_id: ID of SAP instance on host
         :return: List with dict for every match. May be an empty list
         """
         query = "SAP_ITSAMInstance/Alert??Instancenumber={}".format(instance_id)
-        return self.get_cim_object("EnumerateInstances", query)
+        data = self.get_cim_object("EnumerateInstances", query)
+        return self._alerts_to_list(data)
 
+    def _alerts_to_list(self, alerts):
+        """
+        Recursive crawls through alerts and converts to a list for eesy processing.\n
+        :param alerts: Result of 'SAP_ITSAMInstance/Alert'
+        :return: List with dict. May be an empty list
+        """
+        hits=[]
+        for a in alerts:
+            properties = {i.mName: i.mValue for i in a.mProperties.item}
+            hits.append(properties)
+            if a.mMembers:
+                subhits = self._alerts_to_list(a.mMembers.item)
+                for subhit in subhits:
+                    hits.append(subhit)
+        return hits
 
     def get_computerSystem(self):
         """

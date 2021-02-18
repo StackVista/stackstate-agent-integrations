@@ -82,7 +82,7 @@ class SapCheck(AgentCheck):
         }
     system_gauges = {
         "FreeSpaceInPagingFiles": {"description": "SAP:FreeSpaceInPagingFiles"},
-        "sizeStoredInPagingFiles": {"description": "SAP:sizeStoredInPagingFiles"},
+        "SizeStoredInPagingFiles": {"description": "SAP:sizeStoredInPagingFiles"},
         "TotalSwapSpaceSize": {"description": "SAP:TotalSwapSpaceSize"}
         }
 
@@ -118,7 +118,6 @@ class SapCheck(AgentCheck):
             # Create queue for events and metrics to send, only if none exists
             if self.host not in self.queue.keys():
                 self.queue[self.host] = Queue()
-            sys.stdout.write("start_threads self.queue={}".format(self.queue))
             for _ in range(count):
                 # Create and start worker threads
                 Thread(target=self.thread_worker, args=(self.queue[self.host], timeout), daemon=True).start()
@@ -173,6 +172,7 @@ class SapCheck(AgentCheck):
             lap_time = service_time-metrics_time
             self.log.info("{0}: service_check run time is {1}Seconds".format(self.host, lap_time))
         except Exception as e:
+            # sys.stdout.write("check: Exception\n{}\n".format(e))
             self.log.exception(str(e))
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, message=str(e), tags=self.tags)
         finally:
@@ -206,8 +206,8 @@ class SapCheck(AgentCheck):
         return self.url, self.user, self.password
 
     def _collect_topology(self):
+        host_instances = self._collect_hosts()
         proxy = self._get_proxy()
-        host_instances = self._collect_hosts(proxy)
         if host_instances:
             self._collect_instance_processes_and_metrics(host_instances, proxy)
         self._collect_databases(proxy)
@@ -226,65 +226,66 @@ class SapCheck(AgentCheck):
             for instance in instances:
                 data = {i.mName: i.mValue for i in instance.mProperties.item}
                 instance_id = data.get("SystemNumber")
-                self.get_alerts(instance_id, proxy)
-                self.get_instance_params(instance_id, proxy)
-        self.get_computersystem(proxy)
+                self._get_alerts(instance_id, proxy)
+                self._get_instance_params(instance_id, proxy)
+        self._get_computersystem(proxy)
         # SAP_ITSAMDatabaseMetric
         databases = proxy.get_databases()
         if databases:
-            gauges = ";".join(self.dbmetric_gauges.keys())
-            events = ";".join(self.dbmetric_events.keys())
             for database in databases:
-                data = {i.mKey: i.mValue for i in database.mDatabase.item}
-                data.update({"status": database.mStatus})
-
                 # Cannot query a database that's not up
-                if not (data.get("status") in ["SAPHostControl-DB-WARNING", "SAPHostControl-DB-RUNNING"]):
+                if not (database.mStatus in ["SAPHostControl-DB-WARNING", "SAPHostControl-DB-RUNNING"]):
                     continue
+                data = {i.mKey: i.mValue for i in database.mDatabase.item}
                 name = data.get("Database/Name")
                 dbtype = data.get("Database/Type")
-                self.get_database_gauges(gauges, name, proxy, dbtype)
-                self.get_database_events(database, events, name, proxy, dbtype)
+                self._get_database_gauges(name, proxy, dbtype)
+                self._get_database_events(name, proxy, dbtype)
 
-    def get_database_events(self, database, events, name, proxy, dbtype):
+    def _get_database_events(self, name, proxy, dbtype):
         # SAP_ITSAMDatabaseMetric events
+        events = ";".join(self.dbmetric_events.keys())
         query = "SAP_ITSAMDatabaseMetric?Name={0}&Type={1}&ID={2}".format(name, dbtype, events)
         metrics = proxy.get_cim_object("EnumerateInstances", query)
-        for metric in metrics:
-            data = {i.mName: i.mValue for i in metric.mProperties.item}
-            metricid = data.get("MetricID")
-            if metricid in self.dbmetric_events.keys():
-                lookup = self.dbmetric_events.get(metricid)
-                description = lookup.get("description", metricid)
-                status = data.get(lookup.get("field"))
-                taglist = self.generate_tags(data=data, status=status, database=database)
-                if self.host in self.queue.keys():
-                    self.queue[self.host].put( (self.send_event, [description, taglist]) )
-                else:
-                    self.send_event(description, taglist)
+        for metriclist in metrics:
+            for metric in metriclist.mMembers.item:
+                data = {i.mName: i.mValue for i in metric.mProperties.item}
+                metricid = data.get("MetricID")
+                if metricid in self.dbmetric_events.keys():
+                    lookup = self.dbmetric_events.get(metricid)
+                    description = lookup.get("description", metricid)
+                    status = data.get(lookup.get("field"))
+                    taglist = self.generate_tags(data=data, status=status, database=name)
+                    # sys.stdout.write("_get_database_events\ndescription={}\ntaglist={}\n".format(description, taglist))
+                    if self.host in self.queue.keys():
+                        self.queue[self.host].put((self.send_event, [description, taglist]))
+                    else:
+                        self.send_event(description, taglist)
 
-    def get_database_gauges(self, gauges, name, proxy, dbtype):
+    def _get_database_gauges(self, name, proxy, dbtype):
         # SAP_ITSAMDatabaseMetric gauges
-        taglist = ["timestamp:{0}".format(int(time.time())), "database:{0}".format(name)]
-        for tag in self.tags:
-            taglist.append(tag)
+        gauges = ";".join(self.dbmetric_gauges.keys())
         query = "SAP_ITSAMDatabaseMetric?Name={0}&Type={1}&ID={2}".format(name, dbtype, gauges)
         metrics = proxy.get_cim_object("EnumerateInstances", query)
-        for metric in metrics:
-            data = {i.mName: i.mValue for i in metric.mProperties.item}
-            metricid = data.get("MetricID")
-            if metricid in self.dbmetric_gauges.keys():
-                lookup = self.dbmetric_gauges.get(metricid)
-                description = lookup.get("description", metricid)
-                value = data.get(lookup.get("field"))
-                if self.host in self.queue.keys():
-                    self.queue[self.host].put( (self.send_gauge, [description, value, taglist]) )
-                else:
-                    self.send_gauge(description, value, taglist)
+        # sys.stdout.write("_get_database_gauges performed query={}\n".format(query))
+        for metriclist in metrics:
+            for metric in metriclist.mMembers.item:
+                metricdata = {i.mName: i.mValue for i in metric.mProperties.item}
+                metricid = metricdata.get("MetricID")
+                if metricid in self.dbmetric_gauges.keys():
+                    lookup = self.dbmetric_gauges.get(metricid)
+                    description = lookup.get("description", metricid)
+                    value = metricdata.get(lookup.get("field"))
+                    resource = metricdata.get("Resource")
+                    taglist = ["host:{}".format(self.host), "database:{}".format(name)]
+                    # sys.stdout.write("_get_database_gauges\ndescription={}\nvalue={}\ntaglist={}".format(description, value, taglist))
+                    if self.host in self.queue.keys():
+                        self.queue[self.host].put((self.send_gauge, [description, value, taglist]))
+                    else:
+                        self.send_gauge(description, value, taglist)
 
-    def get_computersystem(self, proxy):
+    def _get_computersystem(self, proxy):
         # GetComputerSystem gauges
-        taglist = ["timestamp:{0}".format(int(time.time()))]
         metrics = proxy.get_computerSystem()
         if metrics:
             metric_item = {i.mName: i.mValue for i in metrics.mMembers.item[0].mProperties.item}
@@ -292,27 +293,30 @@ class SapCheck(AgentCheck):
                 if item in self.system_gauges.keys():
                     description = self.system_gauges.get(item).get("description", item)
                     value = metric_item.get(item)
+                    taglist = ["host:{}".format(self.host)]
+                    # sys.stdout.write("_get_computersystem:\nvalue={}\ndescription={}\ntaglist={}".format(value, description, taglist))
                     if self.host in self.queue.keys():
-                        self.queue[self.host].put( (self.send_gauge, [description, value, taglist]) )
+                        self.queue[self.host].put((self.send_gauge, [description, value, taglist]))
                     else:
                         self.send_gauge(description, value, taglist)
 
-    def get_instance_params(self, instance_id, proxy):
+    def _get_instance_params(self, instance_id, proxy):
         # SAP_ITSAMInstance/Parameter
-        taglist = ["timestamp:{0}".format(int(time.time())), "instance_id:{0}".format(instance_id)]
-        for tag in self.tags:
-            taglist.append(tag)
         params = proxy.get_sap_instance_params(instance_id)
         for param in params:
             if param in self.instance_gauges.keys():
                 description = self.instance_gauges.get(param).get("description", param)
                 value = params.get(param)
+                taglist = ["instance_id:{0}".format(instance_id), "host:{0}".format(self.host)]
+                for tag in self.tags:
+                    taglist.append(tag)
+                # sys.stdout.write("_get_instance_params: taglist={}".format(taglist))
                 if self.host in self.queue.keys():
-                    self.queue[self.host].put( (self.send_gauge, [description, value, taglist]) )
+                    self.queue[self.host].put((self.send_gauge, [description, value, taglist]))
                 else:
                     self.send_gauge(description, value, taglist)
 
-    def get_alerts(self, instance_id, proxy):
+    def _get_alerts(self, instance_id, proxy):
         # SAP_ITSAMInstance/Alert
         alerts = proxy.get_alerts(instance_id)
         for alert in alerts:
@@ -323,7 +327,7 @@ class SapCheck(AgentCheck):
                 status = alert.get(lookup.get("field"), "Not specified")
                 taglist = self.generate_tags(data=alert, status=status, instance_id=instance_id)
                 if self.host in self.queue.keys():
-                    self.queue[self.host].put( (self.send_event, [description, taglist]) )
+                    self.queue[self.host].put((self.send_event, [description, taglist]))
                 else:
                     self.send_event(description, taglist)
 
@@ -338,11 +342,13 @@ class SapCheck(AgentCheck):
 
     def generate_tags(self, data, status, instance_id=None, database=None):
         """
-        Makes a list of tags of every key in 'data'.\n
+        Makes a list of tags of every whitelisted key in 'data'.\n
+        Tags from the instance config are always added.\n
+        'status', 'instance_id' and 'database' are always added if defined.\n
         :param data: Dict with keys and values to add to the tags
-        :param status: Value of status tag
-        :param instance_id: optional instance_id tag value
-        :param database: optional database name tag value
+        :param status: Mandatory: Value of status tag
+        :param instance_id: Optional: instance_id tag value
+        :param database: Optional: database name tag value
         :return: List of tags
         """
         whitelist = []  # Tags we need
@@ -378,7 +384,6 @@ class SapCheck(AgentCheck):
                 database = tag.split(":")[1]
             elif tag.startswith("instance_id"):
                 instance_id = tag.split(":")[1]
-        # sys.stdout.write("send_event\ntimestamp=...\nsource_type_name={}\nmsg_title={}\nmsg_text={}\nhost={}\ntags={}\n".format(description, "{} status update.".format(description), status, self.host, taglist))
         self.event({
                 "timestamp": int(time.time()),
                 "source_type_name": description,
@@ -410,8 +415,9 @@ class SapCheck(AgentCheck):
         )
         self.log.info("{0}: send {1}={2} gauge".format(self.host, key, value))
 
-    def _collect_hosts(self, proxy):
+    def _collect_hosts(self):
         try:
+            proxy = self._get_proxy()
             # define SAP host control component
             data = {
                 "host": self.host,
@@ -476,11 +482,9 @@ class SapCheck(AgentCheck):
                     "host:{0}".format(self.host)
                 ]
             })
-
             return instances
         except Exception as e:
             self.log.exception(str(e))
-
             # publish event if we could NOT connect to the SAP host control
             self.event({
                 "timestamp": int(time.time()),
@@ -723,7 +727,8 @@ class SapCheck(AgentCheck):
 
     def _collect_sapcloudconnector(self):
         #
-        #  Uses monitoring API: https://help.sap.com/viewer/cca91383641e40ffbe03bdc78f00f681/Cloud/en-US/f6e7a7bc6af345d2a334c2427a31d294.html
+        #  Uses monitoring API:
+        #  https://help.sap.com/viewer/cca91383641e40ffbe03bdc78f00f681/Cloud/en-US/f6e7a7bc6af345d2a334c2427a31d294.html
         #
         #  Configuring : Make port 8443 available. add this to users.xml and restart SCC.
         #
@@ -985,3 +990,10 @@ class SapCheck(AgentCheck):
 
     def _saprouter_external_id(self, pid):
         return "urn:sap:/saprouter:{0}:{1}".format(self.host, pid)
+
+    def _scc_subaccount_status(self,  status):
+        switcher={
+                "Connected": "sapcontrol-green",
+                "ConnectFailure": "sapcontrol-red"
+            }
+        return switcher.get(status, "Unknown status")

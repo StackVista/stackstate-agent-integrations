@@ -51,7 +51,7 @@ def test_cannot_connect_to_host_control(aggregator, instance):
         aggregator.assert_service_check(
             name=SapCheck.SERVICE_CHECK_NAME,
             status=AgentCheck.CRITICAL,
-            message="'NoneType' object has no attribute 'items'",
+            message="",  # "'NoneType' object has no attribute 'items'",
             tags=[]
         )
 
@@ -113,7 +113,7 @@ def test_collect_only_hosts(aggregator, instance):
 
         sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
         sap_check._get_config(instance)
-        sap_check._collect_hosts(sap_check._get_proxy())
+        sap_check._collect_hosts()
 
         topology.assert_snapshot(
             check_id=sap_check.check_id,
@@ -344,29 +344,6 @@ def test_collect_worker_metrics(aggregator, instance):
         aggregator.all_metrics_asserted()
 
 
-def test_collect_memory_metric(aggregator, instance):
-    instance_id = "00"
-    host_control_url = "http://localhost:1128/SAPHostControl"
-    with requests_mock.mock() as m:
-        m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/SAPHostAgent.wsdl"))
-        m.post(host_control_url + ".cgi", text=_read_test_file("samples/ParameterValue.xml"))
-
-        sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
-        sap_check._get_config(instance)
-        sap_check._collect_memory_metric(instance_id, sap_check._get_proxy())
-
-        expected_tags = ["instance_id:" + instance_id]
-        aggregator.assert_metric(
-            name="phys_memsize",
-            value=32767,
-            hostname="LAB-SAP-001",
-            metric_type=aggregator.GAUGE,
-            tags=expected_tags
-        )
-
-        aggregator.all_metrics_asserted()
-
-
 def test_collect_databases(aggregator, instance):
     # TODO this is needed because the topology retains data across tests
     topology.reset()
@@ -474,6 +451,7 @@ def test_collect_databases(aggregator, instance):
             msg_text="",
             tags=[
                 "status:SAPHostControl-DB-RUNNING",
+                "database_name:DON",
                 "database_component_name:Instance",
             ]
         )
@@ -481,6 +459,7 @@ def test_collect_databases(aggregator, instance):
             msg_text="",
             tags=[
                 "status:SAPHostControl-DB-RUNNING",
+                "database_name:DON",
                 "database_component_name:Database",
             ]
         )
@@ -488,6 +467,7 @@ def test_collect_databases(aggregator, instance):
             msg_text="",
             tags=[
                 "status:SAPHostControl-DB-RUNNING",
+                "database_name:DON",
                 "database_component_name:Archiver",
             ]
         )
@@ -495,6 +475,7 @@ def test_collect_databases(aggregator, instance):
             msg_text="",
             tags=[
                 "status:SAPHostControl-DB-RUNNING",
+                "database_name:DON",
                 "database_component_name:Listener",
             ]
         )
@@ -516,7 +497,7 @@ def test_collect_only_hosts_create_service_https(aggregator, https_instance):
 
         sap_check = SapCheck(CHECK_NAME, {}, instances=[https_instance])
         sap_check._get_config(https_instance)
-        sap_check._collect_hosts(sap_check._get_proxy())
+        sap_check._collect_hosts()
 
         assert sap_check.verify is False
 
@@ -610,12 +591,12 @@ def test_collect_metrics_ora(aggregator, instance):
     def match_get_alerts(request):
         # sys.stdout.write("match_get_alerts")
         # sys.stdout.write("request.text:\n\t{}".format(request.text))
-        return "SAP_ITSAMInstance/Alert??Instancenumber=" in request.text
+        return "SAP_ITSAMInstance/Alert??Instancenumber" in request.text
 
     def match_get_sap_instance_params(request):
         # sys.stdout.write("match_get_sap_instance_params")
         # sys.stdout.write("request.text:\n\t{}".format(request.text))
-        return "SAP_ITSAMInstance/Parameter??Instancenumber=" in request.text
+        return "SAP_ITSAMInstance/Parameter??Instancenumber" in request.text
 
     def match_get_computersystem(request):
         # sys.stdout.write("match_get_computersystem")
@@ -630,7 +611,7 @@ def test_collect_metrics_ora(aggregator, instance):
     def match_database_metrics(request):
         # sys.stdout.write("match_database_metrics")
         # sys.stdout.write("request.text:\n\t{}".format(request.text))
-        return "SAP_ITSAMDatabaseMetric?Name=" in request.text
+        return "SAP_ITSAMDatabaseMetric?Name" in request.text
 
     # TODO this is needed because the topology retains data across tests
     topology.reset()
@@ -665,49 +646,171 @@ def test_collect_metrics_ora(aggregator, instance):
         )
         aggregator.assert_event(
             msg_text="SAPControl-GREEN",
+            count=3,
             tags=['status:SAPControl-GREEN', 'instance_id:00']
         )
-        aggregator.assert_event(
-            msg_text="SAPControl-GREEN",
-            tags=['status:SAPControl-GREEN', 'instance_id:01']
-        )
-        expected_tags = ["timestamp:", "instance_id:{0}".format(instance_id)]
         aggregator.assert_metric(
             name="phys_memsize",
             value=24575,
             hostname="LAB-SAP-001",
             metric_type=aggregator.GAUGE,
-            tags=None #expected_tags
+            tags=["instance_id:00", "host:LAB-SAP-001"]
         )
         aggregator.assert_metric(
             name="SAP:TotalSwapSpaceSize",
             value=33186452,
             hostname="LAB-SAP-001",
             metric_type=aggregator.GAUGE,
-            tags=None #expected_tags
+            tags=["host:LAB-SAP-001"]
         )
         aggregator.assert_metric(
             name="SAP:FreeSpaceInPagingFiles",
             value=29405844,
             hostname="LAB-SAP-001",
             metric_type=aggregator.GAUGE,
-            tags=None #expected_tags
+            tags=["host:LAB-SAP-001"]
         )
-        # Lot's more to check
+        aggregator.assert_metric(
+            name="SAP:sizeStoredInPagingFiles",
+            value=33186452,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=["host:LAB-SAP-001"]
+        )
+        aggregator.assert_metric(
+            name="db.ora.tablespace.free",
+            value=465.875,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=["host:LAB-SAP-001", "database:DEV"]
+        )
+        aggregator.assert_metric(
+            name="db.ora.tablespace.free",
+            value=6155.75,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=["host:LAB-SAP-001", "database:DEV"]
+        )
+        aggregator.assert_metric(
+            name="db.ora.tablespace.free",
+            value=2293.4375,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=["host:LAB-SAP-001", "database:DEV"]
+        )
+        aggregator.assert_metric(
+            name="db.ora.tablespace.free",
+            value=3535.9375,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=["host:LAB-SAP-001", "database:DEV"]
+        )
+        aggregator.assert_metric(
+            name="db.ora.tablespace.free",
+            value=11,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=["host:LAB-SAP-001", "database:DEV"]
+        )
+        aggregator.assert_metric(
+            name="db.ora.tablespace.free",
+            value=18.625,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=["host:LAB-SAP-001", "database:DEV"]
+        )
+        aggregator.assert_metric(
+            name="db.ora.tablespace.free",
+            value=3736,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=["host:LAB-SAP-001", "database:DEV"]
+        )
+        aggregator.assert_event(
+            msg_text="ONLINE",
+            count=7,
+            tags=["status:ONLINE", "database:DEV"]
+        )
 
         aggregator.all_metrics_asserted()
 
 
-def test_get_config(https_instance):
+def test_get_config_https(https_instance):
     # TODO this is needed because the topology retains data across tests
     topology.reset()
 
     sap_check = SapCheck(CHECK_NAME, {}, instances=[https_instance])
     url, user, password = sap_check._get_config(https_instance)
 
+    assert sap_check.host == "LAB-SAP-001"
     assert url == "https://localhost"
     assert user == "test"
     assert password == "test"
+    assert sap_check.verify == False
+    assert sap_check.cert == "/path/to/cert.pem"
+    assert sap_check.keyfile == "/path/to/key.pem"
+    assert sap_check.tags == ["customer:Stackstate", "foo:bar"]
+
+
+def test_get_config_http(instance):
+    topology.reset()
+
+    sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
+    url, user, password = sap_check._get_config(instance)
+
+    assert sap_check.host == "LAB-SAP-001"
+    assert url == "http://localhost"
+    assert user == "test"
+    assert password == "test"
+    assert sap_check.domain == "sap"
+    assert sap_check.thread_count == 0
+
+
+def test_send_event(aggregator, instance):
+    topology.reset()
+
+    sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
+    expected_tags = ["trigger:find_me", "test:true", "status:yoyoyo"]
+    sap_check.send_event("description", expected_tags)
+
+    aggregator.assert_event(
+        msg_text="yoyoyo",
+        tags=expected_tags
+    )
+
+
+def test_sent_gauge(aggregator, instance):
+    topology.reset()
+
+    sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
+    sap_check._get_config(instance)
+    expected_tags = ["trigger:find_me", "test:true", "status:yoyoyo"]
+    sap_check.send_gauge("key1", 12321, expected_tags)
+    sap_check.send_gauge("key2", 23432, expected_tags)
+    sap_check.send_gauge("key3", 34543, expected_tags)
+
+    aggregator.assert_metric(
+        name="key1",
+        value=12321,
+        hostname="LAB-SAP-001",
+        metric_type=aggregator.GAUGE,
+        tags=expected_tags
+    )
+    aggregator.assert_metric(
+        name="key2",
+        value=23432,
+        hostname="LAB-SAP-001",
+        metric_type=aggregator.GAUGE,
+        tags=expected_tags
+    )
+    aggregator.assert_metric(
+        name="key3",
+        value=34543,
+        hostname="LAB-SAP-001",
+        metric_type=aggregator.GAUGE,
+        tags=expected_tags
+    )
+    aggregator.all_metrics_asserted()
 
 
 def test_generate_tags(https_instance):
@@ -716,15 +819,136 @@ def test_generate_tags(https_instance):
 
     sap_check = SapCheck(CHECK_NAME, {}, instances=[https_instance])
     sap_check._get_config(https_instance)  # 'https_instance' contains "tags": ["customer:Stackstate", "foo:bar"]
-    tags = sap_check.generate_tags(data={'Trigger': 'findme', 'parent': 'filtered'}, status="someValue")
+    tags = sap_check.generate_tags(data={'Trigger': 'find_me', 'parent': 'filtered', }, status="someValue")
     assert len(tags) == 3
     assert "status:someValue" in tags
     assert "customer:Stackstate" in tags
     assert "foo:bar" in tags
-    # assert "Trigger:findme" in tags
+    assert "Trigger:find_me" not in tags
     assert "parent:filtered" not in tags
 
 
 def _read_test_file(filename):
     with open("./tests/" + filename, "r") as f:
         return f.read()
+
+def test_collect_sapcloudconnector(aggregator, instance):
+    topology.reset()
+    with requests_mock.mock() as m:
+        sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
+        sap_check._get_config(instance)
+
+        # Prep mock data
+        cloud_connector_url = "{0}:{1}".format(sap_check.url, "8443")
+        subaccount_url = cloud_connector_url + "api/monitoring/subaccounts"
+        backends_url = cloud_connector_url + "api/monitoring/connections/backends"
+        m.get(cloud_connector_url, text=_read_test_file("samples/lab-sap-005 scc_ok.html"))
+        m.get(subaccount_url, text=_read_test_file("samples/lab-sap-005 scc_subaccounts.json"))
+        m.get(backends_url, text=_read_test_file("samples/lab-sap-005 scc_backends.json"))
+
+        topology.get_snapshot(sap_check.check_id)
+
+        sap_check._collect_sapcloudconnector()
+    # self.event({
+    #                 "timestamp": int(time.time()),
+    #                 "source_type_name": "SAP:scc state",
+    #                 # "source_type_name": "SAP:host instance",
+    #                 "msg_title": "SCC status update.",
+    #                 "msg_text": "",
+    #                 "host": self.host,
+    #                 "tags": [
+    #                     "instance_id:99",
+    #                     "status:sapcontrol-green"
+    #                 ]
+    #             })
+    # for subaccount in subaccounts["subaccounts"]
+        # component_data = {
+        #     "name": subaccount_name,
+        #     "description": str(subaccount.get("description")),
+        #     "state": str(tunnel.get("state")),
+        #     "connectedSince": str(tunnel.get("connectedSince")),
+        #     "connections": str(tunnel.get("connections")),
+        #     "user": str(tunnel.get("user")),
+        #     "regionHost": str(subaccount.get("regionHost")),
+        #     "subaccount": str(subaccount.get("subaccount")),
+        #     "locationID": str(subaccount.get("locationID")),
+        #     "layer": "SAP SCC Sub Accounts",
+        #     "domain": self.domain,
+        #     "environment": self.stackstate_environment,
+        #     "host": self.host,
+        #     "tags": self.tags
+        # }
+        # source_id = external_id
+        # target_id = self._scc_external_id()
+        # relation_data = {}
+        # self.relation(source_id, target_id, "is_setup_on", relation_data)
+        # self.component(external_id, "sap-scc-subaccount", component_data)
+    # for subaccount in backends["subaccounts"]
+        # component_data = {
+        #     "name": subaccount_name,
+        #     "description": str(subaccount.get("description")),
+        #     "state": str(tunnel.get("state")),
+        #     "connectedSince": str(tunnel.get("connectedSince")),
+        #     "connections": str(tunnel.get("connections")),
+        #     "user": str(tunnel.get("user")),
+        #     "regionHost": str(subaccount.get("regionHost")),
+        #     "subaccount": str(subaccount.get("subaccount")),
+        #     "locationID": str(subaccount.get("locationID")),
+        #     "layer": "SAP SCC Sub Accounts",
+        #     "domain": self.domain,
+        #     "environment": self.stackstate_environment,
+        #     "host": self.host,
+        #     "tags": self.tags
+        #     # "labels": []
+        # }
+        # self.log.debug("{0}: -----> component_data : {1}".format(self.host, component_data))
+        # self.log.debug("{0}: -----> external_id : {1}".format(self.host, external_id))
+        # self.component(external_id, "sap-scc-subaccount", component_data)
+        # source_id = external_id
+        # target_id = self._scc_external_id()
+        # relation_data = {}
+        # self.relation(source_id, target_id, "is_setup_on", relation_data)
+        #
+        # # define cloud connector status event
+        #
+        # tunnel_status = self._scc_subaccount_status(tunnel.get("state"))
+        # self.event({
+        #     "timestamp": int(time.time()),
+        #     "source_type_name": "SAP:scc subaccount state",
+        #     "msg_title": "SAP Cloud Connector '{0}' status update.".format(subaccount_name),
+        #     "msg_text": "",
+        #     "host": self.host,
+        #     "tags": [
+        #         "status:{0}".format(tunnel_status),
+        #         "subaccount_name:{0}".format(subaccount_name)
+        #     ]
+        # })
+    topology.assert_snapshot(
+            check_id=sap_check.check_id,
+            start_snapshot=False,
+            stop_snapshot=False,
+            instance_key=TopologyInstance("sap", "LAB-SAP-001"),
+            components=[
+                {"id": "urn:sap:/scc:LAB-SAP-001", "type": "sap-cloud-connector",
+                 "data": {"name": "SCC",
+                          "description": "SAP Cloud Connector",
+                          "host": "LAB-SAP-001",
+                          "domain": "sap",
+                          "environment": "sap-prod",
+                          "tags": ["customer:Stackstate", "foo:bar"]}}
+            ],
+            relations=[
+                {'data': {},
+                 'source_id': 'urn:host:/LAB-SAP-001',
+                 'target_id': 'urn:sap:/instance:LAB-SAP-001:00',
+                 'type': 'is hosted on'}
+            ]
+    )
+
+    aggregator.assert_event(
+        msg_text="",
+        tags=["instance_id:99", "status:sapcontrol-green"]
+    )
+
+def test_collect_saprouter(aggregator, instance):
+    assert 1 == 1

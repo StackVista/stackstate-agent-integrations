@@ -4,7 +4,7 @@
 		<SAPHostControl:ListDatabasesResponse>
 			<result>
 				<item>
-					<mStatus>SAPHostControl-DB-STOPPED</mStatus>
+					<mStatus>SAPHostControl-DB-RUNNING</mStatus>
 					<mDatabase>
 						<item>
 							<mKey>Database/InstanceName</mKey>
@@ -32,7 +32,7 @@
 						</item>
 						<item>
 							<mKey>Database/Status</mKey>
-							<mValue>Stopped</mValue>
+							<mValue>Running</mValue>
 						</item>
 					</mDatabase>
 					<mComponents>
@@ -48,10 +48,10 @@
 								</item>
 								<item>
 									<mKey>Database/ComponentStatusDescription</mKey>
-									<mValue>Instance is stopped</mValue>
+									<mValue>Instance is started</mValue>
 								</item>
 							</mProperties>
-							<mStatus>SAPHostControl-DB-STOPPED</mStatus>
+							<mStatus>SAPHostControl-DB-RUNNING</mStatus>
 						</item>
 						<item>
 							<mProperties>
@@ -65,10 +65,10 @@
 								</item>
 								<item>
 									<mKey>Database/ComponentStatusDescription</mKey>
-									<mValue>Database is stopped</mValue>
+									<mValue>Database is started</mValue>
 								</item>
 							</mProperties>
-							<mStatus>SAPHostControl-DB-STOPPED</mStatus>
+							<mStatus>SAPHostControl-DB-RUNNING</mStatus>
 						</item>
 						<item>
 							<mProperties>
@@ -82,10 +82,10 @@
 								</item>
 								<item>
 									<mKey>Database/ComponentStatusDescription</mKey>
-									<mValue>Archiver is stopped</mValue>
+									<mValue>Archiver is started</mValue>
 								</item>
 							</mProperties>
-							<mStatus>SAPHostControl-DB-STOPPED</mStatus>
+							<mStatus>SAPHostControl-DB-RUNNING</mStatus>
 						</item>
 						<item>
 							<mProperties>

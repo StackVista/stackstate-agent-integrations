@@ -1,0 +1,29 @@
+{
+  "subaccounts": [
+    {
+      "backendConnections": [],
+      "regionHost": "xx.yyy.hana.ondemand.com",
+      "subaccount": "xxxxxxxx-85c6-454f-9940-fb5a7c984d21",
+      "locationID": ""
+    },
+    {
+      "backendConnections": [],
+      "regionHost": "xx.yyy.hana.ondemand.com",
+      "subaccount": "xxxxxxxx-017e-482e-b846-c22199f3cc72",
+      "locationID": "TST"
+    },
+    {
+      "backendConnections": [],
+      "regionHost": "xx.yyy.hana.ondemand.com",
+      "subaccount": "xxxxxxxx-4932-4b01-a1b1-05269f30b597",
+      "locationID": ""
+    },
+    {
+      "backendConnections": [],
+      "regionHost": "xx.yyy.hana.ondemand.com",
+      "subaccount": "xxxxxxxxx-35ee-4507-a766-27332421376c",
+      "locationID": ""
+    }
+  ],
+  "version": 1
+}
