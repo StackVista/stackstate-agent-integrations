@@ -9,15 +9,18 @@
       "severityLevel:INFO",
       "eventType:PROCESS_RESTART",
       "impactLevel:INFRASTRUCTURE",
-      "eventStatus:CLOSED"
+      "eventStatus:CLOSED",
+      "startTime:1613424360000",
+      "endTime:1613424370000",
+      "source:builtin"
     ],
     "context": {
       "source_identifier": "source_identifier_value",
       "element_identifiers": [
         "urn:PROCESS_GROUP_INSTANCE-C3483A9911DDAC4A"
       ],
-      "source": "source",
-      "category": "category",
+      "source": "dynatrace",
+      "category": "info_event",
       "data": {
         "eventId": 1896559972817125277,
         "startTime": 1613424360000,

@@ -15,7 +15,7 @@ from stackstate_checks.dynatrace_event.dynatrace_event import State
 CHECK_NAME = 'dynatrace_event'
 
 
-def test_no_events(dynatrace_event_check, test_instance, state):
+def test_no_events(dynatrace_event_check, test_instance):
     """
     Testing Dynatrace event check should not produce any events
     """

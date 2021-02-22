@@ -83,7 +83,7 @@ class DynatraceEventCheck(AgentCheck):
         events, events_limit_reached = self._collect_events(instance_info)
         closed_events = len([e for e in events if e.get('eventStatus') == 'CLOSED'])
         open_events = len([e for e in events if e.get('eventStatus') == 'OPEN'])
-        self.log.debug("Collected %d events, %d are open and %d are closed.", len(events), open_events, closed_events)
+        self.log.info("Collected %d events, %d are open and %d are closed.", len(events), open_events, closed_events)
         for event in events:
             self._create_event(event, instance_info.url)
         if events_limit_reached:
@@ -104,6 +104,9 @@ class DynatraceEventCheck(AgentCheck):
                 "eventType:{0}".format(dynatrace_event.eventType),
                 "impactLevel:{0}".format(dynatrace_event.impactLevel),
                 "eventStatus:{0}".format(dynatrace_event.eventStatus),
+                "startTime:{0}".format(dynatrace_event.startTime),
+                "endTime:{0}".format(dynatrace_event.endTime),
+                "source:{0}".format(dynatrace_event.source)
             ]
         }
 
@@ -112,8 +115,8 @@ class DynatraceEventCheck(AgentCheck):
             event["context"] = {
                 "source_identifier": "source_identifier_value",
                 "element_identifiers": ["urn:{}".format(dynatrace_event.entityId)],
-                "source": "source",
-                "category": "category",
+                "source": "dynatrace",
+                "category": "info_event",
                 "data": dynatrace_event.to_primitive(),
                 "source_links": [
                     # TODO the real event external link
