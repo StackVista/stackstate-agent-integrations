@@ -18,7 +18,7 @@ def sts_environment():
 @pytest.fixture(scope="class")
 def instance(request):
     cfg = {
-        "url": "https://ton48129.live.dynatrace.com˚",
+        "url": "https://ton48129.live.dynatrace.com",
         "token": "some_token"
     }
     request.cls.instance = cfg
