@@ -1,0 +1,138 @@
+[
+    {
+        "entityId": "SERVICE-923B9ABBC3F9DB68",
+        "displayName": "/Exchange.HighAvailability/ServerLocator on msexchangerepl.exe:*",
+        "discoveredName": "/Exchange.HighAvailability/ServerLocator on msexchangerepl.exe:*",
+        "firstSeenTimestamp": 1600180870242,
+        "lastSeenTimestamp": 1601448273922,
+        "tags": [],
+        "fromRelationships": {
+            "runsOnProcessGroupInstance": [
+                "PROCESS_GROUP_INSTANCE-CBFCE59BBC689234"
+            ],
+            "runsOn": [
+                "PROCESS_GROUP-EFE5D33438EDC416"
+            ]
+        },
+        "toRelationships": {
+            "calls": [
+                "SERVICE-D59AFC81F1BEF4D2"
+            ]
+        },
+        "agentTechnologyType": "N/A",
+        "serviceType": "WebService",
+        "softwareTechnologies": [
+            {
+                "type": "CLR",
+                "edition": "FullCLR",
+                "version": "4.8.3928.0"
+            },
+            {
+                "type": "DOTNET",
+                "edition": ".NET Framework",
+                "version": "4.8.3928.0"
+            }
+        ],
+        "path": "/Exchange.HighAvailability/ServerLocator"
+    },
+    {
+        "entityId": "SERVICE-8745799105D02C01",
+        "displayName": "/Microsoft.Exchange.Directory.TopologyService on Microsoft.Exchange.Directory.TopologyService.exe:890",
+        "discoveredName": "/Microsoft.Exchange.Directory.TopologyService on Microsoft.Exchange.Directory.TopologyService.exe:890",
+        "firstSeenTimestamp": 1600180880242,
+        "lastSeenTimestamp": 1601448261922,
+        "tags": [],
+        "fromRelationships": {
+            "runsOnProcessGroupInstance": [
+                "PROCESS_GROUP_INSTANCE-6292F6F6D00A5436"
+            ],
+            "runsOn": [
+                "PROCESS_GROUP-EFBA52ED912610F1"
+            ]
+        },
+        "toRelationships": {
+            "calls": [
+                "SERVICE-D59AFC81F1BEF4D2"
+            ]
+        },
+        "agentTechnologyType": "N/A",
+        "serviceType": "WebService",
+        "softwareTechnologies": [
+            {
+                "type": "CLR",
+                "edition": "FullCLR",
+                "version": "4.8.3928.0"
+            },
+            {
+                "type": "DOTNET",
+                "edition": ".NET Framework",
+                "version": "4.8.3928.0"
+            }
+        ],
+        "path": "/Microsoft.Exchange.Directory.TopologyService",
+        "port": 890
+    },
+    {
+        "entityId": "SERVICE-329B4CC95B522941",
+        "displayName": "AutodiscoverService",
+        "discoveredName": "AutodiscoverService",
+        "firstSeenTimestamp": 1600181244244,
+        "lastSeenTimestamp": 1601448254398,
+        "tags": [
+            {
+                "context": "Kubernetes",
+                "key": "namespace",
+                "value": "default-with-unicode-char-"
+            }
+        ],
+        "fromRelationships": {
+            "runsOnProcessGroupInstance": [
+                "PROCESS_GROUP_INSTANCE-E1E941E994F67C73"
+            ],
+            "runsOn": [
+                "PROCESS_GROUP-8B474E9128049C87"
+            ],
+            "calls": [
+                "SERVICE-923B9ABBC3F9DB68"
+            ]
+        },
+        "toRelationships": {},
+        "agentTechnologyType": "DOTNET",
+        "serviceTechnologyTypes": [
+            "ASP.NET",
+            "IIS",
+            "IIS app pool",
+            "DotNet"
+        ],
+        "serviceType": "WebService",
+        "webServiceName": "AutodiscoverService",
+        "webServiceNamespace": "http://tempuri.org/",
+        "softwareTechnologies": [
+            {
+                "type": "IIS_APP_POOL",
+                "edition": null,
+                "version": "10.0.14393.0"
+            },
+            {
+                "type": "DOTNET",
+                "edition": ".NET Framework",
+                "version": "4.8.3928.0"
+            },
+            {
+                "type": "WCF",
+                "edition": null,
+                "version": "4.8.3928.0"
+            },
+            {
+                "type": "CLR",
+                "edition": "FullCLR",
+                "version": "4.0.30319.0"
+            },
+            {
+                "type": "ASP_NET",
+                "edition": null,
+                "version": "4.8.3928.0"
+            }
+        ]
+    }
+]
