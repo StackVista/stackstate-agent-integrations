@@ -11,14 +11,22 @@ def sts_environment():
     #  If you want to run an environment this object can not be empty.
     return {
         "url": "https://ton48129.live.dynatrace.com",
-        "token": "PSxqSomuSxSeYWgg_vt_p"
+        "token": "some_token"
     }
 
 
 @pytest.fixture(scope="class")
 def instance(request):
     cfg = {
-        "url": "https://ton48129.live.dynatrace.com",
-        "token": "PSxqSomuSxSeYWgg_vt_p"
+        "url": "https://ton48129.live.dynatrace.com˚",
+        "token": "some_token"
     }
     request.cls.instance = cfg
+
+
+@pytest.fixture(scope='class')
+def test_instance():
+    return {
+        "url": "https://instance.live.dynatrace.com",
+        "token": "some_token"
+    }

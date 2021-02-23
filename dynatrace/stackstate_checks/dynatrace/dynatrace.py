@@ -1,80 +1,86 @@
 # (C) StackState 2021
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
-from stackstate_checks.base import AgentCheck, ConfigurationError, TopologyInstance
+try:
+    from urllib.parse import urljoin
+except ImportError:
+    from urlparse import urljoin
+
+from datetime import datetime, timedelta
+
+from requests import Session, Timeout
+from schematics import Model
+from schematics.types import IntType, URLType, StringType, ListType, BooleanType, ModelType
+
+from stackstate_checks.base import AgentCheck, StackPackInstance
 from stackstate_checks.utils.identifiers import Identifiers
 
-import requests
-from requests import Session
-import json
-from datetime import datetime
+VERIFY_HTTPS = True
+TIMEOUT_DEFAULT = 10
+EVENTS_BOOSTRAP_DAYS_DEFAULT = 5
+EVENTS_PROCESS_LIMIT_DEFAULT = 10000
+
+
+class State(Model):
+    last_processed_event_timestamp = IntType(required=True)
+
+
+class InstanceInfo(Model):
+    url = URLType(required=True)
+    token = StringType(required=True)
+    instance_tags = ListType(StringType, default=[])
+    events_boostrap_days = IntType(default=EVENTS_BOOSTRAP_DAYS_DEFAULT)
+    events_process_limit = IntType(default=EVENTS_PROCESS_LIMIT_DEFAULT)
+    verify = BooleanType(default=VERIFY_HTTPS)
+    cert = StringType()
+    keyfile = StringType()
+    timeout = IntType(default=TIMEOUT_DEFAULT)
+    domain = StringType(default='dynatrace')
+    environment = StringType(default='production')
+    state = ModelType(State)
 
 
 class DynatraceCheck(AgentCheck):
     INSTANCE_TYPE = "dynatrace"
     SERVICE_CHECK_NAME = "dynatrace"
+    INSTANCE_SCHEMA = InstanceInfo
 
-    def __init__(self, name, init_config, instances=None):
-        AgentCheck.__init__(self, name, init_config, instances)
-        self.url = None
-        self.token = None
-        self.tags = []
-        self.environment = None
-        self.domain = None
-        self.verify = None
-        self.cert = None
-        self.keyfile = None
+    def get_instance_key(self, instance_info):
+        return StackPackInstance(self.INSTANCE_TYPE, str(instance_info.url))
 
-    def get_instance_key(self, instance):
-        if 'url' not in instance:
-            raise ConfigurationError('Missing url in configuration.')
-
-        return TopologyInstance(self.INSTANCE_TYPE, instance["url"], with_snapshots=False)
-
-    def check(self, instance):
-        """
-        Integration logic
-        """
-        if 'url' not in instance:
-            raise ConfigurationError('Missing URL in configuration.')
-        if 'token' not in instance:
-            raise ConfigurationError('Missing API Token in configuration.')
-
-        self.url = instance.get('url')
-        self.token = instance.get('token')
-        self.tags = instance.get('tags', [])
-        self.domain = instance.get('domain', 'dynatrace')
-        self.environment = instance.get('environment', 'production')
-        self.verify = instance.get('verify', True)
-        self.cert = instance.get('cert', '')
-        self.keyfile = instance.get('keyfile', '')
-
+    def check(self, instance_info):
         try:
+            if not instance_info.state:
+                # Create state on the first run
+                empty_state_timestamp = self._generate_bootstrap_timestamp(instance_info.events_boostrap_days)
+                self.log.debug('Creating new empty state with timestamp: %s', empty_state_timestamp)
+                instance_info.state = State({'last_processed_event_timestamp': empty_state_timestamp})
             self.start_snapshot()
-            self.process_topology()
+            self.process_topology(instance_info)
             self.stop_snapshot()
-            msg = "Dynatrace topology processed successfully"
-            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=self.tags, message=msg)
+            msg = "Dynatrace check processed successfully"
+            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=instance_info.instance_tags, message=msg)
         except Exception as e:
             self.log.exception(str(e))
-            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=self.tags, message=str(e))
+            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=instance_info.instance_tags,
+                               message=str(e))
 
-    def process_topology(self):
+    def process_topology(self, instance_info):
         """
         Collects components and relations for each component type from dynatrace smartscape topology API
         """
         start_time = datetime.now()
         self.log.info("Starting the collection of topology")
-        applications = self.collect_applications()
-        services = self.collect_services()
-        processes_groups = self.collect_process_groups()
-        processes = self.collect_processes()
-        hosts = self.collect_hosts()
+        applications = self.collect_applications(instance_info)
+        services = self.collect_services(instance_info)
+        processes_groups = self.collect_process_groups(instance_info)
+        processes = self.collect_processes(instance_info)
+        hosts = self.collect_hosts(instance_info)
         topology = {"application": applications, "service": services, "process-group": processes_groups,
                     "process": processes, "host": hosts}
         # collect topology for each component type
         for comp_type, response in topology.items():
-            self.collect_topology(response, comp_type)
+            self.collect_topology(response, comp_type, instance_info)
         end_time = datetime.now()
         time_taken = end_time - start_time
         self.log.info("Time taken to collect the topology is: {} seconds".format(time_taken.total_seconds()))
@@ -110,57 +116,45 @@ class DynatraceCheck(AgentCheck):
         if "tags" in data:
             del data["tags"]
 
-    def collect_processes(self):
+    def collect_processes(self, instance_info):
         """
         Collects the response from the Dynatrace Process API endpoint
         """
-        endpoint = self.get_dynatrace_endpoint("api/v1/entity/infrastructure/processes")
-        processes = self.get_dynatrace_json_response(endpoint)
+        endpoint = urljoin(instance_info.url, "api/v1/entity/infrastructure/processes")
+        processes = self._get_dynatrace_json_response(instance_info, endpoint)
         return processes
 
-    def collect_hosts(self):
+    def collect_hosts(self, instance_info):
         """
         Collects the response from the Dynatrace Host API endpoint
         """
-        endpoint = self.get_dynatrace_endpoint("api/v1/entity/infrastructure/hosts")
-        hosts = self.get_dynatrace_json_response(endpoint)
+        endpoint = urljoin(instance_info.url, "api/v1/entity/infrastructure/hosts")
+        hosts = self._get_dynatrace_json_response(instance_info, endpoint)
         return hosts
 
-    def collect_applications(self):
+    def collect_applications(self, instance_info):
         """
         Collects the response from the Dynatrace Application API endpoint
         """
-        endpoint = self.get_dynatrace_endpoint("api/v1/entity/applications")
-        applications = self.get_dynatrace_json_response(endpoint)
+        endpoint = urljoin(instance_info.url, "api/v1/entity/applications")
+        applications = self._get_dynatrace_json_response(instance_info, endpoint)
         return applications
 
-    def collect_process_groups(self):
+    def collect_process_groups(self, instance_info):
         """
         Collects the response from the Dynatrace Process-Group API endpoint
         """
-        endpoint = self.get_dynatrace_endpoint("api/v1/entity/infrastructure/process-groups")
-        process_groups = self.get_dynatrace_json_response(endpoint)
+        endpoint = urljoin(instance_info.url, "api/v1/entity/infrastructure/process-groups")
+        process_groups = self._get_dynatrace_json_response(instance_info, endpoint)
         return process_groups
 
-    def collect_services(self):
+    def collect_services(self, instance_info):
         """
         Collects the response from the Dynatrace Service API endpoint
         """
-        endpoint = self.get_dynatrace_endpoint("api/v1/entity/services")
-        services = self.get_dynatrace_json_response(endpoint)
+        endpoint = urljoin(instance_info.url, "api/v1/entity/services")
+        services = self._get_dynatrace_json_response(instance_info, endpoint)
         return services
-
-    def get_dynatrace_endpoint(self, path):
-        """
-        Creates the API endpoint from the path
-        :param path: the path of the dynatrace endpoint
-        :return: the full url of the endpoint
-        """
-        if self.url.endswith("/"):
-            endpoint = self.url + path
-        else:
-            endpoint = self.url + "/" + path
-        return endpoint
 
     def clean_unsupported_metadata(self, component):
         """
@@ -192,7 +186,7 @@ class DynatraceCheck(AgentCheck):
         host_identifiers = Identifiers.append_lowercase_identifiers(host_identifiers)
         return host_identifiers
 
-    def collect_topology(self, response, component_type):
+    def collect_topology(self, response, component_type, instance_info):
         """
         Process each component type and map those with specific data
         :param response: Response of each component type endpoint
@@ -215,10 +209,10 @@ class DynatraceCheck(AgentCheck):
             self.filter_item_topology_data(data)
             data.update({
                 "identifiers": identifiers,
-                "tags": self.tags,
-                "domain": self.domain,
-                "environment": self.environment,
-                "instance": self.url,
+                "tags": instance_info.instance_tags,
+                "domain": instance_info.domain,
+                "environment": instance_info.environment,
+                "instance": instance_info.url,
                 "labels": labels
             })
             self.component(external_id, component_type, data)
@@ -277,27 +271,31 @@ class DynatraceCheck(AgentCheck):
         labels = ["dynatrace-%s" % label for label in labels]
         return labels
 
-    def get_dynatrace_json_response(self, endpoint, timeout=10):
+    @staticmethod
+    def _generate_bootstrap_timestamp(days):
         """
-        Make a request to Dynatrace endpoint through session
-        :param endpoint: Dynatrace API Endpoint to call
-        :param timeout: timeout for a response
-        :return: Response of each endpoint
+        Creates timestamp n days in the past from the current moment. It is used in tests too.
+        :param days: how many days in the past
+        :return:
         """
-        headers = {"Authorization": "Api-Token {}".format(self.token)}
-        self.log.debug("URL is {}".format(endpoint))
+        bootstrap_date = datetime.now() - timedelta(days=days)
+        return int(bootstrap_date.strftime('%s')) * 1000
+
+    @staticmethod
+    def _get_dynatrace_json_response(instance_info, endpoint, params={}):
+        headers = {"Authorization": "Api-Token {}".format(instance_info.token)}
         try:
             with Session() as session:
                 session.headers.update(headers)
-                session.verify = self.verify
-                if self.cert:
-                    session.cert = (self.cert, self.keyfile)
-                resp = session.get(endpoint)
+                session.verify = instance_info.verify
+                if instance_info.cert:
+                    session.cert = (instance_info.cert, instance_info.keyfile)
+                resp = session.get(endpoint, params=params)
                 if resp.status_code != 200:
                     raise Exception("Got %s when hitting %s" % (resp.status_code, endpoint))
-                return json.loads(resp.text)
-        except requests.exceptions.Timeout:
-            msg = "{} seconds timeout when hitting {}".format(timeout, endpoint)
+                return resp.json()
+        except Timeout:
+            msg = "{} seconds timeout".format(instance_info.timeout)
             raise Exception("Exception occurred for endpoint {0} with message: {1}".format(endpoint, msg))
 
 

@@ -208,7 +208,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         """
         m.get("/api/v1/entity", exc=Exception("Exception occured"))
 
-        self.assertRaises(Exception, self.check.check(self.instance))
+        self.assertRaises(Exception, self.check.run())
         # since the check raised exception, the topology snapshot is not completed
         topo_instance = topology.get_snapshot(self.check.check_id)
         self.assertEqual(topo_instance.get("start_snapshot"), True)
