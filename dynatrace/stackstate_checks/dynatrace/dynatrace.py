@@ -56,7 +56,7 @@ class DynatraceCheck(AgentCheck):
                 self.log.debug('Creating new empty state with timestamp: %s', empty_state_timestamp)
                 instance_info.state = State({'last_processed_event_timestamp': empty_state_timestamp})
             self.start_snapshot()
-            self.process_topology(instance_info)
+            self._process_topology(instance_info)
             self.stop_snapshot()
             msg = "Dynatrace check processed successfully"
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=instance_info.instance_tags, message=msg)
@@ -65,27 +65,27 @@ class DynatraceCheck(AgentCheck):
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=instance_info.instance_tags,
                                message=str(e))
 
-    def process_topology(self, instance_info):
+    def _process_topology(self, instance_info):
         """
         Collects components and relations for each component type from dynatrace smartscape topology API
         """
         start_time = datetime.now()
         self.log.info("Starting the collection of topology")
-        applications = self.collect_applications(instance_info)
-        services = self.collect_services(instance_info)
-        processes_groups = self.collect_process_groups(instance_info)
-        processes = self.collect_processes(instance_info)
-        hosts = self.collect_hosts(instance_info)
+        applications = self._collect_applications(instance_info)
+        services = self._collect_services(instance_info)
+        processes_groups = self._collect_process_groups(instance_info)
+        processes = self._collect_processes(instance_info)
+        hosts = self._collect_hosts(instance_info)
         topology = {"application": applications, "service": services, "process-group": processes_groups,
                     "process": processes, "host": hosts}
         # collect topology for each component type
         for comp_type, response in topology.items():
-            self.collect_topology(response, comp_type, instance_info)
+            self._collect_topology(response, comp_type, instance_info)
         end_time = datetime.now()
         time_taken = end_time - start_time
         self.log.info("Time taken to collect the topology is: {} seconds".format(time_taken.total_seconds()))
 
-    def collect_relations(self, component, externalId):
+    def _collect_relations(self, component, externalId):
         """
         Collects relationships from different component-types
         :param component: the component for which relationships need to be extracted and processed
@@ -105,18 +105,7 @@ class DynatraceCheck(AgentCheck):
                 for source_id in relation_value:
                     self.relation(source_id, externalId, relation_type, {})
 
-    def filter_item_topology_data(self, data):
-        """
-        Delete the un-necessary relationships from the data
-        """
-        if "fromRelationships" in data:
-            del data["fromRelationships"]
-        if "toRelationships" in data:
-            del data["toRelationships"]
-        if "tags" in data:
-            del data["tags"]
-
-    def collect_processes(self, instance_info):
+    def _collect_processes(self, instance_info):
         """
         Collects the response from the Dynatrace Process API endpoint
         """
@@ -124,7 +113,7 @@ class DynatraceCheck(AgentCheck):
         processes = self._get_dynatrace_json_response(instance_info, endpoint)
         return processes
 
-    def collect_hosts(self, instance_info):
+    def _collect_hosts(self, instance_info):
         """
         Collects the response from the Dynatrace Host API endpoint
         """
@@ -132,7 +121,7 @@ class DynatraceCheck(AgentCheck):
         hosts = self._get_dynatrace_json_response(instance_info, endpoint)
         return hosts
 
-    def collect_applications(self, instance_info):
+    def _collect_applications(self, instance_info):
         """
         Collects the response from the Dynatrace Application API endpoint
         """
@@ -140,7 +129,7 @@ class DynatraceCheck(AgentCheck):
         applications = self._get_dynatrace_json_response(instance_info, endpoint)
         return applications
 
-    def collect_process_groups(self, instance_info):
+    def _collect_process_groups(self, instance_info):
         """
         Collects the response from the Dynatrace Process-Group API endpoint
         """
@@ -148,7 +137,7 @@ class DynatraceCheck(AgentCheck):
         process_groups = self._get_dynatrace_json_response(instance_info, endpoint)
         return process_groups
 
-    def collect_services(self, instance_info):
+    def _collect_services(self, instance_info):
         """
         Collects the response from the Dynatrace Service API endpoint
         """
@@ -156,7 +145,8 @@ class DynatraceCheck(AgentCheck):
         services = self._get_dynatrace_json_response(instance_info, endpoint)
         return services
 
-    def clean_unsupported_metadata(self, component):
+    @staticmethod
+    def _clean_unsupported_metadata(component):
         """
         Convert the data type to string in case of `boolean` and `float`.
         Currently we get `float` values for `Hosts`
@@ -170,7 +160,8 @@ class DynatraceCheck(AgentCheck):
                 component[key] = str(component[key])
         return component
 
-    def get_host_identifiers(self, component):
+    @staticmethod
+    def _get_host_identifiers(component):
         host_identifiers = []
         if component.get("esxiHostName"):
             host_identifiers.append(Identifiers.create_host_identifier(component.get("esxiHostName")))
@@ -186,7 +177,7 @@ class DynatraceCheck(AgentCheck):
         host_identifiers = Identifiers.append_lowercase_identifiers(host_identifiers)
         return host_identifiers
 
-    def collect_topology(self, response, component_type, instance_info):
+    def _collect_topology(self, response, component_type, instance_info):
         """
         Process each component type and map those with specific data
         :param response: Response of each component type endpoint
@@ -196,17 +187,17 @@ class DynatraceCheck(AgentCheck):
         if "error" in response:
             raise DynatraceError(response["error"].get("message"), response["error"].get("code"), component_type)
         for item in response:
-            item = self.clean_unsupported_metadata(item)
+            item = self._clean_unsupported_metadata(item)
             data = dict()
             external_id = item["entityId"]
             identifiers = [Identifiers.create_custom_identifier("dynatrace", external_id)]
             if component_type == "host":
-                host_identifiers = self.get_host_identifiers(item)
+                host_identifiers = self._get_host_identifiers(item)
                 identifiers.extend(host_identifiers)
             # derive useful labels and get labels from dynatrace tags
-            labels = self.get_labels(item)
+            labels = self._get_labels(item)
             data.update(item)
-            self.filter_item_topology_data(data)
+            self._filter_item_topology_data(data)
             data.update({
                 "identifiers": identifiers,
                 "tags": instance_info.instance_tags,
@@ -216,9 +207,22 @@ class DynatraceCheck(AgentCheck):
                 "labels": labels
             })
             self.component(external_id, component_type, data)
-            self.collect_relations(item, external_id)
+            self._collect_relations(item, external_id)
 
-    def get_labels_from_dynatrace_tags(self, item):
+    @staticmethod
+    def _filter_item_topology_data(data):
+        """
+        Delete the un-necessary relationships from the data
+        """
+        if "fromRelationships" in data:
+            del data["fromRelationships"]
+        if "toRelationships" in data:
+            del data["toRelationships"]
+        if "tags" in data:
+            del data["tags"]
+
+    @staticmethod
+    def _get_labels_from_dynatrace_tags(item):
         """
         Process each tag as a label in component
         :param item: the component item to read from
@@ -236,7 +240,7 @@ class DynatraceCheck(AgentCheck):
             tags.append(tag_label)
         return tags
 
-    def get_labels(self, item):
+    def _get_labels(self, item):
         """
         Extract labels and tags for each component
         :param item: the component item
@@ -265,7 +269,7 @@ class DynatraceCheck(AgentCheck):
             if technologies.get('version'):
                 tech_label += ":%s" % technologies['version']
             labels.append(tech_label)
-        labels_from_tags = self.get_labels_from_dynatrace_tags(item)
+        labels_from_tags = self._get_labels_from_dynatrace_tags(item)
         labels.extend(labels_from_tags)
         # prefix the labels with `dynatrace-` for all labels
         labels = ["dynatrace-%s" % label for label in labels]

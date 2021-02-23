@@ -190,7 +190,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         Test to check if relations are collected properly
         """
         component = _read_data("host_response.json")[0]
-        self.check.collect_relations(component, component.get('entityId'))
+        self.check._collect_relations(component, component.get('entityId'))
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 0)
