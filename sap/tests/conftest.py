@@ -22,7 +22,8 @@ def instance():
         "user": "test",
         "pass": "test",
         "domain": "sap",
-        "environment": "sap-prod"
+        "environment": "sap-prod",
+        "tags": ["customer:Stackstate", "instance:http"]
     }
 
 
@@ -38,7 +39,7 @@ def https_instance():
         "keyfile": "/path/to/key.pem",
         "tags": ["customer:Stackstate", "foo:bar"],
         "thread_count": 4,
-        "idle_thread_ttl": 1
+        "idle_thread_ttl": 2
     }
 
 @pytest.fixture

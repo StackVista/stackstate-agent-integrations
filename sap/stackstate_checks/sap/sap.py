@@ -54,7 +54,7 @@ class SapCheck(AgentCheck):
                "field": "Value"},
         "36": {"description": "HDB:Recent_backup", 
                "field": "Value"},
-        "38": {"description": "HDB:REcent_log_backup", 
+        "38": {"description": "HDB:Recent_log_backup",
                "field": "Value"}, 
         "102": {"description": "HDB:System_backup_Exists", 
                 "field": "Value"},
@@ -224,7 +224,6 @@ class SapCheck(AgentCheck):
             for instance in instances:
                 data = {i.mName: i.mValue for i in instance.mProperties.item}
                 instance_id = data.get("SystemNumber")
-                self._get_alerts(instance_id, proxy)
                 self._get_instance_params(instance_id, proxy)
         self._get_computersystem(proxy)
         # SAP_ITSAMDatabaseMetric
@@ -275,6 +274,8 @@ class SapCheck(AgentCheck):
                     description = lookup.get("description", metricid)
                     value = metricdata.get(lookup.get("field"))
                     taglist = ["host:{}".format(self.host), "database:{}".format(name)]
+                    for tag in self.tags:
+                        taglist.append(tag)
                     # sys.stdout.write("_get_database_gauges\ndescription={}\nvalue={}\ntaglist={}".format(description, value, taglist))
                     if self.host in self.queue.keys():
                         self.queue[self.host].put((self.send_gauge, [description, value, taglist]))
@@ -291,6 +292,8 @@ class SapCheck(AgentCheck):
                     description = self.system_gauges.get(item).get("description", item)
                     value = metric_item.get(item)
                     taglist = ["host:{}".format(self.host)]
+                    for tag in self.tags:
+                        taglist.append(tag)
                     # sys.stdout.write("_get_computersystem:\nvalue={}\ndescription={}\ntaglist={}".format(value, description, taglist))
                     if self.host in self.queue.keys():
                         self.queue[self.host].put((self.send_gauge, [description, value, taglist]))
@@ -300,14 +303,14 @@ class SapCheck(AgentCheck):
     def _get_instance_params(self, instance_id, proxy):
         # SAP_ITSAMInstance/Parameter
         params = proxy.get_sap_instance_params(instance_id)
-        for param in params:
+        for param in params.keys():
             if param in self.instance_gauges.keys():
                 description = self.instance_gauges.get(param).get("description", param)
                 value = params.get(param)
                 taglist = ["instance_id:{0}".format(instance_id), "host:{0}".format(self.host)]
                 for tag in self.tags:
                     taglist.append(tag)
-                # sys.stdout.write("_get_instance_params: taglist={}".format(taglist))
+                # sys.stdout.write("_get_instance_params\n\tvalue={}\n\ttaglist={}\n".format(value, taglist))
                 if self.host in self.queue.keys():
                     self.queue[self.host].put((self.send_gauge, [description, value, taglist]))
                 else:
@@ -502,6 +505,7 @@ class SapCheck(AgentCheck):
                 self._collect_processes(instance_id, proxy)
                 if instance_type.startswith("ABAP Instance"):
                     self._collect_worker_metrics(instance_id, instance_type, proxy)
+                    self._get_alerts(instance_id, proxy)
                 elif instance_type.startswith("J2EE Instance"):
                     #
                     continue
@@ -805,7 +809,7 @@ class SapCheck(AgentCheck):
                     subaccount_name = str(subaccount.get("displayName"))
                     # display name is not always setup
                     if subaccount_name == "None":
-                        subaccount_name = str(subaccount.get("subaccount")) 
+                        subaccount_name = str(subaccount.get("subaccount"))
                     external_id = str(self._scc_subaccount_external_id(subaccount.get("subaccount")))
                     tunnel = subaccount.get("tunnel")
 
