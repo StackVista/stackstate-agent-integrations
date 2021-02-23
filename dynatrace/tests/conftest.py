@@ -3,6 +3,9 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import pytest
 
+from stackstate_checks.base.stubs import aggregator
+from stackstate_checks.dynatrace import DynatraceCheck
+
 
 @pytest.fixture(scope='session')
 def sts_environment():
@@ -28,5 +31,15 @@ def instance(request):
 def test_instance():
     return {
         "url": "https://instance.live.dynatrace.com",
-        "token": "some_token"
+        "token": "some_token",
+        "events_process_limit": 10,
+        "timeout": 20
     }
+
+
+@pytest.fixture
+def dynatrace_event_check(test_instance):
+    check = DynatraceCheck('dynatrace', {}, instances=[test_instance])
+    yield check
+    aggregator.reset()
+    check.commit_state(None)
