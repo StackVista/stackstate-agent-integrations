@@ -107,11 +107,11 @@ class DynatraceCheck(AgentCheck):
         time_taken = end_time - start_time
         self.log.info("Time taken to collect the topology is: {} seconds".format(time_taken.total_seconds()))
 
-    def _collect_relations(self, component, externalId):
+    def _collect_relations(self, component, external_id):
         """
         Collects relationships from different component-types
         :param component: the component for which relationships need to be extracted and processed
-        :param externalId: the component externalId for and from relationship will be created
+        :param external_id: the component externalId for and from relationship will be created
         :return: None
         """
         outgoing_relations = component.get("fromRelationships", {})
@@ -120,12 +120,12 @@ class DynatraceCheck(AgentCheck):
             # Ignore `isSiteOf` relation since location components are not processed right now
             if relation_type != "isSiteOf":
                 for target_id in relation_value:
-                    self.relation(externalId, target_id, relation_type, {})
+                    self.relation(external_id, target_id, relation_type, {})
         for relation_type, relation_value in incoming_relations.items():
             # Ignore `isSiteOf` relation since location components are not processed right now
             if relation_type != "isSiteOf":
                 for source_id in relation_value:
-                    self.relation(source_id, externalId, relation_type, {})
+                    self.relation(source_id, external_id, relation_type, {})
 
     def _collect_processes(self, instance_info):
         """
@@ -206,8 +206,6 @@ class DynatraceCheck(AgentCheck):
         :param component_type: Component type
         :return: create the component on stackstate API
         """
-        if "error" in response:
-            raise DynatraceError(response["error"].get("message"), response["error"].get("code"), component_type)
         for item in response:
             item = self._clean_unsupported_metadata(item)
             data = dict()
@@ -353,8 +351,6 @@ class DynatraceCheck(AgentCheck):
         until is None or it reach events_process_limit
         """
         events_response = self._get_events(instance_info, from_time=instance_info.state.last_processed_event_timestamp)
-        if "error" in events_response:
-            raise Exception("Error in pulling the events: {}".format(events_response.get("error").get("message")))
         new_events = []
         events_processed = 0
         event_limit_reached = None
@@ -404,14 +400,13 @@ class DynatraceCheck(AgentCheck):
             raise EventLimitReachedException("Maximum event limit to process is {} but received total {} events".
                                              format(instance_info.events_process_limit, total_event_count))
 
-    @staticmethod
-    def _generate_bootstrap_timestamp(days):
+    def _generate_bootstrap_timestamp(self, days):
         """
         Creates timestamp n days in the past from the current moment. It is used in tests too.
         :param days: how many days in the past
         :return:
         """
-        bootstrap_date = datetime.now() - timedelta(days=days)
+        bootstrap_date = datetime.fromtimestamp(self._current_time_seconds()) - timedelta(days=days)
         return int(bootstrap_date.strftime('%s')) * 1000
 
     @staticmethod
@@ -422,8 +417,7 @@ class DynatraceCheck(AgentCheck):
         """
         return int(time.time())
 
-    @staticmethod
-    def _get_dynatrace_json_response(instance_info, endpoint, params=None):
+    def _get_dynatrace_json_response(self, instance_info, endpoint, params=None):
         headers = {"Authorization": "Api-Token {}".format(instance_info.token)}
         try:
             with Session() as session:
@@ -431,34 +425,21 @@ class DynatraceCheck(AgentCheck):
                 session.verify = instance_info.verify
                 if instance_info.cert:
                     session.cert = (instance_info.cert, instance_info.keyfile)
-                resp = session.get(endpoint, params=params)
-                if resp.status_code != 200:
-                    raise Exception("Got %s when hitting %s" % (resp.status_code, endpoint))
-                return resp.json()
+                response = session.get(endpoint, params=params)
+                response_json = response.json()
+                if response.status_code != 200:
+                    if "error" in response_json:
+                        msg = response_json["error"].get("message")
+                    else:
+                        msg = "Got %s when hitting %s" % (response.status_code, endpoint)
+                    self.log.error(msg)
+                    raise Exception(
+                        'Got an unexpected error with status code {0} and message: {1}'.format(response.status_code,
+                                                                                               msg))
+                return response_json
         except Timeout:
             msg = "{} seconds timeout".format(instance_info.timeout)
-            raise Exception("Exception occurred for endpoint {0} with message: {1}".format(endpoint, msg))
-
-
-class DynatraceError(Exception):
-    """
-    Exception raised for errors in Dynatrace API endpoint response
-
-    Attributes:
-        message         -- explanation of the error response
-        code            -- status code of the error response
-        component_type  -- Type of the component for which error occured
-    """
-
-    def __init__(self, message, code, component_type):
-        super(DynatraceError, self).__init__(self.message)
-        self.message = message
-        self.code = code
-        self.component_type = component_type
-
-    def __str__(self):
-        return 'Got an unexpected error with status code {0} and message {1} while processing {2} component ' \
-               'type'.format(self.code, self.message, self.component_type)
+            raise Exception("Timeout exception occurred for endpoint {0} with message: {1}".format(endpoint, msg))
 
 
 class EventLimitReachedException(Exception):

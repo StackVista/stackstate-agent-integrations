@@ -20,10 +20,11 @@ def test_no_events(dynatrace_event_check, test_instance):
     Testing Dynatrace event check should not produce any events
     """
     with requests_mock.Mocker() as m:
+        dynatrace_event_check._process_topology = mock.MagicMock(return_value=None)
+        dynatrace_event_check._current_time_seconds = mock.MagicMock(return_value=1613485584)
         url = '{}/api/v1/events?from={}'.format(test_instance['url'],
                                                 dynatrace_event_check._generate_bootstrap_timestamp(5))
         m.get(url, status_code=200, text=read_file('no_events.json'))
-        dynatrace_event_check._process_topology = mock.MagicMock(return_value=None)
         dynatrace_event_check.run()
         aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.OK)
         assert len(aggregator.events) == 0
@@ -35,10 +36,11 @@ def test_events_process_limit(dynatrace_event_check, test_instance):
     between subsequent check runs exceed the `events_process_limit`
     """
     with requests_mock.Mocker() as m:
+        dynatrace_event_check._process_topology = mock.MagicMock(return_value=None)
+        dynatrace_event_check._current_time_seconds = mock.MagicMock(return_value=1613485584)
         url = '{}/api/v1/events?from={}'.format(test_instance['url'],
                                                 dynatrace_event_check._generate_bootstrap_timestamp(5))
         m.get(url, status_code=200, text=read_file('21_events.json'))
-        dynatrace_event_check._process_topology = mock.MagicMock(return_value=None)
         dynatrace_event_check.run()
         aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.WARNING)
         assert len(aggregator.events) == 10
@@ -49,6 +51,8 @@ def test_events_process_limit_with_batches(dynatrace_event_check, test_instance)
     Testing Dynatrace should respect `events_process_limit` config and just produce those number of events
     """
     with requests_mock.Mocker() as m:
+        dynatrace_event_check._current_time_seconds = mock.MagicMock(return_value=1613485584)
+        dynatrace_event_check._process_topology = mock.MagicMock(return_value=None)
         url1 = '{}/api/v1/events?from={}'.format(test_instance['url'],
                                                  dynatrace_event_check._generate_bootstrap_timestamp(5))
         url2 = '{}/api/v1/events?cursor={}'.format(test_instance['url'], '123')
@@ -56,24 +60,9 @@ def test_events_process_limit_with_batches(dynatrace_event_check, test_instance)
         m.get(url1, status_code=200, text=read_file("events_set1.json"))
         m.get(url2, status_code=200, text=read_file("events_set2.json"))
         m.get(url3, status_code=200, text=read_file("events_set3.json"))
-        dynatrace_event_check._process_topology = mock.MagicMock(return_value=None)
         dynatrace_event_check.run()
         aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.WARNING)
         assert len(aggregator.events) == 10
-
-
-def test_error_in_events(dynatrace_event_check):
-    """
-    Testing Dynatrace check should produce service check when error thrown
-    """
-    error_msg = "mocked test error occurred"
-    dynatrace_event_check._get_dynatrace_json_response = mock.MagicMock(
-        return_value={"error": {"message": error_msg}})
-    dynatrace_event_check._process_topology = mock.MagicMock(return_value=None)
-    dynatrace_event_check.run()
-    aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.CRITICAL,
-                                    message='Error in pulling the events: {}'.format(error_msg))
-    assert len(aggregator.events) == 0
 
 
 def test_raise_exception_for_response_code_not_200(dynatrace_event_check, test_instance):
@@ -82,12 +71,13 @@ def test_raise_exception_for_response_code_not_200(dynatrace_event_check, test_i
     """
 
     with requests_mock.Mocker() as m:
+        dynatrace_event_check._process_topology = mock.MagicMock(return_value=None)
+        dynatrace_event_check._current_time_seconds = mock.MagicMock(return_value=1613485584)
         url = '{}/api/v1/events?from={}'.format(test_instance['url'],
                                                 dynatrace_event_check._generate_bootstrap_timestamp(5))
-        m.get(url, status_code=500, text='error')
-        dynatrace_event_check._process_topology = mock.MagicMock(return_value=None)
+        m.get(url, status_code=500, text='{"error": {"code": 500, "message": "Simulated error!"}}')
         dynatrace_event_check.run()
-        error_message = 'Got 500 when hitting https://instance.live.dynatrace.com/api/v1/events'
+        error_message = 'Got an unexpected error with status code 500 and message: Simulated error!'
         aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.CRITICAL, message=error_message)
         assert len(aggregator.events) == 0
 
@@ -110,11 +100,11 @@ def test_generated_events(dynatrace_event_check, test_instance):
     Testing Dynatrace check should produce full events
     """
     with requests_mock.Mocker() as m:
+        dynatrace_event_check._current_time_seconds = mock.MagicMock(return_value=1613485584)
+        dynatrace_event_check._process_topology = mock.MagicMock(return_value=None)
         url = '{}/api/v1/events?from={}'.format(test_instance['url'],
                                                 dynatrace_event_check._generate_bootstrap_timestamp(5))
         m.get(url, status_code=200, text=read_file('9_events.json'))
-        dynatrace_event_check._current_time_seconds = mock.MagicMock(return_value=1613485584)
-        dynatrace_event_check._process_topology = mock.MagicMock(return_value=None)
         dynatrace_event_check.run()
         aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.OK)
         assert len(aggregator.events) == 8
@@ -131,6 +121,8 @@ def test_state_data(state, dynatrace_event_check, test_instance):
     """
     Check is the right timestamp is writen to the state
     """
+    dynatrace_event_check._current_time_seconds = mock.MagicMock(return_value=1613485584)
+    dynatrace_event_check._process_topology = mock.MagicMock(return_value=None)
     state_instance = StateDescriptor("instance.dynatrace_event.https_instance.live.dynatrace.com", "dynatrace_event.d")
     state.assert_state(state_instance, None)
     events_file = 'no_events.json'
@@ -138,7 +130,6 @@ def test_state_data(state, dynatrace_event_check, test_instance):
         url = '{}/api/v1/events?from={}'.format(test_instance['url'],
                                                 dynatrace_event_check._generate_bootstrap_timestamp(5))
         m.get(url, status_code=200, text=read_file(events_file))
-        dynatrace_event_check._process_topology = mock.MagicMock(return_value=None)
         dynatrace_event_check.run()
         aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.OK)
     mocked_response_data = read_json_from_file(events_file)
@@ -148,13 +139,14 @@ def test_state_data(state, dynatrace_event_check, test_instance):
 
 def test_timeout(dynatrace_event_check, test_instance):
     with requests_mock.Mocker() as m:
+        dynatrace_event_check._current_time_seconds = mock.MagicMock(return_value=1613485584)
+        dynatrace_event_check._process_topology = mock.MagicMock(return_value=None)
         url = '{}/api/v1/events?from={}'.format(test_instance['url'],
                                                 dynatrace_event_check._generate_bootstrap_timestamp(5))
         m.get(url, exc=requests.exceptions.ConnectTimeout)
-        dynatrace_event_check._process_topology = mock.MagicMock(return_value=None)
         dynatrace_event_check.run()
         aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.CRITICAL,
-                                        message='Exception occurred for endpoint '
+                                        message='Timeout exception occurred for endpoint '
                                                 'https://instance.live.dynatrace.com/api/v1/events with message: '
                                                 '20 seconds timeout')
 
