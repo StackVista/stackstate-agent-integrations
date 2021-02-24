@@ -3,7 +3,7 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import pytest
 
-from stackstate_checks.base.stubs import aggregator
+from stackstate_checks.base.stubs import aggregator, telemetry
 from stackstate_checks.dynatrace import DynatraceCheck
 
 
@@ -33,6 +33,7 @@ def test_instance():
         "url": "https://instance.live.dynatrace.com",
         "token": "some_token",
         "events_process_limit": 10,
+        "events_boostrap_days": 5,
         "timeout": 20
     }
 
@@ -42,4 +43,5 @@ def dynatrace_event_check(test_instance):
     check = DynatraceCheck('dynatrace', {}, instances=[test_instance])
     yield check
     aggregator.reset()
+    telemetry.reset()
     check.commit_state(None)

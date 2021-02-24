@@ -57,6 +57,9 @@ class InstanceInfo(Model):
     state = ModelType(State)
 
 
+dynatrace_entities_cache = {}
+
+
 class DynatraceCheck(AgentCheck):
     INSTANCE_TYPE = "dynatrace"
     SERVICE_CHECK_NAME = "dynatrace"
@@ -228,6 +231,7 @@ class DynatraceCheck(AgentCheck):
             })
             self.component(external_id, component_type, data)
             self._collect_relations(item, external_id)
+            dynatrace_entities_cache[external_id] = {"name": data.get("displayName"), "type": component_type}
 
     @staticmethod
     def _filter_item_topology_data(data):
@@ -299,12 +303,32 @@ class DynatraceCheck(AgentCheck):
         """
         Wrapper to collect events, filters those events and persist the state
         """
+        entities_with_events = []
         events, events_limit_reached = self._collect_events(instance_info)
         closed_events = len([e for e in events if e.get('eventStatus') == 'CLOSED'])
         open_events = len([e for e in events if e.get('eventStatus') == 'OPEN'])
         self.log.info("Collected %d events, %d are open and %d are closed.", len(events), open_events, closed_events)
         for event in events:
             self._create_event(event, instance_info.url)
+            entities_with_events.append(event.eventId)
+        # Simulating OK health state by sending CLOSED events for processed topology entities with no events.
+        for entity_id in [e for e in dynatrace_entities_cache.keys() if e not in entities_with_events]:
+            simulated_closed_event = DynatraceEvent(
+                {
+                    "eventId": -1,
+                    "startTime": self._current_time_seconds(),
+                    "endTime": self._current_time_seconds(),
+                    "entityId": entity_id,
+                    "entityName": dynatrace_entities_cache[entity_id].get('name'),
+                    "impactLevel": "INFRASTRUCTURE",
+                    "eventType": "CUSTOM_ALERT",
+                    "eventStatus": "CLOSED",
+                    "tags": [],
+                    "id": -1,
+                    "source": "StackState Agent"
+                }
+            )
+            self._create_event(simulated_closed_event, instance_info.url)
         if events_limit_reached:
             raise EventLimitReachedException(events_limit_reached)
 
