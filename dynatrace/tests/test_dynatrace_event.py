@@ -7,7 +7,7 @@ import requests
 import requests_mock
 
 from stackstate_checks.base import AgentCheck, StateDescriptor
-from stackstate_checks.base.stubs import aggregator, telemetry
+from stackstate_checks.base.stubs import aggregator, telemetry, topology
 from stackstate_checks.dynatrace.dynatrace import State
 from .helpers import read_file, read_json_from_file
 
@@ -174,5 +174,10 @@ def test_simulated_ok_events(dynatrace_event_check, test_instance):
         m.get('{}/api/v1/events?from={}'.format(url, timestamp), status_code=200, text=read_file('9_events.json'))
         dynatrace_event_check.run()
         aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.OK)
+        assert len(topology.get_snapshot('').get('components')) == 14
         assert len(aggregator.events) == 22
+        real_events = [e for e in aggregator.events if 'source:StackState Agent' not in e.get('tags', [])]
+        simulated_events = [e for e in aggregator.events if 'source:StackState Agent' in e.get('tags', [])]
+        assert len(real_events) == 8
+        assert len(simulated_events) == 14
         assert len(telemetry._topology_events) == 1
