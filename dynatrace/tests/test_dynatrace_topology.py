@@ -25,9 +25,9 @@ def _read_test_file(filename):
         return f.read() if PY3 else f.read().decode("utf-8")
 
 
-def sort_topology_data(topo_instances):
-    components = [json.dumps(component, sort_keys=True) for component in topo_instances["components"]]
-    relations = [json.dumps(relation, sort_keys=True) for relation in topo_instances["relations"]]
+def sort_topology_data(topology_instance):
+    components = [json.dumps(component, sort_keys=True) for component in topology_instance["components"]]
+    relations = [json.dumps(relation, sort_keys=True) for relation in topology_instance["relations"]]
     return components, relations
 
 
@@ -61,14 +61,11 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         Testing Dynatrace check should not produce any topology
         """
         self._set_http_responses(m)
-
         self.check.url = self.instance.get('url')
-
         self.check.run()
-
-        topo_instances = topology.get_snapshot(self.check.check_id)
-        self.assertEqual(len(topo_instances['components']), 0)
-        self.assertEqual(len(topo_instances['relations']), 0)
+        test_topology = topology.get_snapshot(self.check.check_id)
+        self.assertEqual(len(test_topology['components']), 0)
+        self.assertEqual(len(test_topology['relations']), 0)
 
     @requests_mock.Mocker()
     def test_collect_processes(self, m):
@@ -76,22 +73,11 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         Testing Dynatrace check should collect processes
         """
         self._set_http_responses(m, procs=_read_test_file("process_response.json"))
-
         self.check.url = self.instance.get('url')
-
         self.check.run()
-
-        topo_instances = topology.get_snapshot(self.check.check_id)
-        actual_topology = _read_data("process_response_topology.json")
-
-        # sort the keys of components and relations, so we match it in actual
-        components, relations = sort_topology_data(topo_instances)
-        actual_components, actual_relations = sort_topology_data(actual_topology)
-
-        self.assertEqual(components, actual_components)
-        self.assertEqual(len(relations), len(actual_relations))
-        for relation in relations:
-            self.assertIn(relation, actual_relations)
+        test_topology = topology.get_snapshot(self.check.check_id)
+        expected_topology = _read_data("process_response_topology.json")
+        self.asset_topology(expected_topology, test_topology)
 
     @requests_mock.Mocker()
     def test_collect_hosts(self, m):
@@ -99,22 +85,11 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         Testing Dynatrace check should collect hosts
         """
         self._set_http_responses(m, hosts=_read_test_file("host_response.json"))
-
         self.check.url = self.instance.get('url')
-
         self.check.run()
-
-        topo_instances = topology.get_snapshot(self.check.check_id)
-        actual_topology = _read_data("host_response_topology.json")
-
-        # sort the keys of components and relations, so we match it in actual
-        components, relations = sort_topology_data(topo_instances)
-        actual_components, actual_relations = sort_topology_data(actual_topology)
-
-        self.assertEqual(components, actual_components)
-        self.assertEqual(len(relations), len(actual_relations))
-        for relation in relations:
-            self.assertIn(relation, actual_relations)
+        test_topology = topology.get_snapshot(self.check.check_id)
+        expected_topology = _read_data("host_response_topology.json")
+        self.asset_topology(expected_topology, test_topology)
 
     @requests_mock.Mocker()
     def test_collect_services(self, m):
@@ -122,22 +97,25 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         Testing Dynatrace check should collect services and tags coming from Kubernetes
         """
         self._set_http_responses(m, svcs=_read_test_file("service_response.json"))
-
         self.check.url = self.instance.get('url')
-
         self.check.run()
+        test_topology = topology.get_snapshot(self.check.check_id)
+        expected_topology = _read_data("service_response_topology.json")
+        self.asset_topology(expected_topology, test_topology)
 
-        topo_instances = topology.get_snapshot(self.check.check_id)
-        actual_topology = _read_data("service_response_topology.json")
-
-        # sort the keys of components and relations, so we match it in actual
-        components, relations = sort_topology_data(topo_instances)
-        actual_components, actual_relations = sort_topology_data(actual_topology)
-
-        self.assertEqual(components, actual_components)
-        self.assertEqual(len(relations), len(actual_relations))
+    def asset_topology(self, expected_topology, test_topology):
+        """
+        Sort the keys of components and relations, so we can actually match it
+        :param expected_topology: expected topology read from file
+        :param test_topology: topology gathered during test
+        :return: None
+        """
+        components, relations = sort_topology_data(test_topology)
+        expected_components, expected_relations = sort_topology_data(expected_topology)
+        self.assertEqual(components, expected_components)
+        self.assertEqual(len(relations), len(expected_relations))
         for relation in relations:
-            self.assertIn(relation, actual_relations)
+            self.assertIn(relation, expected_relations)
 
     @requests_mock.Mocker()
     def test_collect_applications(self, m):
@@ -154,13 +132,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         actual_topology = _read_data("application_response_topology.json")
 
         # sort the keys of components and relations, so we match it in actual
-        components, relations = sort_topology_data(topo_instances)
-        actual_components, actual_relations = sort_topology_data(actual_topology)
-
-        self.assertEqual(components, actual_components)
-        self.assertEqual(len(relations), len(actual_relations))
-        for relation in relations:
-            self.assertIn(relation, actual_relations)
+        self.asset_topology(actual_topology, topo_instances)
 
     @requests_mock.Mocker()
     def test_collect_process_groups(self, m):
@@ -177,13 +149,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         actual_topology = _read_data("process-group_response_topology.json")
 
         # sort the keys of components and relations, so we match it in actual
-        components, relations = sort_topology_data(topo_instances)
-        actual_components, actual_relations = sort_topology_data(actual_topology)
-
-        self.assertEqual(components, actual_components)
-        self.assertEqual(len(relations), len(actual_relations))
-        for relation in relations:
-            self.assertIn(relation, actual_relations)
+        self.asset_topology(actual_topology, topo_instances)
 
     def test_collect_relations(self):
         """
