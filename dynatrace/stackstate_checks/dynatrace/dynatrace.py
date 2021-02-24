@@ -108,6 +108,7 @@ class DynatraceCheck(AgentCheck):
             self._collect_topology(response, comp_type, instance_info)
         end_time = datetime.now()
         time_taken = end_time - start_time
+        self.log.info("Collected %d entities.", len(dynatrace_entities_cache))
         self.log.info("Time taken to collect the topology is: {} seconds".format(time_taken.total_seconds()))
 
     def _collect_relations(self, component, external_id):
@@ -310,14 +311,15 @@ class DynatraceCheck(AgentCheck):
         self.log.info("Collected %d events, %d are open and %d are closed.", len(events), open_events, closed_events)
         for event in events:
             self._create_event(event, instance_info.url)
-            entities_with_events.append(event.eventId)
+            entities_with_events.append(event.entityId)
         # Simulating OK health state by sending CLOSED events for processed topology entities with no events.
+        simulated_count = 0
         for entity_id in [e for e in dynatrace_entities_cache.keys() if e not in entities_with_events]:
             simulated_closed_event = DynatraceEvent(
                 {
                     "eventId": -1,
-                    "startTime": self._current_time_seconds(),
-                    "endTime": self._current_time_seconds(),
+                    "startTime": self._current_time_seconds() * 1000,
+                    "endTime": self._current_time_seconds() * 1000,
                     "entityId": entity_id,
                     "entityName": dynatrace_entities_cache[entity_id].get('name'),
                     "impactLevel": "INFRASTRUCTURE",
@@ -329,6 +331,8 @@ class DynatraceCheck(AgentCheck):
                 }
             )
             self._create_event(simulated_closed_event, instance_info.url)
+            simulated_count += 1
+        self.log.info("Created %d events and %d simulated closed events.", len(entities_with_events), simulated_count)
         if events_limit_reached:
             raise EventLimitReachedException(events_limit_reached)
 
