@@ -2,9 +2,6 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 
-import json
-import os
-
 import mock
 import requests
 import requests_mock
@@ -12,6 +9,7 @@ import requests_mock
 from stackstate_checks.base import AgentCheck, StateDescriptor
 from stackstate_checks.base.stubs import aggregator, telemetry
 from stackstate_checks.dynatrace.dynatrace import State
+from .helpers import read_file, read_json_from_file
 
 CHECK_NAME = 'dynatrace'
 
@@ -159,8 +157,9 @@ def test_simulated_ok_events(dynatrace_event_check, test_instance):
     """
     Test if there is correct number of simulated events created
     """
-    url = test_instance['url']
     dynatrace_event_check._current_time_seconds = mock.MagicMock(return_value=1613485584)
+    url = test_instance['url']
+    timestamp = dynatrace_event_check._generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
     with requests_mock.Mocker() as m:
         m.get("{}/api/v1/entity/infrastructure/hosts".format(url), status_code=200,
               text=read_file('host_response.json'))
@@ -172,24 +171,8 @@ def test_simulated_ok_events(dynatrace_event_check, test_instance):
               text=read_file('process_response.json'))
         m.get("{}/api/v1/entity/infrastructure/process-groups".format(url), status_code=200,
               text=read_file('process-group_response.json'))
-        m.get('{}/api/v1/events?from={}'.format(url, dynatrace_event_check._generate_bootstrap_timestamp(5)),
-              status_code=200, text=read_file('9_events.json'))
+        m.get('{}/api/v1/events?from={}'.format(url, timestamp), status_code=200, text=read_file('9_events.json'))
         dynatrace_event_check.run()
         aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.OK)
         assert len(aggregator.events) == 22
         assert len(telemetry._topology_events) == 1
-
-
-def read_file(filename):
-    with open(get_path_to_file(filename), "r") as f:
-        return f.read()
-
-
-def read_json_from_file(filename):
-    with open(get_path_to_file(filename), 'r') as f:
-        return json.load(f)
-
-
-def get_path_to_file(filename):
-    path_to_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'samples', filename)
-    return path_to_file

@@ -1,28 +1,16 @@
 # (C) StackState 2020
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
-import os
+
+import json
+import unittest
 
 import pytest
-import unittest
-import json
 import requests_mock
-from six import PY3
 
-from stackstate_checks.dynatrace import DynatraceCheck
 from stackstate_checks.base.stubs import topology, aggregator
-
-
-def _read_data(filename):
-    path_to_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'samples', filename)
-    with open(path_to_file, "r") as f:
-        return json.load(f)
-
-
-def _read_test_file(filename):
-    path_to_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'samples', filename)
-    with open(path_to_file, "r") as f:
-        return f.read() if PY3 else f.read().decode("utf-8")
+from stackstate_checks.dynatrace import DynatraceCheck
+from .helpers import read_file, read_json_from_file
 
 
 def sort_topology_data(topology_instance):
@@ -72,11 +60,11 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         """
         Testing Dynatrace check should collect processes
         """
-        self._set_http_responses(m, procs=_read_test_file("process_response.json"))
+        self._set_http_responses(m, procs=read_file("process_response.json"))
         self.check.url = self.instance.get('url')
         self.check.run()
         test_topology = topology.get_snapshot(self.check.check_id)
-        expected_topology = _read_data("process_response_topology.json")
+        expected_topology = read_json_from_file("process_response_topology.json")
         self.asset_topology(expected_topology, test_topology)
 
     @requests_mock.Mocker()
@@ -84,11 +72,11 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         """
         Testing Dynatrace check should collect hosts
         """
-        self._set_http_responses(m, hosts=_read_test_file("host_response.json"))
+        self._set_http_responses(m, hosts=read_file("host_response.json"))
         self.check.url = self.instance.get('url')
         self.check.run()
         test_topology = topology.get_snapshot(self.check.check_id)
-        expected_topology = _read_data("host_response_topology.json")
+        expected_topology = read_json_from_file("host_response_topology.json")
         self.asset_topology(expected_topology, test_topology)
 
     @requests_mock.Mocker()
@@ -96,11 +84,11 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         """
         Testing Dynatrace check should collect services and tags coming from Kubernetes
         """
-        self._set_http_responses(m, svcs=_read_test_file("service_response.json"))
+        self._set_http_responses(m, svcs=read_file("service_response.json"))
         self.check.url = self.instance.get('url')
         self.check.run()
         test_topology = topology.get_snapshot(self.check.check_id)
-        expected_topology = _read_data("service_response_topology.json")
+        expected_topology = read_json_from_file("service_response_topology.json")
         self.asset_topology(expected_topology, test_topology)
 
     def asset_topology(self, expected_topology, test_topology):
@@ -122,14 +110,14 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         """
         Testing Dynatrace check should collect applications and also the tags properly coming from dynatrace
         """
-        self._set_http_responses(m, apps=_read_test_file("application_response.json"))
+        self._set_http_responses(m, apps=read_file("application_response.json"))
 
         self.check.url = self.instance.get('url')
 
         self.check.run()
 
         topo_instances = topology.get_snapshot(self.check.check_id)
-        actual_topology = _read_data("application_response_topology.json")
+        actual_topology = read_json_from_file("application_response_topology.json")
 
         # sort the keys of components and relations, so we match it in actual
         self.asset_topology(actual_topology, topo_instances)
@@ -139,14 +127,14 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         """
         Testing Dynatrace check should collect process-groups
         """
-        self._set_http_responses(m, proc_groups=_read_test_file("process-group_response.json"))
+        self._set_http_responses(m, proc_groups=read_file("process-group_response.json"))
 
         self.check.url = self.instance.get('url')
 
         self.check.run()
 
         topo_instances = topology.get_snapshot(self.check.check_id)
-        actual_topology = _read_data("process-group_response_topology.json")
+        actual_topology = read_json_from_file("process-group_response_topology.json")
 
         # sort the keys of components and relations, so we match it in actual
         self.asset_topology(actual_topology, topo_instances)
@@ -155,7 +143,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         """
         Test to check if relations are collected properly
         """
-        component = _read_data("host_response.json")[0]
+        component = read_json_from_file("host_response.json")[0]
         self.check._collect_relations(component, component.get('entityId'))
 
         topo_instances = topology.get_snapshot(self.check.check_id)
@@ -192,18 +180,18 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         :return:
         """
         self._set_http_responses(m,
-                                 hosts=_read_test_file("host_response.json"),
-                                 apps=_read_test_file("application_response.json"),
-                                 svcs=_read_test_file("service_response.json"),
-                                 procs=_read_test_file("process_response.json"),
-                                 proc_groups=_read_test_file("process-group_response.json")
+                                 hosts=read_file("host_response.json"),
+                                 apps=read_file("application_response.json"),
+                                 svcs=read_file("service_response.json"),
+                                 procs=read_file("process_response.json"),
+                                 proc_groups=read_file("process-group_response.json")
                                  )
 
         self.check.url = self.instance.get('url')
         self.check.run()
 
         topo_instances = topology.get_snapshot(self.check.check_id)
-        expected_topology = _read_data("smartscape_full_response_topology.json")
+        expected_topology = read_json_from_file("smartscape_full_response_topology.json")
 
         # sort the keys of components and relations, so we match it in actual
         components, relations = sort_topology_data(topo_instances)
