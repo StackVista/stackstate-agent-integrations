@@ -1,6 +1,8 @@
-# Agent Check: Dynatrace Topology
+# Agent Check: Dynatrace
 
 ## Overview
+
+### Topology
 
 This check synchronizes [Dynatrace][1] smartscape topology through the StackState Agent. Currently supported Component Types are : 
 * _Hosts_
@@ -8,6 +10,11 @@ This check synchronizes [Dynatrace][1] smartscape topology through the StackStat
 * _Processes_
 * _Process-Groups_
 * _Services_
+
+### Events
+
+This check gathers [Dynatrace][1] events through the StackState Agent.
+Events are used to determine Health States for Health Checks in Dynatrace Stackpack.
 
 ## Setup
 
@@ -22,6 +29,7 @@ The API Token configured in StackState Agent V2 must have access to read the top
 * _/api/v1/entity/applications_
 * _/api/v1/entity/infrastructure/process-groups_
 * _/api/v1/entity/services_
+* _/api/vi/events_
 
 **NOTE** 
 * Refer the Dynatrace documentation page on [how to create an API Token](https://www.dynatrace.com/support/help/shortlink/api-authentication#generate-a-token)
