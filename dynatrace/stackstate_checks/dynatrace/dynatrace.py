@@ -284,9 +284,9 @@ class DynatraceCheck(AgentCheck):
                     "endTime": self._current_time_seconds() * 1000,
                     "entityId": entity_id,
                     "entityName": dynatrace_entities_cache[entity_id].get('name'),
-                    "impactLevel": "INFRASTRUCTURE",
+                    "impactLevel": None,
                     "eventType": "CUSTOM_ALERT",
-                    "eventStatus": "CLOSED",
+                    "eventStatus": "OK STATUS",
                     "tags": [],
                     "id": -1,
                     "source": "StackState Agent"
