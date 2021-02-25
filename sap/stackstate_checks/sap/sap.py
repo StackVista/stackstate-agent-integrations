@@ -15,75 +15,16 @@ except ImportError:
 import json
 from stackstate_checks.base import ConfigurationError, AgentCheck, TopologyInstance
 from .proxy import SapProxy
+from .events import Events
+from .gauges import Gauges
 
 
 class SapCheck(AgentCheck):
     queue = {}
     INSTANCE_TYPE = "sap"
     SERVICE_CHECK_NAME = "sap.can_connect"
-    DEFAULT_THREAD_COUNT = 0
-    DEFAULT_IDLE_THREAD_TTL = 30  # Seconds
-
-# SAP_ITSAMInstance/Alert
-    ccms_alerts = {
-        "SAP name": {"description": "description is optional: Alternative name for stackstate", 
-                     "field": "field is mandatory: Name of field with value"},  # example entry
-        "Oracle|Performance|Locks": {"field": "Value"},
-        "R3Services|Dialog|ResponseTimeDialog": {"field": "ActualValue"},
-        "R3Services|Spool": {"description": "SAP:Spool utilization", 
-                             "field": "ActualValue"},
-        "R3Services|Spool|SpoolService|ErrorsInWpSPO": {"description": "SAP:ErrorsInWpSPO", 
-                                                        "field": "ActualValue"},
-        "R3Services|Spool|SpoolService|ErrorFreqInWpSPO": {"description": "SAP:ErrorsFreqInWpSPO", 
-                                                           "field": "ActualValue"},
-        "Shortdumps Frequency": {"field": "ActualValue"}
-        }
-
-# SAP_ITSAMInstance/Parameter
-    instance_events = {
-        "SAP name": {"description": "description is optional: Alternative name for stackstate"}  # example entry
-        }
-    instance_gauges = {
-        "PHYS_MEMSIZE": {"description": "phys_memsize"}
-        }
-
-# SAP_ITSAMDatabaseMetric
-    dbmetric_events = {
-        "db.ora.tablespace.status": {"field": "Value"},
-        "35": {"description": "HDB:Backup_exist", 
-               "field": "Value"},
-        "36": {"description": "HDB:Recent_backup", 
-               "field": "Value"},
-        "38": {"description": "HDB:Recent_log_backup",
-               "field": "Value"}, 
-        "102": {"description": "HDB:System_backup_Exists", 
-                "field": "Value"},
-        "1015": {"description": "HDB:System replication", 
-                 "field": "Value"}
-        }
-    dbmetric_gauges = {
-        "10": {"description": "HDB:Delta merges", 
-               "field": "Value"},
-        "sap.hdb.alert.license_expiring": {"field": "Value"},  # was 31
-        "sap.hdb.alert.backup.data.last": {"field": "Value"},  # was 37
-        "USED_DATA_AREA": {"description": "MAXDB:USED_DATA_AREA", 
-                           "field": "Value"},
-        "USED_LOG_AREA": {"description": "MAXDB:USED_LOG_AREA", 
-                          "field": "Value"},
-        "db.ora.tablespace.free": {"field": "Value"},
-        "TimeToLicenseExpiry": {"description": "syb:TimeToLicenseExpiry", 
-                                "field": "Value"}
-        }
-
-# GetComputerSystem
-    system_events = {
-        "SAP name": {"description": "description is optional: Alternative name for stackstate"}  # example entry
-        }
-    system_gauges = {
-        "FreeSpaceInPagingFiles": {"description": "SAP:FreeSpaceInPagingFiles"},
-        "SizeStoredInPagingFiles": {"description": "SAP:sizeStoredInPagingFiles"},
-        "TotalSwapSpaceSize": {"description": "SAP:TotalSwapSpaceSize"}
-        }
+    DEFAULT_THREAD_COUNT = 0        # Python2 multithreading not (yet) working. Set to 0 to disable multithreading.
+    DEFAULT_IDLE_THREAD_TTL = 30    # Value in Seconds.
 
     def __init__(self, name, init_config, instances=None):
         AgentCheck.__init__(self, name, init_config, instances)
@@ -241,15 +182,15 @@ class SapCheck(AgentCheck):
 
     def _get_database_events(self, name, proxy, dbtype):
         # SAP_ITSAMDatabaseMetric events
-        events = ";".join(self.dbmetric_events.keys())
+        events = ";".join(Events.dbmetric_events.keys())
         query = "SAP_ITSAMDatabaseMetric?Name={0}&Type={1}&ID={2}".format(name, dbtype, events)
         metrics = proxy.get_cim_object("EnumerateInstances", query)
         for metriclist in metrics:
             for metric in metriclist.mMembers.item:
                 data = {i.mName: i.mValue for i in metric.mProperties.item}
                 metricid = data.get("MetricID")
-                if metricid in self.dbmetric_events.keys():
-                    lookup = self.dbmetric_events.get(metricid)
+                if metricid in Events.dbmetric_events.keys():
+                    lookup = Events.dbmetric_events.get(metricid)
                     description = lookup.get("description", metricid)
                     status = data.get(lookup.get("field"))
                     taglist = self.generate_tags(data=data, status=status, database=name)
@@ -261,7 +202,7 @@ class SapCheck(AgentCheck):
 
     def _get_database_gauges(self, name, proxy, dbtype):
         # SAP_ITSAMDatabaseMetric gauges
-        gauges = ";".join(self.dbmetric_gauges.keys())
+        gauges = ";".join(Gauges.dbmetric_gauges.keys())
         query = "SAP_ITSAMDatabaseMetric?Name={0}&Type={1}&ID={2}".format(name, dbtype, gauges)
         metrics = proxy.get_cim_object("EnumerateInstances", query)
         # sys.stdout.write("_get_database_gauges performed query={}\n".format(query))
@@ -269,14 +210,16 @@ class SapCheck(AgentCheck):
             for metric in metriclist.mMembers.item:
                 metricdata = {i.mName: i.mValue for i in metric.mProperties.item}
                 metricid = metricdata.get("MetricID")
-                if metricid in self.dbmetric_gauges.keys():
-                    lookup = self.dbmetric_gauges.get(metricid)
+                if metricid in Gauges.dbmetric_gauges.keys():
+                    lookup = Gauges.dbmetric_gauges.get(metricid)
                     description = lookup.get("description", metricid)
                     value = metricdata.get(lookup.get("field"))
                     taglist = ["host:{}".format(self.host), "database:{}".format(name)]
                     for tag in self.tags:
                         taglist.append(tag)
-                    # sys.stdout.write("_get_database_gauges\ndescription={}\nvalue={}\ntaglist={}".format(description, value, taglist))
+                    # sys.stdout.write("_get_database_gauges\ndescription={}\nvalue={}\ntaglist={}".format(description,
+                    #                                                                                      value,
+                    #                                                                                      taglist))
                     if self.host in self.queue.keys():
                         self.queue[self.host].put((self.send_gauge, [description, value, taglist]))
                     else:
@@ -288,13 +231,15 @@ class SapCheck(AgentCheck):
         if metrics:
             metric_item = {i.mName: i.mValue for i in metrics.mMembers.item[0].mProperties.item}
             for item in metric_item:
-                if item in self.system_gauges.keys():
-                    description = self.system_gauges.get(item).get("description", item)
+                if item in Gauges.system_gauges.keys():
+                    description = Gauges.system_gauges.get(item).get("description", item)
                     value = metric_item.get(item)
                     taglist = ["host:{}".format(self.host)]
                     for tag in self.tags:
                         taglist.append(tag)
-                    # sys.stdout.write("_get_computersystem:\nvalue={}\ndescription={}\ntaglist={}".format(value, description, taglist))
+                    # sys.stdout.write("_get_computersystem:\nvalue={}\ndescription={}\ntaglist={}".format(value,
+                    #                                                                                      description,
+                    #                                                                                      taglist))
                     if self.host in self.queue.keys():
                         self.queue[self.host].put((self.send_gauge, [description, value, taglist]))
                     else:
@@ -304,8 +249,8 @@ class SapCheck(AgentCheck):
         # SAP_ITSAMInstance/Parameter
         params = proxy.get_sap_instance_params(instance_id)
         for param in params.keys():
-            if param in self.instance_gauges.keys():
-                description = self.instance_gauges.get(param).get("description", param)
+            if param in Gauges.instance_gauges.keys():
+                description = Gauges.instance_gauges.get(param).get("description", param)
                 value = params.get(param)
                 taglist = ["instance_id:{0}".format(instance_id), "host:{0}".format(self.host)]
                 for tag in self.tags:
@@ -321,8 +266,8 @@ class SapCheck(AgentCheck):
         alerts = proxy.get_alerts(instance_id)
         for alert in alerts:
             alert_name = alert.get("AlertPath", "")
-            if alert_name in self.ccms_alerts.keys():
-                lookup = self.ccms_alerts.get(alert_name)
+            if alert_name in Events.ccms_alerts.keys():
+                lookup = Events.ccms_alerts.get(alert_name)
                 description = lookup.get("description", alert_name)
                 status = alert.get(lookup.get("field"), "Not specified")
                 taglist = self.generate_tags(data=alert, status=status, instance_id=instance_id)
@@ -393,7 +338,8 @@ class SapCheck(AgentCheck):
                 "tags": taglist
         })
         if instance_id:
-            self.log.info("{0}: Send {1}={2} Event for instance ({3})".format(self.host, description, status, instance_id))
+            self.log.info("{0}: Send {1}={2} Event for instance ({3})".format(self.host,
+                                                                              description, status, instance_id))
         elif database:
             self.log.info("{0}: Send {1}={2} Event for database ({3})".format(self.host, description, status, database))
         else:
@@ -406,7 +352,7 @@ class SapCheck(AgentCheck):
         :param value: Value to send
         :param taglist: List of tags to add
         """
-        # sys.stdout.write ("name={}\nvalue={}\nhostname={}\ntags={}".format(key, value, self.host, taglist))
+#        sys.stdout.write ("name={}\nvalue={}\nhostname={}\ntags={}".format(key, value, self.host, taglist))
         self.gauge(
             name=key,
             value=value,
@@ -729,7 +675,7 @@ class SapCheck(AgentCheck):
     def _collect_sapcloudconnector(self):
         #
         #  Uses monitoring API:
-        #  https://help.sap.com/viewer/cca91383641e40ffbe03bdc78f00f681/Cloud/en-US/f6e7a7bc6af345d2a334c2427a31d294.html
+        # https://help.sap.com/viewer/cca91383641e40ffbe03bdc78f00f681/Cloud/en-US/f6e7a7bc6af345d2a334c2427a31d294.html
         #
         #  Configuring : Make port 8443 available. add this to users.xml and restart SCC.
         #
@@ -800,7 +746,8 @@ class SapCheck(AgentCheck):
             subaccount_url = cloud_connector_url + "api/monitoring/subaccounts"
             subaccount_reply = session.get(subaccount_url)
             if subaccount_reply.status_code == 200:
-                self.log.debug("{0}: Sub accounts reply from cloud connector : {1}".format(self.host, subaccount_reply.text.encode('utf-8')))
+                reply = subaccount_reply.text.encode('utf-8')
+                self.log.debug("{0}: Sub accounts reply from cloud connector : {1}".format(self.host, reply))
                 subaccounts = json.loads(subaccount_reply.text)
                 self.log.debug("{0}: JSON sub accounts from cloud connector : {1}".format(self.host, subaccounts))
                 for subaccount in subaccounts["subaccounts"]:
@@ -859,15 +806,17 @@ class SapCheck(AgentCheck):
                 if subaccount_reply.status_code == 400:
                     self.log.info("{0}: SAP Cloud connector monitoring sub account page not supported in this version of SCC.".format(self.host))
                 else:
-                    self.log.error("{0}: No SAP Cloud connector sub account found. Status code: {1}".format(self.host, subaccount_reply.status_code))
-
+                    status = subaccount_reply.status_code
+                    self.log.error("{0}: No SAP Cloud connector sub account found. Status code: {1}".format(self.host,
+                                                                                                            status))
             #
             #   List backend SAP systems and virtual names.
             #
             backends_url = cloud_connector_url + "api/monitoring/connections/backends"
             backends_reply = session.get(backends_url)
             if backends_reply.status_code == 200:
-                self.log.debug("{0}: Backends reply from cloud connector : {1}".format(self.host, backends_reply.text.encode('utf-8')))
+                reply = backends_reply.text.encode('utf-8')
+                self.log.debug("{0}: Backends reply from cloud connector : {1}".format(self.host, reply))
                 backends = json.loads(backends_reply.text)
                 self.log.info("{0}: JSON backends from cloud connector : {1}".format(self.host, backends))
                 for subaccount in backends["subaccounts"]:
@@ -912,11 +861,11 @@ class SapCheck(AgentCheck):
                 if backends_reply.status_code == 400:
                     self.log.info("{0}: SAP Cloud connector monitoring backend page not supported in this version of SCC.".format(self.host))
                 else:
-                    self.log.error("{0}: No SAP Cloud connector backends found. Status code: {1}".format(self.host, backends_reply.status_code))
-            
+                    status = backends_reply.status_code
+                    self.log.error("{0}: No SAP Cloud connector backends found. Status code: {1}".format(self.host,
+                                                                                                         status))
         if status_code == 401:
             self.log.error("{0}: Authentication failed, check your config.yml and SCC users.xml for corresponding username and password.".format(self.host))
-
         session.close()
 
     def _collect_saprouter(self, proxy):

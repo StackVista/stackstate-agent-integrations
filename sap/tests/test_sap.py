@@ -13,6 +13,11 @@ from stackstate_checks.base.stubs import topology
 
 CHECK_NAME = "sap-test"
 
+# === Important note ===
+# All multithreading tests must run after the single thread test have finished.
+# The issue is the threads die quickly, but the queue keeps living.
+# The sap.py code tests for the existence of the queue to use the multithreading, but without workers nothing happens.
+# This is only an issue in testing, because in production you use it constantly or not at all.
 
 def test_empty_conf(instance_empty):
     sap_check = SapCheck(CHECK_NAME, {}, instances=[instance_empty])
@@ -656,7 +661,7 @@ def test_get_alerts(aggregator, instance):
     with requests_mock.mock() as m:
         # Prep mock data
         m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/SAPHostAgent.wsdl"))
-        m.post(host_control_url + ".cgi", text=_read_test_file("samples/lab-sap-005 get_alerts.xml"))
+        m.post(host_control_url + ".cgi", text=_read_test_file("samples/oracle Alerts.xml"))
 
         # prep en run function
         sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
@@ -711,15 +716,15 @@ def test_collect_metrics_ora(aggregator, instance):
         # Prep mock data
         m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/SAPHostAgent.wsdl"))
         m.post(host_control_url + ".cgi", additional_matcher=match_get_instances,
-               text=_read_test_file("samples/lab-sap-005 get_sap_instances.xml"))
+               text=_read_test_file("samples/oracle SAPInstances.xml"))
         m.post(host_control_url + ".cgi", additional_matcher=match_get_sap_instance_params,
-               text=_read_test_file("samples/lab-sap-005 get_sap_instance_params.xml"))
+               text=_read_test_file("samples/oracle InstanceParams.xml"))
         m.post(host_control_url + ".cgi", additional_matcher=match_get_computersystem,
-               text=_read_test_file("samples/lab-sap-005 get_computerSystem.xml"))
+               text=_read_test_file("samples/oracle ComputerSystem.xml"))
         m.post(host_control_url + ".cgi", additional_matcher=match_listdatabases,
-               text=_read_test_file("samples/lab-sap-005 listDatabases.xml"))
+               text=_read_test_file("samples/oracle ListDatabases.xml"))
         m.post(host_control_url + ".cgi", additional_matcher=match_database_metrics,
-               text=_read_test_file("samples/lab-sap-005 databaseMetric.xml"))
+               text=_read_test_file("samples/oracle DatabaseMetric.xml"))
 
         # prep en run function
         sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
@@ -765,21 +770,21 @@ def test_collect_metrics_ora(aggregator, instance):
         )
         aggregator.assert_metric(
             name="db.ora.tablespace.free",
-            value=465.875,
+            value=465.625,
             hostname="LAB-SAP-001",
             metric_type=aggregator.GAUGE,
             tags=["host:LAB-SAP-001", "database:DEV", "customer:Stackstate", "instance:http"]
         )
         aggregator.assert_metric(
             name="db.ora.tablespace.free",
-            value=6155.75,
+            value=6160.75,
             hostname="LAB-SAP-001",
             metric_type=aggregator.GAUGE,
             tags=["host:LAB-SAP-001", "database:DEV", "customer:Stackstate", "instance:http"]
         )
         aggregator.assert_metric(
             name="db.ora.tablespace.free",
-            value=2293.4375,
+            value=2283.1875,
             hostname="LAB-SAP-001",
             metric_type=aggregator.GAUGE,
             tags=["host:LAB-SAP-001", "database:DEV", "customer:Stackstate", "instance:http"]
@@ -807,7 +812,7 @@ def test_collect_metrics_ora(aggregator, instance):
         )
         aggregator.assert_metric(
             name="db.ora.tablespace.free",
-            value=3736,
+            value=3735,
             hostname="LAB-SAP-001",
             metric_type=aggregator.GAUGE,
             tags=["host:LAB-SAP-001", "database:DEV", "customer:Stackstate", "instance:http"]
@@ -818,6 +823,250 @@ def test_collect_metrics_ora(aggregator, instance):
             tags=["customer:Stackstate", "instance:http", "status:ONLINE", "database:DEV"]
         )
 
+        aggregator.all_metrics_asserted()
+
+
+def test_collect_metrics_ada(aggregator, instance):
+
+    def match_get_instances(request):
+        # sys.stdout.write("match_get_instances")
+        # sys.stdout.write("request.text:\n\t{}".format(request.text))
+        return "SAPInstance" in request.text
+
+    def match_get_sap_instance_params(request):
+        # sys.stdout.write("match_get_sap_instance_params")
+        # sys.stdout.write("request.text:\n\t{}".format(request.text))
+        return "SAP_ITSAMInstance/Parameter??Instancenumber" in request.text
+
+    def match_get_computersystem(request):
+        # sys.stdout.write("match_get_computersystem")
+        # sys.stdout.write("request.text:\n\t{}".format(request.text))
+        return "ns0:GetComputerSystem" in request.text
+
+    def match_listdatabases(request):
+        # sys.stdout.write("match_listdatabases")
+        # sys.stdout.write("request.text:\n\t{}".format(request.text))
+        return "ns0:ListDatabases" in request.text
+
+    def match_database_metrics(request):
+        # sys.stdout.write("match_database_metrics")
+        # sys.stdout.write("request.text:\n\t{}".format(request.text))
+        return "SAP_ITSAMDatabaseMetric?Name" in request.text
+
+    # TODO this is needed because the topology retains data across tests
+    topology.reset()
+
+    host_control_url = "http://localhost:1128/SAPHostControl"
+    with requests_mock.mock() as m:
+        # Prep mock data
+        m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/SAPHostAgent.wsdl"))
+        m.post(host_control_url + ".cgi", additional_matcher=match_get_instances,
+               text=_read_test_file("samples/maxdb SAPInstances.xml"))
+        m.post(host_control_url + ".cgi", additional_matcher=match_get_sap_instance_params,
+               text=_read_test_file("samples/maxdb InstanceParams.xml"))
+        m.post(host_control_url + ".cgi", additional_matcher=match_get_computersystem,
+               text=_read_test_file("samples/maxdb ComputerSystem.xml"))
+        m.post(host_control_url + ".cgi", additional_matcher=match_listdatabases,
+               text=_read_test_file("samples/maxdb listDatabases.xml"))
+        m.post(host_control_url + ".cgi", additional_matcher=match_database_metrics,
+               text=_read_test_file("samples/maxdb DatabaseMetric.xml"))
+
+        # prep en run function
+        sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
+        sap_check._get_config(instance)
+        sap_check._collect_metrics()
+
+        assert sap_check.verify is True
+
+        aggregator.assert_metric(
+            name="phys_memsize",
+            value=32767,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=['instance_id:67', 'host:LAB-SAP-001', 'customer:Stackstate', 'instance:http']
+        )
+        aggregator.assert_metric(
+            name="phys_memsize",
+            value=32767,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=["customer:Stackstate", "instance:http", "instance_id:00", "host:LAB-SAP-001"]
+        )
+        aggregator.assert_metric(
+            name="phys_memsize",
+            value=32767,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=["customer:Stackstate", "instance:http", "instance_id:01", "host:LAB-SAP-001"]
+        )
+        aggregator.assert_metric(
+            name="phys_memsize",
+            value=32767,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=["customer:Stackstate", "instance:http", "instance_id:10", "host:LAB-SAP-001"]
+        )
+        aggregator.assert_metric(
+            name="phys_memsize",
+            value=32767,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=["customer:Stackstate", "instance:http", "instance_id:11", "host:LAB-SAP-001"]
+        )
+        aggregator.assert_metric(
+            name="SAP:TotalSwapSpaceSize",
+            value=20971520,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=["customer:Stackstate", "instance:http", "host:LAB-SAP-001"]
+        )
+        aggregator.assert_metric(
+            name="SAP:FreeSpaceInPagingFiles",
+            value=20971520,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=["customer:Stackstate", "instance:http", "host:LAB-SAP-001"]
+        )
+        aggregator.assert_metric(
+            name="SAP:sizeStoredInPagingFiles",
+            value=20971520,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=["host:LAB-SAP-001", "customer:Stackstate", "instance:http"]
+        )
+        aggregator.assert_metric(
+            name="MAXDB:USED_DATA_AREA",
+            value=14,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=["host:LAB-SAP-001", "database:MDJ", "customer:Stackstate", "instance:http"]
+        )
+        aggregator.assert_metric(
+            name="MAXDB:USED_DATA_AREA",
+            value=14,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=["host:LAB-SAP-001", "database:DON", "customer:Stackstate", "instance:http"]
+        )
+        aggregator.assert_metric(
+            name="MAXDB:USED_LOG_AREA",
+            value=0,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=["host:LAB-SAP-001", "database:MDJ", "customer:Stackstate", "instance:http"]
+        )
+        aggregator.assert_metric(
+            name="MAXDB:USED_LOG_AREA",
+            value=0,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=["host:LAB-SAP-001", "database:DON", "customer:Stackstate", "instance:http"]
+        )
+        aggregator.all_metrics_asserted()
+
+
+def test_collect_metrics_syb(aggregator, instance):
+
+    def match_get_instances(request):
+        # sys.stdout.write("match_get_instances")
+        # sys.stdout.write("request.text:\n\t{}".format(request.text))
+        return "SAPInstance" in request.text
+
+    def match_get_sap_instance_params(request):
+        # sys.stdout.write("match_get_sap_instance_params")
+        # sys.stdout.write("request.text:\n\t{}".format(request.text))
+        return "SAP_ITSAMInstance/Parameter??Instancenumber" in request.text
+
+    def match_get_computersystem(request):
+        # sys.stdout.write("match_get_computersystem")
+        # sys.stdout.write("request.text:\n\t{}".format(request.text))
+        return "ns0:GetComputerSystem" in request.text
+
+    def match_listdatabases(request):
+        # sys.stdout.write("match_listdatabases")
+        # sys.stdout.write("request.text:\n\t{}".format(request.text))
+        return "ns0:ListDatabases" in request.text
+
+    def match_database_metrics(request):
+        # sys.stdout.write("match_database_metrics")
+        # sys.stdout.write("request.text:\n\t{}".format(request.text))
+        return "SAP_ITSAMDatabaseMetric?Name" in request.text
+
+    # TODO this is needed because the topology retains data across tests
+    topology.reset()
+
+    host_control_url = "http://localhost:1128/SAPHostControl"
+    with requests_mock.mock() as m:
+        # Prep mock data
+        m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/SAPHostAgent.wsdl"))
+        m.post(host_control_url + ".cgi", additional_matcher=match_get_instances,
+               text=_read_test_file("samples/sybase SAPInstances.xml"))
+        m.post(host_control_url + ".cgi", additional_matcher=match_get_sap_instance_params,
+               text=_read_test_file("samples/sybase InstanceParams.xml"))
+        m.post(host_control_url + ".cgi", additional_matcher=match_get_computersystem,
+               text=_read_test_file("samples/sybase ComputerSystem.xml"))
+        m.post(host_control_url + ".cgi", additional_matcher=match_listdatabases,
+               text=_read_test_file("samples/sybase ListDatabases.xml"))
+        m.post(host_control_url + ".cgi", additional_matcher=match_database_metrics,
+               text=_read_test_file("samples/sybase DatabaseMetric.xml"))
+
+        # prep en run function
+        sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
+        sap_check._get_config(instance)
+        sap_check._collect_metrics()
+
+        assert sap_check.verify is True
+
+        aggregator.assert_metric(
+            name="phys_memsize",
+            value=16383,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=['instance_id:00', 'host:LAB-SAP-001', 'customer:Stackstate', 'instance:http']
+        )
+        aggregator.assert_metric(
+            name="phys_memsize",
+            value=16383,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=["customer:Stackstate", "instance:http", "instance_id:01", "host:LAB-SAP-001"]
+        )
+        aggregator.assert_metric(
+            name="SAP:TotalSwapSpaceSize",
+            value=32854016,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=["customer:Stackstate", "instance:http", "host:LAB-SAP-001"]
+        )
+        aggregator.assert_metric(
+            name="SAP:FreeSpaceInPagingFiles",
+            value=22986752,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=["customer:Stackstate", "instance:http", "host:LAB-SAP-001"]
+        )
+        aggregator.assert_metric(
+            name="SAP:sizeStoredInPagingFiles",
+            value=32854016,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=["host:LAB-SAP-001", "customer:Stackstate", "instance:http"]
+        )
+        aggregator.assert_metric(
+            name="HDB:Delta merges",
+            value=0.0,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=["host:LAB-SAP-001", "database:DEV", "customer:Stackstate", "instance:http"]
+        )
+        aggregator.assert_metric(
+            name="syb:TimeToLicenseExpiry",
+            value=9999,
+            count=5,
+            hostname="LAB-SAP-001",
+            metric_type=aggregator.GAUGE,
+            tags=["host:LAB-SAP-001", "database:DEV", "customer:Stackstate", "instance:http"]
+        )
         aggregator.all_metrics_asserted()
 
 
@@ -851,13 +1100,13 @@ def test_collect_instance_processes_and_metrics(aggregator, instance):
     with requests_mock.mock() as m:
         m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/SAPHostAgent.wsdl"))
         m.post(host_control_url + ".cgi", additional_matcher=match_get_sapinstances,
-               text=_read_test_file("samples/lab-sap-005 get_sap_instances.xml"))
+               text=_read_test_file("samples/oracle SAPInstances.xml"))
         m.post(host_control_url + ".cgi", additional_matcher=match_listdatabases,
-               text=_read_test_file("samples/lab-sap-005 listDatabases.xml"))
+               text=_read_test_file("samples/oracle ListDatabases.xml"))
         m.post(host_control_url + ".cgi", additional_matcher=match_get_processlist,
                text=_read_test_file("samples/GetProcessList.xml"))
         m.post(host_control_url + ".cgi", additional_matcher=match_get_alerts,
-               text=_read_test_file("samples/lab-sap-005 get_alerts.xml"))
+               text=_read_test_file("samples/oracle Alerts.xml"))
 
         # prep en run function
         sap_check = SapCheck(CHECK_NAME, {}, instances=[instance])
@@ -1694,15 +1943,15 @@ def test_collect_metrics_hana_mt(aggregator, https_instance):
         # Prep mock data
         m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/SAPHostAgent.wsdl"))
         m.post(host_control_url + ".cgi", additional_matcher=match_get_instances,
-               text=_read_test_file("samples/lab-sap-003 get_sap_instances.xml"))
+               text=_read_test_file("samples/hana SAPInstances.xml"))
         m.post(host_control_url + ".cgi", additional_matcher=match_get_sap_instance_params,
-               text=_read_test_file("samples/lab-sap-003 get_sap_instance_params.xml"))
+               text=_read_test_file("samples/hana InstanceParams.xml"))
         m.post(host_control_url + ".cgi", additional_matcher=match_get_computersystem,
-               text=_read_test_file("samples/lab-sap-003 get_computerSystem.xml"))
+               text=_read_test_file("samples/hana ComputerSystem.xml"))
         m.post(host_control_url + ".cgi", additional_matcher=match_listdatabases,
-               text=_read_test_file("samples/lab-sap-003 listDatabases.xml"))
+               text=_read_test_file("samples/hana ListDatabases.xml"))
         m.post(host_control_url + ".cgi", additional_matcher=match_database_metrics,
-               text=_read_test_file("samples/lab-sap-003 databaseMetric.xml"))
+               text=_read_test_file("samples/hana DatabaseMetric.xml"))
 
         # prep en run function
         sap_check = SapCheck(CHECK_NAME, {}, instances=[https_instance])
@@ -1845,7 +2094,7 @@ def test_get_alerts_mt(aggregator, https_instance):
     with requests_mock.mock() as m:
         # Prep mock data
         m.get(host_control_url + "/?wsdl", text=_read_test_file("wsdl/SAPHostAgent.wsdl"))
-        m.post(host_control_url + ".cgi", text=_read_test_file("samples/lab-sap-005 get_alerts.xml"))
+        m.post(host_control_url + ".cgi", text=_read_test_file("samples/oracle Alerts.xml"))
 
         # prep en run function
         sap_check = SapCheck(CHECK_NAME, {}, instances=[https_instance])
