@@ -22,6 +22,16 @@ TIMEOUT_DEFAULT = 10
 EVENTS_BOOSTRAP_DAYS_DEFAULT = 5
 EVENTS_PROCESS_LIMIT_DEFAULT = 10000
 
+dynatrace_entities_cache = {}
+
+TOPOLOGY_API_ENDPOINTS = {
+    "process": "api/v1/entity/infrastructure/processes",
+    "host": "api/v1/entity/infrastructure/hosts",
+    "application": "api/v1/entity/applications",
+    "process-group": "api/v1/entity/infrastructure/process-groups",
+    "service": "api/v1/entity/services"
+}
+
 
 class DynatraceEvent(Model):
     eventId = IntType()
@@ -55,9 +65,6 @@ class InstanceInfo(Model):
     domain = StringType(default='dynatrace')
     environment = StringType(default='production')
     state = ModelType(State)
-
-
-dynatrace_entities_cache = {}
 
 
 class DynatraceCheck(AgentCheck):
@@ -96,16 +103,10 @@ class DynatraceCheck(AgentCheck):
         """
         start_time = datetime.now()
         self.log.info("Starting the collection of topology")
-        applications = self._collect_applications(instance_info)
-        services = self._collect_services(instance_info)
-        processes_groups = self._collect_process_groups(instance_info)
-        processes = self._collect_processes(instance_info)
-        hosts = self._collect_hosts(instance_info)
-        topology = {"application": applications, "service": services, "process-group": processes_groups,
-                    "process": processes, "host": hosts}
-        # collect topology for each component type
-        for comp_type, response in topology.items():
-            self._collect_topology(response, comp_type, instance_info)
+        for component_type, path in TOPOLOGY_API_ENDPOINTS.items():
+            endpoint = urljoin(instance_info.url, path)
+            response = self._get_dynatrace_json_response(instance_info, endpoint)
+            self._collect_topology(response, component_type, instance_info)
         end_time = datetime.now()
         time_taken = end_time - start_time
         self.log.info("Collected %d entities.", len(dynatrace_entities_cache))
@@ -130,46 +131,6 @@ class DynatraceCheck(AgentCheck):
             if relation_type != "isSiteOf":
                 for source_id in relation_value:
                     self.relation(source_id, external_id, relation_type, {})
-
-    def _collect_processes(self, instance_info):
-        """
-        Collects the response from the Dynatrace Process API endpoint
-        """
-        endpoint = urljoin(instance_info.url, "api/v1/entity/infrastructure/processes")
-        processes = self._get_dynatrace_json_response(instance_info, endpoint)
-        return processes
-
-    def _collect_hosts(self, instance_info):
-        """
-        Collects the response from the Dynatrace Host API endpoint
-        """
-        endpoint = urljoin(instance_info.url, "api/v1/entity/infrastructure/hosts")
-        hosts = self._get_dynatrace_json_response(instance_info, endpoint)
-        return hosts
-
-    def _collect_applications(self, instance_info):
-        """
-        Collects the response from the Dynatrace Application API endpoint
-        """
-        endpoint = urljoin(instance_info.url, "api/v1/entity/applications")
-        applications = self._get_dynatrace_json_response(instance_info, endpoint)
-        return applications
-
-    def _collect_process_groups(self, instance_info):
-        """
-        Collects the response from the Dynatrace Process-Group API endpoint
-        """
-        endpoint = urljoin(instance_info.url, "api/v1/entity/infrastructure/process-groups")
-        process_groups = self._get_dynatrace_json_response(instance_info, endpoint)
-        return process_groups
-
-    def _collect_services(self, instance_info):
-        """
-        Collects the response from the Dynatrace Service API endpoint
-        """
-        endpoint = urljoin(instance_info.url, "api/v1/entity/services")
-        services = self._get_dynatrace_json_response(instance_info, endpoint)
-        return services
 
     @staticmethod
     def _clean_unsupported_metadata(component):
@@ -208,6 +169,7 @@ class DynatraceCheck(AgentCheck):
         Process each component type and map those with specific data
         :param response: Response of each component type endpoint
         :param component_type: Component type
+        :param instance_info: instance configuration
         :return: create the component on stackstate API
         """
         for item in response:
