@@ -1,44 +1,44 @@
 init_config:
 
 instances:
-  # collection interval for topology
+    # collection interval for topology
   - min_collection_interval: 300
 
-  # Base URL of Dynatrace instance
-  # SaaS url example - https://{your-environment-id}.live.dynatrace.com
-  # Managed url example - https://{your-domain}/e/{your-environment-id}
-  url: https://test.live.dynatrace.com
+    # Base URL of Dynatrace instance
+    # SaaS url example - https://{your-environment-id}.live.dynatrace.com
+    # Managed url example - https://{your-domain}/e/{your-environment-id}
+    url: https://test.live.dynatrace.com
 
-  # Api Token from Dynatrace platform which has access to read the topology API
-  # Docs - https://www.dynatrace.com/support/help/dynatrace-api/basics/dynatrace-api-authentication/#generate-a-token
-  # Token and Passwords can always be encrypted using Secret Mangement in Agent V2. Read more on docs link below
-  # Docs - https://docs.stackstate.com/configure/security/secrets_management
-  token: test_token
+    # Api Token from Dynatrace platform which has access to read the topology API
+    # Docs - https://www.dynatrace.com/support/help/dynatrace-api/basics/dynatrace-api-authentication/#generate-a-token
+    # Token and Passwords can always be encrypted using Secret Mangement in Agent V2. Read more on docs link below
+    # Docs - https://docs.stackstate.com/configure/security/secrets_management
+    token: test_token
 
-  # to verify the certificate for https
-  # verify: True  # By default it's True
+    # to verify the certificate for https
+    # verify: True  # By default it's True
 
-  # path to certificate file for https verification
-  # cert: /path/to/cert.pem
+    # path to certificate file for https verification
+    # cert: /path/to/cert.pem
 
-  # path to public key of certificate for https verification
-  # keyfile: /path/to/key.pem
+    # path to public key of certificate for https verification
+    # keyfile: /path/to/key.pem
 
-  # Timeout for requests. Default value is 10.
-  # timeout: 10
+    # Timeout for requests. Default value is 10.
+    # timeout: 10
 
-  # domain to use for the components
-  # domain: customer
+    # domain to use for the components
+    # domain: customer
 
-  # Environment to use for putting the data in
-  # environment: development
+    # Environment to use for putting the data in
+    # environment: development
 
-  # No. of days to start collecting events
-  # events_bootstrap_days: 5  # by default it's 5 days
+    # No. of days to start collecting events
+    # events_bootstrap_days: 5  # by default it's 5 days
 
-  # Maximum number of events to process each run and this limit is respected with default value if not provided
-  # events_process_limit: 10000  # by default it's 10k events
+    # Maximum number of events to process each run and this limit is respected with default value if not provided
+    # events_process_limit: 10000  # by default it's 10k events
 
-  # Custom tags which can be used to filter out
-  # tags:
-  #   - foo:bar
+    # Custom tags which can be used to filter out
+    # tags:
+    #   - foo:bar
