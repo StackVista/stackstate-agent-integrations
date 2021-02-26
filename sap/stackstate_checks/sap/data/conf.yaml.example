@@ -5,11 +5,13 @@ instances:
     url: http://lab-sap-001.lab.hosting.local
     user: my_username
     pass: my_password
-    # verify: True  # By default it's True
+    # verify: True        # By default it's True
     # cert: /path/to/cert.pem
     # keyfile: /path/to/key.pem
-    # domain: sap       # Optional
-    # environment: sap  # Optional
-    # tags:             # Optional
+    # thread_count: 0     # Optional: Only for python3 agents. The number of threads to send events and metrics. Default = 0. Valid values are [0-16]
+    # idle_thread_ttl: 30 # Optional: The time in seconds when an idle thread dies. Only used when thread_count > 0. Default = 30. Valid values are [1-3600]
+    # domain: sap         # Optional
+    # environment: sap    # Optional
+    # tags:               # Optional
     #   - optional_tag1
     #   - optional_tag2

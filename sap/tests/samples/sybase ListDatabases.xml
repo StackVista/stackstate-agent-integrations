@@ -1,0 +1,146 @@
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:SAPControl="urn:SAPControl" xmlns:SAPCCMS="urn:SAPCCMS" xmlns:SAPHostControl="urn:SAPHostControl" xmlns:SAPLandscapeService="urn:SAPLandscapeService" xmlns:SAPMetricService="urn:SAPMetricService" xmlns:SAPOscol="urn:SAPOscol" xmlns:SAPDSR="urn:SAPDSR">
+   <SOAP-ENV:Header/>
+   <SOAP-ENV:Body>
+      <SAPHostControl:ListDatabasesResponse>
+         <result>
+            <item>
+               <mStatus>SAPHostControl-DB-RUNNING</mStatus>
+               <mDatabase>
+                  <item>
+                     <mKey>Database/InstanceName</mKey>
+                     <mValue>DEV</mValue>
+                  </item>
+                  <item>
+                     <mKey>Database/Host</mKey>
+                     <mValue>LAB-SAP-010</mValue>
+                  </item>
+                  <item>
+                     <mKey>Database/Vendor</mKey>
+                     <mValue>SYB</mValue>
+                  </item>
+                  <item>
+                     <mKey>Database/Type</mKey>
+                     <mValue>syb</mValue>
+                  </item>
+                  <item>
+                     <mKey>Database/Release</mKey>
+                     <mValue>16.0.04.00</mValue>
+                  </item>
+                  <item>
+                     <mKey>Database/Name</mKey>
+                     <mValue>DEV</mValue>
+                  </item>
+                  <item>
+                     <mKey>Database/Status</mKey>
+                     <mValue>Running</mValue>
+                  </item>
+               </mDatabase>
+               <mComponents>
+                  <item>
+                     <mProperties>
+                        <item>
+                           <mKey>Database/ComponentName</mKey>
+                           <mValue>Client</mValue>
+                        </item>
+                        <item>
+                           <mKey>Database/ComponentDescription</mKey>
+                           <mValue>SYBASE Server Client Software</mValue>
+                        </item>
+                        <item>
+                           <mKey>Database/ComponentStatusDescription</mKey>
+                           <mValue>SAP ASE Server client software is configured properly.</mValue>
+                        </item>
+                     </mProperties>
+                     <mStatus>SAPHostControl-DB-RUNNING</mStatus>
+                  </item>
+                  <item>
+                     <mProperties>
+                        <item>
+                           <mKey>Database/ComponentName</mKey>
+                           <mValue>Server</mValue>
+                        </item>
+                        <item>
+                           <mKey>Database/ComponentDescription</mKey>
+                           <mValue>SYBASE Server Software</mValue>
+                        </item>
+                        <item>
+                           <mKey>Database/ComponentStatusDescription</mKey>
+                           <mValue>The database server is running and configured properly.</mValue>
+                        </item>
+                     </mProperties>
+                     <mStatus>SAPHostControl-DB-RUNNING</mStatus>
+                  </item>
+                  <item>
+                     <mProperties>
+                        <item>
+                           <mKey>Database/ComponentName</mKey>
+                           <mValue>Database</mValue>
+                        </item>
+                        <item>
+                           <mKey>Database/ComponentDescription</mKey>
+                           <mValue>SYBASE Server Database</mValue>
+                        </item>
+                        <item>
+                           <mKey>Database/ComponentStatusDescription</mKey>
+                           <mValue>The database is running and configured properly.</mValue>
+                        </item>
+                     </mProperties>
+                     <mStatus>SAPHostControl-DB-RUNNING</mStatus>
+                  </item>
+                  <item>
+                     <mProperties>
+                        <item>
+                           <mKey>Database/ComponentName</mKey>
+                           <mValue>Backup Server</mValue>
+                        </item>
+                        <item>
+                           <mKey>Database/ComponentDescription</mKey>
+                           <mValue>SYBASE Backup Server Software</mValue>
+                        </item>
+                        <item>
+                           <mKey>Database/ComponentStatusDescription</mKey>
+                           <mValue>Backup Server is running.</mValue>
+                        </item>
+                     </mProperties>
+                     <mStatus>SAPHostControl-DB-RUNNING</mStatus>
+                  </item>
+                  <item>
+                     <mProperties>
+                        <item>
+                           <mKey>Database/ComponentName</mKey>
+                           <mValue>Job Scheduler</mValue>
+                        </item>
+                        <item>
+                           <mKey>Database/ComponentDescription</mKey>
+                           <mValue>SYBASE Job Scheduler</mValue>
+                        </item>
+                        <item>
+                           <mKey>Database/ComponentStatusDescription</mKey>
+                           <mValue>Job Scheduler is running.</mValue>
+                        </item>
+                     </mProperties>
+                     <mStatus>SAPHostControl-DB-RUNNING</mStatus>
+                  </item>
+                  <item>
+                     <mProperties>
+                        <item>
+                           <mKey>Database/ComponentName</mKey>
+                           <mValue>RepAgent thread</mValue>
+                        </item>
+                        <item>
+                           <mKey>Database/ComponentDescription</mKey>
+                           <mValue>SYBASE Replication Agent Thread</mValue>
+                        </item>
+                        <item>
+                           <mKey>Database/ComponentStatusDescription</mKey>
+                           <mValue>Running Rep Agents:  / Stopped Rep Agents:</mValue>
+                        </item>
+                     </mProperties>
+                     <mStatus>SAPHostControl-DB-RUNNING</mStatus>
+                  </item>
+               </mComponents>
+            </item>
+         </result>
+      </SAPHostControl:ListDatabasesResponse>
+   </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>

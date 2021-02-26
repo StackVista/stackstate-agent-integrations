@@ -9,6 +9,72 @@
     <SOAP-ENV:Body>
         <SAPHostControl:ListDatabasesResponse>
             <result>
+				<item>
+					<mStatus>SAPHostControl-DB-STOPPED</mStatus>
+					<mDatabase>
+						<item>
+							<mKey>Database/InstanceName</mKey>
+							<mValue>DEV</mValue>
+						</item>
+						<item>
+							<mKey>Database/Host</mKey>
+							<mValue>LAB-SAP-001</mValue>
+						</item>
+						<item>
+							<mKey>Database/Vendor</mKey>
+							<mValue>ora</mValue>
+						</item>
+						<item>
+							<mKey>Database/Type</mKey>
+							<mValue>ora</mValue>
+						</item>
+						<item>
+							<mKey>Database/Release</mKey>
+							<mValue>19.0.0.0.0</mValue>
+						</item>
+						<item>
+							<mKey>Database/Name</mKey>
+							<mValue>DEV</mValue>
+						</item>
+						<item>
+							<mKey>Database/Status</mKey>
+							<mValue>Running</mValue>
+						</item>
+					</mDatabase>
+                </item>
+				<item>
+					<mStatus>SAPHostControl-DB-RUNNING</mStatus>
+					<mDatabase>
+						<item>
+							<mKey>Database/InstanceName</mKey>
+							<mValue>OEI</mValue>
+						</item>
+						<item>
+							<mKey>Database/Host</mKey>
+							<mValue>LAB-SAP-001</mValue>
+						</item>
+						<item>
+							<mKey>Database/Vendor</mKey>
+							<mValue>ora</mValue>
+						</item>
+						<item>
+							<mKey>Database/Type</mKey>
+							<mValue>ora</mValue>
+						</item>
+						<item>
+							<mKey>Database/Release</mKey>
+							<mValue>19.0.0.0.0</mValue>
+						</item>
+						<item>
+							<mKey>Database/Name</mKey>
+							<mValue>OEI</mValue>
+						</item>
+						<item>
+							<mKey>Database/Status</mKey>
+							<mValue>Running</mValue>
+						</item>
+					</mDatabase>
+				</item>
                 <item>
                     <mStatus>SAPHostControl-DB-RUNNING</mStatus>
                     <mDatabase>

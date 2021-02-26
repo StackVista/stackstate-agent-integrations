@@ -9,6 +9,8 @@ import base64
 
 class SapProxy(object):
 
+    _alerts = {}
+
     def __init__(self, url, user, password, verify=True, cert=None, keyfile=None):
         session = Session()
         if cert:
@@ -30,8 +32,45 @@ class SapProxy(object):
         #   SOAP Address location in WSDL response is "http://18.92.32.0:1128/SAPHostControl.cgi"
         #   then creating a ServiceProxy with the given URL config, it will become
         #   "http://192.168.0.1:1128/SAPHostControl.cgi" and same goes for https
-
         self.service = self.client.create_service("{urn:SAPHostControl}SAPHostControl", address+"/SAPHostControl.cgi")
+
+    def get_alerts(self, instance_id):
+        """
+        Get all/any alerts for instance_id that match key and value.\n
+        :param instance_id: ID of SAP instance on host
+        :return: List with dict for every match. May be an empty list
+        """
+        query = "SAP_ITSAMInstance/Alert??Instancenumber={}".format(instance_id)
+        data = self.get_cim_object("EnumerateInstances", query)
+        return self._alerts_to_list(data)
+
+    def _alerts_to_list(self, alerts):
+        """
+        Recursive crawls through alerts and converts to a list for eesy processing.\n
+        :param alerts: Result of 'SAP_ITSAMInstance/Alert'
+        :return: List with dict. May be an empty list
+        """
+        hits = []
+        for a in alerts:
+            properties = {i.mName: i.mValue for i in a.mProperties.item}
+            hits.append(properties)
+            if a.mMembers:
+                subhits = self._alerts_to_list(a.mMembers.item)
+                for subhit in subhits:
+                    hits.append(subhit)
+        return hits
+
+    def get_computerSystem(self):
+        """
+        Get most important statistics about computer, os , processor, network and filesystem
+        """
+
+        # ns0:ArrayOfProperty(item: ns0:Property[])
+        properties_type = self.client.get_type("ns0:ArrayOfProperty")
+        properties = properties_type()
+
+        # ListDatabases(aArguments: ns0:ArrayOfProperty) -> result: ns0:ArrayOfDatabase
+        return self.service.GetComputerSystem(properties)
 
     def get_databases(self):
         """Retrieves all databases with their components from the host control"""
@@ -49,13 +88,13 @@ class SapProxy(object):
 
     def get_sap_instance_processes(self, instance_id):
         """Retrieves all processes on a host instance"""
-        return self.get_cim_object("EnumerateInstances",
-                                   "SAP_ITSAMInstance/Process??Instancenumber={0}".format(instance_id))
+        query = "SAP_ITSAMInstance/Process??Instancenumber={0}".format(instance_id)
+        return self.get_cim_object("EnumerateInstances", query)
 
     def get_sap_instance_abap_free_workers(self, instance_id, worker_types):
         """Retrieves free workers metric from an ABAP host instance"""
-        worker_processes = self.get_cim_object("EnumerateInstances",
-                                               "SAP_ITSAMInstance/WorkProcess??Instancenumber={0}".format(instance_id))
+        query = "SAP_ITSAMInstance/WorkProcess??Instancenumber={0}".format(instance_id)
+        worker_processes = self.get_cim_object("EnumerateInstances", query)
         if worker_processes:
             grouped_workers = {}
             for worker_proces in worker_processes:
@@ -70,13 +109,13 @@ class SapProxy(object):
                 typed_workers = grouped_workers.get(worker_type, [])
                 free_typed_workers = [worker for worker in typed_workers if worker[1].lower() == "wait"]
                 num_free_workers.update({worker_type: len(free_typed_workers)})
+
         return num_free_workers
 
-    def get_sap_instance_physical_memory(self, instance_id):
-        """Retrieves physical memory (in megabytes) metric from an host instance"""
-        params_reply = self.get_cim_object("EnumerateInstances",
-                                           "SAP_ITSAMInstance/Parameter??Instancenumber={0}".format(instance_id))
-        memsize = 0
+    def get_sap_instance_params(self, instance_id):
+        """Retrieves SAP instance parameters from an host instance as a key value pair"""
+        query = "SAP_ITSAMInstance/Parameter??Instancenumber={0}".format(instance_id)
+        params_reply = self.get_cim_object("EnumerateInstances", query)
         if params_reply:
             for param_reply in params_reply:
                 params_item = {i.mName: i.mValue for i in param_reply.mProperties.item}
@@ -87,14 +126,16 @@ class SapProxy(object):
                 for line in line_params:
                     name, var = line.partition(b'=')[::2]
                     params[name.decode()] = var.decode()
-                memsize = params["PHYS_MEMSIZE"]
-        return memsize
+
+        return params
 
     def get_cim_object(self, key, value):
         # ns0:Property(mKey: xsd:string, mValue: xsd:string)
         property_type = self.client.get_type("ns0:Property")
         sap_instance_property = property_type(mKey=key, mValue=value)
+
         # ns0:ArrayOfProperty(item: ns0:Property[])
         properties_type = self.client.get_type("ns0:ArrayOfProperty")
         properties = properties_type([sap_instance_property])
+
         return self.service.GetCIMObject(properties)

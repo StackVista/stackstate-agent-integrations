@@ -1,0 +1,64 @@
+{
+  "subaccounts": [
+    {
+      "description": "",
+      "displayName": "SAC TEST",
+      "tunnel": {
+        "state": "Connected",
+        "connectedSince": "2021-02-17T12:44:10.546 +0100",
+        "connections": 0,
+        "applicationConnections": [],
+        "serviceChannels": [],
+        "user": "info@ctac.nl"
+      },
+      "regionHost": "xx.yyy.hana.ondemand.com",
+      "subaccount": "xxxxxxxx-85c6-454f-9940-fb5a7c984d21",
+      "locationID": ""
+    },
+    {
+      "description": "",
+      "displayName": "CLOUD FOUNDRY",
+      "tunnel": {
+        "state": "ConnectFailure",
+        "connections": 0,
+        "applicationConnections": [],
+        "serviceChannels": [],
+        "user": "info@ctac.nl"
+      },
+      "regionHost": "xx.yyy.hana.ondemand.com",
+      "subaccount": "xxxxxxxx-017e-482e-b846-c22199f3cc72",
+      "locationID": "TST"
+    },
+    {
+      "description": "For connecting SAP Business Application Studio to Bitbucket",
+      "displayName": "Ctac Cloud Foundry - Software Engineering (AWS)",
+      "tunnel": {
+        "state": "Connected",
+        "connectedSince": "2021-02-17T16:23:26.270 +0100",
+        "connections": 0,
+        "applicationConnections": [],
+        "serviceChannels": [],
+        "user": "info@ctac.nl"
+      },
+      "regionHost": "xx.yyy.hana.ondemand.com",
+      "subaccount": "xxxxxxxx-4932-4b01-a1b1-05269f30b597",
+      "locationID": ""
+    },
+    {
+      "description": "",
+      "displayName": "Ctac Integration Demo - AWS",
+      "tunnel": {
+        "state": "Connected",
+        "connectedSince": "2021-02-17T12:46:40.914 +0100",
+        "connections": 0,
+        "applicationConnections": [],
+        "serviceChannels": [],
+        "user": "info@ctac.nl"
+      },
+      "regionHost": "xx.yyy.hana.ondemand.com",
+      "subaccount": "xxxxxxxx-35ee-4507-a766-27332421376c",
+      "locationID": ""
+    }
+  ],
+  "version": 1
+}
