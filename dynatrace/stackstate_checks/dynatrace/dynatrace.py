@@ -105,6 +105,7 @@ class DynatraceCheck(AgentCheck):
         self.log.debug("Starting the collection of topology")
         for component_type, path in TOPOLOGY_API_ENDPOINTS.items():
             endpoint = urljoin(instance_info.url, path)
+            param = {"startTimestamp": self._current_time_seconds()}
             response = self._get_dynatrace_json_response(instance_info, endpoint)
             self._collect_topology(response, component_type, instance_info)
         end_time = datetime.now()
