@@ -102,7 +102,7 @@ class DynatraceCheck(AgentCheck):
         Collects components and relations for each component type from dynatrace smartscape topology API
         """
         start_time = datetime.now()
-        self.log.info("Starting the collection of topology")
+        self.log.debug("Starting the collection of topology")
         for component_type, path in TOPOLOGY_API_ENDPOINTS.items():
             endpoint = urljoin(instance_info.url, path)
             response = self._get_dynatrace_json_response(instance_info, endpoint)
@@ -110,7 +110,7 @@ class DynatraceCheck(AgentCheck):
         end_time = datetime.now()
         time_taken = end_time - start_time
         self.log.info("Collected %d entities.", len(dynatrace_entities_cache))
-        self.log.info("Time taken to collect the topology is: {} seconds".format(time_taken.total_seconds()))
+        self.log.debug("Time taken to collect the topology is: {} seconds".format(time_taken.total_seconds()))
 
     def _collect_relations(self, component, external_id):
         """
@@ -286,7 +286,7 @@ class DynatraceCheck(AgentCheck):
                     "entityName": dynatrace_entities_cache[entity_id].get('name'),
                     "impactLevel": None,
                     "eventType": "CUSTOM_ALERT",
-                    "eventStatus": "OK STATUS",
+                    "eventStatus": "OK",
                     "tags": [],
                     "id": -1,
                     "source": "StackState Agent"
