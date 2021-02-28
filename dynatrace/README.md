@@ -38,7 +38,7 @@ The API Token configured in StackState Agent V2 must have access to read the top
 
 ### Installation
 
-The Dynatrace Topology check is included in the [StackState Agent][2] package, so you do not
+The Dynatrace check is included in the [StackState Agent][2] package, so you do not
 need to install anything else on your server.
 
 ### Configuration
