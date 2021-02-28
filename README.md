@@ -3,6 +3,8 @@
 This repository contains the Agent Integrations (also known as checks) that StackState officially develops and supports. 
 The [StackState Agent][1] packages are equipped with all the Integrations from this repository.
 
+For information on how to develop your own integrations, see the [developer guide on the StackState docs site][2].
+
 # Development
 
 Prerequisites:
@@ -75,3 +77,4 @@ If you find anything missing in this README please amend it! :)
 
 
 [1]: https://github.com/StackVista/stackstate-agent
+[2]: https://docs.stackstate.com/develop/developer-guides/agent_check/how_to_develop_agent_checks

@@ -2,39 +2,43 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 
-
-# stdlib
-from datetime import datetime, timedelta
-from hashlib import md5
-try:
-    from Queue import Empty, Queue
-except ImportError:
-    from queue import Empty, Queue
 import re
 import ssl
+import threading
 import time
 import traceback
-import urllib3
-import json
-import yaml
+from collections import defaultdict
+from contextlib import contextmanager
+from datetime import datetime, timedelta
 
-# 3p
+import requests
+import urllib3
 from pyVim import connect
 from pyVmomi import vim  # pylint: disable=E0611
-import requests
+from pyVmomi import vmodl  # pylint: disable=E0611
+from six import itervalues
+from six.moves import range
 from vmware.vapi.vsphere.client import create_vsphere_client
 from com.vmware.vapi.std_client import DynamicID
 
-# project
-from stackstate_checks.base.config import _is_affirmative
-from stackstate_checks.base import AgentCheck, TopologyInstance, ConfigurationError
-from stackstate_checks.base.checks.libs.thread_pool import Pool
-from stackstate_checks.base.checks.libs.vmware.basic_metrics import BASIC_METRICS
-from stackstate_checks.base.checks.libs.vmware.all_metrics import ALL_METRICS
+from stackstate_checks.base import AgentCheck, StackPackInstance, ConfigurationError
+from stackstate_checks.base.checks.libs.thread_pool import SENTINEL, Pool
 from stackstate_checks.base.checks.libs.timer import Timer
+from stackstate_checks.base.checks.libs.vmware.all_metrics import ALL_METRICS
+from stackstate_checks.base.checks.libs.vmware.basic_metrics import BASIC_METRICS
+from stackstate_checks.base.config import is_affirmative
 
-SOURCE_TYPE = 'vsphere'
-REAL_TIME_INTERVAL = 20  # Default vCenter sampling interval
+from .event import VSphereEvent
+from .cache_config import CacheConfig
+from .common import REALTIME_RESOURCES, SOURCE_TYPE
+from .errors import BadConfigError, ConnectionError
+from .metadata_cache import MetadataCache, MetadataNotFoundError
+from .mor_cache import MorCache, MorNotFoundError
+from .objects_queue import ObjectsQueue
+from .topology_util import vsphere_component_types, vsphere_relation_types, vsphere_layers, add_label_pair
+
+# Default vCenter sampling interval
+REAL_TIME_INTERVAL = 20
 # Metrics are only collected on vSphere VMs marked by custom field value
 VM_MONITORING_FLAG = 'StackStateMonitored'
 # The size of the ThreadPool used to process the request queue
@@ -45,324 +49,49 @@ DEFAULT_MAX_HIST_METRICS = 64
 REFRESH_MORLIST_INTERVAL = 3 * 60
 # The interval in seconds between two refresh of metrics metadata (id<->name)
 REFRESH_METRICS_METADATA_INTERVAL = 10 * 60
-# The amount of jobs batched at the same time in the queue to query available metrics
+# The amount of objects batched at the same time in the QueryPerf method to query available metrics
 BATCH_MORLIST_SIZE = 50
+# Maximum number of objects to collect at once by the propertyCollector. The size of the response returned by the query
+# is significantly lower than the size of the queryPerf response, so allow specifying a different value.
+BATCH_COLLECTOR_SIZE = 500
 
-REALTIME_RESOURCES = {'vm', 'host'}
+RESOURCE_TYPE_METRICS_REALTIME = (vim.VirtualMachine, vim.HostSystem)
+RESOURCE_TYPE_METRICS_HISTORICAL = (vim.Datacenter, vim.Datastore, vim.ClusterComputeResource)
 
-RESOURCE_TYPE_MAP = {
-    'vm': vim.VirtualMachine,
-    'datacenter': vim.Datacenter,
-    'host': vim.HostSystem,
-    'datastore': vim.Datastore,
-    'clustercomputeresource': vim.ClusterComputeResource,
-    'computeresource': vim.ComputeResource
+RESOURCE_TYPE_METRICS = RESOURCE_TYPE_METRICS_REALTIME + RESOURCE_TYPE_METRICS_HISTORICAL
+
+RESOURCE_TYPE_NO_METRIC = (vim.ComputeResource, vim.Folder)
+
+SHORT_ROLLUP = {
+    "average": "avg",
+    "summation": "sum",
+    "maximum": "max",
+    "minimum": "min",
+    "latest": "latest",
+    "none": "raw",
 }
 
 
-class VSPHERE_COMPONENT_TYPE:
-    VM = "vsphere-VirtualMachine"
-    DATACENTER = "vsphere-Datacenter"
-    HOST = "vsphere-HostSystem"
-    DATASTORE = "vsphere-Datastore"
-    CLUSTERCOMPUTERESOURCE = "vsphere-ClusterComputeResource"
-    COMPUTERESOURCE = "vsphere-ComputeResource"
-
-
-class VSPHERE_RELATION_TYPE:
-    VM_HOST = 'vsphere-vm-is-hosted-on'
-    VM_DATASTORE = 'vsphere-vm-uses-datastore'
-
-    HOST_COMPUTERESOURCE = 'vsphere-hostsystem-belongs-to'
-    DATASTORE_COMPUTERESOURCE = 'vsphere-datastore-belongs-to'
-    HOST_DATASTORE = 'vsphere-hostsystem-uses-datastore'
-
-    DATASTORE_DATACENTER = 'vsphere-datastore-is-located-on'
-
-    CLUSTERCOMPUTERESOURCE_DATACENTER = 'vsphere-clustercomputeresource-is-located-on'
-    COMPUTERESOURCE_DATACENTER = 'vsphere-computeresources-is-located-on'
-
-
-class TOPOLOGY_LAYERS:
-    DATASTORE = 'VSphere Datastores'
-    HOST = 'VSphere Hosts'
-    VM = 'VSphere VMs'
-    COMPUTERESOURCE = 'VSphere Compute Resources'
-    DATACENTER = 'VSphere Datacenter'
-
-
-def add_label_pair(label_list, key, value):
-    label_list.append("{0}:{1}".format(key, value))
-
-
-# Time after which we reap the jobs that clog the queue
-# TODO: use it
-JOB_TIMEOUT = 10
-
-EXCLUDE_FILTERS = {
-    'AlarmStatusChangedEvent': [r'Gray'],
-    'TaskEvent': [
-        r'Initialize powering On',
-        r'Power Off virtual machine',
-        r'Power On virtual machine',
-        r'Reconfigure virtual machine',
-        r'Relocate virtual machine',
-        r'Suspend virtual machine',
-        r'Migrate virtual machine',
-    ],
-    'VmBeingHotMigratedEvent': [],
-    'VmMessageEvent': [],
-    'VmMigratedEvent': [],
-    'VmPoweredOnEvent': [],
-    'VmPoweredOffEvent': [],
-    'VmReconfiguredEvent': [],
-    'VmResumedEvent': [],
-    'VmSuspendedEvent': [],
-}
-
-MORLIST = 'morlist'
-METRICS_METADATA = 'metrics_metadata'
-LAST = 'last'
-INTERVAL = 'interval'
-
-
-class VSphereEvent(object):
-    UNKNOWN = 'unknown'
-
-    def __init__(self, raw_event, event_config=None):
-        self.raw_event = raw_event
-        if self.raw_event and self.raw_event.__class__.__name__.startswith('vim.event'):
-            self.event_type = self.raw_event.__class__.__name__[10:]
-        else:
-            self.event_type = VSphereEvent.UNKNOWN
-
-        self.timestamp = int((self.raw_event.createdTime.replace(tzinfo=None) - datetime(1970, 1, 1)).total_seconds())
-        self.payload = {
-            "timestamp": self.timestamp,
-            "event_type": SOURCE_TYPE,
-            "source_type_name": SOURCE_TYPE,
-        }
-        if event_config is None:
-            self.event_config = {}
-        else:
-            self.event_config = event_config
-
-    def _is_filtered(self):
-        # Filter the unwanted types
-        if self.event_type not in EXCLUDE_FILTERS:
-            return True
-
-        filters = EXCLUDE_FILTERS[self.event_type]
-        for f in filters:
-            if re.search(f, self.raw_event.fullFormattedMessage):
-                return True
-
-        return False
-
-    def get_stackstate_payload(self):
-        if self._is_filtered():
-            return None
-
-        transform_method = getattr(self, 'transform_%s' % self.event_type.lower(), None)
-        if callable(transform_method):
-            return transform_method()
-
-        # Default event transformation
-        self.payload["msg_title"] = u"{0}".format(self.event_type)
-        self.payload["msg_text"] = u"@@@\n{0}\n@@@".format(self.raw_event.fullFormattedMessage)
-
-        return self.payload
-
-    def transform_vmbeinghotmigratedevent(self):
-        self.payload["msg_title"] = u"VM {0} is being migrated".format(self.raw_event.vm.name)
-        self.payload["msg_text"] = u"{user} has launched a hot migration of this virtual machine:\n".\
-            format(user=self.raw_event.userName)
-        changes = []
-        pre_host = self.raw_event.host.name
-        new_host = self.raw_event.destHost.name
-        pre_dc = self.raw_event.datacenter.name
-        new_dc = self.raw_event.destDatacenter.name
-        pre_ds = self.raw_event.ds.name
-        new_ds = self.raw_event.destDatastore.name
-        if pre_host == new_host:
-            changes.append(u"- No host migration: still {0}".format(new_host))
-        else:
-            # Insert in front if it's a change
-            changes = [u"- Host MIGRATION: from {0} to {1}".format(pre_host, new_host)] + changes
-        if pre_dc == new_dc:
-            changes.append(u"- No datacenter migration: still {0}".format(new_dc))
-        else:
-            # Insert in front if it's a change
-            changes = [u"- Datacenter MIGRATION: from {0} to {1}".format(pre_dc, new_dc)] + changes
-        if pre_ds == new_ds:
-            changes.append(u"- No datastore migration: still {0}".format(new_ds))
-        else:
-            # Insert in front if it's a change
-            changes = [u"- Datastore MIGRATION: from {0} to {1}".format(pre_ds, new_ds)] + changes
-
-        self.payload["msg_text"] += "\n".join(changes)
-
-        self.payload['host'] = self.raw_event.vm.name
-        self.payload['tags'] = [
-            'vsphere_host:%s' % pre_host,
-            'vsphere_host:%s' % new_host,
-            'vsphere_datacenter:%s' % pre_dc,
-            'vsphere_datacenter:%s' % new_dc,
-        ]
-        return self.payload
-
-    def transform_alarmstatuschangedevent(self):
-        if self.event_config.get('collect_vcenter_alarms') is None:
-            return None
-
-        def get_transition(before, after):
-            vals = {
-                'gray': -1,
-                'green': 0,
-                'yellow': 1,
-                'red': 2
-            }
-            before = before.lower()
-            after = after.lower()
-            if before not in vals or after not in vals:
-                return None
-            if vals[before] < vals[after]:
-                return 'Triggered'
-            else:
-                return 'Recovered'
-
-        TO_ALERT_TYPE = {
-            'green': 'success',
-            'yellow': 'warning',
-            'red': 'error'
-        }
-
-        def get_agg_key(alarm_event):
-            return 'h:{0}|dc:{1}|a:{2}'.format(
-                md5(alarm_event.entity.name).hexdigest()[:10],
-                md5(alarm_event.datacenter.name).hexdigest()[:10],
-                md5(alarm_event.alarm.name).hexdigest()[:10]
-            )
-
-        # Get the entity type/name
-        if self.raw_event.entity.entity.__class__ == vim.VirtualMachine:
-            host_type = 'VM'
-        elif self.raw_event.entity.entity.__class__ == vim.HostSystem:
-            host_type = 'host'
-        else:
-            return None
-        host_name = self.raw_event.entity.name
-
-        # Need a getattr because from is a reserved keyword...
-        trans_before = getattr(self.raw_event, 'from')
-        trans_after = self.raw_event.to
-        transition = get_transition(trans_before, trans_after)
-        # Bad transition, we shouldn't have got this transition
-        if transition is None:
-            return None
-
-        self.payload['msg_title'] = u"[{transition}] {monitor} on {host_type} {host_name} is now {status}".format(
-            transition=transition,
-            monitor=self.raw_event.alarm.name,
-            host_type=host_type,
-            host_name=host_name,
-            status=trans_after
-        )
-        self.payload['alert_type'] = TO_ALERT_TYPE[trans_after]
-        self.payload['event_object'] = get_agg_key(self.raw_event)
-        self.payload['msg_text'] = "vCenter monitor status changed on this alarm, it was {before} and it's now " \
-                                   "{after}.".format(before=trans_before, after=trans_after)
-        self.payload['host'] = host_name
-        return self.payload
-
-    def transform_vmmessageevent(self):
-        self.payload["msg_title"] = u"VM {0} is reporting".format(self.raw_event.vm.name)
-        self.payload["msg_text"] = u"@@@\n{0}\n@@@".format(self.raw_event.fullFormattedMessage)
-        self.payload['host'] = self.raw_event.vm.name
-        return self.payload
-
-    def transform_vmmigratedevent(self):
-        self.payload["msg_title"] = u"VM {0} has been migrated".format(self.raw_event.vm.name)
-        self.payload["msg_text"] = u"@@@\n{0}\n@@@".format(self.raw_event.fullFormattedMessage)
-        self.payload['host'] = self.raw_event.vm.name
-        return self.payload
-
-    def transform_vmpoweredoffevent(self):
-        self.payload["msg_title"] = u"VM {0} has been powered OFF".format(self.raw_event.vm.name)
-        self.payload["msg_text"] = u"""{user} has powered off this virtual machine. It was running on:
-- datacenter: {dc}
-- host: {host}
-""".format(
-            user=self.raw_event.userName,
-            dc=self.raw_event.datacenter.name,
-            host=self.raw_event.host.name
-        )
-        self.payload['host'] = self.raw_event.vm.name
-        return self.payload
-
-    def transform_vmpoweredonevent(self):
-        self.payload["msg_title"] = u"VM {0} has been powered ON".format(self.raw_event.vm.name)
-        self.payload["msg_text"] = u"""{user} has powered on this virtual machine. It is running on:
-- datacenter: {dc}
-- host: {host}
-""".format(
-            user=self.raw_event.userName,
-            dc=self.raw_event.datacenter.name,
-            host=self.raw_event.host.name
-        )
-        self.payload['host'] = self.raw_event.vm.name
-        return self.payload
-
-    def transform_vmresumingevent(self):
-        self.payload["msg_title"] = u"VM {0} is RESUMING".format(self.raw_event.vm.name)
-        self.payload["msg_text"] = u"""{user} has resumed {vm}. It will soon be powered on.""".format(
-            user=self.raw_event.userName,
-            vm=self.raw_event.vm.name
-        )
-        self.payload['host'] = self.raw_event.vm.name
-        return self.payload
-
-    def transform_vmsuspendedevent(self):
-        self.payload["msg_title"] = u"VM {0} has been SUSPENDED".format(self.raw_event.vm.name)
-        self.payload["msg_text"] = u"""{user} has suspended this virtual machine. It was running on:
-- datacenter: {dc}
-- host: {host}
-""".format(
-            user=self.raw_event.userName,
-            dc=self.raw_event.datacenter.name,
-            host=self.raw_event.host.name
-        )
-        self.payload['host'] = self.raw_event.vm.name
-        return self.payload
-
-    def transform_vmreconfiguredevent(self):
-        self.payload["msg_title"] = u"VM {0} configuration has been changed".format(self.raw_event.vm.name)
-        self.payload["msg_text"] = u"{user} saved the new configuration:\n@@@\n".format(user=self.raw_event.userName)
-        # Add lines for configuration change don't show unset, that's hacky...
-        config_change_lines = [line for line in self.raw_event.configSpec.__repr__().splitlines()
-                               if 'unset' not in line]
-        self.payload["msg_text"] += u"\n".join(config_change_lines)
-        self.payload["msg_text"] += u"\n@@@"
-        self.payload['host'] = self.raw_event.vm.name
-        return self.payload
-
-
-def atomic_method(method):
-    """ Decorator to catch the exceptions that happen in detached thread atomic tasks
-    and display them in the logs.
+def trace_method(method):
     """
+    Decorator to catch and print the exceptions that happen within async tasks.
+    Note: this should be applied to methods of VSphereCheck only!
+    """
+
     def wrapper(*args, **kwargs):
         try:
             method(*args, **kwargs)
         except Exception:
-            args[0].exceptionq.put("A worker thread crashed:\n" + traceback.format_exc())
+            args[0].print_exception("A worker thread crashed:\n" + traceback.format_exc())
+
     return wrapper
 
 
 class VSphereCheck(AgentCheck):
-    """ Get performance metrics from a vCenter server and upload them to StackState
+    """Get performance metrics from a vCenter server and upload them to Datadog
     References:
         http://pubs.vmware.com/vsphere-51/index.jsp#com.vmware.wssdk.apiref.doc/vim.PerformanceManager.html
+
     *_atomic jobs perform one single task asynchronously in the ThreadPool, we
     don't know exactly when they will finish, but we reap them if they're stuck.
     The other calls are performed synchronously.
@@ -370,102 +99,125 @@ class VSphereCheck(AgentCheck):
 
     SERVICE_CHECK_NAME = 'vcenter.can_connect'
     INSTANCE_TYPE = "vsphere"
+    pool = None
 
     def __init__(self, name, init_config, instances):
         AgentCheck.__init__(self, name, init_config, instances)
         self.time_started = time.time()
-        self.pool_started = False
-        self.exceptionq = Queue()
+
+        self.batch_morlist_size = max(init_config.get("batch_morlist_size", BATCH_MORLIST_SIZE), 0)
+        self.batch_collector_size = max(init_config.get("batch_property_collector_size", BATCH_COLLECTOR_SIZE), 0)
+
+        self.refresh_morlist_interval = init_config.get('refresh_morlist_interval', REFRESH_MORLIST_INTERVAL)
+        self.clean_morlist_interval = max(
+            init_config.get('clean_morlist_interval', 2 * self.refresh_morlist_interval), self.refresh_morlist_interval
+        )
+        self.refresh_metrics_metadata_interval = init_config.get(
+            'refresh_metrics_metadata_interval', REFRESH_METRICS_METADATA_INTERVAL
+        )
 
         # Connections open to vCenter instances
         self.server_instances = {}
-        self.session = None
+        self.server_instances_lock = threading.RLock()
 
         # Event configuration
         self.event_config = {}
-        # Caching resources, timeouts
-        self.cache_times = {}
-        for instance in self.instances:
-            i_key = self._instance_key(instance)
-            self.cache_times[i_key] = {
-                MORLIST: {
-                    LAST: 0,
-                    INTERVAL: init_config.get('refresh_morlist_interval', REFRESH_MORLIST_INTERVAL)
-                },
-                METRICS_METADATA: {
-                    LAST: 0,
-                    INTERVAL: init_config.get('refresh_metrics_metadata_interval', REFRESH_METRICS_METADATA_INTERVAL)
-                }
-            }
 
+        # Host tags exclusion
+        self.excluded_host_tags = instances[0].get("excluded_host_tags", init_config.get("excluded_host_tags", []))
+
+        # Caching configuration
+        self.cache_config = CacheConfig()
+
+        # build up configurations
+        for instance in instances:
+            i_key = self._instance_key(instance)
+            # caches
+            self.cache_config.set_interval(CacheConfig.Morlist, i_key, self.refresh_morlist_interval)
+            self.cache_config.set_interval(CacheConfig.Metadata, i_key, self.refresh_metrics_metadata_interval)
+            # events
             self.event_config[i_key] = instance.get('event_config')
+
+        # Queue of raw Mor objects to process
+        self.mor_objects_queue = ObjectsQueue()
+
+        # Cache of processed Mor objects
+        self.mor_cache = MorCache(self.log)
 
         # managed entity raw view
         self.registry = {}
-        # First layer of cache (get entities from the tree)
-        self.morlist_raw = {}
-        # Second layer, processed from the first one
-        self.morlist = {}
-        # Metrics metadata, basically perfCounterId -> {name, group, description}
-        self.metrics_metadata = {}
 
+        # Metrics metadata, for each instance keeps the mapping: perfCounterKey -> {name, group, description}
+        self.metadata_cache = MetadataCache()
         self.latest_event_query = {}
+        self.exception_printed = 0
 
-    def stop(self):
-        self.stop_pool()
+    def print_exception(self, msg):
+        """Print exceptions happening in separate threads
+        Prevent from logging a ton of them if a potentially big number of them fail the same way
+        """
+        if self.exception_printed < 10:
+            self.log.error(msg)
+            self.exception_printed += 1
+
+    @staticmethod
+    def _is_main_instance(instance):
+        """The 'main' instance is the one reporting events, service_checks, external host tags and realtime metrics.
+        Note: the main instance can also report `historical` metric for legacy reasons.
+        """
+        return not is_affirmative(instance.get('collect_historical_only', False))
+
+    @staticmethod
+    def _should_collect_historical(instance):
+        """Whether or not this instance should collect and report historical metrics. This is true if the instance
+        is a 'sidecar' for another instance (and in such case only report historical metrics). This is also true
+        for legacy reasons if `collect_realtime_only` is set to False.
+        """
+        if is_affirmative(instance.get('collect_historical_only', False)):
+            return True
+        return not is_affirmative(instance.get('collect_realtime_only', True))
 
     def start_pool(self):
         self.log.info("Starting Thread Pool")
-        self.pool_size = int(self.init_config.get('threads_count', DEFAULT_SIZE_POOL))
+        pool_size = int(self.init_config.get('threads_count', DEFAULT_SIZE_POOL))
+        self.pool = Pool(pool_size)
 
-        self.pool = Pool(self.pool_size)
-        self.pool_started = True
-        self.jobs_status = {}
+    def terminate_pool(self):
+        self.log.info("Terminating Thread Pool")
+        self.pool.terminate()
+        self.pool.join()
+        assert self.pool.get_nworkers() == 0
 
     def stop_pool(self):
-        self.log.info("Stopping Thread Pool")
-        if self.pool_started:
-            self.pool.terminate()
-            self.pool.join()
-            self.jobs_status.clear()
-            assert self.pool.get_nworkers() == 0
-            self.pool_started = False
-
-    def restart_pool(self):
-        self.stop_pool()
-        self.start_pool()
-
-    def _clean(self):
-        now = time.time()
-        # TODO: use that
-        for name in self.jobs_status.keys():
-            start_time = self.jobs_status[name]
-            if now - start_time > JOB_TIMEOUT:
-                self.log.critical("Restarting Pool. One check is stuck.")
-                self.restart_pool()
-                break
+        self.log.info("Stopping Thread Pool, waiting for queued jobs to finish")
+        for _ in self.pool._workers:
+            self.pool._workq.put(SENTINEL)
+        self.pool.close()
+        self.pool.join()
+        assert self.pool.get_nworkers() == 0
 
     def _query_event(self, instance):
         i_key = self._instance_key(instance)
         last_time = self.latest_event_query.get(i_key)
+        tags = instance.get('tags', [])
 
         server_instance = self._get_server_instance(instance)
         event_manager = server_instance.content.eventManager
 
         # Be sure we don't duplicate any event, never query the "past"
         if not last_time:
-            last_time = self.latest_event_query[i_key] = \
-                event_manager.latestEvent.createdTime + timedelta(seconds=1)
+            last_time = event_manager.latestEvent.createdTime + timedelta(seconds=1)
+            self.latest_event_query[i_key] = last_time
 
         query_filter = vim.event.EventFilterSpec()
-        time_filter = vim.event.EventFilterSpec.ByTime(beginTime=self.latest_event_query[i_key])
+        time_filter = vim.event.EventFilterSpec.ByTime(beginTime=last_time)
         query_filter.time = time_filter
 
         try:
             new_events = event_manager.QueryEvents(query_filter)
-            self.log.debug("Got {0} events from vCenter event manager".format(len(new_events)))
+            self.log.debug("Got %s events from vCenter event manager", len(new_events))
             for event in new_events:
-                normalized_event = VSphereEvent(event, self.event_config[i_key])
+                normalized_event = VSphereEvent(event, self.event_config[i_key], tags)
                 # Can return None if the event if filtered out
                 event_payload = normalized_event.get_stackstate_payload()
                 if event_payload is not None:
@@ -479,16 +231,18 @@ class VSphereCheck(AgentCheck):
 
         self.latest_event_query[i_key] = last_time
 
-    def _instance_key(self, instance):
+    @staticmethod
+    def _instance_key(instance):
         i_key = instance.get('name')
         if i_key is None:
-            raise Exception("Must define a unique 'name' per vCenter instance")
+            raise BadConfigError("Must define a unique 'name' per vCenter instance")
         return i_key
 
     def _should_cache(self, instance, entity):
         i_key = self._instance_key(instance)
-        now = time.time()
-        return now - self.cache_times[i_key][entity][LAST] > self.cache_times[i_key][entity][INTERVAL]
+        elapsed = time.time() - self.cache_config.get_last(entity, i_key)
+        interval = self.cache_config.get_interval(entity, i_key)
+        return elapsed > interval
 
     def _smart_connect(self, instance, service_check_tags):
         # Check for ssl configs and generate an appropriate ssl context object
@@ -513,7 +267,7 @@ class VSphereCheck(AgentCheck):
 
         try:
             # Object returned by SmartConnect is a ServerInstance
-            # https://www.vmware.com/support/developer/vc-sdk/visdk2xpubs/ReferenceGuide/vim.ServiceInstance.html
+            #   https://www.vmware.com/support/developer/vc-sdk/visdk2xpubs/ReferenceGuide/vim.ServiceInstance.html
             server_instance = connect.SmartConnect(
                 host=instance.get('host'),
                 user=instance.get('username'),
@@ -522,8 +276,11 @@ class VSphereCheck(AgentCheck):
             )
         except Exception as e:
             err_msg = "Connection to {} failed: {}".format(instance.get('host'), e)
-            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=service_check_tags, message=err_msg)
-            raise Exception(err_msg)
+            if self._is_main_instance(instance):
+                self.service_check(
+                    self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=service_check_tags, message=err_msg
+                )
+            raise ConnectionError(err_msg)
 
         # Check that we have sufficient permission for the calls we need to make
         try:
@@ -532,82 +289,229 @@ class VSphereCheck(AgentCheck):
             err_msg = (
                 "A connection to {} can be established, but performing operations on the server fails: {}"
             ).format(instance.get('host'), e)
-            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=service_check_tags, message=err_msg)
-            raise Exception(err_msg)
+            if self._is_main_instance(instance):
+                self.service_check(
+                    self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=service_check_tags, message=err_msg
+                )
+            raise ConnectionError(err_msg)
 
         return server_instance
 
     def _get_server_instance(self, instance):
         i_key = self._instance_key(instance)
+        tags = instance.get('tags', [])
 
         service_check_tags = [
-            'vcenter_server:{0}'.format(instance.get('name')),
-            'vcenter_host:{0}'.format(instance.get('host')),
+            'vcenter_server:{}'.format(i_key),
+            'vcenter_host:{}'.format(instance.get('host')),
         ]
+        service_check_tags.extend(tags)
+        service_check_tags = list(set(service_check_tags))
 
-        if i_key not in self.server_instances:
-            self.server_instances[i_key] = self._smart_connect(instance, service_check_tags)
+        with self.server_instances_lock:
+            if i_key not in self.server_instances:
+                self.server_instances[i_key] = self._smart_connect(instance, service_check_tags)
 
-        # Test if the connection is working
-        try:
-            self.server_instances[i_key].CurrentTime()
-            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=service_check_tags)
-        except Exception:
-            # Try to reconnect, if the connection is definitely broken.
-            del self.server_instances[i_key]
-            self.server_instances[i_key] = self._smart_connect(instance, service_check_tags)
-        return self.server_instances[i_key]
+            # Test if the connection is working
+            try:
+                self.server_instances[i_key].CurrentTime()
+                if self._is_main_instance(instance):
+                    self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=service_check_tags)
+            except Exception:
+                # Try to reconnect. If the connection is definitely broken,
+                # this will send CRITICAL service check and raise
+                self.server_instances[i_key] = self._smart_connect(instance, service_check_tags)
+
+            return self.server_instances[i_key]
 
     def _compute_needed_metrics(self, instance, available_metrics):
-        """ Compare the available metrics for one MOR we have computed and intersect them
+        """Compare the available metrics for one MOR we have computed and intersect them
         with the set of metrics we want to report
         """
-        if instance.get('all_metrics', False):
-            return available_metrics
-
         i_key = self._instance_key(instance)
-        wanted_metrics = []
-        # Get only the basic metrics
-        for metric in available_metrics:
-            # No cache yet, skip it for now
-            if (i_key not in self.metrics_metadata
-                    or metric.counterId not in self.metrics_metadata[i_key]):
-                continue
-            if self.metrics_metadata[i_key][metric.counterId]['name'] in BASIC_METRICS:
-                wanted_metrics.append(metric)
+        if self.in_compatibility_mode(instance):
+            if instance.get('all_metrics', False):
+                return available_metrics
 
-        return wanted_metrics
+            wanted_metrics = []
+            # Get only the basic metrics
+            for counter_id in available_metrics:
+                # No cache yet, skip it for now
+                if not self.metadata_cache.contains(i_key, counter_id):
+                    self.log.debug("No metadata found for counter %s, will not collect it", counter_id)
+                    continue
+                metadata = self.metadata_cache.get_metadata(i_key, counter_id)
+                if metadata.get('name') in BASIC_METRICS:
+                    wanted_metrics.append(vim.PerformanceManager.MetricId(counterId=counter_id, instance="*"))
+
+            return wanted_metrics
+        else:
+            # The metadata cache contains only metrics of the desired level, so use it to filter the metrics to keep
+            return [
+                vim.PerformanceManager.MetricId(counterId=counter_id, instance="*")
+                for counter_id in available_metrics
+                if self.metadata_cache.contains(i_key, counter_id)
+            ]
 
     def get_external_host_tags(self):
-        """ Returns a list of tags for every host that is detected by the vSphere
-        integration.
-        List of pairs (hostname, list_of_tags)
         """
-        self.log.debug(u"Sending external_host_tags now")
+        Returns a list of tags for every host that is detected by the vSphere
+        integration.
+
+        Returns a list of pairs (hostname, {'SOURCE_TYPE: list_of_tags},)
+        """
+        self.log.debug("Sending external_host_tags now")
         external_host_tags = []
         for instance in self.instances:
             i_key = self._instance_key(instance)
-            mor_by_mor_name = self.morlist.get(i_key)
-
-            if not mor_by_mor_name:
-                self.log.warning(
-                    u"Unable to extract hosts' tags for `%s` vSphere instance."
-                    u"Is the check failing on this instance?", instance.get("name")
-                )
+            if not self.mor_cache.contains(i_key):
+                self.log.warning("Unable to extract host tags for vSphere instance: %s", i_key)
                 continue
 
-            for mor in mor_by_mor_name.itervalues():
-                if mor['hostname']:  # some mor's have a None hostname
-                    external_host_tags.append((mor['hostname'], {SOURCE_TYPE: mor['tags']}))
+            for _, mor in self.mor_cache.mors(i_key):
+                # Note: some mors have a None hostname
+                hostname = mor.get('hostname')
+                if hostname:
+                    external_host_tags.append((hostname, {SOURCE_TYPE: mor.get('tags')}))
 
         return external_host_tags
 
-    def _discover_mor(self, instance, tags, regexes=None, include_only_marked=False):
+    def _get_parent_tags(self, mor, all_objects):
+        properties = all_objects.get(mor, {})
+        parent = properties.get('parent')
+        if parent:
+            tags = []
+            parent_name = all_objects.get(parent, {}).get('name', 'unknown')
+            if isinstance(parent, vim.HostSystem):
+                tags.append('vsphere_host:{}'.format(parent_name))
+            elif isinstance(parent, vim.Folder):
+                tags.append('vsphere_folder:{}'.format(parent_name))
+            elif isinstance(parent, vim.ComputeResource):
+                if isinstance(parent, vim.ClusterComputeResource):
+                    tags.append('vsphere_cluster:{}'.format(parent_name))
+                tags.append('vsphere_compute:{}'.format(parent_name))
+            elif isinstance(parent, vim.Datacenter):
+                tags.append('vsphere_datacenter:{}'.format(parent_name))
+
+            parent_tags = self._get_parent_tags(parent, all_objects)
+            parent_tags.extend(tags)
+            return parent_tags
+        return []
+
+    @staticmethod
+    @contextmanager
+    def create_container_view(server_instance, resources):
+        content = server_instance.content
+        view_ref = content.viewManager.CreateContainerView(content.rootFolder, resources, True)
+        try:
+            yield view_ref
+        finally:
+            view_ref.Destroy()
+
+    def _collect_mors_and_attributes(self, server_instance):
+        resources = list(RESOURCE_TYPE_METRICS)
+        resources.extend(RESOURCE_TYPE_NO_METRIC)
+        content = server_instance.content
+
+        with VSphereCheck.create_container_view(server_instance, resources) as view_ref:
+
+            # Object used to query MORs as well as the attributes we require in one API call
+            # See https://code.vmware.com/apis/358/vsphere#/doc/vmodl.query.PropertyCollector.html
+            collector = content.propertyCollector
+
+            # Specify the root object from where we collect the rest of the objects
+            obj_spec = vmodl.query.PropertyCollector.ObjectSpec()
+            obj_spec.obj = view_ref
+            obj_spec.skip = True
+
+            # Specify the attribute of the root object to traverse to obtain all the attributes
+            traversal_spec = vmodl.query.PropertyCollector.TraversalSpec()
+            traversal_spec.path = "view"
+            traversal_spec.skip = False
+            traversal_spec.type = view_ref.__class__
+            obj_spec.selectSet = [traversal_spec]
+
+            property_specs = []
+            # Specify which attributes we want to retrieve per object
+            for resource in resources:
+                property_spec = vmodl.query.PropertyCollector.PropertySpec()
+                property_spec.type = resource
+                property_spec.pathSet = ["name", "parent", "customValue"]
+                if resource == vim.VirtualMachine:
+                    property_spec.pathSet.append("runtime.powerState")
+                    property_spec.pathSet.append("runtime.host")
+                    property_spec.pathSet.append("guest.hostName")
+                    # Topology property collection as we did previously
+                    property_spec.pathSet.append("config.guestId")
+                    property_spec.pathSet.append("config.guestFullName")
+                    property_spec.pathSet.append("config.hardware.numCPU")
+                    property_spec.pathSet.append("config.hardware.memoryMB")
+                    property_spec.pathSet.append("datastore")
+                elif resource == vim.Datacenter:
+                    property_spec.pathSet.append("datastore")
+                    property_spec.pathSet.append("hostFolder")
+                elif resource == vim.Datastore:
+                    property_spec.pathSet.append("summary.accessible")
+                    property_spec.pathSet.append("summary.capacity")
+                    property_spec.pathSet.append("summary.type")
+                    property_spec.pathSet.append("summary.url")
+                    property_spec.pathSet.append("vm")
+                elif resource == vim.HostSystem:
+                    property_spec.pathSet.append("vm")
+                    property_spec.pathSet.append("datastore")
+                elif resource == vim.ClusterComputeResource:
+                    property_spec.pathSet.append("host")
+                    property_spec.pathSet.append("datastore")
+                elif resource == vim.ComputeResource:
+                    property_spec.pathSet.append("host")
+                    property_spec.pathSet.append("datastore")
+                elif resource == vim.Folder:
+                    property_spec.pathSet.append("childEntity")
+                property_specs.append(property_spec)
+
+            # Create our filter spec from the above specs
+            filter_spec = vmodl.query.PropertyCollector.FilterSpec()
+            filter_spec.objectSet = [obj_spec]
+            filter_spec.propSet = property_specs
+
+            retr_opts = vmodl.query.PropertyCollector.RetrieveOptions()
+            # To limit the number of objects retrieved per call.
+            # If batch_collector_size is 0, collect maximum number of objects.
+            retr_opts.maxObjects = self.batch_collector_size or None
+
+            # Collect the objects and their properties
+            res = collector.RetrievePropertiesEx([filter_spec], retr_opts)
+            objects = res.objects
+            # Results can be paginated
+            while res.token is not None:
+                res = collector.ContinueRetrievePropertiesEx(res.token)
+                objects.extend(res.objects)
+
+        mor_attrs = {}
+        error_counter = 0
+        for obj in objects:
+            if obj.missingSet and error_counter < 10:
+                for prop in obj.missingSet:
+                    error_counter += 1
+                    self.log.error(
+                        "Unable to retrieve property %s for object %s: %s",
+                        prop.path,
+                        obj.obj,
+                        prop.fault,
+                    )
+                    if error_counter == 10:
+                        self.log.error("Too many errors during object collection, stop logging")
+                        break
+            mor_attrs[obj.obj] = {prop.name: prop.val for prop in obj.propSet} if obj.propSet else {}
+
+        return mor_attrs
+
+    def _get_all_objs(self, server_instance, regexes, include_only_marked, tags, use_guest_hostname=False):
         """
-        Explore vCenter infrastructure to discover hosts, virtual machines
+        Explore vCenter infrastructure to discover hosts, virtual machines, etc.
         and compute their associated tags.
-        Start with the vCenter `rootFolder` and proceed recursively,
-        queueing other such jobs for children nodes.
+        Start at the vCenter `rootFolder`, so as to collect every objet.
+
         Example topology:
             ```
             rootFolder
@@ -621,96 +525,100 @@ class VSphereCheck(AgentCheck):
                             - vm1
                             - vm2
             ```
-        If it's a node we want to query metric for, queue it in `self.morlist_raw` that
-        will be processed by another job.
+
+        If it's a node we want to query metric for, it will be enqueued at the
+        instance level and will be processed by a subsequent job.
         """
-        def _get_parent_tags(mor):
-            tags = []
-            if mor.parent:
-                tag = []
-                if isinstance(mor.parent, vim.HostSystem):
-                    tag.append(u'vsphere_host:{}'.format(mor.parent.name))
-                elif isinstance(mor.parent, vim.Folder):
-                    tag.append(u'vsphere_folder:{}'.format(mor.parent.name))
-                elif isinstance(mor.parent, vim.ComputeResource):
-                    if isinstance(mor.parent, vim.ClusterComputeResource):
-                        tag.append(u'vsphere_cluster:{}'.format(mor.parent.name))
-                    tag.append(u'vsphere_compute:{}'.format(mor.parent.name))
-                elif isinstance(mor.parent, vim.Datacenter):
-                    tag.append(u'vsphere_datacenter:{}'.format(mor.parent.name))
+        start = time.time()
+        obj_list = defaultdict(list)
 
-                tags = _get_parent_tags(mor.parent)
-                if tag:
-                    tags.extend(tag)
+        # Collect objects and their attributes
+        all_objects = self._collect_mors_and_attributes(server_instance)
 
-            return tags
+        # Add rootFolder since it is not explored by the propertyCollector
+        rootFolder = server_instance.content.rootFolder
+        all_objects[rootFolder] = {"name": rootFolder.name, "parent": None}
 
-        def _get_all_objs(content, vimtype, regexes=None, include_only_marked=False, tags=[]):
-            """
-            Get all the vsphere objects associated with a given type
-            """
-            obj_list = []
-            container = content.viewManager.CreateContainerView(
-                content.rootFolder,
-                [RESOURCE_TYPE_MAP[vimtype]],
-                True)
+        for obj, properties in all_objects.items():
+            instance_tags = []
+            if not self._is_excluded(obj, properties, regexes, include_only_marked) and isinstance(
+                obj, RESOURCE_TYPE_METRICS
+            ):
+                if use_guest_hostname:
+                    hostname = properties.get("guest.hostName", properties.get("name", "unknown"))
+                else:
+                    hostname = properties.get("name", "unknown")
+                if properties.get("parent"):
+                    instance_tags.extend(self._get_parent_tags(obj, all_objects))
 
-            for c in container.view:
-                instance_tags = []
-                if not self._is_excluded(c, regexes, include_only_marked):
-                    hostname = c.name
-                    if c.parent:
-                        instance_tags += _get_parent_tags(c)
-
-                    vsphere_type = None
-                    if isinstance(c, vim.VirtualMachine):
-                        vsphere_type = u'vsphere_type:vm'
-                        if c.runtime.powerState == vim.VirtualMachinePowerState.poweredOff:
+                if isinstance(obj, vim.VirtualMachine):
+                    vsphere_type = 'vsphere_type:vm'
+                    vimtype = vim.VirtualMachine
+                    mor_type = "vm"
+                    power_state = properties.get("runtime.powerState")
+                    if power_state != vim.VirtualMachinePowerState.poweredOn:
+                        self.log.debug("Skipping VM in state %s", power_state)
+                        continue
+                    host_mor = properties.get("runtime.host")
+                    host_props = all_objects.get(host_mor, {})
+                    host = "unknown"
+                    if host_mor and host_props:
+                        host = host_props.get("name", "unknown")
+                        if self._is_excluded(host_mor, host_props, regexes, include_only_marked):
+                            self.log.debug(
+                                "Skipping VM because host %s is excluded by rule %s.", host, regexes.get('host_include')
+                            )
                             continue
-                        host = c.runtime.host.name
-                        instance_tags.append(u'vsphere_host:{}'.format(host))
-                    elif isinstance(c, vim.HostSystem):
-                        # c.vm contains list of virtual machines on a host.
-                        # c.hardware - info about hardware
-                        # c.compability
-                        vsphere_type = u'vsphere_type:host'
-                    elif isinstance(c, vim.Datastore):
-                        vsphere_type = u'vsphere_type:datastore'
-                        instance_tags.append(u'vsphere_datastore:{}'.format(c.name))
-                        hostname = None
-                    elif isinstance(c, vim.Datacenter):
-                        vsphere_type = u'vsphere_type:datacenter'
-                        hostname = None
+                    instance_tags.append('vsphere_host:{}'.format(host))
+                elif isinstance(obj, vim.HostSystem):
+                    vsphere_type = 'vsphere_type:host'
+                    vimtype = vim.HostSystem
+                    mor_type = "host"
+                elif isinstance(obj, vim.Datastore):
+                    vsphere_type = 'vsphere_type:datastore'
+                    instance_tags.append(
+                        'vsphere_datastore:{}'.format(properties.get("name", "unknown"))
+                    )
+                    hostname = None
+                    vimtype = vim.Datastore
+                    mor_type = "datastore"
+                elif isinstance(obj, vim.Datacenter):
+                    vsphere_type = 'vsphere_type:datacenter'
+                    instance_tags.append(
+                        "vsphere_datacenter:{}".format(properties.get("name", "unknown"))
+                    )
+                    hostname = None
+                    vimtype = vim.Datacenter
+                    mor_type = "datacenter"
+                elif isinstance(obj, vim.ClusterComputeResource):
+                    vsphere_type = 'vsphere_type:cluster'
+                    instance_tags.append("vsphere_cluster:{}".format(properties.get("name", "unknown")))
+                    hostname = None
+                    vimtype = vim.ClusterComputeResource
+                    mor_type = "cluster"
+                else:
+                    vsphere_type = None
 
-                    if vsphere_type:
-                        instance_tags.append(vsphere_type)
-                    obj_list.append(dict(mor_type=vimtype, mor=c, hostname=hostname, tags=tags+instance_tags))
+                if vsphere_type:
+                    instance_tags.append(vsphere_type)
 
-            return obj_list
+                mor = {
+                    "mor_type": mor_type,
+                    "mor": obj,
+                    "hostname": hostname,
+                    "tags": [t for t in tags + instance_tags if t.split(":", 1)[0] not in self.excluded_host_tags],
+                }
+                if self.excluded_host_tags:
+                    mor["excluded_host_tags"] = [
+                        t for t in tags + instance_tags if t.split(":", 1)[0] in self.excluded_host_tags
+                    ]
+                obj_list[vimtype].append(mor)
 
-        # @atomic_method
-        def build_resource_registry(instance, tags, regexes=None, include_only_marked=False):
-            i_key = self._instance_key(instance)
-            server_instance = self._get_server_instance(instance)
-            if i_key not in self.morlist_raw:
-                self.morlist_raw[i_key] = {}
-
-            for resource in sorted(RESOURCE_TYPE_MAP):
-                self.morlist_raw[i_key][resource] = _get_all_objs(
-                    server_instance.RetrieveContent(),
-                    resource,
-                    regexes,
-                    include_only_marked,
-                    tags
-                )
-        # collect...
-        self.pool.apply_async(
-            build_resource_registry,
-            args=(instance, tags, regexes, include_only_marked)
-        )
+        self.log.debug("All objects with attributes cached in %s seconds.", time.time() - start)
+        return obj_list
 
     @staticmethod
-    def _is_excluded(obj, regexes, include_only_marked):
+    def _is_excluded(obj, properties, regexes, include_only_marked):
         """
         Return `True` if the given host or virtual machine is excluded by the user configuration,
         i.e. violates any of the following rules:
@@ -721,7 +629,7 @@ class VSphereCheck(AgentCheck):
         if isinstance(obj, vim.HostSystem):
             # Based on `host_include_only_regex`
             if regexes and regexes.get('host_include') is not None:
-                match = re.search(regexes['host_include'], obj.name)
+                match = re.search(regexes['host_include'], properties.get("name", ""), re.IGNORECASE)
                 if not match:
                     return True
 
@@ -729,14 +637,14 @@ class VSphereCheck(AgentCheck):
         elif isinstance(obj, vim.VirtualMachine):
             # Based on `vm_include_only_regex`
             if regexes and regexes.get('vm_include') is not None:
-                match = re.search(regexes['vm_include'], obj.name)
+                match = re.search(regexes['vm_include'], properties.get("name", ""), re.IGNORECASE)
                 if not match:
                     return True
 
             # Based on `include_only_marked`
             if include_only_marked:
                 monitored = False
-                for field in obj.customValue:
+                for field in properties.get("customValue", ""):
                     if field.value == VM_MONITORING_FLAG:
                         monitored = True
                         break  # we shall monitor
@@ -747,269 +655,356 @@ class VSphereCheck(AgentCheck):
 
     def _cache_morlist_raw(self, instance):
         """
-        Initiate the first layer to refresh the list of MORs (`self.morlist`).
-        Resolve the vCenter `rootFolder` and initiate hosts and virtual machines discovery.
+        Fill the Mor objects queue that will be asynchronously processed later.
+        Resolve the vCenter `rootFolder` and initiate hosts and virtual machines
+        discovery.
         """
-
         i_key = self._instance_key(instance)
-        self.log.debug("Caching the morlist for vcenter instance %s" % i_key)
-        for resource_type in RESOURCE_TYPE_MAP:
-            if i_key in self.morlist_raw and len(self.morlist_raw[i_key].get(resource_type, [])) > 0:
+        self.log.debug("Caching the morlist for vcenter instance %s", i_key)
+
+        # If the queue is not completely empty, don't do anything
+        for resource_type in RESOURCE_TYPE_METRICS:
+            if self.mor_objects_queue.contains(i_key) and self.mor_objects_queue.size(i_key, resource_type):
+                last = self.cache_config.get_last(CacheConfig.Morlist, i_key)
                 self.log.debug(
-                    "Skipping morlist collection now, RAW results "
-                    "processing not over (latest refresh was {0}s ago)".format(
-                        time.time() - self.cache_times[i_key][MORLIST][LAST])
+                    "Skipping morlist collection: the objects queue for the "
+                    "resource type '%s' is still being processed "
+                    "(latest refresh was %ss ago)",
+                    resource_type,
+                    time.time() - last,
                 )
                 return
-        self.morlist_raw[i_key] = {}
 
-        instance_tag = "vcenter_server:%s" % instance.get('name')
+        tags = ["vcenter_server:{}".format(instance.get('name'))]
         regexes = {
             'host_include': instance.get('host_include_only_regex'),
-            'vm_include': instance.get('vm_include_only_regex')
+            'vm_include': instance.get('vm_include_only_regex'),
         }
-        include_only_marked = _is_affirmative(instance.get('include_only_marked', False))
+        include_only_marked = is_affirmative(instance.get('include_only_marked', False))
 
         # Discover hosts and virtual machines
-        self._discover_mor(instance, [instance_tag], regexes, include_only_marked)
+        server_instance = self._get_server_instance(instance)
+        use_guest_hostname = is_affirmative(instance.get("use_guest_hostname", False))
+        all_objs = self._get_all_objs(
+            server_instance, regexes, include_only_marked, tags, use_guest_hostname=use_guest_hostname
+        )
 
-        self.cache_times[i_key][MORLIST][LAST] = time.time()
+        self.mor_objects_queue.fill(i_key, dict(all_objs))
+        self.cache_config.set_last(CacheConfig.Morlist, i_key, time.time())
 
-    @atomic_method
-    def _cache_morlist_process_atomic(self, instance, mor):
-        """ Process one item of the self.morlist_raw list by querying the available
-        metrics for this MOR and then putting it in self.morlist
+    @trace_method
+    def _process_mor_objects_queue_async(self, instance, mors):
         """
-        # <TEST-INSTRUMENTATION>
-        t = Timer()
-        # </TEST-INSTRUMENTATION>
+        Process a batch of items popped from the objects queue by querying the available
+        metrics for these MORs and then putting them in the Mor cache
+        """
+        t = time.time()
         i_key = self._instance_key(instance)
         server_instance = self._get_server_instance(instance)
         perfManager = server_instance.content.perfManager
 
-        self.log.debug(
-            "job_atomic: Querying available metrics"
-            " for MOR {0} (type={1})".format(mor['mor'], mor['mor_type'])
-        )
+        # For non realtime metrics, we need to specifically ask which counters are available for which entity,
+        # so we call perfManager.QueryAvailablePerfMetric for each cluster, datacenter, datastore
+        # This should be okay since the number of such entities shouldn't be excessively large
+        for mor in mors:
+            mor_name = str(mor['mor'])
+            available_metrics = {m.counterId for m in perfManager.QueryAvailablePerfMetric(entity=mor["mor"])}
+            try:
+                self.mor_cache.set_metrics(i_key, mor_name, self._compute_needed_metrics(instance, available_metrics))
+            except MorNotFoundError:
+                self.log.error("Object '%s' is missing from the cache, skipping. ", mor_name)
+                continue
 
-        mor['interval'] = REAL_TIME_INTERVAL if mor['mor_type'] in REALTIME_RESOURCES else None
+        # TEST-INSTRUMENTATION
+        custom_tags = instance.get('tags', []) + ['instance:{}'.format(i_key)]
+        self.histogram('stackstate.agent.vsphere.morlist_process_atomic.time', time.time() - t, tags=custom_tags)
 
-        available_metrics = perfManager.QueryAvailablePerfMetric(
-            mor['mor'], intervalId=mor['interval'])
-
-        mor['metrics'] = self._compute_needed_metrics(instance, available_metrics)
-
-        mor_name = str(mor['mor'])
-        if mor_name in self.morlist[i_key]:
-            # Was already here last iteration
-            self.morlist[i_key][mor_name]['metrics'] = mor['metrics']
-        else:
-            self.morlist[i_key][mor_name] = mor
-
-        self.morlist[i_key][mor_name]['last_seen'] = time.time()
-
-        # <TEST-INSTRUMENTATION>
-        self.histogram('stackstate.agent.vsphere.morlist_process_atomic.time', t.total())
-        # </TEST-INSTRUMENTATION>
-
-    def _cache_morlist_process(self, instance):
-        """ Empties the self.morlist_raw by popping items and running asynchronously
-        the _cache_morlist_process_atomic operation that will get the available
-        metrics for this MOR and put it in self.morlist
+    def _process_mor_objects_queue(self, instance):
+        """
+        Pops `batch_morlist_size` items from the mor objects queue and run asynchronously
+        the _process_mor_objects_queue_async method to fill the Mor cache.
         """
         i_key = self._instance_key(instance)
-        if i_key not in self.morlist:
-            self.morlist[i_key] = {}
+        self.mor_cache.init_instance(i_key)
 
-        batch_size = self.init_config.get('batch_morlist_size', BATCH_MORLIST_SIZE)
+        if not self.mor_objects_queue.contains(i_key):
+            self.log.debug("Objects queue is not initialized yet for instance %s, skipping processing", i_key)
+            return
 
-        processed = 0
-        for resource_type in RESOURCE_TYPE_MAP:
-            for i in range(batch_size):
-                try:
-                    mor = self.morlist_raw[i_key][resource_type].pop()
-                    self.pool.apply_async(self._cache_morlist_process_atomic, args=(instance, mor))
+        # Simply move the realtime mors from the queue to the cache
+        for resource_type in RESOURCE_TYPE_METRICS_REALTIME:
+            while self.mor_objects_queue.size(i_key, resource_type):
+                mor = self.mor_objects_queue.pop(i_key, resource_type)
+                if self._is_main_instance(instance):
+                    mor_name = str(mor['mor'])
+                    mor['interval'] = REAL_TIME_INTERVAL
+                    self.mor_cache.set_mor(i_key, mor_name, mor)
 
-                    processed += 1
-                    if processed == batch_size:
+        # Move the mors with historical metrics from the queue to the cache and also fetch their list of metrics.
+        for resource_type in RESOURCE_TYPE_METRICS_HISTORICAL:
+            # Batch size can prevent querying large payloads at once if the environment is too large
+            # If batch size is set to 0, process everything at once
+            batch_size = self.batch_morlist_size or self.mor_objects_queue.size(i_key, resource_type)
+            while self.mor_objects_queue.size(i_key, resource_type):
+                hist_mors = []
+                for _ in range(batch_size):
+                    mor = self.mor_objects_queue.pop(i_key, resource_type)
+                    if mor is None:
+                        self.log.debug("No more objects of type '%s' left in the queue", resource_type)
                         break
-                except (IndexError, KeyError):
-                    self.log.debug("No more work to process in morlist_raw")
-                    break
 
-            if processed == batch_size:
-                break
-        return
+                    mor_name = str(mor['mor'])
+                    self.mor_cache.set_mor(i_key, mor_name, mor)
 
-    def _vacuum_morlist(self, instance):
-        """ Check if self.morlist doesn't have some old MORs that are gone, ie
-        we cannot get any metrics from them anyway (or =0)
-        """
-        i_key = self._instance_key(instance)
-        morlist = self.morlist[i_key].items()
+                    hist_mors.append(mor)
 
-        for mor_name, mor in morlist:
-            last_seen = mor['last_seen']
-            if (time.time() - last_seen) > 2 * REFRESH_MORLIST_INTERVAL:
-                del self.morlist[i_key][mor_name]
+                # We will actually schedule jobs for non realtime resources only.
+                if self._should_collect_historical(instance):
+                    self.pool.apply_async(self._process_mor_objects_queue_async, args=(instance, hist_mors))
 
     def _cache_metrics_metadata(self, instance):
-        """ Get from the server instance, all the performance counters metadata
-        meaning name/group/description... attached with the corresponding ID
         """
-        # <TEST-INSTRUMENTATION>
+        Get all the performance counters metadata meaning name/group/description...
+        from the server instance, attached with the corresponding ID
+        """
+        # ## <TEST-INSTRUMENTATION>
         t = Timer()
-        # </TEST-INSTRUMENTATION>
+        # ## </TEST-INSTRUMENTATION>
 
         i_key = self._instance_key(instance)
-        self.log.info("Warming metrics metadata cache for instance {0}".format(i_key))
+        self.metadata_cache.init_instance(i_key)
+        self.log.info("Warming metrics metadata cache for instance %s", i_key)
         server_instance = self._get_server_instance(instance)
         perfManager = server_instance.content.perfManager
 
         new_metadata = {}
-        for counter in perfManager.perfCounter:
-            d = dict(
-                name="%s.%s" % (counter.groupInfo.key, counter.nameInfo.key),
-                unit=counter.unitInfo.key,
-                instance_tag='instance'  # FIXME: replace by what we want to tag!
-            )
-            new_metadata[counter.key] = d
-        self.cache_times[i_key][METRICS_METADATA][LAST] = time.time()
+        metric_ids = []
+        # Use old behaviour with metrics to collect defined by our constants
+        if self.in_compatibility_mode(instance, log_warning=True):
+            for counter in perfManager.perfCounter:
+                metric_name = self.format_metric_name(counter, compatibility=True)
+                new_metadata[counter.key] = {'name': metric_name, 'unit': counter.unitInfo.key}
+                # Build the list of metrics we will want to collect
+                if instance.get("all_metrics") or metric_name in BASIC_METRICS:
+                    metric_ids.append(vim.PerformanceManager.MetricId(counterId=counter.key, instance="*"))
+        else:
+            collection_level = instance.get("collection_level", 1)
+            for counter in perfManager.QueryPerfCounterByLevel(collection_level):
+                new_metadata[counter.key] = {"name": self.format_metric_name(counter), "unit": counter.unitInfo.key}
+                # Build the list of metrics we will want to collect
+                metric_ids.append(vim.PerformanceManager.MetricId(counterId=counter.key, instance="*"))
 
-        self.log.info("Finished metadata collection for instance {0}".format(i_key))
+        self.log.info("Finished metadata collection for instance %s", i_key)
         # Reset metadata
-        self.metrics_metadata[i_key] = new_metadata
+        self.metadata_cache.set_metadata(i_key, new_metadata)
+        self.metadata_cache.set_metric_ids(i_key, metric_ids)
 
-        # <TEST-INSTRUMENTATION>
-        self.histogram('stackstate.agent.vsphere.metric_metadata_collection.time', t.total())
-        # </TEST-INSTRUMENTATION>
+        self.cache_config.set_last(CacheConfig.Metadata, i_key, time.time())
+
+        # ## <TEST-INSTRUMENTATION>
+        custom_tags = instance.get('tags', []) + ['instance:{}'.format(i_key)]
+        self.histogram('stackstate.agent.vsphere.metric_metadata_collection.time', t.total(), tags=custom_tags)
+        # ## </TEST-INSTRUMENTATION>
+
+    @staticmethod
+    def format_metric_name(counter, compatibility=False):
+        if compatibility:
+            return "{}.{}".format(counter.groupInfo.key, counter.nameInfo.key)
+
+        return "{}.{}.{}".format(counter.groupInfo.key, counter.nameInfo.key, SHORT_ROLLUP[str(counter.rollupType)])
+
+    def in_compatibility_mode(self, instance, log_warning=False):
+        if instance.get("all_metrics") is not None and instance.get("collection_level") is not None:
+            if log_warning:
+                self.log.warning(
+                    "Using both `all_metrics` and `collection_level` configuration flag."
+                    " `all_metrics` will be ignored."
+                )
+            return False
+
+        if instance.get("all_metrics") is not None:
+            if log_warning:
+                self.warning(
+                    "The configuration flag `all_metrics` will soon be deprecated. "
+                    "Consider using `collection_level` instead."
+                )
+            return True
+
+        return False
 
     def _transform_value(self, instance, counter_id, value):
-        """ Given the counter_id, look up for the metrics metadata to check the vsphere
+        """Given the counter_id, look up for the metrics metadata to check the vsphere
         type of the counter and apply pre-reporting transformation if needed.
         """
         i_key = self._instance_key(instance)
-        if counter_id in self.metrics_metadata[i_key]:
-            unit = self.metrics_metadata[i_key][counter_id]['unit']
-            if unit == 'percent':
+        try:
+            metadata = self.metadata_cache.get_metadata(i_key, counter_id)
+            if metadata["unit"] == "percent":
                 return float(value) / 100
+        except MetadataNotFoundError:
+            pass
 
         # Defaults to return the value without transformation
         return value
 
-    @atomic_method
-    def _collect_metrics_atomic(self, instance, mor):
-        """ Task that collects the metrics listed in the morlist for one MOR
-        """
-        # <TEST-INSTRUMENTATION>
+    @trace_method
+    def _collect_metrics_async(self, instance, query_specs):
+        """Task that collects the metrics listed in the morlist for one MOR"""
+        # ## <TEST-INSTRUMENTATION>
         t = Timer()
-        # </TEST-INSTRUMENTATION>
-
+        # ## </TEST-INSTRUMENTATION>
         i_key = self._instance_key(instance)
         server_instance = self._get_server_instance(instance)
         perfManager = server_instance.content.perfManager
-
-        query = vim.PerformanceManager.QuerySpec(maxSample=1,
-                                                 entity=mor['mor'],
-                                                 metricId=mor['metrics'],
-                                                 intervalId=mor['interval'],
-                                                 format='normal')
-        results = perfManager.QueryPerf(querySpec=[query])
+        results = perfManager.QueryPerf(query_specs)
         if results:
-            for result in results[0].value:
-                if result.id.counterId not in self.metrics_metadata[i_key]:
-                    self.log.debug("Skipping this metric value, because there is no metadata about it")
-                    continue
-
-                # Metric types are absolute, delta, and rate
+            for mor_perfs in results:
+                mor_name = str(mor_perfs.entity)
                 try:
-                    metric_name = self.metrics_metadata[i_key][result.id.counterId]['name']
-                except KeyError:
-                    metric_name = None
-
-                if metric_name not in ALL_METRICS:
-                    self.log.debug(u"Skipping unknown `%s` metric.", metric_name)
+                    mor = self.mor_cache.get_mor(i_key, mor_name)
+                except MorNotFoundError:
+                    self.log.error(
+                        "Trying to get metrics from object %s deleted from the cache, skipping. "
+                        "Consider increasing the parameter `clean_morlist_interval` to avoid that",
+                        mor_name,
+                    )
                     continue
 
-                if not result.value:
-                    self.log.debug(u"Skipping `%s` metric because the value is empty", metric_name)
-                    continue
+                for result in mor_perfs.value:
+                    counter_id = result.id.counterId
+                    if not self.metadata_cache.contains(i_key, counter_id):
+                        self.log.debug(
+                            "Skipping value for counter %s, because there is no metadata about it",
+                            counter_id,
+                        )
+                        continue
 
-                instance_name = result.id.instance or "none"
-                value = self._transform_value(instance, result.id.counterId, result.value[0])
+                    # Metric types are absolute, delta, and rate
+                    metric_name = self.metadata_cache.get_metadata(i_key, result.id.counterId).get('name')
 
-                tags = ['instance:%s' % instance_name]
-                if not mor['hostname']:  # no host tags available
-                    tags.extend(mor['tags'])
+                    if self.in_compatibility_mode(instance):
+                        if metric_name not in ALL_METRICS:
+                            self.log.debug("Skipping unknown `%s` metric.", metric_name)
+                            continue
 
-                # vsphere "rates" should be submitted as gauges (rate is
-                # precomputed).
-                self.gauge(
-                    "vsphere.%s" % metric_name,
-                    value,
-                    hostname=mor['hostname'],
-                    tags=['instance:%s' % instance_name]
-                )
+                    if not result.value:
+                        self.log.debug("Skipping `%s` metric because the value is empty", metric_name)
+                        continue
 
-        # <TEST-INSTRUMENTATION>
-        self.histogram('stackstate.agent.vsphere.metric_colection.time', t.total())
-        # </TEST-INSTRUMENTATION>
+                    instance_name = result.id.instance or "none"
+                    # Get the most recent value that isn't negative
+                    valid_values = [v for v in result.value if v >= 0]
+                    if not valid_values:
+                        continue
+                    value = self._transform_value(instance, result.id.counterId, valid_values[-1])
+
+                    hostname = mor['hostname']
+
+                    tags = ['instance:{}'.format(instance_name)]
+                    if not hostname:  # no host tags available
+                        tags.extend(mor['tags'])
+                    else:
+                        if self.excluded_host_tags:
+                            tags.extend(mor["excluded_host_tags"])
+
+                    tags.extend(instance.get('tags', []))
+
+                    # vsphere "rates" should be submitted as gauges (rate is
+                    # precomputed).
+                    self.gauge("vsphere.{}".format(metric_name), value, hostname=hostname, tags=tags)
+
+        # ## <TEST-INSTRUMENTATION>
+        custom_tags = instance.get('tags', []) + ['instance:{}'.format(i_key)]
+        self.histogram('stackstate.agent.vsphere.metric_collection.time', t.total(), tags=custom_tags)
+        # ## </TEST-INSTRUMENTATION>
 
     def collect_metrics(self, instance):
-        """ Calls asynchronously _collect_metrics_atomic on all MORs, as the
+        """
+        Calls asynchronously _collect_metrics_async on all MORs, as the
         job queue is processed the Aggregator will receive the metrics.
         """
         i_key = self._instance_key(instance)
-        if i_key not in self.morlist:
-            self.log.debug("Not collecting metrics for this instance, nothing to do yet: {0}".format(i_key))
+        if not self.mor_cache.contains(i_key):
+            self.log.debug("Not collecting metrics for instance '%s', nothing to do yet.", i_key)
             return
 
         server_instance = self._get_server_instance(instance)
         max_historical_metrics = DEFAULT_MAX_HIST_METRICS
 
-        try:
-            if 'max_query_metrics' in instance:
-                max_historical_metrics = int(instance['max_query_metrics'])
-                self.log.info("Collecting up to %d metrics", max_historical_metrics)
-            else:
-                vcenter_settings = server_instance.content.setting.QueryOptions("config.vpxd.stats.maxQueryMetrics")
-                max_historical_metrics = int(vcenter_settings[0].value)
-            if max_historical_metrics < 0:
-                max_historical_metrics = float('inf')
-        except Exception as e:
-            self.log.debug(
-                "Error getting maxQueryMetrics setting "
-                "(max_historical_metrics=%s, DEFAULT_MAX_HIST_METRICS=%s): %s",
-                max_historical_metrics,
-                DEFAULT_MAX_HIST_METRICS,
-                e,
-            )
+        if self._should_collect_historical(instance):
+            try:
+                if 'max_query_metrics' in instance:
+                    max_historical_metrics = int(instance['max_query_metrics'])
+                    self.log.info("Collecting up to %d metrics", max_historical_metrics)
+                else:
+                    vcenter_settings = server_instance.content.setting.QueryOptions("config.vpxd.stats.maxQueryMetrics")
+                    max_historical_metrics = int(vcenter_settings[0].value)
+                if max_historical_metrics < 0:
+                    max_historical_metrics = float('inf')
+            except Exception as e:
+                self.log.debug(
+                    "Error getting maxQueryMetrics setting "
+                    "(max_historical_metrics=%s, DEFAULT_MAX_HIST_METRICS=%s): %s",
+                    max_historical_metrics,
+                    DEFAULT_MAX_HIST_METRICS,
+                    e,
+                )
 
-        mors = self.morlist[i_key].items()
-        self.log.debug("Collecting metrics of %d mors" % len(mors))
+        # TODO: Remove me once the fix for `max_query_metrics` is here by default
+        mors_batch_method = (
+            self.mor_cache.mors_batch
+            if is_affirmative(instance.get('fix_max_query_metrics'))
+            else self.mor_cache.legacy_mors_batch
+        )
 
         vm_count = 0
+        custom_tags = instance.get('tags', [])
+        tags = ["vcenter_server:{}".format(instance.get('name'))] + custom_tags
 
-        for mor_name, mor in mors:
-            if mor['mor_type'] == 'vm':
-                vm_count += 1
-            if 'metrics' not in mor or not mor['metrics']:
-                continue
-            if len(mor['metrics']) >= max_historical_metrics:
-                # Too many metrics to query for a single mor, ignore it
-                self.log.warning(
-                    "Metrics for '%s' are ignored because there are more (%d) than what you allowed (%d) on "
-                    "vCenter Server",
-                    # noqa: E501
-                    mor_name,
-                    len(mor['metrics']),
-                    max_historical_metrics,
-                )
-                continue
+        n_mors = self.mor_cache.instance_size(i_key)
+        if not n_mors:
+            if self._is_main_instance(instance):
+                self.gauge('vsphere.vm.count', vm_count, tags=tags)
+            self.log.debug("No Mor objects to process for instance '%s', skip...", i_key)
+            return
 
-            self.pool.apply_async(self._collect_metrics_atomic, args=(instance, mor))
+        self.log.debug("Collecting metrics for %s mors", n_mors)
 
-        self.gauge('vsphere.vm.count', vm_count, tags=["vcenter_server:%s" % instance.get('name')])
+        # Request metrics for several objects at once. We can limit the number of objects with batch_size
+        # If batch_size is 0, process everything at once
+        batch_size = self.batch_morlist_size or n_mors
+        for batch in mors_batch_method(i_key, batch_size, max_historical_metrics):
+            query_specs = []
+            for mor in itervalues(batch):
+                if mor['mor_type'] == 'vm':
+                    vm_count += 1
+                if mor['mor_type'] not in REALTIME_RESOURCES and ('metrics' not in mor or not mor['metrics']):
+                    continue
+
+                query_spec = vim.PerformanceManager.QuerySpec()
+                query_spec.entity = mor["mor"]
+                query_spec.intervalId = mor.get("interval")
+                if mor['mor_type'] in REALTIME_RESOURCES:
+                    query_spec.metricId = self.metadata_cache.get_metric_ids(i_key)
+                    query_spec.maxSample = 1  # Request a single datapoint
+                else:
+                    query_spec.metricId = mor["metrics"]
+                    # We cannot use `maxSample` for historical metrics, let's specify a timewindow that will
+                    # contain at least one element
+                    query_spec.startTime = datetime.now() - timedelta(hours=2)
+                query_specs.append(query_spec)
+
+            if query_specs:
+                self.pool.apply_async(self._collect_metrics_async, args=(instance, query_specs))
+
+        if self._is_main_instance(instance):
+            self.gauge('vsphere.vm.count', vm_count, tags=tags)
+
+    def get_instance_key(self, instance):
+        if "host" not in instance:
+            raise ConfigurationError("Missing 'host' in instance configuration.")
+
+        return StackPackInstance(self.INSTANCE_TYPE, instance["host"], with_snapshots=False)
 
     def extract_tags(self, object_type, object_id):
         sts_identifiers = []
@@ -1025,276 +1020,175 @@ class VSphereCheck(AgentCheck):
                 add_label_pair(labels, category.name.lower(), tag_model.name.lower())
         return sts_identifiers, labels
 
-    def _vsphere_vms(self, content, domain="Unspecified", regexes=None, include_only_marked=False):
-        obj_list = []
-        container = content.viewManager.CreateContainerView(
-            content.rootFolder,
-            [RESOURCE_TYPE_MAP["vm"]],
-            True)
-
-        for c in container.view:
+    def get_topology_items(self, server_instance, domain="Unspecified", regexes=None, include_only_marked=False):
+        """
+        Iterate through the mor objects collected and collect components
+        :return: dictionary of vmware objects like vm and host etc
+        """
+        obj_list = {"vms": [], "datastores": [], "datacenters": [], "hosts": [], "clustercomputeresource": [],
+                    "computeresource": []}
+        all_objects = self._collect_mors_and_attributes(server_instance)
+        for obj, properties in all_objects.items():
             topology_tags = {}
-            labels = []
-            if not self._is_excluded(c, regexes, include_only_marked):
-                hostname = c.name
-                if isinstance(c, vim.VirtualMachine):
+            if not self._is_excluded(obj, properties, regexes, include_only_marked):
+                if isinstance(obj, vim.VirtualMachine):
                     # required attributes for the component creation definition
-                    topology_tags["topo_type"] = VSPHERE_COMPONENT_TYPE.VM
-                    topology_tags["name"] = c.name
-                    topology_tags["layer"] = TOPOLOGY_LAYERS.VM
+                    topology_tags["topo_type"] = vsphere_component_types.VM
+                    topology_tags["name"] = properties.get("name", "unknown")
+                    topology_tags["layer"] = vsphere_layers.VM
+                    topology_tags["domain"] = domain
+                    # identifiers to be extracted from the component type
+                    sts_identifiers, labels = self.extract_tags("VirtualMachine", obj._moId)
+                    topology_tags["identifiers"] = sts_identifiers
+                    datastores = []
+                    for ds in properties.get("datastore", []):
+                        datastores.append(ds._moId)
+                    topology_tags["datastore"] = datastores
+                    add_label_pair(labels, "name", topology_tags["name"])
+                    add_label_pair(labels, "guestId", properties.get("config.guestId", ""))
+                    add_label_pair(labels, "guestFullName", properties.get("config.guestFullName", ""))
+                    add_label_pair(labels, "numCPU", properties.get("config.hardware.numCPU", ""))
+                    add_label_pair(labels, "memoryMB", properties.get("config.hardware.memoryMB", ""))
+                    topology_tags["labels"] = labels
+                    obj_list.get("vms").append(dict(topo_tags=topology_tags))
+                elif isinstance(obj, vim.HostSystem):
+                    topology_tags["name"] = properties.get("name")
+                    topology_tags["topo_type"] = vsphere_component_types.HOST
+                    topology_tags["layer"] = vsphere_layers.HOST
                     topology_tags["domain"] = domain
 
                     # identifiers to be extracted from the component type
-                    sts_identifiers, labels = self.extract_tags("VirtualMachine", c._moId)
+                    sts_identifiers, labels = self.extract_tags("HostSystem", obj._moId)
                     topology_tags["identifiers"] = sts_identifiers
-                    try:
-                        # extra metadata collection if present otherwise continue with the component creation with
-                        # collected metadata only
-                        datastores = []
-                        for ds in c.datastore:
-                            datastores.append(ds._moId)
-                        topology_tags["datastore"] = datastores
-                        add_label_pair(labels, "name", topology_tags["name"])
-                        add_label_pair(labels, "guestId", c.config.guestId)
-                        add_label_pair(labels, "guestFullName", c.config.guestFullName)
-                        add_label_pair(labels, "numCPU", c.config.hardware.numCPU)
-                        add_label_pair(labels, "memoryMB", c.config.hardware.memoryMB)
-                    except Exception as e:
-                        self.log.exception("Exception occurred during collecting metadata for VMs: {}".format(str(e)))
-                topology_tags["labels"] = labels
-                obj_list.append(dict(mor_type="vm", hostname=hostname, topo_tags=topology_tags))
+                    host_vms = []
+                    for vm in properties.get("vm", []):
+                        vm_props = all_objects.get(vm)
+                        if not self._is_excluded(vm, vm_props, regexes, include_only_marked):
+                            host_vms.append(vm_props.get("name"))
+                    host_datastores = []
+                    for ds in properties.get("datastore", []):
+                        ds_props = all_objects.get(ds)
+                        host_datastores.append(ds_props.get("name"))
+                    topology_tags["datastores"] = host_datastores
+                    topology_tags["vms"] = host_vms
 
-        return obj_list
+                    if isinstance(properties.get("parent"), vim.ComputeResource):
+                        resource_props = all_objects.get(properties.get("parent"))
+                        topology_tags["computeresource"] = resource_props.get("name")
 
-    def _vsphere_datacenters(self, content, domain="Unspecified", regexes=None, include_only_marked=False):
-        obj_list = []
-        container = content.viewManager.CreateContainerView(
-            content.rootFolder,
-            [RESOURCE_TYPE_MAP["datacenter"]],
-            True)
+                    if isinstance(properties.get("parent"), vim.ClusterComputeResource):
+                        resource_props = all_objects.get(properties.get("parent"))
+                        topology_tags["clustercomputeresource"] = resource_props.get("name")
 
-        for c in container.view:
-            topology_tags = {}
-            labels = []
-            hostname = c.name
+                    add_label_pair(labels, "name", topology_tags["name"])
+                    topology_tags["labels"] = labels
+                    obj_list.get("hosts").append(dict(topo_tags=topology_tags))
+                elif isinstance(obj, vim.Datastore):
+                    # required attributes for the component creation definition
+                    topology_tags["topo_type"] = vsphere_component_types.DATASTORE
+                    topology_tags["name"] = properties.get("name")
+                    topology_tags["layer"] = vsphere_layers.DATASTORE
+                    topology_tags["domain"] = domain
 
-            if isinstance(c, vim.Datacenter):
-                # required attributes for the component creation definition
-                topology_tags["name"] = c.name
-                topology_tags["id"] = c._moId
-                topology_tags["layer"] = TOPOLOGY_LAYERS.DATACENTER
-                topology_tags["domain"] = domain
-                topology_tags["topo_type"] = VSPHERE_COMPONENT_TYPE.DATACENTER
+                    # identifiers to be extracted from the component type
+                    sts_identifiers, labels = self.extract_tags("Datastore", obj._moId)
+                    topology_tags["identifiers"] = sts_identifiers
+                    add_label_pair(labels, "name", topology_tags["name"])
+                    topology_tags["accessible"] = properties.get("summary.accessible")
+                    topology_tags["capacity"] = str(properties.get("summary.capacity"))
+                    topology_tags["type"] = properties.get("summary.type")
+                    topology_tags["url"] = properties.get("summary.url")
+                    vms = []
+                    for vm in properties.get("vm", []):
+                        vm_props = all_objects.get(vm)
+                        if not self._is_excluded(vm, vm_props, regexes, include_only_marked):
+                            vms.append(vm_props.get("name"))
+                    topology_tags["vms"] = vms
+                    topology_tags["labels"] = labels
+                    obj_list.get("datastores").append(dict(topo_tags=topology_tags))
+                elif isinstance(obj, vim.Datacenter):
+                    # required attributes for the component creation definition
+                    topology_tags["name"] = properties.get("name", "unknown")
+                    topology_tags["id"] = obj._moId
+                    topology_tags["layer"] = vsphere_layers.DATACENTER
+                    topology_tags["domain"] = domain
+                    topology_tags["topo_type"] = vsphere_component_types.DATACENTER
 
-                # identifiers to be extracted from the component type
-                sts_identifiers, labels = self.extract_tags("Datacenter", c._moId)
-                topology_tags["identifiers"] = sts_identifiers
-                try:
-                    # extra metadata collection if present otherwise continue with the component creation with
-                    # collected metadata only
+                    # identifiers to be extracted from the component type
+                    sts_identifiers, labels = self.extract_tags("Datacenter", obj._moId)
+                    topology_tags["identifiers"] = sts_identifiers
                     datastores = []
-                    for datastore in c.datastore:
-                        datastores.append(datastore.name)
+                    for datastore in properties.get("datastore", []):
+                        ds_props = all_objects.get(datastore)
+                        datastores.append(ds_props.get("name"))
                     topology_tags["datastores"] = datastores
 
                     computeresources = []
                     clustercomputeresources = []
-                    for computeres in c.hostFolder.childEntity:
+                    host_folder = properties.get("hostFolder")
+                    host_folder_props = all_objects.get(host_folder)
+                    for computeres in host_folder_props.get("childEntity", []):
+                        computeres_props = all_objects.get(computeres)
                         if isinstance(computeres, vim.ComputeResource):
-                            computeresources.append(computeres.name)
+                            computeresources.append(computeres_props.get("name"))
                         elif isinstance(computeres, vim.CloudComputeResource):
-                            clustercomputeresources.append(computeres.name)
+                            clustercomputeresources.append(computeres_props.get("name"))
 
                     topology_tags["computeresources"] = computeresources
                     topology_tags["clustercomputeresources"] = clustercomputeresources
 
                     add_label_pair(labels, "name", topology_tags["name"])
-                    hostname = None
-                except Exception as e:
-                    self.log.exception("Exception occurred during collecting metadata for DataCenter: {}"
-                                       .format(str(e)))
-            topology_tags["labels"] = labels
-            obj_list.append(dict(mor_type="datacenter", hostname=hostname, topo_tags=topology_tags))
-
-        return obj_list
-
-    def _vsphere_datastores(self, content, domain="Unspecified", regexes=None, include_only_marked=False):
-        obj_list = []
-        container = content.viewManager.CreateContainerView(
-            content.rootFolder,
-            [RESOURCE_TYPE_MAP["datastore"]],
-            True)
-
-        for c in container.view:
-            topology_tags = {}
-            labels = []
-            hostname = c.name
-            if isinstance(c, vim.Datastore):
-                # required attributes for the component creation definition
-                topology_tags["topo_type"] = VSPHERE_COMPONENT_TYPE.DATASTORE
-                topology_tags["name"] = c.name
-                topology_tags["layer"] = TOPOLOGY_LAYERS.DATASTORE
-                topology_tags["domain"] = domain
-
-                # identifiers to be extracted from the component type
-                sts_identifiers, labels = self.extract_tags("Datastore", c._moId)
-                topology_tags["identifiers"] = sts_identifiers
-                try:
-                    # extra metadata collection if present otherwise continue with the component creation with
-                    # collected metadata only
-                    add_label_pair(labels, "name", topology_tags["name"])
-                    topology_tags["accessible"] = c.summary.accessible
-                    topology_tags["capacity"] = str(c.summary.capacity)
-                    topology_tags["type"] = c.summary.type
-                    topology_tags["url"] = c.summary.url
-                    vms = []
-                    for vm in c.vm:
-                        if not self._is_excluded(vm, regexes, include_only_marked):
-                            vms.append(vm.name)
-                    topology_tags["vms"] = vms
-                    hostname = None
-                except Exception as e:
-                    self.log.exception("Exception occurred during collecting metadata for DataStore: {}".format(str(e)))
-            topology_tags["labels"] = labels
-            obj_list.append(dict(mor_type="datastore", hostname=hostname, topo_tags=topology_tags))
-
-        return obj_list
-
-    def _vsphere_hosts(self, content, domain="Unspecified", regexes=None, include_only_marked=False):
-        obj_list = []
-        container = content.viewManager.CreateContainerView(
-            content.rootFolder,
-            [RESOURCE_TYPE_MAP["host"]],
-            True)
-
-        for c in container.view:
-            topology_tags = {}
-            labels = []
-            if not self._is_excluded(c, regexes, include_only_marked):
-                hostname = c.name
-                if isinstance(c, vim.HostSystem):
-                    # c.vm contains list of virtual machines on a host.
-                    # c.hardware - info about hardware
-                    # c.compatibility
+                    topology_tags["labels"] = labels
+                    obj_list.get("datacenters").append(dict(topo_tags=topology_tags))
+                elif isinstance(obj, vim.ClusterComputeResource):
                     # required attributes for the component creation definition
-                    topology_tags["name"] = c.name
-                    topology_tags["topo_type"] = VSPHERE_COMPONENT_TYPE.HOST
-                    topology_tags["layer"] = TOPOLOGY_LAYERS.HOST
+                    topology_tags["topo_type"] = vsphere_component_types.CLUSTERCOMPUTERESOURCE
+                    topology_tags["name"] = properties.get("name")
+                    topology_tags["layer"] = vsphere_layers.COMPUTERESOURCE
                     topology_tags["domain"] = domain
 
                     # identifiers to be extracted from the component type
-                    sts_identifiers, labels = self.extract_tags("HostSystem", c._moId)
+                    sts_identifiers, labels = self.extract_tags("ClusterComputeResource", obj._moId)
                     topology_tags["identifiers"] = sts_identifiers
-                    try:
-                        # extra metadata collection if present otherwise continue with the component creation with
-                        # collected metadata only
-                        host_vms = []
-                        for vm in c.vm:
-                            if not self._is_excluded(vm, regexes, include_only_marked):
-                                host_vms.append(vm.name)
-                        host_datastores = []
-                        for ds in c.datastore:
-                            host_datastores.append(ds.name)
-                        topology_tags["datastores"] = host_datastores
-                        topology_tags["vms"] = host_vms
-
-                        if isinstance(c.parent, vim.ComputeResource):
-                            topology_tags["computeresource"] = c.parent.name
-
-                        if isinstance(c.parent, vim.ClusterComputeResource):
-                            topology_tags["clustercomputeresource"] = c.parent.name
-
-                        add_label_pair(labels, "name", topology_tags["name"])
-                    except Exception as e:
-                        self.log.exception("Exception occurred during collecting metadata for Hosts: {}".format(str(e)))
-                topology_tags["labels"] = labels
-                obj_list.append(dict(mor_type="host", hostname=hostname, topo_tags=topology_tags))
-
-        return obj_list
-
-    def _vsphere_clustercomputeresources(self, content, domain="Unspecified", regexes=None, include_only_marked=False):
-        obj_list = []
-        container = content.viewManager.CreateContainerView(
-            content.rootFolder,
-            [RESOURCE_TYPE_MAP["clustercomputeresource"]],
-            True)
-
-        for c in container.view:
-            topology_tags = {}
-            labels = []
-            hostname = c.name
-            if isinstance(c, vim.ClusterComputeResource):
-                # required attributes for the component creation definition
-                topology_tags["topo_type"] = VSPHERE_COMPONENT_TYPE.CLUSTERCOMPUTERESOURCE
-                topology_tags["name"] = c.name
-                topology_tags["layer"] = TOPOLOGY_LAYERS.COMPUTERESOURCE
-                topology_tags["domain"] = domain
-
-                # identifiers to be extracted from the component type
-                sts_identifiers, labels = self.extract_tags("ClusterComputeResource", c._moId)
-                topology_tags["identifiers"] = sts_identifiers
-                try:
-                    # extra metadata collection if present otherwise continue with the component creation with
-                    # collected metadata only
                     datastores = []
-                    for ds in c.datastore:
-                        datastores.append(ds.name)
+                    for ds in properties.get("datastore", []):
+                        ds_props = all_objects.get(ds)
+                        datastores.append(ds_props.get("name"))
                     hosts = []
-                    for host in c.host:
-                        if not self._is_excluded(host, regexes, include_only_marked):
-                            hosts.append(host.name)
+                    for host in properties.get("host", []):
+                        host_props = all_objects.get(host)
+                        if not self._is_excluded(host, host_props, regexes, include_only_marked):
+                            hosts.append(host_props.get("name"))
                     topology_tags["hosts"] = hosts
                     topology_tags["datastores"] = datastores
                     add_label_pair(labels, "name", topology_tags["name"])
-                except Exception as e:
-                    self.log.exception("Exception occurred during collecting metadata for ClusterComputeResource: {}".
-                                       format(str(e)))
-            topology_tags["labels"] = labels
-            obj_list.append(dict(mor_type="clustercomputeresource", hostname=hostname, topo_tags=topology_tags))
+                    topology_tags["labels"] = labels
+                    obj_list.get("clustercomputeresource").append(dict(topo_tags=topology_tags))
+                elif isinstance(obj, vim.ComputeResource):
+                    # required attributes for the component creation definition
+                    topology_tags["topo_type"] = vsphere_component_types.COMPUTERESOURCE
+                    topology_tags["name"] = properties.get("name")
+                    topology_tags["layer"] = vsphere_layers.COMPUTERESOURCE
+                    topology_tags["domain"] = domain
 
-        return obj_list
-
-    def _vsphere_computeresources(self, content, domain="Unspecified", regexes=None, include_only_marked=False):
-        obj_list = []
-        container = content.viewManager.CreateContainerView(
-            content.rootFolder,
-            [RESOURCE_TYPE_MAP["computeresource"]],
-            True)
-
-        for c in container.view:
-            topology_tags = {}
-            labels = []
-            hostname = c.name
-            if isinstance(c, vim.ComputeResource):
-                # required attributes for the component creation definition
-                topology_tags["topo_type"] = VSPHERE_COMPONENT_TYPE.COMPUTERESOURCE
-                topology_tags["name"] = c.name
-                topology_tags["layer"] = TOPOLOGY_LAYERS.COMPUTERESOURCE
-                topology_tags["domain"] = domain
-
-                # identifiers to be extracted from the component type
-                sts_identifiers, labels = self.extract_tags("ComputeResource", c._moId)
-                topology_tags["identifiers"] = sts_identifiers
-                try:
-                    # extra metadata collection if present otherwise continue with the component creation with
-                    # collected metadata only
+                    # identifiers to be extracted from the component type
+                    sts_identifiers, labels = self.extract_tags("ComputeResource", obj._moId)
+                    topology_tags["identifiers"] = sts_identifiers
                     datastores = []
-                    for ds in c.datastore:
-                        datastores.append(ds.name)
+                    for ds in properties.get("datastore", []):
+                        ds_props = all_objects.get(ds)
+                        datastores.append(ds_props.get("name"))
                     hosts = []
-                    for host in c.host:
-                        if not self._is_excluded(host, regexes, include_only_marked):
-                            hosts.append(host.name)
+                    for host in properties.get("host", []):
+                        host_props = all_objects.get(host)
+                        if not self._is_excluded(host, host_props, regexes, include_only_marked):
+                            hosts.append(host_props.get("name"))
 
                     topology_tags["hosts"] = hosts
                     topology_tags["datastores"] = datastores
                     add_label_pair(labels, "name", topology_tags["name"])
-                except Exception as e:
-                    self.log.exception("Exception occurred during collecting metadata for ComputeResource: {}".
-                                       format(str(e)))
-            topology_tags["labels"] = labels
-            obj_list.append(dict(mor_type="computeresource", hostname=hostname, topo_tags=topology_tags))
-
+                    topology_tags["labels"] = labels
+                    obj_list.get("computeresource").append(dict(topo_tags=topology_tags))
         return obj_list
 
     def vsphere_client_connect(self, instance):
@@ -1309,183 +1203,162 @@ class VSphereCheck(AgentCheck):
             password=instance.get('password'),
             session=self.session)
 
-    def get_topologyitems_sync(self, instance):
+    def collect_topology(self, instance):
+
+        def build_id(vsphere_url, object_type, object_name):
+            return "urn:vsphere:/{0}/{1}/{2}".format(vsphere_url, object_type, object_name)
+
         server_instance = self._get_server_instance(instance)
         self.vsphere_client_connect(instance)
-        content = server_instance.RetrieveContent()
-        domain = instance["host"]  # candidate also name
+        domain = instance.get("domain", instance.get("host"))
 
         regexes = {
             'host_include': instance.get('host_include_only_regex'),
             'vm_include': instance.get('vm_include_only_regex')
         }
 
-        # sanitize each resources to convert unicode into string types
-        vms = yaml.safe_load(json.dumps(self._vsphere_vms(content, domain, regexes)))
-        hosts = yaml.safe_load(json.dumps(self._vsphere_hosts(content, domain, regexes)))
-        datacenters = yaml.safe_load(json.dumps(self._vsphere_datacenters(content, domain)))
-        datastores = yaml.safe_load(json.dumps(self._vsphere_datastores(content, domain, regexes)))
-        clustercomputeresources = yaml.safe_load(json.dumps(self._vsphere_clustercomputeresources(content, domain,
-                                                                                                  regexes)))
-        computeresource = yaml.safe_load(json.dumps(self._vsphere_computeresources(content, domain, regexes)))
+        topology_items = self.get_topology_items(server_instance, domain, regexes)
 
         # close the session after the processing of all Tags from the new Rest Client
         if self.session:
             self.session.close()
-
-        return {
-            "vms": vms,
-            "hosts": hosts,
-            "datacenters": datacenters,
-            "datastores": datastores,
-            "clustercomputeresource": clustercomputeresources,
-            "computeresource": computeresource
-        }
-
-    def get_instance_key(self, instance):
-        if "host" not in instance:
-            raise ConfigurationError("Missing 'host' in instance configuration.")
-
-        return TopologyInstance(self.INSTANCE_TYPE, instance["host"], with_snapshots=False)
-
-    def collect_topology(self, instance):
-
-        def build_id(vsphere_url, object_type, object_name):
-            return "urn:vsphere:/{0}/{1}/{2}".format(vsphere_url, object_type, object_name)
-
-        topology_items = self.get_topologyitems_sync(instance)
         vsphere_url = instance.get("host")
 
         self.start_snapshot()
 
         for vm in topology_items["vms"]:
             self.component(
-                build_id(vsphere_url, VSPHERE_COMPONENT_TYPE.VM, vm["hostname"]),
-                VSPHERE_COMPONENT_TYPE.VM,
+                build_id(vsphere_url, vsphere_component_types.VM, vm["topo_tags"]["name"]),
+                vsphere_component_types.VM,
                 vm["topo_tags"]
             )
 
         for host in topology_items["hosts"]:
             self.component(
-                build_id(vsphere_url, VSPHERE_COMPONENT_TYPE.HOST, host["hostname"]),
-                VSPHERE_COMPONENT_TYPE.HOST,
+                build_id(vsphere_url, vsphere_component_types.HOST, host["topo_tags"]["name"]),
+                vsphere_component_types.HOST,
                 host["topo_tags"]
             )
             for vm_id in host["topo_tags"]["vms"]:
                 self.relation(
-                    build_id(vsphere_url, VSPHERE_COMPONENT_TYPE.VM, vm_id),
-                    build_id(vsphere_url, VSPHERE_COMPONENT_TYPE.HOST, host["hostname"]),
-                    VSPHERE_RELATION_TYPE.VM_HOST,
+                    build_id(vsphere_url, vsphere_component_types.VM, vm_id),
+                    build_id(vsphere_url, vsphere_component_types.HOST, host["topo_tags"]["name"]),
+                    vsphere_relation_types.VM_HOST,
                     {}
                 )
 
         for ds in topology_items["datastores"]:
             self.component(
-                build_id(vsphere_url, VSPHERE_COMPONENT_TYPE.DATASTORE, ds["topo_tags"]["name"]),
-                VSPHERE_COMPONENT_TYPE.DATASTORE,
+                build_id(vsphere_url, vsphere_component_types.DATASTORE, ds["topo_tags"]["name"]),
+                vsphere_component_types.DATASTORE,
                 ds["topo_tags"]
             )
             for vm_id in ds["topo_tags"]["vms"]:
                 self.relation(
-                    build_id(vsphere_url, VSPHERE_COMPONENT_TYPE.VM, vm_id),
-                    build_id(vsphere_url, VSPHERE_COMPONENT_TYPE.DATASTORE, ds["topo_tags"]["name"]),
-                    VSPHERE_RELATION_TYPE.VM_DATASTORE,
+                    build_id(vsphere_url, vsphere_component_types.VM, vm_id),
+                    build_id(vsphere_url, vsphere_component_types.DATASTORE, ds["topo_tags"]["name"]),
+                    vsphere_relation_types.VM_DATASTORE,
                     {}
                 )
 
         for cluster in topology_items["clustercomputeresource"]:
             self.component(
-                build_id(vsphere_url, VSPHERE_COMPONENT_TYPE.CLUSTERCOMPUTERESOURCE, cluster["topo_tags"]["name"]),
-                VSPHERE_COMPONENT_TYPE.CLUSTERCOMPUTERESOURCE,
+                build_id(vsphere_url, vsphere_component_types.CLUSTERCOMPUTERESOURCE, cluster["topo_tags"]["name"]),
+                vsphere_component_types.CLUSTERCOMPUTERESOURCE,
                 cluster["topo_tags"]
             )
 
         for cluster in topology_items["computeresource"]:
             self.component(
-                build_id(vsphere_url, VSPHERE_COMPONENT_TYPE.COMPUTERESOURCE, cluster["topo_tags"]["name"]),
-                VSPHERE_COMPONENT_TYPE.COMPUTERESOURCE,
+                build_id(vsphere_url, vsphere_component_types.COMPUTERESOURCE, cluster["topo_tags"]["name"]),
+                vsphere_component_types.COMPUTERESOURCE,
                 cluster["topo_tags"]
             )
             for host_id in cluster["topo_tags"]["hosts"]:
                 self.relation(
-                    build_id(vsphere_url, VSPHERE_COMPONENT_TYPE.HOST, host_id),
-                    build_id(vsphere_url, VSPHERE_COMPONENT_TYPE.COMPUTERESOURCE, cluster["topo_tags"]["name"]),
-                    VSPHERE_RELATION_TYPE.HOST_COMPUTERESOURCE,
+                    build_id(vsphere_url, vsphere_component_types.HOST, host_id),
+                    build_id(vsphere_url, vsphere_component_types.COMPUTERESOURCE, cluster["topo_tags"]["name"]),
+                    vsphere_relation_types.HOST_COMPUTERESOURCE,
                     {}
                 )
             for ds_id in cluster["topo_tags"]["datastores"]:
                 self.relation(
-                    build_id(vsphere_url, VSPHERE_COMPONENT_TYPE.DATASTORE, ds_id),
-                    build_id(vsphere_url, VSPHERE_COMPONENT_TYPE.COMPUTERESOURCE, cluster["topo_tags"]["name"]),
-                    VSPHERE_RELATION_TYPE.DATASTORE_COMPUTERESOURCE,
+                    build_id(vsphere_url, vsphere_component_types.DATASTORE, ds_id),
+                    build_id(vsphere_url, vsphere_component_types.COMPUTERESOURCE, cluster["topo_tags"]["name"]),
+                    vsphere_relation_types.DATASTORE_COMPUTERESOURCE,
                     {}
                 )
 
         for dc in topology_items["datacenters"]:
             self.component(
-                build_id(vsphere_url, VSPHERE_COMPONENT_TYPE.DATACENTER, dc["topo_tags"]["name"]),
-                VSPHERE_COMPONENT_TYPE.DATACENTER,
+                build_id(vsphere_url, vsphere_component_types.DATACENTER, dc["topo_tags"]["name"]),
+                vsphere_component_types.DATACENTER,
                 dc["topo_tags"]
             )
             for ds_id in dc["topo_tags"]["datastores"]:
                 self.relation(
-                    build_id(vsphere_url, VSPHERE_COMPONENT_TYPE.DATASTORE, ds_id),
-                    build_id(vsphere_url, VSPHERE_COMPONENT_TYPE.DATACENTER, dc["topo_tags"]["name"]),
-                    VSPHERE_RELATION_TYPE.DATASTORE_DATACENTER,
+                    build_id(vsphere_url, vsphere_component_types.DATASTORE, ds_id),
+                    build_id(vsphere_url, vsphere_component_types.DATACENTER, dc["topo_tags"]["name"]),
+                    vsphere_relation_types.DATASTORE_DATACENTER,
                     {}
                 )
             for computeresource in dc["topo_tags"]["computeresources"]:
                 self.relation(
-                    build_id(vsphere_url, VSPHERE_COMPONENT_TYPE.COMPUTERESOURCE, computeresource),
-                    build_id(vsphere_url, VSPHERE_COMPONENT_TYPE.DATACENTER, dc["topo_tags"]["name"]),
-                    VSPHERE_RELATION_TYPE.COMPUTERESOURCE_DATACENTER,
+                    build_id(vsphere_url, vsphere_component_types.COMPUTERESOURCE, computeresource),
+                    build_id(vsphere_url, vsphere_component_types.DATACENTER, dc["topo_tags"]["name"]),
+                    vsphere_relation_types.COMPUTERESOURCE_DATACENTER,
                     {}
                 )
             for clustercomputeresource in dc["topo_tags"]["clustercomputeresources"]:
                 self.relation(
-                    build_id(vsphere_url, VSPHERE_COMPONENT_TYPE.CLUSTERCOMPUTERESOURCE, clustercomputeresource),
-                    build_id(vsphere_url, VSPHERE_COMPONENT_TYPE.DATACENTER, dc["topo_tags"]["name"]),
-                    VSPHERE_RELATION_TYPE.CLUSTERCOMPUTERESOURCE_DATACENTER,
+                    build_id(vsphere_url, vsphere_component_types.CLUSTERCOMPUTERESOURCE, clustercomputeresource),
+                    build_id(vsphere_url, vsphere_component_types.DATACENTER, dc["topo_tags"]["name"]),
+                    vsphere_relation_types.CLUSTERCOMPUTERESOURCE_DATACENTER,
                     {}
                 )
 
         self.stop_snapshot()
 
     def check(self, instance):
-        if not self.pool_started:
-            self.start_pool()
-        # <TEST-INSTRUMENTATION>
-        self.gauge('stackstate.agent.vsphere.queue_size', self.pool._workq.qsize(), tags=['instant:initial'])
-        # </TEST-INSTRUMENTATION>
-
-        # First part: make sure our object repository is neat & clean
-        if self._should_cache(instance, METRICS_METADATA):
-            self._cache_metrics_metadata(instance)
-
-        if self._should_cache(instance, MORLIST):
-            self._cache_morlist_raw(instance)
-        self._cache_morlist_process(instance)
-        self._vacuum_morlist(instance)
-
-        # Second part: do the job
-        self.collect_topology(instance)
-        self.collect_metrics(instance)
-        self._query_event(instance)
-
-        # For our own sanity
-        self._clean()
-
-        thread_crashed = False
+        # self.warning(
+        #     "DEPRECATION NOTICE: You are using a deprecated version of the vSphere integration. "
+        #     "To use the newer version, please update your configuration file based on the provided example. "
+        #     "Look for the `use_legacy_check_version` configuration option."
+        # )
         try:
-            while True:
-                self.log.critical(self.exceptionq.get_nowait())
-                thread_crashed = True
-        except Empty:
-            pass
-        if thread_crashed:
-            self.stop_pool()
-            raise Exception("One thread in the pool crashed, check the logs")
+            self.exception_printed = 0
 
-        # <TEST-INSTRUMENTATION>
-        self.gauge('stackstate.agent.vsphere.queue_size', self.pool._workq.qsize(), tags=['instant:final'])
-        # </TEST-INSTRUMENTATION>
+            # First part: make sure our object repository is neat & clean
+            if self._should_cache(instance, CacheConfig.Metadata):
+                self._cache_metrics_metadata(instance)
+
+            if self._should_cache(instance, CacheConfig.Morlist):
+                self._cache_morlist_raw(instance)
+
+            # Processing the mor queue is in the main thread, only the collection of the list of metrics
+            # for historical resources is made asynchronously.
+            self.start_pool()
+            self._process_mor_objects_queue(instance)
+            # Remove old objects that might be gone from the Mor cache
+            self.mor_cache.purge(self._instance_key(instance), self.clean_morlist_interval)
+            self.stop_pool()
+
+            # Second part: do the job
+            self.start_pool()
+            self.collect_metrics(instance)
+            if self._is_main_instance(instance):
+                self._query_event(instance)
+                # self.set_external_tags(self.get_external_host_tags())
+
+            self.stop_pool()
+
+            # Third part
+            self.collect_topology(instance)
+
+            if self.exception_printed > 0:
+                self.log.error("One thread in the pool crashed, check the logs")
+        except Exception as e:
+            self.log.error("An exception occured while collecting vSphere metrics: %s", e)
+            if self.pool:
+                self.terminate_pool()
+            raise
