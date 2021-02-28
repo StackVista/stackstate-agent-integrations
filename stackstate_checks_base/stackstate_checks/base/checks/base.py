@@ -507,12 +507,22 @@ class AgentCheckBase(object):
             identifier_tag_content = identifier_tag.split('stackstate-identifiers:')[1]
             if len(identifier_tag_content) > 0:
                 result = self.split_on_commas_and_spaces(identifier_tag_content)
-                data["identifiers"] = identifiers + result
+                identifiers = identifiers + result
+
+        # Detect single identifiers and set the identifiers object
+        single_identifier_tag = self._map_config_and_tags(data, 'stackstate-identifier', 'identifier', False, True)
+        if isinstance(single_identifier_tag, str):
+            identifiers = identifiers + [single_identifier_tag]
+
+        # Only apply identifiers if we found any
+        if len(identifiers) > 0:
+            data["identifiers"] = identifiers
 
         # Attempt to map stackstate-*** tags and configs
         data = self._map_config_and_tags(data, 'stackstate-layer', 'layer')
         data = self._map_config_and_tags(data, 'stackstate-environment', 'environments', True)
         data = self._map_config_and_tags(data, 'stackstate-domain', 'domain')
+
         return data
 
     # Regex function used to split a string on commas and/or spaces
@@ -539,7 +549,7 @@ class AgentCheckBase(object):
     # Attempt to find if the target exists on a tag or config and map that to the origin value
     # There's a optional default value if required
     # Value override order: tags < config.yaml
-    def _map_config_and_tags(self, data, target, origin, is_array=False, default=None):
+    def _map_config_and_tags(self, data, target, origin, return_array=False, return_direct_value=False, default=None):
         # Get the first instance and create a deep copy
         instance = self.instances[0] if self.instances is not None and len(self.instances) else {}
         check_instance = copy.deepcopy(instance)
@@ -548,13 +558,27 @@ class AgentCheckBase(object):
         tags = data.get('tags', [])
 
         # Attempt to find the tag and map its value to a object inside data
-        find_tag = next((tag for tag in tags if (target in tag)), None)
+        find_tag = next((tag for tag in tags if (target + ':' in tag)), None)
         if isinstance(find_tag, str) and find_tag.index(":") > 0:
-            data[origin] = [find_tag.split(target + ':')[1]] if is_array is True else find_tag.split(target + ':')[1]
+            result = [find_tag.split(target + ':')[1]] if return_array is True else find_tag.split(target + ':')[1]
+            if return_direct_value is True:
+                return result
+            data[origin] = result
+
         elif target in check_instance and isinstance(check_instance[target], str):
-            data[origin] = [check_instance[target]] if is_array is True else check_instance[target]
+            result = [check_instance[target]] if return_array is True else check_instance[target]
+            if return_direct_value is True:
+                return result
+            data[origin] = result
+
         elif default is not None and isinstance(default, str):
-            data[origin] = [default] if is_array is True else default
+            result = [default] if return_array is True else default
+            if return_direct_value is True:
+                return result
+            data[origin] = result
+
+        if return_direct_value is True and return_array is True:
+            return []
         return data
 
     def _map_relation_data(self, source, target, type, data, streams=None, checks=None):

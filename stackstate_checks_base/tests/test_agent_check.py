@@ -478,6 +478,7 @@ class TagsAndConfigMappingAgentCheck(TopologyCheck):
                 'stackstate-layer': 'instance-stackstate-layer',
                 'stackstate-environment': 'instance-stackstate-environment',
                 'stackstate-domain': 'instance-stackstate-domain',
+                'stackstate-identifier': 'instance-stackstate-identifier',
                 'stackstate-identifiers': 'urn:process:/mapped-identifier:0:1234567890, \
                     urn:process:/mapped-identifier:1:1234567890 \
                     urn:process:/mapped-identifier:2:1234567890  ,  \
@@ -500,6 +501,7 @@ class TestTagsAndConfigMapping:
                 'tags': ['stackstate-layer:tag-stackstate-layer',
                          'stackstate-environment:tag-stackstate-environment',
                          'stackstate-domain:tag-stackstate-domain',
+                         'stackstate-identifier:urn:process:/mapped-identifier:001:1234567890',
                          'stackstate-identifiers:\
                              urn:process:/mapped-identifier:0:1234567890, \
                              urn:process:/mapped-identifier:1:1234567890 \
@@ -546,6 +548,7 @@ class TestTagsAndConfigMapping:
                 'tags': ['stackstate-layer:tag-stackstate-layer',
                          'stackstate-environment:tag-stackstate-environment',
                          'stackstate-domain:tag-stackstate-domain',
+                         'stackstate-identifier:tag-stackstate-identifier',
                          'stackstate-identifiers:\
                              urn:process:/mapped-identifier:0:1234567890'
                          ]
@@ -570,15 +573,26 @@ class TestTagsAndConfigMapping:
                    {origin: ['tag-' + target], 'tags': data['tags']}
 
             # Default Config
-            assert check_exclude_config._map_config_and_tags({}, target, origin, False,
-                                                             default_value) == {origin: default_value}
-            assert check_exclude_config._map_config_and_tags({}, target, origin, True,
-                                                             default_value) == {origin: [default_value]}
+            assert check_exclude_config._map_config_and_tags({}, target, origin, False, False, default_value) == \
+                   {origin: default_value}
+            assert check_exclude_config._map_config_and_tags({}, target, origin, True, False, default_value) == \
+                   {origin: [default_value]}
+
+            # Return direct value & Return direct value arrays test
+            assert check_exclude_config._map_config_and_tags(data, target, origin, False, True) == 'tag-' + target
+            assert check_include_config._map_config_and_tags(data, target, origin, False, True) == 'tag-' + target
+            assert check_exclude_config._map_config_and_tags({}, target, origin, False, True) == {}
+            assert check_include_config._map_config_and_tags({}, target, origin, False, True) == 'instance-' + target
+            assert check_exclude_config._map_config_and_tags(data, target, origin, True, True) == ['tag-' + target]
+            assert check_include_config._map_config_and_tags(data, target, origin, True, True) == ['tag-' + target]
+            assert check_exclude_config._map_config_and_tags({}, target, origin, True, True) == []
+            assert check_include_config._map_config_and_tags({}, target, origin, True, True) == ['instance-' + target]
 
         # We are testing the environment, layer and domain for all the use cases
         generic_mapping_test("stackstate-environment", "environments", "default-environment")
         generic_mapping_test("stackstate-layer", "layer", "default-layer")
         generic_mapping_test("stackstate-domain", "domain", "default-domain")
+        generic_mapping_test("stackstate-identifier", "identifier", "default-identifier")
 
     def test_instance_only_config(self, topology):
         component = self.generic_tags_and_config_snapshot(topology, True, False)
@@ -602,7 +616,8 @@ class TestTagsAndConfigMapping:
         component = self.generic_tags_and_config_snapshot(topology, True, False, {
             'identifiers': ['urn:process:/original-identifier:0:1234567890']
         })
-        assert component["data"]["identifiers"] == ['urn:process:/original-identifier:0:1234567890']
+        assert component["data"]["identifiers"] == ['urn:process:/original-identifier:0:1234567890',
+                                                    'instance-stackstate-identifier']
 
     def test_identifier_tags(self, topology):
         component = self.generic_tags_and_config_snapshot(topology, True, True, {
@@ -616,7 +631,8 @@ class TestTagsAndConfigMapping:
                                                     'urn:process:/mapped-identifier:0:1234567890',
                                                     'urn:process:/mapped-identifier:1:1234567890',
                                                     'urn:process:/mapped-identifier:2:1234567890',
-                                                    'urn:process:/mapped-identifier:3:1234567890']
+                                                    'urn:process:/mapped-identifier:3:1234567890',
+                                                    'urn:process:/mapped-identifier:001:1234567890']
 
 
 class TestTopology:
