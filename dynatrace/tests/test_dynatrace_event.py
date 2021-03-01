@@ -8,7 +8,7 @@ import requests_mock
 
 from stackstate_checks.base import AgentCheck, StateDescriptor
 from stackstate_checks.base.stubs import aggregator, telemetry, topology
-from stackstate_checks.dynatrace.dynatrace import State
+from stackstate_checks.dynatrace.dynatrace import State, dynatrace_entities_cache
 from .helpers import read_file, read_json_from_file
 
 CHECK_NAME = 'dynatrace'
@@ -181,3 +181,27 @@ def test_simulated_ok_events(dynatrace_event_check, test_instance):
         assert len(real_events) == 8
         assert len(simulated_events) == 14
         assert len(telemetry._topology_events) == 1
+
+
+def test_link_to_dynatrace(dynatrace_event_check, test_instance):
+    url = test_instance['url']
+    dynatrace_entities_cache["123"] = {"name": "test123", "type": "service"}
+    dynatrace_entities_cache["456"] = {"name": "test456", "type": "process-group"}
+    dynatrace_entities_cache["789"] = {"name": "test789", "type": "process"}
+    dynatrace_entities_cache["abc"] = {"name": "testABC", "type": "host"}
+    dynatrace_entities_cache["def"] = {"name": "testDEF", "type": "application"}
+
+    service_url = dynatrace_event_check._link_to_dynatrace("123", url)
+    assert service_url == "https://instance.live.dynatrace.com/#newservices/serviceOverview;id=123"
+
+    process_group_url = dynatrace_event_check._link_to_dynatrace("456", url)
+    assert process_group_url == "https://instance.live.dynatrace.com/#processgroupdetails;id=456"
+
+    process_url = dynatrace_event_check._link_to_dynatrace("789", url)
+    assert process_url == "https://instance.live.dynatrace.com/#processdetails;id=789"
+
+    host_url = dynatrace_event_check._link_to_dynatrace("abc", url)
+    assert host_url == "https://instance.live.dynatrace.com/#newhosts/hostdetails;id=abc"
+
+    application_url = dynatrace_event_check._link_to_dynatrace("def", url)
+    assert application_url == "https://instance.live.dynatrace.com/#uemapplications/uemappmetrics;uemapplicationId=def"

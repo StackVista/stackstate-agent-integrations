@@ -12,7 +12,8 @@
       "eventStatus:CLOSED",
       "startTime:1613424360000",
       "endTime:1613424370000",
-      "source:builtin"
+      "source:builtin",
+      "openSince:Feb 15, 2021, 22:26:00"
     ],
     "context": {
       "source_identifier": "source_identifier_value",

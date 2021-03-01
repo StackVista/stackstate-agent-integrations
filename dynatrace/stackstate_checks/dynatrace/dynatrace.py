@@ -32,6 +32,14 @@ TOPOLOGY_API_ENDPOINTS = {
     "service": "api/v1/entity/services"
 }
 
+DYNATRACE_UI_URLS = {
+    "service": "{instance}/#newservices/serviceOverview;id={entityId}",
+    "process-group": "{instance}/#processgroupdetails;id={entityId}",
+    "process": "{instance}/#processdetails;id={entityId}",
+    "host": "{instance}/#newhosts/hostdetails;id={entityId}",
+    "application": "{instance}/#uemapplications/uemappmetrics;uemapplicationId={entityId}"
+}
+
 
 class DynatraceEvent(Model):
     eventId = IntType()
@@ -105,8 +113,8 @@ class DynatraceCheck(AgentCheck):
         self.log.debug("Starting the collection of topology")
         for component_type, path in TOPOLOGY_API_ENDPOINTS.items():
             endpoint = urljoin(instance_info.url, path)
-            param = {"startTimestamp": self._current_time_seconds()}
-            response = self._get_dynatrace_json_response(instance_info, endpoint)
+            param = {"relativeTime": "min"}
+            response = self._get_dynatrace_json_response(instance_info, endpoint, param)
             self._collect_topology(response, component_type, instance_info)
         end_time = datetime.now()
         time_taken = end_time - start_time
@@ -303,7 +311,7 @@ class DynatraceCheck(AgentCheck):
         """
         Create an standard or custom event based on the Dynatrace Severity level
         """
-        open_since = datetime.fromtimestamp(dynatrace_event.startTime/1000).strftime("%b %-d, %Y, %H:%M:%S")
+        open_since = datetime.fromtimestamp(dynatrace_event.startTime / 1000).strftime("%b %-d, %Y, %H:%M:%S")
         event = {
             "timestamp": self._current_time_seconds(),
             "source_type_name": "Dynatrace Events",
@@ -331,12 +339,22 @@ class DynatraceCheck(AgentCheck):
                 "category": "info_event",
                 "data": dynatrace_event.to_primitive(),
                 "source_links": [
-                    # TODO the real event external link
-                    {"title": "my_event_external_link", "url": instance_url}
+                    {
+                        "title": "my_event_external_link",
+                        "url": self._link_to_dynatrace(dynatrace_event.entityId, instance_url)
+                    }
                 ]
             }
 
         self.event(event)
+
+    @staticmethod
+    def _link_to_dynatrace(entity_id, instance_url):
+        entity = dynatrace_entities_cache.get(entity_id)
+        if entity:
+            return DYNATRACE_UI_URLS[entity["type"]].format(instance=instance_url, entityId=entity_id)
+        else:
+            return instance_url
 
     def _collect_events(self, instance_info):
         """
