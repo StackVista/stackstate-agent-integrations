@@ -303,6 +303,7 @@ class DynatraceCheck(AgentCheck):
         """
         Create an standard or custom event based on the Dynatrace Severity level
         """
+        open_since = datetime.fromtimestamp(dynatrace_event.startTime/1000).strftime("%b %-d, %Y, %H:%M:%S")
         event = {
             "timestamp": self._current_time_seconds(),
             "source_type_name": "Dynatrace Events",
@@ -316,7 +317,8 @@ class DynatraceCheck(AgentCheck):
                 "eventStatus:{0}".format(dynatrace_event.eventStatus),
                 "startTime:{0}".format(dynatrace_event.startTime),
                 "endTime:{0}".format(dynatrace_event.endTime),
-                "source:{0}".format(dynatrace_event.source)
+                "source:{0}".format(dynatrace_event.source),
+                "openSince:{0}".format(open_since),
             ]
         }
 
