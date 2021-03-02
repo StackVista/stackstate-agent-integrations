@@ -17,12 +17,14 @@ from schematics.types import IntType, URLType, StringType, ListType, BooleanType
 from stackstate_checks.base import AgentCheck, StackPackInstance
 from stackstate_checks.utils.identifiers import Identifiers
 
+# Default values
 VERIFY_HTTPS = True
-TIMEOUT_DEFAULT = 10
-EVENTS_BOOSTRAP_DAYS_DEFAULT = 5
-EVENTS_PROCESS_LIMIT_DEFAULT = 10000
-
-dynatrace_entities_cache = {}
+TIMEOUT = 10
+EVENTS_BOOSTRAP_DAYS = 5
+EVENTS_PROCESS_LIMIT = 10000
+RELATIVE_TIME = 'min'
+ENVIRONMENT = 'production'
+DOMAIN = 'dynatrace'
 
 TOPOLOGY_API_ENDPOINTS = {
     "process": "api/v1/entity/infrastructure/processes",
@@ -39,6 +41,8 @@ DYNATRACE_UI_URLS = {
     "host": "{instance}/#newhosts/hostdetails;id={entityId}",
     "application": "{instance}/#uemapplications/uemappmetrics;uemapplicationId={entityId}"
 }
+
+dynatrace_entities_cache = {}
 
 
 class DynatraceEvent(Model):
@@ -64,14 +68,15 @@ class InstanceInfo(Model):
     url = URLType(required=True)
     token = StringType(required=True)
     instance_tags = ListType(StringType, default=[])
-    events_boostrap_days = IntType(default=EVENTS_BOOSTRAP_DAYS_DEFAULT)
-    events_process_limit = IntType(default=EVENTS_PROCESS_LIMIT_DEFAULT)
+    events_boostrap_days = IntType(default=EVENTS_BOOSTRAP_DAYS)
+    events_process_limit = IntType(default=EVENTS_PROCESS_LIMIT)
     verify = BooleanType(default=VERIFY_HTTPS)
     cert = StringType()
     keyfile = StringType()
-    timeout = IntType(default=TIMEOUT_DEFAULT)
-    domain = StringType(default='dynatrace')
-    environment = StringType(default='production')
+    timeout = IntType(default=TIMEOUT)
+    domain = StringType(default=DOMAIN)
+    environment = StringType(default=ENVIRONMENT)
+    relative_time = StringType(default=RELATIVE_TIME)
     state = ModelType(State)
 
 
