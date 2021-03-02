@@ -25,6 +25,10 @@ CRS_BOOTSTRAP_DAYS_DEFAULT = 100
 CRS_DEFAULT_PROCESS_LIMIT = 1000
 CMDB_CI_DEFAULT_FIELD = 'cmdb_ci'
 
+# keys for which `display_value` has to be used
+COMPONENT_DISPLAY_VALUE_LIST = ["sys_tags", "maintenance_schedule", "location", "company", "manufacturer"]
+RELATION_DISPLAY_VALUE_LIST = ["sys_tags", "type"]
+
 
 class WrapperStringType(Model):
     value = StringType(default='')
@@ -145,7 +149,7 @@ class ServicenowCheck(AgentCheck):
         return sysparm_query
 
     @staticmethod
-    def _filter_empty_metadata(data):
+    def _filter_empty_metadata(data, display_value_list):
         """
         Filter the empty key:value in metadata dictionary and fix utf-8 encoding problems
         :param data: metadata from servicenow
@@ -154,8 +158,16 @@ class ServicenowCheck(AgentCheck):
         result = {}
         if isinstance(data, dict):
             for k, v in data.items():
-                if v:
-                    result[k] = to_string(v)
+                # since display_param_value always returns dictionary for all keys
+                if isinstance(v, dict):
+                    if v.get("value"):
+                        result[k] = to_string(v.get("value"))
+                    if k in display_value_list:
+                        if v.get("display_value"):
+                            result[k] = to_string(v.get("display_value"))
+                else:
+                    if v:
+                        result[k] = to_string(v)
         return result
 
     def _batch_collect_components(self, instance_info, offset):
@@ -210,7 +222,7 @@ class ServicenowCheck(AgentCheck):
 
         for component in collected_components:
             data = {}
-            component = self._filter_empty_metadata(component)
+            component = self._filter_empty_metadata(component, COMPONENT_DISPLAY_VALUE_LIST)
             identifiers = []
             comp_name = component.get('name')
             comp_type = component.get('sys_class_name')
@@ -225,35 +237,14 @@ class ServicenowCheck(AgentCheck):
             identifiers.append(external_id)
             identifiers = Identifiers.append_lowercase_identifiers(identifiers)
             data.update(component)
-            data.update({"identifiers": identifiers, "tags": instance_info.instance_tags})
+            tags = instance_info.instance_tags
+            sys_tags = data.get("sys_tags")
+            if sys_tags:
+                sys_tags = list(map(lambda x: x.strip(), sys_tags.split(",")))
+                tags = tags + sys_tags
+            data.update({"identifiers": identifiers, "tags": tags})
 
             self.component(external_id, comp_type, data)
-
-    def _collect_relation_types(self, instance_info):
-        """
-        collects relations from CMDB
-        :return: dict, raw response from CMDB
-        """
-        auth = (instance_info.user, instance_info.password)
-        url = instance_info.url + '/api/now/table/cmdb_rel_type'
-        params = {
-            'sysparm_fields': 'sys_id,parent_descriptor'
-        }
-        return self._get_json(url, instance_info.timeout, params, auth, instance_info.verify_https)
-
-    def _process_relation_types(self, instance_info):
-        """
-        collect available relations from cmdb_rel_ci
-        """
-        relation_types = {}
-        types = self._collect_relation_types(instance_info)
-
-        if "result" in types:
-            for relation in types.get('result', []):
-                sys_id = relation['sys_id']
-                parent_descriptor = relation['parent_descriptor']
-                relation_types[sys_id] = parent_descriptor
-        return relation_types
 
     def _batch_collect_relations(self, instance_info, offset):
         """
@@ -272,16 +263,22 @@ class ServicenowCheck(AgentCheck):
         """
         process relations
         """
-        relation_types = self._process_relation_types(instance_info)
         collected_relations = self._batch_collect(self._batch_collect_relations, instance_info)
         for relation in collected_relations:
-            parent_sys_id = relation['parent']['value']
-            child_sys_id = relation['child']['value']
-            type_sys_id = relation['type']['value']
+            data = {}
+            relation = self._filter_empty_metadata(relation, RELATION_DISPLAY_VALUE_LIST)
+            parent_sys_id = relation['parent']
+            child_sys_id = relation['child']
+            # first part after splitting with :: contains actual relation
+            relation_type = relation['type'].split("::")[0]
 
-            relation_type = relation_types[type_sys_id]
-            data = self._filter_empty_metadata(relation)
-            data.update({"tags": instance_info.instance_tags})
+            # relation_type = relation_types[type_sys_id]
+            data.update(relation)
+            tags = instance_info.instance_tags
+            sys_tags = data.get("sys_tags")
+            if sys_tags:
+                tags = tags + sys_tags.split(",")
+            data.update({"tags": tags})
 
             self.relation(parent_sys_id, child_sys_id, relation_type, data)
 
@@ -385,6 +382,7 @@ class ServicenowCheck(AgentCheck):
         params = self._params_append_to_sysparm_query("ORDERBYsys_created_on", params)
         params.update(
             {
+                'sysparm_display_value': 'all',
                 'sysparm_offset': offset,
                 'sysparm_limit': batch_size
             }

@@ -28,10 +28,26 @@ def mock_collect_process(*args):
 mock_collect_components = {
     'result': [
         {
-            'sys_class_name': 'cmdb_ci_computer',
-            'sys_id': '00a96c0d3790200044e0bfc8bcbe5db4',
-            'sys_created_on': '2012-02-18 08:14:21',
-            'name': 'MacBook Pro 15'
+            'sys_class_name': {
+                'display_value': 'Computer',
+                'value': 'cmdb_ci_computer'
+            },
+            'sys_id': {
+                'display_value': '00a96c0d3790200044e0bfc8bcbe5db4',
+                'value': '00a96c0d3790200044e0bfc8bcbe5db4'
+            },
+            'sys_created_on': {
+                'display_value': '2012-02-18 12:14:21',
+                'value': '2012-02-18 08:14:21'
+            },
+            'sys_tags': {
+                'display_value': 'stackstate-identifier:lupulus, stackstate',
+                'value': ''
+            },
+            'name': {
+                'display_value': 'MacBook Pro 15',
+                'value': 'MacBook Pro 15'
+            }
         }
     ]
 }
@@ -39,34 +55,94 @@ mock_collect_components = {
 mock_collect_components_batch = {
     'result': [
         {
-            'sys_class_name': 'cmdb_ci_computer',
-            'sys_id': '00a96c0d3790200044e0bfc8bcbe5db4',
-            'sys_created_on': '2012-02-18 08:14:21',
-            'name': 'MacBook Pro 15'
+            'sys_class_name': {
+                'display_value': 'Computer',
+                'value': 'cmdb_ci_computer'
+            },
+            'sys_id': {
+                'display_value': '00a96c0d3790200044e0bfc8bcbe5db4',
+                'value': '00a96c0d3790200044e0bfc8bcbe5db4'
+            },
+            'sys_created_on': {
+                'display_value': '2012-02-18 12:14:21',
+                'value': '2012-02-18 08:14:21'
+            },
+            'name': {
+                'display_value': 'MacBook Pro 15',
+                'value': 'MacBook Pro 15'
+            }
         },
         {
-            "sys_class_name": "cmdb_ci_computer",
-            "sys_id": "00a9a80d3790200044e0bfc8bcbe5d1c",
-            "sys_created_on": "2012-02-18 08:13:32",
-            "name": "MacBook Air 13\""
+            'sys_class_name': {
+                'display_value': 'Computer',
+                'value': 'cmdb_ci_computer'
+            },
+            'sys_id': {
+                'display_value': '00a9a80d3790200044e0bfc8bcbe5d1c',
+                'value': '00a9a80d3790200044e0bfc8bcbe5d1c'
+            },
+            'sys_created_on': {
+                'display_value': '2012-02-18 12:13:32',
+                'value': '2012-02-18 08:13:32'
+            },
+            'name': {
+                'display_value': "MacBook Air 13\"",
+                'value': "MacBook Air 13\""
+            }
         },
         {
-            "sys_class_name": "cmdb_ci_computer",
-            "sys_id": "00a9e80d3790200044e0bfc8bcbe5d42",
-            "sys_created_on": "2012-02-18 08:13:48",
-            "name": "MacBook Pro 17\""
+            'sys_class_name': {
+                'display_value': 'Computer',
+                'value': 'cmdb_ci_computer'
+            },
+            'sys_id': {
+                'display_value': '00a9e80d3790200044e0bfc8bcbe5d42',
+                'value': '00a9e80d3790200044e0bfc8bcbe5d42'
+            },
+            'sys_created_on': {
+                'display_value': '2012-02-18 12:13:48',
+                'value': '2012-02-18 08:13:48'
+            },
+            'name': {
+                'display_value': "MacBook Air 17\"",
+                'value': "MacBook Air 17\""
+            }
         },
         {
-            "sys_class_name": "cmdb_ci_computer",
-            "sys_id": "01a9e40d3790200044e0bfc8bcbe5dab",
-            "sys_created_on": "2012-02-18 08:12:30",
-            "name": "ThinkStation C20"
+            'sys_class_name': {
+                'display_value': 'Computer',
+                'value': 'cmdb_ci_computer'
+            },
+            'sys_id': {
+                'display_value': '01a9e40d3790200044e0bfc8bcbe5dab',
+                'value': '01a9e40d3790200044e0bfc8bcbe5dab'
+            },
+            'sys_created_on': {
+                'display_value': '2012-02-18 12:12:30',
+                'value': '2012-02-18 08:12:30'
+            },
+            'name': {
+                'display_value': 'ThinkStation C20',
+                'value': 'ThinkStation C20'
+            }
         },
         {
-            "sys_class_name": "cmdb_ci_computer",
-            "sys_id": "01a9ec0d3790200044e0bfc8bcbe5dc3",
-            "sys_created_on": "2012-02-18 08:14:42",
-            "name": "ThinkStation C20"
+            'sys_class_name': {
+                'display_value': 'Computer',
+                'value': 'cmdb_ci_computer'
+            },
+            'sys_id': {
+                'display_value': '01a9ec0d3790200044e0bfc8bcbe5dc3',
+                'value': '01a9ec0d3790200044e0bfc8bcbe5dc3'
+            },
+            'sys_created_on': {
+                'display_value': '2012-02-18 12:14:42',
+                'value': '2012-02-18 08:14:42'
+            },
+            'name': {
+                'display_value': 'ThinkStation C20',
+                'value': 'ThinkStation C20'
+            }
         }
     ]
 }
@@ -74,20 +150,22 @@ mock_collect_components_batch = {
 mock_collect_filter_components = {
     'result': [
         {
-            'sys_class_name': 'cmdb_ci_cluster',
-            'sys_id': '00a96c0d3790200044e0bfc8bcbe5db4',
-            'sys_created_on': '2012-02-18 18:14:21',
-            'name': 'Test Cluster'
-        }
-    ]
-}
-
-# Mock behaviour for relation types
-mock_relation_types = {
-    'result': [
-        {
-            'parent_descriptor': 'Cools',
-            'sys_id': '53979c53c0a801640116ad2044643fb2'
+            'sys_class_name': {
+                'display_value': 'Cluster',
+                'value': 'cmdb_ci_cluster'
+            },
+            'sys_id': {
+                'display_value': '00a96c0d3790200044e0bfc8bcbe5db4',
+                'value': '00a96c0d3790200044e0bfc8bcbe5db4'
+            },
+            'sys_created_on': {
+                'display_value': '2012-02-18 22:14:21',
+                'value': '2012-02-18 18:14:21'
+            },
+            'name': {
+                'display_value': 'Test Cluster',
+                'value': 'Test Cluster'
+            }
         }
     ]
 }
@@ -98,14 +176,18 @@ mock_relation_components = {
         {
             'type': {
                 'link': 'https://instance.service-now.com/api/now/table/cmdb_rel_type/1a9cb166f1571100a92eb60da2bc',
-                'value': '1a9cb166f1571100a92eb60da2bce5c5'
+                'value': '1a9cb166f1571100a92eb60da2bce5c5',
+                'display_value': 'Cools'
             },
             'parent': {
                 'link': 'https://instance.service-now.com/api/now/table/cmdb_ci/451047c6c0a8016400de0ae6df9b9d76',
-                'value': '451047c6c0a8016400de0ae6df9b9d76'},
+                'value': '451047c6c0a8016400de0ae6df9b9d76',
+                'display_value': 'some name'
+            },
             'child': {
                 'link': 'https://instance.service-now.com/api/now/table/cmdb_ci/53979c53c0a801640116ad2044643fb2',
-                'value': '53979c53c0a801640116ad2044643fb2'
+                'value': '53979c53c0a801640116ad2044643fb2',
+                'display_value': 'my name'
             }
         }
     ]
@@ -114,16 +196,21 @@ mock_relation_components = {
 # Mock response from ServiceNow API for relation between components
 mock_relation_with_filter = {
     'result': [
-        {'type': {
-            'link': 'https://instance.service-now.com/api/now/table/cmdb_rel_type/1a9cb166f1571100a92eb60da2bce5c5',
-            'value': '1a9cb166f1571100a92eb60da2bce5c5'},
+        {
+            'type': {
+                'link': 'https://instance.service-now.com/api/now/table/cmdb_rel_type/1a9cb166f1571100a92eb60da2bce5c5',
+                'value': '1a9cb166f1571100a92eb60da2bce5c5',
+                'display_value': 'Cools'
+            },
             'parent': {
                 'link': 'https://instance.service-now.com/api/now/table/cmdb_ci/451047c6c0a8016400de0ae6df9b9d76',
-                'value': '451047c6c0a8016400de0ae6df9b9d76'},
+                'value': '451047c6c0a8016400de0ae6df9b9d76'
+            },
             'child': {
                 'link': 'https://instance.service-now.com/api/now/table/cmdb_ci/53979c53c0a801640116ad2044643fb2',
                 'value': '53979c53c0a801640116ad2044643fb2'
-            }}
+            }
+        }
     ]
 }
 
@@ -266,22 +353,8 @@ class TestServicenow(unittest.TestCase):
         self.assertEqual(topo_instances['components'][0]['type'], 'cmdb_ci_computer')
         self.assertEqual(topo_instances['components'][0]['data']['identifiers'],
                          ["urn:host:/MacBook Pro 15", "00a96c0d3790200044e0bfc8bcbe5db4", "urn:host:/macbook pro 15"])
-
-    def test_collect_relation_types(self):
-        """
-        Test to raise a check exception when collecting relation types
-        """
-        self.assertRaises(Exception, self.check._collect_relation_types, instance_info)
-
-    def test_process_relation_types(self):
-        """
-        Test to collect relation types from ServiceNow API and put in relation_types
-        """
-        self.check._collect_relation_types = mock.MagicMock()
-        self.check._collect_relation_types.return_value = mock_relation_types
-        out = self.check._process_relation_types(instance_info)
-
-        self.assertEqual(len(out), 1)
+        self.assertIn('stackstate-identifier:lupulus', topo_instances['components'][0]['data']['tags'])
+        self.assertIn('stackstate', topo_instances['components'][0]['data']['tags'])
 
     def test_collect_relations(self):
         """
@@ -293,8 +366,6 @@ class TestServicenow(unittest.TestCase):
         """
         Test to collect the component relations and process it as a topology
         """
-        self.check._process_relation_types = mock.MagicMock()
-        self.check._process_relation_types.return_value = {'1a9cb166f1571100a92eb60da2bce5c5': 'Cools'}
         self.check._batch_collect_relations = mock.MagicMock()
         self.check._batch_collect_relations.return_value = mock_relation_components
         self.check._batch_collect_relations.__name__ = 'mock_batch_collect_relations'
@@ -416,8 +487,6 @@ class TestServicenow(unittest.TestCase):
                                                                        "cmdb_ci_netgear"
         self.check._get_json = mock.MagicMock()
         self.check._get_json.return_value = mock_relation_components
-        self.check._process_relation_types = mock.MagicMock()
-        self.check._process_relation_types.return_value = {'1a9cb166f1571100a92eb60da2bce5c5': 'Cools'}
         self.check._process_relations(instance_info)
 
         topo_instances = topology.get_snapshot(self.check.check_id)
@@ -460,8 +529,6 @@ class TestServicenow(unittest.TestCase):
 
         self.check._get_json = mock.MagicMock()
         self.check._get_json.return_value = mock_relation_with_filter
-        self.check._process_relation_types = mock.MagicMock()
-        self.check._process_relation_types.return_value = {'1a9cb166f1571100a92eb60da2bce5c5': 'Cools'}
 
         self.check._process_relations(instance_info)
 
