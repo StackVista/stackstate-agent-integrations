@@ -22,7 +22,7 @@ VERIFY_HTTPS = True
 TIMEOUT = 10
 EVENTS_BOOSTRAP_DAYS = 5
 EVENTS_PROCESS_LIMIT = 10000
-RELATIVE_TIME = 'min'
+RELATIVE_TIME = 'hour'
 ENVIRONMENT = 'production'
 DOMAIN = 'dynatrace'
 
@@ -118,8 +118,8 @@ class DynatraceCheck(AgentCheck):
         self.log.debug("Starting the collection of topology")
         for component_type, path in TOPOLOGY_API_ENDPOINTS.items():
             endpoint = urljoin(instance_info.url, path)
-            param = {"relativeTime": "min"}
-            response = self._get_dynatrace_json_response(instance_info, endpoint, param)
+            params = {"relativeTime": instance_info.relative_time}
+            response = self._get_dynatrace_json_response(instance_info, endpoint, params)
             self._collect_topology(response, component_type, instance_info)
         end_time = datetime.now()
         time_taken = end_time - start_time

@@ -33,9 +33,9 @@ instances:
     # Environment to use for putting the data in. The default is 'production'.
     # environment: development
 
-    # The relative timeframe for retrieving topology. The default is 'min'.
+    # The relative timeframe for retrieving topology. The default is 'hour'.
     # Docs - https://www.dynatrace.com/support/help/shortlink/api-applications-get-all#parameters
-    # relative_time : min
+    # relative_time: hour
 
     # No. of days to start collecting events.
     # events_bootstrap_days: 5  # by default it's 5 days
