@@ -123,7 +123,7 @@ class DynatraceCheck(AgentCheck):
             self._collect_topology(response, component_type, instance_info)
         end_time = datetime.now()
         time_taken = end_time - start_time
-        self.log.info("Collected %d entities.", len(dynatrace_entities_cache))
+        self.log.info("Collected %d topology entities.", len(dynatrace_entities_cache))
         self.log.debug("Time taken to collect the topology is: {} seconds".format(time_taken.total_seconds()))
 
     def _collect_relations(self, component, external_id):
