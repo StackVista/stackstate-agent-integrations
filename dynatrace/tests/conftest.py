@@ -3,7 +3,7 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import pytest
 
-from stackstate_checks.base.stubs import aggregator, telemetry
+from stackstate_checks.base.stubs import aggregator, telemetry, topology
 from stackstate_checks.dynatrace import DynatraceCheck
 
 
@@ -44,4 +44,5 @@ def dynatrace_event_check(test_instance):
     yield check
     aggregator.reset()
     telemetry.reset()
+    topology.reset()
     check.commit_state(None)

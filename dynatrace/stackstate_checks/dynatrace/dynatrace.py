@@ -1,13 +1,8 @@
 # (C) StackState 2021
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
+import json
 import time
-
-try:
-    from urllib.parse import urljoin
-except ImportError:
-    from urlparse import urljoin
-
 from datetime import datetime, timedelta
 
 from requests import Session, Timeout
@@ -35,11 +30,11 @@ TOPOLOGY_API_ENDPOINTS = {
 }
 
 DYNATRACE_UI_URLS = {
-    "service": "{instance}/#newservices/serviceOverview;id={entityId}",
-    "process-group": "{instance}/#processgroupdetails;id={entityId}",
-    "process": "{instance}/#processdetails;id={entityId}",
-    "host": "{instance}/#newhosts/hostdetails;id={entityId}",
-    "application": "{instance}/#uemapplications/uemappmetrics;uemapplicationId={entityId}"
+    "service": "%s/#newservices/serviceOverview;id=%s",
+    "process-group": "%s/#processgroupdetails;id=%s",
+    "process": "%s/#processdetails;id=%s",
+    "host": "%s/#newhosts/hostdetails;id=%s",
+    "application": "%s/#uemapplications/uemappmetrics;uemapplicationId=%s"
 }
 
 dynatrace_entities_cache = {}
@@ -117,14 +112,14 @@ class DynatraceCheck(AgentCheck):
         start_time = datetime.now()
         self.log.debug("Starting the collection of topology")
         for component_type, path in TOPOLOGY_API_ENDPOINTS.items():
-            endpoint = urljoin(instance_info.url, path)
+            endpoint = self._get_endpoint(instance_info.url, path)
             params = {"relativeTime": instance_info.relative_time}
             response = self._get_dynatrace_json_response(instance_info, endpoint, params)
             self._collect_topology(response, component_type, instance_info)
         end_time = datetime.now()
         time_taken = end_time - start_time
         self.log.info("Collected %d topology entities.", len(dynatrace_entities_cache))
-        self.log.debug("Time taken to collect the topology is: {} seconds".format(time_taken.total_seconds()))
+        self.log.debug("Time taken to collect the topology is: %d seconds" % time_taken.total_seconds())
 
     def _collect_relations(self, component, external_id):
         """
@@ -323,15 +318,15 @@ class DynatraceCheck(AgentCheck):
             "msg_title": dynatrace_event.eventType + " on " + dynatrace_event.entityName,
             "msg_text": dynatrace_event.eventType + " on " + dynatrace_event.entityName,
             "tags": [
-                "entityId:{0}".format(dynatrace_event.entityId),
-                "severityLevel:{0}".format(dynatrace_event.severityLevel),
-                "eventType:{0}".format(dynatrace_event.eventType),
-                "impactLevel:{0}".format(dynatrace_event.impactLevel),
-                "eventStatus:{0}".format(dynatrace_event.eventStatus),
-                "startTime:{0}".format(dynatrace_event.startTime),
-                "endTime:{0}".format(dynatrace_event.endTime),
-                "source:{0}".format(dynatrace_event.source),
-                "openSince:{0}".format(open_since),
+                "entityId:%s" % dynatrace_event.entityId,
+                "severityLevel:%s" % dynatrace_event.severityLevel,
+                "eventType:%s" % dynatrace_event.eventType,
+                "impactLevel:%s" % dynatrace_event.impactLevel,
+                "eventStatus:%s" % dynatrace_event.eventStatus,
+                "startTime:%s" % dynatrace_event.startTime,
+                "endTime:%s" % dynatrace_event.endTime,
+                "source:%s" % dynatrace_event.source,
+                "openSince:%s" % open_since,
             ]
         }
 
@@ -339,7 +334,7 @@ class DynatraceCheck(AgentCheck):
         if dynatrace_event.severityLevel == 'INFO':
             event["context"] = {
                 "source_identifier": "source_identifier_value",
-                "element_identifiers": ["urn:{}".format(dynatrace_event.entityId)],
+                "element_identifiers": ["urn:%s" % dynatrace_event.entityId],
                 "source": "dynatrace",
                 "category": "info_event",
                 "data": dynatrace_event.to_primitive(),
@@ -357,7 +352,7 @@ class DynatraceCheck(AgentCheck):
     def _link_to_dynatrace(entity_id, instance_url):
         entity = dynatrace_entities_cache.get(entity_id)
         if entity:
-            return DYNATRACE_UI_URLS[entity["type"]].format(instance=instance_url, entityId=entity_id)
+            return DYNATRACE_UI_URLS[entity["type"]] % (instance_url, entity_id)
         else:
             return instance_url
 
@@ -413,8 +408,8 @@ class DynatraceCheck(AgentCheck):
         exceed the `events_process_limit`
         """
         if total_event_count >= instance_info.events_process_limit:
-            raise EventLimitReachedException("Maximum event limit to process is {} but received total {} events".
-                                             format(instance_info.events_process_limit, total_event_count))
+            raise EventLimitReachedException("Maximum event limit to process is %s but received total %s events"
+                                             % (instance_info.events_process_limit, total_event_count))
 
     def _generate_bootstrap_timestamp(self, days):
         """
@@ -433,8 +428,21 @@ class DynatraceCheck(AgentCheck):
         """
         return int(time.time())
 
+    def _get_endpoint(self, url, path):
+        """
+        Creates the API endpoint from the path
+        :param url: the URL from conf.yaml
+        :param path: the rest of the path of the specific dynatrace endpoint
+        :return: the full url of the endpoint
+        """
+        sanitized_url = url[:-1] if url.endswith("/") else url
+        sanitized_path = path[1:] if path.startswith("/") else path
+        endpoint = sanitized_url + "/" + sanitized_path
+        self.log.debug("Dynatrace URL endpoint %s", endpoint)
+        return endpoint
+
     def _get_dynatrace_json_response(self, instance_info, endpoint, params=None):
-        headers = {"Authorization": "Api-Token {}".format(instance_info.token)}
+        headers = {"Authorization": "Api-Token %s" % instance_info.token}
         try:
             with Session() as session:
                 session.headers.update(headers)
@@ -442,7 +450,8 @@ class DynatraceCheck(AgentCheck):
                 if instance_info.cert:
                     session.cert = (instance_info.cert, instance_info.keyfile)
                 response = session.get(endpoint, params=params)
-                response_json = response.json()
+                response_json = json.loads(response.text.encode('utf-8'))
+                # response_json = response.json()
                 if response.status_code != 200:
                     if "error" in response_json:
                         msg = response_json["error"].get("message")
@@ -450,12 +459,11 @@ class DynatraceCheck(AgentCheck):
                         msg = "Got %s when hitting %s" % (response.status_code, endpoint)
                     self.log.error(msg)
                     raise Exception(
-                        'Got an unexpected error with status code {0} and message: {1}'.format(response.status_code,
-                                                                                               msg))
+                        'Got an unexpected error with status code %s and message: %s' % (response.status_code, msg))
                 return response_json
         except Timeout:
-            msg = "{} seconds timeout".format(instance_info.timeout)
-            raise Exception("Timeout exception occurred for endpoint {0} with message: {1}".format(endpoint, msg))
+            msg = "%d seconds timeout" % instance_info.timeout
+            raise Exception("Timeout exception occurred for endpoint %s with message: %s" % (endpoint, msg))
 
 
 class EventLimitReachedException(Exception):

@@ -2,8 +2,8 @@
   {
     "timestamp": 1613485584,
     "source_type_name": "Dynatrace Events",
-    "msg_title": "PROCESS_RESTART on aws-cni",
-    "msg_text": "PROCESS_RESTART on aws-cni",
+    "msg_title": "PROCESS_RESTART on aws-cni™",
+    "msg_text": "PROCESS_RESTART on aws-cni™",
     "tags": [
       "entityId:PROCESS_GROUP_INSTANCE-C3483A9911DDAC4A",
       "severityLevel:INFO",
@@ -27,7 +27,7 @@
         "startTime": 1613424360000,
         "endTime": 1613424370000,
         "entityId": "PROCESS_GROUP_INSTANCE-C3483A9911DDAC4A",
-        "entityName": "aws-cni",
+        "entityName": "aws-cni™",
         "severityLevel": "INFO",
         "impactLevel": "INFRASTRUCTURE",
         "eventType": "PROCESS_RESTART",

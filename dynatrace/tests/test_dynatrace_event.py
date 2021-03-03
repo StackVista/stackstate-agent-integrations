@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # (C) StackState 2021
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
@@ -113,7 +115,7 @@ def test_generated_events(dynatrace_event_check, test_instance):
             aggregator.assert_event(event.get('msg_text'))
         processed_topology_events = read_json_from_file('processed_topology_events.json')
         for event in processed_topology_events:
-            telemetry.assert_topology_event(event)
+            telemetry.assert_topology_event(dynatrace_event_check._fix_encoding(event))
 
 
 def test_state_data(state, dynatrace_event_check, test_instance):
@@ -205,3 +207,31 @@ def test_link_to_dynatrace(dynatrace_event_check, test_instance):
 
     application_url = dynatrace_event_check._link_to_dynatrace("def", url)
     assert application_url == "https://instance.live.dynatrace.com/#uemapplications/uemappmetrics;uemapplicationId=def"
+
+
+def test_endpoint_generation(dynatrace_event_check):
+    urls = ["https://custom.domain.com/e/abc123", "https://custom.domain.com/e/abc123/"]
+    paths = ["api/v1/entity/infrastructure/processes", "/api/v1/entity/infrastructure/processes"]
+    expected_url = "https://custom.domain.com/e/abc123/api/v1/entity/infrastructure/processes"
+    for url in urls:
+        for path in paths:
+            assert dynatrace_event_check._get_endpoint(url, path) == expected_url
+
+
+def test_unicode_in_response_text(dynatrace_event_check, test_instance):
+    dynatrace_event_check._current_time_seconds = mock.MagicMock(return_value=1613485584)
+    url = test_instance['url']
+    timestamp = dynatrace_event_check._generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
+    with requests_mock.Mocker() as m:
+        m.get("{}/api/v1/entity/infrastructure/hosts".format(url), status_code=200,
+              text=read_file('host_response.json'))
+        m.get("{}/api/v1/entity/applications".format(url), status_code=200, text='[]')
+        m.get("{}/api/v1/entity/services".format(url), status_code=200, text='[]')
+        m.get("{}/api/v1/entity/infrastructure/processes".format(url), status_code=200, text='[]')
+        m.get("{}/api/v1/entity/infrastructure/process-groups".format(url), status_code=200, text='[]')
+        m.get('{}/api/v1/events?from={}'.format(url, timestamp), status_code=200, text=read_file('9_events.json'))
+        dynatrace_event_check.run()
+        aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.OK)
+        unicode_data = topology.get_snapshot('').get('components')[0]['data']['osVersion']
+        assert unicode_data == 'Windows Server 2016 Datacenter 1607, ver. 10.0.14393 with unicode char: '
+        assert telemetry._topology_events[0]['msg_text'] == 'PROCESS_RESTART on aws-cni™'
