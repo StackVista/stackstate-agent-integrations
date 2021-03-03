@@ -8,7 +8,6 @@ import os
 import platform
 from stackstate_checks.utils.common import pattern_filter, round_value
 from stackstate_checks.utils.limiter import Limiter
-from stackstate_checks.utils.http import HTTPHelper, HTTPPerson
 from stackstate_checks.utils.persistent_state import StateManager, StateDescriptor, StateNotPersistedException, \
     StateCorruptedException, StateReadException
 from six import PY3
@@ -23,15 +22,6 @@ class Item:
 
     def __eq__(self, other):
         return self.name == other.name
-
-
-class TestHTTPHelper:
-    def test_item_a(self):
-        http_helper = HTTPHelper()
-        person_result = http_helper.person_test()
-        person = HTTPPerson({'name': u'Joe Strummer',
-                            'website': 'http://soundcloud.com/joestrummer'})
-        assert person_result == person
 
 
 class TestPatternFilter:
