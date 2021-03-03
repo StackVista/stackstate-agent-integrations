@@ -7,7 +7,7 @@ from requests import Session
 from requests.auth import HTTPBasicAuth
 from requests.packages import urllib3
 from threading import Thread
-import sys
+# import sys
 try:
     from Queue import Empty, Queue  # Python3
 except ImportError:
@@ -49,7 +49,7 @@ class SapCheck(AgentCheck):
 
     def start_threads(self, count=DEFAULT_THREAD_COUNT, timeout=DEFAULT_IDLE_THREAD_TTL):
         """
-        Create and start <count> threads as background(daemon) processes.\n
+        Create and start <count> threads as background processes.\n
         Use count = 0 to disable multithreading\n
         :param count: The number of worker threads to create. Hardcoded limit of 16
         :param timeout: The number of seconds after an idle thread dies. Hardcoded limit of 3600 seconds (1 hour)
@@ -60,7 +60,7 @@ class SapCheck(AgentCheck):
                 self.queue[self.host] = Queue()
             for _ in range(count):
                 # Create and start worker threads
-                Thread(target=self.thread_worker, args=(self.queue[self.host], timeout), daemon=True).start()
+                Thread(target=self.thread_worker, args=(self.queue[self.host], timeout)).start()
 
     @staticmethod
     def thread_worker(backlog, timeout=DEFAULT_IDLE_THREAD_TTL):
@@ -155,8 +155,8 @@ class SapCheck(AgentCheck):
 
     def _collect_metrics(self):
         """
-        We get all alerts and selected metrics from all the instances 
-        and databases. We send back only what is required.
+        We get all alerts and selected metrics from all the instances and databases.\n
+        We send back only what is required.
         """
         proxy = self._get_proxy()
 
@@ -194,7 +194,6 @@ class SapCheck(AgentCheck):
                     description = lookup.get("description", metricid)
                     status = data.get(lookup.get("field"))
                     taglist = self.generate_tags(data=data, status=status, database=name)
-                    # sys.stdout.write("_get_database_events\ndescription={}\ntaglist={}\n".format(description, taglist))
                     if self.host in self.queue.keys():
                         self.queue[self.host].put((self.send_event, [description, taglist]))
                     else:
@@ -347,7 +346,7 @@ class SapCheck(AgentCheck):
 
     def send_gauge(self, key, value, taglist):
         """
-        Generate and send an gauge based on provided data. 
+        Generate and send an gauge based on provided data.
         :param key: Use this as the name of the event
         :param value: Value to send
         :param taglist: List of tags to add
@@ -457,13 +456,13 @@ class SapCheck(AgentCheck):
                     continue
                 elif instance_type.startswith("Hana"):
                     # test
-                    continue                    
+                    continue
                 elif instance_type.startswith("Webdispatcher"):
                     #
                     continue
                 elif instance_type.startswith("SAP Cloud Connector"):
                     #
-                    continue   
+                    continue
                 # publish event if we connected successfully to the SAP host instance
                 self.event({
                     "timestamp": int(time.time()),
@@ -636,7 +635,8 @@ class SapCheck(AgentCheck):
                             "environment": self.stackstate_environment,
                             "tags": self.tags
                         }
-                        self.component(database_component_external_id, "sap-database-component", database_component_data)
+                        self.component(database_component_external_id, "sap-database-component",
+                                       database_component_data)
 
                         # define relation between database component  -->  database
                         #                                           runs on
@@ -680,13 +680,13 @@ class SapCheck(AgentCheck):
         #  Configuring : Make port 8443 available. add this to users.xml and restart SCC.
         #
         #  <user username="<username from yml>" password="<password from yml as SHA-256 hash>" roles="sccmonitoring"/>
-        # 
+        #
         cloud_connector_url = "{0}:{1}/".format(self.url, "8443").replace("http://", "https://")
         self.log.debug("{0}: Trying to connect to sapcloudconnector on url: {1}".format(self.host, cloud_connector_url))
         health_url = cloud_connector_url + "exposed?action=ping"
         #
         #   1 second timeout to connect, 30 to read data.
-        #            
+        #
         status_code = 0
         session = Session()
         session.auth = HTTPBasicAuth(self.user, self.password)
@@ -778,7 +778,7 @@ class SapCheck(AgentCheck):
                         # "labels": []
                     }
                     self.log.debug("{0}: -----> component_data : {1}".format(self.host, component_data))
-                    self.log.debug("{0}: -----> external_id : {1}".format(self.host, external_id))                            
+                    self.log.debug("{0}: -----> external_id : {1}".format(self.host, external_id))
                     self.component(external_id, "sap-scc-subaccount", component_data)
 
                     # define relation  cloud connector    -->    host
@@ -789,7 +789,7 @@ class SapCheck(AgentCheck):
                     self.relation(source_id, target_id, "is_setup_on", relation_data)
 
                     # define cloud connector status event
-                    
+
                     tunnel_status = self._scc_subaccount_status(tunnel.get("state"))
                     self.event({
                         "timestamp": int(time.time()),
@@ -804,7 +804,9 @@ class SapCheck(AgentCheck):
                     })
             else:
                 if subaccount_reply.status_code == 400:
-                    self.log.info("{0}: SAP Cloud connector monitoring sub account page not supported in this version of SCC.".format(self.host))
+                    msg = "{0}: SAP Cloud connector monitoring sub account page not " \
+                          "supported in this version of SCC.".format(self.host)
+                    self.log.info(msg)
                 else:
                     status = subaccount_reply.status_code
                     self.log.error("{0}: No SAP Cloud connector sub account found. Status code: {1}".format(self.host,
@@ -859,13 +861,17 @@ class SapCheck(AgentCheck):
                         })
             else:
                 if backends_reply.status_code == 400:
-                    self.log.info("{0}: SAP Cloud connector monitoring backend page not supported in this version of SCC.".format(self.host))
+                    msg = "{0}: SAP Cloud connector monitoring backend page not supported " \
+                          "in this version of SCC.".format(self.host)
+                    self.log.info(msg)
                 else:
                     status = backends_reply.status_code
                     self.log.error("{0}: No SAP Cloud connector backends found. Status code: {1}".format(self.host,
                                                                                                          status))
         if status_code == 401:
-            self.log.error("{0}: Authentication failed, check your config.yml and SCC users.xml for corresponding username and password.".format(self.host))
+            msg = "{0}: Authentication failed, check your config.yml and SCC users.xml " \
+                  "for corresponding username and password.".format(self.host)
+            self.log.error(msg)
         session.close()
 
     def _collect_saprouter(self, proxy):
@@ -931,7 +937,7 @@ class SapCheck(AgentCheck):
 
     def _scc_external_id(self):
         return "urn:sap:/scc:{0}".format(self.host)
-    
+
     def _scc_subaccount_external_id(self, subaccount):
         return "urn:sap:/scc_subaccount:{0}:{1}".format(self.host, subaccount)
 

@@ -1,4 +1,4 @@
-class Gauges():
+class Gauges:
     # SAP_ITSAMDatabaseMetric
     dbmetric_gauges = {
         "SAP name": {"description": "description is optional: Alternative name for stackstate",
