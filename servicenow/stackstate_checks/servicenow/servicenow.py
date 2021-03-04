@@ -26,8 +26,8 @@ CRS_DEFAULT_PROCESS_LIMIT = 1000
 CMDB_CI_DEFAULT_FIELD = 'cmdb_ci'
 
 # keys for which `display_value` has to be used
-COMPONENT_DISPLAY_VALUE_LIST = ["sys_tags", "maintenance_schedule", "location", "company", "manufacturer"]
-RELATION_DISPLAY_VALUE_LIST = ["sys_tags", "type"]
+DEFAULT_COMPONENT_DISPLAY_VALUE_LIST = ["sys_tags", "maintenance_schedule", "location", "company", "manufacturer"]
+DEFAULT_RELATION_DISPLAY_VALUE_LIST = ["sys_tags", "type"]
 
 
 class WrapperStringType(Model):
@@ -61,6 +61,27 @@ class ChangeRequest(Model):
     assigned_to = ModelType(WrapperStringType)
 
 
+class ConfigurationItem(Model):
+    name = ModelType(WrapperStringType, required=True)
+    sys_class_name = ModelType(WrapperStringType, required=True)
+    sys_id = ModelType(WrapperStringType, required=True)
+    sys_tags = ModelType(WrapperStringType)
+    fqdn = ModelType(WrapperStringType)
+    host_name = ModelType(WrapperStringType)
+
+
+class CIRelation(Model):
+    sys_id = ModelType(WrapperStringType, required=True)
+    connection_strength = ModelType(WrapperStringType)
+    parent = ModelType(WrapperStringType, required=True)
+    sys_mod_count = ModelType(WrapperStringType)
+    sys_tags = ModelType(WrapperStringType)
+    type = ModelType(WrapperStringType, required=True)
+    port = ModelType(WrapperStringType)
+    percent_outage = ModelType(WrapperStringType)
+    child = ModelType(WrapperStringType, required=True)
+    
+
 class State(Model):
     latest_sys_updated_on = DateTimeType(required=True)
     change_requests = DictType(StringType, default={})
@@ -71,6 +92,8 @@ class InstanceInfo(Model):
     user = StringType(required=True)
     password = StringType(required=True)
     include_resource_types = ListType(StringType, default=[])
+    component_display_value_list = ListType(StringType, default=DEFAULT_COMPONENT_DISPLAY_VALUE_LIST)
+    relation_display_value_list = ListType(StringType, default=DEFAULT_RELATION_DISPLAY_VALUE_LIST)
     batch_size = IntType(default=BATCH_DEFAULT_SIZE, max_value=BATCH_MAX_SIZE)
     timeout = IntType(default=TIMEOUT)
     verify_https = BooleanType(default=VERIFY_HTTPS)
@@ -149,25 +172,24 @@ class ServicenowCheck(AgentCheck):
         return sysparm_query
 
     @staticmethod
-    def _filter_empty_metadata(data, display_value_list):
+    def _apply_field_metadata(data, display_value_list):
         """
-        Filter the empty key:value in metadata dictionary and fix utf-8 encoding problems
+        Retrieve the proper attribute either `display_value` or `value` from data
         :param data: metadata from servicenow
-        :return: filtered metadata
+        :param display_value_list: list of attributes for which `display_value` to be extracted
+        :return: metadata with applied field
         """
         result = {}
         if isinstance(data, dict):
             for k, v in data.items():
                 # since display_param_value always returns dictionary for all keys
                 if isinstance(v, dict):
-                    if v.get("value"):
-                        result[k] = to_string(v.get("value"))
                     if k in display_value_list:
                         if v.get("display_value"):
                             result[k] = to_string(v.get("display_value"))
-                else:
-                    if v:
-                        result[k] = to_string(v)
+                            continue
+                    result[k] = to_string(v.get("value"))
+
         return result
 
     def _batch_collect_components(self, instance_info, offset):
@@ -221,24 +243,30 @@ class ServicenowCheck(AgentCheck):
         collected_components = self._batch_collect(self._batch_collect_components, instance_info)
 
         for component in collected_components:
+            try:
+                config_item = ConfigurationItem(component, strict=False)
+                config_item.validate()
+            except DataError as e:
+                self.log.warning("Error while processing properties - {}".format(e))
+                continue
             data = {}
-            component = self._filter_empty_metadata(component, COMPONENT_DISPLAY_VALUE_LIST)
+            component = self._apply_field_metadata(component, instance_info.component_display_value_list)
             identifiers = []
-            comp_name = component.get('name')
-            comp_type = component.get('sys_class_name')
-            external_id = component.get('sys_id')
+            comp_name = config_item.name.value
+            comp_type = config_item.sys_class_name.value
+            external_id = config_item.sys_id.value
 
-            if component.get('fqdn'):
-                identifiers.append(Identifiers.create_host_identifier(to_string(component['fqdn'])))
-            if component.get('host_name'):
-                identifiers.append(Identifiers.create_host_identifier(to_string(component['host_name'])))
+            if config_item.fqdn:
+                identifiers.append(Identifiers.create_host_identifier(to_string(config_item.fqdn)))
+            if config_item.host_name:
+                identifiers.append(Identifiers.create_host_identifier(to_string(config_item.host_name)))
             else:
                 identifiers.append(Identifiers.create_host_identifier(to_string(comp_name)))
             identifiers.append(external_id)
             identifiers = Identifiers.append_lowercase_identifiers(identifiers)
             data.update(component)
             tags = instance_info.instance_tags
-            sys_tags = data.get("sys_tags")
+            sys_tags = config_item.sys_tags.display_value
             if sys_tags:
                 sys_tags = list(map(lambda x: x.strip(), sys_tags.split(",")))
                 tags = tags + sys_tags
@@ -265,17 +293,23 @@ class ServicenowCheck(AgentCheck):
         """
         collected_relations = self._batch_collect(self._batch_collect_relations, instance_info)
         for relation in collected_relations:
+            try:
+                ci_relation = CIRelation(relation, strict=False)
+                ci_relation.validate()
+            except DataError as e:
+                self.log.warning("Error while processing properties - {}".format(e))
+                continue
             data = {}
-            relation = self._filter_empty_metadata(relation, RELATION_DISPLAY_VALUE_LIST)
-            parent_sys_id = relation['parent']
-            child_sys_id = relation['child']
+            relation = self._apply_field_metadata(relation, instance_info.relation_display_value_list)
+            parent_sys_id = ci_relation.parent.value
+            child_sys_id = ci_relation.child.value
             # first part after splitting with :: contains actual relation
-            relation_type = relation['type'].split("::")[0]
+            relation_type = ci_relation.type.display_value.split("::")[0]
 
             # relation_type = relation_types[type_sys_id]
             data.update(relation)
             tags = instance_info.instance_tags
-            sys_tags = data.get("sys_tags")
+            sys_tags = ci_relation.sys_tags.display_value
             if sys_tags:
                 tags = tags + sys_tags.split(",")
             data.update({"tags": tags})

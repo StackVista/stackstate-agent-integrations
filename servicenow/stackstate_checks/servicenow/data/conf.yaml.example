@@ -40,6 +40,19 @@ instances:
     # ServiceNow CMDB Configuration Item custom field mapping. The default value is cmdb_ci.
     # custom_cmdb_ci_field: u_configuration_item
 
+    # List of attributes in CI Component to use `display_value`. Default is listed.
+    # component_display_value_attributes:
+    #   - sys_tags
+    #   - maintenance_schedule
+    #   - location
+    #   - company
+    #   - manufacturer
+
+    # List of attributes in CIs Relation to use `display_value`. Default is listed.
+    # relation_display_value_attributes:
+    #   - sys_tags
+    #   - type
+
     # Currently StackState support the below resource/sys class types and apart from this will belong to
     # the generic servicenow component types
     # include_resource_types: # optional and by default includes all resource types(sys Class Names)
