@@ -25,12 +25,10 @@
                     "major": 1,
                     "minor": 201,
                     "revision": 127,
-                    "timestamp": "20200925-143440",
-                    "sourceRevision": ""
+                    "timestamp": "20200925-143440"
                 },
                 "consumedHostUnits": "0.5",
                 "userLevel": "SUPERUSER",
-                "oneAgentCustomHostName": "",
                 "awsSecurityGroup": [
                     "melnemrSG"
                 ],
@@ -86,12 +84,10 @@
                     "major": 1,
                     "minor": 201,
                     "revision": 127,
-                    "timestamp": "20200925-143440",
-                    "sourceRevision": ""
+                    "timestamp": "20200925-143440"
                 },
                 "consumedHostUnits": 1,
                 "userLevel": "SUPERUSER",
-                "oneAgentCustomHostName": "",
                 "awsSecurityGroup": [
                     "melnemrSG"
                 ],

@@ -128,8 +128,8 @@ class AggregatorStub(object):
                      tags=None, **kwargs):
         candidates = []
         for e in self.events:
-            if exact_match and msg_text != e['msg_text'] or \
-                    msg_text not in e['msg_text']:
+            if exact_match and msg_text != e.get('msg_text') or \
+                    msg_text not in e.get('msg_text'):
                 continue
             if tags and set(tags) != set(e['tags']):
                 continue

@@ -127,6 +127,8 @@ class TestEvents:
             "tags": None
         }
         check.event(event)
+        # del tags, the base check drops None
+        del event['tags']
         aggregator.assert_event('test event test event')
 
     def test_topology_event(self, telemetry):
@@ -138,7 +140,7 @@ class TestEvents:
             "msg_title": "new test event",
             "aggregation_key": "test.event",
             "msg_text": "test event test event",
-            "tags": None,
+            "tags": [],
             "context": {
                 "element_identifiers": ["urn:test:/value"],
                 "source": "test source",
@@ -468,15 +470,25 @@ class TestTopology:
     def test_component(self, topology):
         check = TopologyCheck()
         data = {"key": "value", "intlist": [1], "emptykey": None, "nestedobject": {"nestedkey": "nestedValue"}}
-        check.component("my-id", "my-type", data)
-        topology.assert_snapshot(check.check_id, check.key, components=[component("my-id", "my-type", data)])
+        created_component = check.component("my-id", "my-type", data)
+        assert data['key'] == created_component['data']['key']
+        assert data['intlist'] == created_component['data']['intlist']
+        assert data['nestedobject'] == created_component['data']['nestedobject']
+        assert created_component['id'] == 'my-id'
+        assert created_component['type'] == 'my-type'
+        topology.assert_snapshot(check.check_id, check.key, components=[created_component])
 
     def test_relation(self, topology):
         check = TopologyCheck()
         data = {"key": "value", "intlist": [1], "emptykey": None, "nestedobject": {"nestedkey": "nestedValue"}}
-        check.relation("source-id", "target-id", "my-type", data)
-        topology.assert_snapshot(check.check_id, check.key,
-                                 relations=[relation("source-id", "target-id", "my-type", data)])
+        created_relation = check.relation("source-id", "target-id", "my-type", data)
+        assert data['key'] == created_relation['data']['key']
+        assert data['intlist'] == created_relation['data']['intlist']
+        assert data['nestedobject'] == created_relation['data']['nestedobject']
+        assert created_relation['source_id'] == 'source-id'
+        assert created_relation['target_id'] == 'target-id'
+        assert created_relation['type'] == 'my-type'
+        topology.assert_snapshot(check.check_id, check.key, relations=[created_relation])
 
     def test_auto_snapshotting(self, topology):
         check = TopologyAutoSnapshotCheck()
@@ -560,7 +572,7 @@ class TestTopology:
     def test_illegal_data_value(self):
         check = TopologyCheck()
         with pytest.raises(ValueError) as e:
-            assert check.component("my-id", "my-type", {"key": set()})
+            assert check.component("my-id", "my-type", {"key": {1, 2, 3}})
         if PY3:
             assert str(e.value) == """Got unexpected <class 'set'> for argument data.key, \
 expected string, int, dictionary, list or None value"""

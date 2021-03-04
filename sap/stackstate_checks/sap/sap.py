@@ -139,7 +139,7 @@ class SapCheck(AgentCheck):
                 "timestamp": int(time.time()),
                 "source_type_name": "SAP:host control",
                 "msg_title": "Host control '{0}' status update.".format(self.host),
-                "msg_text": "",
+                "msg_text": "Host control '{0}' status update.".format(self.host),
                 "host": self.host,
                 "tags": [
                     "status:sap-host-control-success",
@@ -156,7 +156,7 @@ class SapCheck(AgentCheck):
                 "timestamp": int(time.time()),
                 "source_type_name": "SAP:host control",
                 "msg_title": "Host control '{0}' status update.".format(self.host),
-                "msg_text": str(e),
+                "msg_text": "Exception: '{}'".format(str(e)),
                 "host": self.host,
                 "tags": [
                     "status:sap-host-control-error",
@@ -180,7 +180,7 @@ class SapCheck(AgentCheck):
                     "timestamp": int(time.time()),
                     "source_type_name": "SAP:host instance",
                     "msg_title": "Host instance '{0}' status update.".format(instance_id),
-                    "msg_text": "",
+                    "msg_text": "Host instance '{0}' status update.".format(instance_id),
                     "host": self.host,
                     "tags": [
                         "status:sap-host-instance-success",
@@ -326,7 +326,7 @@ class SapCheck(AgentCheck):
                     "timestamp": int(time.time()),
                     "source_type_name": "SAP:database state",
                     "msg_title": "Database '{0}' status update.".format(database_name),
-                    "msg_text": "",
+                    "msg_text": "Database '{0}' status update.".format(database_name),
                     "host": self.host,
                     "tags": [
                         "status:{0}".format(database_status),
@@ -375,7 +375,7 @@ class SapCheck(AgentCheck):
                         "timestamp": int(time.time()),
                         "source_type_name": "SAP:database component state",
                         "msg_title": "Database component '{0}' status update.".format(database_component_name),
-                        "msg_text": "",
+                        "msg_text": "Database component '{0}' status update.".format(database_component_name),
                         "host": self.host,
                         "tags": [
                             "status:{0}".format(database_component.mStatus),
