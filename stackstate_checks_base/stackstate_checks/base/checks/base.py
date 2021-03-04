@@ -449,13 +449,14 @@ class AgentCheckBase(object):
     def component(self, id, type, data, streams=None, checks=None):
         integration_instance = self._get_instance_key()
         try:
-            fixed_data = self._fix_encoding(data)
-            fixed_streams = self._fix_encoding(streams)
-            fixed_checks = self._fix_encoding(checks)
+            fixed_data = self._sanitize(data)
+            fixed_streams = self._sanitize(streams)
+            fixed_checks = self._sanitize(checks)
         except UnicodeError:
             return
         data = self._map_component_data(id, type, integration_instance, fixed_data, fixed_streams, fixed_checks)
         topology.submit_component(self, self.check_id, self._get_instance_key_dict(), id, type, data)
+        return {"id": id, "type": type, "data": data}
 
     def _map_component_data(self, id, type, integration_instance, data, streams=None, checks=None,
                             add_instance_tags=True):
@@ -474,13 +475,14 @@ class AgentCheckBase(object):
 
     def relation(self, source, target, type, data, streams=None, checks=None):
         try:
-            fixed_data = self._fix_encoding(data)
-            fixed_streams = self._fix_encoding(streams)
-            fixed_checks = self._fix_encoding(checks)
+            fixed_data = self._sanitize(data)
+            fixed_streams = self._sanitize(streams)
+            fixed_checks = self._sanitize(checks)
         except UnicodeError:
             return
         data = self._map_relation_data(source, target, type, fixed_data, fixed_streams, fixed_checks)
         topology.submit_relation(self, self.check_id, self._get_instance_key_dict(), source, target, type, data)
+        return {"source_id": source, "target_id": target, "type": type, "data": data}
 
     def _map_relation_data(self, source, target, type, data, streams=None, checks=None):
         self._check_is_string("source", source)
@@ -750,28 +752,52 @@ class AgentCheckBase(object):
         return proxies if proxies else no_proxy_settings
 
     # TODO collect all errors instead of the first one
-    def _fix_encoding(self, value, context=None):
-        if isinstance(value, text_type):
+    def _sanitize(self, field, context=None):
+        """
+        Fixes encoding and strips empty elements.
+        :param field: Field can be of the following types: str, dict, list, set
+        :param context: Context for error message.
+        :return:
+        """
+        if isinstance(field, text_type):
             try:
-                fixed_value = to_string(value)
+                fixed_value = to_string(field)
             except UnicodeError as e:
-                self.log.warning("Error while encoding unicode to string: '{0}', at {1}".format(value, context))
+                self.log.warning("Error while encoding unicode to string: '{0}', at {1}".format(field, context))
                 raise e
             return fixed_value
-        elif isinstance(value, dict):
-            for key, field in list(iteritems(value)):
-                value[key] = self._fix_encoding(field, "key '{0}' of dict".format(key))
-        elif isinstance(value, list):
-            for i, element in enumerate(value):
-                value[i] = self._fix_encoding(element, "index '{0}' of list".format(i))
-        elif isinstance(value, set):
+        elif isinstance(field, dict):
+            field = {k: v for k, v in iteritems(field) if self._is_not_empty(v)}
+            for key, value in list(iteritems(field)):
+                field[key] = self._sanitize(value, "key '{0}' of dict".format(key))
+        elif isinstance(field, list):
+            field = [element for element in field if self._is_not_empty(element)]
+            for i, element in enumerate(field):
+                field[i] = self._sanitize(element, "index '{0}' of list".format(i))
+        elif isinstance(field, set):
             # we convert a set to a list so we can update it in place
             # and then at the end we turn the list back to a set
-            encoding_list = list(value)
+            encoding_list = [element for element in list(field) if self._is_not_empty(element)]
             for i, element in enumerate(encoding_list):
-                encoding_list[i] = self._fix_encoding(element, "element of set")
-            value = set(encoding_list)
-        return value
+                encoding_list[i] = self._sanitize(element, "element of set")
+            field = set(encoding_list)
+        return field
+
+    def _is_not_empty(self, field):
+        """
+        _is_not_empty checks whether field contains "interesting" or is not None and returns true
+        `field` the value to check
+        """
+        # for string types we don't want to keep the zero '' values
+        if isinstance(field, string_types):
+            if field:
+                return True
+        # keep zero values in data set
+        else:
+            if field is not None:
+                return True
+
+        return False
 
     def get_check_config_path(self):
         return "{}.d".format(os.path.join(self.get_agent_conf_d_path(), self.name))
@@ -879,12 +905,13 @@ class __AgentCheckPy3(AgentCheckBase):
                                         hostname, message)
 
     def event(self, event):
-        self.validate_event(event)
         # Enforce types of some fields, considerably facilitates handling in go bindings downstream
         try:
-            event = self._fix_encoding(event)
+            event = self._sanitize(event)
         except UnicodeError:
             return
+
+        self.validate_event(event)
 
         if event.get('tags'):
             event['tags'] = self._normalize_tags_type(event['tags'])
@@ -894,7 +921,8 @@ class __AgentCheckPy3(AgentCheckBase):
             event['aggregation_key'] = ensure_unicode(event['aggregation_key'])
         if event.get('source_type_name'):
             self._log_deprecation("source_type_name")
-            event['event_type'] = ensure_unicode(event['source_type_name'])
+            if 'event_type' not in event:
+                event['event_type'] = ensure_string(event['source_type_name'])
 
         if 'context' in event:
             telemetry.submit_topology_event(self, self.check_id, event)
@@ -1042,7 +1070,7 @@ class __AgentCheckPy2(AgentCheckBase):
         self.validate_event(event)
         # Enforce types of some fields, considerably facilitates handling in go bindings downstream
         try:
-            event = self._fix_encoding(event)
+            event = self._sanitize(event)
         except UnicodeError:
             return
 
@@ -1054,7 +1082,8 @@ class __AgentCheckPy2(AgentCheckBase):
             event['aggregation_key'] = ensure_string(event['aggregation_key'])
         if event.get('source_type_name'):
             self._log_deprecation("source_type_name")
-            event['event_type'] = ensure_string(event['source_type_name'])
+            if 'event_type' not in event:
+                event['event_type'] = ensure_string(event['source_type_name'])
 
         if 'context' in event:
             telemetry.submit_topology_event(self, self.check_id, event)
