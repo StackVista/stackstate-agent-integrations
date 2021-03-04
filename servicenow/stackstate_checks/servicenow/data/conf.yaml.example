@@ -47,6 +47,7 @@ instances:
     #   - location
     #   - company
     #   - manufacturer
+    #   - vendor
 
     # List of attributes in CIs Relation to use `display_value`. Default is listed.
     # relation_display_value_attributes:

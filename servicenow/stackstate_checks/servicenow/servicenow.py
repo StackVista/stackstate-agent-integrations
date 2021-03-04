@@ -26,7 +26,8 @@ CRS_DEFAULT_PROCESS_LIMIT = 1000
 CMDB_CI_DEFAULT_FIELD = 'cmdb_ci'
 
 # keys for which `display_value` has to be used
-DEFAULT_COMPONENT_DISPLAY_VALUE_LIST = ["sys_tags", "maintenance_schedule", "location", "company", "manufacturer"]
+DEFAULT_COMPONENT_DISPLAY_VALUE_LIST = ["sys_tags", "maintenance_schedule", "location", "company", "manufacturer",
+                                        "vendor"]
 DEFAULT_RELATION_DISPLAY_VALUE_LIST = ["sys_tags", "type"]
 
 
@@ -256,10 +257,10 @@ class ServicenowCheck(AgentCheck):
             comp_type = config_item.sys_class_name.value
             external_id = config_item.sys_id.value
 
-            if config_item.fqdn:
-                identifiers.append(Identifiers.create_host_identifier(to_string(config_item.fqdn.value)))
-            if config_item.host_name:
-                identifiers.append(Identifiers.create_host_identifier(to_string(config_item.host_name.value)))
+            if component.get("fqdn"):
+                identifiers.append(Identifiers.create_host_identifier(to_string(component.get("fqdn"))))
+            if component.get("host_name"):
+                identifiers.append(Identifiers.create_host_identifier(to_string(component.get("host_name"))))
             else:
                 identifiers.append(Identifiers.create_host_identifier(to_string(comp_name)))
             identifiers.append(external_id)
