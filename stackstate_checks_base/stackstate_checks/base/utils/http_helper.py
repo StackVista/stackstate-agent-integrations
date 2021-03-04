@@ -80,6 +80,11 @@ class HTTPRequestType(Enum):
     JSON = dict
 
 
+class HTTPResponseType(Enum):
+    PLAIN = str
+    JSON = dict
+
+
 class HTTPResponseTypes(Enum):
     TEXT = 'TEXT'
     JSON = 'JSON'
@@ -101,10 +106,12 @@ class HTTPHelper:
     available_method_types = [item.value['type'] for item in HTTPMethodEnum]
     available_request_types = [item.value for item in HTTPRequestType]
     available_authentication_types = [item.value for item in HTTPAuthenticationType]
+    available_response_types = [item for item in HTTPResponseType]
     timeout = None
 
     def __init__(self):
-        self.renew_session()
+        self.session = Session()
+        self.request_object = Request()
 
     def renew_session(self):
         self.session = Session()
@@ -221,7 +228,7 @@ class HTTPHelper:
 
         # If the supplied query params is a string, We then attempt to parse it into a dict
         elif isinstance(parameters, str):
-            _parameters = request._split_string_into_dict(parameters, "&", "=")
+            _parameters = self._split_string_into_dict(parameters, "&", "=")
 
         # Apply to the session object
         if isinstance(_parameters, dict) and session_wide is True:
@@ -447,6 +454,24 @@ class HTTPHelper:
         return self.timeout
 
     """
+        # HTTPResponseType
+        @timeout
+    """
+    expected_response_type = None
+    def expect_response_type(self, response_type=None):
+        if response_type in self.available_response_types:
+            print("A")
+        else:
+            print("B")
+
+    """
+        Returns the current state of the proxy
+        ** Affects: None **
+    """
+    def get_expect_response_type(self):
+        return self.expected_response_type
+
+    """
     """
     @staticmethod
     def _split_string_into_dict(target, delimiter, sub_delimiter):
@@ -460,18 +485,16 @@ class HTTPHelper:
 
     """
     """
+    def mount_adapter(self, adapter):
+        self.session.mount('mock://', adapter)
+
+    """
+    """
     def send(self):
-        prepared = self.request_object.prepare()
-        return self.session.send(prepared, timeout=self.timeout)
+        return self.session.send(self.request_object.prepare(), timeout=self.timeout)
 
 
-"""
-Flow Example
-"""
-
-request = HTTPHelper()
-
-# def post_200_0_headers_body_json():
+#     request = HTTPHelper()
 #     request = HTTPHelper()
 #     request.set_method("POST")
 #     request.set_url("https://http-handle.free.beeceptor.com/post/200/0/headers/body/json/v1")
@@ -486,6 +509,3 @@ request = HTTPHelper()
 #     response = request.send_request()
 #     print(response.status_code)
 #     print(response.content)
-
-
-# post_200_0_headers_body_json()
