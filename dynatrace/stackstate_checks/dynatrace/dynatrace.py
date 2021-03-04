@@ -1,7 +1,6 @@
 # (C) StackState 2021
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
-import json
 import time
 from datetime import datetime, timedelta
 
@@ -315,8 +314,8 @@ class DynatraceCheck(AgentCheck):
         event = {
             "timestamp": self._current_time_seconds(),
             "source_type_name": "Dynatrace Events",
-            "msg_title": dynatrace_event.eventType + " on " + dynatrace_event.entityName,
-            "msg_text": dynatrace_event.eventType + " on " + dynatrace_event.entityName,
+            "msg_title": "%s on %s" % (dynatrace_event.eventType, dynatrace_event.entityName),
+            "msg_text": "%s on %s" % (dynatrace_event.eventType, dynatrace_event.entityName),
             "tags": [
                 "entityId:%s" % dynatrace_event.entityId,
                 "severityLevel:%s" % dynatrace_event.severityLevel,
@@ -450,8 +449,7 @@ class DynatraceCheck(AgentCheck):
                 if instance_info.cert:
                     session.cert = (instance_info.cert, instance_info.keyfile)
                 response = session.get(endpoint, params=params)
-                response_json = json.loads(response.text.encode('utf-8'))
-                # response_json = response.json()
+                response_json = response.json()
                 if response.status_code != 200:
                     if "error" in response_json:
                         msg = response_json["error"].get("message")

@@ -11,7 +11,7 @@ import requests_mock
 from stackstate_checks.base import AgentCheck, StateDescriptor
 from stackstate_checks.base.stubs import aggregator, telemetry, topology
 from stackstate_checks.dynatrace.dynatrace import State, dynatrace_entities_cache
-from .helpers import read_file, read_json_from_file
+from .helpers import read_file, load_json_from_file
 
 CHECK_NAME = 'dynatrace'
 
@@ -110,12 +110,14 @@ def test_generated_events(dynatrace_event_check, test_instance):
         aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.OK)
         assert len(aggregator.events) == 8
         assert len(telemetry._topology_events) == 1
-        processed_events = read_json_from_file('processed_events.json')
+        processed_events = load_json_from_file('processed_events.json')
         for event in processed_events:
             aggregator.assert_event(event.get('msg_text'))
-        processed_topology_events = read_json_from_file('processed_topology_events.json')
+        processed_topology_events = load_json_from_file('processed_topology_events.json')
+        # processed_topology_events = json.loads(read_file('processed_topology_events.json'))
         for event in processed_topology_events:
-            telemetry.assert_topology_event(dynatrace_event_check._fix_encoding(event))
+            # telemetry.assert_topology_event(dynatrace_event_check._fix_encoding(event))
+            telemetry.assert_topology_event(event)
 
 
 def test_state_data(state, dynatrace_event_check, test_instance):
@@ -133,7 +135,7 @@ def test_state_data(state, dynatrace_event_check, test_instance):
         m.get('{}/api/v1/events?from={}'.format(url, timestamp), status_code=200, text=read_file(events_file))
         dynatrace_event_check.run()
         aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.OK)
-    mocked_response_data = read_json_from_file(events_file)
+    mocked_response_data = load_json_from_file(events_file)
     new_state = State({'last_processed_event_timestamp': mocked_response_data.get('to')})
     state.assert_state(state_instance, new_state)
 

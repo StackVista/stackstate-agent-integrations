@@ -10,7 +10,7 @@ import requests_mock
 
 from stackstate_checks.base.stubs import topology, aggregator
 from stackstate_checks.dynatrace import DynatraceCheck
-from .helpers import read_file, read_json_from_file
+from .helpers import read_file, load_json_from_file
 
 
 def sort_topology_data(topology_instance):
@@ -64,7 +64,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         self.check.url = self.instance.get('url')
         self.check.run()
         test_topology = topology.get_snapshot(self.check.check_id)
-        expected_topology = read_json_from_file("process_response_topology.json")
+        expected_topology = load_json_from_file("process_response_topology.json")
         self.assert_topology(expected_topology, test_topology)
 
     @requests_mock.Mocker()
@@ -76,7 +76,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         self.check.url = self.instance.get('url')
         self.check.run()
         test_topology = topology.get_snapshot(self.check.check_id)
-        expected_topology = read_json_from_file("host_response_topology.json")
+        expected_topology = load_json_from_file("host_response_topology.json")
         self.assert_topology(expected_topology, test_topology)
 
     @requests_mock.Mocker()
@@ -88,7 +88,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         self.check.url = self.instance.get('url')
         self.check.run()
         test_topology = topology.get_snapshot(self.check.check_id)
-        expected_topology = read_json_from_file("service_response_topology.json")
+        expected_topology = load_json_from_file("service_response_topology.json")
         self.assert_topology(expected_topology, test_topology)
 
     def assert_topology(self, expected_topology, test_topology):
@@ -117,7 +117,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         self.check.run()
 
         topo_instances = topology.get_snapshot(self.check.check_id)
-        actual_topology = read_json_from_file("application_response_topology.json")
+        actual_topology = load_json_from_file("application_response_topology.json")
 
         # sort the keys of components and relations, so we match it in actual
         self.assert_topology(actual_topology, topo_instances)
@@ -134,7 +134,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         self.check.run()
 
         topo_instances = topology.get_snapshot(self.check.check_id)
-        actual_topology = read_json_from_file("process-group_response_topology.json")
+        actual_topology = load_json_from_file("process-group_response_topology.json")
 
         # sort the keys of components and relations, so we match it in actual
         self.assert_topology(actual_topology, topo_instances)
@@ -143,7 +143,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         """
         Test to check if relations are collected properly
         """
-        component = read_json_from_file("host_response.json")[0]
+        component = load_json_from_file("host_response.json")[0]
         self.check._collect_relations(component, component.get('entityId'))
 
         topo_instances = topology.get_snapshot(self.check.check_id)
@@ -191,7 +191,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         self.check.run()
 
         topo_instances = topology.get_snapshot(self.check.check_id)
-        expected_topology = read_json_from_file("smartscape_full_response_topology.json")
+        expected_topology = load_json_from_file("smartscape_full_response_topology.json")
 
         # sort the keys of components and relations, so we match it in actual
         components, relations = sort_topology_data(topo_instances)

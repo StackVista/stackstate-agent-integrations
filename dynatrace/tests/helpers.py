@@ -9,9 +9,9 @@ def read_file(filename):
         return f.read() if PY3 else f.read().decode("utf-8")
 
 
-def read_json_from_file(filename):
-    with open(get_path_to_file(filename), 'r') as f:
-        return json.load(f)
+def load_json_from_file(filename):
+    raw_json_file = read_file(filename)
+    return json.loads(raw_json_file)
 
 
 def get_path_to_file(filename):
