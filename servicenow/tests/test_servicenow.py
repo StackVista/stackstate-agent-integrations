@@ -720,11 +720,26 @@ class TestServicenow(unittest.TestCase):
         collect_components_with_fqdn_umlaut = {
             'result': [
                 {
-                    'sys_class_name': 'cmdb_ci_computer',
-                    'sys_id': '00a96c0d3790200044e0bfc8bcbe5db4',
-                    'sys_created_on': '2012-02-18 08:14:21',
-                    'name': 'Some computer',
-                    'fqdn': u'abcdë.com'
+                    'sys_class_name': {
+                        'display_value': 'cmdb_ci_computer',
+                        'value': 'Computer'
+                    },
+                    'sys_id': {
+                        'display_value': '00a96c0d3790200044e0bfc8bcbe5db4',
+                        'value': '00a96c0d3790200044e0bfc8bcbe5db4'
+                    },
+                    'sys_created_on': {
+                        'display_value': '2012-02-18 08:14:21',
+                        'value': '2012-02-18 08:14:21'
+                    },
+                    'name': {
+                        'display_value': 'Some computer',
+                        'value': 'Some computer'
+                    },
+                    'fqdn': {
+                        'display_value': u'abcdë.com',
+                        'value': u'abcdë.com'
+                    }
                 }
             ]
         }
