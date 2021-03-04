@@ -1,3 +1,6 @@
+from six import itervalues
+from ..utils.common import to_string
+
 
 class Identifiers(object):
     """
@@ -7,6 +10,17 @@ class Identifiers(object):
         urn:namespace:/value:namespace2:/value2
     """
 
+    identifier_namespaces = {
+        'host': 'urn:host:',
+        'process': 'urn:process:',
+        'container': 'urn:container:',
+        'service': 'urn:service:',
+        'service-instance': 'urn:service-instance:',
+        'agent-integration': 'urn:agent-integration:',
+        'agent-integration-instance': 'urn:agent-integration-instance:',
+        'stackstate-agent': 'urn:stackstate-agent:',
+    }
+
     @staticmethod
     def create_host_identifier(host):
         """
@@ -15,7 +29,7 @@ class Identifiers(object):
         `hostname` can be the machine name or the fully qualified domain name (fqdn). In the case of AWS it can
         be the AWS instanceId.
         """
-        return "urn:host:/{}".format(host)
+        return "%s/%s" % (Identifiers.identifier_namespaces['host'], to_string(host))
 
     @staticmethod
     def create_process_identifier(host, pid, create_time):
@@ -25,7 +39,7 @@ class Identifiers(object):
         `host` can be the machine name or the fully qualified domain name (fqdn), as well as the pod name in the case
         of Kubernetes / OpenShift, or the containerId if the processes is in any container environment.
         """
-        return "urn:process:/{}:{}:{}".format(host, pid, create_time)
+        return "%s/%s:%s:%s" % (Identifiers.identifier_namespaces['process'], to_string(host), pid, create_time)
 
     @staticmethod
     def create_container_identifier(host, container_id):
@@ -35,7 +49,7 @@ class Identifiers(object):
         `host` can be the machine name or the fully qualified domain name (fqdn), as well as the pod name in the case
         of Kubernetes / OpenShift.
         """
-        return "urn:container:/{}:{}".format(host, container_id)
+        return "%s/%s:%s" % (Identifiers.identifier_namespaces['container'], to_string(host), to_string(container_id))
 
     @staticmethod
     def create_trace_service_identifier(service_name):
@@ -43,7 +57,7 @@ class Identifiers(object):
         creates a trace service identifier that can be used to merge with trace services in StackState.
         args: `service_name`
         """
-        return "urn:service:/{}".format(service_name)
+        return "%s/%s" % (Identifiers.identifier_namespaces['service'], to_string(service_name))
 
     @staticmethod
     def create_trace_service_instance_identifier(service_instance_identifier):
@@ -53,7 +67,7 @@ class Identifiers(object):
         `service_instance_identifier` is built up in the context of where the trace originated from, thus it's left to
         the implementer to decide the identifier structure.
         """
-        return "urn:service-instance:/{}".format(service_instance_identifier)
+        return "%s/%s" % (Identifiers.identifier_namespaces['service-instance'], to_string(service_instance_identifier))
 
     @staticmethod
     def create_integration_identifier(host, integration_type):
@@ -64,7 +78,8 @@ class Identifiers(object):
         of Kubernetes / OpenShift.
         `integration_type` is the type of the integration eg. vsphere, zabbix, etc.
         """
-        return "urn:agent-integration:/{}:{}".format(host, integration_type)
+        return "%s/%s:%s" % (Identifiers.identifier_namespaces['agent-integration'], to_string(host),
+                             to_string(integration_type))
 
     @staticmethod
     def create_integration_instance_identifier(host, integration_type, integration_url):
@@ -76,7 +91,8 @@ class Identifiers(object):
         `integration_type` is the type of the integration eg. vsphere, zabbix, etc.
         `integration_url` is the url / name / identifier of the integration instance.
         """
-        return "urn:agent-integration-instance:/{}:{}:{}".format(host, integration_type, integration_url)
+        return "%s/%s:%s:%s" % (Identifiers.identifier_namespaces['agent-integration-instance'], to_string(host),
+                                to_string(integration_type), to_string(integration_url))
 
     @staticmethod
     def create_agent_identifier(host):
@@ -86,7 +102,7 @@ class Identifiers(object):
         `host` can be the machine name or the fully qualified domain name (fqdn), as well as the pod name in the case
         of Kubernetes / OpenShift.
         """
-        return "urn:stackstate-agent:/{}".format(host)
+        return "%s/%s" % (Identifiers.identifier_namespaces['stackstate-agent'], to_string(host))
 
     @staticmethod
     def create_custom_identifier(identifier_namespace, identifier):
@@ -98,4 +114,19 @@ class Identifiers(object):
         `identifier` is the actual identifying part of the identifier. This can also include sub-namespaces as described
         in the class definition.
         """
-        return "urn:{}:/{}".format(identifier_namespace, identifier)
+        return "urn:%s:/%s" % (identifier_namespace, to_string(identifier))
+
+    @staticmethod
+    def append_lowercase_identifiers(identifiers):
+        """
+        Appends the lowercase version of existing identifiers to identifiers list.
+
+        :param identifiers: list of urn identifiers
+        :return: list of identifiers with appended lowercase ones
+        """
+        lowercase_identifiers = []
+        for identifier in [element for element in identifiers
+                           if element[:element.find('/')] in itervalues(Identifiers.identifier_namespaces)]:
+            if identifier.lower() != identifier:
+                lowercase_identifiers.append(identifier.lower())
+        return identifiers + lowercase_identifiers

@@ -14,7 +14,7 @@ from schematics import Model
 from schematics.exceptions import DataError
 from schematics.types import URLType, StringType, ListType, IntType, DictType, DateTimeType, ModelType, BooleanType
 
-from stackstate_checks.base import AgentCheck, TopologyInstance, Identifiers, to_string
+from stackstate_checks.base import AgentCheck, StackPackInstance, Identifiers, to_string
 from stackstate_checks.base.errors import CheckException
 
 BATCH_DEFAULT_SIZE = 2500
@@ -85,10 +85,8 @@ class ServicenowCheck(AgentCheck):
     SERVICE_CHECK_NAME = "servicenow.cmdb.topology_information"
     INSTANCE_SCHEMA = InstanceInfo
 
-    def get_instance_key(self, instance):
-        instance_info = InstanceInfo(instance)
-        instance_info.validate()
-        return TopologyInstance(self.INSTANCE_TYPE, str(instance_info.url), with_snapshots=False)
+    def get_instance_key(self, instance_info):
+        return StackPackInstance(self.INSTANCE_TYPE, str(instance_info.url))
 
     def check(self, instance_info):
         try:
@@ -225,6 +223,7 @@ class ServicenowCheck(AgentCheck):
             else:
                 identifiers.append(Identifiers.create_host_identifier(to_string(comp_name)))
             identifiers.append(external_id)
+            identifiers = Identifiers.append_lowercase_identifiers(identifiers)
             data.update(component)
             data.update({"identifiers": identifiers, "tags": instance_info.instance_tags})
 
@@ -332,6 +331,7 @@ class ServicenowCheck(AgentCheck):
     def _create_event_from_change_request(self, change_request):
         host = Identifiers.create_host_identifier(to_string(change_request.custom_cmdb_ci.display_value))
         identifiers = [change_request.custom_cmdb_ci.value, host]
+        identifiers = Identifiers.append_lowercase_identifiers(identifiers)
         timestamp = (change_request.sys_updated_on.value - datetime.datetime.utcfromtimestamp(0)).total_seconds()
         msg_title = '%s: %s' % (change_request.number.display_value, change_request.short_description.display_value)
         tags = [

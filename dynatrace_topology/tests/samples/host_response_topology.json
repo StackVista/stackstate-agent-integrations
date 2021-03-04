@@ -45,7 +45,8 @@
                     "urn:dynatrace:/HOST-6AAE0F78BCF2E0F4",
                     "urn:host:/ec2-3-249-27-126.eu-west-1.compute.amazonaws.com",
                     "urn:host:/ip-172-31-29-43.eu-west-1.compute.internal",
-                    "urn:host:/EX01.stackstate.lab"
+                    "urn:host:/EX01.stackstate.lab",
+                    "urn:host:/ex01.stackstate.lab"
                 ],
                 "instance": "https://ton48129.live.dynatrace.com",
                 "tags": [
@@ -103,7 +104,8 @@
                     "urn:dynatrace:/HOST-AA6A5D81A0006807",
                     "urn:host:/ec2-34-242-110-40.eu-west-1.compute.amazonaws.com",
                     "urn:host:/ip-172-31-30-110.eu-west-1.compute.internal",
-                    "urn:host:/SQL01.stackstate.lab"
+                    "urn:host:/SQL01.stackstate.lab",
+                    "urn:host:/sql01.stackstate.lab"
                 ],
                 "instance": "https://ton48129.live.dynatrace.com",
                 "tags": [

@@ -23,6 +23,10 @@ EVENT_FIELDS = {
     'SERVICE NOTIFICATION': namedtuple('E_ServiceNotification',
                                        'contact, host, check_name, event_state, notification_type, payload'),
 
+    # [1408566943] HOST FLAPPING ALERT: domU-12-31-39-02-ED-B2;STARTED;Host appears to have started flapping (21.8% change > 20.0% threshold) # noqa: E501
+    # [1408566944] HOST FLAPPING ALERT: domU-12-31-39-02-ED-B2;STOPPED;Host appears to have stopped flapping (3.9% change < 5.0% threshold) # noqa: E501
+    'HOST FLAPPING ALERT': namedtuple('E_FlappingAlert', 'host, flap_start_stop, payload'),
+
     # [1296509331] SERVICE FLAPPING ALERT: ip-10-114-97-27;cassandra JVM Heap;STARTED; Service appears to have started flapping (23.4% change >= 20.0% threshold) # noqa: E501
     # [1296662511] SERVICE FLAPPING ALERT: ip-10-114-97-27;cassandra JVM Heap;STOPPED; Service appears to have stopped flapping (3.8% change < 5.0% threshold) # noqa: E501
     'SERVICE FLAPPING ALERT': namedtuple('E_FlappingAlert', 'host, check_name, flap_start_stop, payload'),
@@ -317,6 +321,14 @@ class NagiosEventLogTailer(NagiosTailer):
             # skip passive checks reports by default for spamminess
             if event_type == 'PASSIVE SERVICE CHECK' and not self.passive_checks:
                 return False
+
+            # map CURRENT HOST STATE as HOST ALERT, CURRENT* events are triggered on Nagios log rotate
+            if event_type == 'CURRENT HOST STATE':
+                event_type = 'HOST ALERT'
+            # map CURRENT SERVICE STATE as SERVICE ALERT
+            elif event_type == 'CURRENT SERVICE STATE':
+                event_type = 'SERVICE ALERT'
+
             # then retrieve the event format for each specific event type
             fields = EVENT_FIELDS.get(event_type, None)
             if fields is None:

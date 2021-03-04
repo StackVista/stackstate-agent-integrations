@@ -46,7 +46,12 @@ class TestEventLogTailer:
             if parsed:
                 event = aggregator.events[-1]
                 t = event["event_type"]
-                assert t in line
+                if t == "HOST ALERT":  # CURRENT HOST STATE is mapped to HOST ALERT
+                    assert t in line or "CURRENT HOST STATE" in line
+                elif t == "SERVICE ALERT":  # CURRENT SERVICE STATE is mapped to SERVICE ALERT
+                    assert t in line or "CURRENT SERVICE STATE" in line
+                else:
+                    assert t in line
                 assert int(event["timestamp"]) > 0, line
                 assert event["host"] is not None, line
                 counters[t] = counters.get(t, 0) + 1
@@ -58,6 +63,8 @@ class TestEventLogTailer:
                 elif t == "SERVICE NOTIFICATION":
                     assert event["event_state"] in (
                         "ACKNOWLEDGEMENT", "OK", "CRITICAL", "WARNING", "ACKNOWLEDGEMENT (CRITICAL)"), line
+                elif t == "HOST FLAPPING ALERT":
+                    assert event["flap_start_stop"] in ("STARTED", "STOPPED"), line
                 elif t == "SERVICE FLAPPING ALERT":
                     assert event["flap_start_stop"] in ("STARTED", "STOPPED"), line
                     assert event["check_name"] is not None
@@ -74,12 +81,11 @@ class TestEventLogTailer:
                     assert event["host"] is not None
                     assert event["downtime_start_stop"] in ("STARTED", "STOPPED")
 
-        assert counters["SERVICE ALERT"] == 301
+        assert counters["SERVICE ALERT"] == 301 + 52  # assert counters["CURRENT SERVICE STATE"] == 52
         assert counters["SERVICE NOTIFICATION"] == 120
-        assert counters["HOST ALERT"] == 3
+        assert counters["HOST ALERT"] == 3 + 8  # assert counters["CURRENT HOST STATE"] == 8
+        assert counters["HOST FLAPPING ALERT"] == 2
         assert counters["SERVICE FLAPPING ALERT"] == 7
-        assert counters["CURRENT HOST STATE"] == 8
-        assert counters["CURRENT SERVICE STATE"] == 52
         assert counters["SERVICE DOWNTIME ALERT"] == 3
         assert counters["HOST DOWNTIME ALERT"] == 5
         assert counters["ACKNOWLEDGE_SVC_PROBLEM"] == 4
@@ -110,7 +116,7 @@ class TestEventLogTailer:
             events.extend(events)
 
         log_file.close()
-        assert len(aggregator.events) == ITERATIONS * 503
+        assert len(aggregator.events) == ITERATIONS * 505
 
     def test_create_event(self):
         """

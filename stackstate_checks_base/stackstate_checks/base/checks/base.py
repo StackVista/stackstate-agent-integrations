@@ -11,6 +11,7 @@ import traceback
 import unicodedata
 from collections import defaultdict
 from os.path import basename
+from functools import reduce
 
 import yaml
 from six import PY3, iteritems, text_type, string_types, integer_types
@@ -69,16 +70,18 @@ ONE_PER_CONTEXT_METRIC_TYPES = [
 ]
 
 
-class TopologyInstanceBase(object):
+class _TopologyInstanceBase(object):
     """
     Data structure for defining a topology instance, a unique identifier for a topology source.
+
+    This is not meant to be used in checks.
     """
     def __init__(self, type, url, with_snapshots=False):
         self.type = type
         self.url = url
         self.with_snapshots = with_snapshots
 
-    def toDict(self):
+    def to_dict(self):
         return {"type": self.type, "url": self.url}
 
     def tags(self):
@@ -94,12 +97,33 @@ class TopologyInstanceBase(object):
         return hash((self.type, self.url))
 
 
-class AgentIntegrationInstance(TopologyInstanceBase):
+class NoIntegrationInstance(_TopologyInstanceBase):
+    """
+    Does not provide a topology `instance` and it is the default if the check does not provide a topology instance key
+    Obviously this also disables monitoring for the integration check.
+
+    It is not meant to be used in checks.
+    """
+
+    def __init__(self):
+        _TopologyInstanceBase.__init__(self, type="agent", url="integrations", with_snapshots=False)
+
+    def tags(self):
+        return []
+
+
+class AgentIntegrationInstance(_TopologyInstanceBase):
+    """
+    The topology `instance` that this class represents directly correlates to the Agent StackPack
+    and therefore the Agent integration synchronization.
+
+    This enables also monitoring for the integration check.
+    """
 
     def __init__(self, integration, name):
         self.integration = integration
         self.name = name
-        TopologyInstanceBase.__init__(self, type="agent", url="integrations", with_snapshots=False)
+        _TopologyInstanceBase.__init__(self, type="agent", url="integrations", with_snapshots=False)
 
     def tags(self):
         return ["integration-type:{}".format(self.integration), "integration-url:{}".format(self.name)]
@@ -110,11 +134,17 @@ class AgentIntegrationInstance(TopologyInstanceBase):
         return False
 
 
-class TopologyInstance(TopologyInstanceBase):
+class TopologyInstance(_TopologyInstanceBase):
     """
-    Data structure for defining a topology instance, a unique identifier for a topology source.
+    The topology `instance` that this class represents directly correlates to a specific StackPack instance
+    and therefore a that StackPack synchronization.
+
+    This enables also monitoring for the integration check.
     """
     pass
+
+
+StackPackInstance = TopologyInstance
 
 
 class AgentCheckBase(object):
@@ -170,7 +200,7 @@ class AgentCheckBase(object):
                 self.instances = args[2]
 
         # Agent 6+ will only have one instance
-        self.instance = self.instances[0] if self.instances else None
+        self.instance = self.instances[0] if self.instances else {}
 
         # `self.hostname` is deprecated, use `datadog_agent.get_hostname()` instead
         self.hostname = datadog_agent.get_hostname()
@@ -193,13 +223,13 @@ class AgentCheckBase(object):
     def _check_run_base(self, default_result):
         try:
             # start auto snapshot if with_snapshots is set to True
-            if self._get_instance_key_value().with_snapshots:
-                topology.submit_start_snapshot(self, self.check_id, self._get_instance_key())
+            if self._get_instance_key().with_snapshots:
+                topology.submit_start_snapshot(self, self.check_id, self._get_instance_key_dict())
 
+            # create integration instance components for monitoring purposes
+            self.create_integration_instance()
+            # create a copy of the check instance, get state if any and add it to the instance object for the check
             instance = self.instances[0]
-            # create integration instance with a copy of instance
-            self.create_integration_instance(copy.deepcopy(instance))
-            # create a copy of the instance, get state if any and add it to the instance object for the check
             check_instance = copy.deepcopy(instance)
             # if this instance has some stored state set it to 'state'
             state_descriptor = self._get_state_descriptor()
@@ -216,8 +246,8 @@ class AgentCheckBase(object):
             self.state_manager.set_state(state_descriptor, check_instance.get(self.STATE_FIELD_NAME))
 
             # stop auto snapshot if with_snapshots is set to True
-            if self._get_instance_key_value().with_snapshots:
-                topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key())
+            if self._get_instance_key().with_snapshots:
+                topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key_dict())
 
             result = default_result
         except Exception as e:
@@ -257,9 +287,11 @@ class AgentCheckBase(object):
             self.metric_limiter = Limiter(self.name, 'metrics', metric_limit, self.warning)
 
     def _get_state_descriptor(self):
-        instance = self._get_instance_key_value()
-        instance_key = to_string(self.normalize("instance.{}.{}".format(instance.type, instance.url),
-                                                extra_disallowed_chars=b":"))
+        integration_instance = self._get_instance_key()
+        instance_key = to_string(
+            self.normalize("instance.{}.{}".format(integration_instance.type, integration_instance.url),
+                           extra_disallowed_chars=b":")
+        )
         return StateDescriptor(instance_key, self.get_check_config_path())
 
     @staticmethod
@@ -312,12 +344,27 @@ class AgentCheckBase(object):
         else:
             self._raise_unexpected_type(argumentName, value, "dictionary or None value")
 
-    def _get_instance_key_value(self):
-        value = self.get_instance_key(self.instance)
+    def get_instance_key(self, instance):
+        """
+        Integration checks can override this based on their needs.
+
+        :param instance: AgentCheck instance
+        :return: a class extending _TopologyInstanceBase
+        """
+        return NoIntegrationInstance()
+
+    def _get_instance_key(self):
+        check_instance = self.instance
+        # if this check has a instance schema defined, cast it into that type and validate it
+        if self.INSTANCE_SCHEMA:
+            check_instance = self.INSTANCE_SCHEMA(self.instance, strict=False)  # strict=False ignores extra fields
+            check_instance.validate()
+        value = self.get_instance_key(check_instance)
         if value is None:
             self._raise_unexpected_type("get_instance_key()", "None", "dictionary")
-        if not isinstance(value, (TopologyInstance, AgentIntegrationInstance)):
-            self._raise_unexpected_type("get_instance_key()", value, "TopologyInstance or AgentIntegrationInstance")
+        if not isinstance(value, (TopologyInstance, AgentIntegrationInstance, NoIntegrationInstance)):
+            self._raise_unexpected_type("get_instance_key()", value, "TopologyInstance, AgentIntegrationInstance or "
+                                                                     "DefaultIntegrationInstance")
         if not isinstance(value.type, str):
             raise ValueError("Instance requires a 'type' field of type 'string'")
         if not isinstance(value.url, str):
@@ -325,11 +372,8 @@ class AgentCheckBase(object):
 
         return value
 
-    def get_instance_key(self, instance):
-        return AgentIntegrationInstance("default", "integration")
-
-    def _get_instance_key(self):
-        return self._get_instance_key_value().toDict()
+    def _get_instance_key_dict(self):
+        return self._get_instance_key().to_dict()
 
     def get_instance_proxy(self, instance, uri, proxies=None):
         proxies = proxies if proxies is not None else self.proxies.copy()
@@ -403,27 +447,29 @@ class AgentCheckBase(object):
         return self.DOT_UNDERSCORE_CLEANUP.sub(br'.', metric_name).strip(b'_')
 
     def component(self, id, type, data, streams=None, checks=None):
-        instance = self._get_instance_key_value()
+        integration_instance = self._get_instance_key()
         try:
             fixed_data = self._sanitize(data)
             fixed_streams = self._sanitize(streams)
             fixed_checks = self._sanitize(checks)
         except UnicodeError:
             return
-        data = self._map_component_data(id, type, instance, fixed_data, fixed_streams, fixed_checks)
-        topology.submit_component(self, self.check_id, self._get_instance_key(), id, type, data)
+        data = self._map_component_data(id, type, integration_instance, fixed_data, fixed_streams, fixed_checks)
+        topology.submit_component(self, self.check_id, self._get_instance_key_dict(), id, type, data)
         return {"id": id, "type": type, "data": data}
 
-    def _map_component_data(self, id, type, instance, data, streams=None, checks=None, add_instance_tags=True):
+    def _map_component_data(self, id, type, integration_instance, data, streams=None, checks=None,
+                            add_instance_tags=True):
         self._check_is_string("id", id)
         self._check_is_string("type", type)
         if data is None:
             data = {}
         self._check_struct("data", data)
         data = self._map_streams_and_checks(data, streams, checks)
+        data = self._map_identifier_mappings(type, data)
         if add_instance_tags:
             # add topology instance for view filtering
-            data['tags'] = sorted(list(set(data.get('tags', []) + instance.tags())))
+            data['tags'] = sorted(list(set(data.get('tags', []) + integration_instance.tags())))
         self._check_struct("data", data)
         return data
 
@@ -435,7 +481,7 @@ class AgentCheckBase(object):
         except UnicodeError:
             return
         data = self._map_relation_data(source, target, type, fixed_data, fixed_streams, fixed_checks)
-        topology.submit_relation(self, self.check_id, self._get_instance_key(), source, target, type, data)
+        topology.submit_relation(self, self.check_id, self._get_instance_key_dict(), source, target, type, data)
         return {"source_id": source, "target_id": target, "type": type, "data": data}
 
     def _map_relation_data(self, source, target, type, data, streams=None, checks=None):
@@ -448,6 +494,25 @@ class AgentCheckBase(object):
         data = self._map_streams_and_checks(data, streams, checks)
         self._check_struct("data", data)
         return data
+
+    def get_mapping_field_key(self, dictionary, keys, default=None):
+        return reduce(lambda d, key: d.get(key, default) if isinstance(d, dict) else default, keys.split("."),
+                      dictionary)
+
+    def _map_identifier_mappings(self, type, data):
+        if "identifier_mappings" not in self.instance:
+            self.log.debug("No identifier_mappings section found in configuration. Skipping..")
+            return data
+        if type in self.instance["identifier_mappings"]:
+            type_mapping = self.instance["identifier_mappings"].get(type)
+            field_value = self.get_mapping_field_key(data, type_mapping.get("field"))
+            if not field_value:
+                self.log.warning("The %s field is not found in data section." % (type_mapping.get("field")))
+                return data
+            identifiers = data.get("identifiers", [])
+            identifiers.append('%s%s' % (type_mapping.get("prefix"), field_value))
+            data["identifiers"] = identifiers
+            return data
 
     def _map_streams_and_checks(self, data, streams, checks):
         if streams:
@@ -496,55 +561,60 @@ class AgentCheckBase(object):
                                         "to disable snapshots use TopologyInstance(type, url, with_snapshots=False) "
                                         "when overriding get_instance_key")
     def start_snapshot(self):
-        topology.submit_start_snapshot(self, self.check_id, self._get_instance_key())
+        topology.submit_start_snapshot(self, self.check_id, self._get_instance_key_dict())
 
     @deprecated(version='2.9.0', reason="Topology Snapshots is enabled by default for all TopologyInstance checks, "
                                         "to disable snapshots use TopologyInstance(type, url, with_snapshots=False) "
                                         "when overriding get_instance_key")
     def stop_snapshot(self):
-        topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key())
+        topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key_dict())
 
-    def create_integration_instance(self, check_instance):
+    def create_integration_instance(self):
         """
 
         Agent -> Agent Integration -> Agent Integration Instance
         """
-        instance = self._get_instance_key_value()
-        instance_type = instance.type
-        instance_url = instance.url
+        integration_instance = self._get_instance_key()
+        instance_type = integration_instance.type
+        instance_url = integration_instance.url
         check_id = self.check_id
-        if isinstance(instance, AgentIntegrationInstance):
-            instance_type = instance.integration
-            instance_url = instance.name
+        if isinstance(integration_instance, AgentIntegrationInstance):
+            instance_type = integration_instance.integration
+            instance_url = integration_instance.name
+        elif isinstance(integration_instance, NoIntegrationInstance):
+            # for DefaultIntegrationInstance we don't create integration instances
+            return
         else:
+            # set the check id for TopologyInstance types, in a AgentIntegrationInstance the data can go to the same
+            # check instance ending up on the agent integrations synchronization in StackState with no snapshots
             check_id = "{}:{}".format(instance_type, instance_url)
 
         # use this as the topology instance so that data ends up in the Agent Integration sync
-        integration_instance = AgentIntegrationInstance("default", "integration")
+        default_integration_instance = AgentIntegrationInstance("default", "integration")
 
         # Agent Component
         agent_external_id = Identifiers.create_agent_identifier(datadog_agent.get_hostname())
         agent_data = {
             "name": "StackState Agent:{}".format(datadog_agent.get_hostname()),
             "hostname": datadog_agent.get_hostname(),
-            "tags": check_instance.get('tags', []) + ["hostname:{}".format(datadog_agent.get_hostname()),
-                                                      "stackstate-agent"],
+            "tags": ["hostname:{}".format(datadog_agent.get_hostname()), "stackstate-agent"],
             "identifiers": [Identifiers.create_process_identifier(
                 datadog_agent.get_hostname(), datadog_agent.get_pid(), datadog_agent.get_create_time()
             )]
         }
         if datadog_agent.get_clustername():
             agent_data["cluster"] = datadog_agent.get_clustername()
-        topology.submit_component(self, check_id, integration_instance.toDict(), agent_external_id, "stackstate-agent",
-                                  self._map_component_data(agent_external_id, "stackstate-agent", instance, agent_data,
-                                                           add_instance_tags=False))
+        topology.submit_component(self, check_id, default_integration_instance.to_dict(), agent_external_id,
+                                  "stackstate-agent",
+                                  self._map_component_data(agent_external_id, "stackstate-agent", integration_instance,
+                                                           agent_data, add_instance_tags=False))
 
         # Agent Integration + relation to Agent
         agent_integration_external_id = Identifiers.create_integration_identifier(datadog_agent.get_hostname(),
                                                                                   instance_type)
         agent_integration_data = {
             "name": "{}:{}".format(datadog_agent.get_hostname(), instance_type), "integration": instance_type,
-            "hostname": datadog_agent.get_hostname(), "tags": check_instance.get('tags', []) + [
+            "hostname": datadog_agent.get_hostname(), "tags": [
                 "hostname:{}".format(datadog_agent.get_hostname()), "integration-type:{}".format(instance_type)
             ]
         }
@@ -555,14 +625,15 @@ class AgentCheckBase(object):
         service_check_stream = ServiceCheckStream("Service Checks", conditions=conditions)
         service_check = ServiceCheckHealthChecks.service_check_health(service_check_stream.identifier,
                                                                       "Integration Health")
-        topology.submit_component(self, check_id, integration_instance.toDict(), agent_integration_external_id,
+        topology.submit_component(self, check_id, default_integration_instance.to_dict(), agent_integration_external_id,
                                   "agent-integration", self._map_component_data(agent_integration_external_id,
-                                                                                "agent-integration", instance,
+                                                                                "agent-integration",
+                                                                                integration_instance,
                                                                                 agent_integration_data,
                                                                                 [service_check_stream], [service_check],
                                                                                 add_instance_tags=False)
                                   )
-        topology.submit_relation(self, check_id, integration_instance.toDict(), agent_external_id,
+        topology.submit_relation(self, check_id, default_integration_instance.to_dict(), agent_external_id,
                                  agent_integration_external_id, "runs",
                                  self._map_relation_data(agent_external_id, agent_integration_external_id, "runs", {}))
 
@@ -574,7 +645,7 @@ class AgentCheckBase(object):
         agent_integration_instance_data = {
             "name": agent_integration_instance_name, "integration": instance_type,
             "hostname": datadog_agent.get_hostname(),
-            "tags": check_instance.get('tags', []) + [
+            "tags": [
                 "hostname:{}".format(datadog_agent.get_hostname())
             ]
         }
@@ -587,14 +658,14 @@ class AgentCheckBase(object):
         service_check_stream = ServiceCheckStream("Service Checks", conditions=conditions)
         service_check = ServiceCheckHealthChecks.service_check_health(service_check_stream.identifier,
                                                                       "Integration Instance Health")
-        topology.submit_component(self, check_id, integration_instance.toDict(), agent_integration_instance_external_id,
-                                  "agent-integration-instance",
+        topology.submit_component(self, check_id, default_integration_instance.to_dict(),
+                                  agent_integration_instance_external_id, "agent-integration-instance",
                                   self._map_component_data(agent_integration_instance_external_id,
                                                            "agent-integration-instance",
-                                                           instance, agent_integration_instance_data,
+                                                           integration_instance, agent_integration_instance_data,
                                                            [service_check_stream], [service_check])
                                   )
-        topology.submit_relation(self, check_id, integration_instance.toDict(), agent_integration_external_id,
+        topology.submit_relation(self, check_id, default_integration_instance.to_dict(), agent_integration_external_id,
                                  agent_integration_instance_external_id, "has",
                                  self._map_relation_data(agent_integration_external_id,
                                                          agent_integration_instance_external_id, "has", {}))
@@ -829,7 +900,7 @@ class __AgentCheckPy3(AgentCheckBase):
         else:
             message = ensure_unicode(message)
 
-        instance = self._get_instance_key_value()
+        instance = self._get_instance_key()
         aggregator.submit_service_check(self, self.check_id, ensure_unicode(name), status, tags + instance.tags(),
                                         hostname, message)
 
@@ -990,8 +1061,8 @@ class __AgentCheckPy2(AgentCheckBase):
         else:
             message = ensure_string(message)
 
-        instance = self._get_instance_key_value()
-        tags_bytes = list(map(lambda t: ensure_string(t), instance.tags()))
+        integration_instance = self._get_instance_key()
+        tags_bytes = list(map(lambda t: ensure_string(t), integration_instance.tags()))
         aggregator.submit_service_check(self, self.check_id, ensure_string(name), status,
                                         tags + tags_bytes, hostname, message)
 

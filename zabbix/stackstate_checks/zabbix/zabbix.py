@@ -1,7 +1,8 @@
 # (C) StackState 2020
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
-from stackstate_checks.base import AgentCheck, ConfigurationError, TopologyInstance
+from stackstate_checks.base import AgentCheck, ConfigurationError, StackPackInstance
+from stackstate_checks.base.errors import CheckException
 
 """
     StackState.
@@ -14,7 +15,7 @@ from stackstate_checks.base import AgentCheck, ConfigurationError, TopologyInsta
 
 import requests
 import time
-import yaml
+import json
 
 
 class ZabbixHost:
@@ -103,7 +104,7 @@ class ZabbixCheck(AgentCheck):
         if 'url' not in instance:
             raise ConfigurationError('Missing API url in configuration.')
 
-        return TopologyInstance(self.INSTANCE_TYPE, instance["url"])
+        return StackPackInstance(self.INSTANCE_TYPE, instance["url"])
 
     def check(self, instance):
         """
@@ -180,11 +181,13 @@ class ZabbixCheck(AgentCheck):
                         'triggers:%s' % triggers
                     ]
                 })
+            self.stop_snapshot()
+            msg = "Zabbix instance detected at %s " % url
+            tags = ["url:%s" % url]
+            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=tags, message=msg)
         except Exception as e:
             self.log.exception(str(e))
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, message=str(e))
-        finally:
-            self.stop_snapshot()
 
     def process_host_topology(self, topology_instance, zabbix_host, stackstate_environment):
         external_id = "urn:host:/%s" % zabbix_host.host
@@ -375,4 +378,10 @@ class ZabbixCheck(AgentCheck):
         response = requests.get(url, json=payload, verify=self.ssl_verify)
         response.raise_for_status()
         self.log.debug("Request response: %s" % response.text)
-        return yaml.safe_load(response.text)
+        try:
+            response_json = json.loads(response.text.encode('utf-8'))
+            return response_json
+        except UnicodeEncodeError as e:
+            raise CheckException('Encoding error: "%s" in response from url %s' % (e, response.url))
+        except Exception as e:
+            raise Exception('Error "%s" in response from url %s' % (str(e), response.url))

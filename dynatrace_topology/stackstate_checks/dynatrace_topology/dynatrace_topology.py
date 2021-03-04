@@ -191,6 +191,7 @@ class DynatraceTopologyCheck(AgentCheck):
         if component.get("localHostName"):
             host_identifiers.append(Identifiers.create_host_identifier(component.get("localHostName")))
         host_identifiers.append(Identifiers.create_host_identifier(component.get("displayName")))
+        host_identifiers = Identifiers.append_lowercase_identifiers(host_identifiers)
         return host_identifiers
 
     def collect_topology(self, response, component_type):
