@@ -80,6 +80,21 @@ class TestAgentIntegration(unittest.TestCase):
         )
         aggregator.assert_service_check('example.can_connect', self.check.OK)
 
+    def test_topology_items_from_config_check(self):
+        # TODO this is needed because the topology retains data across tests
+        topology.reset()
+
+        instance_config = {
+           "stackstate-layer": "layer-conf-a",
+           "stackstate-environment": "environment-conf-a",
+           "stackstate-domain": "domain-conf-a"
+        }
+        self.check = AgentIntegrationSampleCheck(self.CHECK_NAME, {}, instances=[instance_config])
+        result = self.check.run()
+        assert result == ''
+        topo_instances = topology.get_snapshot(self.check.check_id)
+
+        assert topo_instances == self._read_data('expected_topology_instance_topology_config.json')
 
     @staticmethod
     def _read_data(filename):
