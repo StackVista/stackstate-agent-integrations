@@ -7,6 +7,7 @@
 import mock
 import requests
 import requests_mock
+from six import PY3
 
 from stackstate_checks.base import AgentCheck, StateDescriptor
 from stackstate_checks.base.stubs import aggregator, telemetry, topology
@@ -116,8 +117,8 @@ def test_generated_events(dynatrace_event_check, test_instance):
         processed_topology_events = load_json_from_file('processed_topology_events.json')
         # processed_topology_events = json.loads(read_file('processed_topology_events.json'))
         for event in processed_topology_events:
-            # telemetry.assert_topology_event(dynatrace_event_check._fix_encoding(event))
-            telemetry.assert_topology_event(event)
+            sanitized_event = event if PY3 else dynatrace_event_check._fix_encoding(event)
+            telemetry.assert_topology_event(sanitized_event)
 
 
 def test_state_data(state, dynatrace_event_check, test_instance):
