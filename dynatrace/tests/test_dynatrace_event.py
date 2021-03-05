@@ -115,11 +115,10 @@ def test_generated_events(dynatrace_event_check, test_instance):
         for event in processed_events:
             aggregator.assert_event(event.get('msg_text'))
         processed_topology_events = load_json_from_file('processed_topology_events.json')
-        # processed_topology_events = json.loads(read_file('processed_topology_events.json'))
         for event in processed_topology_events:
             sanitized_event = event if PY3 else dynatrace_event_check._fix_encoding(event)
-            telemetry.assert_topology_event(sanitized_event)
-
+            # telemetry.assert_topology_event(sanitized_event)
+            assert telemetry._topology_events[0] == sanitized_event
 
 def test_state_data(state, dynatrace_event_check, test_instance):
     """
@@ -232,7 +231,8 @@ def test_unicode_in_response_text(dynatrace_event_check, test_instance):
         m.get("{}/api/v1/entity/services".format(url), status_code=200, text='[]')
         m.get("{}/api/v1/entity/infrastructure/processes".format(url), status_code=200, text='[]')
         m.get("{}/api/v1/entity/infrastructure/process-groups".format(url), status_code=200, text='[]')
-        m.get('{}/api/v1/events?from={}'.format(url, timestamp), status_code=200, text=read_file('9_events.json'))
+        m.get('{}/api/v1/events?from={}'.format(url, timestamp), status_code=200,
+              text=read_file('unicode_topology_event.json'))
         dynatrace_event_check.run()
         aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.OK)
         unicode_data = topology.get_snapshot('').get('components')[0]['data']['osVersion']
