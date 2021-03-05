@@ -115,7 +115,8 @@ def test_generated_events(dynatrace_event_check, test_instance):
             aggregator.assert_event(expected_event.get('msg_text'))
         expected_topology_events = load_json_from_file('expected_topology_events.json')
         for expected_event in expected_topology_events:
-            telemetry.assert_topology_event(expected_event)
+            # telemetry.assert_topology_event(expected_event)
+            assert expected_event == telemetry._topology_events[0]
 
 
 def test_state_data(state, dynatrace_event_check, test_instance):
