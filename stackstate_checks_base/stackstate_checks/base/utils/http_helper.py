@@ -1,11 +1,11 @@
 from requests import Session, Request
 import requests_mock
+from requests.auth import HTTPBasicAuth
 import json
 from enum import Enum
 from schematics.models import Model
 from schematics.types import StringType, URLType, DictType, BooleanType, IntType
 from schematics.exceptions import ValidationError, DataError
-from requests.auth import HTTPBasicAuth
 
 try:
     import urlparse
@@ -13,6 +13,7 @@ except ImportError:
     import urllib.parse as urlparse
 
 
+# depr
 class _HTTPMethodEnum(Model):
     type = StringType(required=True)
     body = BooleanType(required=True)
@@ -40,7 +41,7 @@ class HTTPMethodEnum(Enum):
         'body': False
     })
 
-
+# depr
 class RequestStructure(Model):
     http_method = StringType(required=True, choices=[item.value["type"] for item in HTTPMethodEnum])
     http_url = StringType(required=True)
@@ -84,36 +85,32 @@ class HTTPResponseType(Enum):
     PLAIN = str
     JSON = dict
 
-
+# depr
 class HTTPResponseTypes(Enum):
     TEXT = 'TEXT'
     JSON = 'JSON'
     XML = 'XML'
 
 
-class BodySchematicTest(Model):
-    title = StringType(required=True)
-    body = StringType(required=True)
-    userId = IntType(required=True)
-
-
 class HTTPHelper:
     session = Session()
     request_object = Request()
     error_alternative = None
+
     request_method_enum_list = [item.value['type'] for item in HTTPMethodEnum]
     available_method_enums = [item.value for item in HTTPMethodEnum]
     available_method_types = [item.value['type'] for item in HTTPMethodEnum]
     available_request_types = [item.value for item in HTTPRequestType]
     available_authentication_types = [item.value for item in HTTPAuthenticationType]
     available_response_types = [item for item in HTTPResponseType]
+
     timeout = None
 
     def __init__(self):
         self.session = Session()
         self.request_object = Request()
 
-    def renew_session(self):
+    def renew(self):
         self.session = Session()
         self.request_object = Request()
 
@@ -256,6 +253,18 @@ class HTTPHelper:
             return self.session.params
         else:
             return self.request_object.params
+
+    """
+    """
+    @staticmethod
+    def _split_string_into_dict(target, delimiter, sub_delimiter):
+        if isinstance(target, str):
+            items = (item.split(sub_delimiter) for item in target.split(delimiter))
+            try:
+                return dict((left.strip(), right.strip()) for left, right in items)
+            except ValueError:
+                return {}
+        return None
 
     """
         Apply a body to the request object. The body will be tested against a type or the type will be inferred if
@@ -454,34 +463,31 @@ class HTTPHelper:
         return self.timeout
 
     """
-        # HTTPResponseType
+        # Validate
         @timeout
     """
-    expected_response_type = None
-    def expect_response_type(self, response_type=None):
-        if response_type in self.available_response_types:
-            print("A")
-        else:
-            print("B")
+    resp_validate_schematic = None
+    resp_validate_status_code = None
+    resp_validate_strict_type = None
+
+    def set_resp_validation(self, strict_type=None, schematic=None, status_code=None):
+        self.resp_validate_schematic = schematic
+        self.resp_validate_status_code = status_code
+        if strict_type in self.available_response_types:
+            self.resp_validate_strict_type = strict_type
 
     """
         Returns the current state of the proxy
         ** Affects: None **
     """
-    def get_expect_response_type(self):
-        return self.expected_response_type
+    def get_resp_validate_schematic(self):
+        return self.resp_validate_schematic
 
-    """
-    """
-    @staticmethod
-    def _split_string_into_dict(target, delimiter, sub_delimiter):
-        if isinstance(target, str):
-            items = (item.split(sub_delimiter) for item in target.split(delimiter))
-            try:
-                return dict((left.strip(), right.strip()) for left, right in items)
-            except ValueError:
-                return {}
-        return None
+    def get_resp_validate_status_code(self):
+        return self.resp_validate_status_code
+
+    def get_resp_validate_strict_type(self):
+        return self.resp_validate_strict_type
 
     """
     """
@@ -491,7 +497,52 @@ class HTTPHelper:
     """
     """
     def send(self):
-        return self.session.send(self.request_object.prepare(), timeout=self.timeout)
+        response = self.session.send(self.request_object.prepare(), timeout=self.timeout)
+
+        # If there is a forced status code check
+        if self.resp_validate_status_code is not None and response.status_code != self.resp_validate_status_code:
+            return None
+
+        # Schematic: None
+        # Strict Type: None
+        if self.resp_validate_schematic is None and self.resp_validate_strict_type is None:
+            return response
+
+        # Schematic: Some
+        # Strict Type: None or HTTPResponseType.JSON
+        # Response.content: Some
+        # Inferred Type: JSON
+        if (self.resp_validate_strict_type is None or self.resp_validate_strict_type is HTTPResponseType.JSON) and \
+                self.resp_validate_schematic is not None and\
+                response.content is not None and \
+                len(response.content) > 0:
+
+            # First lets attempt a JSON body
+            # If we are able to parse it let's then test the body
+            try:
+                json_response = json.loads(response.content)
+                if self.resp_validate_schematic is not None:
+                    self.resp_validate_schematic(json_response).validate()
+                return response
+
+            except DataError as e:
+                print(e)
+                print("Invalid response, Does not match schematic")
+                return None
+
+            except json.JSONDecodeError:
+                print("Invalid response, Unable to determine JSON")
+                return None
+
+        # Schematic: None
+        # Strict Type: HTTPResponseType.PLAIN
+        # Response.content: Some
+        if self.resp_validate_strict_type is HTTPResponseType.PLAIN and \
+                isinstance(response.content, bytes):
+            print("Plain ignores the schematic type")
+            return response
+
+        return None
 
 
 #     request = HTTPHelper()

@@ -1,16 +1,22 @@
 import unittest
 from requests import Session, Request
 from schematics.models import Model
-from schematics.types import StringType, IntType
+from schematics.types import StringType, IntType, BooleanType
 from stackstate_checks.utils.http_helper import HTTPHelper, HTTPRequestType, HTTPAuthenticationType, HTTPResponseType
 from requests.auth import HTTPBasicAuth
 import requests_mock
+import json
 
 
 class BodySchematicTest(Model):
     title = StringType(required=True)
     body = StringType(required=True)
     userId = IntType(required=True)
+
+
+class BodyResponseSchematicTest(Model):
+    hello = StringType(required=True)
+    pong = BooleanType(required=True)
 
 
 class TestHTTPHelper(unittest.TestCase):
@@ -124,7 +130,7 @@ class TestHTTPHelper(unittest.TestCase):
         assert http.get_query_parameters() == {}
         assert http.get_query_parameters(True) == {'b': '2', 'bc': '2'}
 
-        # Direct application test
+        # Direct apply test
 
         # Reset
         http = HTTPHelper()
@@ -389,48 +395,140 @@ class TestHTTPHelper(unittest.TestCase):
         assert http.get_timeout() is None
 
     def test_http_send(self):
-        mock_url = "mock://test.com"
-        mock_bad_body = "Error has occurred"
-        mock_plain_body = "Success"
-        mock_json_body = "{\"status\": \"success\"}"
-        mock_json_body_response = "\"{\\\"status\\\": \\\"success\\\"}\""
+        def mock(method, url, **kwargs):
+            http = HTTPHelper()
+            adapter = requests_mock.Adapter()
+            http.mount_adapter(adapter)
+            adapter.register_uri(method, url, **kwargs)
+            return http
 
-        # Method: GET
-        #   URL: Exists
-        #   Body: Plain
-        #   Status Code: 200
-        #   Expect success
-        http = HTTPHelper()
-        adapter = requests_mock.Adapter()
-        http.mount_adapter(adapter)
-        adapter.register_uri('GET', mock_url, text=mock_plain_body, status_code=200)
-        http.set_url(mock_url)
-        http.set_method('GET')
-        response = http.send()
-        assert response.content.decode('UTF-8') == mock_plain_body
-        assert response.status_code == response.status_code
-        assert response.request.url == mock_url
-        assert response.request.body is None
+        # Base Settings
+        body = {
+            'hello': 'world',
+            'test': '123',
+        }
 
-        # Method: GET
-        #   URL: Exists
-        #   Body: JSON
-        #   Status Code: 200
-        #   Expect success
-        http = HTTPHelper()
-        adapter = requests_mock.Adapter()
-        http.mount_adapter(adapter)
-        adapter.register_uri('GET', mock_url, json=mock_json_body, status_code=200)
-        http.set_url(mock_url)
-        http.set_method('GET')
-        response = http.send()
-        assert response.content.decode('UTF-8') == mock_json_body_response
-        assert response.status_code == response.status_code
-        assert response.request.url == mock_url
-        assert response.request.body is None
+        headers = {
+            "X-Custom-Header": "custom",
+            "Content-Type": "application/json",
+            "Content-Length": '20'
+        }
 
-    def test_http_expected_response_type(self):
-        http = HTTPHelper()
-        http.expect_response_type(HTTPResponseType.JSON)
+        query = {
+            "query-a": "hello",
+            "query-b": "world"
+        }
 
+        """
+            Formulate a request:
+                - Method: POST
+                - Endpoint: mock://test.com
+                - Body: true
+                - Headers: true
+                - Query Params: true
+            Expect:
+                - Status Code: 200
+                - JSON Response
+                - No response validation
+            ** SUCCESS TEST **
+        """
+        req = mock("POST", "mock://test.com", json=dict({'hello': 'world', 'pong': True}), status_code=200)
+        req.set_url("mock://test.com")
+        req.set_method("POST")
+        req.set_body(body)
+        req.set_headers(headers)
+        req.set_query_parameters(query)
+        req.set_resp_validation()
+        response = req.send()
+
+        assert response.request.url == "mock://test.com"
+        assert response.request.body == "hello=world&test=123"
+        assert response.request.method == "POST"
+        assert response.request.headers == headers
+        assert response.status_code == 200
+        assert response.content.decode('UTF-8') == json.dumps(dict({'hello': 'world', 'pong': True}))
+
+        """
+            Formulate a request:
+                - Method: POST
+                - Endpoint: mock://test.com
+                - Body: true
+                - Headers: true
+                - Query Params: true
+            Expect:
+                - Status Code: 200
+                - JSON Response
+                - Response Validation
+            ** SUCCESS TEST **
+        """
+        req = mock("POST", "mock://test.com", json=dict({'hello': 'world', 'pong': True}), status_code=200)
+        req.set_url("mock://test.com")
+        req.set_method("POST")
+        req.set_body(body)
+        req.set_headers(headers)
+        req.set_query_parameters(query)
+        req.set_resp_validation(HTTPResponseType.JSON, BodyResponseSchematicTest, 200)
+        response = req.send()
+
+        assert response.request.url == "mock://test.com"
+        assert response.request.body == "hello=world&test=123"
+        assert response.request.method == "POST"
+        assert response.request.headers == headers
+        assert response.status_code == 200
+        assert response.content.decode('UTF-8') == json.dumps(dict({'hello': 'world', 'pong': True}))
+
+        """
+            Formulate a request:
+                - Method: POST
+                - Endpoint: mock://test.com
+                - Body: true
+                - Headers: true
+                - Query Params: true
+            Expect:
+                - Status Code: 200
+                - JSON Response
+                - Response Validation
+                
+            ** FAILURE TEST **
+                Schematic mismatch from response
+        """
+        req = mock("POST", "mock://test.com", json=dict({'hello': 'world', 'random': True}), status_code=200)
+        req.set_url("mock://test.com")
+        req.set_method("POST")
+        req.set_body(body)
+        req.set_headers(headers)
+        req.set_query_parameters(query)
+        req.set_resp_validation(HTTPResponseType.JSON, BodyResponseSchematicTest, 200)
+        response = req.send()
+
+        assert response is None
+
+        """
+            Formulate a request:
+                - Method: POST
+                - Endpoint: mock://test.com
+                - Body: true
+                - Headers: true
+                - Query Params: true
+            Expect:
+                - Status Code: 200
+                - JSON Response
+                - Response Validation
+            ** SUCCESS TEST **
+        """
+        req = mock("POST", "mock://test.com", json=dict({'hello': 'world', 'pong': True}), status_code=404)
+        req.set_url("mock://test.com")
+        req.set_method("POST")
+        req.set_body(body)
+        req.set_headers(headers)
+        req.set_query_parameters(query)
+        req.set_resp_validation(HTTPResponseType.JSON, BodyResponseSchematicTest)
+        response = req.send()
+
+        assert response.request.url == "mock://test.com"
+        assert response.request.body == "hello=world&test=123"
+        assert response.request.method == "POST"
+        assert response.request.headers == headers
+        assert response.status_code == 404
+        assert response.content.decode('UTF-8') == json.dumps(dict({'hello': 'world', 'pong': True}))
 
