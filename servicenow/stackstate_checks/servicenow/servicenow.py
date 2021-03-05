@@ -173,7 +173,7 @@ class ServicenowCheck(AgentCheck):
         return sysparm_query
 
     @staticmethod
-    def _apply_field_metadata(data, display_value_list):
+    def select_metadata_field(data, display_value_list):
         """
         Retrieve the proper attribute either `display_value` or `value` from data
         :param data: metadata from servicenow
@@ -248,10 +248,11 @@ class ServicenowCheck(AgentCheck):
                 config_item = ConfigurationItem(component, strict=False)
                 config_item.validate()
             except DataError as e:
-                self.log.warning("Error while processing properties - {}".format(e))
+                self.log.warning("Error while processing properties of CI {} having sys_id {} - {}"
+                                 .format(config_item.sys_id.value, config_item.name.value, e))
                 continue
             data = {}
-            component = self._apply_field_metadata(component, instance_info.component_display_value_list)
+            component = self.select_metadata_field(component, instance_info.component_display_value_list)
             identifiers = []
             comp_name = config_item.name.value
             comp_type = config_item.sys_class_name.value
@@ -298,10 +299,10 @@ class ServicenowCheck(AgentCheck):
                 ci_relation = CIRelation(relation, strict=False)
                 ci_relation.validate()
             except DataError as e:
-                self.log.warning("Error while processing properties - {}".format(e))
+                self.log.warning("Error while processing properties of relation having Sys ID {} - {}".format(ci_relation.sys_id.value, e))
                 continue
             data = {}
-            relation = self._apply_field_metadata(relation, instance_info.relation_display_value_list)
+            relation = self.select_metadata_field(relation, instance_info.relation_display_value_list)
             parent_sys_id = ci_relation.parent.value
             child_sys_id = ci_relation.child.value
             # first part after splitting with :: contains actual relation
