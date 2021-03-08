@@ -299,7 +299,8 @@ class ServicenowCheck(AgentCheck):
                 ci_relation = CIRelation(relation, strict=False)
                 ci_relation.validate()
             except DataError as e:
-                self.log.warning("Error while processing properties of relation having Sys ID {} - {}".format(ci_relation.sys_id.value, e))
+                self.log.warning("Error while processing properties of relation having Sys ID {} - {}"
+                                 .format(ci_relation.sys_id.value, e))
                 continue
             data = {}
             relation = self.select_metadata_field(relation, instance_info.relation_display_value_list)
