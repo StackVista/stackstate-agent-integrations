@@ -532,3 +532,428 @@ class TestHTTPHelper(unittest.TestCase):
         assert response.status_code == 404
         assert response.content.decode('UTF-8') == json.dumps(dict({'hello': 'world', 'pong': True}))
 
+    def test_retry_policy(self):
+        http = HTTPHelper()
+        http.set_retry_policy(
+                retries=3,
+                backoff_factor=0.3,
+                status_forcelist=(500, 502, 504),
+        )
+
+    def test_ssl_verify(self):
+        # Default SSL test
+        http = HTTPHelper()
+        http.set_ssl_verify(True)
+        assert http.get_ssl_verify() is True
+
+        # Active SSL test
+        http = HTTPHelper()
+        http.set_ssl_verify(True)
+        assert http.get_ssl_verify() is True
+
+        # Inactive SSL test
+        http = HTTPHelper()
+        http.set_ssl_verify(False)
+        assert http.get_ssl_verify() is False
+
+    def test_compact_methods(self):
+        # Base Settings
+        body = {
+            'hello': 'world',
+            'test': '123',
+        }
+
+        body_response = {
+            'hello': 'world',
+            'pong': True
+        }
+
+        headers = {
+            "X-Custom-Header": "custom",
+            "Content-Type": "application/json",
+            "Content-Length": '20'
+        }
+
+        headers_session = {
+            'User-Agent': 'python-requests/2.24.0',
+            'Accept-Encoding': 'gzip, deflate',
+            'Accept': '*/*',
+            'Connection': 'keep-alive',
+            'X-Custom-Header': 'custom',
+            'Content-Type': 'application/json',
+            'Content-Length': '20'
+        }
+
+        query = {
+            "query-a": "hello",
+            "query-b": "world"
+        }
+
+        # GET Tests
+
+        get_request = HTTPHelper().get(
+            url="mock://test.com",
+            mock=True,
+            mock_response=dict(body_response),
+            mock_status=999,
+            validate_type=HTTPResponseType.JSON,
+            validate_schematic=BodyResponseSchematicTest,
+            validate_status_code=999,
+            timeout=30,
+            headers=headers,
+            query=query,
+            body=body,
+            body_type=HTTPRequestType.JSON,
+            body_model=BodySchematicTest,
+            use_session=True,
+            ssl_verify=True,
+            retry_policy=dict(
+                retries=3,
+                backoff_factor=0.3,
+                status_forcelist=(500, 502, 504),
+            )
+        )
+        get_response = get_request.send()
+        assert get_request.get_url() == "mock://test.com"
+        assert get_request.get_method() == "GET"
+        assert get_request.get_body() == []
+        assert get_request.get_timeout() == 30
+        assert get_request.get_headers(True) == headers_session
+        assert get_request.get_ssl_verify() is True
+        assert get_request.get_query_parameters(True) == query
+        assert get_request.get_proxy() == {}
+        assert get_request.get_resp_validate_schematic() == BodyResponseSchematicTest
+        assert get_request.get_resp_validate_status_code() == 999
+        assert get_request.get_resp_validate_strict_type() == HTTPResponseType.JSON
+        assert get_response.request.url == "mock://test.com"
+        assert get_response.request.method == "GET"
+        assert get_response.request.body is None
+        assert get_response.content.decode('UTF-8') == json.dumps(dict(body_response))
+        assert get_response.status_code == 999
+        assert get_request.get_query_parameters(True) == query
+
+        get_request = HTTPHelper().get(
+            url="mock://test.com",
+            mock=True,
+            mock_response=dict(body_response),
+            mock_status=200,
+        )
+        get_response = get_request.send()
+        assert get_request.get_url() == "mock://test.com"
+        assert get_request.get_method() == "GET"
+        assert get_request.get_body() == []
+        assert get_request.get_timeout() == None
+        assert get_request.get_headers(True) == {'User-Agent': 'python-requests/2.24.0',
+                                                 'Accept-Encoding': 'gzip, deflate',
+                                                 'Accept': '*/*',
+                                                 'Connection': 'keep-alive'}
+        assert get_request.get_ssl_verify() is True
+        assert get_request.get_query_parameters(True) == {}
+        assert get_request.get_query_parameters() == {}
+        assert get_request.get_proxy() == {}
+        assert get_request.get_resp_validate_schematic() is None
+        assert get_request.get_resp_validate_status_code() is None
+        assert get_request.get_resp_validate_strict_type() is None
+        assert get_response.request.url == "mock://test.com"
+        assert get_response.request.method == "GET"
+        assert get_response.request.body is None
+        assert get_response.content.decode('UTF-8') == json.dumps(dict(body_response))
+        assert get_response.status_code == 200
+        assert get_request.get_query_parameters(True) == {}
+        assert get_request.get_query_parameters() == {}
+
+        # POST Tests
+
+        post_request = HTTPHelper().post(
+            url="mock://test.com",
+            mock=True,
+            mock_response=dict(body_response),
+            mock_status=805,
+            validate_type=HTTPResponseType.JSON,
+            validate_schematic=BodyResponseSchematicTest,
+            validate_status_code=805,
+            timeout=30,
+            headers=headers,
+            query=query,
+            body=body,
+            body_type=HTTPRequestType.JSON,
+            body_model=BodySchematicTest,
+            use_session=True,
+            ssl_verify=True,
+            retry_policy=dict(
+                retries=3,
+                backoff_factor=0.3,
+                status_forcelist=(500, 502, 504),
+            )
+        )
+        post_response = post_request.send()
+        assert post_request.get_url() == "mock://test.com"
+        assert post_request.get_method() == "POST"
+        assert post_request.get_body() == body
+        assert post_request.get_timeout() == 30
+        assert post_request.get_headers(True) == headers_session
+        assert post_request.get_ssl_verify() is True
+        assert post_request.get_query_parameters(True) == query
+        assert post_request.get_proxy() == {}
+        assert post_request.get_resp_validate_schematic() == BodyResponseSchematicTest
+        assert post_request.get_resp_validate_status_code() == 805
+        assert post_request.get_resp_validate_strict_type() == HTTPResponseType.JSON
+        assert post_response.request.url == "mock://test.com"
+        assert post_response.request.method == "POST"
+        assert post_response.request.body == "hello=world&test=123"
+        assert post_response.content.decode('UTF-8') == json.dumps(dict(body_response))
+        assert post_response.status_code == 805
+        assert post_request.get_query_parameters(True) == query
+
+        post_request = HTTPHelper().post(
+            url="mock://test.com",
+            mock=True,
+            mock_response=dict(body_response),
+            mock_status=200,
+        )
+        post_response = post_request.send()
+        assert post_request.get_url() == "mock://test.com"
+        assert post_request.get_method() == "POST"
+        assert post_request.get_body() == []
+        assert post_request.get_timeout() == None
+        assert post_request.get_headers(True) == {'User-Agent': 'python-requests/2.24.0',
+                                                 'Accept-Encoding': 'gzip, deflate',
+                                                 'Accept': '*/*',
+                                                 'Connection': 'keep-alive'}
+        assert post_request.get_ssl_verify() is True
+        assert post_request.get_query_parameters(True) == {}
+        assert post_request.get_query_parameters() == {}
+        assert post_request.get_proxy() == {}
+        assert post_request.get_resp_validate_schematic() is None
+        assert post_request.get_resp_validate_status_code() is None
+        assert post_request.get_resp_validate_strict_type() is None
+        assert post_response.request.url == "mock://test.com"
+        assert post_response.request.method == "POST"
+        assert post_response.request.body is None
+        assert post_response.content.decode('UTF-8') == json.dumps(dict(body_response))
+        assert post_response.status_code == 200
+        assert post_request.get_query_parameters(True) == {}
+        assert post_request.get_query_parameters() == {}
+
+        # PUT Tests
+
+        put_request = HTTPHelper().put(
+            url="mock://test.com",
+            mock=True,
+            mock_response=dict(body_response),
+            mock_status=200,
+            validate_type=HTTPResponseType.JSON,
+            validate_schematic=BodyResponseSchematicTest,
+            validate_status_code=200,
+            timeout=30,
+            headers=headers,
+            query=query,
+            body=body,
+            body_type=HTTPRequestType.JSON,
+            body_model=BodySchematicTest,
+            use_session=True,
+            ssl_verify=True,
+            retry_policy=dict(
+                retries=3,
+                backoff_factor=0.3,
+                status_forcelist=(500, 502, 504),
+            )
+        )
+        put_response = put_request.send()
+        assert put_request.get_url() == "mock://test.com"
+        assert put_request.get_method() == "PUT"
+        assert put_request.get_body() == body
+        assert put_request.get_timeout() == 30
+        assert put_request.get_headers(True) == headers_session
+        assert put_request.get_ssl_verify() is True
+        assert put_request.get_query_parameters(True) == query
+        assert put_request.get_proxy() == {}
+        assert put_request.get_resp_validate_schematic() == BodyResponseSchematicTest
+        assert put_request.get_resp_validate_status_code() == 200
+        assert put_request.get_resp_validate_strict_type() == HTTPResponseType.JSON
+        assert put_response.request.url == "mock://test.com"
+        assert put_response.request.method == "PUT"
+        assert put_response.request.body == "hello=world&test=123"
+        assert put_response.content.decode('UTF-8') == json.dumps(dict(body_response))
+        assert put_response.status_code == 200
+        assert put_request.get_query_parameters(True) == query
+
+        put_request = HTTPHelper().put(
+            url="mock://test.com",
+            mock=True,
+            mock_response=dict(body_response),
+            mock_status=200,
+        )
+        put_response = put_request.send()
+        assert put_request.get_url() == "mock://test.com"
+        assert put_request.get_method() == "PUT"
+        assert put_request.get_body() == []
+        assert put_request.get_timeout() == None
+        assert put_request.get_headers(True) == {'User-Agent': 'python-requests/2.24.0',
+                                                 'Accept-Encoding': 'gzip, deflate',
+                                                 'Accept': '*/*',
+                                                 'Connection': 'keep-alive'}
+        assert put_request.get_ssl_verify() is True
+        assert put_request.get_query_parameters(True) == {}
+        assert put_request.get_query_parameters() == {}
+        assert put_request.get_proxy() == {}
+        assert put_request.get_resp_validate_schematic() is None
+        assert put_request.get_resp_validate_status_code() is None
+        assert put_request.get_resp_validate_strict_type() is None
+        assert put_response.request.url == "mock://test.com"
+        assert put_response.request.method == "PUT"
+        assert put_response.request.body is None
+        assert put_response.content.decode('UTF-8') == json.dumps(dict(body_response))
+        assert put_response.status_code == 200
+        assert put_request.get_query_parameters(True) == {}
+        assert put_request.get_query_parameters() == {}
+
+        # PATCH Tests
+
+        patch_request = HTTPHelper().patch(
+            url="mock://test.com",
+            mock=True,
+            mock_response=dict(body_response),
+            mock_status=200,
+            validate_type=HTTPResponseType.JSON,
+            validate_schematic=BodyResponseSchematicTest,
+            validate_status_code=200,
+            timeout=30,
+            headers=headers,
+            query=query,
+            body=body,
+            body_type=HTTPRequestType.JSON,
+            body_model=BodySchematicTest,
+            use_session=True,
+            ssl_verify=True,
+            retry_policy=dict(
+                retries=3,
+                backoff_factor=0.3,
+                status_forcelist=(500, 502, 504),
+            )
+        )
+        patch_response = patch_request.send()
+        assert patch_request.get_url() == "mock://test.com"
+        assert patch_request.get_method() == "PATCH"
+        assert patch_request.get_body() == body
+        assert patch_request.get_timeout() == 30
+        assert patch_request.get_headers(True) == headers_session
+        assert patch_request.get_ssl_verify() is True
+        assert patch_request.get_query_parameters(True) == query
+        assert patch_request.get_proxy() == {}
+        assert patch_request.get_resp_validate_schematic() == BodyResponseSchematicTest
+        assert patch_request.get_resp_validate_status_code() == 200
+        assert patch_request.get_resp_validate_strict_type() == HTTPResponseType.JSON
+        assert patch_response.request.url == "mock://test.com"
+        assert patch_response.request.method == "PATCH"
+        assert patch_response.request.body == "hello=world&test=123"
+        assert patch_response.content.decode('UTF-8') == json.dumps(dict(body_response))
+        assert patch_response.status_code == 200
+        assert patch_request.get_query_parameters(True) == query
+
+        patch_request = HTTPHelper().patch(
+            url="mock://test.com",
+            mock=True,
+            mock_response=dict(body_response),
+            mock_status=200,
+        )
+        patch_response = patch_request.send()
+        assert patch_request.get_url() == "mock://test.com"
+        assert patch_request.get_method() == "PATCH"
+        assert patch_request.get_body() == []
+        assert patch_request.get_timeout() == None
+        assert patch_request.get_headers(True) == {'User-Agent': 'python-requests/2.24.0',
+                                                 'Accept-Encoding': 'gzip, deflate',
+                                                 'Accept': '*/*',
+                                                 'Connection': 'keep-alive'}
+        assert patch_request.get_ssl_verify() is True
+        assert patch_request.get_query_parameters(True) == {}
+        assert patch_request.get_query_parameters() == {}
+        assert patch_request.get_proxy() == {}
+        assert patch_request.get_resp_validate_schematic() is None
+        assert patch_request.get_resp_validate_status_code() is None
+        assert patch_request.get_resp_validate_strict_type() is None
+        assert patch_response.request.url == "mock://test.com"
+        assert patch_response.request.method == "PATCH"
+        assert patch_response.request.body is None
+        assert patch_response.content.decode('UTF-8') == json.dumps(dict(body_response))
+        assert patch_response.status_code == 200
+        assert patch_request.get_query_parameters(True) == {}
+        assert patch_request.get_query_parameters() == {}
+
+        # DELETE Tests
+
+        delete_request = HTTPHelper().delete(
+            url="mock://test.com",
+            mock=True,
+            mock_response=dict(body_response),
+            mock_status=200,
+            validate_type=HTTPResponseType.JSON,
+            validate_schematic=BodyResponseSchematicTest,
+            validate_status_code=200,
+            timeout=30,
+            headers=headers,
+            query=query,
+            body=body,
+            body_validate_type=HTTPRequestType.JSON,
+            body_validate_model=BodySchematicTest,
+            use_session=True,
+            ssl_verify=True,
+            retry_policy=dict(
+                retries=3,
+                backoff_factor=0.3,
+                status_forcelist=(500, 502, 504),
+            )
+        )
+        delete_response = delete_request.send()
+        assert delete_request.get_url() == "mock://test.com"
+        assert delete_request.get_method() == "DELETE"
+        assert delete_request.get_body() == []
+        assert delete_request.get_timeout() == 30
+        assert delete_request.get_headers(True) == headers_session
+        assert delete_request.get_ssl_verify() is True
+        assert delete_request.get_query_parameters(True) == query
+        assert delete_request.get_proxy() == {}
+        assert delete_request.get_resp_validate_schematic() == BodyResponseSchematicTest
+        assert delete_request.get_resp_validate_status_code() == 200
+        assert delete_request.get_resp_validate_strict_type() == HTTPResponseType.JSON
+        assert delete_response.request.url == "mock://test.com"
+        assert delete_response.request.method == "DELETE"
+        assert delete_response.request.body is None
+        assert delete_response.content.decode('UTF-8') == json.dumps(dict(body_response))
+        assert delete_response.status_code == 200
+        assert delete_request.get_query_parameters(True) == query
+
+        delete_request = HTTPHelper().delete(
+            url="mock://test.com",
+            mock=True,
+            mock_response=dict(body_response),
+            mock_status=200,
+        )
+        delete_response = delete_request.send()
+        assert delete_request.get_url() == "mock://test.com"
+        assert delete_request.get_method() == "DELETE"
+        assert delete_request.get_body() == []
+        assert delete_request.get_timeout() == None
+        assert delete_request.get_headers(True) == {'User-Agent': 'python-requests/2.24.0',
+                                                 'Accept-Encoding': 'gzip, deflate',
+                                                 'Accept': '*/*',
+                                                 'Connection': 'keep-alive'}
+        assert delete_request.get_ssl_verify() is True
+        assert delete_request.get_query_parameters(True) == {}
+        assert delete_request.get_query_parameters() == {}
+        assert delete_request.get_proxy() == {}
+        assert delete_request.get_resp_validate_schematic() is None
+        assert delete_request.get_resp_validate_status_code() is None
+        assert delete_request.get_resp_validate_strict_type() is None
+        assert delete_response.request.url == "mock://test.com"
+        assert delete_response.request.method == "DELETE"
+        assert delete_response.request.body is None
+        assert delete_response.content.decode('UTF-8') == json.dumps(dict(body_response))
+        assert delete_response.status_code == 200
+        assert delete_request.get_query_parameters(True) == {}
+        assert delete_request.get_query_parameters() == {}
+
+
+
+

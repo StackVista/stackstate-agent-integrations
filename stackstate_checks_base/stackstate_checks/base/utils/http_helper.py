@@ -1,22 +1,18 @@
-from requests import Session, Request
-import requests_mock
-from requests.auth import HTTPBasicAuth
 import json
+import requests_mock
 from enum import Enum
 from schematics.models import Model
 from schematics.types import StringType, URLType, DictType, BooleanType, IntType
 from schematics.exceptions import ValidationError, DataError
+from requests import Session, Request
+from requests.auth import HTTPBasicAuth
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 
 try:
     import urlparse
 except ImportError:
     import urllib.parse as urlparse
-
-
-# depr
-class _HTTPMethodEnum(Model):
-    type = StringType(required=True)
-    body = BooleanType(required=True)
 
 
 class HTTPMethodEnum(Enum):
@@ -41,31 +37,6 @@ class HTTPMethodEnum(Enum):
         'body': False
     })
 
-# depr
-class RequestStructure(Model):
-    http_method = StringType(required=True, choices=[item.value["type"] for item in HTTPMethodEnum])
-    http_url = StringType(required=True)
-    http_body = DictType(StringType, default=None)
-
-    def validate_http_body(self, data, value):
-        # Formulate a list of all the available methods
-        available_methods = [item.value for item in HTTPMethodEnum]
-
-        print(data['http_method'])
-
-        # Find the matching method to test if we require a body
-        find_method = list(filter(lambda method: method['type'] == data['http_method'], available_methods))
-        if len(find_method) > 0 and 'body' in find_method[0]:
-
-            if find_method[0]['body'] is False and data['http_body'] is not None:
-                print("Body will not be send")
-            elif find_method[0]['body'] is True and data['http_body'] is None:
-                print("Body required")
-        else:
-            print("Method not found error")
-
-        return value
-
 
 class _HTTPBasicAuth(Model):
     username = StringType(required=True)
@@ -85,12 +56,6 @@ class HTTPResponseType(Enum):
     PLAIN = str
     JSON = dict
 
-# depr
-class HTTPResponseTypes(Enum):
-    TEXT = 'TEXT'
-    JSON = 'JSON'
-    XML = 'XML'
-
 
 class HTTPHelper:
     session = Session()
@@ -105,6 +70,7 @@ class HTTPHelper:
     available_response_types = [item for item in HTTPResponseType]
 
     timeout = None
+    retry_strategy = None
 
     def __init__(self):
         self.session = Session()
@@ -220,8 +186,11 @@ class HTTPHelper:
         # Clear query parameters
         if parameters is None and session_wide is False:
             self.request_object.params = {}
+            return
+
         elif parameters is None and session_wide is True:
             self.session.params.clear()
+            return
 
         # If the supplied query params is a string, We then attempt to parse it into a dict
         elif isinstance(parameters, str):
@@ -352,7 +321,7 @@ class HTTPHelper:
         if isinstance(headers, dict) and session_wide is True:
             self.session.headers.update(headers)
         # Apply to the request object
-        elif isinstance(headers, dict) and session_wide is False:
+        elif isinstance(headers, dict):
             self.request_object.headers = headers
         # Wipe the variable
         else:
@@ -496,8 +465,36 @@ class HTTPHelper:
 
     """
     """
+    def set_retry_policy(self, **kwargs):
+        adapter = None
+
+        if len(kwargs) > 0:
+            self.retry_strategy = Retry(kwargs)
+            adapter = HTTPAdapter(max_retries=self.retry_strategy)
+
+        self.session.mount("https://", adapter)
+        self.session.mount("http://", adapter)
+
+    """
+    """
+    def set_ssl_verify(self, verify=None):
+        if isinstance(verify, bool):
+            self.session.verify = verify
+        else:
+            self.session.verify = True
+
+    """
+    """
+    def get_ssl_verify(self):
+        return self.session.verify
+
+    """
+    """
     def send(self):
-        response = self.session.send(self.request_object.prepare(), timeout=self.timeout)
+        # Send the request out
+        response = self.session.send(self.request_object.prepare(),
+                                     timeout=self.timeout,
+                                     max_retries=self.retry_strategy)
 
         # If there is a forced status code check
         if self.resp_validate_status_code is not None and response.status_code != self.resp_validate_status_code:
@@ -544,19 +541,72 @@ class HTTPHelper:
 
         return None
 
+    """
+        Compact methods
+    """
+    @staticmethod
+    def _request_builder(method, **kwargs):
+        http = HTTPHelper()
+        use_session = True if kwargs.get("use_session") is True else False
 
-#     request = HTTPHelper()
-#     request = HTTPHelper()
-#     request.set_method("POST")
-#     request.set_url("https://http-handle.free.beeceptor.com/post/200/0/headers/body/json/v1")
-#     request.set_http_request_body({
-#         'title': 'foo',
-#         'body': 'bar',
-#         'userId': 1
-#     }, HTTPRequestType.JSON, TypiCodeCreateResource)
-#     request.set_http_headers({
-#         'Content-type': 'application/json'
-#     })
-#     response = request.send_request()
-#     print(response.status_code)
-#     print(response.content)
+        if kwargs.get("mock") is True:
+            adapter = requests_mock.Adapter()
+            http.mount_adapter(adapter)
+            adapter.register_uri(method,
+                                 kwargs.get("url"),
+                                 status_code=kwargs.get("mock_status"),
+                                 json=kwargs.get("mock_response"))
+
+        http.set_url(kwargs.get("url"), use_session)
+        http.set_method(method)
+        http.set_body(
+            kwargs.get("body"),
+            kwargs.get("body_validate_type"),
+            kwargs.get("body_validate_model")
+        )
+        http.set_timeout(kwargs.get("timeout"))
+        http.set_headers(kwargs.get("headers"), use_session)
+        http.set_query_parameters(kwargs.get("query"), use_session)
+        http.set_resp_validation(kwargs.get("validate_type"),
+                                 kwargs.get("validate_schematic"),
+                                 kwargs.get("validate_status_code"))
+        http.set_ssl_verify(kwargs.get("ssl_verify"))
+
+        if isinstance(kwargs.get("retry_policy"), dict):
+            http.set_retry_policy(**kwargs.get("retry_policy"))
+
+        return http
+
+    def get(self, **kwargs):
+        http = self._request_builder("GET", **kwargs)
+        return http
+
+    def post(self, **kwargs):
+        http = self._request_builder("POST", **kwargs)
+        return http
+
+    def put(self, **kwargs):
+        http = self._request_builder("PUT", **kwargs)
+        return http
+
+    def patch(self, **kwargs):
+        http = self._request_builder("PATCH", **kwargs)
+        return http
+
+    def delete(self, **kwargs):
+        http = self._request_builder("DELETE", **kwargs)
+        return http
+
+
+
+
+
+
+
+
+
+
+
+
+
+
