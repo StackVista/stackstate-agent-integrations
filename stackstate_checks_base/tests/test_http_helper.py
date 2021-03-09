@@ -338,28 +338,28 @@ class TestHTTPHelper(unittest.TestCase):
             assert str(msg) == 'Auth details does not match the schematic'
 
 
-            # TODO:
-        #  # Set request level auth with correct details
-        #  http = HTTPHelper()
-        #  request = Request()
-        #  request.auth = HTTPBasicAuth('root', 'root')
-        #  http.set_auth(HTTPAuthenticationType.BasicAuth, {
-        #      'username': 'root',
-        #      'password': 'root'
-        #  })
-        #  assert http.get_auth().username is request.auth.username
-        #  assert http.get_auth().password is request.auth.password
+        # Set request level auth with correct details
+        http = HTTPHelper()
+        request = Request()
+        request.auth = HTTPBasicAuth('root', 'root')
+        http.set_auth(HTTPAuthenticationType.BasicAuth, {
+            'username': 'root',
+            'password': 'root'
+        })
 
-        #  # Set session level auth with correct details
-        #  http = HTTPHelper()
-        #  session = Session()
-        #  session.auth = HTTPBasicAuth('root', 'root')
-        #  http.set_auth(HTTPAuthenticationType.BasicAuth, {
-        #      'username': 'root',
-        #      'password': 'root'
-        #  }, True)
-        #  assert http.get_auth(True).username is session.auth.username
-        #  assert http.get_auth(True).password is session.auth.password
+        assert http.get_auth().username is request.auth.username
+        assert http.get_auth().password is request.auth.password
+
+        # Set session level auth with correct details
+        http = HTTPHelper()
+        session = Session()
+        session.auth = HTTPBasicAuth('root', 'root')
+        http.set_auth(HTTPAuthenticationType.BasicAuth, {
+            'username': 'root',
+            'password': 'root'
+        }, True)
+        assert http.get_auth(True).username is session.auth.username
+        assert http.get_auth(True).password is session.auth.password
 
     def test_http_proxy(self):
         proxy_list = {
