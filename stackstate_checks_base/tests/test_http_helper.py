@@ -46,9 +46,6 @@ class TestHTTPHelper(unittest.TestCase):
         # Apply POST
         http.set_method("POST")
         assert http.get_method() == "POST"
-        # Apply Invalid Value
-        http.set_method("BLANK")
-        assert http.get_method() is None
         # Apply GET
         http.set_method("GET")
         assert http.get_method() == "GET"
@@ -247,23 +244,32 @@ class TestHTTPHelper(unittest.TestCase):
         http.set_body(body, HTTPRequestType.JSON, BodySchematicTest)
         assert http.get_body() == body
 
-        # Incorrect Body + defined schematic
-        http = HTTPHelper()
-        http.set_method("POST")
-        http.set_body(body_alt, HTTPRequestType.JSON, BodySchematicTest)
-        assert http.get_body() == []
+        try:
+            # Incorrect Body + defined schematic
+            http = HTTPHelper()
+            http.set_method("POST")
+            http.set_body(body_alt, HTTPRequestType.JSON, BodySchematicTest)
+            assert http == {'test': 'Should never reach this assert as it should have failed'}
+        except Exception as msg:
+            assert str(msg) == 'Invalid body, Does not match schematic'
 
-        # Clear Body
-        http = HTTPHelper()
-        http.set_method("POST")
-        http.set_body(body_alt, HTTPRequestType.JSON, BodySchematicTest)
-        http.set_body()
-        assert http.get_body() == []
+        try:
+            # Clear Body
+            http = HTTPHelper()
+            http.set_method("POST")
+            http.set_body(body_alt, HTTPRequestType.JSON, BodySchematicTest)
+            http.set_body()
+            assert http == {'test': 'Should never reach this assert as it should have failed'}
+        except Exception as msg:
+            assert str(msg) == 'Invalid body, Does not match schematic'
 
-        # Force method to be set first
-        http = HTTPHelper()
-        http.set_body(body)
-        assert http.get_body() == []
+        try:
+            # Force method to be set first
+            http = HTTPHelper()
+            http.set_body(body)
+            assert http == {'test': 'Should never reach this assert as it should have failed'}
+        except Exception as msg:
+            assert str(msg) == 'Please define the request type before supplying a body'
 
         # Test method that does not require a body
         http = HTTPHelper()
@@ -321,15 +327,18 @@ class TestHTTPHelper(unittest.TestCase):
         assert http.get_auth() is None
         assert http.get_auth(True) is None
 
-        # Set request level auth with incorrect details
-        http = HTTPHelper()
-        http.set_auth(HTTPAuthenticationType.BasicAuth, {
-            'test': '123'
-        })
-        assert http.get_auth() is None
+        try:
+            # Set request level auth with incorrect details
+            http = HTTPHelper()
+            http.set_auth(HTTPAuthenticationType.BasicAuth, {
+                'test': '123'
+            })
+            assert http == {'test': 'Should never reach this assert as it should have failed'}
+        except Exception as msg:
+            assert str(msg) == 'Auth details does not match the schematic'
 
-        # TODO:
 
+            # TODO:
         #  # Set request level auth with correct details
         #  http = HTTPHelper()
         #  request = Request()
@@ -499,9 +508,12 @@ class TestHTTPHelper(unittest.TestCase):
         req.set_headers(headers)
         req.set_query_parameters(query)
         req.set_resp_validation(HTTPResponseType.JSON, BodyResponseSchematicTest, 200)
-        response = req.send()
 
-        assert response is None
+        try:
+            response = req.send()
+            assert response == {'test': 'Should never reach this assert as it should have failed'}
+        except Exception as msg:
+            assert str(msg) == 'Invalid response, Does not match schematic'
 
         """
             Formulate a request:

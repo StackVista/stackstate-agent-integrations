@@ -14,7 +14,10 @@ try:
 except ImportError:
     import urllib.parse as urlparse
 
-
+"""
+    ENUM 
+        Used to structure the http request
+"""
 class HTTPMethodEnum(Enum):
     GET = ({
         'type': 'GET',
@@ -38,14 +41,29 @@ class HTTPMethodEnum(Enum):
     })
 
 
+"""
+    Authentication Models 
+"""
+
+
 class _HTTPBasicAuth(Model):
     username = StringType(required=True)
     password = StringType(required=True)
 
 
+"""
+    Authentication ENUM 
+"""
+
+
 class HTTPAuthenticationType(Enum):
     NoAuth = None
     BasicAuth = _HTTPBasicAuth
+
+
+"""
+    Possible Request and Response objects
+"""
 
 
 class HTTPRequestType(Enum):
@@ -58,34 +76,34 @@ class HTTPResponseType(Enum):
 
 
 class HTTPHelper:
+    # Primary request objects
     session = Session()
     request_object = Request()
-    error_alternative = None
 
-    request_method_enum_list = [item.value['type'] for item in HTTPMethodEnum]
+    # Extra enums to arrays to find values
     available_method_enums = [item.value for item in HTTPMethodEnum]
     available_method_types = [item.value['type'] for item in HTTPMethodEnum]
     available_request_types = [item.value for item in HTTPRequestType]
     available_authentication_types = [item.value for item in HTTPAuthenticationType]
     available_response_types = [item for item in HTTPResponseType]
 
+    # State of the timeout and retry stats
     timeout = None
     retry_strategy = None
 
+    # Init: Reset objects
     def __init__(self):
         self.session = Session()
         self.request_object = Request()
 
+    # Reset the session and request objects
     def renew(self):
         self.session = Session()
         self.request_object = Request()
 
+    # Print Errors
     def handle_error(self, error):
-        print(error)
-        # if self.error_alternative is not None:
-        #     self.error_alternative(error)
-        # else:
-        #     raise Exception(error)
+        raise Exception(error)
 
     """
         You can set the type of request through this function for example GET or POST
@@ -102,7 +120,7 @@ class HTTPHelper:
             self.request_object.method = None
 
         # If the supplied method already exists in the enum
-        elif isinstance(http_method, HTTPMethodEnum):
+        elif http_method in self.available_method_enums:
             self.request_object.method = http_method.value['type']
 
         # This is a second test to attempt and find the method str inside the enum
@@ -252,22 +270,21 @@ class HTTPHelper:
     def set_body(self, body=None, request_type=None, mapping_model=None):
         # A Request method is required first to determine if a body is required
         if self.request_object.method is None:
-            print("Please define the request type before supplying a body")
+            self.handle_error("Please define the request type before supplying a body")
             self.request_object.data = []
             return
 
         # Get the request method
         request_method = HTTPMethodEnum[self.request_object.method] \
-            if self.request_object.method in self.request_method_enum_list else None
+            if self.request_object.method in self.available_method_types else None
 
         # Use the request method to determine if this request requires a body
         if request_method is not None and request_method.value:
             if request_method.value["body"] is not True:
-                print("Request method does not take a body")
                 self.request_object.data = []
                 return
         else:
-            print("Invalid request method")
+            self.handle_error("Invalid request method")
             self.request_object.data = []
             return
 
@@ -298,7 +315,7 @@ class HTTPHelper:
                 mapping_model(body).validate()
                 self.request_object.data = body
             except DataError:
-                print("Invalid body, Does not match schematic")
+                self.handle_error("Invalid body, Does not match schematic")
                 self.request_object.data = []
 
     """
@@ -345,11 +362,13 @@ class HTTPHelper:
     """
     def set_auth(self, schematic=None, details=None, session_wide=False):
         # Reset session auth
-        if (schematic is None or schematic.value is HTTPAuthenticationType.NoAuth) and session_wide is True:
+        if (schematic is None or schematic.value is HTTPAuthenticationType.NoAuth or schematic.value is None) \
+                and session_wide is True:
             self.session.auth = None
 
         # Reset request object auth
-        elif (schematic is None or schematic.value is HTTPAuthenticationType.NoAuth) and session_wide is False:
+        elif (schematic is None or schematic.value is HTTPAuthenticationType.NoAuth or schematic.value is None) \
+                and session_wide is False:
             self.request_object.auth = None
 
         # If the auth method and data is valid
@@ -371,8 +390,7 @@ class HTTPHelper:
 
             # If validation failed
             except DataError as e:
-                print(e)
-                print("Auth details does not match the schematic")
+                self.handle_error("Auth details does not match the schematic")
                 if session_wide is True:
                     self.session.auth = None
                 else:
@@ -405,7 +423,7 @@ class HTTPHelper:
 
         # If all fails
         else:
-            print("Invalid proxy details")
+            self.handle_error("Invalid proxy details")
 
     """
         Returns the current state of the proxy
@@ -523,12 +541,11 @@ class HTTPHelper:
                 return response
 
             except DataError as e:
-                print(e)
-                print("Invalid response, Does not match schematic")
+                self.handle_error("Invalid response, Does not match schematic")
                 return None
 
             except json.JSONDecodeError:
-                print("Invalid response, Unable to determine JSON")
+                self.handle_error("Invalid response, Unable to determine JSON")
                 return None
 
         # Schematic: None
@@ -536,7 +553,6 @@ class HTTPHelper:
         # Response.content: Some
         if self.resp_validate_strict_type is HTTPResponseType.PLAIN and \
                 isinstance(response.content, bytes):
-            print("Plain ignores the schematic type")
             return response
 
         return None
