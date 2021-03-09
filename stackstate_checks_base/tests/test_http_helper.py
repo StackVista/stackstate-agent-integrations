@@ -263,6 +263,7 @@ class TestHTTPHelper(unittest.TestCase):
         except Exception as msg:
             assert str(msg) == 'Invalid body, Does not match schematic'
 
+        # TODO: Move body validation to send instead of on set_body
         try:
             # Force method to be set first
             http = HTTPHelper()
@@ -336,7 +337,6 @@ class TestHTTPHelper(unittest.TestCase):
             assert http == {'test': 'Should never reach this assert as it should have failed'}
         except Exception as msg:
             assert str(msg) == 'Auth details does not match the schematic'
-
 
         # Set request level auth with correct details
         http = HTTPHelper()
@@ -544,6 +544,9 @@ class TestHTTPHelper(unittest.TestCase):
         assert response.status_code == 404
         assert response.content.decode('UTF-8') == json.dumps(dict({'hello': 'world', 'pong': True}))
 
+    # TODO: Further research
+    #       - Investigate headers after failures
+    #       - Python simple http - failure test
     def test_retry_policy(self):
         http = HTTPHelper()
         http.set_retry_policy(
@@ -555,7 +558,7 @@ class TestHTTPHelper(unittest.TestCase):
     def test_ssl_verify(self):
         # Default SSL test
         http = HTTPHelper()
-        http.set_ssl_verify(True)
+        http.set_ssl_verify()
         assert http.get_ssl_verify() is True
 
         # Active SSL test
@@ -637,12 +640,12 @@ class TestHTTPHelper(unittest.TestCase):
         assert get_request.get_resp_validate_schematic() == BodyResponseSchematicTest
         assert get_request.get_resp_validate_status_code() == 999
         assert get_request.get_resp_validate_strict_type() == HTTPResponseType.JSON
+        assert get_request.get_query_parameters(True) == query
         assert get_response.request.url == "mock://test.com"
         assert get_response.request.method == "GET"
         assert get_response.request.body is None
         assert get_response.content.decode('UTF-8') == json.dumps(dict(body_response))
         assert get_response.status_code == 999
-        assert get_request.get_query_parameters(True) == query
 
         get_request = HTTPHelper().get(
             url="mock://test.com",
@@ -650,11 +653,12 @@ class TestHTTPHelper(unittest.TestCase):
             mock_response=dict(body_response),
             mock_status=200,
         )
+        # awe
         get_response = get_request.send()
         assert get_request.get_url() == "mock://test.com"
         assert get_request.get_method() == "GET"
         assert get_request.get_body() == []
-        assert get_request.get_timeout() == None
+        assert get_request.get_timeout() == None # TODO: Linting check
         assert get_request.get_headers(True) == {'User-Agent': 'python-requests/2.24.0',
                                                  'Accept-Encoding': 'gzip, deflate',
                                                  'Accept': '*/*',
@@ -701,7 +705,6 @@ class TestHTTPHelper(unittest.TestCase):
         post_response = post_request.send()
         assert post_request.get_url() == "mock://test.com"
         assert post_request.get_method() == "POST"
-        assert post_request.get_body() == body
         assert post_request.get_timeout() == 30
         assert post_request.get_headers(True) == headers_session
         assert post_request.get_ssl_verify() is True
@@ -771,10 +774,11 @@ class TestHTTPHelper(unittest.TestCase):
                 status_forcelist=(500, 502, 504),
             )
         )
+
         put_response = put_request.send()
         assert put_request.get_url() == "mock://test.com"
         assert put_request.get_method() == "PUT"
-        assert put_request.get_body() == body
+        assert put_request.get_body() is body
         assert put_request.get_timeout() == 30
         assert put_request.get_headers(True) == headers_session
         assert put_request.get_ssl_verify() is True
@@ -993,10 +997,6 @@ class TestHTTPHelper(unittest.TestCase):
         ).send()
 
         assert post_response is None
-
-
-
-
 
 
 

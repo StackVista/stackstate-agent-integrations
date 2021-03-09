@@ -74,6 +74,8 @@ class HTTPResponseType(Enum):
     PLAIN = str
     JSON = dict
 
+# TODO: Change session_wide to session
+#       Init in session or request style instead of indv calls, use indv calls as overrides
 
 class HTTPHelper:
     # Primary request objects
@@ -322,7 +324,7 @@ class HTTPHelper:
         Returns the current state of the body
         ** Affects: None **
     """
-    def get_body(self):
+    def get_body(self):#  TODO: None check (Check for [] or None return None else object)
         return self.request_object.data
 
     """
@@ -551,7 +553,7 @@ class HTTPHelper:
         # Strict Type: HTTPResponseType.PLAIN
         # Response.content: Some
         elif self.resp_validate_strict_type is HTTPResponseType.PLAIN and \
-                isinstance(response.content, bytes):
+                isinstance(response.content, bytes): # TODO: Update with six string type
             return response
 
         # Else lets test if the body has valid JSON
