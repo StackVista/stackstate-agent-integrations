@@ -966,6 +966,39 @@ class TestHTTPHelper(unittest.TestCase):
         assert delete_request.get_query_parameters(True) == {}
         assert delete_request.get_query_parameters() == {}
 
+    def test_unique_events(self):
+        body_response = {
+            'hello': 'world',
+            'pong': True
+        }
+
+        # Testing a 400 Response
+        # The body still has data al tho the server responded with a 400 meaning we might still want to see the data
+        post_response = HTTPHelper().post(
+            url="mock://test.com",
+            mock=True,
+            mock_response=dict(body_response),
+            mock_status=400,
+        ).send()
+
+        assert post_response is not None
+        assert post_response.content.decode('UTF-8') == json.dumps(dict(body_response))
+
+        # Testing a 200 Response
+        # The server responded with a 200 but the body is still not found
+        post_response = HTTPHelper().post(
+            url="mock://test.com",
+            mock=True,
+            mock_status=200,
+        ).send()
+
+        assert post_response is None
+
+
+
+
+
+
 
 
 

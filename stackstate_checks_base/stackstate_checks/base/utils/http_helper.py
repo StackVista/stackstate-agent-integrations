@@ -507,6 +507,10 @@ class HTTPHelper:
         return self.session.verify
 
     """
+        This function is used to send out the request that has been build up
+        It has one of two return types
+            - The response from the request
+            - Or None if the response fails any validations unless no validation was defined and the response is JSON
     """
     def send(self):
         # Send the request out
@@ -518,16 +522,11 @@ class HTTPHelper:
         if self.resp_validate_status_code is not None and response.status_code != self.resp_validate_status_code:
             return None
 
-        # Schematic: None
-        # Strict Type: None
-        if self.resp_validate_schematic is None and self.resp_validate_strict_type is None:
-            return response
-
         # Schematic: Some
         # Strict Type: None or HTTPResponseType.JSON
         # Response.content: Some
         # Inferred Type: JSON
-        if (self.resp_validate_strict_type is None or self.resp_validate_strict_type is HTTPResponseType.JSON) and \
+        elif (self.resp_validate_strict_type is None or self.resp_validate_strict_type is HTTPResponseType.JSON) and \
                 self.resp_validate_schematic is not None and\
                 response.content is not None and \
                 len(response.content) > 0:
@@ -551,11 +550,17 @@ class HTTPHelper:
         # Schematic: None
         # Strict Type: HTTPResponseType.PLAIN
         # Response.content: Some
-        if self.resp_validate_strict_type is HTTPResponseType.PLAIN and \
+        elif self.resp_validate_strict_type is HTTPResponseType.PLAIN and \
                 isinstance(response.content, bytes):
             return response
 
-        return None
+        # Else lets test if the body has valid JSON
+        try:
+            json.loads(response.content)
+            return response
+
+        except json.JSONDecodeError:
+            return None
 
     """
         Compact methods
