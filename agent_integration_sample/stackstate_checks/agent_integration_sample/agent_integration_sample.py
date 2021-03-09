@@ -108,26 +108,6 @@ class AgentIntegrationSampleCheck(AgentCheck):
                        checks=[max_response_ratio_check, max_percentile_response_check, failed_response_ratio_check,
                                min_percentile_response_check])
 
-        self.component("urn:example:/application:some_application/tags", "Application",
-                       data={
-                            "name": "some-tags",
-                            "domain": "default-domain",
-                            "layer": "default-layer",
-                            "identifiers": ["default-identifiers"],
-                            "labels": ["default:true"],
-                            "environment": "default-environment",
-                            "version": "0.2.0",
-                            "tags": [
-                                "stackstate-layer:tag-layer",
-                                "stackstate-domain:tag-domain",
-                                "stackstate-identifiers:tag-identifiers-a",
-                                "stackstate-identifier:tag-identifier"
-                            ],
-                       },
-                       streams=[some_application_2xx_responses, some_application_5xx_responses],
-                       checks=[max_response_ratio_check, max_percentile_response_check, failed_response_ratio_check,
-                               min_percentile_response_check])
-
         self.relation("urn:example:/application:some_application", "urn:example:/host:this_host", "IS_HOSTED_ON", {})
 
         self.gauge("2xx.responses", randint(0, 100), tags=["application:some_application", "region:eu-west-1"])
