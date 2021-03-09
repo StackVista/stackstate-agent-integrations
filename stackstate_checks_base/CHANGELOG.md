@@ -5,7 +5,6 @@
 * [Added] Added support to map user defined `stackstate-domain` tags or config to the `domain` object
 * [Added] Added support to map user defined `stackstate-identifiers` tags or config to the `identifiers` array
 
-
 ## Apply patches up to 6.10.1 / 2019-07-09
 
 ## 6.0.1 / 2019-02-20
