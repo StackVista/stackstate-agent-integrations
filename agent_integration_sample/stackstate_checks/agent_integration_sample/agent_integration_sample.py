@@ -97,19 +97,12 @@ class AgentIntegrationSampleCheck(AgentCheck):
         self.component("urn:example:/application:some_application", "Application",
                        data={
                            "name": "some-application",
-                           "domain": "Webshop",
-                           "layer": "Applications",
-                           "identifiers": ["another_identifier_for_some_application"],
-                           "labels": ["application:some_application", "region:eu-west-1", "hosted_on:this-host"],
-                           "environment": "Production",
-                           "version": "0.2.0",
-                           "tags": [
-                               "stackstate-identifiers: identifiers-tag-a identifiers-tag-b, identifiers-tag-c   identifiers-tag-d,identifiers-tag-e",
-                               "stackstate-identifier: identifier-tag-a",
-                               "stackstate-layer: layer-tag-a",
-                               "stackstate-environment: environment-tag-a",
-                               "stackstate-domain: domain-tag-a"
-                           ]
+                            "domain": "Webshop",
+                            "layer": "Applications",
+                            "identifiers": ["another_identifier_for_some_application"],
+                            "labels": ["application:some_application", "region:eu-west-1", "hosted_on:this-host"],
+                            "environment": "Production",
+                            "version": "0.2.0"
                        },
                        streams=[some_application_2xx_responses, some_application_5xx_responses],
                        checks=[max_response_ratio_check, max_percentile_response_check, failed_response_ratio_check,
