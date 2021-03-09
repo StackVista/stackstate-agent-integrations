@@ -98,6 +98,6 @@ class TestAgentIntegration(unittest.TestCase):
 
     @staticmethod
     def _read_data(filename):
-      path_to_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'expected', filename)
-      with open(path_to_file, "r") as f:
-        return json.load(f)
+        path_to_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'expected', filename)
+        with open(path_to_file, "r") as f:
+            return json.load(f)

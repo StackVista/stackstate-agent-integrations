@@ -352,7 +352,10 @@ class TestServicenow(unittest.TestCase):
         self.assertEqual(len(topo_instances['relations']), 0)
         self.assertEqual(topo_instances['components'][0]['type'], 'cmdb_ci_computer')
         self.assertEqual(topo_instances['components'][0]['data']['identifiers'],
-                         ["urn:host:/MacBook Pro 15", "00a96c0d3790200044e0bfc8bcbe5db4", "urn:host:/macbook pro 15"])
+                         ["urn:host:/MacBook Pro 15",
+                          "00a96c0d3790200044e0bfc8bcbe5db4",
+                          "urn:host:/macbook pro 15",
+                          "lupulus"])
         self.assertIn('stackstate-identifier:lupulus', topo_instances['components'][0]['data']['tags'])
         self.assertIn('stackstate', topo_instances['components'][0]['data']['tags'])
 
