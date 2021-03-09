@@ -8,6 +8,7 @@ from requests import Session, Request
 from requests.auth import HTTPBasicAuth
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
+import six
 
 try:
     import urlparse
@@ -15,9 +16,11 @@ except ImportError:
     import urllib.parse as urlparse
 
 """
-    ENUM 
+    ENUM
         Used to structure the http request
 """
+
+
 class HTTPMethodEnum(Enum):
     GET = ({
         'type': 'GET',
@@ -42,7 +45,7 @@ class HTTPMethodEnum(Enum):
 
 
 """
-    Authentication Models 
+    Authentication Models
 """
 
 
@@ -52,7 +55,7 @@ class _HTTPBasicAuth(Model):
 
 
 """
-    Authentication ENUM 
+    Authentication ENUM
 """
 
 
@@ -74,8 +77,6 @@ class HTTPResponseType(Enum):
     PLAIN = str
     JSON = dict
 
-# TODO: Change session_wide to session
-#       Init in session or request style instead of indv calls, use indv calls as overrides
 
 class HTTPHelper:
     # Primary request objects
@@ -92,11 +93,13 @@ class HTTPHelper:
     # State of the timeout and retry stats
     timeout = None
     retry_strategy = None
+    session_focus = False
 
     # Init: Reset objects
-    def __init__(self):
+    def __init__(self, session=False):
         self.session = Session()
         self.request_object = Request()
+        self.session_focus = session
 
     # Reset the session and request objects
     def renew(self):
@@ -157,7 +160,8 @@ class HTTPHelper:
 
         ** Affects: Request Object **
     """
-    def set_url(self, http_url=None, session_wide=False):
+    def set_url(self, http_url=None, session=False):
+        session = self.session_focus if session is False else session
         # Reset the URL
         if http_url is None:
             self.request_object.url = None
@@ -174,7 +178,7 @@ class HTTPHelper:
 
             # If there was any extra query parameters then we attempt to process it
             if len(parsed_url.query) > 0:
-                self.set_query_parameters(parsed_url.query, session_wide)
+                self.set_query_parameters(parsed_url.query, session)
 
         # Invalid URL, Reset to none if invalid
         else:
@@ -195,20 +199,21 @@ class HTTPHelper:
         @parameters
             Can be a string containing a query string for example test=123&hello=world or this can be a already
             parsed dict
-        @session_wide
+        @session
             If this is true then the session object will be used instead of the requests object
 
         ** Affects: Session and Request Object **
     """
-    def set_query_parameters(self, parameters=None, session_wide=False):
+    def set_query_parameters(self, parameters=None, session=False):
+        session = self.session_focus if session is False else session
         _parameters = parameters
 
         # Clear query parameters
-        if parameters is None and session_wide is False:
+        if parameters is None and session is False:
             self.request_object.params = {}
             return
 
-        elif parameters is None and session_wide is True:
+        elif parameters is None and session is True:
             self.session.params.clear()
             return
 
@@ -217,18 +222,18 @@ class HTTPHelper:
             _parameters = self._split_string_into_dict(parameters, "&", "=")
 
         # Apply to the session object
-        if isinstance(_parameters, dict) and session_wide is True:
+        if isinstance(_parameters, dict) and session is True:
             self.session.params.update(_parameters)
 
         # Apply to the request object
-        elif isinstance(_parameters, dict) and session_wide is False:
+        elif isinstance(_parameters, dict) and session is False:
             self.request_object.params = _parameters
 
         else:
             # Clear query parameters
-            if session_wide is False:
+            if session is False:
                 self.request_object.params = {}
-            elif session_wide is True:
+            elif session is True:
                 self.session.params.clear()
 
             self.handle_error("Invalid query parameters specified")
@@ -237,8 +242,9 @@ class HTTPHelper:
         Returns the current state of the query parameters
         ** Affects: None **
     """
-    def get_query_parameters(self, session_wide=False):
-        if session_wide is True:
+    def get_query_parameters(self, session=False):
+        session = self.session_focus if session is False else session
+        if session is True:
             return self.session.params
         else:
             return self.request_object.params
@@ -270,12 +276,6 @@ class HTTPHelper:
         ** Affects: Request Object **
     """
     def set_body(self, body=None, request_type=None, mapping_model=None):
-        # A Request method is required first to determine if a body is required
-        if self.request_object.method is None:
-            self.handle_error("Please define the request type before supplying a body")
-            self.request_object.data = []
-            return
-
         # Get the request method
         request_method = HTTPMethodEnum[self.request_object.method] \
             if self.request_object.method in self.available_method_types else None
@@ -285,7 +285,7 @@ class HTTPHelper:
             if request_method.value["body"] is not True:
                 self.request_object.data = []
                 return
-        else:
+        elif self.request_object.method is not None:
             self.handle_error("Invalid request method")
             self.request_object.data = []
             return
@@ -324,7 +324,9 @@ class HTTPHelper:
         Returns the current state of the body
         ** Affects: None **
     """
-    def get_body(self):#  TODO: None check (Check for [] or None return None else object)
+    def get_body(self):
+        if self.request_object.data is None or len(self.request_object.data) == 0:
+            return None
         return self.request_object.data
 
     """
@@ -332,12 +334,14 @@ class HTTPHelper:
 
         @headers
             A dict containing all the header key value pairs
-        @session_wide
+        @session
             If this is true then the session object will be used instead of the requests object
     """
-    def set_headers(self, headers=None, session_wide=False):
+    def set_headers(self, headers=None, session=False):
+        session = self.session_focus if session is False else session
+
         # Apply to the session
-        if isinstance(headers, dict) and session_wide is True:
+        if isinstance(headers, dict) and session is True:
             self.session.headers.update(headers)
         # Apply to the request object
         elif isinstance(headers, dict):
@@ -350,27 +354,33 @@ class HTTPHelper:
         Returns the current state of the headers
         ** Affects: None **
     """
-    def get_headers(self, session_wide=False):
-        if session_wide:
+    def get_headers(self, session=False):
+        session = self.session_focus if session is False else session
+        if session:
             return self.session.headers
         else:
             return self.request_object.headers
 
     """
+        Set authentication on the http request. The authentication details is validated against a schematic
 
         @schematic
+            This is the HTTP Enum that is used to test the details passed down
         @details
-        @session_wide
+            A dict of the credentials required in the 'schematic' enum
+        @session
+            Should this be applied on the session on request
     """
-    def set_auth(self, schematic=None, details=None, session_wide=False):
+    def set_auth(self, schematic=None, details=None, session=False):
+        session = self.session_focus if session is False else session
         # Reset session auth
         if (schematic is None or schematic.value is HTTPAuthenticationType.NoAuth or schematic.value is None) \
-                and session_wide is True:
+                and session is True:
             self.session.auth = None
 
         # Reset request object auth
         elif (schematic is None or schematic.value is HTTPAuthenticationType.NoAuth or schematic.value is None) \
-                and session_wide is False:
+                and session is False:
             self.request_object.auth = None
 
         # If the auth method and data is valid
@@ -383,17 +393,17 @@ class HTTPHelper:
                 data.validate()
 
                 # Apply session data
-                if schematic is HTTPAuthenticationType.BasicAuth and session_wide is True:
+                if schematic is HTTPAuthenticationType.BasicAuth and session is True:
                     self.session.auth = HTTPBasicAuth(data.username, data.password)
 
                 # Apply request data
-                elif schematic is HTTPAuthenticationType.BasicAuth and session_wide is False:
+                elif schematic is HTTPAuthenticationType.BasicAuth and session is False:
                     self.request_object.auth = HTTPBasicAuth(data.username, data.password)
 
             # If validation failed
-            except DataError as e:
+            except DataError:
                 self.handle_error("Auth details does not match the schematic")
-                if session_wide is True:
+                if session is True:
                     self.session.auth = None
                 else:
                     self.request_object.auth = None
@@ -404,15 +414,18 @@ class HTTPHelper:
         Returns the current state of the auth
         ** Affects: None **
     """
-    def get_auth(self, session_wide=False):
-        if session_wide is True:
+    def get_auth(self, session=False):
+        session = self.session_focus if session is False else session
+        if session is True:
             return self.session.auth
         else:
             return self.request_object.auth
 
     """
+        Set a proxy that the request will use
 
         @proxies
+            The proxy object as defined in the requests library
     """
     def set_proxy(self, proxies=None):
         # Reset the proxy
@@ -435,8 +448,10 @@ class HTTPHelper:
         return self.session.proxies
 
     """
+        Set current request timeout
 
         @timeout
+            Integer timeout
     """
     def set_timeout(self, timeout=None):
         if isinstance(timeout, int):
@@ -466,7 +481,7 @@ class HTTPHelper:
             self.resp_validate_strict_type = strict_type
 
     """
-        Returns the current state of the proxy
+        Returns the current state of the validations
         ** Affects: None **
     """
     def get_resp_validate_schematic(self):
@@ -479,23 +494,39 @@ class HTTPHelper:
         return self.resp_validate_strict_type
 
     """
+        Used for unit testing only
     """
     def mount_adapter(self, adapter):
         self.session.mount('mock://', adapter)
 
     """
+        Uses the Retry object from requests allowing the user to apply the same kwargs parameters
+
+        @kwargs
+            List items accepted by the Retry function
     """
     def set_retry_policy(self, **kwargs):
         adapter = None
 
         if len(kwargs) > 0:
-            self.retry_strategy = Retry(kwargs)
+            self.retry_strategy = Retry(**kwargs)
             adapter = HTTPAdapter(max_retries=self.retry_strategy)
 
         self.session.mount("https://", adapter)
         self.session.mount("http://", adapter)
 
     """
+        Returns the current state of the retry policy
+        ** Affects: None **
+    """
+    def get_retry_policy(self):
+        return self.retry_strategy
+
+    """
+        Set the current state of the SSL verification, Set to False so that SSL is not verified
+
+        @verify
+            True or False to enable or disable ssl verification
     """
     def set_ssl_verify(self, verify=None):
         if isinstance(verify, bool):
@@ -504,6 +535,8 @@ class HTTPHelper:
             self.session.verify = True
 
     """
+        Returns the current state of the SSL
+        ** Affects: None **
     """
     def get_ssl_verify(self):
         return self.session.verify
@@ -517,8 +550,7 @@ class HTTPHelper:
     def send(self):
         # Send the request out
         response = self.session.send(self.request_object.prepare(),
-                                     timeout=self.timeout,
-                                     max_retries=self.retry_strategy)
+                                     timeout=self.timeout)
 
         # If there is a forced status code check
         if self.resp_validate_status_code is not None and response.status_code != self.resp_validate_status_code:
@@ -541,11 +573,11 @@ class HTTPHelper:
                     self.resp_validate_schematic(json_response).validate()
                 return response
 
-            except DataError as e:
+            except DataError:
                 self.handle_error("Invalid response, Does not match schematic")
                 return None
 
-            except json.JSONDecodeError:
+            except Exception:
                 self.handle_error("Invalid response, Unable to determine JSON")
                 return None
 
@@ -553,7 +585,7 @@ class HTTPHelper:
         # Strict Type: HTTPResponseType.PLAIN
         # Response.content: Some
         elif self.resp_validate_strict_type is HTTPResponseType.PLAIN and \
-                isinstance(response.content, bytes): # TODO: Update with six string type
+                isinstance(response.content, six.binary_type):
             return response
 
         # Else lets test if the body has valid JSON
@@ -561,7 +593,7 @@ class HTTPHelper:
             json.loads(response.content)
             return response
 
-        except json.JSONDecodeError:
+        except Exception:
             return None
 
     """
@@ -619,17 +651,3 @@ class HTTPHelper:
     def delete(self, **kwargs):
         http = self._request_builder("DELETE", **kwargs)
         return http
-
-
-
-
-
-
-
-
-
-
-
-
-
-
