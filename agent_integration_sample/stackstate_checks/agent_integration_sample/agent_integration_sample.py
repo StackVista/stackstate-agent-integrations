@@ -96,7 +96,7 @@ class AgentIntegrationSampleCheck(AgentCheck):
                                                                               10, 5, 99)
         self.component("urn:example:/application:some_application", "Application",
                        data={
-                           "name": "some-application",
+                            "name": "some-application",
                             "domain": "Webshop",
                             "layer": "Applications",
                             "identifiers": ["another_identifier_for_some_application"],
