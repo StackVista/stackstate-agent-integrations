@@ -19,31 +19,39 @@ from six import PY3, iteritems, text_type, string_types, integer_types
 try:
     import datadog_agent
     from ..log import init_logging
+
     init_logging()
 except ImportError:
     from ..stubs import datadog_agent
     from ..stubs.log import init_logging
+
     init_logging()
 
 try:
     import aggregator
+
     using_stub_aggregator = False
 except ImportError:
     from ..stubs import aggregator
+
     using_stub_aggregator = True
 
 try:
     import topology
+
     using_stub_topology = False
 except ImportError:
     from ..stubs import topology
+
     using_stub_topology = True
 
 try:
     import telemetry
+
     using_stub_telemetry = False
 except ImportError:
     from ..stubs import telemetry
+
     using_stub_telemetry = True
 
 from ..config import is_affirmative
@@ -59,8 +67,8 @@ from deprecated.sphinx import deprecated
 
 if datadog_agent.get_config('disable_unsafe_yaml'):
     from ..ddyaml import monkey_patch_pyyaml
-    monkey_patch_pyyaml()
 
+    monkey_patch_pyyaml()
 
 # Metric types for which it's only useful to submit once per set of tags
 ONE_PER_CONTEXT_METRIC_TYPES = [
@@ -76,6 +84,7 @@ class _TopologyInstanceBase(object):
 
     This is not meant to be used in checks.
     """
+
     def __init__(self, type, url, with_snapshots=False):
         self.type = type
         self.url = url
@@ -467,6 +476,8 @@ class AgentCheckBase(object):
         self._check_struct("data", data)
         data = self._map_streams_and_checks(data, streams, checks)
         data = self._map_identifier_mappings(type, data)
+        data = self._map_stackstate_tags_and_instance_config(data)
+
         if add_instance_tags:
             # add topology instance for view filtering
             data['tags'] = sorted(list(set(data.get('tags', []) + integration_instance.tags())))
@@ -483,6 +494,94 @@ class AgentCheckBase(object):
         data = self._map_relation_data(source, target, type, fixed_data, fixed_streams, fixed_checks)
         topology.submit_relation(self, self.check_id, self._get_instance_key_dict(), source, target, type, data)
         return {"source_id": source, "target_id": target, "type": type, "data": data}
+
+    def _map_stackstate_tags_and_instance_config(self, data):
+        # Extract or create the tags and identifier objects
+        tags = data.get('tags', [])
+        identifiers = data.get("identifiers", [])
+
+        # Find the stackstate-identifiers within tags
+        identifier_tag = next((tag for tag in tags if ("stackstate-identifiers:" in tag)), None)
+
+        # We attempt to split and map out the identifiers specified in the identifier_tag
+        # ** Does not support config **
+        if isinstance(identifier_tag, str):
+            identifier_tag_content = identifier_tag.split('stackstate-identifiers:')[1]
+            if len(identifier_tag_content) > 0:
+                result = self.split_on_commas_and_spaces(identifier_tag_content)
+                identifiers = identifiers + result
+
+        # Detect single identifiers and set the identifiers object
+        single_identifier_tag = self._map_config_and_tags(data, 'stackstate-identifier', 'identifier', False, True)
+        if isinstance(single_identifier_tag, str):
+            identifiers = identifiers + [single_identifier_tag]
+
+        # Only apply identifiers if we found any
+        if len(identifiers) > 0:
+            data["identifiers"] = identifiers
+
+        # Attempt to map stackstate-*** tags and configs
+        data = self._map_config_and_tags(data, 'stackstate-layer', 'layer')
+        data = self._map_config_and_tags(data, 'stackstate-environment', 'environments', True)
+        data = self._map_config_and_tags(data, 'stackstate-domain', 'domain')
+
+        return data
+
+    # Regex function used to split a string on commas and/or spaces
+    def split_on_commas_and_spaces(self, content):
+        if isinstance(content, str):
+            """
+                We are testing the following with the regex block below
+                - Match all spaces if any at the start followed by a must have comma then followed again by a possible
+                    single or multiple spaces
+                - Second possibility is a single or multiple space only without a comma
+                The resulting regex will work on a complex line like the following example:
+                    Input: a, b, c,d,e f g h, i , j ,k   ,l  ,  m
+                    Result: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm']
+            """
+            content_list = re.split('(?:\\s+)?,(?:\\s+)?|\\s+', content)
+
+            # Clean out all empty string ''
+            clean_identifier_list = list(filter(lambda item: len(item) > 0, content_list))
+            return clean_identifier_list
+        else:
+            return []
+
+    # Generic mapping function for tags or config
+    # Attempt to find if the target exists on a tag or config and map that to the origin value
+    # There's a optional default value if required
+    # Value override order: tags < config.yaml
+    def _map_config_and_tags(self, data, target, origin, return_array=False, return_direct_value=False, default=None):
+        # Get the first instance and create a deep copy
+        instance = self.instances[0] if self.instances is not None and len(self.instances) else {}
+        check_instance = copy.deepcopy(instance)
+
+        # Extract or create the tags
+        tags = data.get('tags', [])
+
+        # Attempt to find the tag and map its value to a object inside data
+        find_tag = next((tag for tag in tags if (target + ':' in tag)), None)
+        if isinstance(find_tag, str) and find_tag.index(":") > 0:
+            result = [find_tag.split(target + ':')[1]] if return_array is True else find_tag.split(target + ':')[1]
+            if return_direct_value is True:
+                return result
+            data[origin] = result
+
+        elif target in check_instance and isinstance(check_instance[target], str):
+            result = [check_instance[target]] if return_array is True else check_instance[target]
+            if return_direct_value is True:
+                return result
+            data[origin] = result
+
+        elif default is not None and isinstance(default, str):
+            result = [default] if return_array is True else default
+            if return_direct_value is True:
+                return result
+            data[origin] = result
+
+        if return_direct_value is True and return_array is True:
+            return []
+        return data
 
     def _map_relation_data(self, source, target, type, data, streams=None, checks=None):
         self._check_is_string("source", source)
@@ -881,8 +980,7 @@ class __AgentCheckPy3(AgentCheckBase):
             value = float(value)
         except ValueError:
             err_msg = (
-                'Metric: {} has non float value: {}. Only float values can be submitted as metrics.'
-                .format(name, value)
+                'Metric: {} has non float value: {}. Only float values can be submitted as metrics.'.format(name, value)
             )
             if using_stub_aggregator:
                 raise ValueError(err_msg)
@@ -976,6 +1074,7 @@ class __AgentCheckPy2(AgentCheckBase):
     """
     The base class for any Agent based integrations
     """
+
     def __init__(self, *args, **kwargs):
         AgentCheckBase.__init__(self, *args, **kwargs)
         """
