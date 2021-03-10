@@ -64,7 +64,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         self.check.url = self.instance.get('url')
         self.check.run()
         test_topology = topology.get_snapshot(self.check.check_id)
-        expected_topology = load_json_from_file("process_response_topology.json")
+        expected_topology = load_json_from_file("expected_process_topology.json")
         self.assert_topology(expected_topology, test_topology)
 
     @requests_mock.Mocker()
@@ -76,7 +76,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         self.check.url = self.instance.get('url')
         self.check.run()
         test_topology = topology.get_snapshot(self.check.check_id)
-        expected_topology = load_json_from_file("host_response_topology.json")
+        expected_topology = load_json_from_file("expected_host_topology.json")
         self.assert_topology(expected_topology, test_topology)
 
     @requests_mock.Mocker()
@@ -88,7 +88,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         self.check.url = self.instance.get('url')
         self.check.run()
         test_topology = topology.get_snapshot(self.check.check_id)
-        expected_topology = load_json_from_file("service_response_topology.json")
+        expected_topology = load_json_from_file("expected_service_topology.json")
         self.assert_topology(expected_topology, test_topology)
 
     def assert_topology(self, expected_topology, test_topology):
@@ -117,10 +117,10 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         self.check.run()
 
         topo_instances = topology.get_snapshot(self.check.check_id)
-        actual_topology = load_json_from_file("application_response_topology.json")
+        expected_topology = load_json_from_file("expected_application_topology.json")
 
         # sort the keys of components and relations, so we match it in actual
-        self.assert_topology(actual_topology, topo_instances)
+        self.assert_topology(expected_topology, topo_instances)
 
     @requests_mock.Mocker()
     def test_collect_process_groups(self, m):
@@ -132,9 +132,10 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         self.check.url = self.instance.get('url')
 
         self.check.run()
+        self.maxDiff = None
 
         topo_instances = topology.get_snapshot(self.check.check_id)
-        actual_topology = load_json_from_file("process-group_response_topology.json")
+        actual_topology = load_json_from_file("expected_process-group_topology.json")
 
         # sort the keys of components and relations, so we match it in actual
         self.assert_topology(actual_topology, topo_instances)
@@ -191,17 +192,9 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         self.check.run()
 
         topo_instances = topology.get_snapshot(self.check.check_id)
-        expected_topology = load_json_from_file("smartscape_full_response_topology.json")
+        expected_topology = load_json_from_file("expected_smartscape_full_topology.json")
 
-        # sort the keys of components and relations, so we match it in actual
-        components, relations = sort_topology_data(topo_instances)
-        expected_components, expected_relations = sort_topology_data(expected_topology)
+        with open('components.json', 'w') as file:
+            json.dump(topo_instances['components'], file)
 
-        self.assertEqual(len(components), len(expected_components))
-        for component in components:
-            self.assertIn(component, expected_components)
-
-        # Not comparing the numbers because we have duplicate relations created but
-        # duplicates will be filtered out by the agent externalId assigning behavior
-        for relation in relations:
-            self.assertIn(relation, expected_relations)
+        self.assert_topology(expected_topology, topo_instances)

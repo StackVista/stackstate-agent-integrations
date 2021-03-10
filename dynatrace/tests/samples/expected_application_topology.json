@@ -31,16 +31,14 @@
         ],
         "instance": "https://ton48129.live.dynatrace.com",
         "tags": [
-          "integration-type:dynatrace",
-          "integration-url:https://ton48129.live.dynatrace.com"
-        ],
-        "labels": [
-          "dynatrace-managementZones:allTypes",
-          "dynatrace-managementZones:app name exists",
-          "dynatrace-managementZones:Applications except easyTravel",
           "dynatrace-APPLICATION-EA7C4B59F27D43EB",
           "dynatrace-Mytag",
-          "dynatrace-Test"
+          "dynatrace-Test",
+          "dynatrace-managementZones:Applications except easyTravel",
+          "dynatrace-managementZones:allTypes",
+          "dynatrace-managementZones:app name exists",
+          "integration-type:dynatrace",
+          "integration-url:https://ton48129.live.dynatrace.com"
         ]
       },
       "id": "APPLICATION-EA7C4B59F27D43EB",
@@ -71,13 +69,11 @@
         ],
         "instance": "https://ton48129.live.dynatrace.com",
         "tags": [
-          "integration-type:dynatrace",
-          "integration-url:https://ton48129.live.dynatrace.com"
-        ],
-        "labels": [
+          "dynatrace-APPLICATION-BBFA55551D507E2B",
           "dynatrace-managementZones:allTypes",
           "dynatrace-managementZones:easyTravel",
-          "dynatrace-APPLICATION-BBFA55551D507E2B"
+          "integration-type:dynatrace",
+          "integration-url:https://ton48129.live.dynatrace.com"
         ]
       },
       "id": "APPLICATION-BBFA55551D507E2B",
@@ -109,14 +105,12 @@
         ],
         "instance": "https://ton48129.live.dynatrace.com",
         "tags": [
+          "dynatrace-MOBILE_APPLICATION-752C288D59734C79",
+          "dynatrace-easyTravel",
+          "dynatrace-managementZones:easyTravel",
+          "dynatrace-portal",
           "integration-type:dynatrace",
           "integration-url:https://ton48129.live.dynatrace.com"
-        ],
-        "labels": [
-          "dynatrace-managementZones:easyTravel",
-          "dynatrace-MOBILE_APPLICATION-752C288D59734C79",
-          "dynatrace-portal",
-          "dynatrace-easyTravel"
         ]
       },
       "id": "MOBILE_APPLICATION-752C288D59734C79",

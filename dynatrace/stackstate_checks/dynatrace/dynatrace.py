@@ -188,17 +188,17 @@ class DynatraceCheck(AgentCheck):
             if component_type == "host":
                 host_identifiers = self._get_host_identifiers(item)
                 identifiers.extend(host_identifiers)
-            # derive useful labels and get labels from dynatrace tags
-            labels = self._get_labels(item)
+            # derive useful labels from dynatrace tags
+            tags = self._get_labels(item)
+            tags.extend(instance_info.instance_tags)
             data.update(item)
             self._filter_item_topology_data(data)
             data.update({
                 "identifiers": identifiers,
-                "tags": instance_info.instance_tags,
+                "tags": tags,
                 "domain": instance_info.domain,
                 "environment": instance_info.environment,
                 "instance": instance_info.url,
-                "labels": labels
             })
             self.component(external_id, component_type, data)
             self._collect_relations(item, external_id)
