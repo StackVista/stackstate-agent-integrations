@@ -1,4 +1,4 @@
-# StackState Agent v2 releases
+# StackState Agent Integrations v2 releases
 
 ## 1.10.0 / 2020-03-09
 
