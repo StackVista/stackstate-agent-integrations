@@ -345,11 +345,7 @@
             "domain":"tag-domain",
             "tags":[
                "integration-type:agent-integration",
-               "integration-url:sample",
-               "stackstate-domain:tag-domain",
-               "stackstate-identifier:tag-identifier",
-               "stackstate-identifiers:tag-identifiers-a",
-               "stackstate-layer:tag-layer"
+               "integration-url:sample"
             ],
             "labels":[
                "default:true"
