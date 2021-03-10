@@ -13,6 +13,7 @@ from six import PY3
 from stackstate_checks.checks import AgentCheck, TopologyInstance, AgentIntegrationInstance
 from stackstate_checks.base.utils.agent_integration_test_util import AgentIntegrationTestUtil
 from stackstate_checks.base.stubs.topology import component, relation
+import copy
 
 
 def test_instance():
@@ -551,28 +552,32 @@ class TestTagsAndConfigMapping:
                          'stackstate-environment:tag-stackstate-environment',
                          'stackstate-domain:tag-stackstate-domain',
                          'stackstate-identifier:tag-stackstate-identifier',
-                         'stackstate-identifiers:\
-                             urn:process:/mapped-identifier:0:1234567890'
-                         ]
+                         'stackstate-identifiers:tag-stackstate-identifiers']
             }
+
+            # Create a copy of the data object
+            data_without_target = copy.deepcopy(data)
+
+            # Remove the current target from the tags array as the result should not contain that tag
+            data_without_target.get("tags").remove(target + ":tag-" + target)
 
             # Include instance config in the tests
             assert check_include_config._map_config_and_tags({}, target, origin) == \
                    {origin: 'instance-' + target}
             assert check_include_config._map_config_and_tags({}, target, origin, True) == \
                    {origin: ['instance-' + target]}
-            assert check_include_config._map_config_and_tags(data, target, origin) == \
-                   {origin: 'tag-' + target, 'tags': data['tags']}
-            assert check_include_config._map_config_and_tags(data, target, origin, True) == \
-                   {origin: ['tag-' + target], 'tags': data['tags']}
+            assert check_include_config._map_config_and_tags(copy.deepcopy(data), target, origin) == \
+                   {origin: 'tag-' + target, 'tags': data_without_target['tags']}
+            assert check_include_config._map_config_and_tags(copy.deepcopy(data), target, origin, True) == \
+                   {origin: ['tag-' + target], 'tags': data_without_target['tags']}
 
             # Exclude the instance config in the tests
             assert check_exclude_config._map_config_and_tags({}, target, origin) == {}
             assert check_exclude_config._map_config_and_tags({}, target, origin, True) == {}
-            assert check_exclude_config._map_config_and_tags(data, target, origin) == \
-                   {origin: 'tag-' + target, 'tags': data['tags']}
-            assert check_exclude_config._map_config_and_tags(data, target, origin, True) == \
-                   {origin: ['tag-' + target], 'tags': data['tags']}
+            assert check_exclude_config._map_config_and_tags(copy.deepcopy(data), target, origin) == \
+                   {origin: 'tag-' + target, 'tags': data_without_target['tags']}
+            assert check_exclude_config._map_config_and_tags(copy.deepcopy(data), target, origin, True) == \
+                   {origin: ['tag-' + target], 'tags': data_without_target['tags']}
 
             # Default Config
             assert check_exclude_config._map_config_and_tags({}, target, origin, False, False, default_value) == \
@@ -581,14 +586,22 @@ class TestTagsAndConfigMapping:
                    {origin: [default_value]}
 
             # Return direct value & Return direct value arrays test
-            assert check_exclude_config._map_config_and_tags(data, target, origin, False, True) == 'tag-' + target
-            assert check_include_config._map_config_and_tags(data, target, origin, False, True) == 'tag-' + target
-            assert check_exclude_config._map_config_and_tags({}, target, origin, False, True) == {}
-            assert check_include_config._map_config_and_tags({}, target, origin, False, True) == 'instance-' + target
-            assert check_exclude_config._map_config_and_tags(data, target, origin, True, True) == ['tag-' + target]
-            assert check_include_config._map_config_and_tags(data, target, origin, True, True) == ['tag-' + target]
-            assert check_exclude_config._map_config_and_tags({}, target, origin, True, True) == []
-            assert check_include_config._map_config_and_tags({}, target, origin, True, True) == ['instance-' + target]
+            assert check_exclude_config._map_config_and_tags(copy.deepcopy(data), target, origin, False, True) == \
+                   'tag-' + target
+            assert check_include_config._map_config_and_tags(copy.deepcopy(data), target, origin, False, True) == \
+                   'tag-' + target
+            assert check_exclude_config._map_config_and_tags({}, target, origin, False, True) == \
+                   {}
+            assert check_include_config._map_config_and_tags({}, target, origin, False, True) == \
+                   'instance-' + target
+            assert check_exclude_config._map_config_and_tags(copy.deepcopy(data), target, origin, True, True) == \
+                   ['tag-' + target]
+            assert check_include_config._map_config_and_tags(copy.deepcopy(data), target, origin, True, True) == \
+                   ['tag-' + target]
+            assert check_exclude_config._map_config_and_tags({}, target, origin, True, True) == \
+                   []
+            assert check_include_config._map_config_and_tags({}, target, origin, True, True) == \
+                   ['instance-' + target]
 
         # We are testing the environment, layer and domain for all the use cases
         generic_mapping_test("stackstate-environment", "environments", "default-environment")
