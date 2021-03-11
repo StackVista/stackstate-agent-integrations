@@ -15,6 +15,7 @@ from stackstate_checks.base.utils.agent_integration_test_util import AgentIntegr
 from stackstate_checks.base.stubs.topology import component, relation
 import copy
 
+
 def test_instance():
     """
     Simply assert the class can be instantiated
