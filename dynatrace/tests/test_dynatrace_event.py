@@ -104,7 +104,7 @@ def test_generated_events(dynatrace_event_check, test_instance):
     """
     dynatrace_event_check._current_time_seconds = mock.MagicMock(return_value=1613485584)
     dynatrace_event_check._process_topology = mock.MagicMock(return_value=None)
-    dynatrace_event_check._timestamp_to_sts_datetime = mock.MagicMock(return_value='openSince:Feb 15, 2021, 22:26:00')
+    dynatrace_event_check._timestamp_to_sts_datetime = mock.MagicMock(return_value='Feb 15, 2021, 22:26:00')
     url = test_instance['url']
     timestamp = dynatrace_event_check._generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
     with requests_mock.Mocker() as m:

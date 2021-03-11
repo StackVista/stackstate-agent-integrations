@@ -324,7 +324,7 @@ class DynatraceCheck(AgentCheck):
                 "startTime:%s" % dynatrace_event.startTime,
                 "endTime:%s" % dynatrace_event.endTime,
                 "source:%s" % dynatrace_event.source,
-                "openSince:%s" % self.timestamp_to_sts_datetime(dynatrace_event),
+                "openSince:%s" % self._timestamp_to_sts_datetime(dynatrace_event),
             ]
         }
 
@@ -347,7 +347,7 @@ class DynatraceCheck(AgentCheck):
         self.event(event)
 
     @staticmethod
-    def timestamp_to_sts_datetime(dynatrace_event):
+    def _timestamp_to_sts_datetime(dynatrace_event):
         return datetime.fromtimestamp(dynatrace_event.startTime / 1000).strftime("%b %-d, %Y, %H:%M:%S")
 
     @staticmethod
