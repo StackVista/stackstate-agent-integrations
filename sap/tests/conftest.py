@@ -39,12 +39,14 @@ def https_instance():
         "keyfile": "/path/to/key.pem",
         "tags": ["customer:Stackstate", "foo:bar"],
         "thread_count": 4,
-        "idle_thread_ttl": 2
+        "idle_thread_ttl": 4
     }
+
 
 @pytest.fixture
 def instance_missing():
     return {}
+
 
 @pytest.fixture
 def instance_empty():
