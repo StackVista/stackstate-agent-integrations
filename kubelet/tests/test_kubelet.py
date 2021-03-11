@@ -680,3 +680,15 @@ def test_add_labels_to_tags(monkeypatch, aggregator):
     for metric in METRICS_WITH_INTERFACE_TAG:
         tag = 'interface:%s' % METRICS_WITH_INTERFACE_TAG[metric]
         aggregator.assert_metric_has_tag(metric, tag)
+
+def test_silent_tls_warning(caplog, monkeypatch, aggregator):
+    check = KubeletCheck('kubelet', {}, [{}])
+    check.kube_health_url = "https://example.com/"
+    check.kubelet_credentials = KubeletCredentials({'verify_tls': 'false'})
+
+    with caplog.at_level(logging.DEBUG):
+        check._perform_kubelet_check([])
+
+    expected_message = 'An unverified HTTPS request is being made to https://example.com/'
+    for _, _, message in caplog.record_tuples:
+        assert message != expected_message
