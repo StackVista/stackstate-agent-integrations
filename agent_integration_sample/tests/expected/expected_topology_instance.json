@@ -368,11 +368,7 @@
             "version":"0.2.0",
             "tags":[
                "integration-type:agent-integration",
-               "integration-url:sample",
-               "stackstate-domain:tag-domain",
-               "stackstate-identifier:tag-identifier",
-               "stackstate-identifiers:tag-identifiers-a",
-               "stackstate-layer:tag-layer"
+               "integration-url:sample"
             ],
             "identifiers":[
                "default-identifiers",
