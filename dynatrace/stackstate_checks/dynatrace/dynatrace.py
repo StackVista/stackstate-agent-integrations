@@ -310,7 +310,6 @@ class DynatraceCheck(AgentCheck):
         """
         Create an standard or custom event based on the Dynatrace Severity level
         """
-        open_since = datetime.fromtimestamp(dynatrace_event.startTime / 1000).strftime("%b %-d, %Y, %H:%M:%S")
         event = {
             "timestamp": self._current_time_seconds(),
             "source_type_name": "Dynatrace Events",
@@ -325,7 +324,7 @@ class DynatraceCheck(AgentCheck):
                 "startTime:%s" % dynatrace_event.startTime,
                 "endTime:%s" % dynatrace_event.endTime,
                 "source:%s" % dynatrace_event.source,
-                "openSince:%s" % open_since,
+                "openSince:%s" % self.timestamp_to_sts_datetime(dynatrace_event),
             ]
         }
 
@@ -346,6 +345,10 @@ class DynatraceCheck(AgentCheck):
             }
 
         self.event(event)
+
+    @staticmethod
+    def timestamp_to_sts_datetime(dynatrace_event):
+        return datetime.fromtimestamp(dynatrace_event.startTime / 1000).strftime("%b %-d, %Y, %H:%M:%S")
 
     @staticmethod
     def _link_to_dynatrace(entity_id, instance_url):

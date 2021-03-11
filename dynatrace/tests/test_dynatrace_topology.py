@@ -199,7 +199,6 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         expected_components, expected_relations = sort_topology_data(expected_topology)
 
         self.assertEqual(len(components), len(expected_components))
-
         for component in components:
             self.assertIn(component, expected_components)
 

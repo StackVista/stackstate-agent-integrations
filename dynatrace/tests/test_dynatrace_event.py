@@ -25,7 +25,8 @@ def test_no_events(dynatrace_event_check, test_instance):
     url = test_instance['url']
     timestamp = dynatrace_event_check._generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
     with requests_mock.Mocker() as m:
-        m.get('{}/api/v1/events?from={}'.format(url, timestamp), status_code=200, text=read_file('no_events.json'))
+        m.get('{}/api/v1/events?from={}'.format(url, timestamp), status_code=200,
+              text=read_file('no_events_response.json'))
         dynatrace_event_check.run()
         aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.OK)
         assert len(aggregator.events) == 0
@@ -40,7 +41,8 @@ def test_events_process_limit(dynatrace_event_check, test_instance):
     url = test_instance['url']
     timestamp = dynatrace_event_check._generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
     with requests_mock.Mocker() as m:
-        m.get('{}/api/v1/events?from={}'.format(url, timestamp), status_code=200, text=read_file('21_events.json'))
+        m.get('{}/api/v1/events?from={}'.format(url, timestamp), status_code=200,
+              text=read_file('21_events_response.json'))
         dynatrace_event_check.run()
         aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.WARNING)
         assert len(aggregator.events) == test_instance.get("events_process_limit")
@@ -58,9 +60,9 @@ def test_events_process_limit_with_batches(dynatrace_event_check, test_instance)
         url1 = '{}/api/v1/events?from={}'.format(url, timestamp)
         url2 = '{}/api/v1/events?cursor={}'.format(url, '123')
         url3 = '{}/api/v1/events?cursor={}'.format(url, '345')
-        m.get(url1, status_code=200, text=read_file("events_set1.json"))
-        m.get(url2, status_code=200, text=read_file("events_set2.json"))
-        m.get(url3, status_code=200, text=read_file("events_set3.json"))
+        m.get(url1, status_code=200, text=read_file("events_set1_response.json"))
+        m.get(url2, status_code=200, text=read_file("events_set2_response.json"))
+        m.get(url3, status_code=200, text=read_file("events_set3_response.json"))
         dynatrace_event_check.run()
         aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.WARNING)
         assert len(aggregator.events) == test_instance.get("events_process_limit")
@@ -102,10 +104,12 @@ def test_generated_events(dynatrace_event_check, test_instance):
     """
     dynatrace_event_check._current_time_seconds = mock.MagicMock(return_value=1613485584)
     dynatrace_event_check._process_topology = mock.MagicMock(return_value=None)
+    dynatrace_event_check._timestamp_to_sts_datetime = mock.MagicMock(return_value='openSince:Feb 15, 2021, 22:26:00')
     url = test_instance['url']
     timestamp = dynatrace_event_check._generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
     with requests_mock.Mocker() as m:
-        m.get('{}/api/v1/events?from={}'.format(url, timestamp), status_code=200, text=read_file('9_events.json'))
+        m.get('{}/api/v1/events?from={}'.format(url, timestamp), status_code=200,
+              text=read_file('9_events_response.json'))
         dynatrace_event_check.run()
         aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.OK)
         assert len(aggregator.events) == 8
@@ -129,7 +133,7 @@ def test_state_data(state, dynatrace_event_check, test_instance):
     timestamp = dynatrace_event_check._generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
     state_instance = StateDescriptor("instance.dynatrace_event.https_instance.live.dynatrace.com", "dynatrace_event.d")
     state.assert_state(state_instance, None)
-    events_file = 'no_events.json'
+    events_file = 'no_events_response.json'
     with requests_mock.Mocker() as m:
         m.get('{}/api/v1/events?from={}'.format(url, timestamp), status_code=200, text=read_file(events_file))
         dynatrace_event_check.run()
@@ -174,7 +178,8 @@ def test_simulated_ok_events(dynatrace_event_check, test_instance):
               text=read_file('process_response.json'))
         m.get("{}/api/v1/entity/infrastructure/process-groups".format(url), status_code=200,
               text=read_file('process-group_response.json'))
-        m.get('{}/api/v1/events?from={}'.format(url, timestamp), status_code=200, text=read_file('9_events.json'))
+        m.get('{}/api/v1/events?from={}'.format(url, timestamp), status_code=200,
+              text=read_file('9_events_response.json'))
         dynatrace_event_check.run()
         aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.OK)
         assert len(topology.get_snapshot('').get('components')) == 14
@@ -231,7 +236,7 @@ def test_unicode_in_response_text(dynatrace_event_check, test_instance):
         m.get("{}/api/v1/entity/infrastructure/processes".format(url), status_code=200, text='[]')
         m.get("{}/api/v1/entity/infrastructure/process-groups".format(url), status_code=200, text='[]')
         m.get('{}/api/v1/events?from={}'.format(url, timestamp), status_code=200,
-              text=read_file('unicode_topology_event.json'))
+              text=read_file('unicode_topology_event_response.json'))
         dynatrace_event_check.run()
         aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.OK)
         unicode_data = topology.get_snapshot('').get('components')[0]['data']['osVersion']
