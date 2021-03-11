@@ -8,6 +8,7 @@ import unittest
 import pytest
 import requests_mock
 
+from stackstate_checks.base import TopologyInstance
 from stackstate_checks.base.stubs import topology, aggregator
 from stackstate_checks.dynatrace import DynatraceCheck
 from .helpers import read_file, load_json_from_file
@@ -42,6 +43,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         m.get("/api/v1/entity/services", text=svcs)
         m.get("/api/v1/entity/infrastructure/processes", text=procs)
         m.get("/api/v1/entity/infrastructure/process-groups", text=proc_groups)
+        m.get("/api/v1/events", text="[]")
 
     @requests_mock.Mocker()
     def test_collect_empty_topology(self, m):
@@ -191,10 +193,10 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         self.check.url = self.instance.get('url')
         self.check.run()
 
-        topo_instances = topology.get_snapshot(self.check.check_id)
         expected_topology = load_json_from_file("expected_smartscape_full_topology.json")
-
-        with open('components.json', 'w') as file:
-            json.dump(topo_instances['components'], file)
-
-        self.assert_topology(expected_topology, topo_instances)
+        topology.assert_snapshot(self.check.check_id,
+                                 TopologyInstance("dynatrace", "https://ton48129.live.dynatrace.com"),
+                                 start_snapshot=True,
+                                 stop_snapshot=True,
+                                 components=expected_topology['components'],
+                                 relations=expected_topology['relations'])

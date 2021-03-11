@@ -1,53 +1,52 @@
 {
   "components": [
     {
+      "id": "PROCESS_GROUP_INSTANCE-F25A8361C6742030",
+      "type": "process",
       "data": {
-        "bitness": "64bit",
-        "discoveredName": "EdgeTransport.exe",
-        "displayName": "EdgeTransport.exe",
-        "domain": "dynatrace",
         "entityId": "PROCESS_GROUP_INSTANCE-F25A8361C6742030",
-        "environment": "production",
+        "displayName": "EdgeTransport.exe",
+        "discoveredName": "EdgeTransport.exe",
         "firstSeenTimestamp": 1600180620000,
-        "identifiers": [
-          "urn:dynatrace:/PROCESS_GROUP_INSTANCE-F25A8361C6742030"
-        ],
-        "instance": "https://ton48129.live.dynatrace.com",
         "lastSeenTimestamp": 1601448300000,
+        "metadata": {
+          "commandLineArgs": [
+            "C:\\Program\\ Files\\Microsoft\\Exchange\\ Server\\V15\\Bin\\EdgeTransport.exe -pipe:2144 -stopkey:Global\\ExchangeStopKey-34b894c1-c976-43db-a83d-cbc89ea5c5e0 -resetkey:Global\\ExchangeResetKey-4a9e8cc5-6ad9-4cc4-8610-36c9627cbcbe -readykey:Global\\ExchangeReadyKey-89d0548b-6776-4101-aed9-dbf884236629 -hangkey:Global\\ExchangeHangKey-b5611f0f-6ac3-4a4f-a405-f99ac6a7d673 -startUpProgressKey:Global\\ExchangeProgressKey-81c9a718-f3c5-40a3-a6b3-74b8d26b7dd2 -workerListening"
+          ],
+          "executables": [
+            "EdgeTransport.exe"
+          ],
+          "executablePaths": [
+            "C:/Program Files/Microsoft/Exchange Server/V*/Bin/EdgeTransport.exe",
+            "C:\\PROGRAM FILES\\MICROSOFT\\EXCHANGE SERVER\\V15\\BIN\\EDGETRANSPORT.EXE"
+          ]
+        },
+        "softwareTechnologies": [
+          {
+            "type": "CLR",
+            "edition": "FullCLR",
+            "version": "4.8.3928.0"
+          },
+          {
+            "type": "DOTNET",
+            "edition": ".NET Framework",
+            "version": "4.8.3928.0"
+          }
+        ],
         "listenPorts": [
           6681,
           465,
           2525,
           6671
         ],
-        "metadata": {
-          "commandLineArgs": [
-            "C:\\Program\\ Files\\Microsoft\\Exchange\\ Server\\V15\\Bin\\EdgeTransport.exe -pipe:2144 -stopkey:Global\\ExchangeStopKey-34b894c1-c976-43db-a83d-cbc89ea5c5e0 -resetkey:Global\\ExchangeResetKey-4a9e8cc5-6ad9-4cc4-8610-36c9627cbcbe -readykey:Global\\ExchangeReadyKey-89d0548b-6776-4101-aed9-dbf884236629 -hangkey:Global\\ExchangeHangKey-b5611f0f-6ac3-4a4f-a405-f99ac6a7d673 -startUpProgressKey:Global\\ExchangeProgressKey-81c9a718-f3c5-40a3-a6b3-74b8d26b7dd2 -workerListening"
-          ],
-          "executablePaths": [
-            "C:/Program Files/Microsoft/Exchange Server/V*/Bin/EdgeTransport.exe",
-            "C:\\PROGRAM FILES\\MICROSOFT\\EXCHANGE SERVER\\V15\\BIN\\EDGETRANSPORT.EXE"
-          ],
-          "executables": [
-            "EdgeTransport.exe"
-          ]
-        },
+        "bitness": "64bit",
         "monitoringState": {
           "actualMonitoringState": "OFF",
           "expectedMonitoringState": "OFF",
           "restartRequired": false
         },
-        "softwareTechnologies": [
-          {
-            "edition": "FullCLR",
-            "type": "CLR",
-            "version": "4.8.3928.0"
-          },
-          {
-            "edition": ".NET Framework",
-            "type": "DOTNET",
-            "version": "4.8.3928.0"
-          }
+        "identifiers": [
+          "urn:dynatrace:/PROCESS_GROUP_INSTANCE-F25A8361C6742030"
         ],
         "tags": [
           "dynatrace-CLR:FullCLR:4.8.3928.0",
@@ -57,80 +56,80 @@
           "dynatrace-expectedMonitoringState:OFF",
           "integration-type:dynatrace",
           "integration-url:https://ton48129.live.dynatrace.com"
-        ]
-      },
-      "id": "PROCESS_GROUP_INSTANCE-F25A8361C6742030",
-      "type": "process"
+        ],
+        "domain": "dynatrace",
+        "environment": "production",
+        "instance": "https://ton48129.live.dynatrace.com"
+      }
     },
     {
+      "id": "PROCESS_GROUP_INSTANCE-3A6855F295757634",
+      "type": "process",
       "data": {
-        "agentVersions": [
-          {
-            "major": 1,
-            "minor": 201,
-            "revision": 109,
-            "sourceRevision": "",
-            "timestamp": "20200921-085558"
-          }
-        ],
-        "bitness": "64bit",
-        "discoveredName": "Elasticsearch stackstate",
-        "displayName": "Elasticsearch stackstate (stackstate-prod-0)",
-        "domain": "dynatrace",
         "entityId": "PROCESS_GROUP_INSTANCE-3A6855F295757634",
-        "environment": "production",
+        "displayName": "Elasticsearch stackstate (stackstate-prod-0)",
+        "discoveredName": "Elasticsearch stackstate",
         "firstSeenTimestamp": 1600092000000,
-        "identifiers": [
-          "urn:dynatrace:/PROCESS_GROUP_INSTANCE-3A6855F295757634"
-        ],
-        "instance": "https://ton48129.live.dynatrace.com",
         "lastSeenTimestamp": 1601448360000,
-        "listenPorts": [
-          9200,
-          9300
-        ],
         "metadata": {
-          "commandLineArgs": [
-            "/usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java -Des.path.home=/opt/stackstate/elasticsearch7 -Des.path.logs=/opt/stackstate/var/log/elasticsearch7 -Des.path.data=/opt/stackstate/var/lib/elasticsearch7 -Des.path.conf=/opt/stackstate/etc/elasticsearch7 -Des.distribution.flavor=oss -Des.distribution.type=tar -Des.bundled_jdk=false -Des.networkaddress.cache.ttl=60 -Des.networkaddress.cache.negative.ttl=10 -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=100 -XX:+AlwaysPreTouch -Xss1m -Dfile.encoding=UTF-8 -Djna.nosys=true -Djava.awt.headless=true -XX:-OmitStackTraceInFastThrow -Dio.netty.noUnsafe=true -Dio.netty.noKeySetOptimization=true -Dio.netty.recycler.maxCapacityPerThread=0 -Dlog4j.shutdownHookEnabled=false -Xmx2G -Xms2G -XX:+ExitOnOutOfMemoryError -cp /opt/stackstate/etc/elasticsearch7:/opt/stackstate/elasticsearch7/lib/* -Dlog4j2.disable.jmx=true -Djava.io.tmpdir=/opt/stackstate/tmp org.elasticsearch.bootstrap.Elasticsearch --quiet"
-          ],
           "elasticSearchClusterNames": [
             "stackstate"
           ],
-          "elasticSearchNodeNames": [
-            "stackstate-prod-0"
-          ],
-          "executablePaths": [
-            "/usr/lib/jvm/java-*-openjdk-amd*/jre/bin/java",
-            "/usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java"
+          "commandLineArgs": [
+            "/usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java -Des.path.home=/opt/stackstate/elasticsearch7 -Des.path.logs=/opt/stackstate/var/log/elasticsearch7 -Des.path.data=/opt/stackstate/var/lib/elasticsearch7 -Des.path.conf=/opt/stackstate/etc/elasticsearch7 -Des.distribution.flavor=oss -Des.distribution.type=tar -Des.bundled_jdk=false -Des.networkaddress.cache.ttl=60 -Des.networkaddress.cache.negative.ttl=10 -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=100 -XX:+AlwaysPreTouch -Xss1m -Dfile.encoding=UTF-8 -Djna.nosys=true -Djava.awt.headless=true -XX:-OmitStackTraceInFastThrow -Dio.netty.noUnsafe=true -Dio.netty.noKeySetOptimization=true -Dio.netty.recycler.maxCapacityPerThread=0 -Dlog4j.shutdownHookEnabled=false -Xmx2G -Xms2G -XX:+ExitOnOutOfMemoryError -cp /opt/stackstate/etc/elasticsearch7:/opt/stackstate/elasticsearch7/lib/* -Dlog4j2.disable.jmx=true -Djava.io.tmpdir=/opt/stackstate/tmp org.elasticsearch.bootstrap.Elasticsearch --quiet"
           ],
           "executables": [
             "java"
           ],
+          "elasticSearchNodeNames": [
+            "stackstate-prod-0"
+          ],
           "javaMainClasses": [
             "org.elasticsearch.bootstrap.Elasticsearch"
+          ],
+          "executablePaths": [
+            "/usr/lib/jvm/java-*-openjdk-amd*/jre/bin/java",
+            "/usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java"
           ]
         },
+        "softwareTechnologies": [
+          {
+            "type": "NETTY",
+            "edition": "HTTP Server",
+            "version": "4.1.36.Final"
+          },
+          {
+            "type": "JAVA",
+            "edition": "OpenJDK",
+            "version": "1.8.0_265"
+          },
+          {
+            "type": "ELASTIC_SEARCH",
+            "edition": null,
+            "version": null
+          }
+        ],
+        "listenPorts": [
+          9200,
+          9300
+        ],
+        "bitness": "64bit",
         "monitoringState": {
           "actualMonitoringState": "ON",
           "expectedMonitoringState": "ON",
           "restartRequired": true
         },
-        "softwareTechnologies": [
+        "agentVersions": [
           {
-            "edition": "HTTP Server",
-            "type": "NETTY",
-            "version": "4.1.36.Final"
-          },
-          {
-            "edition": "OpenJDK",
-            "type": "JAVA",
-            "version": "1.8.0_265"
-          },
-          {
-            "edition": null,
-            "type": "ELASTIC_SEARCH",
-            "version": null
+            "major": 1,
+            "minor": 201,
+            "revision": 109,
+            "timestamp": "20200921-085558",
+            "sourceRevision": ""
           }
+        ],
+        "identifiers": [
+          "urn:dynatrace:/PROCESS_GROUP_INSTANCE-3A6855F295757634"
         ],
         "tags": [
           "dynatrace-ELASTIC_SEARCH",
@@ -141,76 +140,79 @@
           "dynatrace-expectedMonitoringState:ON",
           "integration-type:dynatrace",
           "integration-url:https://ton48129.live.dynatrace.com"
-        ]
-      },
-      "id": "PROCESS_GROUP_INSTANCE-3A6855F295757634",
-      "type": "process"
+        ],
+        "domain": "dynatrace",
+        "environment": "production",
+        "instance": "https://ton48129.live.dynatrace.com"
+      }
     },
     {
+      "id": "PROCESS_GROUP_INSTANCE-D87BE1EAFC600996",
+      "type": "process",
       "data": {
-        "bitness": "64bit",
-        "discoveredName": "IIS",
-        "displayName": "IIS",
-        "domain": "dynatrace",
         "entityId": "PROCESS_GROUP_INSTANCE-D87BE1EAFC600996",
-        "environment": "production",
+        "displayName": "IIS",
+        "discoveredName": "IIS",
         "firstSeenTimestamp": 1600180620000,
-        "identifiers": [
-          "urn:dynatrace:/PROCESS_GROUP_INSTANCE-D87BE1EAFC600996"
-        ],
-        "instance": "https://ton48129.live.dynatrace.com",
         "lastSeenTimestamp": 1601448300000,
+        "metadata": {
+          "executables": [
+            "svchost.exe"
+          ],
+          "executablePaths": [
+            "C:\\WINDOWS\\SYSTEM32\\SVCHOST.EXE"
+          ]
+        },
+        "softwareTechnologies": [
+          {
+            "type": "IIS-with-unicode-char-\u0081",
+            "edition": null,
+            "version": null
+          },
+          {
+            "type": "CLR",
+            "edition": "FullCLR",
+            "version": "4.8.3928.0"
+          },
+          {
+            "type": "DOTNET",
+            "edition": ".NET Framework",
+            "version": "4.8.3928.0"
+          }
+        ],
         "listenPorts": [
           80,
           81,
           443,
           444
         ],
-        "metadata": {
-          "executablePaths": [
-            "C:\\WINDOWS\\SYSTEM32\\SVCHOST.EXE"
-          ],
-          "executables": [
-            "svchost.exe"
-          ]
-        },
+        "bitness": "64bit",
         "monitoringState": {
           "actualMonitoringState": "OFF",
           "expectedMonitoringState": "ON",
           "restartRequired": true
         },
-        "softwareTechnologies": [
-          {
-            "edition": null,
-            "type": "IIS-with-unicode-char-",
-            "version": null
-          },
-          {
-            "edition": "FullCLR",
-            "type": "CLR",
-            "version": "4.8.3928.0"
-          },
-          {
-            "edition": ".NET Framework",
-            "type": "DOTNET",
-            "version": "4.8.3928.0"
-          }
+        "identifiers": [
+          "urn:dynatrace:/PROCESS_GROUP_INSTANCE-D87BE1EAFC600996"
         ],
         "tags": [
           "dynatrace-CLR:FullCLR:4.8.3928.0",
           "dynatrace-DOTNET:.NET Framework:4.8.3928.0",
-          "dynatrace-IIS-with-unicode-char-",
+          "dynatrace-IIS-with-unicode-char-\u0081",
           "dynatrace-PROCESS_GROUP_INSTANCE-D87BE1EAFC600996",
           "dynatrace-actualMonitoringState:OFF",
           "dynatrace-expectedMonitoringState:ON",
           "integration-type:dynatrace",
           "integration-url:https://ton48129.live.dynatrace.com"
-        ]
-      },
-      "id": "PROCESS_GROUP_INSTANCE-D87BE1EAFC600996",
-      "type": "process"
+        ],
+        "domain": "dynatrace",
+        "environment": "production",
+        "instance": "https://ton48129.live.dynatrace.com"
+      }
     },
     {
+      "id": "HOST-6AAE0F78BCF2E0F4",
+      "type": "host",
       "data": {
         "entityId": "HOST-6AAE0F78BCF2E0F4",
         "displayName": "EX01.stackstate.lab",
@@ -219,7 +221,7 @@
         "lastSeenTimestamp": 1601447916389,
         "osType": "WINDOWS",
         "osArchitecture": "X86",
-        "osVersion": "Windows Server 2016 Datacenter 1607, ver. 10.0.14393 with unicode char: ",
+        "osVersion": "Windows Server 2016 Datacenter 1607, ver. 10.0.14393 with unicode char: \u0081",
         "hypervisorType": "XEN",
         "ipAddresses": [
           "3.249.27.126",
@@ -251,8 +253,6 @@
         "localHostName": "ip-172-31-29-43.eu-west-1.compute.internal",
         "amiId": "ami-044b14bf9ccadeee9",
         "awsInstanceId": "i-0de40b60fae0f6846",
-        "domain": "dynatrace",
-        "environment": "production",
         "identifiers": [
           "urn:dynatrace:/HOST-6AAE0F78BCF2E0F4",
           "urn:host:/ec2-3-249-27-126.eu-west-1.compute.amazonaws.com",
@@ -260,17 +260,19 @@
           "urn:host:/EX01.stackstate.lab",
           "urn:host:/ex01.stackstate.lab"
         ],
-        "instance": "https://ton48129.live.dynatrace.com",
         "tags": [
           "dynatrace-HOST-6AAE0F78BCF2E0F4",
           "integration-type:dynatrace",
           "integration-url:https://ton48129.live.dynatrace.com"
-        ]
-      },
-      "id": "HOST-6AAE0F78BCF2E0F4",
-      "type": "host"
+        ],
+        "domain": "dynatrace",
+        "environment": "production",
+        "instance": "https://ton48129.live.dynatrace.com"
+      }
     },
     {
+      "id": "HOST-AA6A5D81A0006807",
+      "type": "host",
       "data": {
         "entityId": "HOST-AA6A5D81A0006807",
         "displayName": "SQL01.stackstate.lab",
@@ -310,8 +312,6 @@
         "localHostName": "ip-172-31-30-110.eu-west-1.compute.internal",
         "amiId": "ami-076c188b0006a9c1c",
         "awsInstanceId": "i-0eee811b00ae31c95",
-        "domain": "dynatrace",
-        "environment": "production",
         "identifiers": [
           "urn:dynatrace:/HOST-AA6A5D81A0006807",
           "urn:host:/ec2-34-242-110-40.eu-west-1.compute.amazonaws.com",
@@ -319,21 +319,23 @@
           "urn:host:/SQL01.stackstate.lab",
           "urn:host:/sql01.stackstate.lab"
         ],
-        "instance": "https://ton48129.live.dynatrace.com",
         "tags": [
           "dynatrace-HOST-AA6A5D81A0006807",
           "integration-type:dynatrace",
           "integration-url:https://ton48129.live.dynatrace.com"
-        ]
-      },
-      "id": "HOST-AA6A5D81A0006807",
-      "type": "host"
+        ],
+        "domain": "dynatrace",
+        "environment": "production",
+        "instance": "https://ton48129.live.dynatrace.com"
+      }
     },
     {
+      "id": "APPLICATION-EA7C4B59F27D43EB",
+      "type": "application",
       "data": {
         "entityId": "APPLICATION-EA7C4B59F27D43EB",
         "displayName": "RUM Default Application",
-        "customizedName": "RUM Default Application with unicode char: ",
+        "customizedName": "RUM Default Application with unicode char: \u0081",
         "discoveredName": "RUM Default Application",
         "firstSeenTimestamp": 1422282024216,
         "lastSeenTimestamp": 1538579528065,
@@ -353,12 +355,9 @@
             "name": "Applications except easyTravel"
           }
         ],
-        "domain": "dynatrace",
-        "environment": "production",
         "identifiers": [
           "urn:dynatrace:/APPLICATION-EA7C4B59F27D43EB"
         ],
-        "instance": "https://ton48129.live.dynatrace.com",
         "tags": [
           "dynatrace-APPLICATION-EA7C4B59F27D43EB",
           "dynatrace-Mytag",
@@ -368,12 +367,15 @@
           "dynatrace-managementZones:app name exists",
           "integration-type:dynatrace",
           "integration-url:https://ton48129.live.dynatrace.com"
-        ]
-      },
-      "id": "APPLICATION-EA7C4B59F27D43EB",
-      "type": "application"
+        ],
+        "domain": "dynatrace",
+        "environment": "production",
+        "instance": "https://ton48129.live.dynatrace.com"
+      }
     },
     {
+      "id": "APPLICATION-BBFA55551D507E2B",
+      "type": "application",
       "data": {
         "entityId": "APPLICATION-BBFA55551D507E2B",
         "displayName": "easyTravel Ionic Web",
@@ -391,24 +393,24 @@
             "name": "easyTravel"
           }
         ],
-        "domain": "dynatrace",
-        "environment": "production",
         "identifiers": [
           "urn:dynatrace:/APPLICATION-BBFA55551D507E2B"
         ],
-        "instance": "https://ton48129.live.dynatrace.com",
         "tags": [
           "dynatrace-APPLICATION-BBFA55551D507E2B",
           "dynatrace-managementZones:allTypes",
           "dynatrace-managementZones:easyTravel",
           "integration-type:dynatrace",
           "integration-url:https://ton48129.live.dynatrace.com"
-        ]
-      },
-      "id": "APPLICATION-BBFA55551D507E2B",
-      "type": "application"
+        ],
+        "domain": "dynatrace",
+        "environment": "production",
+        "instance": "https://ton48129.live.dynatrace.com"
+      }
     },
     {
+      "id": "MOBILE_APPLICATION-752C288D59734C79",
+      "type": "application",
       "data": {
         "entityId": "MOBILE_APPLICATION-752C288D59734C79",
         "displayName": "easyTravel Demo",
@@ -427,12 +429,9 @@
             "name": "easyTravel"
           }
         ],
-        "domain": "dynatrace",
-        "environment": "production",
         "identifiers": [
           "urn:dynatrace:/MOBILE_APPLICATION-752C288D59734C79"
         ],
-        "instance": "https://ton48129.live.dynatrace.com",
         "tags": [
           "dynatrace-MOBILE_APPLICATION-752C288D59734C79",
           "dynatrace-easyTravel",
@@ -440,12 +439,15 @@
           "dynatrace-portal",
           "integration-type:dynatrace",
           "integration-url:https://ton48129.live.dynatrace.com"
-        ]
-      },
-      "id": "MOBILE_APPLICATION-752C288D59734C79",
-      "type": "application"
+        ],
+        "domain": "dynatrace",
+        "environment": "production",
+        "instance": "https://ton48129.live.dynatrace.com"
+      }
     },
     {
+      "id": "PROCESS_GROUP-518359807AEC7140",
+      "type": "process-group",
       "data": {
         "entityId": "PROCESS_GROUP-518359807AEC7140",
         "displayName": "EdgeTransport.exe",
@@ -482,24 +484,24 @@
           2525,
           6671
         ],
-        "domain": "dynatrace",
-        "environment": "production",
         "identifiers": [
           "urn:dynatrace:/PROCESS_GROUP-518359807AEC7140"
         ],
-        "instance": "https://ton48129.live.dynatrace.com",
         "tags": [
           "dynatrace-CLR:FullCLR:4.8.3928.0",
           "dynatrace-DOTNET:.NET Framework:4.8.3928.0",
           "dynatrace-PROCESS_GROUP-518359807AEC7140",
           "integration-type:dynatrace",
           "integration-url:https://ton48129.live.dynatrace.com"
-        ]
-      },
-      "id": "PROCESS_GROUP-518359807AEC7140",
-      "type": "process-group"
+        ],
+        "domain": "dynatrace",
+        "environment": "production",
+        "instance": "https://ton48129.live.dynatrace.com"
+      }
     },
     {
+      "id": "PROCESS_GROUP-647A29F2E878C508",
+      "type": "process-group",
       "data": {
         "entityId": "PROCESS_GROUP-647A29F2E878C508",
         "displayName": "Elasticsearch stackstate",
@@ -517,7 +519,7 @@
             "java"
           ],
           "elasticSearchNodeNames": [
-            "stackstate-prod-0-with-unicode-char-"
+            "stackstate-prod-0-with-unicode-char-\u0081"
           ],
           "javaMainClasses": [
             "org.elasticsearch.bootstrap.Elasticsearch"
@@ -548,12 +550,9 @@
           9200,
           9300
         ],
-        "domain": "dynatrace",
-        "environment": "production",
         "identifiers": [
           "urn:dynatrace:/PROCESS_GROUP-647A29F2E878C508"
         ],
-        "instance": "https://ton48129.live.dynatrace.com",
         "tags": [
           "dynatrace-ELASTIC_SEARCH",
           "dynatrace-JAVA:OpenJDK:1.8.0_265",
@@ -561,12 +560,15 @@
           "dynatrace-PROCESS_GROUP-647A29F2E878C508",
           "integration-type:dynatrace",
           "integration-url:https://ton48129.live.dynatrace.com"
-        ]
-      },
-      "id": "PROCESS_GROUP-647A29F2E878C508",
-      "type": "process-group"
+        ],
+        "domain": "dynatrace",
+        "environment": "production",
+        "instance": "https://ton48129.live.dynatrace.com"
+      }
     },
     {
+      "id": "PROCESS_GROUP-3D9D854163F8F07A",
+      "type": "process-group",
       "data": {
         "entityId": "PROCESS_GROUP-3D9D854163F8F07A",
         "displayName": "IIS",
@@ -604,12 +606,9 @@
           443,
           444
         ],
-        "domain": "dynatrace",
-        "environment": "production",
         "identifiers": [
           "urn:dynatrace:/PROCESS_GROUP-3D9D854163F8F07A"
         ],
-        "instance": "https://ton48129.live.dynatrace.com",
         "tags": [
           "dynatrace-CLR:FullCLR:4.8.3928.0",
           "dynatrace-DOTNET:.NET Framework:4.8.3928.0",
@@ -617,12 +616,15 @@
           "dynatrace-PROCESS_GROUP-3D9D854163F8F07A",
           "integration-type:dynatrace",
           "integration-url:https://ton48129.live.dynatrace.com"
-        ]
-      },
-      "id": "PROCESS_GROUP-3D9D854163F8F07A",
-      "type": "process-group"
+        ],
+        "domain": "dynatrace",
+        "environment": "production",
+        "instance": "https://ton48129.live.dynatrace.com"
+      }
     },
     {
+      "id": "SERVICE-923B9ABBC3F9DB68",
+      "type": "service",
       "data": {
         "entityId": "SERVICE-923B9ABBC3F9DB68",
         "displayName": "/Exchange.HighAvailability/ServerLocator on msexchangerepl.exe:*",
@@ -644,24 +646,24 @@
           }
         ],
         "path": "/Exchange.HighAvailability/ServerLocator",
-        "domain": "dynatrace",
-        "environment": "production",
         "identifiers": [
           "urn:dynatrace:/SERVICE-923B9ABBC3F9DB68"
         ],
-        "instance": "https://ton48129.live.dynatrace.com",
         "tags": [
           "dynatrace-CLR:FullCLR:4.8.3928.0",
           "dynatrace-DOTNET:.NET Framework:4.8.3928.0",
           "dynatrace-SERVICE-923B9ABBC3F9DB68",
           "integration-type:dynatrace",
           "integration-url:https://ton48129.live.dynatrace.com"
-        ]
-      },
-      "id": "SERVICE-923B9ABBC3F9DB68",
-      "type": "service"
+        ],
+        "domain": "dynatrace",
+        "environment": "production",
+        "instance": "https://ton48129.live.dynatrace.com"
+      }
     },
     {
+      "id": "SERVICE-8745799105D02C01",
+      "type": "service",
       "data": {
         "entityId": "SERVICE-8745799105D02C01",
         "displayName": "/Microsoft.Exchange.Directory.TopologyService on Microsoft.Exchange.Directory.TopologyService.exe:890",
@@ -684,24 +686,24 @@
         ],
         "path": "/Microsoft.Exchange.Directory.TopologyService",
         "port": 890,
-        "domain": "dynatrace",
-        "environment": "production",
         "identifiers": [
           "urn:dynatrace:/SERVICE-8745799105D02C01"
         ],
-        "instance": "https://ton48129.live.dynatrace.com",
         "tags": [
           "dynatrace-CLR:FullCLR:4.8.3928.0",
           "dynatrace-DOTNET:.NET Framework:4.8.3928.0",
           "dynatrace-SERVICE-8745799105D02C01",
           "integration-type:dynatrace",
           "integration-url:https://ton48129.live.dynatrace.com"
-        ]
-      },
-      "id": "SERVICE-8745799105D02C01",
-      "type": "service"
+        ],
+        "domain": "dynatrace",
+        "environment": "production",
+        "instance": "https://ton48129.live.dynatrace.com"
+      }
     },
     {
+      "id": "SERVICE-329B4CC95B522941",
+      "type": "service",
       "data": {
         "entityId": "SERVICE-329B4CC95B522941",
         "displayName": "AutodiscoverService",
@@ -745,12 +747,9 @@
             "version": "4.8.3928.0"
           }
         ],
-        "domain": "dynatrace",
-        "environment": "production",
         "identifiers": [
           "urn:dynatrace:/SERVICE-329B4CC95B522941"
         ],
-        "instance": "https://ton48129.live.dynatrace.com",
         "tags": [
           "dynatrace-ASP_NET:4.8.3928.0",
           "dynatrace-CLR:FullCLR:4.0.30319.0",
@@ -758,13 +757,14 @@
           "dynatrace-IIS_APP_POOL:10.0.14393.0",
           "dynatrace-SERVICE-329B4CC95B522941",
           "dynatrace-WCF:4.8.3928.0",
-          "dynatrace-[Kubernetes]namespace:default-with-unicode-char-",
+          "dynatrace-[Kubernetes]namespace:default-with-unicode-char-\u0081",
           "integration-type:dynatrace",
           "integration-url:https://ton48129.live.dynatrace.com"
-        ]
-      },
-      "id": "SERVICE-329B4CC95B522941",
-      "type": "service"
+        ],
+        "domain": "dynatrace",
+        "environment": "production",
+        "instance": "https://ton48129.live.dynatrace.com"
+      }
     }
   ],
   "relations": [
