@@ -301,7 +301,8 @@ class AgentCheckBase(object):
             self.normalize("instance.{}.{}".format(integration_instance.type, integration_instance.url),
                            extra_disallowed_chars=b":")
         )
-        return StateDescriptor(instance_key, self.get_check_config_path())
+
+        return StateDescriptor(instance_key, self.get_check_state_path())
 
     @staticmethod
     def get_cluster_name():
@@ -897,6 +898,15 @@ class AgentCheckBase(object):
                 return True
 
         return False
+
+    def get_check_state_path(self):
+        """
+        get_check_state_path returns the path where the check state is stored. By default the check configuration
+        location will be used. If state_location is set in the check configuration that will be used instead.
+        """
+        state_location = self.instance.get("state_location", self.get_agent_conf_d_path())
+
+        return "{}.d".format(os.path.join(state_location, self.name))
 
     def get_check_config_path(self):
         return "{}.d".format(os.path.join(self.get_agent_conf_d_path(), self.name))
