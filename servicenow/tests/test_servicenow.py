@@ -356,7 +356,7 @@ class TestServicenow(unittest.TestCase):
                           "00a96c0d3790200044e0bfc8bcbe5db4",
                           "urn:host:/macbook pro 15",
                           "lupulus"])
-        self.assertNotIn('stackstate-identifier:lupulus', topo_instances['components'][0]['data']['tags'])
+        self.assertIn('stackstate-identifier:lupulus', topo_instances['components'][0]['data']['tags'])
         self.assertIn('stackstate', topo_instances['components'][0]['data']['tags'])
 
     def test_collect_relations(self):
