@@ -206,4 +206,3 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         self.assertEqual(len(relations), len(expected_relations))
         for relation in relations:
             self.assertIn(relation, expected_relations)
-
