@@ -8,7 +8,6 @@ import unittest
 import pytest
 import requests_mock
 
-from stackstate_checks.base import TopologyInstance
 from stackstate_checks.base.stubs import topology, aggregator
 from stackstate_checks.dynatrace import DynatraceCheck
 from .helpers import read_file, load_json_from_file
@@ -194,9 +193,17 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         self.check.run()
 
         expected_topology = load_json_from_file("expected_smartscape_full_topology.json")
-        topology.assert_snapshot(self.check.check_id,
-                                 TopologyInstance("dynatrace", "https://ton48129.live.dynatrace.com"),
-                                 start_snapshot=True,
-                                 stop_snapshot=True,
-                                 components=expected_topology['components'],
-                                 relations=expected_topology['relations'])
+        actual_topology = topology.get_snapshot(self.check.check_id)
+
+        components, relations = sort_topology_data(actual_topology)
+        expected_components, expected_relations = sort_topology_data(expected_topology)
+
+        self.assertEqual(len(components), len(expected_components))
+
+        for component in components:
+            self.assertIn(component, expected_components)
+
+        self.assertEqual(len(relations), len(expected_relations))
+        for relation in relations:
+            self.assertIn(relation, expected_relations)
+
