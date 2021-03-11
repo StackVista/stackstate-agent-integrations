@@ -2,6 +2,7 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import json
+import logging
 import os
 import sys
 from datetime import datetime
@@ -615,7 +616,7 @@ def test_report_node_metrics(monkeypatch):
     check.gauge.assert_has_calls(calls, any_order=False)
 
 def test_report_node_metrics_kubernetes1_18(monkeypatch, aggregator):
-    check = KubeletCheck('kubelet', {}, [{}])
+    check = KubeletCheck('kubelet', None, {}, [{}])
     check.kubelet_credentials = KubeletCredentials({'verify_tls': 'false'})
     check.node_spec_url = "http://localhost:10255/spec"
 
@@ -682,7 +683,7 @@ def test_add_labels_to_tags(monkeypatch, aggregator):
         aggregator.assert_metric_has_tag(metric, tag)
 
 def test_silent_tls_warning(caplog, monkeypatch, aggregator):
-    check = KubeletCheck('kubelet', {}, [{}])
+    check = KubeletCheck('kubelet', None, {}, [{}])
     check.kube_health_url = "https://example.com/"
     check.kubelet_credentials = KubeletCredentials({'verify_tls': 'false'})
 
