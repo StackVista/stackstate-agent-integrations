@@ -39,6 +39,36 @@ DYNATRACE_UI_URLS = {
 dynatrace_entities_cache = {}
 
 
+class MonitoringState(Model):
+    actualMonitoringState = StringType()
+    expectedMonitoringState = StringType()
+    restartRequired = BooleanType()
+
+
+class DynatraceComponent(Model):
+    # Common fields to Host, Process, Process groups, Services and Applications
+    entityId = StringType(required=True)
+    displayName = StringType(required=True)
+    customizedName = StringType()
+    discoveredName = StringType()
+    firstSeenTimestamp = IntType()
+    lastSeenTimestamp = IntType()
+    tags = ListType(DictType(StringType))
+    fromRelationships = DictType(ListType(StringType), default={})
+    toRelationships = DictType(ListType(StringType), default={})
+    managementZones = ListType(DictType(StringType), default=[])
+    # Host, Process, Process groups, Services
+    softwareTechnologies = ListType(DictType(StringType), default=[])
+    # Process
+    monitoringState = ModelType(MonitoringState)
+    # Host
+    esxiHostName = StringType()
+    oneAgentCustomHostName = StringType()
+    azureHostNames = StringType()
+    publicHostName = StringType()
+    localHostName = StringType()
+
+
 class DynatraceEvent(Model):
     eventId = IntType()
     startTime = IntType()
@@ -120,58 +150,6 @@ class DynatraceCheck(AgentCheck):
         self.log.info("Collected %d topology entities.", len(dynatrace_entities_cache))
         self.log.debug("Time taken to collect the topology is: %d seconds" % time_taken.total_seconds())
 
-    def _collect_relations(self, component, external_id):
-        """
-        Collects relationships from different component-types
-        :param component: the component for which relationships need to be extracted and processed
-        :param external_id: the component externalId for and from relationship will be created
-        :return: None
-        """
-        outgoing_relations = component.get("fromRelationships", {})
-        incoming_relations = component.get("toRelationships", {})
-        for relation_type, relation_value in outgoing_relations.items():
-            # Ignore `isSiteOf` relation since location components are not processed right now
-            if relation_type != "isSiteOf":
-                for target_id in relation_value:
-                    self.relation(external_id, target_id, relation_type, {})
-        for relation_type, relation_value in incoming_relations.items():
-            # Ignore `isSiteOf` relation since location components are not processed right now
-            if relation_type != "isSiteOf":
-                for source_id in relation_value:
-                    self.relation(source_id, external_id, relation_type, {})
-
-    @staticmethod
-    def _clean_unsupported_metadata(component):
-        """
-        Convert the data type to string in case of `boolean` and `float`.
-        Currently we get `float` values for `Hosts`
-        :param component: metadata with unsupported data types
-        :return: metadata with supported data types
-        """
-        for key in component.keys():
-            if type(component[key]) is float:
-                component[key] = str(component[key])
-            elif type(component[key]) is bool:
-                component[key] = str(component[key])
-        return component
-
-    @staticmethod
-    def _get_host_identifiers(component):
-        host_identifiers = []
-        if component.get("esxiHostName"):
-            host_identifiers.append(Identifiers.create_host_identifier(component.get("esxiHostName")))
-        if component.get("oneAgentCustomHostName"):
-            host_identifiers.append(Identifiers.create_host_identifier(component.get("oneAgentCustomHostName")))
-        if component.get("azureHostNames"):
-            host_identifiers.append(Identifiers.create_host_identifier(component.get("azureHostNames")))
-        if component.get("publicHostName"):
-            host_identifiers.append(Identifiers.create_host_identifier(component.get("publicHostName")))
-        if component.get("localHostName"):
-            host_identifiers.append(Identifiers.create_host_identifier(component.get("localHostName")))
-        host_identifiers.append(Identifiers.create_host_identifier(component.get("displayName")))
-        host_identifiers = Identifiers.append_lowercase_identifiers(host_identifiers)
-        return host_identifiers
-
     def _collect_topology(self, response, component_type, instance_info):
         """
         Process each component type and map those with specific data
@@ -182,14 +160,16 @@ class DynatraceCheck(AgentCheck):
         """
         for item in response:
             item = self._clean_unsupported_metadata(item)
-            data = dict()
-            external_id = item["entityId"]
+            dynatrace_component = DynatraceComponent(item, strict=False)
+            dynatrace_component.validate()
+            data = {}
+            external_id = dynatrace_component.entityId
             identifiers = [Identifiers.create_custom_identifier("dynatrace", external_id)]
             if component_type == "host":
-                host_identifiers = self._get_host_identifiers(item)
+                host_identifiers = self._get_host_identifiers(dynatrace_component)
                 identifiers.extend(host_identifiers)
             # derive useful labels from dynatrace tags
-            tags = self._get_labels(item)
+            tags = self._get_labels(dynatrace_component)
             tags.extend(instance_info.instance_tags)
             data.update(item)
             self._filter_item_topology_data(data)
@@ -201,8 +181,62 @@ class DynatraceCheck(AgentCheck):
                 "instance": instance_info.url,
             })
             self.component(external_id, component_type, data)
-            self._collect_relations(item, external_id)
-            dynatrace_entities_cache[external_id] = {"name": data.get("displayName"), "type": component_type}
+            self._collect_relations(dynatrace_component, external_id)
+            dynatrace_entities_cache[external_id] = {"name": dynatrace_component.displayName, "type": component_type}
+
+    def _collect_relations(self, dynatrace_component, external_id):
+        """
+        Collects relationships from different component-types
+        :param dynatrace_component: the component for which relationships need to be extracted and processed
+        :param external_id: the component externalId for and from relationship will be created
+        :return: None
+        """
+        # A note on Dynatrace relations terminology:
+        # dynatrace_component.fromRelationships are 'outgoing relations'
+        # dynatrace_component.toRelationships are 'incoming relations'
+        for relation_type, relation_value in dynatrace_component.fromRelationships.items():
+            # Ignore `isSiteOf` relation since location components are not processed right now
+            if relation_type != "isSiteOf":
+                for target_id in relation_value:
+                    self.relation(external_id, target_id, relation_type, {})
+        for relation_type, relation_value in dynatrace_component.toRelationships.items():
+            # Ignore `isSiteOf` relation since location components are not processed right now
+            if relation_type != "isSiteOf":
+                for source_id in relation_value:
+                    self.relation(source_id, external_id, relation_type, {})
+
+    def _clean_unsupported_metadata(self, component):
+        """
+        Convert the data type to string in case of `boolean` and `float`.
+        Currently we get `float` values for `Hosts`
+        :param component: metadata with unsupported data types
+        :return: metadata with supported data types
+        """
+        for key in component.keys():
+            if type(component[key]) is float:
+                component[key] = str(component[key])
+                self.log.debug('Converting %s from float to str.' % key)
+            elif type(component[key]) is bool:
+                component[key] = str(component[key])
+                self.log.debug('Converting %s from bool to str.' % key)
+        return component
+
+    @staticmethod
+    def _get_host_identifiers(component):
+        host_identifiers = []
+        if component.esxiHostName:
+            host_identifiers.append(Identifiers.create_host_identifier(component.esxiHostName))
+        if component.oneAgentCustomHostName:
+            host_identifiers.append(Identifiers.create_host_identifier(component.oneAgentCustomHostName))
+        if component.azureHostNames:
+            host_identifiers.append(Identifiers.create_host_identifier(component.azureHostNames))
+        if component.publicHostName:
+            host_identifiers.append(Identifiers.create_host_identifier(component.publicHostName))
+        if component.localHostName:
+            host_identifiers.append(Identifiers.create_host_identifier(component.localHostName))
+        host_identifiers.append(Identifiers.create_host_identifier(component.displayName))
+        host_identifiers = Identifiers.append_lowercase_identifiers(host_identifiers)
+        return host_identifiers
 
     @staticmethod
     def _filter_item_topology_data(data):
@@ -217,14 +251,14 @@ class DynatraceCheck(AgentCheck):
             del data["tags"]
 
     @staticmethod
-    def _get_labels_from_dynatrace_tags(item):
+    def _get_labels_from_dynatrace_tags(dynatrace_component):
         """
         Process each tag as a label in component
         :param item: the component item to read from
         :return: list of added tags as labels
         """
         tags = []
-        for tag in item.get("tags", []):
+        for tag in dynatrace_component.tags:
             tag_label = ''
             if tag.get('context') and tag.get('context') != 'CONTEXTLESS':
                 tag_label += "[%s]" % tag['context']
@@ -235,7 +269,7 @@ class DynatraceCheck(AgentCheck):
             tags.append(tag_label)
         return tags
 
-    def _get_labels(self, item):
+    def _get_labels(self, dynatrace_component):
         """
         Extract labels and tags for each component
         :param item: the component item
@@ -243,19 +277,18 @@ class DynatraceCheck(AgentCheck):
         """
         labels = []
         # append management zones in labels for each existing component
-        for zone in item.get("managementZones", []):
+        for zone in dynatrace_component.managementZones:
             if zone.get("name"):
                 labels.append("managementZones:%s" % zone.get("name"))
-        if item.get("entityId"):
-            labels.append(item["entityId"])
-        if "monitoringState" in item:
-            actual_state = item["monitoringState"].get("actualMonitoringState")
-            expected_state = item["monitoringState"].get("expectedMonitoringState")
-            if actual_state:
-                labels.append("actualMonitoringState:%s" % actual_state)
-            if expected_state:
-                labels.append("expectedMonitoringState:%s" % expected_state)
-        for technologies in item.get("softwareTechnologies", []):
+        if dynatrace_component.entityId:
+            labels.append(dynatrace_component.entityId)
+        if dynatrace_component.monitoringState:
+            if dynatrace_component.monitoringState.actualMonitoringState:
+                labels.append("actualMonitoringState:%s" % dynatrace_component.monitoringState.actualMonitoringState)
+            if dynatrace_component.monitoringState.expectedMonitoringState:
+                labels.append(
+                    "expectedMonitoringState:%s" % dynatrace_component.monitoringState.expectedMonitoringState)
+        for technologies in dynatrace_component.softwareTechnologies:
             tech_label = ''
             if technologies.get('type'):
                 tech_label += technologies['type']
@@ -264,7 +297,7 @@ class DynatraceCheck(AgentCheck):
             if technologies.get('version'):
                 tech_label += ":%s" % technologies['version']
             labels.append(tech_label)
-        labels_from_tags = self._get_labels_from_dynatrace_tags(item)
+        labels_from_tags = self._get_labels_from_dynatrace_tags(dynatrace_component)
         labels.extend(labels_from_tags)
         # prefix the labels with `dynatrace-` for all labels
         labels = ["dynatrace-%s" % label for label in labels]

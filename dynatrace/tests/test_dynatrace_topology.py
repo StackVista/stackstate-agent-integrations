@@ -131,9 +131,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         self._set_http_responses(m, proc_groups=read_file("process-group_response.json"))
 
         self.check.url = self.instance.get('url')
-
         self.check.run()
-        self.maxDiff = None
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         actual_topology = load_json_from_file("expected_process-group_topology.json")
@@ -141,20 +139,22 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         # sort the keys of components and relations, so we match it in actual
         self.assert_topology(actual_topology, topo_instances)
 
-    def test_collect_relations(self):
+    @requests_mock.Mocker()
+    def test_collect_relations(self, m):
         """
         Test to check if relations are collected properly
         """
-        component = load_json_from_file("host_response.json")[0]
-        self.check._collect_relations(component, component.get('entityId'))
+        self._set_http_responses(m, hosts=read_file("host_response.json"))
+        self.check.url = self.instance.get('url')
+        self.check.run()
 
         topo_instances = topology.get_snapshot(self.check.check_id)
-        self.assertEqual(len(topo_instances['components']), 0)
-        self.assertEqual(len(topo_instances['relations']), 3)
+        self.assertEqual(len(topo_instances['components']), 2)
+        self.assertEqual(len(topo_instances['relations']), 5)
 
         # since all relations are to this host itself so target id is same
         relation = topo_instances['relations'][0]
-        self.assertEqual(relation['target_id'], component.get('entityId'))
+        self.assertEqual(relation['target_id'], 'HOST-6AAE0F78BCF2E0F4')
         self.assertIn(relation['type'], ['isProcessOf', 'runsOn', 'isSiteOf'])
 
     @requests_mock.Mocker()
