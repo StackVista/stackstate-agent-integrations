@@ -59,7 +59,7 @@ class HTTPResponseType(Enum):
 
 """
     The HTTP Helper Common class is used for common functionality split between al the other
-    HTTP Helper classes. 
+    HTTP Helper classes.
     Functionality:
         - Mapped enums to lists
         - Log messages
@@ -105,15 +105,14 @@ class HTTPHelperCommon:
     Functionality:
         Split a string into a dictionary the string must follow a list + key value structure
         For example random=test&hello=world or for example random:123|test:123.
-        
+
     Input:
-        @target 
+        @target
             The primary string that should be made into a dictionary
         @delimiter
             The item that will make the string into a list of strings
         @sub_delimiter
-            The sub delimiter is used to split the list of strings into a dictionary    
-        
+            The sub delimiter is used to split the list of strings into a dictionary
     """
 
     @staticmethod
@@ -200,7 +199,7 @@ class HTTPHelperRequestHandler:
     Functionality:
         Set the current HTTP Method for the Requests() object from the HTTPMethod enum
         If a method is specified which does not exist in the HTTPMethod a Not Implemented error will be triggered.
-        
+
     Input:
         @method
             This can either be a value from the `HTTPMethod` or a direct string that can be mapped to the `HTTPMethod`
@@ -284,8 +283,8 @@ class HTTPHelperRequestHandler:
 
             # The URL is recreated here by adding the schema, net location and path together
             url = (parsed_url.scheme + "://" if len(parsed_url.scheme) > 0 else "") \
-                  + parsed_url.netloc \
-                  + parsed_url.path
+                + parsed_url.netloc \
+                + parsed_url.path
             self._common.print_verbose("Reconstructed URL ${0}".format(str(url)))
 
             # Apply the reconstructed Endpoint to the Request() object
@@ -423,7 +422,7 @@ class HTTPHelperRequestHandler:
 
     """
     Functionality:
-        Apply authentication to the Request() object. 
+        Apply authentication to the Request() object.
         A type structure and data structure is required to apply a authentication
 
     Input:
@@ -451,26 +450,26 @@ class HTTPHelperRequestHandler:
                     self._request.auth = HTTPBasicAuth(auth_details.get('username'), auth_details.get('password'))
                 else:
                     self._common.print_not_implemented_error("""We are unable to map the enum `HTTPAuthenticationType`
-                                                   to the request auth object. Please verify if the object exists in the 
-                                                   HTTPAuthenticationType enum and if it does then the mapping for {0} 
-                                                   is missing from the set_auth function. You need to add a check for 
+                                                   to the request auth object. Please verify if the object exists in the
+                                                   HTTPAuthenticationType enum and if it does then the mapping for {0}
+                                                   is missing from the set_auth function. You need to add a check for
                                                    the enum and map the values over to the requests object"""
                                                              .format(str(auth_schematic)))
 
             except DataError as e:
-                self._common.print_type_error("""The authentication supplied {0} does not match the required 
-                                                schema {1}. You can view the layout of the schema on the 
+                self._common.print_type_error("""The authentication supplied {0} does not match the required
+                                                schema {1}. You can view the layout of the schema on the
                                                 `HTTPAuthenticationType` enum.
-                                                
+
                                                 The error provided by the execution
                                                 {2}"""
                                               .format(str(auth_details), str(auth_schematic), e))
             except TypeError as e:
                 self._common.print_type_error("""The authentication details object passed to this function failed as
-                                                the type of this object is incorrect. The type passed down was 
-                                                {0} and the expected type is a iterable value that matches the 
+                                                the type of this object is incorrect. The type passed down was
+                                                {0} and the expected type is a iterable value that matches the
                                                 `HTTPAuthenticationType` enum
-                                                
+
                                                 The error provided by the execution
                                                 {1}"""
                                               .format(type(auth_details), e))
@@ -478,7 +477,7 @@ class HTTPHelperRequestHandler:
         else:
             self._common.print_type_error("""The `auth_schematic` variable passed to the `set_auth` function"
                                             is currently invalid. You need to pass down a schematic object from the
-                                            `HTTPAuthenticationType` Enum or a type" error will occur. 
+                                            `HTTPAuthenticationType` Enum or a type" error will occur.
                                             The current schematic passed to this function is: ${0}
                                             """.format(str(auth_schematic)))
 
@@ -503,7 +502,7 @@ class HTTPHelperRequestHandler:
     """
     Functionality:
         Pre send validation
-        
+
         You can apply a validation structure for the Request() data structure.
         This allows you to stop a request from going out if it does not conform to a certain type
 
@@ -532,7 +531,7 @@ class HTTPHelperRequestHandler:
 
         else:
             self._common.print_type_error("""The body does not conform to the body type provided ({0}).
-                                         Either the body type passed to the `validate_body` function needs to be 
+                                         Either the body type passed to the `validate_body` function needs to be
                                          changed, The validation needs to be removed to allow this body type or
                                          the body needs to be looked at and why it is passing down the incorrect data
                                          The `validate_body` function does {1} the body to be empty.
@@ -726,7 +725,7 @@ class HTTPHelperSessionHandler:
     """
     Functionality:
         Apply a authentication models to the current Session() object.
-        The model is applied by specifying a Enum that defines the authentication structure, A second parameter is then 
+        The model is applied by specifying a Enum that defines the authentication structure, A second parameter is then
         provided which maps the data structure into the proper requests authentication model.
 
     Input:
@@ -755,26 +754,26 @@ class HTTPHelperSessionHandler:
                     self._session.auth = HTTPBasicAuth(auth_details.get('username'), auth_details.get('password'))
                 else:
                     self._common.print_not_implemented_error("""We are unable to map the enum `HTTPAuthenticationType`
-                                                   to the request auth object. Please verify if the object exists in the 
-                                                   HTTPAuthenticationType enum and if it does then the mapping for {0} 
-                                                   is missing from the set_auth function. You need to add a check for 
+                                                   to the request auth object. Please verify if the object exists in the
+                                                   HTTPAuthenticationType enum and if it does then the mapping for {0}
+                                                   is missing from the set_auth function. You need to add a check for
                                                    the enum and map the values over to the requests object"""
                                                              .format(str(auth_schematic)))
 
             except DataError as e:
-                self._common.print_type_error("""The authentication supplied {0} does not match the required 
-                                                schema {1}. You can view the layout of the schema on the 
+                self._common.print_type_error("""The authentication supplied {0} does not match the required
+                                                schema {1}. You can view the layout of the schema on the
                                                 `HTTPAuthenticationType` enum.
-                                                
+
                                                 The error provided by the execution
                                                 {2}"""
                                               .format(str(auth_details), str(auth_schematic), e))
             except TypeError as e:
                 self._common.print_type_error("""The authentication details object passed to this function failed as
-                                                the type of this object is incorrect. The type passed down was 
-                                                {0} and the expected type is a iterable value that matches the 
+                                                the type of this object is incorrect. The type passed down was
+                                                {0} and the expected type is a iterable value that matches the
                                                 `HTTPAuthenticationType` enum
-                                                
+
                                                 The error provided by the execution
                                                 {1}"""
                                               .format(type(auth_details), e))
@@ -782,7 +781,7 @@ class HTTPHelperSessionHandler:
         else:
             self._common.print_type_error("""The `auth_schematic` variable passed to the `set_auth` function"
                                             is currently invalid. You need to pass down a schematic object from the
-                                            `HTTPAuthenticationType` Enum or a type" error will occur. 
+                                            `HTTPAuthenticationType` Enum or a type" error will occur.
                                             The current schematic passed to this function is: ${0}
                                             """.format(str(auth_schematic)))
 
@@ -805,7 +804,6 @@ class HTTPHelperSessionHandler:
         - SET && GET HTTP SSL Verification
         - SET && GET HTTP Proxy
         - Sending the HTTP Request and Session to the Endpoint
-        
 """
 
 
@@ -918,7 +916,7 @@ class HTTPHelperConnectionHandler:
             self._ssl_verify = verify
         else:
             self._common.print_type_error("""Unable to set the SSL Verification as the defined parameters is the
-                                            incorrect type, The type passed to the function is {0} and a int is 
+                                            incorrect type, The type passed to the function is {0} and a int is
                                             expected"""
                                           .format(str(type(verify))))
 
@@ -1230,7 +1228,7 @@ class HTTPHelperResponseHandler:
 
 
 """
-    The HTTP Helper Handler is used to create compact methods using most of the function defined in the 
+    The HTTP Helper Handler is used to create compact methods using most of the function defined in the
     Connection, Request, Session and Response Helpers
     Functionality:
         - Overwrite Connection Helper
@@ -1292,7 +1290,7 @@ class HTTPHelper:
     Functionality:
         A generic builder to contains most of the functionality on the Connection, Request, Session and Response Helpers
         This function will be used by compact methods to build up a request
-        
+
     Input:
         @active_method
             The active HTTP method for example GET or POST

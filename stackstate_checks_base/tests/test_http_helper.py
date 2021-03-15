@@ -5,8 +5,8 @@ from requests import Session, Request
 from schematics.models import Model
 from schematics.types import StringType, IntType, BooleanType
 from stackstate_checks.utils.http_helper import HTTPHelper, HTTPRequestType, HTTPAuthenticationType, HTTPResponseType
-from stackstate_checks.utils.http_helper import HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPMethod, \
-                                                HTTPHelperResponseHandler, HTTPHelperConnectionHandler, HTTPHelperCommon
+from stackstate_checks.utils.http_helper import HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPMethod
+from stackstate_checks.utils.http_helper import HTTPHelperResponseHandler, HTTPHelperConnectionHandler, HTTPHelperCommon
 from requests.auth import HTTPBasicAuth
 from requests.packages.urllib3.util.retry import Retry
 
@@ -193,7 +193,7 @@ class TestHTTPHelperRequestHandler(unittest.TestCase):
     def test_body(self):
         # Default Test
         req = HTTPHelperRequestHandler(self.verbose)
-        assert len(req.get_body()) is 0
+        assert len(req.get_body()) == 0
 
         # Test valid JSON Body
         req.set_body({
@@ -207,7 +207,7 @@ class TestHTTPHelperRequestHandler(unittest.TestCase):
 
         # Test clearing Body
         req.clear_body()
-        assert len(req.get_body()) is 0
+        assert len(req.get_body()) == 0
 
     """
         Test the HTTP headers for example {'hello': 'world'}
@@ -215,7 +215,7 @@ class TestHTTPHelperRequestHandler(unittest.TestCase):
     def test_headers(self):
         # Default Test
         req = HTTPHelperRequestHandler(self.verbose)
-        assert len(req.get_headers()) is 0
+        assert len(req.get_headers()) == 0
 
         # Test valid Headers
         req.set_headers({
@@ -225,7 +225,7 @@ class TestHTTPHelperRequestHandler(unittest.TestCase):
 
         # Test clearing Headers
         req.clear_headers()
-        assert len(req.get_headers()) is 0
+        assert len(req.get_headers()) == 0
 
         # Invalid Headers
         try:
@@ -362,7 +362,7 @@ class TestHTTPHelperSessionHandler(unittest.TestCase):
 
         # Test clearing Query Parameters
         req.clear_query_param()
-        assert len(req.get_query_param()) is 0
+        assert len(req.get_query_param()) == 0
 
         # Invalid Query Parameters
         try:
@@ -377,18 +377,20 @@ class TestHTTPHelperSessionHandler(unittest.TestCase):
     def test_headers(self):
         # Default Test
         req = HTTPHelperSessionHandler(self.verbose)
-        assert len(req.get_headers()) is 4
-        assert req.get_headers() == {'User-Agent': 'python-requests/2.24.0', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive'}
+        assert len(req.get_headers()) == 4
+        assert req.get_headers() == {'User-Agent': 'python-requests/2.24.0', 'Accept-Encoding': 'gzip, deflate',
+                                     'Accept': '*/*', 'Connection': 'keep-alive'}
 
         # Test valid Headers
         req.set_headers({
             "hello": "world"
         })
-        assert req.get_headers() == {'User-Agent': 'python-requests/2.24.0', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive', 'hello': 'world'}
+        assert req.get_headers() == {'User-Agent': 'python-requests/2.24.0', 'Accept-Encoding': 'gzip, deflate',
+                                     'Accept': '*/*', 'Connection': 'keep-alive', 'hello': 'world'}
 
         # Test clearing Headers
         req.clear_headers()
-        assert len(req.get_headers()) is 0
+        assert len(req.get_headers()) == 0
 
         # Invalid Headers
         try:
@@ -539,7 +541,7 @@ class TestHTTPHelperConnectionHandler(unittest.TestCase):
         res_data = res.get("response")
 
         assert res.get("valid") is True
-        assert res_data.status_code is 200
+        assert res_data.status_code == 200
         assert json.loads(res_data.content.decode(res_data.encoding)).get("hello") == "world"
 
 
@@ -585,8 +587,8 @@ class TestHTTPHelperBase(unittest.TestCase):
         res_data = res.get("response")
 
         assert res.get("valid") is True
-        assert res_data.status_code is 200
+        assert res_data.status_code == 200
         assert res_data.request.method == "GET"
-        assert res_data.request.headers == {'header': 'a', 'Content-Length': '11', 'Content-Type': 'application/x-www-form-urlencoded'}
+        assert res_data.request.headers == {'header': 'a', 'Content-Length': '11',
+                                            'Content-Type': 'application/x-www-form-urlencoded'}
         assert json.loads(res_data.content.decode(res_data.encoding)).get("hello") == "world"
-
