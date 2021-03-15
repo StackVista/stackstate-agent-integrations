@@ -21,7 +21,7 @@ except ImportError:
 """
 
 
-class _HTTPBasicAuth(Model):
+class HTTPBasicAuth(Model):
     username = StringType(required=True)
     password = StringType(required=True)
 
@@ -32,7 +32,7 @@ class _HTTPBasicAuth(Model):
 
 
 class HTTPAuthenticationType(Enum):
-    BasicAuth = _HTTPBasicAuth
+    BasicAuth = HTTPBasicAuth
 
 
 """
