@@ -15,19 +15,6 @@ try:
 except ImportError:
     import urllib.parse as urlparse
 
-"""
-    ENUM
-        Used to structure the http request
-"""
-
-
-class HTTPMethod(Enum):
-    GET = 'GET'
-    POST = 'POST'
-    PUT = 'PUT'
-    PATCH = 'PATCH'
-    DELETE = 'DELETE'
-
 
 """
     Authentication Models
@@ -51,6 +38,14 @@ class HTTPAuthenticationType(Enum):
 """
     Possible Request and Response objects
 """
+
+
+class HTTPMethod(Enum):
+    GET = 'GET'
+    POST = 'POST'
+    PUT = 'PUT'
+    PATCH = 'PATCH'
+    DELETE = 'DELETE'
 
 
 class HTTPRequestType(Enum):
