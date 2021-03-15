@@ -1,4 +1,4 @@
-class Events():
+class Events:
     # SAP_ITSAMInstance/Alert
     ccms_alerts = {
         "SAP name": {"description": "description is optional: Alternative name for stackstate",
@@ -21,7 +21,7 @@ class Events():
 
     # SAP_ITSAMDatabaseMetric
     dbmetric_events = {
-        "SAP name": {"description": "description is optional: Alternative name for stackstate"}, # example entry
+        "SAP name": {"description": "description is optional: Alternative name for stackstate"},  # example entry
         "db.ora.tablespace.status": {"field": "Value"},
         "35": {"description": "HDB:Backup_exist",
                "field": "Value"},
