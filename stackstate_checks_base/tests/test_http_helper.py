@@ -1,6 +1,7 @@
 import unittest
 import requests_mock
 import json
+import six
 from requests import Session, Request
 from schematics.models import Model
 from schematics.types import StringType, IntType, BooleanType
@@ -18,6 +19,11 @@ Structures used within the test cases
 
 class BodySchematicTest(Model):
     hello = IntType(required=True)
+
+
+class BodyRequestSchematicTest(Model):
+    hello = StringType(required=True)
+    pong = BooleanType(required=True)
 
 
 class BodyResponseSchematicTest(Model):
@@ -280,20 +286,15 @@ class TestHTTPHelperRequestHandler(unittest.TestCase):
         req = HTTPHelperRequestHandler(self.verbose)
         assert req.get_body_type_validation() is None
 
-        # Default Allow Empty Validation Test
-        req = HTTPHelperRequestHandler(self.verbose)
-        assert req.get_body_type_allow_empty_validation() is None
-
         # Set body validation
         req = HTTPHelperRequestHandler(self.verbose)
-        req.set_body_type_validation(HTTPRequestType.JSON, True)
+        req.set_body_type_validation(HTTPRequestType.JSON)
         assert req.get_body_type_validation() is HTTPRequestType.JSON
-        assert req.get_body_type_allow_empty_validation() is True
 
         # Set invalid body validation
         req = HTTPHelperRequestHandler(self.verbose)
         try:
-            req.set_body_type_validation('Test', True)
+            req.set_body_type_validation('Test')
             assert False
         except TypeError:
             assert True
@@ -537,7 +538,7 @@ class TestHTTPHelperConnectionHandler(unittest.TestCase):
         request.set_url("mock://test.com")
         request.set_method("GET")
 
-        res = req.send(session.get_session(), request.get_request(), response)
+        res = req.send(session, request, response)
         res_data = res.get("response")
 
         assert res.get("valid") is True
@@ -563,15 +564,13 @@ class TestHTTPHelperBase(unittest.TestCase):
         req.overwrite_connection_helper(HTTPHelperConnectionHandler())
         assert isinstance(req.get_connection_helper(), type(HTTPHelperConnectionHandler()))
 
-    def test_get(self):
-        # request_schematic_validation
-        # request_type_validation
-        # response_status_code_validation
-        # response_type_validation
-        # response_schematic_validation
+    """
+        Tests for GET
+    """
 
-        req = HTTPHelper(self.verbose)
-        res = req.get(
+    def test_get_no_validation(self):
+        request = HTTPHelper(self.verbose)
+        response = request.get(
             mock=True,
             mock_status=200,
             mock_response={'hello': 'world'},
@@ -584,11 +583,793 @@ class TestHTTPHelperBase(unittest.TestCase):
                 total=3
             ),
         )
-        res_data = res.get("response")
+        response_data = response.get("response")
+        assert response_data.request.method == "GET"
+        assert response_data.status_code == 200
+        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
+        assert response_data.request.url == "mock://www.google.com"
+        assert response.get("valid") is True
+        assert response_data.request.headers == {'header': 'a', 'Content-Length': '11',
+                                                 'Content-Type': 'application/x-www-form-urlencoded'}
 
-        assert res.get("valid") is True
-        assert res_data.status_code == 200
-        assert res_data.request.method == "GET"
-        assert res_data.request.headers == {'header': 'a', 'Content-Length': '11',
-                                            'Content-Type': 'application/x-www-form-urlencoded'}
-        assert json.loads(res_data.content.decode(res_data.encoding)).get("hello") == "world"
+    def test_get_request_validation_success(self):
+        request = HTTPHelper(self.verbose)
+        response = request.get(
+            request_schematic_validation=BodyRequestSchematicTest,
+            request_type_validation=HTTPRequestType.JSON,
+            mock=True,
+            mock_status=200,
+            mock_response={'hello': 'world'},
+            url="mock://www.google.com",
+            body={'hello': 'world', 'pong': True},
+            headers={'header': 'a'},
+            query={'query': 'b'},
+            timeout=30,
+            retry_policy=dict(
+                total=3
+            ),
+        )
+        response_data = response.get("response")
+        assert response_data.request.method == "GET"
+        assert response_data.status_code == 200
+        assert response.get("response") is not None
+        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
+        assert response_data.request.url == "mock://www.google.com"
+        assert response.get("valid") is True
+        assert response_data.request.headers == {'Content-Length': '21',
+                                                 'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
+
+    def test_get_request_validation_type_failure(self):
+        request = HTTPHelper(self.verbose)
+        try:
+            request.get(
+                request_schematic_validation=BodyRequestSchematicTest,
+                request_type_validation="Random",
+                mock=True,
+                mock_status=200,
+                mock_response={'hello': 'world'},
+                url="mock://www.google.com",
+                body={'hello': 'world', 'pong': True},
+                headers={'header': 'a'},
+                query={'query': 'b'},
+                timeout=30,
+                retry_policy=dict(
+                    total=3
+                ),
+            )
+            assert False
+        except TypeError:
+            assert True
+
+    def test_get_request_validation_schematic_failure(self):
+        request = HTTPHelper(self.verbose)
+        try:
+            request.get(
+                request_schematic_validation=BodyRequestSchematicTest,
+                request_type_validation=HTTPRequestType.JSON,
+                mock=True,
+                mock_status=200,
+                mock_response={'hello': 'world'},
+                url="mock://www.google.com",
+                body={'hello': 'world'},
+                headers={'header': 'a'},
+                query={'query': 'b'},
+                timeout=30,
+                retry_policy=dict(
+                    total=3
+                ),
+            )
+            assert False
+        except TypeError:
+            assert True
+
+    def test_get_response_validation_success(self):
+        request = HTTPHelper(self.verbose)
+        response = request.get(
+            request_schematic_validation=BodyRequestSchematicTest,
+            request_type_validation=HTTPRequestType.JSON,
+            response_status_code_validation=200,
+            response_type_validation=HTTPResponseType.JSON,
+            response_schematic_validation=BodyResponseSchematicTest,
+            mock=True,
+            mock_status=200,
+            mock_response={'hello': 'world', 'pong': True},
+            url="mock://www.google.com",
+            body={'hello': 'world', 'pong': True},
+            headers={'header': 'a'},
+            query={'query': 'b'},
+            timeout=30,
+            retry_policy=dict(
+                total=3
+            ),
+        )
+        response_data = response.get("response")
+        assert response_data.request.method == "GET"
+        assert response_data.status_code == 200
+        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
+        assert response_data.request.url == "mock://www.google.com"
+        assert response.get("valid") is True
+        assert response.get("response") is not None
+        assert response.get("errors") is None
+        assert response_data.request.headers == {'Content-Length': '21',
+                                                 'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
+
+    def test_get_response_validation_failure(self):
+        request = HTTPHelper(self.verbose)
+        response = request.get(
+            request_schematic_validation=BodyRequestSchematicTest,
+            request_type_validation=HTTPRequestType.JSON,
+            response_status_code_validation=200,
+            response_type_validation=HTTPResponseType.JSON,
+            response_schematic_validation=BodyResponseSchematicTest,
+            mock=True,
+            mock_status=400,
+            mock_response="test",
+            url="mock://www.google.com",
+            body={'hello': 'world', 'pong': True},
+            headers={'header': 'a'},
+            query={'query': 'b'},
+            timeout=30,
+            retry_policy=dict(
+                total=3
+            ),
+        )
+
+        response_data = response.get("response")
+        assert response_data.request.method == "GET"
+        assert response_data.status_code == 400
+        assert response_data.content.decode(response_data.encoding) == "\"test\""
+        assert response_data.request.url == "mock://www.google.com"
+        assert response.get("valid") is False
+        assert response.get("response") is not None
+        assert len(response.get("errors")) == 3
+        assert response_data.request.headers == {'Content-Length': '21',
+                                                 'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
+
+    """
+        Tests for POST
+    """
+
+    def test_post_no_validation(self):
+        request = HTTPHelper(self.verbose)
+        response = request.post(
+            mock=True,
+            mock_status=200,
+            mock_response={'hello': 'world'},
+            url="mock://www.google.com",
+            body={'hello': 'world'},
+            headers={'header': 'a'},
+            query={'query': 'b'},
+            timeout=30,
+            retry_policy=dict(
+                total=3
+            ),
+        )
+        response_data = response.get("response")
+        assert response_data.request.method == "POST"
+        assert response_data.status_code == 200
+        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
+        assert response_data.request.url == "mock://www.google.com"
+        assert response.get("valid") is True
+        assert response_data.request.headers == {'header': 'a', 'Content-Length': '11',
+                                                 'Content-Type': 'application/x-www-form-urlencoded'}
+
+    def test_post_request_validation_success(self):
+        request = HTTPHelper(self.verbose)
+        response = request.post(
+            request_schematic_validation=BodyRequestSchematicTest,
+            request_type_validation=HTTPRequestType.JSON,
+            mock=True,
+            mock_status=200,
+            mock_response={'hello': 'world'},
+            url="mock://www.google.com",
+            body={'hello': 'world', 'pong': True},
+            headers={'header': 'a'},
+            query={'query': 'b'},
+            timeout=30,
+            retry_policy=dict(
+                total=3
+            ),
+        )
+        response_data = response.get("response")
+        assert response_data.request.method == "POST"
+        assert response_data.status_code == 200
+        assert response.get("response") is not None
+        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
+        assert response_data.request.url == "mock://www.google.com"
+        assert response.get("valid") is True
+        assert response_data.request.headers == {'Content-Length': '21',
+                                                 'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
+
+    def test_post_request_validation_type_failure(self):
+        request = HTTPHelper(self.verbose)
+        try:
+            request.post(
+                request_schematic_validation=BodyRequestSchematicTest,
+                request_type_validation="Random",
+                mock=True,
+                mock_status=200,
+                mock_response={'hello': 'world'},
+                url="mock://www.google.com",
+                body={'hello': 'world', 'pong': True},
+                headers={'header': 'a'},
+                query={'query': 'b'},
+                timeout=30,
+                retry_policy=dict(
+                    total=3
+                ),
+            )
+            assert False
+        except TypeError:
+            assert True
+
+    def test_post_request_validation_schematic_failure(self):
+        request = HTTPHelper(self.verbose)
+        try:
+            request.post(
+                request_schematic_validation=BodyRequestSchematicTest,
+                request_type_validation=HTTPRequestType.JSON,
+                mock=True,
+                mock_status=200,
+                mock_response={'hello': 'world'},
+                url="mock://www.google.com",
+                body={'hello': 'world'},
+                headers={'header': 'a'},
+                query={'query': 'b'},
+                timeout=30,
+                retry_policy=dict(
+                    total=3
+                ),
+            )
+            assert False
+        except TypeError:
+            assert True
+
+    def test_post_response_validation_success(self):
+        request = HTTPHelper(self.verbose)
+        response = request.post(
+            request_schematic_validation=BodyRequestSchematicTest,
+            request_type_validation=HTTPRequestType.JSON,
+            response_status_code_validation=200,
+            response_type_validation=HTTPResponseType.JSON,
+            response_schematic_validation=BodyResponseSchematicTest,
+            mock=True,
+            mock_status=200,
+            mock_response={'hello': 'world', 'pong': True},
+            url="mock://www.google.com",
+            body={'hello': 'world', 'pong': True},
+            headers={'header': 'a'},
+            query={'query': 'b'},
+            timeout=30,
+            retry_policy=dict(
+                total=3
+            ),
+        )
+        response_data = response.get("response")
+        assert response_data.request.method == "POST"
+        assert response_data.status_code == 200
+        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
+        assert response_data.request.url == "mock://www.google.com"
+        assert response.get("valid") is True
+        assert response.get("response") is not None
+        assert response.get("errors") is None
+        assert response_data.request.headers == {'Content-Length': '21',
+                                                 'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
+
+    def test_post_response_validation_failure(self):
+        request = HTTPHelper(self.verbose)
+        response = request.post(
+            request_schematic_validation=BodyRequestSchematicTest,
+            request_type_validation=HTTPRequestType.JSON,
+            response_status_code_validation=200,
+            response_type_validation=HTTPResponseType.JSON,
+            response_schematic_validation=BodyResponseSchematicTest,
+            mock=True,
+            mock_status=400,
+            mock_response="test",
+            url="mock://www.google.com",
+            body={'hello': 'world', 'pong': True},
+            headers={'header': 'a'},
+            query={'query': 'b'},
+            timeout=30,
+            retry_policy=dict(
+                total=3
+            ),
+        )
+
+        response_data = response.get("response")
+        assert response_data.request.method == "POST"
+        assert response_data.status_code == 400
+        assert response_data.content.decode(response_data.encoding) == "\"test\""
+        assert response_data.request.url == "mock://www.google.com"
+        assert response.get("valid") is False
+        assert response.get("response") is not None
+        assert len(response.get("errors")) == 3
+        assert response_data.request.headers == {'Content-Length': '21',
+                                                 'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
+
+    """
+        Tests for PUT
+    """
+
+    def test_put_no_validation(self):
+        request = HTTPHelper(self.verbose)
+        response = request.put(
+            mock=True,
+            mock_status=200,
+            mock_response={'hello': 'world'},
+            url="mock://www.google.com",
+            body={'hello': 'world'},
+            headers={'header': 'a'},
+            query={'query': 'b'},
+            timeout=30,
+            retry_policy=dict(
+                total=3
+            ),
+        )
+        response_data = response.get("response")
+        assert response_data.request.method == "PUT"
+        assert response_data.status_code == 200
+        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
+        assert response_data.request.url == "mock://www.google.com"
+        assert response.get("valid") is True
+        assert response_data.request.headers == {'header': 'a', 'Content-Length': '11',
+                                                 'Content-Type': 'application/x-www-form-urlencoded'}
+
+    def test_put_request_validation_success(self):
+        request = HTTPHelper(self.verbose)
+        response = request.put(
+            request_schematic_validation=BodyRequestSchematicTest,
+            request_type_validation=HTTPRequestType.JSON,
+            mock=True,
+            mock_status=200,
+            mock_response={'hello': 'world'},
+            url="mock://www.google.com",
+            body={'hello': 'world', 'pong': True},
+            headers={'header': 'a'},
+            query={'query': 'b'},
+            timeout=30,
+            retry_policy=dict(
+                total=3
+            ),
+        )
+        response_data = response.get("response")
+        assert response_data.request.method == "PUT"
+        assert response_data.status_code == 200
+        assert response.get("response") is not None
+        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
+        assert response_data.request.url == "mock://www.google.com"
+        assert response.get("valid") is True
+        assert response_data.request.headers == {'Content-Length': '21',
+                                                 'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
+
+    def test_put_request_validation_type_failure(self):
+        request = HTTPHelper(self.verbose)
+        try:
+            request.put(
+                request_schematic_validation=BodyRequestSchematicTest,
+                request_type_validation="Random",
+                mock=True,
+                mock_status=200,
+                mock_response={'hello': 'world'},
+                url="mock://www.google.com",
+                body={'hello': 'world', 'pong': True},
+                headers={'header': 'a'},
+                query={'query': 'b'},
+                timeout=30,
+                retry_policy=dict(
+                    total=3
+                ),
+            )
+            assert False
+        except TypeError:
+            assert True
+
+    def test_put_request_validation_schematic_failure(self):
+        request = HTTPHelper(self.verbose)
+        try:
+            request.put(
+                request_schematic_validation=BodyRequestSchematicTest,
+                request_type_validation=HTTPRequestType.JSON,
+                mock=True,
+                mock_status=200,
+                mock_response={'hello': 'world'},
+                url="mock://www.google.com",
+                body={'hello': 'world'},
+                headers={'header': 'a'},
+                query={'query': 'b'},
+                timeout=30,
+                retry_policy=dict(
+                    total=3
+                ),
+            )
+            assert False
+        except TypeError:
+            assert True
+
+    def test_put_response_validation_success(self):
+        request = HTTPHelper(self.verbose)
+        response = request.put(
+            request_schematic_validation=BodyRequestSchematicTest,
+            request_type_validation=HTTPRequestType.JSON,
+            response_status_code_validation=200,
+            response_type_validation=HTTPResponseType.JSON,
+            response_schematic_validation=BodyResponseSchematicTest,
+            mock=True,
+            mock_status=200,
+            mock_response={'hello': 'world', 'pong': True},
+            url="mock://www.google.com",
+            body={'hello': 'world', 'pong': True},
+            headers={'header': 'a'},
+            query={'query': 'b'},
+            timeout=30,
+            retry_policy=dict(
+                total=3
+            ),
+        )
+        response_data = response.get("response")
+        assert response_data.request.method == "PUT"
+        assert response_data.status_code == 200
+        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
+        assert response_data.request.url == "mock://www.google.com"
+        assert response.get("valid") is True
+        assert response.get("response") is not None
+        assert response.get("errors") is None
+        assert response_data.request.headers == {'Content-Length': '21',
+                                                 'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
+
+    def test_put_response_validation_failure(self):
+        request = HTTPHelper(self.verbose)
+        response = request.put(
+            request_schematic_validation=BodyRequestSchematicTest,
+            request_type_validation=HTTPRequestType.JSON,
+            response_status_code_validation=200,
+            response_type_validation=HTTPResponseType.JSON,
+            response_schematic_validation=BodyResponseSchematicTest,
+            mock=True,
+            mock_status=400,
+            mock_response="test",
+            url="mock://www.google.com",
+            body={'hello': 'world', 'pong': True},
+            headers={'header': 'a'},
+            query={'query': 'b'},
+            timeout=30,
+            retry_policy=dict(
+                total=3
+            ),
+        )
+
+        response_data = response.get("response")
+        assert response_data.request.method == "PUT"
+        assert response_data.status_code == 400
+        assert response_data.content.decode(response_data.encoding) == "\"test\""
+        assert response_data.request.url == "mock://www.google.com"
+        assert response.get("valid") is False
+        assert response.get("response") is not None
+        assert len(response.get("errors")) == 3
+        assert response_data.request.headers == {'Content-Length': '21',
+                                                 'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
+
+    """
+        Tests for DELETE
+    """
+
+    def test_delete_no_validation(self):
+        request = HTTPHelper(self.verbose)
+        response = request.delete(
+            mock=True,
+            mock_status=200,
+            mock_response={'hello': 'world'},
+            url="mock://www.google.com",
+            body={'hello': 'world'},
+            headers={'header': 'a'},
+            query={'query': 'b'},
+            timeout=30,
+            retry_policy=dict(
+                total=3
+            ),
+        )
+        response_data = response.get("response")
+        assert response_data.request.method == "DELETE"
+        assert response_data.status_code == 200
+        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
+        assert response_data.request.url == "mock://www.google.com"
+        assert response.get("valid") is True
+        assert response_data.request.headers == {'header': 'a', 'Content-Length': '11',
+                                                 'Content-Type': 'application/x-www-form-urlencoded'}
+
+    def test_delete_request_validation_success(self):
+        request = HTTPHelper(self.verbose)
+        response = request.delete(
+            request_schematic_validation=BodyRequestSchematicTest,
+            request_type_validation=HTTPRequestType.JSON,
+            mock=True,
+            mock_status=200,
+            mock_response={'hello': 'world'},
+            url="mock://www.google.com",
+            body={'hello': 'world', 'pong': True},
+            headers={'header': 'a'},
+            query={'query': 'b'},
+            timeout=30,
+            retry_policy=dict(
+                total=3
+            ),
+        )
+        response_data = response.get("response")
+        assert response_data.request.method == "DELETE"
+        assert response_data.status_code == 200
+        assert response.get("response") is not None
+        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
+        assert response_data.request.url == "mock://www.google.com"
+        assert response.get("valid") is True
+        assert response_data.request.headers == {'Content-Length': '21',
+                                                 'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
+
+    def test_delete_request_validation_type_failure(self):
+        request = HTTPHelper(self.verbose)
+        try:
+            request.delete(
+                request_schematic_validation=BodyRequestSchematicTest,
+                request_type_validation="Random",
+                mock=True,
+                mock_status=200,
+                mock_response={'hello': 'world'},
+                url="mock://www.google.com",
+                body={'hello': 'world', 'pong': True},
+                headers={'header': 'a'},
+                query={'query': 'b'},
+                timeout=30,
+                retry_policy=dict(
+                    total=3
+                ),
+            )
+            assert False
+        except TypeError:
+            assert True
+
+    def test_delete_request_validation_schematic_failure(self):
+        request = HTTPHelper(self.verbose)
+        try:
+            request.delete(
+                request_schematic_validation=BodyRequestSchematicTest,
+                request_type_validation=HTTPRequestType.JSON,
+                mock=True,
+                mock_status=200,
+                mock_response={'hello': 'world'},
+                url="mock://www.google.com",
+                body={'hello': 'world'},
+                headers={'header': 'a'},
+                query={'query': 'b'},
+                timeout=30,
+                retry_policy=dict(
+                    total=3
+                ),
+            )
+            assert False
+        except TypeError:
+            assert True
+
+    def test_delete_response_validation_success(self):
+        request = HTTPHelper(self.verbose)
+        response = request.delete(
+            request_schematic_validation=BodyRequestSchematicTest,
+            request_type_validation=HTTPRequestType.JSON,
+            response_status_code_validation=200,
+            response_type_validation=HTTPResponseType.JSON,
+            response_schematic_validation=BodyResponseSchematicTest,
+            mock=True,
+            mock_status=200,
+            mock_response={'hello': 'world', 'pong': True},
+            url="mock://www.google.com",
+            body={'hello': 'world', 'pong': True},
+            headers={'header': 'a'},
+            query={'query': 'b'},
+            timeout=30,
+            retry_policy=dict(
+                total=3
+            ),
+        )
+        response_data = response.get("response")
+        assert response_data.request.method == "DELETE"
+        assert response_data.status_code == 200
+        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
+        assert response_data.request.url == "mock://www.google.com"
+        assert response.get("valid") is True
+        assert response.get("response") is not None
+        assert response.get("errors") is None
+        assert response_data.request.headers == {'Content-Length': '21',
+                                                 'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
+
+    def test_delete_response_validation_failure(self):
+        request = HTTPHelper(self.verbose)
+        response = request.delete(
+            request_schematic_validation=BodyRequestSchematicTest,
+            request_type_validation=HTTPRequestType.JSON,
+            response_status_code_validation=200,
+            response_type_validation=HTTPResponseType.JSON,
+            response_schematic_validation=BodyResponseSchematicTest,
+            mock=True,
+            mock_status=400,
+            mock_response="test",
+            url="mock://www.google.com",
+            body={'hello': 'world', 'pong': True},
+            headers={'header': 'a'},
+            query={'query': 'b'},
+            timeout=30,
+            retry_policy=dict(
+                total=3
+            ),
+        )
+
+        response_data = response.get("response")
+        assert response_data.request.method == "DELETE"
+        assert response_data.status_code == 400
+        assert response_data.content.decode(response_data.encoding) == "\"test\""
+        assert response_data.request.url == "mock://www.google.com"
+        assert response.get("valid") is False
+        assert response.get("response") is not None
+        assert len(response.get("errors")) == 3
+        assert response_data.request.headers == {'Content-Length': '21',
+                                                 'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
+
+    """
+        Tests for PATCH
+    """
+
+    def test_patch_no_validation(self):
+        request = HTTPHelper(self.verbose)
+        response = request.patch(
+            mock=True,
+            mock_status=200,
+            mock_response={'hello': 'world'},
+            url="mock://www.google.com",
+            body={'hello': 'world'},
+            headers={'header': 'a'},
+            query={'query': 'b'},
+            timeout=30,
+            retry_policy=dict(
+                total=3
+            ),
+        )
+        response_data = response.get("response")
+        assert response_data.request.method == "PATCH"
+        assert response_data.status_code == 200
+        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
+        assert response_data.request.url == "mock://www.google.com"
+        assert response.get("valid") is True
+        assert response_data.request.headers == {'header': 'a', 'Content-Length': '11',
+                                                 'Content-Type': 'application/x-www-form-urlencoded'}
+
+    def test_patch_request_validation_success(self):
+        request = HTTPHelper(self.verbose)
+        response = request.patch(
+            request_schematic_validation=BodyRequestSchematicTest,
+            request_type_validation=HTTPRequestType.JSON,
+            mock=True,
+            mock_status=200,
+            mock_response={'hello': 'world'},
+            url="mock://www.google.com",
+            body={'hello': 'world', 'pong': True},
+            headers={'header': 'a'},
+            query={'query': 'b'},
+            timeout=30,
+            retry_policy=dict(
+                total=3
+            ),
+        )
+        response_data = response.get("response")
+        assert response_data.request.method == "PATCH"
+        assert response_data.status_code == 200
+        assert response.get("response") is not None
+        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
+        assert response_data.request.url == "mock://www.google.com"
+        assert response.get("valid") is True
+        assert response_data.request.headers == {'Content-Length': '21',
+                                                 'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
+
+    def test_patch_request_validation_type_failure(self):
+        request = HTTPHelper(self.verbose)
+        try:
+            request.patch(
+                request_schematic_validation=BodyRequestSchematicTest,
+                request_type_validation="Random",
+                mock=True,
+                mock_status=200,
+                mock_response={'hello': 'world'},
+                url="mock://www.google.com",
+                body={'hello': 'world', 'pong': True},
+                headers={'header': 'a'},
+                query={'query': 'b'},
+                timeout=30,
+                retry_policy=dict(
+                    total=3
+                ),
+            )
+            assert False
+        except TypeError:
+            assert True
+
+    def test_patch_request_validation_schematic_failure(self):
+        request = HTTPHelper(self.verbose)
+        try:
+            request.patch(
+                request_schematic_validation=BodyRequestSchematicTest,
+                request_type_validation=HTTPRequestType.JSON,
+                mock=True,
+                mock_status=200,
+                mock_response={'hello': 'world'},
+                url="mock://www.google.com",
+                body={'hello': 'world'},
+                headers={'header': 'a'},
+                query={'query': 'b'},
+                timeout=30,
+                retry_policy=dict(
+                    total=3
+                ),
+            )
+            assert False
+        except TypeError:
+            assert True
+
+    def test_patch_response_validation_success(self):
+        request = HTTPHelper(self.verbose)
+        response = request.patch(
+            request_schematic_validation=BodyRequestSchematicTest,
+            request_type_validation=HTTPRequestType.JSON,
+            response_status_code_validation=200,
+            response_type_validation=HTTPResponseType.JSON,
+            response_schematic_validation=BodyResponseSchematicTest,
+            mock=True,
+            mock_status=200,
+            mock_response={'hello': 'world', 'pong': True},
+            url="mock://www.google.com",
+            body={'hello': 'world', 'pong': True},
+            headers={'header': 'a'},
+            query={'query': 'b'},
+            timeout=30,
+            retry_policy=dict(
+                total=3
+            ),
+        )
+        response_data = response.get("response")
+        assert response_data.request.method == "PATCH"
+        assert response_data.status_code == 200
+        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
+        assert response_data.request.url == "mock://www.google.com"
+        assert response.get("valid") is True
+        assert response.get("response") is not None
+        assert response.get("errors") is None
+        assert response_data.request.headers == {'Content-Length': '21',
+                                                 'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
+
+    def test_patch_response_validation_failure(self):
+        request = HTTPHelper(self.verbose)
+        response = request.patch(
+            request_schematic_validation=BodyRequestSchematicTest,
+            request_type_validation=HTTPRequestType.JSON,
+            response_status_code_validation=200,
+            response_type_validation=HTTPResponseType.JSON,
+            response_schematic_validation=BodyResponseSchematicTest,
+            mock=True,
+            mock_status=400,
+            mock_response="test",
+            url="mock://www.google.com",
+            body={'hello': 'world', 'pong': True},
+            headers={'header': 'a'},
+            query={'query': 'b'},
+            timeout=30,
+            retry_policy=dict(
+                total=3
+            ),
+        )
+
+        response_data = response.get("response")
+        assert response_data.request.method == "PATCH"
+        assert response_data.status_code == 400
+        assert response_data.content.decode(response_data.encoding) == "\"test\""
+        assert response_data.request.url == "mock://www.google.com"
+        assert response.get("valid") is False
+        assert response.get("response") is not None
+        assert len(response.get("errors")) == 3
+        assert response_data.request.headers == {'Content-Length': '21',
+                                                 'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}

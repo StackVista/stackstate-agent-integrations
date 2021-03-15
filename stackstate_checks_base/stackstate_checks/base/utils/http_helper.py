@@ -2,13 +2,12 @@ import json
 import requests_mock
 from enum import Enum
 from schematics.models import Model
-from schematics.types import StringType, URLType, DictType, BooleanType, IntType
-from schematics.exceptions import ValidationError, DataError
+from schematics.types import StringType
+from schematics.exceptions import DataError
 from requests import Session, Request
 from requests.auth import HTTPBasicAuth
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
-import six
 
 try:
     import urlparse
@@ -21,7 +20,7 @@ except ImportError:
 """
 
 
-class HTTPBasicAuth(Model):
+class HTTPBasicAuthentication(Model):
     username = StringType(required=True)
     password = StringType(required=True)
 
@@ -32,7 +31,7 @@ class HTTPBasicAuth(Model):
 
 
 class HTTPAuthenticationType(Enum):
-    BasicAuth = HTTPBasicAuth
+    BasicAuth = HTTPBasicAuthentication
 
 
 """
@@ -58,7 +57,7 @@ class HTTPResponseType(Enum):
 
 
 """
-    The HTTP Helper Common class is used for common functionality split between al the other
+    The HTTP Helper Common class is used for common functionality split between all the other
     HTTP Helper classes.
     Functionality:
         - Mapped enums to lists
@@ -79,7 +78,7 @@ class HTTPHelperCommon:
     def __init__(self, verbose=False):
         self._verbose = verbose
 
-    # Print verbose message for assistance
+    # Print verbose message to track events
     def print_verbose(self, message):
         if self._verbose is True:
             print(message)
@@ -147,7 +146,6 @@ class HTTPHelperRequestHandler:
     _common = HTTPHelperCommon()
     _body_schematic_validation = None
     _body_type_validation = None
-    _body_type_allow_empty_validation = None
 
     # Init the requests objects and common class
     def __init__(self, verbose=False):
@@ -172,7 +170,9 @@ class HTTPHelperRequestHandler:
         else:
             self._common.print_type_error("""The request object passed to this function is the incorrect type.
                                              The request object must be a instance of the Request() class from the
-                                             requests library, Current request object type {0} and object {1}"""
+                                             requests library, Current request object type {0} and object {1}.
+                                             To fix this you have to either remove the custom `set_request` function
+                                             or inspect the parameter being passed to it"""
                                           .format(type(request), str(request)))
 
     # This will reset the state of the Request() object and replace it with a new one
@@ -198,7 +198,7 @@ class HTTPHelperRequestHandler:
     """
     Functionality:
         Set the current HTTP Method for the Requests() object from the HTTPMethod enum
-        If a method is specified which does not exist in the HTTPMethod a Not Implemented error will be triggered.
+        If a method is specified which does not exist in the HTTPMethod a `Not Implemented` error will be triggered.
 
     Input:
         @method
@@ -209,11 +209,10 @@ class HTTPHelperRequestHandler:
     def set_method(self, method):
         self._common.print_verbose("Attempting to set the active http method to {0}".format(str(method)))
 
-        # TODO: Combine both methods, Reduce else statements
-
+        # ENUM Check
         # We attempt to see if the provided variable exists inside the enum
         # The following checks are made
-        # - Is the value a enum value
+        # - Is the method a enum value
         # - Does the method exist in the enum
         # - Can we get the value data from the method
         if isinstance(method, Enum) and \
@@ -224,6 +223,7 @@ class HTTPHelperRequestHandler:
                                        .format(str(method.value)))
             self._request.method = method.value
 
+        # String Check
         # If the value was not found in a enum then we attempt to find the enum that contains the same as the
         # string value provided.
         # The following checks are made
@@ -285,7 +285,7 @@ class HTTPHelperRequestHandler:
             url = (parsed_url.scheme + "://" if len(parsed_url.scheme) > 0 else "") \
                 + parsed_url.netloc \
                 + parsed_url.path
-            self._common.print_verbose("Reconstructed URL ${0}".format(str(url)))
+            self._common.print_verbose("Reconstructed URL {0}".format(str(url)))
 
             # Apply the reconstructed Endpoint to the Request() object
             self._request.url = url
@@ -298,9 +298,9 @@ class HTTPHelperRequestHandler:
 
         # Invalid URL
         else:
-            self._common.print_type_error("""The URL provided is incorrect, The type provided is {0}.
-                                         The URL needs to be parsed thus we need a string to be able to parse the URL.
-                                         """.format(str(type(url))))
+            self._common.print_type_error("""The URL provided is incorrect, The type provided is {0} adn the value is
+                                         {1} .The URL needs to be parsed thus we need a string to be able to parse
+                                         the URL""".format(str(type(url)), str(url)))
 
     """
     * The following functions control the HTTP Query parameters
@@ -478,7 +478,7 @@ class HTTPHelperRequestHandler:
             self._common.print_type_error("""The `auth_schematic` variable passed to the `set_auth` function"
                                             is currently invalid. You need to pass down a schematic object from the
                                             `HTTPAuthenticationType` Enum or a type" error will occur.
-                                            The current schematic passed to this function is: ${0}
+                                            The current schematic passed to this function is: {0}
                                             """.format(str(auth_schematic)))
 
     """
@@ -489,15 +489,10 @@ class HTTPHelperRequestHandler:
     def get_body_type_validation(self):
         return self._body_type_validation
 
-    # Get the body type validation from the Request() data object
-    def get_body_type_allow_empty_validation(self):
-        return self._body_type_allow_empty_validation
-
     # Remove the body type validation from the Request() data object
     def remove_body_type_validation(self):
         self._common.print_verbose("""Removing the body type validation""")
         self._body_type_validation = None
-        self._body_type_allow_empty_validation = None
 
     """
     Functionality:
@@ -509,12 +504,10 @@ class HTTPHelperRequestHandler:
     Input:
         @body_type
             A item from the `HTTPRequestType` enum
-        @allow_empty
-            Lorem Ipsum
     """
 
-    def set_body_type_validation(self, body_type, allow_empty=True):
-        self._common.print_verbose("""Applying validation the current body content type, The body is ${0}"""
+    def set_body_type_validation(self, body_type):
+        self._common.print_verbose("""Applying validation the current body content type, The body is {0}"""
                                    .format(str(self._request.data)))
 
         # Validate that the `body_type` parameter is a instance of the `HTTPRequestType` enum
@@ -523,21 +516,17 @@ class HTTPHelperRequestHandler:
                 body_type.value in self._common.request_types:
             # Save the validation to test against later
             self._body_type_validation = body_type
-            self._body_type_allow_empty_validation = allow_empty
             self._common.print_verbose("""The body is valid and matched either the defined {0}
-                                      type or is empty. The `validate_body` function does
-                                      {1} the body to be empty"""
-                                       .format(str(body_type), ("allow" if allow_empty is True else "not allow")))
+                                      type or is empty."""
+                                       .format(str(body_type)))
 
         else:
             self._common.print_type_error("""The body does not conform to the body type provided ({0}).
                                          Either the body type passed to the `validate_body` function needs to be
                                          changed, The validation needs to be removed to allow this body type or
-                                         the body needs to be looked at and why it is passing down the incorrect data
-                                         The `validate_body` function does {1} the body to be empty.
-                                         The current body tested content is {2}
+                                         the body needs to be looked at and why it is passing down the incorrect data.
+                                         The current body tested content is {1}
                                          """.format(str(body_type),
-                                                    ("allow" if allow_empty is True else "not allow"),
                                                     self._request.data))
 
     # Get the body type schematic validation from the Request() data object
@@ -574,11 +563,43 @@ class HTTPHelperRequestHandler:
         except TypeError as e:
             self._common.print_type_error("""The `body_schematic` variable passed to the `validate_body_structure`"
                                             is currently invalid. You need to pass down a schematic object or a type"
-                                            error will occur. The current schematic passed to this function is: ${0}
+                                            error will occur. The current schematic passed to this function is: {0}
 
                                             The error provided by the python execution
                                             {1}
                                             """.format(str(body_schematic), e))
+
+    def validate(self):
+        self._common.print_verbose("Attempting to validate the request structure.")
+
+        # If the HTTP Response Validation Schematic has been set
+        if self._body_schematic_validation is not None:
+            try:
+                # The last part to test is does the Parsed JSON match the schematic validation
+                self._body_schematic_validation(self._request.data) \
+                    .validate()
+
+            except DataError as e:
+                self._common.print_type_error("""The request was unable to conform to the validation schematic. The
+                                schematic applied was {0}
+                                The error provided by the schematic validation is {1}
+                                To fix this you can either modify the schematic validation or remove it entirely
+                                """.format(str(self._body_schematic_validation), e))
+
+            except TypeError as e:
+                self._common.print_type_error("""The request was unable to conform to the validation schematic. The
+                                schematic applied was {0}
+                                The error provided by the schematic validation is {1}
+                                To fix this you can either modify the schematic validation or remove it entirely
+                                """.format(str(self._body_schematic_validation), e))
+
+        # Test the type of the request body
+        if self._body_type_validation is not None and \
+                isinstance(type(self._request.data), type(self._body_type_validation.value)) is False:
+            self._common.print_type_error("""The request was unable to conform to the type validation. The
+                            body type applied was {0} where the expected type is {1}
+                            To fix this you can either modify the type validation or remove it entirely
+                            """.format(str(type(self._request.data)), str(type(self._body_type_validation.value))))
 
 
 """
@@ -782,7 +803,7 @@ class HTTPHelperSessionHandler:
             self._common.print_type_error("""The `auth_schematic` variable passed to the `set_auth` function"
                                             is currently invalid. You need to pass down a schematic object from the
                                             `HTTPAuthenticationType` Enum or a type" error will occur.
-                                            The current schematic passed to this function is: ${0}
+                                            The current schematic passed to this function is: {0}
                                             """.format(str(auth_schematic)))
 
     def apply_mock(self, method, url, status_code=None, response=None):
@@ -974,13 +995,16 @@ class HTTPHelperConnectionHandler:
     """
 
     def send(self, session_handler, request_handler, response_handler):
-        self._common.print_verbose("Sending the HTTP request.")
+        self._common.print_verbose("Sending the HTTP request.")\
+
+        request_object = request_handler.get_request()
+        session_object = session_handler.get_session()
 
         # Apply the retry policy if defined
         if self._retry_policy is not None:
             adapter = HTTPAdapter(max_retries=self._retry_policy)
-            session_handler.mount("https://", adapter)
-            session_handler.mount("http://", adapter)
+            session_object.mount("https://", adapter)
+            session_object.mount("http://", adapter)
 
         # Apply the proxy details
         # If non is found then it is cleared from the object
@@ -990,11 +1014,17 @@ class HTTPHelperConnectionHandler:
             self.set_proxy(self._proxy)
 
         # Apply the SSL verification
-        session_handler.verify = self._ssl_verify
+        session_object.verify = self._ssl_verify
+
+        # Request validation
+        request_handler.validate()
 
         # Apply the timeout to the Session() send
         # Send the request out
-        response = session_handler.send(request_handler.prepare(), timeout=self._timeout)
+        response = session_object.send(
+            request_object.prepare(),
+            timeout=self._timeout
+        )
 
         self._common.print_verbose("Response: {0}".format(str(response)))
 
@@ -1166,11 +1196,15 @@ class HTTPHelperResponseHandler:
         # If the HTTP Response Validation Schematic has been set
         if self._validate_schematic is not None:
             try:
+                print("awe")
                 # Decode the response content with the encoding type also given by the response
                 decoded_response = response.content.decode(response.encoding)
 
                 # We attempt to decode the response to JSON. To test a schematic you need to have a JSON object to test
                 parsed_json = json.loads(decoded_response)
+
+                if isinstance(parsed_json, dict) is False:
+                    raise ValueError()
 
                 # The last part to test is does the Parsed JSON match the schematic validation
                 self._validate_schematic(parsed_json) \
@@ -1209,7 +1243,10 @@ class HTTPHelperResponseHandler:
             # If the type set is JSON. We then attempt to parse it and see if it is valid
             if self._validate_type is HTTPResponseType.JSON:
                 try:
-                    json.loads(response.content.decode(response.encoding))
+                    data = json.loads(response.content.decode(response.encoding))
+                    if isinstance(data, dict) is False:
+                        raise ValueError()
+
                 except ValueError as e:
                     errors.append("""Unable to parse the response as JSON.
                                      The response received was {0}.
@@ -1236,7 +1273,20 @@ class HTTPHelperResponseHandler:
         - Overwrite Session Helper
         - Overwrite Response Helper
         - GET Request
+        - POST Request
+        - DELETE Request
+        - PATCH Request
+        - PUT Request
 
+    There is 3 ways to approach creating a HTTP Helper
+    - The developer can create the HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPHelperResponseHandler and
+      HTTPHelperConnectionHandler. 
+      These can then manually be passed down as kwargs to the send function
+    - The developer can create the HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPHelperResponseHandler and
+      HTTPHelperConnectionHandler. 
+      These can then manually be set within the HTTPHelper class with the overwrite functions
+    - Or it can be left to the internal state where the Helper control and build the state.
+      Thus if the developer use the setters and getter those internal state will be manipulated
 """
 
 
@@ -1258,7 +1308,7 @@ class HTTPHelper:
     def overwrite_connection_helper(self, connection):
         self._connection = connection
 
-    # Allow the connection helper to be overwritten
+    # Retrieve the current connection helper
     def get_connection_helper(self):
         return self._connection
 
@@ -1266,7 +1316,7 @@ class HTTPHelper:
     def overwrite_request_helper(self, request):
         self._request = request
 
-    # Allow the request helper to be overwritten
+    # Retrieve the current request helper
     def get_request_helper(self):
         return self._request
 
@@ -1274,7 +1324,7 @@ class HTTPHelper:
     def overwrite_response_helper(self, response):
         self._response = response
 
-    # Allow the response helper to be overwritten
+    # Retrieve the current response helper
     def get_response_helper(self):
         return self._response
 
@@ -1282,7 +1332,7 @@ class HTTPHelper:
     def overwrite_session_helper(self, session):
         self._session = session
 
-    # Allow the session helper to be overwritten
+    # Retrieve the current session helper
     def get_session_helper(self):
         return self._session
 
@@ -1312,6 +1362,16 @@ class HTTPHelper:
                 - timeout                           (Integer) The connection timeout
                 - ssl_verify                        (Boolean) Test if the request should be SSL
                 - retry_policy                      (Retry() object kwargs) Create a retry policy for the HTTP request
+    
+    There is 3 ways to approach creating a HTTP Helper
+    - The developer can create the HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPHelperResponseHandler and
+      HTTPHelperConnectionHandler. 
+      These can then manually be passed down as kwargs to the send function
+    - The developer can create the HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPHelperResponseHandler and
+      HTTPHelperConnectionHandler. 
+      These can then manually be set within the HTTPHelper class with the overwrite functions
+    - Or it can be left to the internal state where the Helper control and build the state.
+      Thus if the developer use the setters and getter those internal state will be manipulated
     """
 
     def _builder(self, active_method, **kwargs):
@@ -1353,6 +1413,35 @@ class HTTPHelper:
 
     def get(self, **kwargs):
         self._builder(HTTPMethod.GET, **kwargs)
-        return self._connection.send(self._session.get_session(),
-                                     self._request.get_request(),
-                                     self._response)
+        self._connection = kwargs.get("connection", self._connection)
+        return self._connection.send(kwargs.get("session", self._session),
+                                     kwargs.get("request", self._request),
+                                     kwargs.get("response", self._response))
+
+    def post(self, **kwargs):
+        self._builder(HTTPMethod.POST, **kwargs)
+        self._connection = kwargs.get("connection", self._connection)
+        return self._connection.send(kwargs.get("session", self._session),
+                                     kwargs.get("request", self._request),
+                                     kwargs.get("response", self._response))
+
+    def put(self, **kwargs):
+        self._builder(HTTPMethod.PUT, **kwargs)
+        self._connection = kwargs.get("connection", self._connection)
+        return self._connection.send(kwargs.get("session", self._session),
+                                     kwargs.get("request", self._request),
+                                     kwargs.get("response", self._response))
+
+    def delete(self, **kwargs):
+        self._builder(HTTPMethod.DELETE, **kwargs)
+        self._connection = kwargs.get("connection", self._connection)
+        return self._connection.send(kwargs.get("session", self._session),
+                                     kwargs.get("request", self._request),
+                                     kwargs.get("response", self._response))
+
+    def patch(self, **kwargs):
+        self._builder(HTTPMethod.PATCH, **kwargs)
+        self._connection = kwargs.get("connection", self._connection)
+        return self._connection.send(kwargs.get("session", self._session),
+                                     kwargs.get("request", self._request),
+                                     kwargs.get("response", self._response))
