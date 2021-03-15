@@ -1280,10 +1280,10 @@ class HTTPHelperResponseHandler:
 
     There is 3 ways to approach creating a HTTP Helper
     - The developer can create the HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPHelperResponseHandler and
-      HTTPHelperConnectionHandler. 
+      HTTPHelperConnectionHandler.
       These can then manually be passed down as kwargs to the send function
     - The developer can create the HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPHelperResponseHandler and
-      HTTPHelperConnectionHandler. 
+      HTTPHelperConnectionHandler.
       These can then manually be set within the HTTPHelper class with the overwrite functions
     - Or it can be left to the internal state where the Helper control and build the state.
       Thus if the developer use the setters and getter those internal state will be manipulated
@@ -1362,13 +1362,13 @@ class HTTPHelper:
                 - timeout                           (Integer) The connection timeout
                 - ssl_verify                        (Boolean) Test if the request should be SSL
                 - retry_policy                      (Retry() object kwargs) Create a retry policy for the HTTP request
-    
+
     There is 3 ways to approach creating a HTTP Helper
     - The developer can create the HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPHelperResponseHandler and
-      HTTPHelperConnectionHandler. 
+      HTTPHelperConnectionHandler.
       These can then manually be passed down as kwargs to the send function
     - The developer can create the HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPHelperResponseHandler and
-      HTTPHelperConnectionHandler. 
+      HTTPHelperConnectionHandler.
       These can then manually be set within the HTTPHelper class with the overwrite functions
     - Or it can be left to the internal state where the Helper control and build the state.
       Thus if the developer use the setters and getter those internal state will be manipulated
