@@ -21,27 +21,12 @@ except ImportError:
 """
 
 
-class HTTPMethodEnum(Enum):
-    GET = ({
-        'type': 'GET',
-        'body': False
-    })
-    POST = ({
-        'type': 'POST',
-        'body': True
-    })
-    PUT = ({
-        'type': 'PUT',
-        'body': True
-    })
-    PATCH = ({
-        'type': 'PATCH',
-        'body': True
-    })
-    DELETE = ({
-        'type': 'DELETE',
-        'body': False
-    })
+class HTTPMethod(Enum):
+    GET = 'GET'
+    POST = 'POST'
+    PUT = 'PUT'
+    PATCH = 'PATCH'
+    DELETE = 'DELETE'
 
 
 """
@@ -60,7 +45,6 @@ class _HTTPBasicAuth(Model):
 
 
 class HTTPAuthenticationType(Enum):
-    NoAuth = None
     BasicAuth = _HTTPBasicAuth
 
 
@@ -78,181 +62,67 @@ class HTTPResponseType(Enum):
     JSON = dict
 
 
-class HTTPHelper:
-    # Primary request objects
-    session = Session()
-    request_object = Request()
+"""
+    The HTTP Helper Common class is used for common functionality split between al the other
+    HTTP Helper classes. 
+    Functionality:
+        - Mapped enums to lists
+        - Log messages
+        - Create a dictionary from a string
+"""
 
-    # Extra enums to arrays to find values
-    available_method_enums = [item.value for item in HTTPMethodEnum]
-    available_method_types = [item.value['type'] for item in HTTPMethodEnum]
-    available_request_types = [item.value for item in HTTPRequestType]
-    available_authentication_types = [item.value for item in HTTPAuthenticationType]
-    available_response_types = [item for item in HTTPResponseType]
 
-    # State of the timeout and retry stats
-    timeout = None
-    retry_strategy = None
-    session_focus = False
+class HTTPHelperCommon:
+    _verbose = False
 
-    # Init: Reset objects
-    def __init__(self, session=False):
-        self.session = Session()
-        self.request_object = Request()
-        self.session_focus = session
+    # Mapped enum values
+    http_method_enums = [item.value for item in HTTPMethod]
+    request_types = [item.value for item in HTTPRequestType]
+    authentication_types = [item.value for item in HTTPAuthenticationType]
+    response_types = [item.value for item in HTTPResponseType]
 
-    # Reset the session and request objects
-    def renew(self):
-        self.session = Session()
-        self.request_object = Request()
+    def __init__(self, verbose=False):
+        self._verbose = verbose
 
-    # Print Errors
-    def handle_error(self, error):
+    # Print verbose message for assistance
+    def print_verbose(self, message):
+        if self._verbose is True:
+            print(message)
+
+    # Below is all the different error types that can be used to print out
+    @staticmethod
+    def print_error(error):
         raise Exception(error)
 
-    """
-        You can set the type of request through this function for example GET or POST
-        The function accepts both string or enum `HTTPMethodEnum` values
-
-        @http_method
-            str or method from the HTTPMethodEnum` enum
-
-        ** Affects: Request Object **
-    """
-    def set_method(self, http_method=None):
-        # If the method is blank then we clear the value
-        if http_method is None:
-            self.request_object.method = None
-
-        # If the supplied method already exists in the enum
-        elif http_method in self.available_method_enums:
-            self.request_object.method = http_method.value['type']
-
-        # This is a second test to attempt and find the method str inside the enum
-        elif http_method in self.available_method_types:
-            method_type_index = self.available_method_types.index(http_method)
-            if method_type_index > -1 and self.available_method_enums[method_type_index]:
-                self.request_object.method = self.available_method_enums[method_type_index]['type']
-
-        # If neither the enum or string could satisfy the request then we see it as a error
-        # We also reset the method to none as a invalid type was passed
-        else:
-            self.request_object.method = None
-            self.handle_error(
-                "HTTP Method `%s` is not supported, Please use any of the following methods %s" %
-                (http_method, ", ".join(self.available_method_types))
-            )
-
-    """
-        Returns the current state of the supplied method
-        ** Affects: None **
-    """
-    def get_method(self):
-        return self.request_object.method
-
-    """
-        The target endpoint is applied here, This will be the endpoint hit as soon as the request is made.
-        We also attempt to analyze the url and split out any extra data like query parameters etc and
-        apply them to the correct locations thus allowing a custom url to affect the requests object.
-
-        @http_url
-            The URL endpoint the request will attempt to retrieve information from
-
-        ** Affects: Request Object **
-    """
-    def set_url(self, http_url=None, session=False):
-        session = self.session_focus if session is False else session
-        # Reset the URL
-        if http_url is None:
-            self.request_object.url = None
-
-        elif isinstance(http_url, str):
-            # We attempt to parse the url to determine if there is any other parts within the URL
-            parsed_url = urlparse.urlparse(http_url)
-
-            # The URL gets reconstructed here and applied
-            url = (parsed_url.scheme + "://" if len(parsed_url.scheme) > 0 else "") \
-                + parsed_url.netloc \
-                + parsed_url.path
-            self.request_object.url = url
-
-            # If there was any extra query parameters then we attempt to process it
-            if len(parsed_url.query) > 0:
-                self.set_query_parameters(parsed_url.query, session)
-
-        # Invalid URL, Reset to none if invalid
-        else:
-            self.request_object.url = None
-            self.handle_error("Invalid URL specified")
-
-    """
-        Returns the current state of the supplied url target
-        ** Affects: None **
-    """
-    def get_url(self):
-        return self.request_object.url
-
-    """
-        Apply query parameters to the request object or session object from either a string that is converted
-        to a dict or a straight dict
-
-        @parameters
-            Can be a string containing a query string for example test=123&hello=world or this can be a already
-            parsed dict
-        @session
-            If this is true then the session object will be used instead of the requests object
-
-        ** Affects: Session and Request Object **
-    """
-    def set_query_parameters(self, parameters=None, session=False):
-        session = self.session_focus if session is False else session
-        _parameters = parameters
-
-        # Clear query parameters
-        if parameters is None and session is False:
-            self.request_object.params = {}
-            return
-
-        elif parameters is None and session is True:
-            self.session.params.clear()
-            return
-
-        # If the supplied query params is a string, We then attempt to parse it into a dict
-        elif isinstance(parameters, str):
-            _parameters = self._split_string_into_dict(parameters, "&", "=")
-
-        # Apply to the session object
-        if isinstance(_parameters, dict) and session is True:
-            self.session.params.update(_parameters)
-
-        # Apply to the request object
-        elif isinstance(_parameters, dict) and session is False:
-            self.request_object.params = _parameters
-
-        else:
-            # Clear query parameters
-            if session is False:
-                self.request_object.params = {}
-            elif session is True:
-                self.session.params.clear()
-
-            self.handle_error("Invalid query parameters specified")
-
-    """
-        Returns the current state of the query parameters
-        ** Affects: None **
-    """
-    def get_query_parameters(self, session=False):
-        session = self.session_focus if session is False else session
-        if session is True:
-            return self.session.params
-        else:
-            return self.request_object.params
-
-    """
-    """
     @staticmethod
-    def _split_string_into_dict(target, delimiter, sub_delimiter):
+    def print_not_implemented_error(error):
+        raise NotImplementedError(error)
+
+    @staticmethod
+    def print_type_error(error):
+        raise TypeError(error)
+
+    @staticmethod
+    def print_value_error(error):
+        raise ValueError(error)
+
+    """
+    Functionality:
+        Split a string into a dictionary the string must follow a list + key value structure
+        For example random=test&hello=world or for example random:123|test:123.
+        
+    Input:
+        @target 
+            The primary string that should be made into a dictionary
+        @delimiter
+            The item that will make the string into a list of strings
+        @sub_delimiter
+            The sub delimiter is used to split the list of strings into a dictionary    
+        
+    """
+
+    @staticmethod
+    def split_string_into_dict(target, delimiter, sub_delimiter):
         if isinstance(target, str):
             items = (item.split(sub_delimiter) for item in target.split(delimiter))
             try:
@@ -261,393 +131,1235 @@ class HTTPHelper:
                 return {}
         return None
 
-    """
-        Apply a body to the request object. The body will be tested against a type or the type will be inferred if
-        possible.
-        The body can also be tested against a schematic to prevent requesting with a malformed body
 
-        @body
-            Dict object containing a body to be send with the request
-        @request_type
-            This is the body type defined from the `HTTPRequestType` enum for example HTTPRequestType.JSON
-        @mapping_model
-            You can supply a schematic model, This model will be used to test against the body
+"""
+    The HTTP Helper Request Handler is used to control the state of the Request() object within the requests library,
+    Anything that can manipulate, create or fetch the state from this Request() object should be contained within,
+    Functionality:
+        - Create and maintain the Request() object from requests
+        - SET && GET HTTP Method
+        - SET && GET HTTP Endpoint
+        - SET && GET HTTP Query Parameters
+        - SET && GET HTTP Body
+        - SET && GET HTTP Validation
+        - SET && GET HTTP Headers
+        - SET && GET HTTP Auth
+"""
 
-        ** Affects: Request Object **
-    """
-    def set_body(self, body=None, request_type=None, mapping_model=None):
-        # Get the request method
-        request_method = HTTPMethodEnum[self.request_object.method] \
-            if self.request_object.method in self.available_method_types else None
 
-        # Use the request method to determine if this request requires a body
-        if request_method is not None and request_method.value:
-            if request_method.value["body"] is not True:
-                self.request_object.data = []
-                return
-        elif self.request_object.method is not None:
-            self.handle_error("Invalid request method")
-            self.request_object.data = []
-            return
+class HTTPHelperRequestHandler:
+    # Private objects to keep internal state
+    _request = Request()
+    _common = HTTPHelperCommon()
+    _body_schematic_validation = None
+    _body_type_validation = None
+    _body_type_allow_empty_validation = None
 
-        # Clear body
-        if body is None:
-            self.request_object.data = []
-
-        # Infer that the type is json
-        elif body is not None \
-                and isinstance(body, dict) \
-                and request_type is None \
-                and mapping_model is None:
-            self.request_object.data = body
-
-        # Test if the defined type is the same as the value without a model
-        elif body is not None \
-                and isinstance(request_type, Enum) \
-                and isinstance(body, request_type.value) \
-                and mapping_model is None:
-            self.request_object.data = body
-
-        # Test if the defined type is the same as the value with a model
-        elif body is not None \
-                and isinstance(request_type, Enum) \
-                and isinstance(body, request_type.value) \
-                and mapping_model is not None:
-            try:
-                mapping_model(body).validate()
-                self.request_object.data = body
-            except DataError:
-                self.handle_error("Invalid body, Does not match schematic")
-                self.request_object.data = []
+    # Init the requests objects and common class
+    def __init__(self, verbose=False):
+        self._request = Request()
+        self._common = HTTPHelperCommon(verbose)
 
     """
-        Returns the current state of the body
-        ** Affects: None **
+    * The following functions control the Request() object
     """
+
+    # Retrieve the current state of the Request() object
+    def get_request(self):
+        self._common.print_verbose("Retrieve the active Request() object.")
+        return self._request
+
+    # Allows the developer to use a custom request object if required.
+    # This opens up some flexibility and control
+    def set_request(self, request):
+        self._common.print_verbose("Replacing the old Request() object with a user defined one.")
+        if isinstance(request, type(Request())):
+            self._request = request
+        else:
+            self._common.print_type_error("""The request object passed to this function is the incorrect type.
+                                             The request object must be a instance of the Request() class from the
+                                             requests library, Current request object type {0} and object {1}"""
+                                          .format(type(request), str(request)))
+
+    # This will reset the state of the Request() object and replace it with a new one
+    def reset_request(self):
+        self._common.print_verbose("Creating a new Request() object and replacing the old one.")
+        self._request = Request()
+
+    """
+    * The following functions control the HTTP Method applied to the Requests object for example
+      GET, POST
+    """
+
+    # Clear the current state of the HTTP Method applied to the Request() object
+    def clear_method(self):
+        self._common.print_verbose("Clearing the HTTP Method.")
+        self._request.method = None
+
+    # Retrieve the current state of the HTTP Method applied to the Request() object
+    def get_method(self):
+        self._common.print_verbose("Retrieve the Request() object HTTP Method.")
+        return self._request.method
+
+    """
+    Functionality:
+        Set the current HTTP Method for the Requests() object from the HTTPMethod enum
+        If a method is specified which does not exist in the HTTPMethod a Not Implemented error will be triggered.
+        
+    Input:
+        @method
+            This can either be a value from the `HTTPMethod` or a direct string that can be mapped to the `HTTPMethod`
+            The value of this will be the type of request made for example POST or GET
+    """
+
+    def set_method(self, method):
+        self._common.print_verbose("Attempting to set the active http method to {0}".format(str(method)))
+
+        # TODO: Combine both methods, Reduce else statements
+
+        # We attempt to see if the provided variable exists inside the enum
+        # The following checks are made
+        # - Is the value a enum value
+        # - Does the method exist in the enum
+        # - Can we get the value data from the method
+        if isinstance(method, Enum) and \
+                hasattr(method, "value") and \
+                method.value in self._common.http_method_enums:
+            self._common.print_verbose("Enum Method found inside the `HTTPMethod` enum, Applying {0} as the active"
+                                       "method."
+                                       .format(str(method.value)))
+            self._request.method = method.value
+
+        # If the value was not found in a enum then we attempt to find the enum that contains the same as the
+        # string value provided.
+        # The following checks are made
+        # - Is the method passed a string so that we can match it in the enum
+        # - Does that string exist in the mapped enum list.
+        elif isinstance(method, str) and method in self._common.http_method_enums:
+            self._common.print_verbose("String method found inside the `HTTPMethod` enum, Applying {0} as the active"
+                                       "method."
+                                       .format(str(method)))
+            self._request.method = method
+
+        # If we do not find the value inside the enum then it means that we do not support the method yet
+        else:
+            self._common.print_not_implemented_error("""Unable to find the provided {0} method. Currently the code
+                                                       block only supports the methods provided in the `HTTPMethod`
+                                                       Enum. If you would like to add another method feel free to add it
+                                                       within the `HTTPMethod` Enum or change the supplied {1} to a
+                                                       supported type""".format(str(method), str(method)))
+
+    """
+    * The following functions control the HTTP Endpoint and Endpoint creation
+      For example http://www.example.com and http://www.example.com?test=123 will both be mapped to the correct
+      values within the Request() object
+    """
+
+    # Clear the current state of the HTTP URL applied to the Request() object
+    def clear_url(self):
+        self._common.print_verbose("Clearing the HTTP URL.")
+        self._request.url = None
+
+    # Retrieve the value of the current Endpoint on the Request() object
+    def get_url(self):
+        self._common.print_verbose("Retrieving current HTTP Endpoint")
+        return self._request.url
+
+    """
+    Functionality:
+        The Request() endpoint is set with this function.
+        Some extra functionality is build-into this function to analyze a URL. When something like the following is
+        passed to the function 'http://www.url.com?test=123' the query parameters on this URL will be split out and
+        applied into the correct object within the Request() object
+
+    Input:
+        @url
+            A string object containing the endpoint that should be queried
+    """
+
+    def set_url(self, url):
+        self._common.print_verbose("Attempting to set the active current url to {0}".format(str(url)))
+
+        # We need a string to be able to set a URL endpoint, Anything else is unsupported
+        if isinstance(url, str):
+            # We deconstruct the URL at this point.
+            # This allows us to piece it back together with only what we need.
+            parsed_url = urlparse.urlparse(url)
+            self._common.print_verbose("Endpoint parsed successfully, Result is as follow {0}".format(str(parsed_url)))
+
+            # The URL is recreated here by adding the schema, net location and path together
+            url = (parsed_url.scheme + "://" if len(parsed_url.scheme) > 0 else "") \
+                  + parsed_url.netloc \
+                  + parsed_url.path
+            self._common.print_verbose("Reconstructed URL ${0}".format(str(url)))
+
+            # Apply the reconstructed Endpoint to the Request() object
+            self._request.url = url
+
+            # If we found any extra data within the URL we then attempt to map it to the correct location
+            if parsed_url.query is not None and len(parsed_url.query) > 0:
+                query_dict = self._common.split_string_into_dict(parsed_url.query, "&", "=")
+                # Apply the extracted parameters into the Request() object
+                self.set_query_param(query_dict)
+
+        # Invalid URL
+        else:
+            self._common.print_type_error("""The URL provided is incorrect, The type provided is {0}.
+                                         The URL needs to be parsed thus we need a string to be able to parse the URL.
+                                         """.format(str(type(url))))
+
+    """
+    * The following functions control the HTTP Query parameters
+      It can be set, cleared or retrieved
+    """
+
+    # Retrieve the value of the current Query Parameters on the Request() object
+    def get_query_param(self):
+        self._common.print_verbose("Retrieving current HTTP Query Parameters from the Request() object")
+        return self._request.params
+
+    # Reset the value of the current Query Parameters on the Request() object
+    def clear_query_param(self):
+        self._common.print_verbose("Setting the HTTP Query Parameters object to a empty {} on the Request() object")
+        self._request.params = None
+
+    """
+    Functionality:
+        This function controls the state of the HTTP Query Parameters object.
+
+    Input:
+        @parameters
+            A basic dict object mapping values to keys
+    """
+
+    def set_query_param(self, parameters):
+        self._common.print_verbose("Attempting to set the active query parameters to {0}".format(str(parameters)))
+
+        # If a valid dict was passed then we can successfully apply the object as the Request() object is expecting the
+        # same results.
+        if isinstance(parameters, dict):
+            self._request.params = parameters
+
+        else:
+            self._common.print_type_error("""The parameters provided does not contain the correct type.
+                                         The provided type is {0}. This function only accepts dict
+                                         objects this allows a easy mapping to the query object as the parameters
+                                         also exists out of key and value pairs.
+                                         To fix this please look at the {1} object or remove the query parameters"""
+                                          .format(str(type(parameters)), str(parameters)))
+
+    """
+    * The following functions control the body that's being send the the HTTP Endpoint.
+    """
+
+    # Retrieve the value of the current Data Parameters on the Request() object
     def get_body(self):
-        if self.request_object.data is None or len(self.request_object.data) == 0:
-            return None
-        return self.request_object.data
+        self._common.print_verbose("Retrieving current HTTP Data Parameters from the Request() object")
+        return self._request.data
+
+    # Reset the value of the current Query Parameters on the Request() object
+    def clear_body(self):
+        self._common.print_verbose("Clear current HTTP Data Parameters from the Request() object")
+        self._request.data = []
 
     """
-        Apply a dict to the active request object or session object
+    Functionality:
+        Apply a body to the Request() object.
+        We do not restrict the body type as you may wish to send something other than a JSON object
 
+    Input:
+        @body
+            A body containing any data you want to send to the HTTP Endpoint
+    """
+
+    def set_body(self, body):
+        self._common.print_verbose("Attempting to set the active data object to {0}".format(str(body)))
+        self._request.data = body
+
+    """
+    * The following functions control the HTTP Headers passed to the Request() object.
+    """
+
+    # Retrieve the value of the current Headers on the Request() object
+    def get_headers(self):
+        self._common.print_verbose("Retrieving current HTTP Headers from the Request() object")
+        return self._request.headers
+
+    # Reset the value of the current Headers on the Request() object
+    def clear_headers(self):
+        self._common.print_verbose("Clearing the active HTTP Headers from the Request() object")
+        self._request.headers = {}
+
+    """
+    Functionality:
+        Apply a dict object containing values for the headers to the Request() object.
+
+    Input:
         @headers
-            A dict containing all the header key value pairs
-        @session
-            If this is true then the session object will be used instead of the requests object
+            A dict object containing the key values for the headers,
     """
-    def set_headers(self, headers=None, session=False):
-        session = self.session_focus if session is False else session
 
-        # Apply to the session
-        if isinstance(headers, dict) and session is True:
-            self.session.headers.update(headers)
-        # Apply to the request object
-        elif isinstance(headers, dict):
-            self.request_object.headers = headers
-        # Wipe the variable
+    def set_headers(self, headers):
+        self._common.print_verbose("Attempting to set the headers to {0}".format(str(headers)))
+
+        # We only accept the headers if it is a dictionary
+        if isinstance(headers, dict):
+            self._request.headers = headers
         else:
-            self.request_object.headers = {}
+            self._common.print_type_error("""The headers provided does not contain the correct type.
+                                         The provided type is {0}. This function only accepts dict
+                                         objects this allows a easy mapping to the query object as the headers
+                                         also exists out of key and value pairs. The current headers passed
+                                         was the following {1}""".format(str(type(headers)), str(headers)))
 
     """
-        Returns the current state of the headers
-        ** Affects: None **
+    * The following functions control the HTTP Authentication passed to the Request() object.
     """
-    def get_headers(self, session=False):
-        session = self.session_focus if session is False else session
-        if session:
-            return self.session.headers
-        else:
-            return self.request_object.headers
+
+    # Retrieve the value of the current Authentication on the Request() object
+    def get_auth(self):
+        self._common.print_verbose("Retrieving current Authentication from the Request() object")
+        return self._request.auth
+
+    # Reset the value of the current Authentication on the Request() object
+    def clear_auth(self):
+        self._common.print_verbose("Clearing the active Authentication from the Request() object")
+        self._request.auth = None
 
     """
-        Set authentication on the http request. The authentication details is validated against a schematic
+    Functionality:
+        Apply authentication to the Request() object. 
+        A type structure and data structure is required to apply a authentication
 
-        @schematic
-            This is the HTTP Enum that is used to test the details passed down
-        @details
-            A dict of the credentials required in the 'schematic' enum
-        @session
-            Should this be applied on the session on request
+    Input:
+        @auth_schematic
+            A value from the `HTTPAuthenticationType` enum
+        @auth_details
+            Dict containing the information required from the @auth_schematic `HTTPAuthenticationType` enum object
     """
-    def set_auth(self, schematic=None, details=None, session=False):
-        session = self.session_focus if session is False else session
-        # Reset session auth
-        if (schematic is None or schematic.value is HTTPAuthenticationType.NoAuth or schematic.value is None) \
-                and session is True:
-            self.session.auth = None
 
-        # Reset request object auth
-        elif (schematic is None or schematic.value is HTTPAuthenticationType.NoAuth or schematic.value is None) \
-                and session is False:
-            self.request_object.auth = None
+    def set_auth(self, auth_schematic, auth_details):
+        self._common.print_verbose("Attempting to set the authentication to {0} with the following schematic model {1}"
+                                   .format(str(auth_details), str(auth_details)))
 
-        # If the auth method and data is valid
-        elif schematic is not None and \
-                schematic.value in self.available_authentication_types and \
-                isinstance(details, dict):
+        # Test if the auth_schematic passed does exist in the HTTPAuthenticationType enum
+        # We also do a second test to make sure the auth_schematic.value is also a model
+        if isinstance(auth_schematic, Enum) and \
+                auth_schematic.value in self._common.authentication_types and \
+                issubclass(auth_schematic.value, Model):
             try:
-                # Validate data
-                data = schematic.value(details)
-                data.validate()
+                # Validate the schematic object with the current authentication details
+                auth_schematic.value(auth_details).validate()
 
-                # Apply session data
-                if schematic is HTTPAuthenticationType.BasicAuth and session is True:
-                    self.session.auth = HTTPBasicAuth(data.username, data.password)
-
-                # Apply request data
-                elif schematic is HTTPAuthenticationType.BasicAuth and session is False:
-                    self.request_object.auth = HTTPBasicAuth(data.username, data.password)
-
-            # If validation failed
-            except DataError:
-                self.handle_error("Auth details does not match the schematic")
-                if session is True:
-                    self.session.auth = None
+                # We need to manually map the supported types to the correct object for the Request() auth
+                if auth_schematic is HTTPAuthenticationType.BasicAuth:
+                    self._request.auth = HTTPBasicAuth(auth_details.get('username'), auth_details.get('password'))
                 else:
-                    self.request_object.auth = None
+                    self._common.print_not_implemented_error("""We are unable to map the enum `HTTPAuthenticationType`
+                                                   to the request auth object. Please verify if the object exists in the 
+                                                   HTTPAuthenticationType enum and if it does then the mapping for {0} 
+                                                   is missing from the set_auth function. You need to add a check for 
+                                                   the enum and map the values over to the requests object"""
+                                                             .format(str(auth_schematic)))
+
+            except DataError as e:
+                self._common.print_type_error("""The authentication supplied {0} does not match the required 
+                                                schema {1}. You can view the layout of the schema on the 
+                                                `HTTPAuthenticationType` enum.
+                                                
+                                                The error provided by the execution
+                                                {2}"""
+                                              .format(str(auth_details), str(auth_schematic), e))
+            except TypeError as e:
+                self._common.print_type_error("""The authentication details object passed to this function failed as
+                                                the type of this object is incorrect. The type passed down was 
+                                                {0} and the expected type is a iterable value that matches the 
+                                                `HTTPAuthenticationType` enum
+                                                
+                                                The error provided by the execution
+                                                {1}"""
+                                              .format(type(auth_details), e))
+
         else:
-            self.handle_error("Invalid authentication method supplied")
+            self._common.print_type_error("""The `auth_schematic` variable passed to the `set_auth` function"
+                                            is currently invalid. You need to pass down a schematic object from the
+                                            `HTTPAuthenticationType` Enum or a type" error will occur. 
+                                            The current schematic passed to this function is: ${0}
+                                            """.format(str(auth_schematic)))
 
     """
-        Returns the current state of the auth
-        ** Affects: None **
+    * The following functions control the custom validation on the Request() data object.
     """
-    def get_auth(self, session=False):
-        session = self.session_focus if session is False else session
-        if session is True:
-            return self.session.auth
+
+    # Get the body type validation from the Request() data object
+    def get_body_type_validation(self):
+        return self._body_type_validation
+
+    # Get the body type validation from the Request() data object
+    def get_body_type_allow_empty_validation(self):
+        return self._body_type_allow_empty_validation
+
+    # Remove the body type validation from the Request() data object
+    def remove_body_type_validation(self):
+        self._common.print_verbose("""Removing the body type validation""")
+        self._body_type_validation = None
+        self._body_type_allow_empty_validation = None
+
+    """
+    Functionality:
+        Pre send validation
+        
+        You can apply a validation structure for the Request() data structure.
+        This allows you to stop a request from going out if it does not conform to a certain type
+
+    Input:
+        @body_type
+            A item from the `HTTPRequestType` enum
+        @allow_empty
+            Lorem Ipsum
+    """
+
+    def set_body_type_validation(self, body_type, allow_empty=True):
+        self._common.print_verbose("""Applying validation the current body content type, The body is ${0}"""
+                                   .format(str(self._request.data)))
+
+        # Validate that the `body_type` parameter is a instance of the `HTTPRequestType` enum
+        if isinstance(body_type, Enum) and \
+                hasattr(body_type, "value") and \
+                body_type.value in self._common.request_types:
+            # Save the validation to test against later
+            self._body_type_validation = body_type
+            self._body_type_allow_empty_validation = allow_empty
+            self._common.print_verbose("""The body is valid and matched either the defined {0}
+                                      type or is empty. The `validate_body` function does
+                                      {1} the body to be empty"""
+                                       .format(str(body_type), ("allow" if allow_empty is True else "not allow")))
+
         else:
-            return self.request_object.auth
+            self._common.print_type_error("""The body does not conform to the body type provided ({0}).
+                                         Either the body type passed to the `validate_body` function needs to be 
+                                         changed, The validation needs to be removed to allow this body type or
+                                         the body needs to be looked at and why it is passing down the incorrect data
+                                         The `validate_body` function does {1} the body to be empty.
+                                         The current body tested content is {2}
+                                         """.format(str(body_type),
+                                                    ("allow" if allow_empty is True else "not allow"),
+                                                    self._request.data))
+
+    # Get the body type schematic validation from the Request() data object
+    def get_body_schematic_validation(self):
+        return self._body_schematic_validation
+
+    # Remove the body schematic validation from the Request() data object
+    def remove_body_schematic_validation(self):
+        self._common.print_verbose("""Removing the body schematic validation""")
+        self._body_schematic_validation = None
 
     """
-        Set a proxy that the request will use
+    Functionality:
+        Pre send validation
+        Test the data object from the Request() object to conform to a certain structure.
+        If it does not then the request should not go through.
 
-        @proxies
-            The proxy object as defined in the requests library
+    Input:
+        @body_schematic
+            A schematic that will be used for testing against the data object within the Request() object
     """
-    def set_proxy(self, proxies=None):
-        # Reset the proxy
-        if proxies is None:
-            self.session.proxies.clear()
 
-        # Make sure the proxy is a correct type
-        elif isinstance(proxies, dict):
-            self.session.proxies.update(proxies)
+    def set_body_schematic_validation(self, body_schematic):
+        self._common.print_verbose("""Applying validation to the current body content with a schematic
+                                     The schematic is {0}""".format(str(body_schematic)))
 
-        # If all fails
+        # Attempt to check the type from body_schematic to verify if we can use it to verify against
+        try:
+            if issubclass(body_schematic, Model) is True:
+                self._body_schematic_validation = body_schematic
+            else:
+                raise TypeError
+
+        except TypeError as e:
+            self._common.print_type_error("""The `body_schematic` variable passed to the `validate_body_structure`"
+                                            is currently invalid. You need to pass down a schematic object or a type"
+                                            error will occur. The current schematic passed to this function is: ${0}
+
+                                            The error provided by the python execution
+                                            {1}
+                                            """.format(str(body_schematic), e))
+
+
+"""
+    The HTTP Helper Session Handler is used to control the state of the Session() object within the requests library,
+    Anything that can manipulate, create or fetch the state from this Session() object should be contained within,
+    Functionality:
+        - Create and maintain the Session() object from requests
+        - SET Mount Adaptor for unit testing
+        - SET && GET HTTP Query Parameters
+        - SET && GET HTTP Headers
+        - SET && GET HTTP Auth
+"""
+
+
+class HTTPHelperSessionHandler:
+    # Private objects to keep internal state
+    _session = Session()
+    _common = HTTPHelperCommon()
+
+    # Init the session object and common class
+    def __init__(self, verbose=False):
+        self._session = Session()
+        self._common = HTTPHelperCommon(verbose)
+
+    """
+    * The following functions control the Session() object
+    """
+
+    # Retrieve the current state of the Session() object
+    def get_session(self):
+        self._common.print_verbose("Retrieve the active Session() object.")
+        return self._session
+
+    # Allows the developer to use a custom session object if required.
+    # This opens up some flexibility and control
+    def set_session(self, session):
+        self._common.print_verbose("Replacing the old Session() object with a user defined one.")
+
+        if isinstance(session, type(Session())):
+            self._session = session
         else:
-            self.handle_error("Invalid proxy details")
+            self._common.print_type_error("""The request object passed to this function is the incorrect type.
+                                             The session object must be a instance of the Session() class from the
+                                             requests library, Current request session type {0} and object {1}"""
+                                          .format(type(session), str(session)))
 
-    """
-        Returns the current state of the proxy
-        ** Affects: None **
-    """
-    def get_proxy(self):
-        return self.session.proxies
+    # This will reset the state of the Session() object and replace it with a new one
+    def reset_session(self):
+        self._common.print_verbose("Creating a new Session() object and replacing the old one.")
+        self._session = Session()
 
-    """
-        Set current request timeout
-
-        @timeout
-            Integer timeout
-    """
-    def set_timeout(self, timeout=None):
-        if isinstance(timeout, int):
-            self.timeout = timeout
-        else:
-            self.timeout = None
-
-    """
-        Returns the current state of the proxy
-        ** Affects: None **
-    """
-    def get_timeout(self):
-        return self.timeout
-
-    """
-        # Validate
-        @timeout
-    """
-    resp_validate_schematic = None
-    resp_validate_status_code = None
-    resp_validate_strict_type = None
-
-    def set_resp_validation(self, strict_type=None, schematic=None, status_code=None):
-        self.resp_validate_schematic = schematic
-        self.resp_validate_status_code = status_code
-        if strict_type in self.available_response_types:
-            self.resp_validate_strict_type = strict_type
-
-    """
-        Returns the current state of the validations
-        ** Affects: None **
-    """
-    def get_resp_validate_schematic(self):
-        return self.resp_validate_schematic
-
-    def get_resp_validate_status_code(self):
-        return self.resp_validate_status_code
-
-    def get_resp_validate_strict_type(self):
-        return self.resp_validate_strict_type
-
-    """
-        Used for unit testing only
-    """
+    # Unit Testing - Apply a adapter to the current session object
     def mount_adapter(self, adapter):
-        self.session.mount('mock://', adapter)
+        self._session.mount('mock://', adapter)
 
     """
-        Uses the Retry object from requests allowing the user to apply the same kwargs parameters
+    * The following functions control the query parameters on the Session() data object.
+    """
 
+    # Clear the current query parameters object on the Session() object
+    def clear_query_param(self):
+        self._common.print_verbose("Clearing the query parameters on the Session() object.")
+        self._session.params.clear()
+
+    # Retrieve the current query parameters object from the Session() object
+    def get_query_param(self):
+        self._common.print_verbose("Retrieving the query parameters on the Session() object.")
+        return self._session.params
+
+    """
+    Functionality:
+        Lorem Ipsum
+
+    Input:
+        @parameters
+            Lorem Ipsum
+    """
+
+    def set_query_param(self, parameters):
+        self._common.print_verbose("""Applying the following query parameters object to the Session() object {0}"""
+                                   .format(str(parameters)))
+
+        # The object must be a dict to be able to map key value pairs to the query parameters
+        if isinstance(parameters, dict):
+            self._session.params.update(parameters)
+        else:
+            self._common.print_type_error("""The parameters provided does not contain the correct type.
+                                            The provided type is {0}. This function only accepts dict objects this
+                                            allows a easy mapping to the query object as the also exists out of
+                                            key and value objects. Attempting to apply the following parameters {1}
+                                            """.format(str(type(parameters)), str(parameters)))
+
+    """
+    * The following functions controls the headers on the Session() data object.
+    """
+
+    # Clear the current headers on the Session() object
+    def clear_headers(self):
+        self._common.print_verbose("Clearing the headers on the Session() object.")
+        self._session.headers.clear()
+
+    # Retrieve the current headers object from the Session() object
+    def get_headers(self):
+        self._common.print_verbose("Retrieving the headers on the Session() object.")
+        return self._session.headers
+
+    """
+    Functionality:
+        Apply a headers dict object to the Session() object
+
+    Input:
+        @headers
+            Must be a dict containing key value header pairs
+    """
+
+    def set_headers(self, headers):
+        self._common.print_verbose("""Applying the following headers object to the Session() object {0}"""
+                                   .format(str(headers)))
+
+        # The object must be a dict to be able to map key value pairs to the headers
+        if isinstance(headers, dict):
+            self._session.headers.update(headers)
+        else:
+            self._common.print_type_error("""The parameters provided does not contain the correct type.
+                                            The provided type is {0}. This function only accepts dict objects this
+                                            allows a easy mapping to the headers object as the also exists out of
+                                            key and value objects. Attempting to apply the following headers {1}
+                                            """.format(str(type(headers)), str(headers)))
+
+    """
+    * The following functions controls the authentication on the Session() data object.
+    """
+
+    # Clear the current authentication method on the Session() object
+    def clear_auth(self):
+        self._common.print_verbose("Clearing the authentication method on the Session() object.")
+        self._session.auth = None
+
+    # Retrieve the current authentication method from the Session() object
+    def get_auth(self):
+        self._common.print_verbose("Retrieving the authentication method on the Session() object.")
+        return self._session.auth
+
+    """
+    Functionality:
+        Apply a authentication models to the current Session() object.
+        The model is applied by specifying a Enum that defines the authentication structure, A second parameter is then 
+        provided which maps the data structure into the proper requests authentication model.
+
+    Input:
+        @auth_schematic
+            A object from the `HTTPAuthenticationType`.
+        @auth_details
+            The authentication details dict object. This object will be tested against the `HTTPAuthenticationType`
+            enum to make sure the data mapping can be mapped to the enum.
+    """
+
+    def set_auth(self, auth_schematic, auth_details):
+        self._common.print_verbose("Attempting to set the authentication to {0} with the following schematic model {1}"
+                                   .format(str(auth_details), str(auth_details)))
+
+        # Test if the auth_schematic passed does exist in the HTTPAuthenticationType enum
+        # We also do a second test to make sure the auth_schematic.value is also a model
+        if isinstance(auth_schematic, Enum) and \
+                auth_schematic.value in self._common.authentication_types and \
+                issubclass(auth_schematic.value, Model):
+            try:
+                # Validate the schematic object with the current authentication details
+                auth_schematic.value(auth_details).validate()
+
+                # We need to manually map the supported types to the correct object for the Request() auth
+                if auth_schematic is HTTPAuthenticationType.BasicAuth:
+                    self._session.auth = HTTPBasicAuth(auth_details.get('username'), auth_details.get('password'))
+                else:
+                    self._common.print_not_implemented_error("""We are unable to map the enum `HTTPAuthenticationType`
+                                                   to the request auth object. Please verify if the object exists in the 
+                                                   HTTPAuthenticationType enum and if it does then the mapping for {0} 
+                                                   is missing from the set_auth function. You need to add a check for 
+                                                   the enum and map the values over to the requests object"""
+                                                             .format(str(auth_schematic)))
+
+            except DataError as e:
+                self._common.print_type_error("""The authentication supplied {0} does not match the required 
+                                                schema {1}. You can view the layout of the schema on the 
+                                                `HTTPAuthenticationType` enum.
+                                                
+                                                The error provided by the execution
+                                                {2}"""
+                                              .format(str(auth_details), str(auth_schematic), e))
+            except TypeError as e:
+                self._common.print_type_error("""The authentication details object passed to this function failed as
+                                                the type of this object is incorrect. The type passed down was 
+                                                {0} and the expected type is a iterable value that matches the 
+                                                `HTTPAuthenticationType` enum
+                                                
+                                                The error provided by the execution
+                                                {1}"""
+                                              .format(type(auth_details), e))
+
+        else:
+            self._common.print_type_error("""The `auth_schematic` variable passed to the `set_auth` function"
+                                            is currently invalid. You need to pass down a schematic object from the
+                                            `HTTPAuthenticationType` Enum or a type" error will occur. 
+                                            The current schematic passed to this function is: ${0}
+                                            """.format(str(auth_schematic)))
+
+    def apply_mock(self, method, url, status_code=None, response=None):
+        adapter = requests_mock.Adapter()
+        self.mount_adapter(adapter)
+        adapter.register_uri(method, url,
+                             status_code=status_code,
+                             json=response)
+
+
+"""
+    The HTTP Helper Connection Handler is used to control the state of the connection outside of the Session() and
+    Request() object state.
+    Anything that can manipulate, create or fetch the state of the session should be contained within,
+    Functionality:
+        - Create and maintain the connection values outside of the Session() and Request() objects
+        - SET && GET HTTP Timeout
+        - SET && GET HTTP Retry Policy
+        - SET && GET HTTP SSL Verification
+        - SET && GET HTTP Proxy
+        - Sending the HTTP Request and Session to the Endpoint
+        
+"""
+
+
+class HTTPHelperConnectionHandler:
+    # Private objects to keep internal state
+    _common = HTTPHelperCommon()
+    _verbose = False
+    _timeout = None
+    _proxy = None
+    _retry_policy = None
+    _ssl_verify = True
+
+    def __init__(self, verbose=False):
+        self._verbose = verbose
+
+    """
+    * The following functions controls the timeout on the request.
+    """
+
+    # Get the current timeout set
+    def get_timeout(self):
+        self._common.print_verbose("Retrieving the timeout on the connection.")
+        return self._timeout
+
+    # Remove the active timeout
+    def clear_timeout(self):
+        self._common.print_verbose("Clearing the timeout on the connection.")
+        self._timeout = None
+
+    """
+    Functionality:
+        Apply a timeout to the request structure. This timeout is applied in the send function.
+
+    Input:
+        @timeout
+            A integer timeout value.
+    """
+
+    def set_timeout(self, timeout):
+        self._common.print_verbose("Attempting to set the timeout to {0} seconds"
+                                   .format(str(timeout)))
+
+        if isinstance(timeout, int):
+            self._timeout = timeout
+
+        else:
+            self._common.print_type_error("""The parameters timeout does not contain the correct type.
+                                         The provided type is {0}. This function only accepts int as a valid timeout"""
+                                          .format(str(type(timeout))))
+
+    """
+    * The following functions controls the retry policy on the request.
+    """
+
+    # Get the current retry policy set
+    def get_retry_policy(self):
+        self._common.print_verbose("Retrieving the retry policy on the connection.")
+        return self._retry_policy
+
+    # Remove the retry policy timeout
+    def clear_retry_policy(self):
+        self._common.print_verbose("Clearing the retry policy on the connection.")
+        self._retry_policy = None
+
+    """
+    Functionality:
+        The retry policy is a one to one mapping of the Retry() object used within the requests class.
+        Any of the kwargs mappings inside the Retry can be passed to this function
+
+    Input:
         @kwargs
-            List items accepted by the Retry function
+            A list of defined kwargs items in the Retry() class
     """
     def set_retry_policy(self, **kwargs):
-        adapter = None
+        self._common.print_verbose("Attempting to Apply a retry policy to the HTTP connection. The retry policy is the"
+                                   "following {0}"
+                                   .format(str(kwargs)))
 
-        if len(kwargs) > 0:
-            self.retry_strategy = Retry(**kwargs)
-            adapter = HTTPAdapter(max_retries=self.retry_strategy)
-
-        self.session.mount("https://", adapter)
-        self.session.mount("http://", adapter)
+        self._retry_policy = Retry(**kwargs)
 
     """
-        Returns the current state of the retry policy
-        ** Affects: None **
+    * The following functions controls the SSL Verification on the request.
     """
-    def get_retry_policy(self):
-        return self.retry_strategy
 
-    """
-        Set the current state of the SSL verification, Set to False so that SSL is not verified
+    # Restore the state of the SSL Verify
+    def clear_ssl_verify(self):
+        self._common.print_verbose("Clearing the SSL Verification on the connection.")
+        self._ssl_verify = True
 
-        @verify
-            True or False to enable or disable ssl verification
-    """
-    def set_ssl_verify(self, verify=None):
-        if isinstance(verify, bool):
-            self.session.verify = verify
-        else:
-            self.session.verify = True
-
-    """
-        Returns the current state of the SSL
-        ** Affects: None **
-    """
+    # Retrieve the current state of the SSL verification
     def get_ssl_verify(self):
-        return self.session.verify
+        self._common.print_verbose("Retrieving the SSL Verification on the connection.")
+        return self._ssl_verify
 
     """
-        This function is used to send out the request that has been build up
-        It has one of two return types
-            - The response from the request
-            - Or None if the response fails any validations unless no validation was defined and the response is JSON
+    Functionality:
+        Define if the request object should look at the SSL verification or ignore it
+
+    Input:
+        @verify
+            A boolean defining if SSL should be set or not
     """
-    def send(self):
+
+    def set_ssl_verify(self, verify):
+        self._common.print_verbose("Attempting to Apply a SSL Verification to the HTTP connection. The SSL Verification"
+                                   " being applied is the following {0}"
+                                   .format(str(verify)))
+
+        if isinstance(verify, bool):
+            self._ssl_verify = verify
+        else:
+            self._common.print_type_error("""Unable to set the SSL Verification as the defined parameters is the
+                                            incorrect type, The type passed to the function is {0} and a int is 
+                                            expected"""
+                                          .format(str(type(verify))))
+
+    """
+    * The following functions controls the proxy on the Session() data object.
+    """
+
+    def clear_proxy(self):
+        self._common.print_verbose("Clearing the proxy settings on the Session() object.")
+        self._proxy = None
+
+    def get_proxy(self):
+        self._common.print_verbose("Retrieving the proxy settings on the Session() object.")
+        return self._proxy
+
+    """
+    Functionality:
+        Set the active proxy for the Session() object
+
+    Input:
+        @proxy
+            requests proxy details
+    """
+
+    def set_proxy(self, proxy):
+        self._common.print_verbose("Attempting to set the proxy details to {0}"
+                                   .format(str(proxy)))
+
+        # The dict object needs to match the requests dict proxy object
+        if isinstance(proxy, dict):
+            self._proxy = proxy
+        else:
+            self._common.print_type_error("""The proxy provided does not contain the correct type.
+                                         The provided type is {0}. This function only accepts dict
+                                         objects this allows a easy mapping to the proxy object as the proxy
+                                         also exists out of key and value pairs""".format(str(type(proxy))))
+
+    """
+    * The following functions controls the sending of the request.
+    """
+
+    """
+    Functionality:
+        This function is used to make the request.
+        On call the retry policy, timeout, ssl verify is applied.
+        After the request responds, That response will be tested against response validation
+
+    Input:
+        @session_handler
+            The Session Handler Class. This allows the user to also pass down a custom session handler if required
+        @request_handler
+            The Request Handler Class. This allows the user to also pass down a custom request handler if required
+        @response_handler
+            The Response Handler Class. This allows the user to also pass down a custom response handler if required
+    """
+
+    def send(self, session_handler, request_handler, response_handler):
+        self._common.print_verbose("Sending the HTTP request.")
+
+        # Apply the retry policy if defined
+        if self._retry_policy is not None:
+            adapter = HTTPAdapter(max_retries=self._retry_policy)
+            session_handler.mount("https://", adapter)
+            session_handler.mount("http://", adapter)
+
+        # Apply the proxy details
+        # If non is found then it is cleared from the object
+        if self._proxy is None:
+            self.clear_proxy()
+        else:
+            self.set_proxy(self._proxy)
+
+        # Apply the SSL verification
+        session_handler.verify = self._ssl_verify
+
+        # Apply the timeout to the Session() send
         # Send the request out
-        response = self.session.send(self.request_object.prepare(),
-                                     timeout=self.timeout)
+        response = session_handler.send(request_handler.prepare(), timeout=self._timeout)
 
-        # If there is a forced status code check
-        if self.resp_validate_status_code is not None and response.status_code != self.resp_validate_status_code:
-            return None
+        self._common.print_verbose("Response: {0}".format(str(response)))
 
-        # Schematic: Some
-        # Strict Type: None or HTTPResponseType.JSON
-        # Response.content: Some
-        # Inferred Type: JSON
-        elif (self.resp_validate_strict_type is None or self.resp_validate_strict_type is HTTPResponseType.JSON) and \
-                self.resp_validate_schematic is not None and\
-                response.content is not None and \
-                len(response.content) > 0:
+        # Validate the response to determine if there was any errors
+        validation_errors = response_handler.validate(response)
 
-            # First lets attempt a JSON body
-            # If we are able to parse it let's then test the body
+        self._common.print_verbose("Validation Errors: {0}".format(str(validation_errors)))
+
+        # If any errors occurred, We map the response to still be accessible but also pass down the errors
+        if len(validation_errors) > 0:
+            return {
+                "valid": False,
+                "errors": validation_errors,
+                "response": response
+            }
+
+        # Else return valid structure
+        return {
+            "valid": True,
+            "response": response
+        }
+
+
+"""
+    The HTTP Helper Response Handler is used to validate the response content
+    Anything that can manipulate, create or fetch the state of the response.
+    Functionality:
+        - Create and maintain the connection values outside of the Session() and Request() objects
+        - SET && GET HTTP Timeout
+        - SET && GET HTTP Retry Policy
+        - SET && GET HTTP SSL Verification
+        - Sending the HTTP Request and Session to the Endpoint
+
+"""
+
+
+class HTTPHelperResponseHandler:
+    # Private objects to keep internal state
+    _common = HTTPHelperCommon()
+    _validate_schematic = None
+    _validate_status_code = None
+    _validate_type = None
+
+    def __init__(self, verbose=False):
+        self._common = HTTPHelperCommon(verbose)
+
+    # Remove the response body validation
+    def clear_body_schematic_validation(self):
+        self._common.print_verbose("Clearing the body schematic validation on the response.")
+        self._validate_schematic = None
+
+    # Retrieve the current response body validation
+    def get_body_schematic_validation(self):
+        self._common.print_verbose("Retrieving the body schematic validation on the response.")
+        return self._validate_schematic
+
+    """
+    Functionality:
+        Set a schematic which will be used to test against the response. This can force a error message when the
+        response is analyzed
+
+    Input:
+        @schematic
+            A schematic that is used to test against the response
+    """
+
+    def set_body_schematic_validation(self, schematic):
+        self._common.print_verbose("Attempting to Apply a body schematic validation on the response with the following"
+                                   "schematic {0}"
+                                   .format(str(schematic)))
+
+        if issubclass(schematic, Model) is True:
+            self._validate_schematic = schematic
+
+        else:
+            self._common.print_type_error("""The proxy schematic does not contain the correct type.
+                                         The provided type is {0}. The function requires a valid schematic as a argument
+                                         This allows a response object to be tested against the schematic"""
+                                          .format(str(type(schematic))))
+
+    # Clear the status code validation on the response object
+    def clear_status_code_validation(self):
+        self._common.print_verbose("Retrieving the status code validation on the response.")
+        self._validate_status_code = None
+
+    # Retrieve the status code validation on the response object
+    def get_status_code_validation(self):
+        self._common.print_verbose("Retrieving the status code validation on the response.")
+        return self._validate_status_code
+
+    """
+    Functionality:
+        Set a status code which will be used to test against the response. This can force a error message when the
+        response is analyzed
+
+    Input:
+        @status_code
+            A integer status code which is used to test against the response status code integer
+    """
+
+    def set_status_code_validation(self, status_code):
+        self._common.print_verbose("Attempting to apply a status code validation on the response with the following"
+                                   "status code {0}"
+                                   .format(str(status_code)))
+
+        if isinstance(status_code, int):
+            self._validate_status_code = status_code
+
+        else:
+            self._common.print_type_error("""The proxy schematic does not contain the correct type.
+                                         The provided type is {0}. The function requires a int to test the response
+                                         status code against"""
+                                          .format(str(type(status_code))))
+
+    # Clear the body type validation on the response object
+    def clear_body_type_validation(self):
+        self._common.print_verbose("Clear the body type validation on the response.")
+        self._validate_type = None
+
+    # Retrieve the body type validation on the response object
+    def get_body_type_validation(self):
+        self._common.print_verbose("Retrieving the body type validation on the response.")
+        return self._validate_type
+
+    """
+    Functionality:
+        Set a body type which will be used to test against the response. This can force a error message when the
+        response is analyzed
+
+    Input:
+        @response_type
+            A type which is used to test against the response status code integer
+            This should be a value from the supported `HTTPResponseType` enum
+    """
+
+    def set_body_type_validation(self, response_type):
+        self._common.print_verbose("Attempting to apply a body type validation on the response with the following"
+                                   "type {0}"
+                                   .format(str(response_type)))
+
+        if isinstance(response_type, Enum) and \
+                response_type.value in self._common.response_types:
+            self._validate_type = response_type
+
+        else:
+            self._common.print_type_error("""The `response_type` argument is the incorrect type. The provided type
+                                            is {0} and was not found within the `HTTPResponseType` enum. Please make
+                                            sure that the `response_type` argument is a instance of the HTTPResponseType
+                                            enum, If not then add the type tot the `HTTPResponseType` enum to allow it
+                                            """
+                                          .format(str(type(response_type))))
+
+    """
+    Functionality:
+        This function brings together all the validation structures for the response.
+        Those validation is then executed and a list of errors are compiled.
+        The response will then return a list of errors to the developer
+
+    Input:
+        @response
+            The response object from the HTTP Request
+    """
+
+    def validate(self, response):
+        self._common.print_verbose("Attempting to validate the response.")
+
+        errors = list([])
+
+        # If the HTTP Response Validation Schematic has been set
+        if self._validate_schematic is not None:
             try:
-                json_response = json.loads(response.content)
-                if self.resp_validate_schematic is not None:
-                    self.resp_validate_schematic(json_response).validate()
-                return response
+                # Decode the response content with the encoding type also given by the response
+                decoded_response = response.content.decode(response.encoding)
 
-            except DataError:
-                self.handle_error("Invalid response, Does not match schematic")
-                return None
+                # We attempt to decode the response to JSON. To test a schematic you need to have a JSON object to test
+                parsed_json = json.loads(decoded_response)
 
-            except Exception:
-                self.handle_error("Invalid response, Unable to determine JSON")
-                return None
+                # The last part to test is does the Parsed JSON match the schematic validation
+                self._validate_schematic(parsed_json) \
+                    .validate()
 
-        # Schematic: None
-        # Strict Type: HTTPResponseType.PLAIN
-        # Response.content: Some
-        elif self.resp_validate_strict_type is HTTPResponseType.PLAIN and \
-                isinstance(response.content, six.binary_type):
-            return response
+            except DataError as e:
+                errors.append("""The response was unable to conform to the validation schematic. The schematic
+                                applied was {0}
+                                The error provided by the schematic validation is {1}
+                                To fix this you can either modify the schematic validation or remove it entirely
+                                """.format(str(self._validate_schematic), e))
 
-        # Else lets test if the body has valid JSON
-        try:
-            json.loads(response.content)
-            return response
+            except ValueError as e:
+                errors.append("""Unable to parse the response as JSON.
+                                 The response received was {0}.
+                                 Full error from the JSON parse attempt {1}
+                                 """.format(str(response.content), e))
 
-        except Exception:
-            return None
+        # If the HTTP Response Validation Status Code has been set
+        if self._validate_status_code is not None and response.status_code != self._validate_status_code:
+            errors.append("""The response was unable to conform to the validation status code. The status code
+                             applied was {0}
+                             The expected status code is {1}
+                             To fix this you can either modify the status code validation or remove it entirely
+                             """.format(str(response.status_code), str(self._validate_status_code)))
+        # If the status code has not been set then we will by default see 400 > as bad responses.
+        elif response.status_code >= 400:
+            errors.append("""Server responded with a {0}""".format(str(response.status_code)))
+
+        # If the HTTP Response Type has been set
+        # Test if the HTTP Response Type is a enum of type HTTPResponseType
+        if self._validate_type is not None and \
+                type(self._validate_type) is HTTPResponseType and \
+                isinstance(self._validate_type, Enum) is True:
+
+            # If the type set is JSON. We then attempt to parse it and see if it is valid
+            if self._validate_type is HTTPResponseType.JSON:
+                try:
+                    json.loads(response.content.decode(response.encoding))
+                except ValueError as e:
+                    errors.append("""Unable to parse the response as JSON.
+                                     The response received was {0}.
+                                     Full error from the JSON parse attempt {1}
+                                     """.format(str(response.content), e))
+
+            elif isinstance(self._validate_type.value, type(response.content)) is False:
+                errors.append("""The response content type does not conform to the validation type. The response
+                                 type is {0}.
+                                 The expected type is {1}
+                                 To fix this you can either modify the type validation or remove it entirely
+                                 """.format(str(type(response.content)), str(self._validate_type.value)))
+
+        # Return all the errors that occurred
+        return errors
+
+
+"""
+    The HTTP Helper Handler is used to create compact methods using most of the function defined in the 
+    Connection, Request, Session and Response Helpers
+    Functionality:
+        - Overwrite Connection Helper
+        - Overwrite Request Helper
+        - Overwrite Session Helper
+        - Overwrite Response Helper
+        - GET Request
+
+"""
+
+
+class HTTPHelper:
+    _common = HTTPHelperCommon()
+    _connection = HTTPHelperConnectionHandler()
+    _request = HTTPHelperRequestHandler()
+    _session = HTTPHelperSessionHandler()
+    _response = HTTPHelperResponseHandler()
+
+    def __init__(self, verbose=False):
+        self._common = HTTPHelperCommon(verbose)
+        self._connection = HTTPHelperConnectionHandler(verbose)
+        self._request = HTTPHelperRequestHandler(verbose)
+        self._session = HTTPHelperSessionHandler(verbose)
+        self._response = HTTPHelperResponseHandler(verbose)
+
+    # Allow the connection helper to be overwritten
+    def overwrite_connection_helper(self, connection):
+        self._connection = connection
+
+    # Allow the connection helper to be overwritten
+    def get_connection_helper(self):
+        return self._connection
+
+    # Allow the request helper to be overwritten
+    def overwrite_request_helper(self, request):
+        self._request = request
+
+    # Allow the request helper to be overwritten
+    def get_request_helper(self):
+        return self._request
+
+    # Allow the response helper to be overwritten
+    def overwrite_response_helper(self, response):
+        self._response = response
+
+    # Allow the response helper to be overwritten
+    def get_response_helper(self):
+        return self._response
+
+    # Allow the session helper to be overwritten
+    def overwrite_session_helper(self, session):
+        self._session = session
+
+    # Allow the session helper to be overwritten
+    def get_session_helper(self):
+        return self._session
 
     """
-        Compact methods
+    Functionality:
+        A generic builder to contains most of the functionality on the Connection, Request, Session and Response Helpers
+        This function will be used by compact methods to build up a request
+        
+    Input:
+        @active_method
+            The active HTTP method for example GET or POST
+        @kwargs
+            This parameters is another way to define object values outside of the Helper classes.
+            Accepted Values:
+                - mock                              (Boolean) Enable or Disable the mock requests
+                - mock_status                       (Integer) The mock response status code
+                - mock_response                     (Any) The mock response object
+                - url                               (String) Set the endpoint
+                - body                              (Any) The request body structure
+                - headers                           (Dict) The request headers object
+                - query                             (Dict) The request query parameters object
+                - request_schematic_validation      (Schematic) The request body schematic validation
+                - request_type_validation           (Any Type) The request body type validation
+                - response_status_code_validation   (Integer) The response status code validation
+                - response_type_validation          (Any Type) The response type validation
+                - response_schematic_validation     (Schematic) The response body schematic validation
+                - timeout                           (Integer) The connection timeout
+                - ssl_verify                        (Boolean) Test if the request should be SSL
+                - retry_policy                      (Retry() object kwargs) Create a retry policy for the HTTP request
     """
-    @staticmethod
-    def _request_builder(method, **kwargs):
-        http = HTTPHelper()
-        use_session = True if kwargs.get("use_session") is True else False
 
+    def _builder(self, active_method, **kwargs):
         if kwargs.get("mock") is True:
             adapter = requests_mock.Adapter()
-            http.mount_adapter(adapter)
-            adapter.register_uri(method,
+            self._session.mount_adapter(adapter)
+            adapter.register_uri(active_method.value,
                                  kwargs.get("url"),
-                                 status_code=kwargs.get("mock_status"),
-                                 json=kwargs.get("mock_response"))
+                                 status_code=kwargs.get("mock_status", None),
+                                 json=kwargs.get("mock_response", None))
 
-        http.set_url(kwargs.get("url"), use_session)
-        http.set_method(method)
-        http.set_body(
-            kwargs.get("body"),
-            kwargs.get("body_validate_type"),
-            kwargs.get("body_validate_model")
-        )
-        http.set_timeout(kwargs.get("timeout"))
-        http.set_headers(kwargs.get("headers"), use_session)
-        http.set_query_parameters(kwargs.get("query"), use_session)
-        http.set_resp_validation(kwargs.get("validate_type"),
-                                 kwargs.get("validate_schematic"),
-                                 kwargs.get("validate_status_code"))
-        http.set_ssl_verify(kwargs.get("ssl_verify"))
+        def apply_if_kwarg_exists(function, kwarg):
+            if kwarg is not None:
+                function(kwarg)
 
-        if isinstance(kwargs.get("retry_policy"), dict):
-            http.set_retry_policy(**kwargs.get("retry_policy"))
+        # At the end we apply kwarg variables to allow last second overrides
+        apply_if_kwarg_exists(self._request.set_url, kwargs.get("url"))
+        apply_if_kwarg_exists(self._request.set_method, active_method.value)
+        apply_if_kwarg_exists(self._request.set_body, kwargs.get("body"))
+        apply_if_kwarg_exists(self._request.set_headers, kwargs.get("headers"))
+        apply_if_kwarg_exists(self._request.set_query_param, kwargs.get("query"))
+        apply_if_kwarg_exists(self._request.set_body_schematic_validation, kwargs.get("request_schematic_validation"))
+        apply_if_kwarg_exists(self._request.set_body_type_validation, kwargs.get("request_type_validation"))
+        apply_if_kwarg_exists(self._response.set_status_code_validation, kwargs.get("response_status_code_validation"))
+        apply_if_kwarg_exists(self._response.set_body_type_validation, kwargs.get("response_type_validation"))
+        apply_if_kwarg_exists(self._response.set_body_schematic_validation, kwargs.get("response_schematic_validation"))
+        apply_if_kwarg_exists(self._connection.set_timeout, kwargs.get("timeout"))
+        apply_if_kwarg_exists(self._connection.set_ssl_verify, kwargs.get("ssl_verify"))
+        self._connection.set_retry_policy(**kwargs.get("retry_policy", dict()))
 
-        return http
+    """
+    Functionality:
+        Apply a complete get method to the HTTP Helper Class
+
+    Input:
+        @kwargs
+            These kwargs should match the `_builder` kwargs list
+    """
 
     def get(self, **kwargs):
-        http = self._request_builder("GET", **kwargs)
-        return http
-
-    def post(self, **kwargs):
-        http = self._request_builder("POST", **kwargs)
-        return http
-
-    def put(self, **kwargs):
-        http = self._request_builder("PUT", **kwargs)
-        return http
-
-    def patch(self, **kwargs):
-        http = self._request_builder("PATCH", **kwargs)
-        return http
-
-    def delete(self, **kwargs):
-        http = self._request_builder("DELETE", **kwargs)
-        return http
+        self._builder(HTTPMethod.GET, **kwargs)
+        return self._connection.send(self._session.get_session(),
+                                     self._request.get_request(),
+                                     self._response)

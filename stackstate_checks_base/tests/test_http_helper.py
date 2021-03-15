@@ -5,14 +5,19 @@ from requests import Session, Request
 from schematics.models import Model
 from schematics.types import StringType, IntType, BooleanType
 from stackstate_checks.utils.http_helper import HTTPHelper, HTTPRequestType, HTTPAuthenticationType, HTTPResponseType
+from stackstate_checks.utils.http_helper import HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPMethod, \
+                                                HTTPHelperResponseHandler, HTTPHelperConnectionHandler, HTTPHelperCommon
 from requests.auth import HTTPBasicAuth
 from requests.packages.urllib3.util.retry import Retry
 
 
+"""
+Structures used within the test cases
+"""
+
+
 class BodySchematicTest(Model):
-    title = StringType(required=True)
-    body = StringType(required=True)
-    userId = IntType(required=True)
+    hello = IntType(required=True)
 
 
 class BodyResponseSchematicTest(Model):
@@ -20,1009 +25,568 @@ class BodyResponseSchematicTest(Model):
     pong = BooleanType(required=True)
 
 
-class TestHTTPHelper(unittest.TestCase):
-    def test_http_method(self):
-        expect_success_methods = ["POST", "GET", "PUT", "PATCH", "DELETE"]
-        expect_failure_methods = ["HEAD", "UNKNOWN", "RANDOM"]
+"""
+ HTTP Helper Common Class
+"""
 
-        # We are expecting these methods to successfully be applied
-        def expect_success(method):
-            http_success = HTTPHelper()
-            http_success.set_method(method)
-            assert http_success.get_method() is method
-        map(expect_success, expect_success_methods)
 
-        # We are expecting these methods to fail be applied
-        def expect_failure(method):
-            try:
-                # Incorrect Body + defined schematic
-                http_failure = HTTPHelper()
-                http_failure.set_method(method)
-                assert http == {'test': 'Should never reach this assert as it should have failed'}
-            except Exception as msg:
-                assert str(msg) == 'HTTP Method `' + method + \
-                       '` is not supported, Please use any of the following methods DELETE, GET, PATCH, POST, PUT'
+class TestHTTPHelperCommon(unittest.TestCase):
+    verbose = True
 
-        map(expect_failure, expect_failure_methods)
-
-        # We are testing if the method apply overwrites and resets on incorrect or blank
-        http = HTTPHelper()
-        # Apply GET
-        http.set_method("GET")
-        assert http.get_method() == "GET"
-        # Apply POST
-        http.set_method("POST")
-        assert http.get_method() == "POST"
-        # Apply GET
-        http.set_method("GET")
-        assert http.get_method() == "GET"
-        # Attempt to reset value
-        http.set_method()
-        assert http.get_method() is None
-
-    def test_http_url(self):
-        endpoint_main = "https://http-handle.free.beeceptor.com/post/200/0/headers/body/json/v1"
-        endpoint_main_ip = "http://0.0.0.0:1234"
-        endpoint_parameters = ";a=1?b=2#c=3"
-
-        # Test the main endpoint without parameters
-        # Endpoint should not change
-        http = HTTPHelper()
-        http.set_url(endpoint_main)
-        assert http.get_url() == endpoint_main
-        # Reset the url
-        http.set_url()
-        assert http.get_url() is None
-
-        # Test the main endpoint with parameters
-        # Endpoint should change and not contain parameters
-        http = HTTPHelper()
-        http.set_url(endpoint_main + endpoint_parameters)
-        assert http.get_url() == endpoint_main
-        # Reset the url
-        http.set_url()
-        assert http.get_url() is None
-
-        # Test the main ip endpoint
-        # Endpoint should not change
-        http = HTTPHelper()
-        http.set_url(endpoint_main_ip)
-        assert http.get_url() == endpoint_main_ip
-        # Reset the url
-        http.set_url()
-        assert http.get_url() is None
-
-    # We test here to see if the top level session set works
-    # Session is set to True in the class constructor
-    def test_global_session_apply(self):
-        headers = {'hello': 'world'}
-        session_default_headers = {'User-Agent': 'python-requests/2.24.0',
-                                   'Accept-Encoding': 'gzip, deflate',
-                                   'Accept': '*/*',
-                                   'Connection': 'keep-alive',
-                                   'hello': 'world'}
-
-        http = HTTPHelper(True)
-        http.set_headers(headers)
-        assert http.get_headers() == session_default_headers
-
-    def test_http_query_parameters(self):
-        endpoint_main = "https://http-handle.free.beeceptor.com/post/200/0/headers/body/json/v1"
-        endpoint_parameters = ";a=1?b=2#c=3"
-        endpoint_parameters_alt = ";ab=1?bc=2#cd=3"
-
-        # URL Affect tests
-
-        # Test the main endpoint without parameters
-        http = HTTPHelper()
-        http.set_url(endpoint_main)
-        assert http.get_query_parameters() == {}
-
-        # Not Session Wide
-        http = HTTPHelper()
-        http.set_url(endpoint_main + endpoint_parameters)
-        assert http.get_query_parameters() == {'b': '2'}
-        assert http.get_query_parameters(True) == {}
-
-        # Not Session Wide + Changes
-        http = HTTPHelper()
-        http.set_url(endpoint_main + endpoint_parameters)
-        assert http.get_query_parameters() == {'b': '2'}
-        assert http.get_query_parameters(True) == {}
-        http.set_url(endpoint_main + endpoint_parameters_alt)
-        assert http.get_query_parameters() == {'bc': '2'}
-        assert http.get_query_parameters(True) == {}
-
-        # Is Session Wide
-        http = HTTPHelper()
-        http.set_url(endpoint_main + endpoint_parameters, True)
-        assert http.get_query_parameters() == {}
-        assert http.get_query_parameters(True) == {'b': '2'}
-
-        # Is Session Wide + Changes
-        http = HTTPHelper()
-        http.set_url(endpoint_main + endpoint_parameters, True)
-        assert http.get_query_parameters() == {}
-        assert http.get_query_parameters(True) == {'b': '2'}
-        http.set_url(endpoint_main + endpoint_parameters_alt, True)
-        assert http.get_query_parameters() == {}
-        assert http.get_query_parameters(True) == {'b': '2', 'bc': '2'}
-
-        # Direct apply test
-
-        # Reset
-        http = HTTPHelper()
-        http.set_query_parameters()
-        assert http.get_query_parameters() == {}
-
-        # Empty String
-        http = HTTPHelper()
-        http.set_query_parameters("")
-        assert http.get_query_parameters() == {}
-
-        # Random String
-        http = HTTPHelper()
-        http.set_query_parameters("this is some random text")
-        assert http.get_query_parameters() == {}
-
-        # 1 Parameter test
-        http = HTTPHelper()
-        http.set_query_parameters("hello=world")
-        assert http.get_query_parameters() == {'hello': 'world'}
-
-        # 5 Parameter test
-        http = HTTPHelper()
-        http.set_query_parameters("hello=world&test=123&around=world&single=ahoy&qwerty=test")
-        assert http.get_query_parameters() == {
-            'hello': 'world',
-            'test': '123',
-            'around': 'world',
-            'single': 'ahoy',
-            'qwerty': 'test'
-        }
-
-        # Same Parameter test
-        http = HTTPHelper()
-        http.set_query_parameters("hello=world&hello=test&hello=end")
-        assert http.get_query_parameters() == {'hello': 'end'}
-
-        # Session - Reset
-        http = HTTPHelper()
-        http.set_query_parameters(None, True)
-        assert http.get_query_parameters(True) == {}
-
-        # Session - Empty String
-        http = HTTPHelper()
-        http.set_query_parameters("", True)
-        assert http.get_query_parameters(True) == {}
-
-        # Session - Random String
-        http = HTTPHelper()
-        http.set_query_parameters("this is some random text", True)
-        assert http.get_query_parameters(True) == {}
-
-        # Session - 1 Parameter test
-        http = HTTPHelper()
-        http.set_query_parameters("hello=world", True)
-        assert http.get_query_parameters(True) == {'hello': 'world'}
-
-        # Session - 5 Parameter test
-        http = HTTPHelper()
-        http.set_query_parameters("hello=world&test=123&around=world&single=ahoy&qwerty=test", True)
-        assert http.get_query_parameters(True) == {
-            'hello': 'world',
-            'test': '123',
-            'around': 'world',
-            'single': 'ahoy',
-            'qwerty': 'test'
-        }
-
-        # Session - Same Parameter test
-        http = HTTPHelper()
-        http.set_query_parameters("hello=world&hello=test&hello=end", True)
-        assert http.get_query_parameters(True) == {'hello': 'end'}
-
-        # Session - Keep query parameters
-        http = HTTPHelper()
-        http.set_query_parameters("hello=world", True)
-        assert http.get_query_parameters(True) == {'hello': 'world'}
-        http.set_query_parameters("test=123", True)
-        assert http.get_query_parameters(True) == {'hello': 'world', 'test': '123'}
-        http.set_query_parameters("qwerty=kwerk", True)
-        assert http.get_query_parameters(True) == {'hello': 'world', 'test': '123', 'qwerty': 'kwerk'}
-
-    def test_http_body(self):
-        body = {'title': 'foo', 'body': 'bar', 'userId': 1}
-        body_alt = {'title': 'foo'}
-
-        # Inferred body type
-        http = HTTPHelper()
-        http.set_method("POST")
-        http.set_body(body)
-        assert http.get_body() == body
-
-        # Unsupported body type test
-        http = HTTPHelper()
-        http.set_method("POST")
-        http.set_body("Random Text")
-        assert http.get_body() is None
-
-        # Body + Defined JSON Type
-        http = HTTPHelper()
-        http.set_method("POST")
-        http.set_body(body, HTTPRequestType.JSON)
-        assert http.get_body() == body
-
-        # Random Type
-        http = HTTPHelper()
-        http.set_method("POST")
-        http.set_body(body, "RANDOM-TYPE")
-        assert http.get_body() is None
-
-        # Correct Body + defined schematic
-        http = HTTPHelper()
-        http.set_method("POST")
-        http.set_body(body, HTTPRequestType.JSON, BodySchematicTest)
-        assert http.get_body() == body
-
+    def test_print_error(self):
         try:
-            # Incorrect Body + defined schematic
-            http = HTTPHelper()
-            http.set_method("POST")
-            http.set_body(body_alt, HTTPRequestType.JSON, BodySchematicTest)
-            assert http == {'test': 'Should never reach this assert as it should have failed'}
-        except Exception as msg:
-            assert str(msg) == 'Invalid body, Does not match schematic'
+            HTTPHelperCommon().print_error("Error Message")
+            assert False
+        except Exception as e:
+            assert str(e) == "Error Message"
 
+    def test_print_not_implemented_error(self):
         try:
-            # Clear Body
-            http = HTTPHelper()
-            http.set_method("POST")
-            http.set_body(body_alt, HTTPRequestType.JSON, BodySchematicTest)
-            http.set_body()
-            assert http == {'test': 'Should never reach this assert as it should have failed'}
-        except Exception as msg:
-            assert str(msg) == 'Invalid body, Does not match schematic'
+            HTTPHelperCommon().print_not_implemented_error("Error Message")
+            assert False
+        except NotImplementedError as e:
+            assert str(e) == "Error Message"
 
-        # Test method that does not require a body
-        http = HTTPHelper()
-        http.set_method("GET")
-        http.set_body(body)
-        assert http.get_body() is None
-
-    def test_http_headers(self):
-        headers = {'hello': 'world'}
-        headers_alt = {'test': '123'}
-        session_default_headers = {'User-Agent': 'python-requests/2.24.0',
-                                   'Accept-Encoding': 'gzip, deflate',
-                                   'Accept': '*/*',
-                                   'Connection': 'keep-alive'}
-
-        # Clear headers
-        http = HTTPHelper()
-        http.set_headers(headers)
-        http.set_headers()
-        assert http.get_headers() == {}
-        assert http.get_headers(True) == session_default_headers
-
-        # Request headers
-        http = HTTPHelper()
-        http.set_headers(headers)
-        assert http.get_headers() == headers
-        assert http.get_headers(True) == session_default_headers
-
-        # Session headers
-        http = HTTPHelper()
-        http.set_headers(headers, True)
-        new_headers = session_default_headers.copy()
-        new_headers.update(headers)
-        assert http.get_headers() == {}
-        assert http.get_headers(True) == new_headers
-
-        # Session headers - Persist
-        http.set_headers(headers_alt, True)
-        new_headers.update(headers_alt)
-        assert http.get_headers() == {}
-        assert http.get_headers(True) == new_headers
-
-    def test_http_auth(self):
-        # Default no auth
-        http = HTTPHelper()
-        assert http.get_auth() is None
-        assert http.get_auth(True) is None
-
-        # Fet auth to blank
-        http = HTTPHelper()
-        http.set_auth(HTTPAuthenticationType.NoAuth)
-        assert http.get_auth() is None
-        assert http.get_auth(True) is None
-        http.set_auth()
-        assert http.get_auth() is None
-        assert http.get_auth(True) is None
-
+    def test_print_type_error(self):
         try:
-            # Set request level auth with incorrect details
-            http = HTTPHelper()
-            http.set_auth(HTTPAuthenticationType.BasicAuth, {
-                'test': '123'
-            })
-            assert http == {'test': 'Should never reach this assert as it should have failed'}
-        except Exception as msg:
-            assert str(msg) == 'Auth details does not match the schematic'
+            HTTPHelperCommon().print_type_error("Error Message")
+            assert False
+        except TypeError as e:
+            assert str(e) == "Error Message"
 
-        # Set request level auth with correct details
-        http = HTTPHelper()
-        request = Request()
-        request.auth = HTTPBasicAuth('root', 'root')
-        http.set_auth(HTTPAuthenticationType.BasicAuth, {
-            'username': 'root',
-            'password': 'root'
+    def test_print_value_error(self):
+        try:
+            HTTPHelperCommon().print_value_error("Error Message")
+            assert False
+        except ValueError as e:
+            assert str(e) == "Error Message"
+
+    def test_split_string_into_dict(self):
+        result = HTTPHelperCommon().split_string_into_dict("", "&", "=")
+        assert result == {}
+
+        result = HTTPHelperCommon().split_string_into_dict("hello=world", "&", "=")
+        assert result == {'hello': 'world'}
+
+        result = HTTPHelperCommon().split_string_into_dict("hello=world&test=123", "&", "=")
+        assert result == {'hello': 'world', 'test': '123'}
+
+
+"""
+ HTTP Helper Request Class
+"""
+
+
+class TestHTTPHelperRequestHandler(unittest.TestCase):
+    verbose = True
+
+    """
+        Test the main request object which is the equivalent of the Request() object
+    """
+    def test_request_main_object(self):
+        req = HTTPHelperRequestHandler(self.verbose)
+
+        # Default Test
+        assert isinstance(req.get_request(), type(Request()))
+
+        # Test setting a invalid request object
+        try:
+            req.set_request(False)
+            assert False
+        except TypeError:
+            assert True
+
+        # Test setting a valid request object
+        req.set_request(Request())
+        assert isinstance(req.get_request(), type(Request()))
+
+        # Reset the request object
+        req.reset_request()
+        assert isinstance(req.get_request(), type(Request()))
+
+    """
+        Test the HTTP method for example GET or POST
+    """
+    def test_method(self):
+        # Default Test
+        req = HTTPHelperRequestHandler(self.verbose)
+        assert req.get_method() is None
+
+        # Test direct string
+        req.set_method("GET")
+        assert req.get_method() == "GET"
+
+        # Test enum
+        req.set_method(HTTPMethod.PUT)
+        assert req.get_method() == "PUT"
+
+        # Test clear
+        req.clear_method()
+        assert req.get_method() is None
+
+        # Not implemented
+        try:
+            req.set_method("RANDOM")
+            assert False
+        except NotImplementedError:
+            assert True
+
+    """
+        Test the HTTP endpoint for example http://www.google.com
+    """
+    def test_url(self):
+        # Default Test
+        req = HTTPHelperRequestHandler(self.verbose)
+        assert req.get_url() is None
+
+        # Test valid URL
+        req.set_url("http://www.google.com")
+        assert req.get_url() == "http://www.google.com"
+
+        # Test clearing URL
+        req.clear_url()
+        assert req.get_url() is None
+
+        # Test valid URL + Query Parameters
+        req.set_url("http://www.google.com?hello=world")
+        assert req.get_url() == "http://www.google.com"
+
+        # Invalid URL
+        try:
+            req.set_url(-1)
+            assert False
+        except TypeError:
+            assert True
+
+    """
+        Test the HTTP query parameters for example http://www.google.com?hello=world and direct apply
+    """
+    def test_query_parameters(self):
+        # Default Test
+        req = HTTPHelperRequestHandler(self.verbose)
+        assert req.get_url() is None
+
+        # Test valid Query Parameters
+        req.set_query_param({
+            "hello": "world"
         })
+        assert req.get_query_param() == {'hello': 'world'}
 
-        assert http.get_auth().username == request.auth.username
-        assert http.get_auth().password == request.auth.password
+        # Test clearing Query Parameters
+        req.clear_query_param()
+        assert req.get_query_param() is None
 
-        # Set session level auth with correct details
-        http = HTTPHelper()
-        session = Session()
-        session.auth = HTTPBasicAuth('root', 'root')
-        http.set_auth(HTTPAuthenticationType.BasicAuth, {
-            'username': 'root',
-            'password': 'root'
-        }, True)
-        assert http.get_auth(True).username == session.auth.username
-        assert http.get_auth(True).password == session.auth.password
+        # Test valid URL + Query Parameters
+        req.set_url("http://www.google.com?hello=world")
+        assert req.get_query_param() == {'hello': 'world'}
 
-    def test_http_proxy(self):
-        proxy_list = {
-            "http": "http://10.10.1.10:3128",
-            "https": "https://10.10.1.11:1080",
-        }
-        proxy_list_alt = {
-            "ftp": "ftp://10.10.1.10:3128",
-        }
-
-        # Default proxy
-        http = HTTPHelper()
-        assert http.get_proxy() == {}
-
-        # Set proxy
-        http = HTTPHelper()
-        http.set_proxy(proxy_list)
-        assert http.get_proxy() == proxy_list
-
-        # Test proxy session data combine
-        http = HTTPHelper()
-        http.set_proxy(proxy_list)
-        http.set_proxy(proxy_list_alt)
-        proxies = proxy_list.copy()
-        proxies.update(proxy_list_alt)
-        assert http.get_proxy() == proxies
-
-    def test_http_timeout(self):
-        # Default timeout
-        http = HTTPHelper()
-        assert http.get_timeout() is None
-
-        # Set timeout
-        http = HTTPHelper()
-        http.set_timeout(10)
-        assert http.get_timeout() == 10
-
-        # Set timeout then clear it
-        http = HTTPHelper()
-        http.set_timeout(10)
-        http.set_timeout()
-        assert http.get_timeout() is None
-
-    def test_http_send(self):
-        def mock(method, url, **kwargs):
-            http = HTTPHelper()
-            adapter = requests_mock.Adapter()
-            http.mount_adapter(adapter)
-            adapter.register_uri(method, url, **kwargs)
-            return http
-
-        # Base Settings
-        body = {
-            'hello': 'world',
-            'test': '123',
-        }
-
-        headers = {
-            "X-Custom-Header": "custom",
-            "Content-Type": "application/json",
-            "Content-Length": '20'
-        }
-
-        query = {
-            "query-a": "hello",
-            "query-b": "world"
-        }
-
-        """
-            Formulate a request:
-                - Method: POST
-                - Endpoint: mock://test.com
-                - Body: true
-                - Headers: true
-                - Query Params: true
-            Expect:
-                - Status Code: 200
-                - JSON Response
-                - No response validation
-            ** SUCCESS TEST **
-        """
-        req = mock("POST", "mock://test.com", json=dict({'hello': 'world', 'pong': True}), status_code=200)
-        req.set_url("mock://test.com")
-        req.set_method("POST")
-        req.set_body(body)
-        req.set_headers(headers)
-        req.set_query_parameters(query)
-        req.set_resp_validation()
-        response = req.send()
-
-        assert response.request.url == "mock://test.com"
-        assert response.request.body == "hello=world&test=123" or \
-               response.request.body == "test=123&hello=world"
-        assert response.request.method == "POST"
-        assert response.request.headers == headers
-        assert response.status_code == 200
-        assert response.content.decode('UTF-8') == json.dumps(dict({'hello': 'world', 'pong': True}))
-
-        """
-            Formulate a request:
-                - Method: POST
-                - Endpoint: mock://test.com
-                - Body: true
-                - Headers: true
-                - Query Params: true
-            Expect:
-                - Status Code: 200
-                - JSON Response
-                - Response Validation
-            ** SUCCESS TEST **
-        """
-        req = mock("POST", "mock://test.com", json=dict({'hello': 'world', 'pong': True}), status_code=200)
-        req.set_url("mock://test.com")
-        req.set_method("POST")
-        req.set_body(body)
-        req.set_headers(headers)
-        req.set_query_parameters(query)
-        req.set_resp_validation(HTTPResponseType.JSON, BodyResponseSchematicTest, 200)
-        response = req.send()
-
-        assert response.request.url == "mock://test.com"
-        assert response.request.body == "hello=world&test=123" or \
-               response.request.body == "test=123&hello=world"
-        assert response.request.method == "POST"
-        assert response.request.headers == headers
-        assert response.status_code == 200
-        assert response.content.decode('UTF-8') == json.dumps(dict({'hello': 'world', 'pong': True}))
-
-        """
-            Formulate a request:
-                - Method: POST
-                - Endpoint: mock://test.com
-                - Body: true
-                - Headers: true
-                - Query Params: true
-            Expect:
-                - Status Code: 200
-                - JSON Response
-                - Response Validation
-
-            ** FAILURE TEST **
-                Schematic mismatch from response
-        """
-        req = mock("POST", "mock://test.com", json=dict({'hello': 'world', 'random': True}), status_code=200)
-        req.set_url("mock://test.com")
-        req.set_method("POST")
-        req.set_body(body)
-        req.set_headers(headers)
-        req.set_query_parameters(query)
-        req.set_resp_validation(HTTPResponseType.JSON, BodyResponseSchematicTest, 200)
-
+        # Invalid Query Parameters
         try:
-            response = req.send()
-            assert response == {'test': 'Should never reach this assert as it should have failed'}
-        except Exception as msg:
-            assert str(msg) == 'Invalid response, Does not match schematic'
+            req.set_query_param(-1)
+            assert False
+        except TypeError:
+            assert True
 
-        """
-            Formulate a request:
-                - Method: POST
-                - Endpoint: mock://test.com
-                - Body: true
-                - Headers: true
-                - Query Params: true
-            Expect:
-                - Status Code: 200
-                - JSON Response
-                - Response Validation
-            ** SUCCESS TEST **
-        """
-        req = mock("POST", "mock://test.com", json=dict({'hello': 'world', 'pong': True}), status_code=404)
-        req.set_url("mock://test.com")
-        req.set_method("POST")
-        req.set_body(body)
-        req.set_headers(headers)
-        req.set_query_parameters(query)
-        req.set_resp_validation(HTTPResponseType.JSON, BodyResponseSchematicTest)
-        response = req.send()
+    """
+        Test the HTTP body for example {'hello': 'world'}
+    """
+    def test_body(self):
+        # Default Test
+        req = HTTPHelperRequestHandler(self.verbose)
+        assert len(req.get_body()) is 0
 
-        assert response.request.url == "mock://test.com"
-        assert response.request.body == "hello=world&test=123" or \
-               response.request.body == "test=123&hello=world"
-        assert response.request.method == "POST"
-        assert response.request.headers == headers
-        assert response.status_code == 404
-        assert response.content.decode('UTF-8') == json.dumps(dict({'hello': 'world', 'pong': True}))
+        # Test valid JSON Body
+        req.set_body({
+            "hello": "world"
+        })
+        assert req.get_body() == {'hello': 'world'}
+
+        # Test valid Plain Body
+        req.set_body("test")
+        assert req.get_body() == "test"
+
+        # Test clearing Body
+        req.clear_body()
+        assert len(req.get_body()) is 0
+
+    """
+        Test the HTTP headers for example {'hello': 'world'}
+    """
+    def test_headers(self):
+        # Default Test
+        req = HTTPHelperRequestHandler(self.verbose)
+        assert len(req.get_headers()) is 0
+
+        # Test valid Headers
+        req.set_headers({
+            "hello": "world"
+        })
+        assert req.get_headers() == {'hello': 'world'}
+
+        # Test clearing Headers
+        req.clear_headers()
+        assert len(req.get_headers()) is 0
+
+        # Invalid Headers
+        try:
+            req.set_headers(-1)
+            assert False
+        except TypeError:
+            assert True
+
+    """
+        Test the HTTP authentication for example {'username': 'hello', 'password': 'world'}
+    """
+    def test_authentication(self):
+        # Default Test
+        req = HTTPHelperRequestHandler(self.verbose)
+        assert req.get_auth() is None
+
+        # Test valid Auth
+        req.set_auth(HTTPAuthenticationType.BasicAuth, {
+            "username": "hello",
+            "password": "world",
+        })
+        assert req.get_auth() == HTTPBasicAuth("hello", "world")
+
+        # Test invalid Auth type
+        try:
+            req.set_auth("Random", {
+                "username": "hello",
+                "password": "world",
+            })
+            assert False
+        except TypeError:
+            assert True
+
+        # Test invalid Auth data
+        try:
+            req.set_auth(HTTPAuthenticationType.BasicAuth, {
+                "username": "hello",
+            })
+            assert False
+        except TypeError:
+            assert True
+
+        # Test clearing Auth
+        req.clear_auth()
+        assert req.get_auth() is None
+
+    """
+        Test the HTTP Request body validation
+    """
+    def test_body_type_validation(self):
+        # Default Validation Test
+        req = HTTPHelperRequestHandler(self.verbose)
+        assert req.get_body_type_validation() is None
+
+        # Default Allow Empty Validation Test
+        req = HTTPHelperRequestHandler(self.verbose)
+        assert req.get_body_type_allow_empty_validation() is None
+
+        # Set body validation
+        req = HTTPHelperRequestHandler(self.verbose)
+        req.set_body_type_validation(HTTPRequestType.JSON, True)
+        assert req.get_body_type_validation() is HTTPRequestType.JSON
+        assert req.get_body_type_allow_empty_validation() is True
+
+        # Set invalid body validation
+        req = HTTPHelperRequestHandler(self.verbose)
+        try:
+            req.set_body_type_validation('Test', True)
+            assert False
+        except TypeError:
+            assert True
+
+    """
+        Test the HTTP Request body validation
+    """
+    def test_body_schematic_validation(self):
+        # Default Validation Test
+        req = HTTPHelperRequestHandler(self.verbose)
+        assert req.get_body_schematic_validation() is None
+
+        # Set body validation
+        req = HTTPHelperRequestHandler(self.verbose)
+        req.set_body_schematic_validation(BodySchematicTest)
+        assert req.get_body_schematic_validation() is BodySchematicTest
+
+        # Set invalid body validation
+        req = HTTPHelperRequestHandler(self.verbose)
+        try:
+            req.set_body_schematic_validation('Test')
+            assert False
+        except TypeError:
+            assert True
+
+
+class TestHTTPHelperSessionHandler(unittest.TestCase):
+    verbose = True
+
+    """
+        Test the main request object which is the equivalent of the Request() object
+    """
+    def test_session_main_object(self):
+        req = HTTPHelperSessionHandler(self.verbose)
+
+        # Default Test
+        assert isinstance(req.get_session(), type(Session()))
+
+        # Test setting a invalid request object
+        try:
+            req.set_session(False)
+            assert False
+        except TypeError:
+            assert True
+
+        # Test setting a valid request object
+        req.set_session(Session())
+        assert isinstance(req.get_session(), type(Session()))
+
+        # Reset the request object
+        req.reset_session()
+        assert isinstance(req.get_session(), type(Session()))
+
+    """
+        Test the HTTP query parameters for example http://www.google.com?hello=world and direct apply
+    """
+    def test_query_parameters(self):
+        # Default Test
+        req = HTTPHelperSessionHandler(self.verbose)
+
+        # Test valid Query Parameters
+        req.set_query_param({
+            "hello": "world"
+        })
+        assert req.get_query_param() == {'hello': 'world'}
+
+        # Test clearing Query Parameters
+        req.clear_query_param()
+        assert len(req.get_query_param()) is 0
+
+        # Invalid Query Parameters
+        try:
+            req.set_query_param(-1)
+            assert False
+        except TypeError:
+            assert True
+
+    """
+        Test the HTTP headers for example {'hello': 'world'}
+    """
+    def test_headers(self):
+        # Default Test
+        req = HTTPHelperSessionHandler(self.verbose)
+        assert len(req.get_headers()) is 4
+        assert req.get_headers() == {'User-Agent': 'python-requests/2.24.0', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive'}
+
+        # Test valid Headers
+        req.set_headers({
+            "hello": "world"
+        })
+        assert req.get_headers() == {'User-Agent': 'python-requests/2.24.0', 'Accept-Encoding': 'gzip, deflate', 'Accept': '*/*', 'Connection': 'keep-alive', 'hello': 'world'}
+
+        # Test clearing Headers
+        req.clear_headers()
+        assert len(req.get_headers()) is 0
+
+        # Invalid Headers
+        try:
+            req.set_headers(-1)
+            assert False
+        except TypeError:
+            assert True
+
+    """
+        Test the HTTP authentication for example {'username': 'hello', 'password': 'world'}
+    """
+    def test_authentication(self):
+        # Default Test
+        req = HTTPHelperSessionHandler(self.verbose)
+        assert req.get_auth() is None
+
+        # Test valid Auth
+        req.set_auth(HTTPAuthenticationType.BasicAuth, {
+            "username": "hello",
+            "password": "world",
+        })
+        assert req.get_auth() == HTTPBasicAuth("hello", "world")
+
+        # Test invalid Auth type
+        try:
+            req.set_auth("Random", {
+                "username": "hello",
+                "password": "world",
+            })
+            assert False
+        except TypeError:
+            assert True
+
+        # Test invalid Auth data
+        try:
+            req.set_auth(HTTPAuthenticationType.BasicAuth, {
+                "username": "hello",
+            })
+            assert False
+        except TypeError:
+            assert True
+
+        # Test clearing Auth
+        req.clear_auth()
+        assert req.get_auth() is None
+
+
+class TestHTTPHelperConnectionHandler(unittest.TestCase):
+    verbose = True
+
+    def test_timeout(self):
+        # Default Test
+        req = HTTPHelperConnectionHandler(self.verbose)
+        assert req.get_timeout() is None
+
+        # Default Valid
+        req.set_timeout(10)
+        assert req.get_timeout() == 10
+
+        # Clear Timeout
+        req.clear_timeout()
+        assert req.get_timeout() is None
+
+        # Invalid Timeout
+        try:
+            req.set_timeout("Random")
+            assert False
+        except TypeError:
+            assert True
 
     def test_retry_policy(self):
-        http = HTTPHelper()
-        http.set_retry_policy(
-            total=3,
-            status_forcelist=[429, 500, 502, 503, 504],
-            method_whitelist=["HEAD", "GET", "OPTIONS"],
-            backoff_factor=1,
-            connect=4,
-            read=10,
-            raise_on_redirect=10,
-            redirect=3
-        )
+        # Default Test
+        req = HTTPHelperConnectionHandler(self.verbose)
+        assert req.get_retry_policy() is None
 
-        assert http.get_retry_policy().total == 3
-        assert http.get_retry_policy().status_forcelist == [429, 500, 502, 503, 504]
-        assert http.get_retry_policy().read == 10
-        assert http.get_retry_policy().backoff_factor == 1
-        assert http.get_retry_policy().connect == 4
-        assert http.get_retry_policy().method_whitelist == ["HEAD", "GET", "OPTIONS"]
-        assert http.get_retry_policy().raise_on_redirect == 10
-        assert http.get_retry_policy().redirect == 3
+        # Default Valid
+        req.set_retry_policy(total=3)
+        assert req.get_retry_policy().total == Retry(total=3).total
 
-    def test_ssl_verify(self):
-        # Default SSL test
-        http = HTTPHelper()
-        http.set_ssl_verify()
-        assert http.get_ssl_verify() is True
+        # Clear Timeout
+        req.clear_retry_policy()
+        assert req.get_retry_policy() is None
 
-        # Active SSL test
-        http = HTTPHelper()
-        http.set_ssl_verify(True)
-        assert http.get_ssl_verify() is True
+        # Invalid Timeout
+        try:
+            req.set_retry_policy("Random")
+            assert False
+        except TypeError:
+            assert True
 
-        # Inactive SSL test
-        http = HTTPHelper()
-        http.set_ssl_verify(False)
-        assert http.get_ssl_verify() is False
+    def test_ssl(self):
+        # Default Test
+        req = HTTPHelperConnectionHandler(self.verbose)
+        assert req.get_ssl_verify() is True
 
-    def test_compact_methods(self):
-        # Base Settings
-        body = {
-            'hello': 'world',
-            'test': '123',
+        # Default Valid
+        req.set_ssl_verify(False)
+        assert req.get_ssl_verify() is False
+
+        # Clear Timeout
+        req.clear_ssl_verify()
+        assert req.get_ssl_verify() is True
+
+        # Invalid Timeout
+        try:
+            req.set_ssl_verify("Random")
+            assert False
+        except TypeError:
+            assert True
+
+    def test_proxy(self):
+        # Default Test
+        req = HTTPHelperConnectionHandler(self.verbose)
+        assert req.get_proxy() is None
+
+        # Default Valid
+        req.set_proxy({
+            'hello': 'world'
+        })
+        assert req.get_proxy() == {
+            'hello': 'world'
         }
 
-        body_response = {
-            'hello': 'world',
-            'pong': True
-        }
+        # Clear Timeout
+        req.clear_proxy()
+        assert req.get_proxy() is None
 
-        headers = {
-            "X-Custom-Header": "custom",
-            "Content-Type": "application/json",
-            "Content-Length": '20'
-        }
+        # Invalid Timeout
+        try:
+            req.set_proxy("Random")
+            assert False
+        except TypeError:
+            assert True
 
-        headers_session = {
-            'User-Agent': 'python-requests/2.24.0',
-            'Accept-Encoding': 'gzip, deflate',
-            'Accept': '*/*',
-            'Connection': 'keep-alive',
-            'X-Custom-Header': 'custom',
-            'Content-Type': 'application/json',
-            'Content-Length': '20'
-        }
+    def test_send(self):
+        # Default Test
+        # Manual build objects
+        req = HTTPHelperConnectionHandler(self.verbose)
+        session = HTTPHelperSessionHandler()
+        request = HTTPHelperRequestHandler()
+        response = HTTPHelperResponseHandler()
 
-        query = {
-            "query-a": "hello",
-            "query-b": "world"
-        }
+        session.apply_mock("GET", "mock://test.com", 200, {"hello": "world"})
+        request.set_url("mock://test.com")
+        request.set_method("GET")
 
-        # GET Tests
+        res = req.send(session.get_session(), request.get_request(), response)
+        res_data = res.get("response")
 
-        get_request = HTTPHelper().get(
-            url="mock://test.com",
+        assert res.get("valid") is True
+        assert res_data.status_code is 200
+        assert json.loads(res_data.content.decode(res_data.encoding)).get("hello") == "world"
+
+
+class TestHTTPHelperBase(unittest.TestCase):
+    verbose = True
+
+    def test_overwrite(self):
+        req = HTTPHelper(self.verbose)
+
+        req.overwrite_request_helper(HTTPHelperRequestHandler())
+        assert isinstance(req.get_request_helper(), type(HTTPHelperRequestHandler()))
+
+        req.overwrite_session_helper(HTTPHelperSessionHandler())
+        assert isinstance(req.get_session_helper(), type(HTTPHelperSessionHandler()))
+
+        req.overwrite_response_helper(HTTPHelperResponseHandler())
+        assert isinstance(req.get_response_helper(), type(HTTPHelperResponseHandler()))
+
+        req.overwrite_connection_helper(HTTPHelperConnectionHandler())
+        assert isinstance(req.get_connection_helper(), type(HTTPHelperConnectionHandler()))
+
+    def test_get(self):
+        # request_schematic_validation
+        # request_type_validation
+        # response_status_code_validation
+        # response_type_validation
+        # response_schematic_validation
+
+        req = HTTPHelper(self.verbose)
+        res = req.get(
             mock=True,
-            mock_response=dict(body_response),
-            mock_status=999,
-            validate_type=HTTPResponseType.JSON,
-            validate_schematic=BodyResponseSchematicTest,
-            validate_status_code=999,
+            mock_status=200,
+            mock_response={'hello': 'world'},
+            url="mock://www.google.com",
+            body={'hello': 'world'},
+            headers={'header': 'a'},
+            query={'query': 'b'},
             timeout=30,
-            headers=headers,
-            query=query,
-            body=body,
-            body_type=HTTPRequestType.JSON,
-            body_model=BodySchematicTest,
-            use_session=True,
-            ssl_verify=True,
             retry_policy=dict(
-                total=3,
-                backoff_factor=0.3,
-                status_forcelist=(500, 502, 504),
-            )
+                total=3
+            ),
         )
-        get_response = get_request.send()
-        assert get_request.get_url() == "mock://test.com"
-        assert get_request.get_method() == "GET"
-        assert get_request.get_body() is None
-        assert get_request.get_timeout() == 30
-        assert get_request.get_headers(True) == headers_session
-        assert get_request.get_ssl_verify() is True
-        assert get_request.get_query_parameters(True) == query
-        assert get_request.get_proxy() == {}
-        assert get_request.get_resp_validate_schematic() == BodyResponseSchematicTest
-        assert get_request.get_resp_validate_status_code() == 999
-        assert get_request.get_resp_validate_strict_type() == HTTPResponseType.JSON
-        assert get_request.get_query_parameters(True) == query
-        assert get_response.request.url == "mock://test.com"
-        assert get_response.request.method == "GET"
-        assert get_response.request.body is None
-        assert get_response.content.decode('UTF-8') == json.dumps(dict(body_response))
-        assert get_response.status_code == 999
+        res_data = res.get("response")
 
-        get_request = HTTPHelper().get(
-            url="mock://test.com",
-            mock=True,
-            mock_response=dict(body_response),
-            mock_status=200,
-        )
-        # awe
-        get_response = get_request.send()
-        assert get_request.get_url() == "mock://test.com"
-        assert get_request.get_method() == "GET"
-        assert get_request.get_body() is None
-        assert get_request.get_timeout() is None
-        assert get_request.get_headers(True) == {'User-Agent': 'python-requests/2.24.0',
-                                                 'Accept-Encoding': 'gzip, deflate',
-                                                 'Accept': '*/*',
-                                                 'Connection': 'keep-alive'}
-        assert get_request.get_ssl_verify() is True
-        assert get_request.get_query_parameters(True) == {}
-        assert get_request.get_query_parameters() == {}
-        assert get_request.get_proxy() == {}
-        assert get_request.get_resp_validate_schematic() is None
-        assert get_request.get_resp_validate_status_code() is None
-        assert get_request.get_resp_validate_strict_type() is None
-        assert get_response.request.url == "mock://test.com"
-        assert get_response.request.method == "GET"
-        assert get_response.request.body is None
-        assert get_response.content.decode('UTF-8') == json.dumps(dict(body_response))
-        assert get_response.status_code == 200
-        assert get_request.get_query_parameters(True) == {}
-        assert get_request.get_query_parameters() == {}
+        assert res.get("valid") is True
+        assert res_data.status_code is 200
+        assert res_data.request.method == "GET"
+        assert res_data.request.headers == {'header': 'a', 'Content-Length': '11', 'Content-Type': 'application/x-www-form-urlencoded'}
+        assert json.loads(res_data.content.decode(res_data.encoding)).get("hello") == "world"
 
-        # POST Tests
-
-        post_request = HTTPHelper().post(
-            url="mock://test.com",
-            mock=True,
-            mock_response=dict(body_response),
-            mock_status=805,
-            validate_type=HTTPResponseType.JSON,
-            validate_schematic=BodyResponseSchematicTest,
-            validate_status_code=805,
-            timeout=30,
-            headers=headers,
-            query=query,
-            body=body,
-            body_type=HTTPRequestType.JSON,
-            body_model=BodySchematicTest,
-            use_session=True,
-            ssl_verify=True,
-            retry_policy=dict(
-                total=3,
-                backoff_factor=0.3,
-                status_forcelist=(500, 502, 504),
-            )
-        )
-        post_response = post_request.send()
-        assert post_request.get_url() == "mock://test.com"
-        assert post_request.get_method() == "POST"
-        assert post_request.get_timeout() == 30
-        assert post_request.get_headers(True) == headers_session
-        assert post_request.get_ssl_verify() is True
-        assert post_request.get_query_parameters(True) == query
-        assert post_request.get_proxy() == {}
-        assert post_request.get_resp_validate_schematic() == BodyResponseSchematicTest
-        assert post_request.get_resp_validate_status_code() == 805
-        assert post_request.get_resp_validate_strict_type() == HTTPResponseType.JSON
-        assert post_response.request.url == "mock://test.com"
-        assert post_response.request.method == "POST"
-        assert post_response.request.body == "hello=world&test=123" or \
-               post_response.request.body == "test=123&hello=world"
-        assert post_response.content.decode('UTF-8') == json.dumps(dict(body_response))
-        assert post_response.status_code == 805
-        assert post_request.get_query_parameters(True) == query
-
-        post_request = HTTPHelper().post(
-            url="mock://test.com",
-            mock=True,
-            mock_response=dict(body_response),
-            mock_status=200,
-        )
-        post_response = post_request.send()
-        assert post_request.get_url() == "mock://test.com"
-        assert post_request.get_method() == "POST"
-        assert post_request.get_body() is None
-        assert post_request.get_timeout() is None
-        assert post_request.get_headers(True) == {'User-Agent': 'python-requests/2.24.0',
-                                                  'Accept-Encoding': 'gzip, deflate',
-                                                  'Accept': '*/*',
-                                                  'Connection': 'keep-alive'}
-        assert post_request.get_ssl_verify() is True
-        assert post_request.get_query_parameters(True) == {}
-        assert post_request.get_query_parameters() == {}
-        assert post_request.get_proxy() == {}
-        assert post_request.get_resp_validate_schematic() is None
-        assert post_request.get_resp_validate_status_code() is None
-        assert post_request.get_resp_validate_strict_type() is None
-        assert post_response.request.url == "mock://test.com"
-        assert post_response.request.method == "POST"
-        assert post_response.request.body is None
-        assert post_response.content.decode('UTF-8') == json.dumps(dict(body_response))
-        assert post_response.status_code == 200
-        assert post_request.get_query_parameters(True) == {}
-        assert post_request.get_query_parameters() == {}
-
-        # PUT Tests
-
-        put_request = HTTPHelper().put(
-            url="mock://test.com",
-            mock=True,
-            mock_response=dict(body_response),
-            mock_status=200,
-            validate_type=HTTPResponseType.JSON,
-            validate_schematic=BodyResponseSchematicTest,
-            validate_status_code=200,
-            timeout=30,
-            headers=headers,
-            query=query,
-            body=body,
-            body_type=HTTPRequestType.JSON,
-            body_model=BodySchematicTest,
-            use_session=True,
-            ssl_verify=True,
-            retry_policy=dict(
-                total=3,
-                backoff_factor=0.3,
-                status_forcelist=(500, 502, 504),
-            )
-        )
-
-        put_response = put_request.send()
-        assert put_request.get_url() == "mock://test.com"
-        assert put_request.get_method() == "PUT"
-        assert put_request.get_body() == body
-        assert put_request.get_timeout() == 30
-        assert put_request.get_headers(True) == headers_session
-        assert put_request.get_ssl_verify() is True
-        assert put_request.get_query_parameters(True) == query
-        assert put_request.get_proxy() == {}
-        assert put_request.get_resp_validate_schematic() == BodyResponseSchematicTest
-        assert put_request.get_resp_validate_status_code() == 200
-        assert put_request.get_resp_validate_strict_type() == HTTPResponseType.JSON
-        assert put_response.request.url == "mock://test.com"
-        assert put_response.request.method == "PUT"
-        assert put_response.request.body == "hello=world&test=123" or \
-               put_response.request.body == "test=123&hello=world"
-        assert put_response.content.decode('UTF-8') == json.dumps(dict(body_response))
-        assert put_response.status_code == 200
-        assert put_request.get_query_parameters(True) == query
-
-        put_request = HTTPHelper().put(
-            url="mock://test.com",
-            mock=True,
-            mock_response=dict(body_response),
-            mock_status=200,
-        )
-        put_response = put_request.send()
-        assert put_request.get_url() == "mock://test.com"
-        assert put_request.get_method() == "PUT"
-        assert put_request.get_body() is None
-        assert put_request.get_timeout() is None
-        assert put_request.get_headers(True) == {'User-Agent': 'python-requests/2.24.0',
-                                                 'Accept-Encoding': 'gzip, deflate',
-                                                 'Accept': '*/*',
-                                                 'Connection': 'keep-alive'}
-        assert put_request.get_ssl_verify() is True
-        assert put_request.get_query_parameters(True) == {}
-        assert put_request.get_query_parameters() == {}
-        assert put_request.get_proxy() == {}
-        assert put_request.get_resp_validate_schematic() is None
-        assert put_request.get_resp_validate_status_code() is None
-        assert put_request.get_resp_validate_strict_type() is None
-        assert put_response.request.url == "mock://test.com"
-        assert put_response.request.method == "PUT"
-        assert put_response.request.body is None
-        assert put_response.content.decode('UTF-8') == json.dumps(dict(body_response))
-        assert put_response.status_code == 200
-        assert put_request.get_query_parameters(True) == {}
-        assert put_request.get_query_parameters() == {}
-
-        # PATCH Tests
-
-        patch_request = HTTPHelper().patch(
-            url="mock://test.com",
-            mock=True,
-            mock_response=dict(body_response),
-            mock_status=200,
-            validate_type=HTTPResponseType.JSON,
-            validate_schematic=BodyResponseSchematicTest,
-            validate_status_code=200,
-            timeout=30,
-            headers=headers,
-            query=query,
-            body=body,
-            body_type=HTTPRequestType.JSON,
-            body_model=BodySchematicTest,
-            use_session=True,
-            ssl_verify=True,
-            retry_policy=dict(
-                total=3,
-                backoff_factor=0.3,
-                status_forcelist=(500, 502, 504),
-            )
-        )
-        patch_response = patch_request.send()
-        assert patch_request.get_url() == "mock://test.com"
-        assert patch_request.get_method() == "PATCH"
-        assert patch_request.get_body() is body
-        assert patch_request.get_timeout() == 30
-        assert patch_request.get_headers(True) == headers_session
-        assert patch_request.get_ssl_verify() is True
-        assert patch_request.get_query_parameters(True) == query
-        assert patch_request.get_proxy() == {}
-        assert patch_request.get_resp_validate_schematic() == BodyResponseSchematicTest
-        assert patch_request.get_resp_validate_status_code() == 200
-        assert patch_request.get_resp_validate_strict_type() == HTTPResponseType.JSON
-        assert patch_response.request.url == "mock://test.com"
-        assert patch_response.request.method == "PATCH"
-        assert patch_response.request.body == "hello=world&test=123" or \
-               patch_response.request.body == "test=123&hello=world"
-        assert patch_response.content.decode('UTF-8') == json.dumps(dict(body_response))
-        assert patch_response.status_code == 200
-        assert patch_request.get_query_parameters(True) == query
-
-        patch_request = HTTPHelper().patch(
-            url="mock://test.com",
-            mock=True,
-            mock_response=dict(body_response),
-            mock_status=200,
-        )
-        patch_response = patch_request.send()
-        assert patch_request.get_url() == "mock://test.com"
-        assert patch_request.get_method() == "PATCH"
-        assert patch_request.get_body() is None
-        assert patch_request.get_timeout() is None
-        assert patch_request.get_headers(True) == {'User-Agent': 'python-requests/2.24.0',
-                                                   'Accept-Encoding': 'gzip, deflate',
-                                                   'Accept': '*/*',
-                                                   'Connection': 'keep-alive'}
-        assert patch_request.get_ssl_verify() is True
-        assert patch_request.get_query_parameters(True) == {}
-        assert patch_request.get_query_parameters() == {}
-        assert patch_request.get_proxy() == {}
-        assert patch_request.get_resp_validate_schematic() is None
-        assert patch_request.get_resp_validate_status_code() is None
-        assert patch_request.get_resp_validate_strict_type() is None
-        assert patch_response.request.url == "mock://test.com"
-        assert patch_response.request.method == "PATCH"
-        assert patch_response.request.body is None
-        assert patch_response.content.decode('UTF-8') == json.dumps(dict(body_response))
-        assert patch_response.status_code == 200
-        assert patch_request.get_query_parameters(True) == {}
-        assert patch_request.get_query_parameters() == {}
-
-        # DELETE Tests
-
-        delete_request = HTTPHelper().delete(
-            url="mock://test.com",
-            mock=True,
-            mock_response=dict(body_response),
-            mock_status=200,
-            validate_type=HTTPResponseType.JSON,
-            validate_schematic=BodyResponseSchematicTest,
-            validate_status_code=200,
-            timeout=30,
-            headers=headers,
-            query=query,
-            body=body,
-            body_validate_type=HTTPRequestType.JSON,
-            body_validate_model=BodySchematicTest,
-            use_session=True,
-            ssl_verify=True,
-            retry_policy=dict(
-                total=3,
-                backoff_factor=0.3,
-                status_forcelist=(500, 502, 504),
-            )
-        )
-        delete_response = delete_request.send()
-        assert delete_request.get_url() == "mock://test.com"
-        assert delete_request.get_method() == "DELETE"
-        assert delete_request.get_body() is None
-        assert delete_request.get_timeout() == 30
-        assert delete_request.get_headers(True) == headers_session
-        assert delete_request.get_ssl_verify() is True
-        assert delete_request.get_query_parameters(True) == query
-        assert delete_request.get_proxy() == {}
-        assert delete_request.get_resp_validate_schematic() == BodyResponseSchematicTest
-        assert delete_request.get_resp_validate_status_code() == 200
-        assert delete_request.get_resp_validate_strict_type() == HTTPResponseType.JSON
-        assert delete_response.request.url == "mock://test.com"
-        assert delete_response.request.method == "DELETE"
-        assert delete_response.request.body is None
-        assert delete_response.content.decode('UTF-8') == json.dumps(dict(body_response))
-        assert delete_response.status_code == 200
-        assert delete_request.get_query_parameters(True) == query
-
-        delete_request = HTTPHelper().delete(
-            url="mock://test.com",
-            mock=True,
-            mock_response=dict(body_response),
-            mock_status=200,
-        )
-        delete_response = delete_request.send()
-        assert delete_request.get_url() == "mock://test.com"
-        assert delete_request.get_method() == "DELETE"
-        assert delete_request.get_body() is None
-        assert delete_request.get_timeout() is None
-        assert delete_request.get_headers(True) == {'User-Agent': 'python-requests/2.24.0',
-                                                    'Accept-Encoding': 'gzip, deflate',
-                                                    'Accept': '*/*',
-                                                    'Connection': 'keep-alive'}
-        assert delete_request.get_ssl_verify() is True
-        assert delete_request.get_query_parameters(True) == {}
-        assert delete_request.get_query_parameters() == {}
-        assert delete_request.get_proxy() == {}
-        assert delete_request.get_resp_validate_schematic() is None
-        assert delete_request.get_resp_validate_status_code() is None
-        assert delete_request.get_resp_validate_strict_type() is None
-        assert delete_response.request.url == "mock://test.com"
-        assert delete_response.request.method == "DELETE"
-        assert delete_response.request.body is None
-        assert delete_response.content.decode('UTF-8') == json.dumps(dict(body_response))
-        assert delete_response.status_code == 200
-        assert delete_request.get_query_parameters(True) == {}
-        assert delete_request.get_query_parameters() == {}
-
-    def test_unique_events(self):
-        body_response = {
-            'hello': 'world',
-            'pong': True
-        }
-
-        # Testing a 400 Response
-        # The body still has data al tho the server responded with a 400 meaning we might still want to see the data
-        post_response = HTTPHelper().post(
-            url="mock://test.com",
-            mock=True,
-            mock_response=dict(body_response),
-            mock_status=400,
-        ).send()
-
-        assert post_response is not None
-        assert post_response.content.decode('UTF-8') == json.dumps(dict(body_response))
-
-        # Testing a 200 Response
-        # The server responded with a 200 but the body is still not found
-        post_response = HTTPHelper().post(
-            url="mock://test.com",
-            mock=True,
-            mock_status=200,
-        ).send()
-
-        assert post_response is None
