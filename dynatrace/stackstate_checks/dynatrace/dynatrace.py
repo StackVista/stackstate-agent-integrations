@@ -254,7 +254,7 @@ class DynatraceCheck(AgentCheck):
     def _get_labels_from_dynatrace_tags(dynatrace_component):
         """
         Process each tag as a label in component
-        :param item: the component item to read from
+        :param dynatrace_component: the component item to read from
         :return: list of added tags as labels
         """
         tags = []
@@ -272,7 +272,7 @@ class DynatraceCheck(AgentCheck):
     def _get_labels(self, dynatrace_component):
         """
         Extract labels and tags for each component
-        :param item: the component item
+        :param dynatrace_component: the component item
         :return: the list of added labels for a component
         """
         labels = []
