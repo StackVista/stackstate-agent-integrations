@@ -469,7 +469,7 @@ class TestHTTPHelperConnectionHandler(unittest.TestCase):
         assert json.loads(data.content.decode(data.encoding)).get("hello") == "world"
 
     def test_unicode_send(self):
-        unicode = ""
+        unicode = u""
         for i in range(5000):
             unicode = unicode + chr(i)
 
@@ -496,7 +496,7 @@ class TestHTTPHelperConnectionHandler(unittest.TestCase):
 
 class TestHTTPHelperBase(unittest.TestCase):
     def test_unicode_response(self):
-        unicode = ""
+        unicode = u""
         for i in range(5000):
             unicode = unicode + chr(i)
 
@@ -521,8 +521,9 @@ class TestHTTPHelperBase(unittest.TestCase):
         assert json.loads(data.content.decode(data.encoding)) == unicode
         assert data.request.url == "mock://test.com"
         assert response.get("valid") is True
-        assert data.request.headers == {'header': 'a', 'Content-Length': '11',
-                                                 'Content-Type': 'application/x-www-form-urlencoded'}
+        assert data.request.headers == {'header': 'a',
+                                        'Content-Length': '11',
+                                        'Content-Type': 'application/x-www-form-urlencoded'}
 
     """
         Tests for GET
@@ -549,8 +550,9 @@ class TestHTTPHelperBase(unittest.TestCase):
         assert json.loads(data.content.decode(data.encoding)).get("hello") == "world"
         assert data.request.url == "mock://test.com"
         assert response.get("valid") is True
-        assert data.request.headers == {'header': 'a', 'Content-Length': '11',
-                                                 'Content-Type': 'application/x-www-form-urlencoded'}
+        assert data.request.headers == {'header': 'a',
+                                        'Content-Length': '11',
+                                        'Content-Type': 'application/x-www-form-urlencoded'}
 
     def test_get_request_validation_success(self):
         request = HTTPHelper()
