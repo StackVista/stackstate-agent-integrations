@@ -999,7 +999,6 @@ class HTTPHelperResponseHandler:
 
     """
 
-    # Private objects to keep internal state
     _common = HTTPHelperCommon()
     _validate_schematic = None
     _validate_status_code = None
