@@ -7,7 +7,7 @@ from schematics.models import Model
 from schematics.types import StringType, IntType, BooleanType
 from stackstate_checks.utils.http_helper import HTTPHelper, HTTPRequestType, HTTPAuthenticationType, HTTPResponseType
 from stackstate_checks.utils.http_helper import HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPMethod
-from stackstate_checks.utils.http_helper import HTTPHelperResponseHandler, HTTPHelperConnectionHandler, HTTPHelperCommon
+from stackstate_checks.utils.http_helper import HTTPHelperResponseHandler, HTTPHelperConnectionHandler
 from requests.auth import HTTPBasicAuth
 from requests.packages.urllib3.util.retry import Retry
 
@@ -32,65 +32,16 @@ class BodyResponseSchematicTest(Model):
 
 
 """
- HTTP Helper Common Class
-"""
-
-
-class TestHTTPHelperCommon(unittest.TestCase):
-    verbose = True
-
-    def test_print_error(self):
-        try:
-            HTTPHelperCommon().print_error("Error Message")
-            assert False
-        except Exception as e:
-            assert str(e) == "Error Message"
-
-    def test_print_not_implemented_error(self):
-        try:
-            HTTPHelperCommon().print_not_implemented_error("Error Message")
-            assert False
-        except NotImplementedError as e:
-            assert str(e) == "Error Message"
-
-    def test_print_type_error(self):
-        try:
-            HTTPHelperCommon().print_type_error("Error Message")
-            assert False
-        except TypeError as e:
-            assert str(e) == "Error Message"
-
-    def test_print_value_error(self):
-        try:
-            HTTPHelperCommon().print_value_error("Error Message")
-            assert False
-        except ValueError as e:
-            assert str(e) == "Error Message"
-
-    def test_split_string_into_dict(self):
-        result = HTTPHelperCommon().split_string_into_dict("", "&", "=")
-        assert result == {}
-
-        result = HTTPHelperCommon().split_string_into_dict("hello=world", "&", "=")
-        assert result == {'hello': 'world'}
-
-        result = HTTPHelperCommon().split_string_into_dict("hello=world&test=123", "&", "=")
-        assert result == {'hello': 'world', 'test': '123'}
-
-
-"""
  HTTP Helper Request Class
 """
 
 
 class TestHTTPHelperRequestHandler(unittest.TestCase):
-    verbose = True
-
     """
         Test the main request object which is the equivalent of the Request() object
     """
     def test_request_main_object(self):
-        req = HTTPHelperRequestHandler(self.verbose)
+        req = HTTPHelperRequestHandler()
 
         # Default Test
         assert isinstance(req.get_request(), type(Request()))
@@ -115,7 +66,7 @@ class TestHTTPHelperRequestHandler(unittest.TestCase):
     """
     def test_method(self):
         # Default Test
-        req = HTTPHelperRequestHandler(self.verbose)
+        req = HTTPHelperRequestHandler()
         assert req.get_method() is None
 
         # Test direct string
@@ -142,7 +93,7 @@ class TestHTTPHelperRequestHandler(unittest.TestCase):
     """
     def test_url(self):
         # Default Test
-        req = HTTPHelperRequestHandler(self.verbose)
+        req = HTTPHelperRequestHandler()
         assert req.get_url() is None
 
         # Test valid URL
@@ -169,7 +120,7 @@ class TestHTTPHelperRequestHandler(unittest.TestCase):
     """
     def test_query_parameters(self):
         # Default Test
-        req = HTTPHelperRequestHandler(self.verbose)
+        req = HTTPHelperRequestHandler()
         assert req.get_url() is None
 
         # Test valid Query Parameters
@@ -198,7 +149,7 @@ class TestHTTPHelperRequestHandler(unittest.TestCase):
     """
     def test_body(self):
         # Default Test
-        req = HTTPHelperRequestHandler(self.verbose)
+        req = HTTPHelperRequestHandler()
         assert len(req.get_body()) == 0
 
         # Test valid JSON Body
@@ -220,7 +171,7 @@ class TestHTTPHelperRequestHandler(unittest.TestCase):
     """
     def test_headers(self):
         # Default Test
-        req = HTTPHelperRequestHandler(self.verbose)
+        req = HTTPHelperRequestHandler()
         assert len(req.get_headers()) == 0
 
         # Test valid Headers
@@ -245,7 +196,7 @@ class TestHTTPHelperRequestHandler(unittest.TestCase):
     """
     def test_authentication(self):
         # Default Test
-        req = HTTPHelperRequestHandler(self.verbose)
+        req = HTTPHelperRequestHandler()
         assert req.get_auth() is None
 
         # Test valid Auth
@@ -283,16 +234,16 @@ class TestHTTPHelperRequestHandler(unittest.TestCase):
     """
     def test_body_type_validation(self):
         # Default Validation Test
-        req = HTTPHelperRequestHandler(self.verbose)
+        req = HTTPHelperRequestHandler()
         assert req.get_body_type_validation() is None
 
         # Set body validation
-        req = HTTPHelperRequestHandler(self.verbose)
+        req = HTTPHelperRequestHandler()
         req.set_body_type_validation(HTTPRequestType.JSON)
         assert req.get_body_type_validation() is HTTPRequestType.JSON
 
         # Set invalid body validation
-        req = HTTPHelperRequestHandler(self.verbose)
+        req = HTTPHelperRequestHandler()
         try:
             req.set_body_type_validation('Test')
             assert False
@@ -304,16 +255,16 @@ class TestHTTPHelperRequestHandler(unittest.TestCase):
     """
     def test_body_schematic_validation(self):
         # Default Validation Test
-        req = HTTPHelperRequestHandler(self.verbose)
+        req = HTTPHelperRequestHandler()
         assert req.get_body_schematic_validation() is None
 
         # Set body validation
-        req = HTTPHelperRequestHandler(self.verbose)
+        req = HTTPHelperRequestHandler()
         req.set_body_schematic_validation(BodySchematicTest)
         assert req.get_body_schematic_validation() is BodySchematicTest
 
         # Set invalid body validation
-        req = HTTPHelperRequestHandler(self.verbose)
+        req = HTTPHelperRequestHandler()
         try:
             req.set_body_schematic_validation('Test')
             assert False
@@ -322,13 +273,11 @@ class TestHTTPHelperRequestHandler(unittest.TestCase):
 
 
 class TestHTTPHelperSessionHandler(unittest.TestCase):
-    verbose = True
-
     """
         Test the main request object which is the equivalent of the Request() object
     """
     def test_session_main_object(self):
-        req = HTTPHelperSessionHandler(self.verbose)
+        req = HTTPHelperSessionHandler()
 
         # Default Test
         assert isinstance(req.get_session(), type(Session()))
@@ -353,7 +302,7 @@ class TestHTTPHelperSessionHandler(unittest.TestCase):
     """
     def test_headers(self):
         # Default Test
-        req = HTTPHelperSessionHandler(self.verbose)
+        req = HTTPHelperSessionHandler()
         assert len(req.get_headers()) == 4
         assert req.get_headers() == {'User-Agent': 'python-requests/2.24.0', 'Accept-Encoding': 'gzip, deflate',
                                      'Accept': '*/*', 'Connection': 'keep-alive'}
@@ -381,7 +330,7 @@ class TestHTTPHelperSessionHandler(unittest.TestCase):
     """
     def test_authentication(self):
         # Default Test
-        req = HTTPHelperSessionHandler(self.verbose)
+        req = HTTPHelperSessionHandler()
         assert req.get_auth() is None
 
         # Test valid Auth
@@ -416,11 +365,9 @@ class TestHTTPHelperSessionHandler(unittest.TestCase):
 
 
 class TestHTTPHelperConnectionHandler(unittest.TestCase):
-    verbose = True
-
     def test_timeout(self):
         # Default Test
-        req = HTTPHelperConnectionHandler(self.verbose)
+        req = HTTPHelperConnectionHandler()
         assert req.get_timeout() is None
 
         # Default Valid
@@ -440,7 +387,7 @@ class TestHTTPHelperConnectionHandler(unittest.TestCase):
 
     def test_retry_policy(self):
         # Default Test
-        req = HTTPHelperConnectionHandler(self.verbose)
+        req = HTTPHelperConnectionHandler()
         assert req.get_retry_policy() is None
 
         # Default Valid
@@ -460,7 +407,7 @@ class TestHTTPHelperConnectionHandler(unittest.TestCase):
 
     def test_ssl(self):
         # Default Test
-        req = HTTPHelperConnectionHandler(self.verbose)
+        req = HTTPHelperConnectionHandler()
         assert req.get_ssl_verify() is True
 
         # Default Valid
@@ -480,7 +427,7 @@ class TestHTTPHelperConnectionHandler(unittest.TestCase):
 
     def test_proxy(self):
         # Default Test
-        req = HTTPHelperConnectionHandler(self.verbose)
+        req = HTTPHelperConnectionHandler()
         assert req.get_proxy() is None
 
         # Default Valid
@@ -505,7 +452,7 @@ class TestHTTPHelperConnectionHandler(unittest.TestCase):
     def test_send(self):
         # Default Test
         # Manual build objects
-        req = HTTPHelperConnectionHandler(self.verbose)
+        req = HTTPHelperConnectionHandler()
         session = HTTPHelperSessionHandler()
         request = HTTPHelperRequestHandler()
         response = HTTPHelperResponseHandler()
@@ -523,14 +470,12 @@ class TestHTTPHelperConnectionHandler(unittest.TestCase):
 
 
 class TestHTTPHelperBase(unittest.TestCase):
-    verbose = True
-
     """
         Tests for GET
     """
 
     def test_get_no_validation(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         response = request.get(
             mock=True,
             mock_status=200,
@@ -554,7 +499,7 @@ class TestHTTPHelperBase(unittest.TestCase):
                                                  'Content-Type': 'application/x-www-form-urlencoded'}
 
     def test_get_request_validation_success(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         response = request.get(
             request_schematic_validation=BodyRequestSchematicTest,
             request_type_validation=HTTPRequestType.JSON,
@@ -581,7 +526,7 @@ class TestHTTPHelperBase(unittest.TestCase):
                                                  'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
 
     def test_get_request_validation_type_failure(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         try:
             request.get(
                 request_schematic_validation=BodyRequestSchematicTest,
@@ -603,7 +548,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             assert True
 
     def test_get_request_validation_schematic_failure(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         try:
             request.get(
                 request_schematic_validation=BodyRequestSchematicTest,
@@ -625,7 +570,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             assert True
 
     def test_get_response_validation_success(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         response = request.get(
             request_schematic_validation=BodyRequestSchematicTest,
             request_type_validation=HTTPRequestType.JSON,
@@ -656,7 +601,7 @@ class TestHTTPHelperBase(unittest.TestCase):
                                                  'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
 
     def test_get_response_validation_failure(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         response = request.get(
             request_schematic_validation=BodyRequestSchematicTest,
             request_type_validation=HTTPRequestType.JSON,
@@ -692,7 +637,7 @@ class TestHTTPHelperBase(unittest.TestCase):
     """
 
     def test_post_no_validation(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         response = request.post(
             mock=True,
             mock_status=200,
@@ -716,7 +661,7 @@ class TestHTTPHelperBase(unittest.TestCase):
                                                  'Content-Type': 'application/x-www-form-urlencoded'}
 
     def test_post_request_validation_success(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         response = request.post(
             request_schematic_validation=BodyRequestSchematicTest,
             request_type_validation=HTTPRequestType.JSON,
@@ -743,7 +688,7 @@ class TestHTTPHelperBase(unittest.TestCase):
                                                  'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
 
     def test_post_request_validation_type_failure(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         try:
             request.post(
                 request_schematic_validation=BodyRequestSchematicTest,
@@ -765,7 +710,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             assert True
 
     def test_post_request_validation_schematic_failure(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         try:
             request.post(
                 request_schematic_validation=BodyRequestSchematicTest,
@@ -787,7 +732,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             assert True
 
     def test_post_response_validation_success(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         response = request.post(
             request_schematic_validation=BodyRequestSchematicTest,
             request_type_validation=HTTPRequestType.JSON,
@@ -818,7 +763,7 @@ class TestHTTPHelperBase(unittest.TestCase):
                                                  'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
 
     def test_post_response_validation_failure(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         response = request.post(
             request_schematic_validation=BodyRequestSchematicTest,
             request_type_validation=HTTPRequestType.JSON,
@@ -854,7 +799,7 @@ class TestHTTPHelperBase(unittest.TestCase):
     """
 
     def test_put_no_validation(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         response = request.put(
             mock=True,
             mock_status=200,
@@ -878,7 +823,7 @@ class TestHTTPHelperBase(unittest.TestCase):
                                                  'Content-Type': 'application/x-www-form-urlencoded'}
 
     def test_put_request_validation_success(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         response = request.put(
             request_schematic_validation=BodyRequestSchematicTest,
             request_type_validation=HTTPRequestType.JSON,
@@ -905,7 +850,7 @@ class TestHTTPHelperBase(unittest.TestCase):
                                                  'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
 
     def test_put_request_validation_type_failure(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         try:
             request.put(
                 request_schematic_validation=BodyRequestSchematicTest,
@@ -927,7 +872,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             assert True
 
     def test_put_request_validation_schematic_failure(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         try:
             request.put(
                 request_schematic_validation=BodyRequestSchematicTest,
@@ -949,7 +894,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             assert True
 
     def test_put_response_validation_success(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         response = request.put(
             request_schematic_validation=BodyRequestSchematicTest,
             request_type_validation=HTTPRequestType.JSON,
@@ -980,7 +925,7 @@ class TestHTTPHelperBase(unittest.TestCase):
                                                  'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
 
     def test_put_response_validation_failure(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         response = request.put(
             request_schematic_validation=BodyRequestSchematicTest,
             request_type_validation=HTTPRequestType.JSON,
@@ -1016,7 +961,7 @@ class TestHTTPHelperBase(unittest.TestCase):
     """
 
     def test_delete_no_validation(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         response = request.delete(
             mock=True,
             mock_status=200,
@@ -1040,7 +985,7 @@ class TestHTTPHelperBase(unittest.TestCase):
                                                  'Content-Type': 'application/x-www-form-urlencoded'}
 
     def test_delete_request_validation_success(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         response = request.delete(
             request_schematic_validation=BodyRequestSchematicTest,
             request_type_validation=HTTPRequestType.JSON,
@@ -1067,7 +1012,7 @@ class TestHTTPHelperBase(unittest.TestCase):
                                                  'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
 
     def test_delete_request_validation_type_failure(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         try:
             request.delete(
                 request_schematic_validation=BodyRequestSchematicTest,
@@ -1089,7 +1034,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             assert True
 
     def test_delete_request_validation_schematic_failure(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         try:
             request.delete(
                 request_schematic_validation=BodyRequestSchematicTest,
@@ -1111,7 +1056,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             assert True
 
     def test_delete_response_validation_success(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         response = request.delete(
             request_schematic_validation=BodyRequestSchematicTest,
             request_type_validation=HTTPRequestType.JSON,
@@ -1142,7 +1087,7 @@ class TestHTTPHelperBase(unittest.TestCase):
                                                  'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
 
     def test_delete_response_validation_failure(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         response = request.delete(
             request_schematic_validation=BodyRequestSchematicTest,
             request_type_validation=HTTPRequestType.JSON,
@@ -1178,7 +1123,7 @@ class TestHTTPHelperBase(unittest.TestCase):
     """
 
     def test_patch_no_validation(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         response = request.patch(
             mock=True,
             mock_status=200,
@@ -1202,7 +1147,7 @@ class TestHTTPHelperBase(unittest.TestCase):
                                                  'Content-Type': 'application/x-www-form-urlencoded'}
 
     def test_patch_request_validation_success(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         response = request.patch(
             request_schematic_validation=BodyRequestSchematicTest,
             request_type_validation=HTTPRequestType.JSON,
@@ -1229,7 +1174,7 @@ class TestHTTPHelperBase(unittest.TestCase):
                                                  'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
 
     def test_patch_request_validation_type_failure(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         try:
             request.patch(
                 request_schematic_validation=BodyRequestSchematicTest,
@@ -1251,7 +1196,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             assert True
 
     def test_patch_request_validation_schematic_failure(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         try:
             request.patch(
                 request_schematic_validation=BodyRequestSchematicTest,
@@ -1273,7 +1218,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             assert True
 
     def test_patch_response_validation_success(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         response = request.patch(
             request_schematic_validation=BodyRequestSchematicTest,
             request_type_validation=HTTPRequestType.JSON,
@@ -1304,7 +1249,7 @@ class TestHTTPHelperBase(unittest.TestCase):
                                                  'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
 
     def test_patch_response_validation_failure(self):
-        request = HTTPHelper(self.verbose)
+        request = HTTPHelper()
         response = request.patch(
             request_schematic_validation=BodyRequestSchematicTest,
             request_type_validation=HTTPRequestType.JSON,
