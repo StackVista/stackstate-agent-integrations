@@ -452,24 +452,78 @@ class TestHTTPHelperConnectionHandler(unittest.TestCase):
     def test_send(self):
         # Default Test
         # Manual build objects
-        req = HTTPHelperConnectionHandler()
-        session = HTTPHelperSessionHandler()
-        request = HTTPHelperRequestHandler()
-        response = HTTPHelperResponseHandler()
+        connection_handler = HTTPHelperConnectionHandler()
+        session_handler = HTTPHelperSessionHandler()
+        request_handler = HTTPHelperRequestHandler()
+        response_handler = HTTPHelperResponseHandler()
 
-        session.apply_mock("GET", "mock://test.com", 200, {"hello": "world"})
-        request.set_url("mock://test.com")
-        request.set_method("GET")
+        session_handler.apply_mock("GET", "mock://test.com", 200, {"hello": "world"})
+        request_handler.set_url("mock://test.com")
+        request_handler.set_method("GET")
 
-        res = req.send(session, request, response)
-        res_data = res.get("response")
+        response = connection_handler.send(session_handler, request_handler, response_handler)
+        data = response.get("response")
 
-        assert res.get("valid") is True
-        assert res_data.status_code == 200
-        assert json.loads(res_data.content.decode(res_data.encoding)).get("hello") == "world"
+        assert response.get("valid") is True
+        assert data.status_code == 200
+        assert json.loads(data.content.decode(data.encoding)).get("hello") == "world"
+
+    def test_unicode_send(self):
+        unicode = ""
+        for i in range(5000):
+            unicode = unicode + chr(i)
+
+        # Default Test
+        # Manual build objects
+        connection_handler = HTTPHelperConnectionHandler()
+        session_handler = HTTPHelperSessionHandler()
+        request_handler = HTTPHelperRequestHandler()
+        response_handler = HTTPHelperResponseHandler()
+
+        session_handler.apply_mock("POST", "mock://test.com", 200, {"hello": "world"})
+        request_handler.set_url("mock://test.com")
+        request_handler.set_method("POST")
+        request_handler.set_body(unicode)
+
+        response = connection_handler.send(session_handler, request_handler, response_handler)
+        data = response.get("response")
+
+        assert response.get("valid") is True
+        assert data.status_code == 200
+        assert json.loads(data.content.decode(data.encoding)).get("hello") == "world"
+        assert unicode == data.request.body
 
 
 class TestHTTPHelperBase(unittest.TestCase):
+    def test_unicode_response(self):
+        unicode = ""
+        for i in range(5000):
+            unicode = unicode + chr(i)
+
+        request = HTTPHelper()
+        response = request.get(
+            mock=True,
+            mock_status=200,
+            mock_response=unicode,
+            url="mock://test.com",
+            body={'hello': 'world'},
+            headers={'header': 'a'},
+            query={'query': 'b'},
+            timeout=30,
+            retry_policy=dict(
+                total=3
+            ),
+        )
+        data = response.get("response")
+        assert data.request.method == "GET"
+        assert data.status_code == 200
+
+        assert json.loads(data.content.decode(data.encoding)) == unicode
+        assert data.request.url == "mock://test.com"
+        assert response.get("valid") is True
+        assert data.request.headers == {'header': 'a', 'Content-Length': '11',
+                                                 'Content-Type': 'application/x-www-form-urlencoded'}
+
     """
         Tests for GET
     """
@@ -480,7 +534,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             mock=True,
             mock_status=200,
             mock_response={'hello': 'world'},
-            url="mock://www.google.com",
+            url="mock://test.com",
             body={'hello': 'world'},
             headers={'header': 'a'},
             query={'query': 'b'},
@@ -489,13 +543,13 @@ class TestHTTPHelperBase(unittest.TestCase):
                 total=3
             ),
         )
-        response_data = response.get("response")
-        assert response_data.request.method == "GET"
-        assert response_data.status_code == 200
-        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
-        assert response_data.request.url == "mock://www.google.com"
+        data = response.get("response")
+        assert data.request.method == "GET"
+        assert data.status_code == 200
+        assert json.loads(data.content.decode(data.encoding)).get("hello") == "world"
+        assert data.request.url == "mock://test.com"
         assert response.get("valid") is True
-        assert response_data.request.headers == {'header': 'a', 'Content-Length': '11',
+        assert data.request.headers == {'header': 'a', 'Content-Length': '11',
                                                  'Content-Type': 'application/x-www-form-urlencoded'}
 
     def test_get_request_validation_success(self):
@@ -506,7 +560,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             mock=True,
             mock_status=200,
             mock_response={'hello': 'world'},
-            url="mock://www.google.com",
+            url="mock://test.com",
             body={'hello': 'world', 'pong': True},
             headers={'header': 'a'},
             query={'query': 'b'},
@@ -515,14 +569,14 @@ class TestHTTPHelperBase(unittest.TestCase):
                 total=3
             ),
         )
-        response_data = response.get("response")
-        assert response_data.request.method == "GET"
-        assert response_data.status_code == 200
+        data = response.get("response")
+        assert data.request.method == "GET"
+        assert data.status_code == 200
         assert response.get("response") is not None
-        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
-        assert response_data.request.url == "mock://www.google.com"
+        assert json.loads(data.content.decode(data.encoding)).get("hello") == "world"
+        assert data.request.url == "mock://test.com"
         assert response.get("valid") is True
-        assert response_data.request.headers == {'Content-Length': '21',
+        assert data.request.headers == {'Content-Length': '21',
                                                  'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
 
     def test_get_request_validation_type_failure(self):
@@ -534,7 +588,7 @@ class TestHTTPHelperBase(unittest.TestCase):
                 mock=True,
                 mock_status=200,
                 mock_response={'hello': 'world'},
-                url="mock://www.google.com",
+                url="mock://test.com",
                 body={'hello': 'world', 'pong': True},
                 headers={'header': 'a'},
                 query={'query': 'b'},
@@ -556,7 +610,7 @@ class TestHTTPHelperBase(unittest.TestCase):
                 mock=True,
                 mock_status=200,
                 mock_response={'hello': 'world'},
-                url="mock://www.google.com",
+                url="mock://test.com",
                 body={'hello': 'world'},
                 headers={'header': 'a'},
                 query={'query': 'b'},
@@ -580,7 +634,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             mock=True,
             mock_status=200,
             mock_response={'hello': 'world', 'pong': True},
-            url="mock://www.google.com",
+            url="mock://test.com",
             body={'hello': 'world', 'pong': True},
             headers={'header': 'a'},
             query={'query': 'b'},
@@ -589,15 +643,15 @@ class TestHTTPHelperBase(unittest.TestCase):
                 total=3
             ),
         )
-        response_data = response.get("response")
-        assert response_data.request.method == "GET"
-        assert response_data.status_code == 200
-        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
-        assert response_data.request.url == "mock://www.google.com"
+        data = response.get("response")
+        assert data.request.method == "GET"
+        assert data.status_code == 200
+        assert json.loads(data.content.decode(data.encoding)).get("hello") == "world"
+        assert data.request.url == "mock://test.com"
         assert response.get("valid") is True
         assert response.get("response") is not None
         assert response.get("errors") is None
-        assert response_data.request.headers == {'Content-Length': '21',
+        assert data.request.headers == {'Content-Length': '21',
                                                  'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
 
     def test_get_response_validation_failure(self):
@@ -611,7 +665,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             mock=True,
             mock_status=400,
             mock_response="test",
-            url="mock://www.google.com",
+            url="mock://test.com",
             body={'hello': 'world', 'pong': True},
             headers={'header': 'a'},
             query={'query': 'b'},
@@ -621,15 +675,15 @@ class TestHTTPHelperBase(unittest.TestCase):
             ),
         )
 
-        response_data = response.get("response")
-        assert response_data.request.method == "GET"
-        assert response_data.status_code == 400
-        assert response_data.content.decode(response_data.encoding) == "\"test\""
-        assert response_data.request.url == "mock://www.google.com"
+        data = response.get("response")
+        assert data.request.method == "GET"
+        assert data.status_code == 400
+        assert data.content.decode(data.encoding) == "\"test\""
+        assert data.request.url == "mock://test.com"
         assert response.get("valid") is False
         assert response.get("response") is not None
         assert len(response.get("errors")) == 3
-        assert response_data.request.headers == {'Content-Length': '21',
+        assert data.request.headers == {'Content-Length': '21',
                                                  'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
 
     """
@@ -642,7 +696,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             mock=True,
             mock_status=200,
             mock_response={'hello': 'world'},
-            url="mock://www.google.com",
+            url="mock://test.com",
             body={'hello': 'world'},
             headers={'header': 'a'},
             query={'query': 'b'},
@@ -651,13 +705,13 @@ class TestHTTPHelperBase(unittest.TestCase):
                 total=3
             ),
         )
-        response_data = response.get("response")
-        assert response_data.request.method == "POST"
-        assert response_data.status_code == 200
-        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
-        assert response_data.request.url == "mock://www.google.com"
+        data = response.get("response")
+        assert data.request.method == "POST"
+        assert data.status_code == 200
+        assert json.loads(data.content.decode(data.encoding)).get("hello") == "world"
+        assert data.request.url == "mock://test.com"
         assert response.get("valid") is True
-        assert response_data.request.headers == {'header': 'a', 'Content-Length': '11',
+        assert data.request.headers == {'header': 'a', 'Content-Length': '11',
                                                  'Content-Type': 'application/x-www-form-urlencoded'}
 
     def test_post_request_validation_success(self):
@@ -668,7 +722,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             mock=True,
             mock_status=200,
             mock_response={'hello': 'world'},
-            url="mock://www.google.com",
+            url="mock://test.com",
             body={'hello': 'world', 'pong': True},
             headers={'header': 'a'},
             query={'query': 'b'},
@@ -677,14 +731,14 @@ class TestHTTPHelperBase(unittest.TestCase):
                 total=3
             ),
         )
-        response_data = response.get("response")
-        assert response_data.request.method == "POST"
-        assert response_data.status_code == 200
+        data = response.get("response")
+        assert data.request.method == "POST"
+        assert data.status_code == 200
         assert response.get("response") is not None
-        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
-        assert response_data.request.url == "mock://www.google.com"
+        assert json.loads(data.content.decode(data.encoding)).get("hello") == "world"
+        assert data.request.url == "mock://test.com"
         assert response.get("valid") is True
-        assert response_data.request.headers == {'Content-Length': '21',
+        assert data.request.headers == {'Content-Length': '21',
                                                  'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
 
     def test_post_request_validation_type_failure(self):
@@ -696,7 +750,7 @@ class TestHTTPHelperBase(unittest.TestCase):
                 mock=True,
                 mock_status=200,
                 mock_response={'hello': 'world'},
-                url="mock://www.google.com",
+                url="mock://test.com",
                 body={'hello': 'world', 'pong': True},
                 headers={'header': 'a'},
                 query={'query': 'b'},
@@ -718,7 +772,7 @@ class TestHTTPHelperBase(unittest.TestCase):
                 mock=True,
                 mock_status=200,
                 mock_response={'hello': 'world'},
-                url="mock://www.google.com",
+                url="mock://test.com",
                 body={'hello': 'world'},
                 headers={'header': 'a'},
                 query={'query': 'b'},
@@ -742,7 +796,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             mock=True,
             mock_status=200,
             mock_response={'hello': 'world', 'pong': True},
-            url="mock://www.google.com",
+            url="mock://test.com",
             body={'hello': 'world', 'pong': True},
             headers={'header': 'a'},
             query={'query': 'b'},
@@ -751,15 +805,15 @@ class TestHTTPHelperBase(unittest.TestCase):
                 total=3
             ),
         )
-        response_data = response.get("response")
-        assert response_data.request.method == "POST"
-        assert response_data.status_code == 200
-        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
-        assert response_data.request.url == "mock://www.google.com"
+        data = response.get("response")
+        assert data.request.method == "POST"
+        assert data.status_code == 200
+        assert json.loads(data.content.decode(data.encoding)).get("hello") == "world"
+        assert data.request.url == "mock://test.com"
         assert response.get("valid") is True
         assert response.get("response") is not None
         assert response.get("errors") is None
-        assert response_data.request.headers == {'Content-Length': '21',
+        assert data.request.headers == {'Content-Length': '21',
                                                  'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
 
     def test_post_response_validation_failure(self):
@@ -773,7 +827,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             mock=True,
             mock_status=400,
             mock_response="test",
-            url="mock://www.google.com",
+            url="mock://test.com",
             body={'hello': 'world', 'pong': True},
             headers={'header': 'a'},
             query={'query': 'b'},
@@ -783,15 +837,15 @@ class TestHTTPHelperBase(unittest.TestCase):
             ),
         )
 
-        response_data = response.get("response")
-        assert response_data.request.method == "POST"
-        assert response_data.status_code == 400
-        assert response_data.content.decode(response_data.encoding) == "\"test\""
-        assert response_data.request.url == "mock://www.google.com"
+        data = response.get("response")
+        assert data.request.method == "POST"
+        assert data.status_code == 400
+        assert data.content.decode(data.encoding) == "\"test\""
+        assert data.request.url == "mock://test.com"
         assert response.get("valid") is False
         assert response.get("response") is not None
         assert len(response.get("errors")) == 3
-        assert response_data.request.headers == {'Content-Length': '21',
+        assert data.request.headers == {'Content-Length': '21',
                                                  'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
 
     """
@@ -804,7 +858,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             mock=True,
             mock_status=200,
             mock_response={'hello': 'world'},
-            url="mock://www.google.com",
+            url="mock://test.com",
             body={'hello': 'world'},
             headers={'header': 'a'},
             query={'query': 'b'},
@@ -813,13 +867,13 @@ class TestHTTPHelperBase(unittest.TestCase):
                 total=3
             ),
         )
-        response_data = response.get("response")
-        assert response_data.request.method == "PUT"
-        assert response_data.status_code == 200
-        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
-        assert response_data.request.url == "mock://www.google.com"
+        data = response.get("response")
+        assert data.request.method == "PUT"
+        assert data.status_code == 200
+        assert json.loads(data.content.decode(data.encoding)).get("hello") == "world"
+        assert data.request.url == "mock://test.com"
         assert response.get("valid") is True
-        assert response_data.request.headers == {'header': 'a', 'Content-Length': '11',
+        assert data.request.headers == {'header': 'a', 'Content-Length': '11',
                                                  'Content-Type': 'application/x-www-form-urlencoded'}
 
     def test_put_request_validation_success(self):
@@ -830,7 +884,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             mock=True,
             mock_status=200,
             mock_response={'hello': 'world'},
-            url="mock://www.google.com",
+            url="mock://test.com",
             body={'hello': 'world', 'pong': True},
             headers={'header': 'a'},
             query={'query': 'b'},
@@ -839,14 +893,14 @@ class TestHTTPHelperBase(unittest.TestCase):
                 total=3
             ),
         )
-        response_data = response.get("response")
-        assert response_data.request.method == "PUT"
-        assert response_data.status_code == 200
+        data = response.get("response")
+        assert data.request.method == "PUT"
+        assert data.status_code == 200
         assert response.get("response") is not None
-        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
-        assert response_data.request.url == "mock://www.google.com"
+        assert json.loads(data.content.decode(data.encoding)).get("hello") == "world"
+        assert data.request.url == "mock://test.com"
         assert response.get("valid") is True
-        assert response_data.request.headers == {'Content-Length': '21',
+        assert data.request.headers == {'Content-Length': '21',
                                                  'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
 
     def test_put_request_validation_type_failure(self):
@@ -858,7 +912,7 @@ class TestHTTPHelperBase(unittest.TestCase):
                 mock=True,
                 mock_status=200,
                 mock_response={'hello': 'world'},
-                url="mock://www.google.com",
+                url="mock://test.com",
                 body={'hello': 'world', 'pong': True},
                 headers={'header': 'a'},
                 query={'query': 'b'},
@@ -880,7 +934,7 @@ class TestHTTPHelperBase(unittest.TestCase):
                 mock=True,
                 mock_status=200,
                 mock_response={'hello': 'world'},
-                url="mock://www.google.com",
+                url="mock://test.com",
                 body={'hello': 'world'},
                 headers={'header': 'a'},
                 query={'query': 'b'},
@@ -904,7 +958,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             mock=True,
             mock_status=200,
             mock_response={'hello': 'world', 'pong': True},
-            url="mock://www.google.com",
+            url="mock://test.com",
             body={'hello': 'world', 'pong': True},
             headers={'header': 'a'},
             query={'query': 'b'},
@@ -913,15 +967,15 @@ class TestHTTPHelperBase(unittest.TestCase):
                 total=3
             ),
         )
-        response_data = response.get("response")
-        assert response_data.request.method == "PUT"
-        assert response_data.status_code == 200
-        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
-        assert response_data.request.url == "mock://www.google.com"
+        data = response.get("response")
+        assert data.request.method == "PUT"
+        assert data.status_code == 200
+        assert json.loads(data.content.decode(data.encoding)).get("hello") == "world"
+        assert data.request.url == "mock://test.com"
         assert response.get("valid") is True
         assert response.get("response") is not None
         assert response.get("errors") is None
-        assert response_data.request.headers == {'Content-Length': '21',
+        assert data.request.headers == {'Content-Length': '21',
                                                  'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
 
     def test_put_response_validation_failure(self):
@@ -935,7 +989,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             mock=True,
             mock_status=400,
             mock_response="test",
-            url="mock://www.google.com",
+            url="mock://test.com",
             body={'hello': 'world', 'pong': True},
             headers={'header': 'a'},
             query={'query': 'b'},
@@ -945,15 +999,15 @@ class TestHTTPHelperBase(unittest.TestCase):
             ),
         )
 
-        response_data = response.get("response")
-        assert response_data.request.method == "PUT"
-        assert response_data.status_code == 400
-        assert response_data.content.decode(response_data.encoding) == "\"test\""
-        assert response_data.request.url == "mock://www.google.com"
+        data = response.get("response")
+        assert data.request.method == "PUT"
+        assert data.status_code == 400
+        assert data.content.decode(data.encoding) == "\"test\""
+        assert data.request.url == "mock://test.com"
         assert response.get("valid") is False
         assert response.get("response") is not None
         assert len(response.get("errors")) == 3
-        assert response_data.request.headers == {'Content-Length': '21',
+        assert data.request.headers == {'Content-Length': '21',
                                                  'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
 
     """
@@ -966,7 +1020,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             mock=True,
             mock_status=200,
             mock_response={'hello': 'world'},
-            url="mock://www.google.com",
+            url="mock://test.com",
             body={'hello': 'world'},
             headers={'header': 'a'},
             query={'query': 'b'},
@@ -975,13 +1029,13 @@ class TestHTTPHelperBase(unittest.TestCase):
                 total=3
             ),
         )
-        response_data = response.get("response")
-        assert response_data.request.method == "DELETE"
-        assert response_data.status_code == 200
-        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
-        assert response_data.request.url == "mock://www.google.com"
+        data = response.get("response")
+        assert data.request.method == "DELETE"
+        assert data.status_code == 200
+        assert json.loads(data.content.decode(data.encoding)).get("hello") == "world"
+        assert data.request.url == "mock://test.com"
         assert response.get("valid") is True
-        assert response_data.request.headers == {'header': 'a', 'Content-Length': '11',
+        assert data.request.headers == {'header': 'a', 'Content-Length': '11',
                                                  'Content-Type': 'application/x-www-form-urlencoded'}
 
     def test_delete_request_validation_success(self):
@@ -992,7 +1046,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             mock=True,
             mock_status=200,
             mock_response={'hello': 'world'},
-            url="mock://www.google.com",
+            url="mock://test.com",
             body={'hello': 'world', 'pong': True},
             headers={'header': 'a'},
             query={'query': 'b'},
@@ -1001,14 +1055,14 @@ class TestHTTPHelperBase(unittest.TestCase):
                 total=3
             ),
         )
-        response_data = response.get("response")
-        assert response_data.request.method == "DELETE"
-        assert response_data.status_code == 200
+        data = response.get("response")
+        assert data.request.method == "DELETE"
+        assert data.status_code == 200
         assert response.get("response") is not None
-        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
-        assert response_data.request.url == "mock://www.google.com"
+        assert json.loads(data.content.decode(data.encoding)).get("hello") == "world"
+        assert data.request.url == "mock://test.com"
         assert response.get("valid") is True
-        assert response_data.request.headers == {'Content-Length': '21',
+        assert data.request.headers == {'Content-Length': '21',
                                                  'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
 
     def test_delete_request_validation_type_failure(self):
@@ -1020,7 +1074,7 @@ class TestHTTPHelperBase(unittest.TestCase):
                 mock=True,
                 mock_status=200,
                 mock_response={'hello': 'world'},
-                url="mock://www.google.com",
+                url="mock://test.com",
                 body={'hello': 'world', 'pong': True},
                 headers={'header': 'a'},
                 query={'query': 'b'},
@@ -1042,7 +1096,7 @@ class TestHTTPHelperBase(unittest.TestCase):
                 mock=True,
                 mock_status=200,
                 mock_response={'hello': 'world'},
-                url="mock://www.google.com",
+                url="mock://test.com",
                 body={'hello': 'world'},
                 headers={'header': 'a'},
                 query={'query': 'b'},
@@ -1066,7 +1120,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             mock=True,
             mock_status=200,
             mock_response={'hello': 'world', 'pong': True},
-            url="mock://www.google.com",
+            url="mock://test.com",
             body={'hello': 'world', 'pong': True},
             headers={'header': 'a'},
             query={'query': 'b'},
@@ -1075,15 +1129,15 @@ class TestHTTPHelperBase(unittest.TestCase):
                 total=3
             ),
         )
-        response_data = response.get("response")
-        assert response_data.request.method == "DELETE"
-        assert response_data.status_code == 200
-        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
-        assert response_data.request.url == "mock://www.google.com"
+        data = response.get("response")
+        assert data.request.method == "DELETE"
+        assert data.status_code == 200
+        assert json.loads(data.content.decode(data.encoding)).get("hello") == "world"
+        assert data.request.url == "mock://test.com"
         assert response.get("valid") is True
         assert response.get("response") is not None
         assert response.get("errors") is None
-        assert response_data.request.headers == {'Content-Length': '21',
+        assert data.request.headers == {'Content-Length': '21',
                                                  'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
 
     def test_delete_response_validation_failure(self):
@@ -1097,7 +1151,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             mock=True,
             mock_status=400,
             mock_response="test",
-            url="mock://www.google.com",
+            url="mock://test.com",
             body={'hello': 'world', 'pong': True},
             headers={'header': 'a'},
             query={'query': 'b'},
@@ -1107,15 +1161,15 @@ class TestHTTPHelperBase(unittest.TestCase):
             ),
         )
 
-        response_data = response.get("response")
-        assert response_data.request.method == "DELETE"
-        assert response_data.status_code == 400
-        assert response_data.content.decode(response_data.encoding) == "\"test\""
-        assert response_data.request.url == "mock://www.google.com"
+        data = response.get("response")
+        assert data.request.method == "DELETE"
+        assert data.status_code == 400
+        assert data.content.decode(data.encoding) == "\"test\""
+        assert data.request.url == "mock://test.com"
         assert response.get("valid") is False
         assert response.get("response") is not None
         assert len(response.get("errors")) == 3
-        assert response_data.request.headers == {'Content-Length': '21',
+        assert data.request.headers == {'Content-Length': '21',
                                                  'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
 
     """
@@ -1128,7 +1182,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             mock=True,
             mock_status=200,
             mock_response={'hello': 'world'},
-            url="mock://www.google.com",
+            url="mock://test.com",
             body={'hello': 'world'},
             headers={'header': 'a'},
             query={'query': 'b'},
@@ -1137,13 +1191,13 @@ class TestHTTPHelperBase(unittest.TestCase):
                 total=3
             ),
         )
-        response_data = response.get("response")
-        assert response_data.request.method == "PATCH"
-        assert response_data.status_code == 200
-        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
-        assert response_data.request.url == "mock://www.google.com"
+        data = response.get("response")
+        assert data.request.method == "PATCH"
+        assert data.status_code == 200
+        assert json.loads(data.content.decode(data.encoding)).get("hello") == "world"
+        assert data.request.url == "mock://test.com"
         assert response.get("valid") is True
-        assert response_data.request.headers == {'header': 'a', 'Content-Length': '11',
+        assert data.request.headers == {'header': 'a', 'Content-Length': '11',
                                                  'Content-Type': 'application/x-www-form-urlencoded'}
 
     def test_patch_request_validation_success(self):
@@ -1154,7 +1208,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             mock=True,
             mock_status=200,
             mock_response={'hello': 'world'},
-            url="mock://www.google.com",
+            url="mock://test.com",
             body={'hello': 'world', 'pong': True},
             headers={'header': 'a'},
             query={'query': 'b'},
@@ -1163,14 +1217,14 @@ class TestHTTPHelperBase(unittest.TestCase):
                 total=3
             ),
         )
-        response_data = response.get("response")
-        assert response_data.request.method == "PATCH"
-        assert response_data.status_code == 200
+        data = response.get("response")
+        assert data.request.method == "PATCH"
+        assert data.status_code == 200
         assert response.get("response") is not None
-        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
-        assert response_data.request.url == "mock://www.google.com"
+        assert json.loads(data.content.decode(data.encoding)).get("hello") == "world"
+        assert data.request.url == "mock://test.com"
         assert response.get("valid") is True
-        assert response_data.request.headers == {'Content-Length': '21',
+        assert data.request.headers == {'Content-Length': '21',
                                                  'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
 
     def test_patch_request_validation_type_failure(self):
@@ -1182,7 +1236,7 @@ class TestHTTPHelperBase(unittest.TestCase):
                 mock=True,
                 mock_status=200,
                 mock_response={'hello': 'world'},
-                url="mock://www.google.com",
+                url="mock://test.com",
                 body={'hello': 'world', 'pong': True},
                 headers={'header': 'a'},
                 query={'query': 'b'},
@@ -1204,7 +1258,7 @@ class TestHTTPHelperBase(unittest.TestCase):
                 mock=True,
                 mock_status=200,
                 mock_response={'hello': 'world'},
-                url="mock://www.google.com",
+                url="mock://test.com",
                 body={'hello': 'world'},
                 headers={'header': 'a'},
                 query={'query': 'b'},
@@ -1228,7 +1282,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             mock=True,
             mock_status=200,
             mock_response={'hello': 'world', 'pong': True},
-            url="mock://www.google.com",
+            url="mock://test.com",
             body={'hello': 'world', 'pong': True},
             headers={'header': 'a'},
             query={'query': 'b'},
@@ -1237,15 +1291,15 @@ class TestHTTPHelperBase(unittest.TestCase):
                 total=3
             ),
         )
-        response_data = response.get("response")
-        assert response_data.request.method == "PATCH"
-        assert response_data.status_code == 200
-        assert json.loads(response_data.content.decode(response_data.encoding)).get("hello") == "world"
-        assert response_data.request.url == "mock://www.google.com"
+        data = response.get("response")
+        assert data.request.method == "PATCH"
+        assert data.status_code == 200
+        assert json.loads(data.content.decode(data.encoding)).get("hello") == "world"
+        assert data.request.url == "mock://test.com"
         assert response.get("valid") is True
         assert response.get("response") is not None
         assert response.get("errors") is None
-        assert response_data.request.headers == {'Content-Length': '21',
+        assert data.request.headers == {'Content-Length': '21',
                                                  'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
 
     def test_patch_response_validation_failure(self):
@@ -1259,7 +1313,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             mock=True,
             mock_status=400,
             mock_response="test",
-            url="mock://www.google.com",
+            url="mock://test.com",
             body={'hello': 'world', 'pong': True},
             headers={'header': 'a'},
             query={'query': 'b'},
@@ -1269,13 +1323,13 @@ class TestHTTPHelperBase(unittest.TestCase):
             ),
         )
 
-        response_data = response.get("response")
-        assert response_data.request.method == "PATCH"
-        assert response_data.status_code == 400
-        assert response_data.content.decode(response_data.encoding) == "\"test\""
-        assert response_data.request.url == "mock://www.google.com"
+        data = response.get("response")
+        assert data.request.method == "PATCH"
+        assert data.status_code == 400
+        assert data.content.decode(data.encoding) == "\"test\""
+        assert data.request.url == "mock://test.com"
         assert response.get("valid") is False
         assert response.get("response") is not None
         assert len(response.get("errors")) == 3
-        assert response_data.request.headers == {'Content-Length': '21',
+        assert data.request.headers == {'Content-Length': '21',
                                                  'Content-Type': 'application/x-www-form-urlencoded', 'header': 'a'}
