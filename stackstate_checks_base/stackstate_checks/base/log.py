@@ -3,12 +3,15 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import logging
 
+import warnings
+
 try:
     import datadog_agent
 except ImportError:
     from .stubs import datadog_agent
 
 from .utils.common import to_string
+from urllib3.exceptions import InsecureRequestWarning
 
 # Arbitrary number less than 10 (DEBUG)
 TRACE_LEVEL = 7
@@ -67,6 +70,9 @@ def init_logging():
     rootLogger = logging.getLogger()
     rootLogger.addHandler(AgentLogHandler())
     rootLogger.setLevel(_get_py_loglevel(datadog_agent.get_config('log_level')))
+
+    # We log instead of emit warnings for unintentionally insecure HTTPS requests
+    warnings.simplefilter('ignore', InsecureRequestWarning)
 
     # `requests` (used in a lot of checks) imports `urllib3`, which logs a bunch of stuff at the info level
     # Therefore, pre emptively increase the default level of that logger to `WARN`

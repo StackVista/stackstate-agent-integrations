@@ -69,7 +69,6 @@
             "major": 1,
             "minor": 201,
             "revision": 109,
-            "sourceRevision": "",
             "timestamp": "20200921-085558"
           }
         ],
@@ -127,9 +126,7 @@
             "version": "1.8.0_265"
           },
           {
-            "edition": null,
-            "type": "ELASTIC_SEARCH",
-            "version": null
+            "type": "ELASTIC_SEARCH"
           }
         ],
         "tags": [
@@ -181,9 +178,7 @@
         },
         "softwareTechnologies": [
           {
-            "edition": null,
-            "type": "IIS-with-unicode-char-",
-            "version": null
+            "type": "IIS-with-unicode-char-"
           },
           {
             "edition": "FullCLR",

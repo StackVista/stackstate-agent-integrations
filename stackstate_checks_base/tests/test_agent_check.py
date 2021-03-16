@@ -13,6 +13,7 @@ from six import PY3
 from stackstate_checks.checks import AgentCheck, TopologyInstance, AgentIntegrationInstance
 from stackstate_checks.base.utils.agent_integration_test_util import AgentIntegrationTestUtil
 from stackstate_checks.base.stubs.topology import component, relation
+import copy
 
 
 def test_instance():
@@ -127,6 +128,8 @@ class TestEvents:
             "tags": None
         }
         check.event(event)
+        # del tags, the base check drops None
+        del event['tags']
         aggregator.assert_event('test event test event')
 
     def test_topology_event(self, telemetry):
@@ -138,7 +141,7 @@ class TestEvents:
             "msg_title": "new test event",
             "aggregation_key": "test.event",
             "msg_text": "test event test event",
-            "tags": None,
+            "tags": [],
             "context": {
                 "element_identifiers": ["urn:test:/value"],
                 "source": "test source",
@@ -464,19 +467,212 @@ class TopologyStatefulSchemaCheck(TopologyStatefulCheck):
         instance.state.offset = 20
 
 
+class TagsAndConfigMappingAgentCheck(TopologyCheck):
+    def __init__(self, include_instance_config):
+        instance = {
+            'identifier_mappings': {
+                'host': {'field': 'url', 'prefix': 'urn:computer:/'},
+                'vm': {'field': 'name', 'prefix': 'urn:computer:/'}
+            },
+        }
+
+        if include_instance_config:
+            instance.update({
+                'stackstate-layer': 'instance-stackstate-layer',
+                'stackstate-environment': 'instance-stackstate-environment',
+                'stackstate-domain': 'instance-stackstate-domain',
+                'stackstate-identifier': 'instance-stackstate-identifier',
+                'stackstate-identifiers': 'urn:process:/mapped-identifier:0:1234567890, \
+                    urn:process:/mapped-identifier:1:1234567890 \
+                    urn:process:/mapped-identifier:2:1234567890  ,  \
+                    urn:process:/mapped-identifier:3:1234567890'
+            })
+
+        super(TagsAndConfigMappingAgentCheck, self) \
+            .__init__(TopologyInstance("host", "someurl"), "test", {}, [instance])
+
+    def check(self, instance):
+        pass
+
+
+class TestTagsAndConfigMapping:
+    def generic_tags_and_config_snapshot(self, topology, include_instance_config, include_tags, extra_data=None):
+        check = TagsAndConfigMappingAgentCheck(include_instance_config)
+        data = {}
+        if include_tags:
+            data = {
+                'tags': ['stackstate-layer:tag-stackstate-layer',
+                         'stackstate-environment:tag-stackstate-environment',
+                         'stackstate-domain:tag-stackstate-domain',
+                         'stackstate-identifier:urn:process:/mapped-identifier:001:1234567890',
+                         'stackstate-identifiers:\
+                             urn:process:/mapped-identifier:0:1234567890, \
+                             urn:process:/mapped-identifier:1:1234567890 \
+                             urn:process:/mapped-identifier:2:1234567890  ,  \
+                             urn:process:/mapped-identifier:3:1234567890'
+                         ]
+            }
+        if extra_data:
+            data.update(extra_data)
+        check.component("my-id", "host", data)
+        return topology.get_snapshot(check.check_id)['components'][0]
+
+    def test_comma_and_spaces_regex(self):
+        check = TagsAndConfigMappingAgentCheck(True)
+        assert check.split_on_commas_and_spaces('a, b, c,d,e f g h, i , j ,k   ') == \
+               ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k"]
+        assert check.split_on_commas_and_spaces('a,  ,  ,, , j ,k   ') == ["a", "j", "k"]
+        assert check.split_on_commas_and_spaces(',,,,,,,,,,,           ,,,,,,,,,') == []
+        assert check.split_on_commas_and_spaces('') == []
+        assert check.split_on_commas_and_spaces('urn:test:0:123,urn:test:1:123,urn:test:2:123') == \
+               ["urn:test:0:123", "urn:test:1:123", "urn:test:2:123"]
+        assert check.split_on_commas_and_spaces('urn:test:0:123 urn:test:1:123 urn:test:2:123') == \
+               ["urn:test:0:123", "urn:test:1:123", "urn:test:2:123"]
+        assert check.split_on_commas_and_spaces('urn:test:0:123 urn:test:1:123,urn:test:2:123') == \
+               ["urn:test:0:123", "urn:test:1:123", "urn:test:2:123"]
+
+    def test_mapping_config_and_tags(self):
+        # We are create config variables with and without instance config
+        check_include_config = TagsAndConfigMappingAgentCheck(True)
+        check_exclude_config = TagsAndConfigMappingAgentCheck(False)
+
+        """
+            We are testing the following:
+                Config + No Data == Config Result is not in a Array
+                Config + No Data, True == Config Result is in a Array
+                Config + Data == Data Result is not in a Array (Must not be config)
+                Config + Data, True == Data Result is in a Array (Must not be config)
+                No Config + No Data + Default Value == Result must be the default value and not a Array
+                No Config + No Data + Default Value, True == Result must be the default value in a Array
+            Tags must overwrite configs
+        """
+        def generic_mapping_test(target, origin, default_value=None):
+            data = {
+                'tags': ['stackstate-layer:tag-stackstate-layer',
+                         'stackstate-environment:tag-stackstate-environment',
+                         'stackstate-domain:tag-stackstate-domain',
+                         'stackstate-identifier:tag-stackstate-identifier',
+                         'stackstate-identifiers:tag-stackstate-identifiers']
+            }
+
+            # Create a copy of the data object
+            data_without_target = copy.deepcopy(data)
+
+            # Remove the current target from the tags array as the result should not contain that tag
+            data_without_target.get("tags").remove(target + ":tag-" + target)
+
+            # Include instance config in the tests
+            assert check_include_config._map_config_and_tags({}, target, origin) == \
+                   {origin: 'instance-' + target}
+            assert check_include_config._map_config_and_tags({}, target, origin, True) == \
+                   {origin: ['instance-' + target]}
+            assert check_include_config._map_config_and_tags(copy.deepcopy(data), target, origin) == \
+                   {origin: 'tag-' + target, 'tags': data_without_target['tags']}
+            assert check_include_config._map_config_and_tags(copy.deepcopy(data), target, origin, True) == \
+                   {origin: ['tag-' + target], 'tags': data_without_target['tags']}
+
+            # Exclude the instance config in the tests
+            assert check_exclude_config._map_config_and_tags({}, target, origin) == {}
+            assert check_exclude_config._map_config_and_tags({}, target, origin, True) == {}
+            assert check_exclude_config._map_config_and_tags(copy.deepcopy(data), target, origin) == \
+                   {origin: 'tag-' + target, 'tags': data_without_target['tags']}
+            assert check_exclude_config._map_config_and_tags(copy.deepcopy(data), target, origin, True) == \
+                   {origin: ['tag-' + target], 'tags': data_without_target['tags']}
+
+            # Default Config
+            assert check_exclude_config._map_config_and_tags({}, target, origin, False, False, default_value) == \
+                   {origin: default_value}
+            assert check_exclude_config._map_config_and_tags({}, target, origin, True, False, default_value) == \
+                   {origin: [default_value]}
+
+            # Return direct value & Return direct value arrays test
+            assert check_exclude_config._map_config_and_tags(copy.deepcopy(data), target, origin, False, True) == \
+                   'tag-' + target
+            assert check_include_config._map_config_and_tags(copy.deepcopy(data), target, origin, False, True) == \
+                   'tag-' + target
+            assert check_exclude_config._map_config_and_tags({}, target, origin, False, True) == \
+                   {}
+            assert check_include_config._map_config_and_tags({}, target, origin, False, True) == \
+                   'instance-' + target
+            assert check_exclude_config._map_config_and_tags(copy.deepcopy(data), target, origin, True, True) == \
+                   ['tag-' + target]
+            assert check_include_config._map_config_and_tags(copy.deepcopy(data), target, origin, True, True) == \
+                   ['tag-' + target]
+            assert check_exclude_config._map_config_and_tags({}, target, origin, True, True) == \
+                   []
+            assert check_include_config._map_config_and_tags({}, target, origin, True, True) == \
+                   ['instance-' + target]
+
+        # We are testing the environment, layer and domain for all the use cases
+        generic_mapping_test("stackstate-environment", "environments", "default-environment")
+        generic_mapping_test("stackstate-layer", "layer", "default-layer")
+        generic_mapping_test("stackstate-domain", "domain", "default-domain")
+        generic_mapping_test("stackstate-identifier", "identifier", "default-identifier")
+
+    def test_instance_only_config(self, topology):
+        component = self.generic_tags_and_config_snapshot(topology, True, False)
+        assert component["data"]["layer"] == "instance-stackstate-layer"
+        assert component["data"]["environments"] == ["instance-stackstate-environment"]
+        assert component["data"]["domain"] == "instance-stackstate-domain"
+
+    def test_tags_only(self, topology):
+        component = self.generic_tags_and_config_snapshot(topology, False, True)
+        assert component["data"]["layer"] == "tag-stackstate-layer"
+        assert component["data"]["environments"] == ["tag-stackstate-environment"]
+        assert component["data"]["domain"] == "tag-stackstate-domain"
+
+    def test_tags_overwrite_config(self, topology):
+        component = self.generic_tags_and_config_snapshot(topology, True, True)
+        assert component["data"]["layer"] == "tag-stackstate-layer"
+        assert component["data"]["environments"] == ["tag-stackstate-environment"]
+        assert component["data"]["domain"] == "tag-stackstate-domain"
+
+    def test_identifier_config(self, topology):
+        component = self.generic_tags_and_config_snapshot(topology, True, False, {
+            'identifiers': ['urn:process:/original-identifier:0:1234567890']
+        })
+        assert component["data"]["identifiers"] == ['urn:process:/original-identifier:0:1234567890',
+                                                    'instance-stackstate-identifier']
+
+    def test_identifier_tags(self, topology):
+        component = self.generic_tags_and_config_snapshot(topology, True, True, {
+            'identifiers': [
+                'urn:process:/original-identifier:0:1234567890'
+            ],
+            'url': '1234567890'
+        })
+        assert component["data"]["identifiers"] == ['urn:process:/original-identifier:0:1234567890',
+                                                    'urn:computer:/1234567890',
+                                                    'urn:process:/mapped-identifier:0:1234567890',
+                                                    'urn:process:/mapped-identifier:1:1234567890',
+                                                    'urn:process:/mapped-identifier:2:1234567890',
+                                                    'urn:process:/mapped-identifier:3:1234567890',
+                                                    'urn:process:/mapped-identifier:001:1234567890']
+
+
 class TestTopology:
     def test_component(self, topology):
         check = TopologyCheck()
         data = {"key": "value", "intlist": [1], "emptykey": None, "nestedobject": {"nestedkey": "nestedValue"}}
-        check.component("my-id", "my-type", data)
-        topology.assert_snapshot(check.check_id, check.key, components=[component("my-id", "my-type", data)])
+        created_component = check.component("my-id", "my-type", data)
+        assert data['key'] == created_component['data']['key']
+        assert data['intlist'] == created_component['data']['intlist']
+        assert data['nestedobject'] == created_component['data']['nestedobject']
+        assert created_component['id'] == 'my-id'
+        assert created_component['type'] == 'my-type'
+        topology.assert_snapshot(check.check_id, check.key, components=[created_component])
 
     def test_relation(self, topology):
         check = TopologyCheck()
         data = {"key": "value", "intlist": [1], "emptykey": None, "nestedobject": {"nestedkey": "nestedValue"}}
-        check.relation("source-id", "target-id", "my-type", data)
-        topology.assert_snapshot(check.check_id, check.key,
-                                 relations=[relation("source-id", "target-id", "my-type", data)])
+        created_relation = check.relation("source-id", "target-id", "my-type", data)
+        assert data['key'] == created_relation['data']['key']
+        assert data['intlist'] == created_relation['data']['intlist']
+        assert data['nestedobject'] == created_relation['data']['nestedobject']
+        assert created_relation['source_id'] == 'source-id'
+        assert created_relation['target_id'] == 'target-id'
+        assert created_relation['type'] == 'my-type'
+        topology.assert_snapshot(check.check_id, check.key, relations=[created_relation])
 
     def test_auto_snapshotting(self, topology):
         check = TopologyAutoSnapshotCheck()
@@ -560,7 +756,7 @@ class TestTopology:
     def test_illegal_data_value(self):
         check = TopologyCheck()
         with pytest.raises(ValueError) as e:
-            assert check.component("my-id", "my-type", {"key": set()})
+            assert check.component("my-id", "my-type", {"key": {1, 2, 3}})
         if PY3:
             assert str(e.value) == """Got unexpected <class 'set'> for argument data.key, \
 expected string, int, dictionary, list or None value"""

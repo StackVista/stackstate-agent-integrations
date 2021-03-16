@@ -2,12 +2,14 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import json
+import logging
 import os
 import sys
 from datetime import datetime
 
 import mock
 import pytest
+import requests
 from six import iteritems
 
 from stackstate_checks.base.utils.date import UTC, parse_rfc3339
@@ -176,7 +178,8 @@ def mock_kubelet_check(monkeypatch, instances):
     """
     check = KubeletCheck('kubelet', None, {}, instances)
     monkeypatch.setattr(check, 'retrieve_pod_list', mock.Mock(return_value=json.loads(mock_from_file('pods.json'))))
-    monkeypatch.setattr(check, '_retrieve_node_spec', mock.Mock(return_value=NODE_SPEC))
+    mock_resp = mock.Mock(status_code=200, raise_for_status=mock.Mock(), json=mock.Mock(return_value=NODE_SPEC))
+    monkeypatch.setattr(check, '_retrieve_node_spec', mock.Mock(return_value=mock_resp))
     monkeypatch.setattr(check, '_perform_kubelet_check', mock.Mock(return_value=None))
     monkeypatch.setattr(check, '_compute_pod_expiration_datetime', mock.Mock(return_value=None))
 
@@ -601,7 +604,9 @@ def test_perform_kubelet_check(monkeypatch):
 
 def test_report_node_metrics(monkeypatch):
     check = KubeletCheck('kubelet', None, {}, [{}])
-    monkeypatch.setattr(check, '_retrieve_node_spec', mock.Mock(return_value={'num_cores': 4, 'memory_capacity': 512}))
+    mock_resp = mock.Mock(status_code=200, raise_for_status=mock.Mock())
+    mock_resp.json = mock.Mock(return_value={'num_cores': 4, 'memory_capacity': 512})
+    monkeypatch.setattr(check, '_retrieve_node_spec', mock.Mock(return_value=mock_resp))
     monkeypatch.setattr(check, 'gauge', mock.Mock())
     check._report_node_metrics(['foo:bar'])
     calls = [
@@ -610,6 +615,16 @@ def test_report_node_metrics(monkeypatch):
     ]
     check.gauge.assert_has_calls(calls, any_order=False)
 
+def test_report_node_metrics_kubernetes1_18(monkeypatch, aggregator):
+    check = KubeletCheck('kubelet', None, {}, [{}])
+    check.kubelet_credentials = KubeletCredentials({'verify_tls': 'false'})
+    check.node_spec_url = "http://localhost:10255/spec"
+
+    get = mock.MagicMock(status_code=404, iter_lines=lambda **kwargs: "Error Code")
+    get.raise_for_status.side_effect = requests.HTTPError('error')
+    with mock.patch('requests.get', return_value=get):
+        check._report_node_metrics(['foo:bar'])
+        aggregator.assert_all_metrics_covered()
 
 def test_retrieve_pod_list_success(monkeypatch):
     check = KubeletCheck('kubelet', None, {}, [{}])
@@ -666,3 +681,15 @@ def test_add_labels_to_tags(monkeypatch, aggregator):
     for metric in METRICS_WITH_INTERFACE_TAG:
         tag = 'interface:%s' % METRICS_WITH_INTERFACE_TAG[metric]
         aggregator.assert_metric_has_tag(metric, tag)
+
+def test_silent_tls_warning(caplog, monkeypatch, aggregator):
+    check = KubeletCheck('kubelet', None, {}, [{}])
+    check.kube_health_url = "https://example.com/"
+    check.kubelet_credentials = KubeletCredentials({'verify_tls': 'false'})
+
+    with caplog.at_level(logging.DEBUG):
+        check._perform_kubelet_check([])
+
+    expected_message = 'An unverified HTTPS request is being made to https://example.com/'
+    for _, _, message in caplog.record_tuples:
+        assert message != expected_message

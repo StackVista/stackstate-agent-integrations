@@ -99,6 +99,7 @@ tmp
 .idea/
 .vscode/
 *.iml
+.run/
 
 # wheels
 wheelhouse/
