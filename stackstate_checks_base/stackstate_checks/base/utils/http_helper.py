@@ -1227,51 +1227,12 @@ class HTTPHelper:
     """
 
     _common = HTTPHelperCommon()
-    _connection = HTTPHelperConnectionHandler()
-    _request = HTTPHelperRequestHandler()
-    _session = HTTPHelperSessionHandler()
-    _response = HTTPHelperResponseHandler()
 
     def __init__(self, verbose=False):
         self._common = HTTPHelperCommon(verbose)
-        self._connection = HTTPHelperConnectionHandler(verbose)
-        self._request = HTTPHelperRequestHandler(verbose)
-        self._session = HTTPHelperSessionHandler(verbose)
-        self._response = HTTPHelperResponseHandler(verbose)
 
-    # Allow the connection helper to be overwritten
-    def overwrite_connection_helper(self, connection):
-        self._connection = connection
-
-    # Retrieve the current connection helper
-    def get_connection_helper(self):
-        return self._connection
-
-    # Allow the request helper to be overwritten
-    def overwrite_request_helper(self, request):
-        self._request = request
-
-    # Retrieve the current request helper
-    def get_request_helper(self):
-        return self._request
-
-    # Allow the response helper to be overwritten
-    def overwrite_response_helper(self, response):
-        self._response = response
-
-    # Retrieve the current response helper
-    def get_response_helper(self):
-        return self._response
-
-    # Allow the session helper to be overwritten
-    def overwrite_session_helper(self, session):
-        self._session = session
-
-    # Retrieve the current session helper
-    def get_session_helper(self):
-        return self._session
-
-    def _builder(self, active_method, **kwargs):
+    @staticmethod
+    def _builder(active_method, **kwargs):
         """
         Functionality:
             A generic builder to contains most of the functionality on the Connection, Request, Session and Response Helpers
@@ -1298,20 +1259,15 @@ class HTTPHelper:
                     - timeout                           (Integer) The connection timeout
                     - ssl_verify                        (Boolean) Test if the request should be SSL
                     - retry_policy                      (Retry() object kwargs) Create a retry policy for the HTTP request
-
-        There is 3 ways to approach creating a HTTP Helper
-        - The developer can create the HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPHelperResponseHandler and
-          HTTPHelperConnectionHandler.
-          These can then manually be passed down as kwargs to the send function
-        - The developer can create the HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPHelperResponseHandler and
-          HTTPHelperConnectionHandler.
-          These can then manually be set within the HTTPHelper class with the overwrite functions
-        - Or it can be left to the internal state where the Helper control and build the state.
-          Thus if the developer use the setters and getter those internal state will be manipulated
         """
+        connection = HTTPHelperConnectionHandler()
+        session = HTTPHelperSessionHandler()
+        request = HTTPHelperRequestHandler()
+        response = HTTPHelperResponseHandler()
+
         if kwargs.get("mock") is True:
             adapter = requests_mock.Adapter()
-            self._session.mount_adapter(adapter)
+            session.mount_adapter(adapter)
             adapter.register_uri(active_method.value,
                                  kwargs.get("url"),
                                  status_code=kwargs.get("mock_status", None),
@@ -1322,58 +1278,33 @@ class HTTPHelper:
                 function(kwarg)
 
         # At the end we apply kwarg variables to allow last second overrides
-        apply_if_kwarg_exists(self._request.set_url, kwargs.get("url"))
-        apply_if_kwarg_exists(self._request.set_method, active_method.value)
-        apply_if_kwarg_exists(self._request.set_body, kwargs.get("body"))
-        apply_if_kwarg_exists(self._request.set_headers, kwargs.get("headers"))
-        apply_if_kwarg_exists(self._request.set_query_param, kwargs.get("query"))
-        apply_if_kwarg_exists(self._request.set_body_schematic_validation, kwargs.get("request_schematic_validation"))
-        apply_if_kwarg_exists(self._request.set_body_type_validation, kwargs.get("request_type_validation"))
-        apply_if_kwarg_exists(self._response.set_status_code_validation, kwargs.get("response_status_code_validation"))
-        apply_if_kwarg_exists(self._response.set_body_type_validation, kwargs.get("response_type_validation"))
-        apply_if_kwarg_exists(self._response.set_body_schematic_validation, kwargs.get("response_schematic_validation"))
-        apply_if_kwarg_exists(self._connection.set_timeout, kwargs.get("timeout"))
-        apply_if_kwarg_exists(self._connection.set_ssl_verify, kwargs.get("ssl_verify"))
-        self._connection.set_retry_policy(**kwargs.get("retry_policy", dict()))
+        apply_if_kwarg_exists(request.set_url, kwargs.get("url"))
+        apply_if_kwarg_exists(request.set_method, active_method.value)
+        apply_if_kwarg_exists(request.set_body, kwargs.get("body"))
+        apply_if_kwarg_exists(request.set_headers, kwargs.get("headers"))
+        apply_if_kwarg_exists(request.set_query_param, kwargs.get("query"))
+        apply_if_kwarg_exists(request.set_body_schematic_validation, kwargs.get("request_schematic_validation"))
+        apply_if_kwarg_exists(request.set_body_type_validation, kwargs.get("request_type_validation"))
+        apply_if_kwarg_exists(response.set_status_code_validation, kwargs.get("response_status_code_validation"))
+        apply_if_kwarg_exists(response.set_body_type_validation, kwargs.get("response_type_validation"))
+        apply_if_kwarg_exists(response.set_body_schematic_validation, kwargs.get("response_schematic_validation"))
+        apply_if_kwarg_exists(connection.set_timeout, kwargs.get("timeout"))
+        apply_if_kwarg_exists(connection.set_ssl_verify, kwargs.get("ssl_verify"))
+        connection.set_retry_policy(**kwargs.get("retry_policy", dict()))
 
-    # Functionality:
-    #     Apply a complete get method to the HTTP Helper Class
-
-    # Input:
-    #     @kwargs
-    #         These kwargs should match the `_builder` kwargs list
+        return connection.send(session, request, response)
 
     def get(self, **kwargs):
-        self._builder(HTTPMethod.GET, **kwargs)
-        self._connection = kwargs.get("connection", self._connection)
-        return self._connection.send(kwargs.get("session", self._session),
-                                     kwargs.get("request", self._request),
-                                     kwargs.get("response", self._response))
+        return self._builder(HTTPMethod.GET, **kwargs)
 
     def post(self, **kwargs):
-        self._builder(HTTPMethod.POST, **kwargs)
-        self._connection = kwargs.get("connection", self._connection)
-        return self._connection.send(kwargs.get("session", self._session),
-                                     kwargs.get("request", self._request),
-                                     kwargs.get("response", self._response))
+        return self._builder(HTTPMethod.POST, **kwargs)
 
     def put(self, **kwargs):
-        self._builder(HTTPMethod.PUT, **kwargs)
-        self._connection = kwargs.get("connection", self._connection)
-        return self._connection.send(kwargs.get("session", self._session),
-                                     kwargs.get("request", self._request),
-                                     kwargs.get("response", self._response))
+        return self._builder(HTTPMethod.PUT, **kwargs)
 
     def delete(self, **kwargs):
-        self._builder(HTTPMethod.DELETE, **kwargs)
-        self._connection = kwargs.get("connection", self._connection)
-        return self._connection.send(kwargs.get("session", self._session),
-                                     kwargs.get("request", self._request),
-                                     kwargs.get("response", self._response))
+        return self._builder(HTTPMethod.DELETE, **kwargs)
 
     def patch(self, **kwargs):
-        self._builder(HTTPMethod.PATCH, **kwargs)
-        self._connection = kwargs.get("connection", self._connection)
-        return self._connection.send(kwargs.get("session", self._session),
-                                     kwargs.get("request", self._request),
-                                     kwargs.get("response", self._response))
+        return self._builder(HTTPMethod.PATCH, **kwargs)

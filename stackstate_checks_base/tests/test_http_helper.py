@@ -549,21 +549,6 @@ class TestHTTPHelperConnectionHandler(unittest.TestCase):
 class TestHTTPHelperBase(unittest.TestCase):
     verbose = True
 
-    def test_overwrite(self):
-        req = HTTPHelper(self.verbose)
-
-        req.overwrite_request_helper(HTTPHelperRequestHandler())
-        assert isinstance(req.get_request_helper(), type(HTTPHelperRequestHandler()))
-
-        req.overwrite_session_helper(HTTPHelperSessionHandler())
-        assert isinstance(req.get_session_helper(), type(HTTPHelperSessionHandler()))
-
-        req.overwrite_response_helper(HTTPHelperResponseHandler())
-        assert isinstance(req.get_response_helper(), type(HTTPHelperResponseHandler()))
-
-        req.overwrite_connection_helper(HTTPHelperConnectionHandler())
-        assert isinstance(req.get_connection_helper(), type(HTTPHelperConnectionHandler()))
-
     """
         Tests for GET
     """
