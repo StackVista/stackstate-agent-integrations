@@ -15,28 +15,13 @@ except ImportError:
     import urllib.parse as urlparse
 
 
-"""
-    Authentication Models
-"""
-
-
 class HTTPBasicAuthentication(Model):
     username = StringType(required=True)
     password = StringType(required=True)
 
 
-"""
-    Authentication ENUM
-"""
-
-
 class HTTPAuthenticationType(Enum):
     BasicAuth = HTTPBasicAuthentication
-
-
-"""
-    Possible Request and Response objects
-"""
 
 
 class HTTPMethod(Enum):
@@ -56,17 +41,15 @@ class HTTPResponseType(Enum):
     JSON = dict
 
 
-"""
-    The HTTP Helper Common class is used for common functionality split between all the other
-    HTTP Helper classes.
-    Functionality:
-        - Mapped enums to lists
-        - Log messages
-        - Create a dictionary from a string
-"""
-
-
 class HTTPHelperCommon:
+    """
+        The HTTP Helper Common class is used for common functionality split between all the other
+        HTTP Helper classes.
+        Functionality:
+            - Mapped enums to lists
+            - Log messages
+            - Create a dictionary from a string
+    """
     _verbose = False
 
     # Mapped enum values
@@ -100,22 +83,21 @@ class HTTPHelperCommon:
     def print_value_error(error):
         raise ValueError(error)
 
-    """
-    Functionality:
-        Split a string into a dictionary the string must follow a list + key value structure
-        For example random=test&hello=world or for example random:123|test:123.
-
-    Input:
-        @target
-            The primary string that should be made into a dictionary
-        @delimiter
-            The item that will make the string into a list of strings
-        @sub_delimiter
-            The sub delimiter is used to split the list of strings into a dictionary
-    """
-
     @staticmethod
     def split_string_into_dict(target, delimiter, sub_delimiter):
+        """
+        Functionality:
+            Split a string into a dictionary the string must follow a list + key value structure
+            For example random=test&hello=world or for example random:123|test:123.
+
+        Input:
+            @target
+                The primary string that should be made into a dictionary
+            @delimiter
+                The item that will make the string into a list of strings
+            @sub_delimiter
+                The sub delimiter is used to split the list of strings into a dictionary
+        """
         if isinstance(target, str):
             items = (item.split(sub_delimiter) for item in target.split(delimiter))
             try:
@@ -125,23 +107,20 @@ class HTTPHelperCommon:
         return None
 
 
-"""
-    The HTTP Helper Request Handler is used to control the state of the Request() object within the requests library,
-    Anything that can manipulate, create or fetch the state from this Request() object should be contained within,
-    Functionality:
-        - Create and maintain the Request() object from requests
-        - SET && GET HTTP Method
-        - SET && GET HTTP Endpoint
-        - SET && GET HTTP Query Parameters
-        - SET && GET HTTP Body
-        - SET && GET HTTP Validation
-        - SET && GET HTTP Headers
-        - SET && GET HTTP Auth
-"""
-
-
 class HTTPHelperRequestHandler:
-    # Private objects to keep internal state
+    """
+        The HTTP Helper Request Handler is used to control the state of the Request() object within the requests library,
+        Anything that can manipulate, create or fetch the state from this Request() object should be contained within,
+        Functionality:
+            - Create and maintain the Request() object from requests
+            - SET && GET HTTP Method
+            - SET && GET HTTP Endpoint
+            - SET && GET HTTP Query Parameters
+            - SET && GET HTTP Body
+            - SET && GET HTTP Validation
+            - SET && GET HTTP Headers
+            - SET && GET HTTP Auth
+    """
     _request = Request()
     _common = HTTPHelperCommon()
     _body_schematic_validation = None
@@ -152,9 +131,7 @@ class HTTPHelperRequestHandler:
         self._request = Request()
         self._common = HTTPHelperCommon(verbose)
 
-    """
-    * The following functions control the Request() object
-    """
+    # * The following functions control the Request() object
 
     # Retrieve the current state of the Request() object
     def get_request(self):
@@ -180,10 +157,8 @@ class HTTPHelperRequestHandler:
         self._common.print_verbose("Creating a new Request() object and replacing the old one.")
         self._request = Request()
 
-    """
-    * The following functions control the HTTP Method applied to the Requests object for example
-      GET, POST
-    """
+    # * The following functions control the HTTP Method applied to the Requests object for example
+    #   GET, POST
 
     # Clear the current state of the HTTP Method applied to the Request() object
     def clear_method(self):
@@ -195,18 +170,18 @@ class HTTPHelperRequestHandler:
         self._common.print_verbose("Retrieve the Request() object HTTP Method.")
         return self._request.method
 
-    """
-    Functionality:
-        Set the current HTTP Method for the Requests() object from the HTTPMethod enum
-        If a method is specified which does not exist in the HTTPMethod a `Not Implemented` error will be triggered.
-
-    Input:
-        @method
-            This can either be a value from the `HTTPMethod` or a direct string that can be mapped to the `HTTPMethod`
-            The value of this will be the type of request made for example POST or GET
-    """
-
     def set_method(self, method):
+        """
+        Functionality:
+            Set the current HTTP Method for the Requests() object from the HTTPMethod enum
+            If a method is specified which does not exist in the HTTPMethod a `Not Implemented` error will be triggered.
+
+        Input:
+            @method
+                This can either be a value from the `HTTPMethod` or a direct string that can be mapped to the `HTTPMethod`
+                The value of this will be the type of request made for example POST or GET
+        """
+
         self._common.print_verbose("Attempting to set the active http method to {0}".format(str(method)))
 
         # ENUM Check
@@ -243,11 +218,9 @@ class HTTPHelperRequestHandler:
                                                        within the `HTTPMethod` Enum or change the supplied {1} to a
                                                        supported type""".format(str(method), str(method)))
 
-    """
-    * The following functions control the HTTP Endpoint and Endpoint creation
-      For example http://www.example.com and http://www.example.com?test=123 will both be mapped to the correct
-      values within the Request() object
-    """
+    # * The following functions control the HTTP Endpoint and Endpoint creation
+    #   For example http://www.example.com and http://www.example.com?test=123 will both be mapped to the correct
+    #   values within the Request() object
 
     # Clear the current state of the HTTP URL applied to the Request() object
     def clear_url(self):
@@ -259,19 +232,19 @@ class HTTPHelperRequestHandler:
         self._common.print_verbose("Retrieving current HTTP Endpoint")
         return self._request.url
 
-    """
-    Functionality:
-        The Request() endpoint is set with this function.
-        Some extra functionality is build-into this function to analyze a URL. When something like the following is
-        passed to the function 'http://www.url.com?test=123' the query parameters on this URL will be split out and
-        applied into the correct object within the Request() object
-
-    Input:
-        @url
-            A string object containing the endpoint that should be queried
-    """
-
     def set_url(self, url):
+        """
+        Functionality:
+            The Request() endpoint is set with this function.
+            Some extra functionality is build-into this function to analyze a URL. When something like the following is
+            passed to the function 'http://www.url.com?test=123' the query parameters on this URL will be split out and
+            applied into the correct object within the Request() object
+
+        Input:
+            @url
+                A string object containing the endpoint that should be queried
+        """
+
         self._common.print_verbose("Attempting to set the active current url to {0}".format(str(url)))
 
         # We need a string to be able to set a URL endpoint, Anything else is unsupported
@@ -302,10 +275,8 @@ class HTTPHelperRequestHandler:
                                          {1} .The URL needs to be parsed thus we need a string to be able to parse
                                          the URL""".format(str(type(url)), str(url)))
 
-    """
-    * The following functions control the HTTP Query parameters
-      It can be set, cleared or retrieved
-    """
+    # * The following functions control the HTTP Query parameters
+    #   It can be set, cleared or retrieved
 
     # Retrieve the value of the current Query Parameters on the Request() object
     def get_query_param(self):
@@ -317,16 +288,16 @@ class HTTPHelperRequestHandler:
         self._common.print_verbose("Setting the HTTP Query Parameters object to a empty {} on the Request() object")
         self._request.params = None
 
-    """
-    Functionality:
-        This function controls the state of the HTTP Query Parameters object.
-
-    Input:
-        @parameters
-            A basic dict object mapping values to keys
-    """
-
     def set_query_param(self, parameters):
+        """
+        Functionality:
+            This function controls the state of the HTTP Query Parameters object.
+
+        Input:
+            @parameters
+                A basic dict object mapping values to keys
+        """
+
         self._common.print_verbose("Attempting to set the active query parameters to {0}".format(str(parameters)))
 
         # If a valid dict was passed then we can successfully apply the object as the Request() object is expecting the
@@ -342,9 +313,7 @@ class HTTPHelperRequestHandler:
                                          To fix this please look at the {1} object or remove the query parameters"""
                                           .format(str(type(parameters)), str(parameters)))
 
-    """
-    * The following functions control the body that's being send the the HTTP Endpoint.
-    """
+    # * The following functions control the body that's being send the the HTTP Endpoint.
 
     # Retrieve the value of the current Data Parameters on the Request() object
     def get_body(self):
@@ -356,23 +325,20 @@ class HTTPHelperRequestHandler:
         self._common.print_verbose("Clear current HTTP Data Parameters from the Request() object")
         self._request.data = []
 
-    """
-    Functionality:
-        Apply a body to the Request() object.
-        We do not restrict the body type as you may wish to send something other than a JSON object
-
-    Input:
-        @body
-            A body containing any data you want to send to the HTTP Endpoint
-    """
-
     def set_body(self, body):
+        """
+        Functionality:
+            Apply a body to the Request() object.
+            We do not restrict the body type as you may wish to send something other than a JSON object
+
+        Input:
+            @body
+                A body containing any data you want to send to the HTTP Endpoint
+        """
         self._common.print_verbose("Attempting to set the active data object to {0}".format(str(body)))
         self._request.data = body
 
-    """
-    * The following functions control the HTTP Headers passed to the Request() object.
-    """
+    # * The following functions control the HTTP Headers passed to the Request() object.
 
     # Retrieve the value of the current Headers on the Request() object
     def get_headers(self):
@@ -384,16 +350,15 @@ class HTTPHelperRequestHandler:
         self._common.print_verbose("Clearing the active HTTP Headers from the Request() object")
         self._request.headers = {}
 
-    """
-    Functionality:
-        Apply a dict object containing values for the headers to the Request() object.
-
-    Input:
-        @headers
-            A dict object containing the key values for the headers,
-    """
-
     def set_headers(self, headers):
+        """
+        Functionality:
+            Apply a dict object containing values for the headers to the Request() object.
+
+        Input:
+            @headers
+                A dict object containing the key values for the headers,
+        """
         self._common.print_verbose("Attempting to set the headers to {0}".format(str(headers)))
 
         # We only accept the headers if it is a dictionary
@@ -406,9 +371,7 @@ class HTTPHelperRequestHandler:
                                          also exists out of key and value pairs. The current headers passed
                                          was the following {1}""".format(str(type(headers)), str(headers)))
 
-    """
-    * The following functions control the HTTP Authentication passed to the Request() object.
-    """
+    # * The following functions control the HTTP Authentication passed to the Request() object.
 
     # Retrieve the value of the current Authentication on the Request() object
     def get_auth(self):
@@ -420,19 +383,19 @@ class HTTPHelperRequestHandler:
         self._common.print_verbose("Clearing the active Authentication from the Request() object")
         self._request.auth = None
 
-    """
-    Functionality:
-        Apply authentication to the Request() object.
-        A type structure and data structure is required to apply a authentication
-
-    Input:
-        @auth_schematic
-            A value from the `HTTPAuthenticationType` enum
-        @auth_details
-            Dict containing the information required from the @auth_schematic `HTTPAuthenticationType` enum object
-    """
-
     def set_auth(self, auth_schematic, auth_details):
+        """
+        Functionality:
+            Apply authentication to the Request() object.
+            A type structure and data structure is required to apply a authentication
+
+        Input:
+            @auth_schematic
+                A value from the `HTTPAuthenticationType` enum
+            @auth_details
+                Dict containing the information required from the @auth_schematic `HTTPAuthenticationType` enum object
+        """
+
         self._common.print_verbose("Attempting to set the authentication to {0} with the following schematic model {1}"
                                    .format(str(auth_details), str(auth_details)))
 
@@ -481,9 +444,7 @@ class HTTPHelperRequestHandler:
                                             The current schematic passed to this function is: {0}
                                             """.format(str(auth_schematic)))
 
-    """
-    * The following functions control the custom validation on the Request() data object.
-    """
+    # * The following functions control the custom validation on the Request() data object.
 
     # Get the body type validation from the Request() data object
     def get_body_type_validation(self):
@@ -494,19 +455,19 @@ class HTTPHelperRequestHandler:
         self._common.print_verbose("""Removing the body type validation""")
         self._body_type_validation = None
 
-    """
-    Functionality:
-        Pre send validation
-
-        You can apply a validation structure for the Request() data structure.
-        This allows you to stop a request from going out if it does not conform to a certain type
-
-    Input:
-        @body_type
-            A item from the `HTTPRequestType` enum
-    """
-
     def set_body_type_validation(self, body_type):
+        """
+        Functionality:
+            Pre send validation
+
+            You can apply a validation structure for the Request() data structure.
+            This allows you to stop a request from going out if it does not conform to a certain type
+
+        Input:
+            @body_type
+                A item from the `HTTPRequestType` enum
+        """
+
         self._common.print_verbose("""Applying validation the current body content type, The body is {0}"""
                                    .format(str(self._request.data)))
 
@@ -538,18 +499,18 @@ class HTTPHelperRequestHandler:
         self._common.print_verbose("""Removing the body schematic validation""")
         self._body_schematic_validation = None
 
-    """
-    Functionality:
-        Pre send validation
-        Test the data object from the Request() object to conform to a certain structure.
-        If it does not then the request should not go through.
-
-    Input:
-        @body_schematic
-            A schematic that will be used for testing against the data object within the Request() object
-    """
-
     def set_body_schematic_validation(self, body_schematic):
+        """
+        Functionality:
+            Pre send validation
+            Test the data object from the Request() object to conform to a certain structure.
+            If it does not then the request should not go through.
+
+        Input:
+            @body_schematic
+                A schematic that will be used for testing against the data object within the Request() object
+        """
+
         self._common.print_verbose("""Applying validation to the current body content with a schematic
                                      The schematic is {0}""".format(str(body_schematic)))
 
@@ -602,20 +563,18 @@ class HTTPHelperRequestHandler:
                             """.format(str(type(self._request.data)), str(type(self._body_type_validation.value))))
 
 
-"""
-    The HTTP Helper Session Handler is used to control the state of the Session() object within the requests library,
-    Anything that can manipulate, create or fetch the state from this Session() object should be contained within,
-    Functionality:
-        - Create and maintain the Session() object from requests
-        - SET Mount Adaptor for unit testing
-        - SET && GET HTTP Query Parameters
-        - SET && GET HTTP Headers
-        - SET && GET HTTP Auth
-"""
-
-
 class HTTPHelperSessionHandler:
-    # Private objects to keep internal state
+    """
+        The HTTP Helper Session Handler is used to control the state of the Session() object within the requests library,
+        Anything that can manipulate, create or fetch the state from this Session() object should be contained within,
+        Functionality:
+            - Create and maintain the Session() object from requests
+            - SET Mount Adaptor for unit testing
+            - SET && GET HTTP Query Parameters
+            - SET && GET HTTP Headers
+            - SET && GET HTTP Auth
+    """
+
     _session = Session()
     _common = HTTPHelperCommon()
 
@@ -624,9 +583,7 @@ class HTTPHelperSessionHandler:
         self._session = Session()
         self._common = HTTPHelperCommon(verbose)
 
-    """
-    * The following functions control the Session() object
-    """
+    # * The following functions control the Session() object
 
     # Retrieve the current state of the Session() object
     def get_session(self):
@@ -655,9 +612,7 @@ class HTTPHelperSessionHandler:
     def mount_adapter(self, adapter):
         self._session.mount('mock://', adapter)
 
-    """
-    * The following functions control the query parameters on the Session() data object.
-    """
+    # * The following functions control the query parameters on the Session() data object.
 
     # Clear the current query parameters object on the Session() object
     def clear_query_param(self):
@@ -669,16 +624,17 @@ class HTTPHelperSessionHandler:
         self._common.print_verbose("Retrieving the query parameters on the Session() object.")
         return self._session.params
 
-    """
-    Functionality:
-        Lorem Ipsum
-
-    Input:
-        @parameters
-            Lorem Ipsum
-    """
-
     def set_query_param(self, parameters):
+        """
+        TODO:
+        Functionality:
+            Lorem Ipsum
+
+        Input:
+            @parameters
+                Lorem Ipsum
+        """
+
         self._common.print_verbose("""Applying the following query parameters object to the Session() object {0}"""
                                    .format(str(parameters)))
 
@@ -692,9 +648,7 @@ class HTTPHelperSessionHandler:
                                             key and value objects. Attempting to apply the following parameters {1}
                                             """.format(str(type(parameters)), str(parameters)))
 
-    """
-    * The following functions controls the headers on the Session() data object.
-    """
+    # * The following functions controls the headers on the Session() data object.
 
     # Clear the current headers on the Session() object
     def clear_headers(self):
@@ -706,16 +660,16 @@ class HTTPHelperSessionHandler:
         self._common.print_verbose("Retrieving the headers on the Session() object.")
         return self._session.headers
 
-    """
-    Functionality:
-        Apply a headers dict object to the Session() object
-
-    Input:
-        @headers
-            Must be a dict containing key value header pairs
-    """
-
     def set_headers(self, headers):
+        """
+        Functionality:
+            Apply a headers dict object to the Session() object
+
+        Input:
+            @headers
+                Must be a dict containing key value header pairs
+        """
+
         self._common.print_verbose("""Applying the following headers object to the Session() object {0}"""
                                    .format(str(headers)))
 
@@ -729,9 +683,7 @@ class HTTPHelperSessionHandler:
                                             key and value objects. Attempting to apply the following headers {1}
                                             """.format(str(type(headers)), str(headers)))
 
-    """
-    * The following functions controls the authentication on the Session() data object.
-    """
+    # * The following functions controls the authentication on the Session() data object.
 
     # Clear the current authentication method on the Session() object
     def clear_auth(self):
@@ -743,21 +695,21 @@ class HTTPHelperSessionHandler:
         self._common.print_verbose("Retrieving the authentication method on the Session() object.")
         return self._session.auth
 
-    """
-    Functionality:
-        Apply a authentication models to the current Session() object.
-        The model is applied by specifying a Enum that defines the authentication structure, A second parameter is then
-        provided which maps the data structure into the proper requests authentication model.
-
-    Input:
-        @auth_schematic
-            A object from the `HTTPAuthenticationType`.
-        @auth_details
-            The authentication details dict object. This object will be tested against the `HTTPAuthenticationType`
-            enum to make sure the data mapping can be mapped to the enum.
-    """
-
     def set_auth(self, auth_schematic, auth_details):
+        """
+        Functionality:
+            Apply a authentication models to the current Session() object.
+            The model is applied by specifying a Enum that defines the authentication structure, A second parameter is then
+            provided which maps the data structure into the proper requests authentication model.
+
+        Input:
+            @auth_schematic
+                A object from the `HTTPAuthenticationType`.
+            @auth_details
+                The authentication details dict object. This object will be tested against the `HTTPAuthenticationType`
+                enum to make sure the data mapping can be mapped to the enum.
+        """
+
         self._common.print_verbose("Attempting to set the authentication to {0} with the following schematic model {1}"
                                    .format(str(auth_details), str(auth_details)))
 
@@ -814,22 +766,19 @@ class HTTPHelperSessionHandler:
                              json=response)
 
 
-"""
-    The HTTP Helper Connection Handler is used to control the state of the connection outside of the Session() and
-    Request() object state.
-    Anything that can manipulate, create or fetch the state of the session should be contained within,
-    Functionality:
-        - Create and maintain the connection values outside of the Session() and Request() objects
-        - SET && GET HTTP Timeout
-        - SET && GET HTTP Retry Policy
-        - SET && GET HTTP SSL Verification
-        - SET && GET HTTP Proxy
-        - Sending the HTTP Request and Session to the Endpoint
-"""
-
-
 class HTTPHelperConnectionHandler:
-    # Private objects to keep internal state
+    """
+        The HTTP Helper Connection Handler is used to control the state of the connection outside of the Session() and
+        Request() object state.
+        Anything that can manipulate, create or fetch the state of the session should be contained within,
+        Functionality:
+            - Create and maintain the connection values outside of the Session() and Request() objects
+            - SET && GET HTTP Timeout
+            - SET && GET HTTP Retry Policy
+            - SET && GET HTTP SSL Verification
+            - SET && GET HTTP Proxy
+            - Sending the HTTP Request and Session to the Endpoint
+    """
     _common = HTTPHelperCommon()
     _verbose = False
     _timeout = None
@@ -840,9 +789,7 @@ class HTTPHelperConnectionHandler:
     def __init__(self, verbose=False):
         self._verbose = verbose
 
-    """
-    * The following functions controls the timeout on the request.
-    """
+    # * The following functions controls the timeout on the request.
 
     # Get the current timeout set
     def get_timeout(self):
@@ -854,16 +801,15 @@ class HTTPHelperConnectionHandler:
         self._common.print_verbose("Clearing the timeout on the connection.")
         self._timeout = None
 
-    """
-    Functionality:
-        Apply a timeout to the request structure. This timeout is applied in the send function.
-
-    Input:
-        @timeout
-            A integer timeout value.
-    """
-
     def set_timeout(self, timeout):
+        """
+        Functionality:
+            Apply a timeout to the request structure. This timeout is applied in the send function.
+
+        Input:
+            @timeout
+                A integer timeout value.
+        """
         self._common.print_verbose("Attempting to set the timeout to {0} seconds"
                                    .format(str(timeout)))
 
@@ -875,9 +821,7 @@ class HTTPHelperConnectionHandler:
                                          The provided type is {0}. This function only accepts int as a valid timeout"""
                                           .format(str(type(timeout))))
 
-    """
-    * The following functions controls the retry policy on the request.
-    """
+    # * The following functions controls the retry policy on the request.
 
     # Get the current retry policy set
     def get_retry_policy(self):
@@ -889,25 +833,23 @@ class HTTPHelperConnectionHandler:
         self._common.print_verbose("Clearing the retry policy on the connection.")
         self._retry_policy = None
 
-    """
-    Functionality:
-        The retry policy is a one to one mapping of the Retry() object used within the requests class.
-        Any of the kwargs mappings inside the Retry can be passed to this function
-
-    Input:
-        @kwargs
-            A list of defined kwargs items in the Retry() class
-    """
     def set_retry_policy(self, **kwargs):
+        """
+        Functionality:
+            The retry policy is a one to one mapping of the Retry() object used within the requests class.
+            Any of the kwargs mappings inside the Retry can be passed to this function
+
+        Input:
+            @kwargs
+                A list of defined kwargs items in the Retry() class
+        """
         self._common.print_verbose("Attempting to Apply a retry policy to the HTTP connection. The retry policy is the"
                                    "following {0}"
                                    .format(str(kwargs)))
 
         self._retry_policy = Retry(**kwargs)
 
-    """
-    * The following functions controls the SSL Verification on the request.
-    """
+    # * The following functions controls the SSL Verification on the request.
 
     # Restore the state of the SSL Verify
     def clear_ssl_verify(self):
@@ -919,16 +861,16 @@ class HTTPHelperConnectionHandler:
         self._common.print_verbose("Retrieving the SSL Verification on the connection.")
         return self._ssl_verify
 
-    """
-    Functionality:
-        Define if the request object should look at the SSL verification or ignore it
-
-    Input:
-        @verify
-            A boolean defining if SSL should be set or not
-    """
-
     def set_ssl_verify(self, verify):
+        """
+        Functionality:
+            Define if the request object should look at the SSL verification or ignore it
+
+        Input:
+            @verify
+                A boolean defining if SSL should be set or not
+        """
+
         self._common.print_verbose("Attempting to Apply a SSL Verification to the HTTP connection. The SSL Verification"
                                    " being applied is the following {0}"
                                    .format(str(verify)))
@@ -941,9 +883,7 @@ class HTTPHelperConnectionHandler:
                                             expected"""
                                           .format(str(type(verify))))
 
-    """
-    * The following functions controls the proxy on the Session() data object.
-    """
+    # * The following functions controls the proxy on the Session() data object.
 
     def clear_proxy(self):
         self._common.print_verbose("Clearing the proxy settings on the Session() object.")
@@ -953,16 +893,16 @@ class HTTPHelperConnectionHandler:
         self._common.print_verbose("Retrieving the proxy settings on the Session() object.")
         return self._proxy
 
-    """
-    Functionality:
-        Set the active proxy for the Session() object
-
-    Input:
-        @proxy
-            requests proxy details
-    """
-
     def set_proxy(self, proxy):
+        """
+        Functionality:
+            Set the active proxy for the Session() object
+
+        Input:
+            @proxy
+                requests proxy details
+        """
+
         self._common.print_verbose("Attempting to set the proxy details to {0}"
                                    .format(str(proxy)))
 
@@ -975,26 +915,24 @@ class HTTPHelperConnectionHandler:
                                          objects this allows a easy mapping to the proxy object as the proxy
                                          also exists out of key and value pairs""".format(str(type(proxy))))
 
-    """
-    * The following functions controls the sending of the request.
-    """
-
-    """
-    Functionality:
-        This function is used to make the request.
-        On call the retry policy, timeout, ssl verify is applied.
-        After the request responds, That response will be tested against response validation
-
-    Input:
-        @session_handler
-            The Session Handler Class. This allows the user to also pass down a custom session handler if required
-        @request_handler
-            The Request Handler Class. This allows the user to also pass down a custom request handler if required
-        @response_handler
-            The Response Handler Class. This allows the user to also pass down a custom response handler if required
-    """
+    # * The following functions controls the sending of the request.
 
     def send(self, session_handler, request_handler, response_handler):
+        """
+        Functionality:
+            This function is used to make the request.
+            On call the retry policy, timeout, ssl verify is applied.
+            After the request responds, That response will be tested against response validation
+
+        Input:
+            @session_handler
+                The Session Handler Class. This allows the user to also pass down a custom session handler if required
+            @request_handler
+                The Request Handler Class. This allows the user to also pass down a custom request handler if required
+            @response_handler
+                The Response Handler Class. This allows the user to also pass down a custom response handler if required
+        """
+
         self._common.print_verbose("Sending the HTTP request.")\
 
         request_object = request_handler.get_request()
@@ -1048,20 +986,19 @@ class HTTPHelperConnectionHandler:
         }
 
 
-"""
-    The HTTP Helper Response Handler is used to validate the response content
-    Anything that can manipulate, create or fetch the state of the response.
-    Functionality:
-        - Create and maintain the connection values outside of the Session() and Request() objects
-        - SET && GET HTTP Timeout
-        - SET && GET HTTP Retry Policy
-        - SET && GET HTTP SSL Verification
-        - Sending the HTTP Request and Session to the Endpoint
-
-"""
-
-
 class HTTPHelperResponseHandler:
+    """
+        The HTTP Helper Response Handler is used to validate the response content
+        Anything that can manipulate, create or fetch the state of the response.
+        Functionality:
+            - Create and maintain the connection values outside of the Session() and Request() objects
+            - SET && GET HTTP Timeout
+            - SET && GET HTTP Retry Policy
+            - SET && GET HTTP SSL Verification
+            - Sending the HTTP Request and Session to the Endpoint
+
+    """
+
     # Private objects to keep internal state
     _common = HTTPHelperCommon()
     _validate_schematic = None
@@ -1081,17 +1018,17 @@ class HTTPHelperResponseHandler:
         self._common.print_verbose("Retrieving the body schematic validation on the response.")
         return self._validate_schematic
 
-    """
-    Functionality:
-        Set a schematic which will be used to test against the response. This can force a error message when the
-        response is analyzed
-
-    Input:
-        @schematic
-            A schematic that is used to test against the response
-    """
-
     def set_body_schematic_validation(self, schematic):
+        """
+        Functionality:
+            Set a schematic which will be used to test against the response. This can force a error message when the
+            response is analyzed
+
+        Input:
+            @schematic
+                A schematic that is used to test against the response
+        """
+
         self._common.print_verbose("Attempting to Apply a body schematic validation on the response with the following"
                                    "schematic {0}"
                                    .format(str(schematic)))
@@ -1115,17 +1052,17 @@ class HTTPHelperResponseHandler:
         self._common.print_verbose("Retrieving the status code validation on the response.")
         return self._validate_status_code
 
-    """
-    Functionality:
-        Set a status code which will be used to test against the response. This can force a error message when the
-        response is analyzed
-
-    Input:
-        @status_code
-            A integer status code which is used to test against the response status code integer
-    """
-
     def set_status_code_validation(self, status_code):
+        """
+        Functionality:
+            Set a status code which will be used to test against the response. This can force a error message when the
+            response is analyzed
+
+        Input:
+            @status_code
+                A integer status code which is used to test against the response status code integer
+        """
+
         self._common.print_verbose("Attempting to apply a status code validation on the response with the following"
                                    "status code {0}"
                                    .format(str(status_code)))
@@ -1149,18 +1086,18 @@ class HTTPHelperResponseHandler:
         self._common.print_verbose("Retrieving the body type validation on the response.")
         return self._validate_type
 
-    """
-    Functionality:
-        Set a body type which will be used to test against the response. This can force a error message when the
-        response is analyzed
-
-    Input:
-        @response_type
-            A type which is used to test against the response status code integer
-            This should be a value from the supported `HTTPResponseType` enum
-    """
-
     def set_body_type_validation(self, response_type):
+        """
+        Functionality:
+            Set a body type which will be used to test against the response. This can force a error message when the
+            response is analyzed
+
+        Input:
+            @response_type
+                A type which is used to test against the response status code integer
+                This should be a value from the supported `HTTPResponseType` enum
+        """
+
         self._common.print_verbose("Attempting to apply a body type validation on the response with the following"
                                    "type {0}"
                                    .format(str(response_type)))
@@ -1177,18 +1114,18 @@ class HTTPHelperResponseHandler:
                                             """
                                           .format(str(type(response_type))))
 
-    """
-    Functionality:
-        This function brings together all the validation structures for the response.
-        Those validation is then executed and a list of errors are compiled.
-        The response will then return a list of errors to the developer
-
-    Input:
-        @response
-            The response object from the HTTP Request
-    """
-
     def validate(self, response):
+        """
+        Functionality:
+            This function brings together all the validation structures for the response.
+            Those validation is then executed and a list of errors are compiled.
+            The response will then return a list of errors to the developer
+
+        Input:
+            @response
+                The response object from the HTTP Request
+        """
+
         self._common.print_verbose("Attempting to validate the response.")
 
         errors = list([])
@@ -1263,33 +1200,32 @@ class HTTPHelperResponseHandler:
         return errors
 
 
-"""
-    The HTTP Helper Handler is used to create compact methods using most of the function defined in the
-    Connection, Request, Session and Response Helpers
-    Functionality:
-        - Overwrite Connection Helper
-        - Overwrite Request Helper
-        - Overwrite Session Helper
-        - Overwrite Response Helper
-        - GET Request
-        - POST Request
-        - DELETE Request
-        - PATCH Request
-        - PUT Request
-
-    There is 3 ways to approach creating a HTTP Helper
-    - The developer can create the HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPHelperResponseHandler and
-      HTTPHelperConnectionHandler.
-      These can then manually be passed down as kwargs to the send function
-    - The developer can create the HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPHelperResponseHandler and
-      HTTPHelperConnectionHandler.
-      These can then manually be set within the HTTPHelper class with the overwrite functions
-    - Or it can be left to the internal state where the Helper control and build the state.
-      Thus if the developer use the setters and getter those internal state will be manipulated
-"""
-
-
 class HTTPHelper:
+    """
+        The HTTP Helper Handler is used to create compact methods using most of the function defined in the
+        Connection, Request, Session and Response Helpers
+        Functionality:
+            - Overwrite Connection Helper
+            - Overwrite Request Helper
+            - Overwrite Session Helper
+            - Overwrite Response Helper
+            - GET Request
+            - POST Request
+            - DELETE Request
+            - PATCH Request
+            - PUT Request
+
+        There is 3 ways to approach creating a HTTP Helper
+        - The developer can create the HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPHelperResponseHandler and
+          HTTPHelperConnectionHandler.
+          These can then manually be passed down as kwargs to the send function
+        - The developer can create the HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPHelperResponseHandler and
+          HTTPHelperConnectionHandler.
+          These can then manually be set within the HTTPHelper class with the overwrite functions
+        - Or it can be left to the internal state where the Helper control and build the state.
+          Thus if the developer use the setters and getter those internal state will be manipulated
+    """
+
     _common = HTTPHelperCommon()
     _connection = HTTPHelperConnectionHandler()
     _request = HTTPHelperRequestHandler()
@@ -1335,45 +1271,44 @@ class HTTPHelper:
     def get_session_helper(self):
         return self._session
 
-    """
-    Functionality:
-        A generic builder to contains most of the functionality on the Connection, Request, Session and Response Helpers
-        This function will be used by compact methods to build up a request
-
-    Input:
-        @active_method
-            The active HTTP method for example GET or POST
-        @kwargs
-            This parameters is another way to define object values outside of the Helper classes.
-            Accepted Values:
-                - mock                              (Boolean) Enable or Disable the mock requests
-                - mock_status                       (Integer) The mock response status code
-                - mock_response                     (Any) The mock response object
-                - url                               (String) Set the endpoint
-                - body                              (Any) The request body structure
-                - headers                           (Dict) The request headers object
-                - query                             (Dict) The request query parameters object
-                - request_schematic_validation      (Schematic) The request body schematic validation
-                - request_type_validation           (Any Type) The request body type validation
-                - response_status_code_validation   (Integer) The response status code validation
-                - response_type_validation          (Any Type) The response type validation
-                - response_schematic_validation     (Schematic) The response body schematic validation
-                - timeout                           (Integer) The connection timeout
-                - ssl_verify                        (Boolean) Test if the request should be SSL
-                - retry_policy                      (Retry() object kwargs) Create a retry policy for the HTTP request
-
-    There is 3 ways to approach creating a HTTP Helper
-    - The developer can create the HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPHelperResponseHandler and
-      HTTPHelperConnectionHandler.
-      These can then manually be passed down as kwargs to the send function
-    - The developer can create the HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPHelperResponseHandler and
-      HTTPHelperConnectionHandler.
-      These can then manually be set within the HTTPHelper class with the overwrite functions
-    - Or it can be left to the internal state where the Helper control and build the state.
-      Thus if the developer use the setters and getter those internal state will be manipulated
-    """
-
     def _builder(self, active_method, **kwargs):
+        """
+        Functionality:
+            A generic builder to contains most of the functionality on the Connection, Request, Session and Response Helpers
+            This function will be used by compact methods to build up a request
+
+        Input:
+            @active_method
+                The active HTTP method for example GET or POST
+            @kwargs
+                This parameters is another way to define object values outside of the Helper classes.
+                Accepted Values:
+                    - mock                              (Boolean) Enable or Disable the mock requests
+                    - mock_status                       (Integer) The mock response status code
+                    - mock_response                     (Any) The mock response object
+                    - url                               (String) Set the endpoint
+                    - body                              (Any) The request body structure
+                    - headers                           (Dict) The request headers object
+                    - query                             (Dict) The request query parameters object
+                    - request_schematic_validation      (Schematic) The request body schematic validation
+                    - request_type_validation           (Any Type) The request body type validation
+                    - response_status_code_validation   (Integer) The response status code validation
+                    - response_type_validation          (Any Type) The response type validation
+                    - response_schematic_validation     (Schematic) The response body schematic validation
+                    - timeout                           (Integer) The connection timeout
+                    - ssl_verify                        (Boolean) Test if the request should be SSL
+                    - retry_policy                      (Retry() object kwargs) Create a retry policy for the HTTP request
+
+        There is 3 ways to approach creating a HTTP Helper
+        - The developer can create the HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPHelperResponseHandler and
+          HTTPHelperConnectionHandler.
+          These can then manually be passed down as kwargs to the send function
+        - The developer can create the HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPHelperResponseHandler and
+          HTTPHelperConnectionHandler.
+          These can then manually be set within the HTTPHelper class with the overwrite functions
+        - Or it can be left to the internal state where the Helper control and build the state.
+          Thus if the developer use the setters and getter those internal state will be manipulated
+        """
         if kwargs.get("mock") is True:
             adapter = requests_mock.Adapter()
             self._session.mount_adapter(adapter)
@@ -1401,14 +1336,12 @@ class HTTPHelper:
         apply_if_kwarg_exists(self._connection.set_ssl_verify, kwargs.get("ssl_verify"))
         self._connection.set_retry_policy(**kwargs.get("retry_policy", dict()))
 
-    """
-    Functionality:
-        Apply a complete get method to the HTTP Helper Class
+    # Functionality:
+    #     Apply a complete get method to the HTTP Helper Class
 
-    Input:
-        @kwargs
-            These kwargs should match the `_builder` kwargs list
-    """
+    # Input:
+    #     @kwargs
+    #         These kwargs should match the `_builder` kwargs list
 
     def get(self, **kwargs):
         self._builder(HTTPMethod.GET, **kwargs)
