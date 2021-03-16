@@ -349,30 +349,6 @@ class TestHTTPHelperSessionHandler(unittest.TestCase):
         assert isinstance(req.get_session(), type(Session()))
 
     """
-        Test the HTTP query parameters for example http://www.google.com?hello=world and direct apply
-    """
-    def test_query_parameters(self):
-        # Default Test
-        req = HTTPHelperSessionHandler(self.verbose)
-
-        # Test valid Query Parameters
-        req.set_query_param({
-            "hello": "world"
-        })
-        assert req.get_query_param() == {'hello': 'world'}
-
-        # Test clearing Query Parameters
-        req.clear_query_param()
-        assert len(req.get_query_param()) == 0
-
-        # Invalid Query Parameters
-        try:
-            req.set_query_param(-1)
-            assert False
-        except TypeError:
-            assert True
-
-    """
         Test the HTTP headers for example {'hello': 'world'}
     """
     def test_headers(self):

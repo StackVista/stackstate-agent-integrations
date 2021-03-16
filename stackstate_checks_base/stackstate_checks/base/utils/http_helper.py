@@ -41,6 +41,115 @@ class HTTPResponseType(Enum):
     JSON = dict
 
 
+
+class HTTPHelper:
+    """
+        The HTTP Helper Handler is used to create compact methods using most of the function defined in the
+        Connection, Request, Session and Response Helpers
+        Functionality:
+            - Overwrite Connection Helper
+            - Overwrite Request Helper
+            - Overwrite Session Helper
+            - Overwrite Response Helper
+            - GET Request
+            - POST Request
+            - DELETE Request
+            - PATCH Request
+            - PUT Request
+
+        There is 3 ways to approach creating a HTTP Helper
+        - The developer can create the HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPHelperResponseHandler and
+          HTTPHelperConnectionHandler.
+          These can then manually be passed down as kwargs to the send function
+        - The developer can create the HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPHelperResponseHandler and
+          HTTPHelperConnectionHandler.
+          These can then manually be set within the HTTPHelper class with the overwrite functions
+        - Or it can be left to the internal state where the Helper control and build the state.
+          Thus if the developer use the setters and getter those internal state will be manipulated
+    """
+
+    def __init__(self, verbose=False):
+        self._common = HTTPHelperCommon(verbose)
+
+    @staticmethod
+    def _builder(active_method, **kwargs):
+        """
+        Functionality:
+            A generic builder to contains most of the functionality on the Connection, Request, Session and Response Helpers
+            This function will be used by compact methods to build up a request
+
+        Input:
+            @active_method
+                The active HTTP method for example GET or POST
+            @kwargs
+                This parameters is another way to define object values outside of the Helper classes.
+                Accepted Values:
+                    - mock                              (Boolean) Enable or Disable the mock requests
+                    - mock_status                       (Integer) The mock response status code
+                    - mock_response                     (Any) The mock response object
+                    - url                               (String) Set the endpoint
+                    - body                              (Any) The request body structure
+                    - headers                           (Dict) The request headers object
+                    - query                             (Dict) The request query parameters object
+                    - request_schematic_validation      (Schematic) The request body schematic validation
+                    - request_type_validation           (Any Type) The request body type validation
+                    - response_status_code_validation   (Integer) The response status code validation
+                    - response_type_validation          (Any Type) The response type validation
+                    - response_schematic_validation     (Schematic) The response body schematic validation
+                    - timeout                           (Integer) The connection timeout
+                    - ssl_verify                        (Boolean) Test if the request should be SSL
+                    - retry_policy                      (Retry() object kwargs) Create a retry policy for the HTTP request
+        """
+        connection = HTTPHelperConnectionHandler()
+        session = HTTPHelperSessionHandler()
+        request = HTTPHelperRequestHandler()
+        response = HTTPHelperResponseHandler()
+
+        if kwargs.get("mock") is True:
+            adapter = requests_mock.Adapter()
+            session.mount_adapter(adapter)
+            adapter.register_uri(active_method.value,
+                                 kwargs.get("url"),
+                                 status_code=kwargs.get("mock_status", None),
+                                 json=kwargs.get("mock_response", None))
+
+        def apply_if_kwarg_exists(function, kwarg):
+            if kwarg is not None:
+                function(kwarg)
+
+        # At the end we apply kwarg variables to allow last second overrides
+        apply_if_kwarg_exists(request.set_url, kwargs.get("url"))
+        apply_if_kwarg_exists(request.set_method, active_method.value)
+        apply_if_kwarg_exists(request.set_body, kwargs.get("body"))
+        apply_if_kwarg_exists(request.set_headers, kwargs.get("headers"))
+        apply_if_kwarg_exists(request.set_query_param, kwargs.get("query"))
+        apply_if_kwarg_exists(request.set_body_schematic_validation, kwargs.get("request_schematic_validation"))
+        apply_if_kwarg_exists(request.set_body_type_validation, kwargs.get("request_type_validation"))
+        apply_if_kwarg_exists(response.set_status_code_validation, kwargs.get("response_status_code_validation"))
+        apply_if_kwarg_exists(response.set_body_type_validation, kwargs.get("response_type_validation"))
+        apply_if_kwarg_exists(response.set_body_schematic_validation, kwargs.get("response_schematic_validation"))
+        apply_if_kwarg_exists(connection.set_timeout, kwargs.get("timeout"))
+        apply_if_kwarg_exists(connection.set_ssl_verify, kwargs.get("ssl_verify"))
+        connection.set_retry_policy(**kwargs.get("retry_policy", dict()))
+
+        return connection.send(session, request, response)
+
+    def get(self, **kwargs):
+        return self._builder(HTTPMethod.GET, **kwargs)
+
+    def post(self, **kwargs):
+        return self._builder(HTTPMethod.POST, **kwargs)
+
+    def put(self, **kwargs):
+        return self._builder(HTTPMethod.PUT, **kwargs)
+
+    def delete(self, **kwargs):
+        return self._builder(HTTPMethod.DELETE, **kwargs)
+
+    def patch(self, **kwargs):
+        return self._builder(HTTPMethod.PATCH, **kwargs)
+
+
 class HTTPHelperCommon:
     """
         The HTTP Helper Common class is used for common functionality split between all the other
@@ -612,42 +721,6 @@ class HTTPHelperSessionHandler:
     def mount_adapter(self, adapter):
         self._session.mount('mock://', adapter)
 
-    # * The following functions control the query parameters on the Session() data object.
-
-    # Clear the current query parameters object on the Session() object
-    def clear_query_param(self):
-        self._common.print_verbose("Clearing the query parameters on the Session() object.")
-        self._session.params.clear()
-
-    # Retrieve the current query parameters object from the Session() object
-    def get_query_param(self):
-        self._common.print_verbose("Retrieving the query parameters on the Session() object.")
-        return self._session.params
-
-    def set_query_param(self, parameters):
-        """
-        TODO:
-        Functionality:
-            Lorem Ipsum
-
-        Input:
-            @parameters
-                Lorem Ipsum
-        """
-
-        self._common.print_verbose("""Applying the following query parameters object to the Session() object {0}"""
-                                   .format(str(parameters)))
-
-        # The object must be a dict to be able to map key value pairs to the query parameters
-        if isinstance(parameters, dict):
-            self._session.params.update(parameters)
-        else:
-            self._common.print_type_error("""The parameters provided does not contain the correct type.
-                                            The provided type is {0}. This function only accepts dict objects this
-                                            allows a easy mapping to the query object as the also exists out of
-                                            key and value objects. Attempting to apply the following parameters {1}
-                                            """.format(str(type(parameters)), str(parameters)))
-
     # * The following functions controls the headers on the Session() data object.
 
     # Clear the current headers on the Session() object
@@ -1197,113 +1270,3 @@ class HTTPHelperResponseHandler:
 
         # Return all the errors that occurred
         return errors
-
-
-class HTTPHelper:
-    """
-        The HTTP Helper Handler is used to create compact methods using most of the function defined in the
-        Connection, Request, Session and Response Helpers
-        Functionality:
-            - Overwrite Connection Helper
-            - Overwrite Request Helper
-            - Overwrite Session Helper
-            - Overwrite Response Helper
-            - GET Request
-            - POST Request
-            - DELETE Request
-            - PATCH Request
-            - PUT Request
-
-        There is 3 ways to approach creating a HTTP Helper
-        - The developer can create the HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPHelperResponseHandler and
-          HTTPHelperConnectionHandler.
-          These can then manually be passed down as kwargs to the send function
-        - The developer can create the HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPHelperResponseHandler and
-          HTTPHelperConnectionHandler.
-          These can then manually be set within the HTTPHelper class with the overwrite functions
-        - Or it can be left to the internal state where the Helper control and build the state.
-          Thus if the developer use the setters and getter those internal state will be manipulated
-    """
-
-    _common = HTTPHelperCommon()
-
-    def __init__(self, verbose=False):
-        self._common = HTTPHelperCommon(verbose)
-
-    @staticmethod
-    def _builder(active_method, **kwargs):
-        """
-        Functionality:
-            A generic builder to contains most of the functionality on the Connection, Request, Session and Response Helpers
-            This function will be used by compact methods to build up a request
-
-        Input:
-            @active_method
-                The active HTTP method for example GET or POST
-            @kwargs
-                This parameters is another way to define object values outside of the Helper classes.
-                Accepted Values:
-                    - mock                              (Boolean) Enable or Disable the mock requests
-                    - mock_status                       (Integer) The mock response status code
-                    - mock_response                     (Any) The mock response object
-                    - url                               (String) Set the endpoint
-                    - body                              (Any) The request body structure
-                    - headers                           (Dict) The request headers object
-                    - query                             (Dict) The request query parameters object
-                    - request_schematic_validation      (Schematic) The request body schematic validation
-                    - request_type_validation           (Any Type) The request body type validation
-                    - response_status_code_validation   (Integer) The response status code validation
-                    - response_type_validation          (Any Type) The response type validation
-                    - response_schematic_validation     (Schematic) The response body schematic validation
-                    - timeout                           (Integer) The connection timeout
-                    - ssl_verify                        (Boolean) Test if the request should be SSL
-                    - retry_policy                      (Retry() object kwargs) Create a retry policy for the HTTP request
-        """
-        connection = HTTPHelperConnectionHandler()
-        session = HTTPHelperSessionHandler()
-        request = HTTPHelperRequestHandler()
-        response = HTTPHelperResponseHandler()
-
-        if kwargs.get("mock") is True:
-            adapter = requests_mock.Adapter()
-            session.mount_adapter(adapter)
-            adapter.register_uri(active_method.value,
-                                 kwargs.get("url"),
-                                 status_code=kwargs.get("mock_status", None),
-                                 json=kwargs.get("mock_response", None))
-
-        def apply_if_kwarg_exists(function, kwarg):
-            if kwarg is not None:
-                function(kwarg)
-
-        # At the end we apply kwarg variables to allow last second overrides
-        apply_if_kwarg_exists(request.set_url, kwargs.get("url"))
-        apply_if_kwarg_exists(request.set_method, active_method.value)
-        apply_if_kwarg_exists(request.set_body, kwargs.get("body"))
-        apply_if_kwarg_exists(request.set_headers, kwargs.get("headers"))
-        apply_if_kwarg_exists(request.set_query_param, kwargs.get("query"))
-        apply_if_kwarg_exists(request.set_body_schematic_validation, kwargs.get("request_schematic_validation"))
-        apply_if_kwarg_exists(request.set_body_type_validation, kwargs.get("request_type_validation"))
-        apply_if_kwarg_exists(response.set_status_code_validation, kwargs.get("response_status_code_validation"))
-        apply_if_kwarg_exists(response.set_body_type_validation, kwargs.get("response_type_validation"))
-        apply_if_kwarg_exists(response.set_body_schematic_validation, kwargs.get("response_schematic_validation"))
-        apply_if_kwarg_exists(connection.set_timeout, kwargs.get("timeout"))
-        apply_if_kwarg_exists(connection.set_ssl_verify, kwargs.get("ssl_verify"))
-        connection.set_retry_policy(**kwargs.get("retry_policy", dict()))
-
-        return connection.send(session, request, response)
-
-    def get(self, **kwargs):
-        return self._builder(HTTPMethod.GET, **kwargs)
-
-    def post(self, **kwargs):
-        return self._builder(HTTPMethod.POST, **kwargs)
-
-    def put(self, **kwargs):
-        return self._builder(HTTPMethod.PUT, **kwargs)
-
-    def delete(self, **kwargs):
-        return self._builder(HTTPMethod.DELETE, **kwargs)
-
-    def patch(self, **kwargs):
-        return self._builder(HTTPMethod.PATCH, **kwargs)
