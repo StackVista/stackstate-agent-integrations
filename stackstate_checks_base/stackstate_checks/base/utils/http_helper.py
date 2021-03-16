@@ -1196,7 +1196,6 @@ class HTTPHelperResponseHandler:
         # If the HTTP Response Validation Schematic has been set
         if self._validate_schematic is not None:
             try:
-                print("awe")
                 # Decode the response content with the encoding type also given by the response
                 decoded_response = response.content.decode(response.encoding)
 
