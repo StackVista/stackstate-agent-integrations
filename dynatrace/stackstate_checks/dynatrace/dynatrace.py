@@ -121,8 +121,9 @@ class DynatraceCheck(AgentCheck):
                 instance_info.state = State({'last_processed_event_timestamp': empty_state_timestamp})
             self.start_snapshot()
             self._process_topology(instance_info)
-            self._process_events(instance_info)
             self.stop_snapshot()
+            # process events is not inside snapshot block as Vishal suggested
+            self._process_events(instance_info)
             msg = "Dynatrace check processed successfully"
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=instance_info.instance_tags, message=msg)
         except EventLimitReachedException as e:
