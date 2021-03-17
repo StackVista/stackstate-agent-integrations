@@ -2,9 +2,8 @@ import json
 import requests_mock
 import logging
 from enum import Enum
-import schematics
 from schematics.models import Model
-from schematics.types import CompoundType, BaseType, StringType, IntType, DictType, URLType, ModelType, BooleanType, ListType, FloatType, IPAddressType
+from schematics.types import BaseType, StringType, IntType, DictType, BooleanType
 from schematics.exceptions import DataError
 from requests import Session, Request
 from requests.auth import HTTPBasicAuth
@@ -44,10 +43,15 @@ class HTTPResponseType(Enum):
 
 
 class HTTPHelperModel(Model):
+    """
+        This is the model for the `HTTPHelper` class.
+        When using the `HTTPHelper` class there will be the only acceptable values to create state and kick off the
+        request
+    """
     mock_enable = BooleanType(required=False, default=False)
     mock_status = IntType(required=False, default=None)
     mock_response = BaseType(required=False, default=None)
-    url = StringType(required=True)
+    endpoint = StringType(required=True, default=None)
     auth_data = DictType(BaseType, required=False, default=None)
     auth_type = BaseType(required=False, default=None)
     session_auth_data = BaseType(required=False, default=None)
@@ -72,25 +76,14 @@ class HTTPHelper:
         The HTTP Helper Handler is used to create compact methods using most of the function defined in the
         Connection, Request, Session and Response Helpers
         Functionality:
-            - Overwrite Connection Helper
-            - Overwrite Request Helper
-            - Overwrite Session Helper
-            - Overwrite Response Helper
             - GET Request
             - POST Request
             - DELETE Request
             - PATCH Request
             - PUT Request
 
-        There is 3 ways to approach creating a HTTP Helper
-        - The developer can create the HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPHelperResponseHandler and
-          HTTPHelperConnectionHandler.
-          These can then manually be passed down as kwargs to the send function
-        - The developer can create the HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPHelperResponseHandler and
-          HTTPHelperConnectionHandler.
-          These can then manually be set within the HTTPHelper class with the overwrite functions
-        - Or it can be left to the internal state where the Helper control and build the state.
-          Thus if the developer use the setters and getter those internal state will be manipulated
+        All the HTTPHelper classes and Sub classes can accept a schematic dictionary that allows certain values to
+        manipulate state with
     """
 
     def __init__(self):
@@ -111,8 +104,7 @@ class HTTPHelper:
     def patch(self, http_model):
         return self._builder("PATCH", HTTPHelperModel(http_model))
 
-    @staticmethod
-    def _builder(active_method, http_model):
+    def _builder(self, active_method, http_model):
         """
         Functionality:
             A generic builder to contains most of the functionality on the Connection, Request, Session and Response
@@ -124,6 +116,9 @@ class HTTPHelper:
             @helper_model
                 Lorem ipsum
         """
+
+        self.log.info("Executing the HTTPHelper {0} function with the following properties: {1}"
+                      .format(str(active_method), str(http_model)))
 
         connection = HTTPHelperConnectionHandler({
             "timeout": http_model.timeout,
@@ -143,7 +138,7 @@ class HTTPHelper:
 
         request = HTTPHelperRequestHandler({
             "method": active_method,
-            "url": http_model.url,
+            "endpoint": http_model.endpoint,
             "query": http_model.query,
             "headers": http_model.headers,
             "body": http_model.body,
@@ -159,12 +154,28 @@ class HTTPHelper:
             "response_schematic_validation": http_model.response_schematic_validation,
         })
 
-        return connection.send(session, request, response)
+        request_response = connection.send(session, request)
+
+        self.log.info("Received the following response from the external endpoint: {0}"
+                      .format(request_response))
+
+        self.log.info("Attempting to validate the response content")
+
+        response.validate_body_schematic(request_response)
+        response.validate_status_code(request_response)
+        response.validate_body_type(request_response)
+
+        return request_response
 
 
 class HTTPHelperRequestModel(Model):
+    """
+        This is the model for the `HTTPHelperRequestHandler` class.
+        When using the `HTTPHelperRequestHandler` class there will be the only acceptable values to create state, This
+        state can in turn be used within the HTTPHelper class
+    """
     method = StringType(required=True)
-    url = StringType(required=True)
+    endpoint = StringType(required=True, default=None)
     query = DictType(StringType, default=dict({}))
     headers = DictType(StringType, default=dict({}))
     body = BaseType(required=False, default=None)
@@ -179,14 +190,14 @@ class HTTPHelperRequestHandler:
         The HTTP Helper Request Handler is used to control the state of the Request() object within the requests library
         Anything that can manipulate, create or fetch the state from this Request() object should be contained within,
         Functionality:
-            - Create and maintain the Request() object from requests
-            - SET && GET HTTP Method
-            - SET && GET HTTP Endpoint
-            - SET && GET HTTP Query Parameters
-            - SET && GET HTTP Body
-            - SET && GET HTTP Validation
-            - SET && GET HTTP Headers
-            - SET && GET HTTP Auth
+            - Create, Retrieve and maintain the HTTPHelperRequestModel() object
+            - SET && VALIDATE HTTP Method
+            - SET && VALIDATE HTTP Endpoint
+            - SET && VALIDATE HTTP Query Parameters
+            - SET && VALIDATE HTTP Body
+            - SET && VALIDATE HTTP Validation
+            - SET && VALIDATE HTTP Headers
+            - SET && VALIDATE HTTP Auth
     """
     _request_model = HTTPHelperRequestModel()
     _authentication_types = [item.value for item in HTTPAuthenticationType]
@@ -194,9 +205,10 @@ class HTTPHelperRequestHandler:
     _http_method_enums = [item.value for item in HTTPMethod]
 
     def __init__(self, request_model=None):
+        self.log = logging.getLogger('%s.request_handler' % __name__)
+        # Receive a model or create one if not specified
         self._request_model = HTTPHelperRequestModel(request_model) if request_model is not None \
             else HTTPHelperRequestModel()
-        self.log = logging.getLogger('%s.request_handler' % __name__)
 
     def get_request_model(self):
         """
@@ -209,7 +221,7 @@ class HTTPHelperRequestHandler:
     def validate_request_model(self):
         """
         Functionality:
-            We can also run a validation against the model as that model is a schematic
+            We can also run a validation against the model as this model is a schematic
         """
         self._request_model.validate()
 
@@ -230,8 +242,8 @@ class HTTPHelperRequestHandler:
         request_object.method = self._request_model.method
 
         # URL Apply and validation
-        self.validate_url()
-        request_object.url = self._request_model.url
+        self.validate_endpoint()
+        request_object.url = self._request_model.endpoint
 
         # Query Apply and validation
         self.validate_query_param()
@@ -249,15 +261,14 @@ class HTTPHelperRequestHandler:
         request_object.auth_data = self._request_model.auth_data
         request_object.auth_type = self._request_model.auth_type
 
-
         return request_object
 
     def _set_method(self, method):
         """
         Functionality:
             Set the current HTTP Method for the Requests() object from the HTTPMethod enum or String equivalent from the
-            HTTPMethod enum.
-            If a method is specified which does not exist in the HTTPMethod a `Not Implemented` error will be triggered.
+            HTTPMethod enum. If a method is specified which does not exist in the HTTPMethod a
+            `Not Implemented` error will be triggered.
 
         Input:
             @method
@@ -297,7 +308,7 @@ class HTTPHelperRequestHandler:
         # The following checks are made
         # - Is the method passed a string so that we can match it in the enum
         # - Does that string exist in the mapped enum list.
-        elif isinstance(self._request_model.method, str) and self._request_model.method in self._http_method_enums:
+        elif self._request_model.method in self._http_method_enums:
             self.log.info("String method found inside the `HTTPMethod` enum, Applying {0} as the active"
                           "method.".format(str(self._request_model.method)))
             return True
@@ -312,7 +323,7 @@ class HTTPHelperRequestHandler:
             self.log.error(message)
             raise NotImplementedError(message)
 
-    def _set_url(self, url):
+    def _set_endpoint(self, endpoint):
         """
         Functionality:
             The endpoint is set with this function.
@@ -324,24 +335,21 @@ class HTTPHelperRequestHandler:
             @url
                 A string object containing the endpoint that should be queried
         """
-        if isinstance(url, str):
+        if isinstance(endpoint, str):
             # We deconstruct the URL at this point.
             # This allows us to piece it back together with only what we need.
-            parsed_url = urlparse.urlparse(url)
-            self.log.info("Endpoint parsed successfully, Result is as follow {0}".format(str(parsed_url)))
+            parsed_endpoint = urlparse.urlparse(endpoint)
+            self.log.info("Endpoint parsed successfully, Result is as follow {0}".format(str(parsed_endpoint)))
 
             # The URL is recreated here by adding the schema, net location and path together
-            url = (parsed_url.scheme + "://" if len(parsed_url.scheme) > 0 else "") \
-                  + parsed_url.netloc \
-                  + parsed_url.path
-            self.log.info("Reconstructed URL {0}".format(str(url)))
-
-            # Apply the reconstructed Endpoint to the Request() object
-            self._request_model.url = url
+            self._request_model.url = ((parsed_endpoint.scheme + "://" if len(parsed_endpoint.scheme) > 0 else "") +
+                                       parsed_endpoint.netloc +
+                                       parsed_endpoint.path)
+            self.log.info("Reconstructed URL {0}".format(str(self._request_model.url)))
 
             # If we found any extra data within the URL we then attempt to map it to the correct location
-            if parsed_url.query is not None and len(parsed_url.query) > 0:
-                query_dict = self.split_string_into_dict(parsed_url.query, "&", "=")
+            if parsed_endpoint.query is not None and len(parsed_endpoint.query) > 0:
+                query_dict = self.split_string_into_dict(parsed_endpoint.query, "&", "=")
                 # Apply the extracted parameters into the Request() object
                 self._request_model.query = query_dict
 
@@ -349,25 +357,19 @@ class HTTPHelperRequestHandler:
         else:
             message = """The URL provided is incorrect, The type provided is {0} and the value is
                          {1} .The URL needs to be parsed thus we need a string to be able to parse
-                         the URL""".format(str(type(url)), str(url))
+                         the URL""".format(str(type(endpoint)), str(endpoint))
             self.log.error(message)
             raise TypeError(message)
 
-    def validate_url(self):
+    def validate_endpoint(self):
         """
         Functionality:
             Validate the state of the endpoint to determine if the applied value to the url object is correct
         """
-        if self._request_model.url is None:
+        if self._request_model.endpoint is None:
             message = """The endpoint url has not been applied"""
             self.log.error(message)
             raise ValueError(message)
-
-        elif isinstance(self._request_model.url, str) is False:
-            message = """The endpoint url is the incorrect type. The current type is {0} and the
-                         required type is a str""".format(str(type(self._request_model.url)),)
-            self.log.error(message)
-            raise TypeError(message)
 
         return True
 
@@ -475,8 +477,12 @@ class HTTPHelperRequestHandler:
         self._request_model.auth_type = auth_type
 
     def validate_auth(self):
-        # Test if the auth_schematic passed does exist in the HTTPAuthenticationType enum
-        # We also do a second test to make sure the auth_schematic.value is also a model
+        """
+        Functionality:
+            Validate the state of the two auth objects that will be used to apply authentication
+            Test if the auth_schematic passed does exist in the HTTPAuthenticationType enum
+            We also do a second test to make sure the auth_schematic.value is also a model
+        """
         if isinstance(self._request_model.auth_type, Enum) and \
                 self._request_model.auth_type.value in self._authentication_types and \
                 issubclass(self._request_model.auth_type.value, Model):
@@ -495,7 +501,7 @@ class HTTPHelperRequestHandler:
                                  HTTPAuthenticationType enum and if it does then the mapping for {0}
                                  is missing from the _set_auth function. You need to add a check for
                                  the enum and map the values over to the requests object""" \
-                                 .format(str(self._request_model.auth_type))
+                        .format(str(self._request_model.auth_type))
                     self.log.error(message)
                     raise NotImplementedError(message)
 
@@ -507,7 +513,7 @@ class HTTPHelperRequestHandler:
                              The error provided by the execution
                              {2}""".format(str(self._request_model.auth_data), str(self._request_model.auth_type), e)
                 self.log.error(message)
-                raise DataError(message)
+                raise e
 
             except TypeError as e:
                 message = """The authentication details object passed to this function failed as
@@ -542,7 +548,7 @@ class HTTPHelperRequestHandler:
                 A item from the `HTTPRequestType` enum
         """
         self.log.info("""Applying validation the current body content type, The body is {0}"""
-                         .format(str(self._request_model.request_type_validation)))
+                      .format(str(self._request_model.request_type_validation)))
         self._request_model.request_type_validation = type_validation
 
     def validate_body_type(self):
@@ -561,8 +567,9 @@ class HTTPHelperRequestHandler:
                          Either the body type passed to the `validate_body` function needs to be
                          changed, The validation needs to be removed to allow this body type or
                          the body needs to be looked at and why it is passing down the incorrect data.
-                         The current body tested content is {1}""".format(str(self._request_model.request_type_validation),
-                                                                          str(self._request_model.body))
+                         The current body tested content is {1}""".format(
+                str(self._request_model.request_type_validation),
+                str(self._request_model.body))
             self.log.error(message)
             raise ValueError(message)
 
@@ -600,7 +607,7 @@ class HTTPHelperRequestHandler:
                              To fix this you can either modify the schematic validation or remove it entirely
                              """.format(e)
                 self.log.error(message)
-                raise TypeError(message)
+                raise e
 
             except TypeError as e:
                 message = """The request was unable to conform to the validation schematic. The
@@ -636,6 +643,11 @@ class HTTPHelperRequestHandler:
 
 
 class HTTPHelperSessionModel(Model):
+    """
+        This is the model for the `HTTPHelperSessionHandler` class.
+        When using the `HTTPHelperSessionHandler` class there will be the only acceptable values to create state, This
+        state can in turn be used within the HTTPHelper class
+    """
     mock_enable = BooleanType(required=False, default=False)
     mock_status = IntType(required=False, default=None)
     mock_response = BaseType(required=False, default=None)
@@ -746,8 +758,12 @@ class HTTPHelperSessionHandler:
         self._session_model.auth_type = auth_type
 
     def validate_auth(self):
-        # Test if the auth_schematic passed does exist in the HTTPAuthenticationType enum
-        # We also do a second test to make sure the auth_schematic.value is also a model
+        """
+        Functionality:
+            Validate the state of the two auth objects that will be used to apply authentication
+            Test if the auth_schematic passed does exist in the HTTPAuthenticationType enum
+            We also do a second test to make sure the auth_schematic.value is also a model
+        """
         if isinstance(self._session_model.auth_type, Enum) and \
                 self._session_model.auth_type.value in self._authentication_types and \
                 issubclass(self._session_model.auth_type.value, Model):
@@ -766,7 +782,7 @@ class HTTPHelperSessionHandler:
                                  HTTPAuthenticationType enum and if it does then the mapping for {0}
                                  is missing from the _set_auth function. You need to add a check for
                                  the enum and map the values over to the requests object""" \
-                                 .format(str(self._session_model.auth_type))
+                        .format(str(self._session_model.auth_type))
                     self.log.error(message)
                     raise NotImplementedError(message)
 
@@ -778,7 +794,7 @@ class HTTPHelperSessionHandler:
                              The error provided by the execution
                              {2}""".format(str(self._session_model.auth_data), str(self._session_model.auth_type), e)
                 self.log.error(message)
-                raise DataError(message)
+                raise e
 
             except TypeError as e:
                 message = """The authentication details object passed to this function failed as
@@ -802,6 +818,11 @@ class HTTPHelperSessionHandler:
 
 
 class HTTPHelperConnectionModel(Model):
+    """
+        This is the model for the `HTTPHelperConnectionHandler` class.
+        When using the `HTTPHelperConnectionHandler` class there will be the only acceptable values to create state,This
+        state can in turn be used within the HTTPHelper class
+    """
     timeout = IntType(required=False, default=None)
     ssl_verify = BooleanType(required=False, default=True)
     retry_policy = BaseType(required=False, default=None)
@@ -861,7 +882,7 @@ class HTTPHelperConnectionHandler:
 
         else:
             message = """The parameters timeout does not contain the correct type.
-                         The provided type is {0}. This function only accepts int as a valid timeout"""\
+                         The provided type is {0}. This function only accepts int as a valid timeout""" \
                 .format(str(type(self._connection_model.timeout)))
             self.log.error(message)
             raise TypeError(message)
@@ -937,7 +958,7 @@ class HTTPHelperConnectionHandler:
             self.log.error(message)
             raise TypeError(message)
 
-    def send(self, session_handler, request_handler, response_handler):
+    def send(self, session_handler, request_handler):
         """
         Functionality:
             This function is used to make the request.
@@ -949,8 +970,6 @@ class HTTPHelperConnectionHandler:
                 The Session Handler Class. This allows the user to also pass down a custom session handler if required
             @request_handler
                 The Request Handler Class. This allows the user to also pass down a custom request handler if required
-            @response_handler
-                The Response Handler Class. This allows the user to also pass down a custom response handler if required
         """
 
         session = session_handler.create_session_object()
@@ -961,7 +980,7 @@ class HTTPHelperConnectionHandler:
             adapter = requests_mock.Adapter()
             session.mount('mock://', adapter)
             adapter.register_uri(request_handler.get_request_model().method,
-                                 request_handler.get_request_model().url,
+                                 str(request_handler.get_request_model().endpoint),
                                  status_code=session_handler.get_session_model().mock_status,
                                  json=session_handler.get_session_model().mock_response)
             session.mount('mock://', adapter)
@@ -980,12 +999,28 @@ class HTTPHelperConnectionHandler:
         if self._connection_model.ssl_verify is not None:
             session.verify = self._connection_model.ssl_verify
 
+        # Auth will already have gone through validation thus we just test types and apply values
+        # Request - HTTPBasicAuth
+        if request_handler.get_request_model().auth_type is HTTPAuthenticationType.BasicAuth:
+            request.auth = HTTPBasicAuth(request_handler.auth_data.get('username'),
+                                         request_handler.auth_data.get('password'))
+
+        # Session - HTTPBasicAuth
+        if session_handler.get_session_model().auth_type is HTTPAuthenticationType.BasicAuth:
+            session.auth = HTTPBasicAuth(session_handler.auth_data.get('username'),
+                                         session_handler.auth_data.get('password'))
+
         response = session.send(request.prepare(), timeout=self._connection_model.timeout)
 
         return response
 
 
 class HTTPHelperResponseModel(Model):
+    """
+        This is the model for the `HTTPHelperResponseHandler` class.
+        When using the `HTTPHelperResponseHandler` class there will be the only acceptable values to create state,This
+        state can in turn be used within the HTTPHelper class
+    """
     response_status_code_validation = IntType(required=False, default=None)
     response_type_validation = BaseType(required=False, default=None)
     response_schematic_validation = BaseType(required=False, default=None)
@@ -1041,7 +1076,7 @@ class HTTPHelperResponseHandler:
                       "schematic {0}".format(str(schematic)))
         self._response_model.response_schematic_validation = schematic
 
-    def validate_body_schematic(self, response):
+    def validate_body_schematic(self, response=None):
         if self._response_model.response_schematic_validation is None:
             return True
 
@@ -1056,9 +1091,6 @@ class HTTPHelperResponseHandler:
                 if isinstance(parsed_json, dict) is False:
                     raise ValueError()
 
-                print(self._response_model.response_schematic_validation)
-                print(parsed_json)
-
                 # The last part to test is does the Parsed JSON match the schematic validation
                 self._response_model.response_schematic_validation(parsed_json) \
                     .validate()
@@ -1066,12 +1098,12 @@ class HTTPHelperResponseHandler:
                 return True
 
             except DataError as e:
-                message = """The response was unable to conform to the validation schematic. 
+                message = """The response was unable to conform to the validation schematic.
                              The error provided by the schematic validation is {0}
                              To fix this you can either modify the schematic validation or remove it entirely
-                             """.format(str(e))
+                             """.format(e)
                 self.log.error(message)
-                raise DataError(message)
+                raise e
 
             except ValueError as e:
                 message = """Unable to parse the response as JSON.
@@ -1084,7 +1116,7 @@ class HTTPHelperResponseHandler:
         else:
             message = """The proxy schematic does not contain the correct type.
                          The provided type is {0}. The function requires a valid schematic as a argument
-                         This allows a response object to be tested against the schematic"""\
+                         This allows a response object to be tested against the schematic""" \
                 .format(str(type(self._response_model.response_schematic_validation)))
             self.log.error(message)
             raise TypeError(message)
@@ -1152,10 +1184,10 @@ class HTTPHelperResponseHandler:
                 self._response_model.response_type_validation.value in self._response_types:
 
             # If the type set is JSON. We then attempt to parse it and see if it is valid
-            if self._response_model.response_type_validation is HTTPResponseType.JSON:
+            if issubclass(HTTPResponseType.JSON.value, self._response_model.response_type_validation.value):
                 try:
                     data = json.loads(http_response.content.decode(http_response.encoding))
-                    if isinstance(data, dict) is False:
+                    if isinstance(data, HTTPResponseType.JSON.value) is False:
                         raise ValueError()
                     else:
                         return True
@@ -1173,7 +1205,7 @@ class HTTPHelperResponseHandler:
                              type is {0}. The expected type is {1}
                              To fix this you can either modify the type validation or remove it entirely
                              """.format(str(type(http_response.content)),
-                                               str(self._response_model.response_type_validation.value))
+                                        str(self._response_model.response_type_validation.value))
                 self.log.error(message)
                 raise TypeError(message)
 
@@ -1188,4 +1220,3 @@ class HTTPHelperResponseHandler:
                          """.format(str(type(self._response_model.response_type_validation)))
             self.log.error(message)
             raise TypeError(message)
-
