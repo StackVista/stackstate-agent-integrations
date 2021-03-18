@@ -155,7 +155,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         # since all relations are to this host itself so target id is same
         relation = topo_instances['relations'][0]
         self.assertEqual(relation['target_id'], 'HOST-6AAE0F78BCF2E0F4')
-        self.assertIn(relation['type'], ['isProcessOf', 'runsOn', 'isSiteOf'])
+        self.assertIn(relation['type'], ['isProcessOf', 'runsOn'])
 
     @requests_mock.Mocker()
     def test_check_raise_exception(self, m):
