@@ -300,8 +300,6 @@ class DynatraceCheck(AgentCheck):
             labels.append(tech_label)
         labels_from_tags = self._get_labels_from_dynatrace_tags(dynatrace_component)
         labels.extend(labels_from_tags)
-        # prefix the labels with `dynatrace-` for all labels
-        labels = ["dynatrace-%s" % label for label in labels]
         return labels
 
     def _process_events(self, instance_info):
@@ -327,7 +325,7 @@ class DynatraceCheck(AgentCheck):
                     "entityId": entity_id,
                     "entityName": dynatrace_entities_cache[entity_id].get('name'),
                     "impactLevel": None,
-                    "eventType": "CUSTOM_ALERT",
+                    "eventType": "DEFAULT HEALTH",
                     "eventStatus": "OK",
                     "tags": [],
                     "id": -1,
