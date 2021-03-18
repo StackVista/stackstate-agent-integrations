@@ -25,12 +25,10 @@
           "major": 1,
           "minor": 201,
           "revision": 127,
-          "timestamp": "20200925-143440",
-          "sourceRevision": ""
+          "timestamp": "20200925-143440"
         },
         "consumedHostUnits": "0.5",
         "userLevel": "SUPERUSER",
-        "oneAgentCustomHostName": "",
         "awsSecurityGroup": [
           "melnemrSG"
         ],
@@ -52,7 +50,7 @@
         ],
         "instance": "https://ton48129.live.dynatrace.com",
         "tags": [
-          "dynatrace-HOST-6AAE0F78BCF2E0F4",
+          "HOST-6AAE0F78BCF2E0F4",
           "integration-type:dynatrace",
           "integration-url:https://ton48129.live.dynatrace.com"
         ]
@@ -84,12 +82,10 @@
           "major": 1,
           "minor": 201,
           "revision": 127,
-          "timestamp": "20200925-143440",
-          "sourceRevision": ""
+          "timestamp": "20200925-143440"
         },
         "consumedHostUnits": 1,
         "userLevel": "SUPERUSER",
-        "oneAgentCustomHostName": "",
         "awsSecurityGroup": [
           "melnemrSG"
         ],
@@ -111,7 +107,7 @@
         ],
         "instance": "https://ton48129.live.dynatrace.com",
         "tags": [
-          "dynatrace-HOST-AA6A5D81A0006807",
+          "HOST-AA6A5D81A0006807",
           "integration-type:dynatrace",
           "integration-url:https://ton48129.live.dynatrace.com"
         ]

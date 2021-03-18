@@ -29,9 +29,9 @@
         ],
         "instance": "https://ton48129.live.dynatrace.com",
         "tags": [
-          "dynatrace-CLR:FullCLR:4.8.3928.0",
-          "dynatrace-DOTNET:.NET Framework:4.8.3928.0",
-          "dynatrace-SERVICE-923B9ABBC3F9DB68",
+          "CLR:FullCLR:4.8.3928.0",
+          "DOTNET:.NET Framework:4.8.3928.0",
+          "SERVICE-923B9ABBC3F9DB68",
           "integration-type:dynatrace",
           "integration-url:https://ton48129.live.dynatrace.com"
         ]
@@ -69,9 +69,9 @@
         ],
         "instance": "https://ton48129.live.dynatrace.com",
         "tags": [
-          "dynatrace-CLR:FullCLR:4.8.3928.0",
-          "dynatrace-DOTNET:.NET Framework:4.8.3928.0",
-          "dynatrace-SERVICE-8745799105D02C01",
+          "CLR:FullCLR:4.8.3928.0",
+          "DOTNET:.NET Framework:4.8.3928.0",
+          "SERVICE-8745799105D02C01",
           "integration-type:dynatrace",
           "integration-url:https://ton48129.live.dynatrace.com"
         ]
@@ -99,7 +99,6 @@
         "softwareTechnologies": [
           {
             "type": "IIS_APP_POOL",
-            "edition": null,
             "version": "10.0.14393.0"
           },
           {
@@ -109,7 +108,6 @@
           },
           {
             "type": "WCF",
-            "edition": null,
             "version": "4.8.3928.0"
           },
           {
@@ -119,7 +117,6 @@
           },
           {
             "type": "ASP_NET",
-            "edition": null,
             "version": "4.8.3928.0"
           }
         ],
@@ -130,13 +127,13 @@
         ],
         "instance": "https://ton48129.live.dynatrace.com",
         "tags": [
-          "dynatrace-ASP_NET:4.8.3928.0",
-          "dynatrace-CLR:FullCLR:4.0.30319.0",
-          "dynatrace-DOTNET:.NET Framework:4.8.3928.0",
-          "dynatrace-IIS_APP_POOL:10.0.14393.0",
-          "dynatrace-SERVICE-329B4CC95B522941",
-          "dynatrace-WCF:4.8.3928.0",
-          "dynatrace-[Kubernetes]namespace:default-with-unicode-char-",
+          "ASP_NET:4.8.3928.0",
+          "CLR:FullCLR:4.0.30319.0",
+          "DOTNET:.NET Framework:4.8.3928.0",
+          "IIS_APP_POOL:10.0.14393.0",
+          "SERVICE-329B4CC95B522941",
+          "WCF:4.8.3928.0",
+          "[Kubernetes]namespace:default-with-unicode-char-",
           "integration-type:dynatrace",
           "integration-url:https://ton48129.live.dynatrace.com"
         ]

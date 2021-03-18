@@ -50,11 +50,11 @@
           }
         ],
         "tags": [
-          "dynatrace-CLR:FullCLR:4.8.3928.0",
-          "dynatrace-DOTNET:.NET Framework:4.8.3928.0",
-          "dynatrace-PROCESS_GROUP_INSTANCE-F25A8361C6742030",
-          "dynatrace-actualMonitoringState:OFF",
-          "dynatrace-expectedMonitoringState:OFF",
+          "CLR:FullCLR:4.8.3928.0",
+          "DOTNET:.NET Framework:4.8.3928.0",
+          "PROCESS_GROUP_INSTANCE-F25A8361C6742030",
+          "actualMonitoringState:OFF",
+          "expectedMonitoringState:OFF",
           "integration-type:dynatrace",
           "integration-url:https://ton48129.live.dynatrace.com"
         ]
@@ -130,12 +130,12 @@
           }
         ],
         "tags": [
-          "dynatrace-ELASTIC_SEARCH",
-          "dynatrace-JAVA:OpenJDK:1.8.0_265",
-          "dynatrace-NETTY:HTTP Server:4.1.36.Final",
-          "dynatrace-PROCESS_GROUP_INSTANCE-3A6855F295757634",
-          "dynatrace-actualMonitoringState:ON",
-          "dynatrace-expectedMonitoringState:ON",
+          "ELASTIC_SEARCH",
+          "JAVA:OpenJDK:1.8.0_265",
+          "NETTY:HTTP Server:4.1.36.Final",
+          "PROCESS_GROUP_INSTANCE-3A6855F295757634",
+          "actualMonitoringState:ON",
+          "expectedMonitoringState:ON",
           "integration-type:dynatrace",
           "integration-url:https://ton48129.live.dynatrace.com"
         ]
@@ -192,12 +192,12 @@
           }
         ],
         "tags": [
-          "dynatrace-CLR:FullCLR:4.8.3928.0",
-          "dynatrace-DOTNET:.NET Framework:4.8.3928.0",
-          "dynatrace-IIS-with-unicode-char-",
-          "dynatrace-PROCESS_GROUP_INSTANCE-D87BE1EAFC600996",
-          "dynatrace-actualMonitoringState:OFF",
-          "dynatrace-expectedMonitoringState:ON",
+          "CLR:FullCLR:4.8.3928.0",
+          "DOTNET:.NET Framework:4.8.3928.0",
+          "IIS-with-unicode-char-",
+          "PROCESS_GROUP_INSTANCE-D87BE1EAFC600996",
+          "actualMonitoringState:OFF",
+          "expectedMonitoringState:ON",
           "integration-type:dynatrace",
           "integration-url:https://ton48129.live.dynatrace.com"
         ]
