@@ -1,6 +1,8 @@
 import unittest
 import json
-
+import unicodedata
+import re
+from six import text_type
 import pytest
 from schematics.models import Model, DataError
 from schematics.types import StringType, IntType, BooleanType
@@ -222,15 +224,9 @@ class TestHTTPHelperConnectionHandler(unittest.TestCase):
 
 
 class TestHTTPHelperResponseHandler(unittest.TestCase):
-    def test_get_response_model(self):
-        response_handler = HTTPHelperResponseHandler()
-        model = response_handler.get_response_model()
-        self.assertTrue(isinstance(model, HTTPHelperResponseModel))
-        response_handler.validate_response_model()
-
-    def test_body_schematic_validation(self):
+    def test_get_status_code(self):
         http = HTTPHelper()
-        valid_result = http.get({
+        response = http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
@@ -239,57 +235,134 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
                 'pong': True,
             },
         })
-        invalid_result = http.get({
-            "endpoint": "mock://test.com",
-            "mock_enable": True,
-            "mock_status": 200,
-            "mock_response": "test",
-        })
+        self.assertEqual(response.get_status_code(), 200)
 
-        self.assertTrue(HTTPHelperResponseHandler().validate_body_schematic())
-        self.assertEqual(HTTPHelperResponseHandler({"response_schematic_validation": BodyResponseSchematicTest}) \
-            .get_response_model().response_schematic_validation, BodyResponseSchematicTest)
-        self.assertEqual(HTTPHelperResponseHandler({"response_schematic_validation": -1}) \
-            .get_response_model().response_schematic_validation, -1)
-        self.assertTrue(HTTPHelperResponseHandler({
-            "response_schematic_validation": BodyResponseSchematicTest
-        }).validate_body_schematic(valid_result.get_response()))
-
-        with pytest.raises(ValueError):
-            HTTPHelperResponseHandler({
-                "response_schematic_validation": BodyResponseSchematicTest
-            }).validate_body_schematic(invalid_result.get_response())
-
-    def test_body_type_validation(self):
+    def test_get_json(self):
         http = HTTPHelper()
-        valid_result = http.get({
+        response = http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
             "mock_response": {
-                'hello': 'world'
+                'hello': 'world',
+                'pong': True,
             },
         })
-        invalid_result = http.get({
+        self.assertEqual(response.get_json(), {
+            'hello': 'world',
+            'pong': True,
+        })
+
+    def test_get_request_method(self):
+        http = HTTPHelper()
+        response = http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_response": "test",
+            "mock_response": {
+                'hello': 'world',
+                'pong': True,
+            },
         })
+        self.assertEqual(response.get_request_method(), "GET")
 
-        self.assertTrue(HTTPHelperResponseHandler().validate_body_type() is True)
-        self.assertEqual(HTTPHelperResponseHandler({"response_type_validation": HTTPRequestType.JSON}) \
-               .get_response_model().response_type_validation, HTTPRequestType.JSON)
-        self.assertEqual(HTTPHelperResponseHandler({"response_type_validation": -1}) \
-               .get_response_model().response_type_validation, -1)
-        self.assertTrue(HTTPHelperResponseHandler({
-            "response_type_validation": HTTPRequestType.JSON
-        }).validate_body_type(valid_result.get_response()))
+    def test_get_request_url(self):
+        http = HTTPHelper()
+        response = http.get({
+            "endpoint": "mock://test.com",
+            "mock_enable": True,
+            "mock_status": 200,
+            "mock_response": {
+                'hello': 'world',
+                'pong': True,
+            },
+        })
+        self.assertEqual(response.get_request_url(), "mock://test.com")
+
+    def test_get_request_headers(self):
+        http = HTTPHelper()
+        response = http.get({
+            "endpoint": "mock://test.com",
+            "mock_enable": True,
+            "mock_status": 200,
+            "mock_response": {
+                'hello': 'world',
+                'pong': True,
+            },
+        })
+        self.assertEqual(response.get_request_headers(), {})
+
+    def test_body_schematic_validation(self):
+        http = HTTPHelper()
+        self.assertEqual(type(
+            http.get({
+                "endpoint": "mock://test.com",
+                "mock_enable": True,
+                "mock_status": 200,
+                "mock_response": {
+                    'hello': 'world',
+                    'pong': True,
+                },
+                "response_schematic_validation": BodyResponseSchematicTest,
+            })
+        ), HTTPHelperResponseHandler)
 
         with pytest.raises(ValueError):
-            HTTPHelperResponseHandler({
-                "response_type_validation": HTTPRequestType.JSON
-            }).validate_body_type(invalid_result.get_response())
+            http.get({
+                "endpoint": "mock://test.com",
+                "mock_enable": True,
+                "mock_status": 200,
+                "mock_response": "test",
+                "response_schematic_validation": BodyResponseSchematicTest,
+            })
+
+    def test_body_type_validation(self):
+        http = HTTPHelper()
+        self.assertEqual(type(
+            http.get({
+                "endpoint": "mock://test.com",
+                "mock_enable": True,
+                "mock_status": 200,
+                "mock_response": {
+                    'hello': 'world',
+                    'pong': True,
+                },
+                "response_type_validation": HTTPResponseType.JSON,
+            })
+        ), HTTPHelperResponseHandler)
+
+        with pytest.raises(ValueError):
+            http.get({
+                "endpoint": "mock://test.com",
+                "mock_enable": True,
+                "mock_status": 200,
+                "mock_response": "test",
+                "response_type_validation": HTTPResponseType.JSON,
+            })
+
+    def test_status_code_validation(self):
+        http = HTTPHelper()
+        self.assertEqual(type(
+            http.get({
+                "endpoint": "mock://test.com",
+                "mock_enable": True,
+                "mock_status": 200,
+                "mock_response": {
+                    'hello': 'world',
+                    'pong': True,
+                },
+                "response_status_code_validation": 200,
+            })
+        ), HTTPHelperResponseHandler)
+
+        with pytest.raises(ValueError):
+            http.get({
+                "endpoint": "mock://test.com",
+                "mock_enable": True,
+                "mock_status": 201,
+                "mock_response": "test",
+                "response_status_code_validation": 200,
+            })
 
 
 class TestHTTPHelperBase(unittest.TestCase):
@@ -328,11 +401,14 @@ class TestHTTPHelperBase(unittest.TestCase):
             "response_schematic_validation": BodyResponseSchematicTest,
         })
 
-        self.assertEqual(result.get_response().request.method, "GET")
-        self.assertEqual(result.get_response().status_code, 200)
-        self.assertEqual(json.loads(result.get_response().content.decode(result.get_response().encoding)).get("hello"), "world")
-        self.assertEqual(result.get_response().request.url, "mock://test.com")
-        self.assertEqual(result.get_response().request.headers, {'a': '1',
+        self.assertEqual(result.get_request_method(), "GET")
+        self.assertEqual(result.get_status_code(), 200)
+        self.assertEqual(result.get_json(), {
+            'hello': 'world',
+            'pong': True,
+        })
+        self.assertEqual(result.get_request_url(), "mock://test.com")
+        self.assertEqual(result.get_request_headers(), {'a': '1',
                                             'Content-Length': '21',
                                             'Content-Type': 'application/x-www-form-urlencoded'})
 
@@ -348,10 +424,13 @@ class TestHTTPHelperBase(unittest.TestCase):
             },
         })
 
-        self.assertEqual(result.get_response().request.method, "GET")
-        self.assertEqual(result.get_response().status_code, 201)
-        self.assertEqual(json.loads(result.get_response().content.decode(result.get_response().encoding)).get("hello"), "world")
-        self.assertEqual(result.get_response().request.url, "mock://test.com")
+        self.assertEqual(result.get_request_method(), "GET")
+        self.assertEqual(result.get_status_code(), 201)
+        self.assertEqual(result.get_json(), {
+            'hello': 'world',
+            'pong': True,
+        })
+        self.assertEqual(result.get_request_url(), "mock://test.com")
 
     def test_full_unicode_request_and_response(self):
         unicode = ""
@@ -385,24 +464,33 @@ class TestHTTPHelperBase(unittest.TestCase):
             "response_status_code_validation": 200,
         })
 
-        self.assertEqual(result.get_response().request.method, "GET")
-        self.assertEqual(result.get_response().status_code, 200)
-        self.assertEqual(result.get_response().request.url, "mock://test.com")
-        self.assertEqual(result.get_response().request.headers, {'a': '1', 'Content-Length': '100'})
+        self.assertEqual(result.get_request_method(), "GET")
+        self.assertEqual(result.get_status_code(), 200)
+        self.assertEqual(result.get_request_url(), "mock://test.com")
+        self.assertEqual(result.get_request_headers(), {'a': '1', 'Content-Length': '100'})
 
     def test_compact_unicode_response(self):
-        unicode = ""
-        for i in range(100):
-            unicode = unicode + chr(i)
-
         http = HTTPHelper()
-        result = http.get({
+
+        unicode_json_response = http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
-            "mock_status": 201,
-            "mock_response": unicode,
+            "mock_status": 200,
+            "mock_response": {
+                'hello': u"Klüft skräms inför på fédéral électoral große",
+                '頁設是': u"頁設是煵엌嫠쯦案煪㍱從つ浳浤搰㍭煤洳橱橱迎事網計簡大㍵畱煵田煱둻睤㌹楤ぱ椹ぱ頹",
+            },
         })
 
-        self.assertEqual(result.get_response().request.method, "GET")
-        self.assertEqual(result.get_response().status_code, 201)
-        self.assertEqual(result.get_response().request.url, "mock://test.com")
+        unicode_text_response = http.get({
+            "endpoint": "mock://test.com",
+            "mock_enable": True,
+            "mock_status": 200,
+            "mock_response": u"頁設是煵엌嫠 Klüft skräms inför på 頁設是煵엌嫠 fédéral électoral große"
+        })
+
+        self.assertEqual(unicode_json_response.get_json(), {
+            'hello': u"Klüft skräms inför på fédéral électoral große",
+            '頁設是': u"頁設是煵엌嫠쯦案煪㍱從つ浳浤搰㍭煤洳橱橱迎事網計簡大㍵畱煵田煱둻睤㌹楤ぱ椹ぱ頹",
+        })
+        self.assertEqual(unicode_text_response.get_json(), None)

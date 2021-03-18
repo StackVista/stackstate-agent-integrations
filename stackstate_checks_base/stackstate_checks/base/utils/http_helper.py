@@ -9,6 +9,9 @@ from requests import Session, Request
 from requests.auth import HTTPBasicAuth
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
+import unicodedata
+import re
+from six import text_type
 
 try:
     import urlparse
@@ -150,24 +153,24 @@ class HTTPHelper:
             "request_type_validation": http_model.request_type_validation,
         })
 
-        response = HTTPHelperResponseHandler({
+        request_response = connection.send(session, request)
+
+        self.log.info("Received the following response from the external endpoint: {0}".format(request_response))
+
+        response_handler = HTTPHelperResponseHandler({
+            "response": request_response,
             "response_status_code_validation": http_model.response_status_code_validation,
             "response_type_validation": http_model.response_type_validation,
             "response_schematic_validation": http_model.response_schematic_validation,
         })
 
-        request_response = connection.send(session, request)
-
-        self.log.info("Received the following response from the external endpoint: {0}"
-                      .format(request_response))
-
         self.log.info("Attempting to validate the response content")
 
-        response.validate_body_schematic(request_response.get_response())
-        response.validate_status_code(request_response.get_response())
-        response.validate_body_type(request_response.get_response())
+        response_handler.validate_body_schematic()
+        response_handler.validate_status_code()
+        response_handler.validate_body_type()
 
-        return request_response
+        return response_handler
 
 
 class HTTPHelperRequestModel(Model):
@@ -770,25 +773,7 @@ class HTTPHelperConnectionHandler:
         if session_handler.get_session_model().auth_type is HTTPAuthenticationType.BasicAuth:
             session.auth = session_handler.create_basic_auth()
 
-        response = session.send(request.prepare(), timeout=self._connection_model.timeout)
-
-        return HTTPHelperConnectionResponseHandler(response, session_handler)
-
-
-class HTTPHelperConnectionResponseHandler:
-    """
-        This helper class is passed back to the user. This then exposes a few data points and function that the
-        user can use to retrieve data from the Helper classes
-    """
-    def __init__(self, response, session):
-        self._response = response
-        self._session = session
-
-    def get_response(self):
-        return self._response
-
-    def get_session(self):
-        return self._session
+        return session.send(request.prepare(), timeout=self._connection_model.timeout)
 
 
 class HTTPHelperResponseModel(Model):
@@ -797,6 +782,7 @@ class HTTPHelperResponseModel(Model):
         When using the `HTTPHelperResponseHandler` class there will be the only acceptable values to create state,This
         state can in turn be used within the HTTPHelper class
     """
+    response = BaseType(required=False, default=None)
     response_status_code_validation = IntType(required=False, default=None)
     response_type_validation = BaseType(required=False, default=None)
     response_schematic_validation = BaseType(required=False, default=None)
@@ -823,13 +809,49 @@ class HTTPHelperResponseHandler:
         self._response_model = HTTPHelperResponseModel(response_model) if response_model is not None \
             else HTTPHelperResponseModel()
 
-    def get_response_model(self):
+    def get_status_code(self):
         """
-        Functionality:
-            Display the current request model inside this class. This model will be used to create the Request() object
-            for the requests library
+        Return the status code response from the executed Session() object
         """
-        return self._response_model
+        return self._response_model.response.status_code
+
+    def get_json(self):
+        """
+        Return the already decoded json from the executed Session() object
+        """
+        # We first decode the response with the encoding header
+        decoded_response = self._response_model.response.content.decode(
+            self._response_model.response.encoding
+        )
+
+        # Next we use the json load function with its build-in unicode functionality to decode the object
+        # This will work on straight text or json objects
+        # This should take the object from a unicode state to a dict state
+        json_decoded_response = json.loads(decoded_response)
+
+        # If valid json was found return this json
+        if issubclass(type(json_decoded_response), dict):
+            return json_decoded_response
+        else:
+            return None
+
+    def get_request_method(self):
+        """
+        Return the request method from the executed Session(Request()) object
+        """
+        return self._response_model.response.request.method
+
+    def get_request_url(self):
+        """
+        Return the url from the executed Session(Request()) object
+        """
+        return self._response_model.response.request.url
+
+    def get_request_headers(self):
+        """
+        Return the headers from the executed Session(Request()) object
+        """
+        return self._response_model.response.request.headers
 
     def validate_response_model(self):
         """
@@ -838,14 +860,15 @@ class HTTPHelperResponseHandler:
         """
         self._response_model.validate()
 
-    def validate_body_schematic(self, response=None):
-        if self._response_model.response_schematic_validation is None:
+    def validate_body_schematic(self):
+        if self._response_model.response_schematic_validation is None or \
+                self._response_model.response is None:
             return True
 
         if issubclass(self._response_model.response_schematic_validation, Model) is True:
             try:
                 # Decode the response content with the encoding type also given by the response
-                decoded_response = response.content.decode(response.encoding)
+                decoded_response = self._response_model.response.content.decode(self._response_model.response.encoding)
 
                 # We attempt to decode the response to JSON. To test a schematic you need to have a JSON object to test
                 parsed_json = json.loads(decoded_response)
@@ -870,7 +893,7 @@ class HTTPHelperResponseHandler:
                 message = """Unable to parse the response as JSON.
                              The response received was {0}.
                              Full error from the JSON parse attempt {1}
-                             """.format(str(response.content), e)
+                             """.format(str(self._response_model.response.content), e)
                 raise ValueError(message)
 
         else:
@@ -880,16 +903,16 @@ class HTTPHelperResponseHandler:
                 .format(str(type(self._response_model.response_schematic_validation)))
             raise TypeError(message)
 
-    def validate_status_code(self, response):
+    def validate_status_code(self):
         if self._response_model.response_status_code_validation is None:
             return True
 
         if isinstance(self._response_model.response_status_code_validation, int):
-            if response.status_code != self._response_model.response_status_code_validation:
+            if self._response_model.response.status_code != self._response_model.response_status_code_validation:
                 message = """The response was unable to conform to the validation status code. The status code
                              applied was {0} The expected status code is {1}
                              To fix this you can either modify the status code validation or remove it entirely
-                             """.format(str(response.status_code),
+                             """.format(str(self._response_model.response.status_code),
                                         str(self._response_model.response_status_code_validation))
                 raise ValueError(message)
 
@@ -903,7 +926,7 @@ class HTTPHelperResponseHandler:
                          status code against""".format(str(type(self._response_model.response_status_code_validation)))
             raise TypeError(message)
 
-    def validate_body_type(self, http_response=None):
+    def validate_body_type(self):
         if self._response_model.response_type_validation is None:
             return True
 
@@ -913,7 +936,8 @@ class HTTPHelperResponseHandler:
             # If the type set is JSON. We then attempt to parse it and see if it is valid
             if issubclass(HTTPResponseType.JSON.value, self._response_model.response_type_validation.value):
                 try:
-                    data = json.loads(http_response.content.decode(http_response.encoding))
+                    data = json.loads(self._response_model.response.content.decode(
+                        self._response_model.response.encoding))
                     if isinstance(data, HTTPResponseType.JSON.value) is False:
                         raise ValueError()
                     else:
@@ -923,14 +947,15 @@ class HTTPHelperResponseHandler:
                     message = """Unable to parse the response as JSON.
                                  The response received was {0}.
                                  Full error from the JSON parse attempt {1}
-                                 """.format(str(http_response.content), e)
+                                 """.format(str(self._response_model.response.content), e)
                     raise ValueError(message)
 
-            elif isinstance(self._response_model.response_type_validation.value, type(http_response.content)) is False:
+            elif isinstance(self._response_model.response_type_validation.value,
+                            type(self._response_model.response.content)) is False:
                 message = """The response content type does not conform to the validation type. The response
                              type is {0}. The expected type is {1}
                              To fix this you can either modify the type validation or remove it entirely
-                             """.format(str(type(http_response.content)),
+                             """.format(str(type(self._response_model.response.content)),
                                         str(self._response_model.response_type_validation.value))
                 raise TypeError(message)
 
