@@ -1,5 +1,7 @@
 import unittest
 import json
+
+import pytest
 from schematics.models import Model, DataError
 from schematics.types import StringType, IntType, BooleanType
 from stackstate_checks.utils.http_helper import HTTPHelper, HTTPRequestType, HTTPAuthenticationType, HTTPResponseType
@@ -35,73 +37,55 @@ class TestHTTPHelperRequestHandler(unittest.TestCase):
     def test_get_request_model(self):
         request_handler = HTTPHelperRequestHandler()
         model = request_handler.get_request_model()
-        assert isinstance(model, HTTPHelperRequestModel)
+        self.assertTrue(isinstance(model, HTTPHelperRequestModel))
 
-        # Test the base model. This should fail as a few things are required
-        try:
+        with pytest.raises(DataError):
             request_handler.validate_request_model()
-        except DataError as e:
-            assert len(e.errors) == 2
 
     def test_create_request_object(self):
         HTTPHelperRequestHandler({"method": "GET",
                                   "endpoint": "mock://test.com"}).create_request_object()
 
     def test_method(self):
-        assert HTTPHelperRequestHandler({"method": "GET"}).get_request_model().method == "GET"
-        assert HTTPHelperRequestHandler({"method": "RANDOM"}).get_request_model().method == "RANDOM"
-        assert HTTPHelperRequestHandler({"method": "GET"}).validate_method() is True
+        self.assertEqual(HTTPHelperRequestHandler({"method": "GET"}).get_request_model().method, "GET")
+        self.assertEqual(HTTPHelperRequestHandler({"method": "RANDOM"}).get_request_model().method, "RANDOM")
+        self.assertTrue(HTTPHelperRequestHandler({"method": "GET"}).validate_method())
 
-        try:
+        with pytest.raises(ValueError):
             HTTPHelperRequestHandler().validate_method()
-            assert False
-        except ValueError:
-            assert True
 
-        try:
-            assert HTTPHelperRequestHandler({
-                "method": "RANDOM"
-            }).validate_method()
-            assert False
-
-        except NotImplementedError:
-            assert True
+        with pytest.raises(NotImplementedError):
+            HTTPHelperRequestHandler({"method": "RANDOM"}).validate_method()
 
     def test_url(self):
-        assert HTTPHelperRequestHandler({"endpoint": "http://mock.com"}).get_request_model().endpoint == \
-               "http://mock.com"
-        assert HTTPHelperRequestHandler({"endpoint": "http://mock.com"}).validate_endpoint() is True
+        self.assertEqual(HTTPHelperRequestHandler({"endpoint": "http://mock.com"}).get_request_model().endpoint,
+               "http://mock.com")
+        self.assertTrue(HTTPHelperRequestHandler({"endpoint": "http://mock.com"}).validate_endpoint())
 
-        try:
+        with pytest.raises(ValueError):
             HTTPHelperRequestHandler().validate_endpoint()
-            assert False
-        except ValueError:
-            assert True
 
-        try:
+        with pytest.raises(TypeError):
             HTTPHelperRequestHandler(-1).validate_endpoint()
-            assert False
-        except TypeError:
-            assert True
 
     def test_query_parameters(self):
-        assert HTTPHelperRequestHandler().validate_query_param() is True
-        assert HTTPHelperRequestHandler({"query": {"a": "1"}}).get_request_model().query == {"a": "1"}
-        assert HTTPHelperRequestHandler({"query": {}}).get_request_model().query == {}
-        assert HTTPHelperRequestHandler({"query": {"a": "1"}}).validate_query_param() is True
+        self.assertTrue(HTTPHelperRequestHandler().validate_query_param())
+        self.assertEqual(HTTPHelperRequestHandler({"query": {"a": "1"}}).get_request_model().query, {"a": "1"})
+        self.assertEqual(HTTPHelperRequestHandler({"query": {}}).get_request_model().query, {})
+        self.assertTrue(HTTPHelperRequestHandler({"query": {"a": "1"}}).validate_query_param())
         # There is no fail clause as you are unable to pass anything else than a dict or the schematic will complain
 
     def test_body(self):
-        assert HTTPHelperRequestHandler().validate_body() is True
-        assert HTTPHelperRequestHandler({"body": {"a": "1"}}).get_request_model().body == {"a": "1"}
-        assert HTTPHelperRequestHandler({"body": -1}).get_request_model().body == -1
-        assert HTTPHelperRequestHandler({"body": -1}).validate_body() is True
+        self.assertTrue(HTTPHelperRequestHandler().validate_body())
+        self.assertEqual(HTTPHelperRequestHandler({"body": {"a": "1"}}).get_request_model().body, {"a": "1"})
+        self.assertEqual(HTTPHelperRequestHandler({"body": -1}).get_request_model().body, -1)
+        self.assertTrue(HTTPHelperRequestHandler({"body": -1}).validate_body())
 
     def test_headers(self):
-        assert HTTPHelperRequestHandler().validate_headers() is True
-        assert HTTPHelperRequestHandler({"headers": {"a": "1"}}).get_request_model().headers == {"a": "1"}
-        assert HTTPHelperRequestHandler({"headers": {}}).get_request_model().headers == {}
-        assert HTTPHelperRequestHandler({"headers": {"a": "1"}}).validate_headers() is True
+        self.assertTrue(HTTPHelperRequestHandler().validate_headers())
+        self.assertEqual(HTTPHelperRequestHandler({"headers": {"a": "1"}}).get_request_model().headers, {"a": "1"})
+        self.assertEqual(HTTPHelperRequestHandler({"headers": {}}).get_request_model().headers, {})
+        self.assertTrue(HTTPHelperRequestHandler({"headers": {"a": "1"}}).validate_headers())
         # There is no fail clause as you are unable to pass anything else than a dict or the schematic will complain
 
     def test_authentication(self):
@@ -109,69 +93,62 @@ class TestHTTPHelperRequestHandler(unittest.TestCase):
             "auth_type": HTTPAuthenticationType.BasicAuth,
             "auth_data": {"username": "test", "password": "test"}
         })
-        assert auth_valid.get_request_model().auth_data == {"username": "test", "password": "test"}
-        assert auth_valid.get_request_model().auth_type == HTTPAuthenticationType.BasicAuth
+        self.assertEqual(auth_valid.get_request_model().auth_data, {"username": "test", "password": "test"})
+        self.assertEqual(auth_valid.get_request_model().auth_type, HTTPAuthenticationType.BasicAuth)
 
         auth_invalid = HTTPHelperRequestHandler({
             "auth_type": -1,
             "auth_data": {}
         })
-        assert auth_invalid.get_request_model().auth_data == {}
-        assert auth_invalid.get_request_model().auth_type == -1
-
-        assert auth_valid.validate_auth() is True
-        try:
-            assert auth_invalid.validate_auth() is True
-            assert False
-        except TypeError:
-            assert True
+        self.assertEqual(auth_invalid.get_request_model().auth_data, {})
+        self.assertEqual(auth_invalid.get_request_model().auth_type, -1)
+        self.assertTrue(auth_valid.validate_auth())
+        with pytest.raises(TypeError):
+            auth_invalid.validate_auth()
 
     def test_body_type_validation(self):
-        assert HTTPHelperRequestHandler().validate_body_type() is True
-        assert HTTPHelperRequestHandler({"request_type_validation": HTTPRequestType.JSON})\
-               .get_request_model().request_type_validation == HTTPRequestType.JSON
-        assert HTTPHelperRequestHandler({"request_type_validation": -1}) \
-               .get_request_model().request_type_validation == -1
-        assert HTTPHelperRequestHandler({
+        self.assertTrue(HTTPHelperRequestHandler().validate_body_type())
+        self.assertEqual(HTTPHelperRequestHandler({"request_type_validation": HTTPRequestType.JSON})\
+               .get_request_model().request_type_validation, HTTPRequestType.JSON)
+        self.assertEqual(HTTPHelperRequestHandler({"request_type_validation": -1}) \
+               .get_request_model().request_type_validation, -1)
+        self.assertTrue(HTTPHelperRequestHandler({
             "body": {},
             "request_type_validation": HTTPRequestType.JSON
-        }).validate_body_type()
-        try:
-            assert HTTPHelperRequestHandler({
+        }).validate_body_type())
+
+        with pytest.raises(ValueError):
+            HTTPHelperRequestHandler({
                 "request_type_validation": HTTPRequestType.JSON
             }).validate_body_type()
-            assert False
-        except ValueError:
-            assert True
 
     def test_body_schematic_validation(self):
-        assert HTTPHelperRequestHandler().validate_body_schematic() is True
-        assert HTTPHelperRequestHandler({"request_schematic_validation": BodyRequestSchematicTest}) \
-               .get_request_model().request_schematic_validation == BodyRequestSchematicTest
-        assert HTTPHelperRequestHandler({"request_schematic_validation": -1}) \
-               .get_request_model().request_schematic_validation == -1
-        assert HTTPHelperRequestHandler({
+        self.assertTrue(HTTPHelperRequestHandler().validate_body_schematic())
+        self.assertEqual(HTTPHelperRequestHandler({"request_schematic_validation": BodyRequestSchematicTest}) \
+               .get_request_model().request_schematic_validation, BodyRequestSchematicTest)
+        self.assertEqual(HTTPHelperRequestHandler({"request_schematic_validation": -1}) \
+               .get_request_model().request_schematic_validation, -1)
+        self.assertTrue(HTTPHelperRequestHandler({
             "body": {
                 "hello": "world",
                 "pong": True
             },
             "request_schematic_validation": BodyRequestSchematicTest
-        }).validate_body_schematic()
-        try:
-            assert HTTPHelperRequestHandler({
+        }).validate_body_schematic())
+
+        with pytest.raises(DataError):
+            HTTPHelperRequestHandler({
                 "body": {},
                 "request_schematic_validation": BodyRequestSchematicTest
             }).validate_body_schematic()
-            assert False
-        except DataError:
-            assert True
+
 
 
 class TestHTTPHelperSessionHandler(unittest.TestCase):
     def test_get_session_model(self):
         session_handler = HTTPHelperSessionHandler()
         model = session_handler.get_session_model()
-        assert isinstance(model, HTTPHelperSessionModel)
+        self.assertTrue(isinstance(model, HTTPHelperSessionModel))
 
         session_handler.validate_session_model()
 
@@ -179,10 +156,10 @@ class TestHTTPHelperSessionHandler(unittest.TestCase):
         HTTPHelperSessionHandler({}).create_session_object()
 
     def test_headers(self):
-        assert HTTPHelperSessionHandler().validate_headers() is True
-        assert HTTPHelperSessionHandler({"headers": {"a": "1"}}).get_session_model().headers == {"a": "1"}
-        assert HTTPHelperSessionHandler({"headers": {}}).get_session_model().headers == {}
-        assert HTTPHelperSessionHandler({"headers": {"a": "1"}}).validate_headers() is True
+        self.assertTrue(HTTPHelperSessionHandler().validate_headers())
+        self.assertEqual(HTTPHelperSessionHandler({"headers": {"a": "1"}}).get_session_model().headers, {"a": "1"})
+        self.assertEqual(HTTPHelperSessionHandler({"headers": {}}).get_session_model().headers, {})
+        self.assertTrue(HTTPHelperSessionHandler({"headers": {"a": "1"}}).validate_headers())
         # There is no fail clause as you are unable to pass anything else than a dict or the schematic will complain
 
     def test_authentication(self):
@@ -190,90 +167,70 @@ class TestHTTPHelperSessionHandler(unittest.TestCase):
             "auth_type": HTTPAuthenticationType.BasicAuth,
             "auth_data": {"username": "test", "password": "test"}
         })
-        assert auth_valid.get_session_model().auth_data == {"username": "test", "password": "test"}
-        assert auth_valid.get_session_model().auth_type == HTTPAuthenticationType.BasicAuth
+        self.assertEqual(auth_valid.get_session_model().auth_data, {"username": "test", "password": "test"})
+        self.assertEqual(auth_valid.get_session_model().auth_type, HTTPAuthenticationType.BasicAuth)
 
         auth_invalid = HTTPHelperSessionHandler({
             "auth_type": -1,
             "auth_data": {}
         })
-        assert auth_invalid.get_session_model().auth_data == {}
-        assert auth_invalid.get_session_model().auth_type == -1
+        self.assertEqual(auth_invalid.get_session_model().auth_data, {})
+        self.assertEqual(auth_invalid.get_session_model().auth_type, -1)
+        self.assertTrue(auth_valid.validate_auth())
 
-        assert auth_valid.validate_auth() is True
-        try:
-            assert auth_invalid.validate_auth() is True
-            assert False
-        except TypeError:
-            assert True
+        with pytest.raises(TypeError):
+            auth_invalid.validate_auth()
 
 
 class TestHTTPHelperConnectionHandler(unittest.TestCase):
     def test_get_connection_model(self):
         connection_handler = HTTPHelperConnectionHandler()
         model = connection_handler.get_connection_model()
-        assert isinstance(model, HTTPHelperConnectionModel)
+        self.assertTrue(isinstance(model, HTTPHelperConnectionModel))
 
         connection_handler.validate_connection_model()
 
     def test_timeout(self):
-        assert HTTPHelperConnectionHandler({"timeout": 10}).get_connection_model().timeout == 10
-        assert HTTPHelperConnectionHandler({"timeout": 10}).validate_timeout() is True
-        try:
-            HTTPHelperConnectionHandler({"timeout": "RANDOM"})
-            assert False
-        except DataError:
-            assert True
+        self.assertEqual(HTTPHelperConnectionHandler({"timeout": 10}).get_connection_model().timeout, 10)
+        self.assertTrue(HTTPHelperConnectionHandler({"timeout": 10}).validate_timeout())
 
-        try:
+        with pytest.raises(DataError):
+            HTTPHelperConnectionHandler({"timeout": "RANDOM"})
+
+        with pytest.raises(DataError):
             HTTPHelperConnectionHandler({"timeout": "RANDOM"}).validate_timeout()
-            assert False
-        except DataError:
-            assert True
 
     def test_retry_policy(self):
-        assert HTTPHelperConnectionHandler({"retry_policy": {}}).get_connection_model().retry_policy == {}
-        assert HTTPHelperConnectionHandler({"retry_policy": 1}).get_connection_model().retry_policy == 1
-        assert HTTPHelperConnectionHandler({"retry_policy": {}}).validate_retry_policy() is True
-        try:
+        self.assertEqual(HTTPHelperConnectionHandler({"retry_policy": {}}).get_connection_model().retry_policy, {})
+        self.assertEqual(HTTPHelperConnectionHandler({"retry_policy": 1}).get_connection_model().retry_policy, 1)
+        self.assertTrue(HTTPHelperConnectionHandler({"retry_policy": {}}).validate_retry_policy())
+        with pytest.raises(TypeError):
             HTTPHelperConnectionHandler({"retry_policy": {"random": 0}}).validate_retry_policy()
-            assert False
-        except TypeError:
-            assert True
 
     def test_ssl_verify(self):
-        assert HTTPHelperConnectionHandler({"ssl_verify": True}).get_connection_model().ssl_verify is True
-        assert HTTPHelperConnectionHandler({"ssl_verify": True}).validate_ssl_verify() is True
-        try:
+        self.assertTrue(HTTPHelperConnectionHandler({"ssl_verify": True}).get_connection_model().ssl_verify)
+        self.assertTrue(HTTPHelperConnectionHandler({"ssl_verify": True}).validate_ssl_verify())
+        with pytest.raises(DataError):
             HTTPHelperConnectionHandler({"ssl_verify": "-1"}).validate_ssl_verify()
-            assert False
-        except DataError:
-            assert True
 
     def test_retry_proxy(self):
-        assert HTTPHelperConnectionHandler({"proxy": {}}).get_connection_model().proxy == {}
-        assert HTTPHelperConnectionHandler({"proxy": 1}).get_connection_model().proxy == 1
-        assert HTTPHelperConnectionHandler({"proxy": {}}).validate_proxy() is True
-        try:
+        self.assertEqual(HTTPHelperConnectionHandler({"proxy": {}}).get_connection_model().proxy, {})
+        self.assertEqual(HTTPHelperConnectionHandler({"proxy": 1}).get_connection_model().proxy, 1)
+        self.assertTrue(HTTPHelperConnectionHandler({"proxy": {}}).validate_proxy())
+        with pytest.raises(TypeError):
             HTTPHelperConnectionHandler({"proxy": 1}).validate_proxy()
-            assert False
-        except TypeError:
-            assert True
-
-    def test_send(self):
-        assert True
 
 
 class TestHTTPHelperResponseHandler(unittest.TestCase):
     def test_get_response_model(self):
         response_handler = HTTPHelperResponseHandler()
         model = response_handler.get_response_model()
-        assert isinstance(model, HTTPHelperResponseModel)
+        self.assertTrue(isinstance(model, HTTPHelperResponseModel))
         response_handler.validate_response_model()
 
     def test_body_schematic_validation(self):
         http = HTTPHelper()
-        valid_response = http.get({
+        valid_result = http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
@@ -282,35 +239,30 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
                 'pong': True,
             },
         })
-        invalid_response = http.get({
+        invalid_result = http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
             "mock_response": "test",
         })
 
-        assert HTTPHelperResponseHandler().validate_body_schematic() is True
-        assert HTTPHelperResponseHandler({"response_schematic_validation": BodyResponseSchematicTest}) \
-               .get_response_model().response_schematic_validation == BodyResponseSchematicTest
-
-        assert HTTPHelperResponseHandler({"response_schematic_validation": -1}) \
-               .get_response_model().response_schematic_validation == -1
-
-        assert HTTPHelperResponseHandler({
+        self.assertTrue(HTTPHelperResponseHandler().validate_body_schematic())
+        self.assertEqual(HTTPHelperResponseHandler({"response_schematic_validation": BodyResponseSchematicTest}) \
+            .get_response_model().response_schematic_validation, BodyResponseSchematicTest)
+        self.assertEqual(HTTPHelperResponseHandler({"response_schematic_validation": -1}) \
+            .get_response_model().response_schematic_validation, -1)
+        self.assertTrue(HTTPHelperResponseHandler({
             "response_schematic_validation": BodyResponseSchematicTest
-        }).validate_body_schematic(valid_response)
+        }).validate_body_schematic(valid_result.get_response()))
 
-        try:
-            assert HTTPHelperResponseHandler({
+        with pytest.raises(ValueError):
+            HTTPHelperResponseHandler({
                 "response_schematic_validation": BodyResponseSchematicTest
-            }).validate_body_schematic(invalid_response)
-            assert False
-        except ValueError:
-            assert True
+            }).validate_body_schematic(invalid_result.get_response())
 
     def test_body_type_validation(self):
         http = HTTPHelper()
-        valid_response = http.get({
+        valid_result = http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
@@ -318,34 +270,32 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
                 'hello': 'world'
             },
         })
-        invalid_response = http.get({
+        invalid_result = http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
             "mock_response": "test",
         })
 
-        assert HTTPHelperResponseHandler().validate_body_type() is True
-        assert HTTPHelperResponseHandler({"response_type_validation": HTTPRequestType.JSON}) \
-               .get_response_model().response_type_validation == HTTPRequestType.JSON
-        assert HTTPHelperResponseHandler({"response_type_validation": -1}) \
-               .get_response_model().response_type_validation == -1
-        assert HTTPHelperResponseHandler({
+        self.assertTrue(HTTPHelperResponseHandler().validate_body_type() is True)
+        self.assertEqual(HTTPHelperResponseHandler({"response_type_validation": HTTPRequestType.JSON}) \
+               .get_response_model().response_type_validation, HTTPRequestType.JSON)
+        self.assertEqual(HTTPHelperResponseHandler({"response_type_validation": -1}) \
+               .get_response_model().response_type_validation, -1)
+        self.assertTrue(HTTPHelperResponseHandler({
             "response_type_validation": HTTPRequestType.JSON
-        }).validate_body_type(valid_response)
-        try:
+        }).validate_body_type(valid_result.get_response()))
+
+        with pytest.raises(ValueError):
             HTTPHelperResponseHandler({
                 "response_type_validation": HTTPRequestType.JSON
-            }).validate_body_type(invalid_response)
-            assert False
-        except ValueError:
-            assert True
+            }).validate_body_type(invalid_result.get_response())
 
 
 class TestHTTPHelperBase(unittest.TestCase):
     def test_full_get(self):
         http = HTTPHelper()
-        response = http.get({
+        result = http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
@@ -378,17 +328,17 @@ class TestHTTPHelperBase(unittest.TestCase):
             "response_schematic_validation": BodyResponseSchematicTest,
         })
 
-        assert response.request.method == "GET"
-        assert response.status_code == 200
-        assert json.loads(response.content.decode(response.encoding)).get("hello") == "world"
-        assert response.request.url == "mock://test.com"
-        assert response.request.headers == {'a': '1',
+        self.assertEqual(result.get_response().request.method, "GET")
+        self.assertEqual(result.get_response().status_code, 200)
+        self.assertEqual(json.loads(result.get_response().content.decode(result.get_response().encoding)).get("hello"), "world")
+        self.assertEqual(result.get_response().request.url, "mock://test.com")
+        self.assertEqual(result.get_response().request.headers, {'a': '1',
                                             'Content-Length': '21',
-                                            'Content-Type': 'application/x-www-form-urlencoded'}
+                                            'Content-Type': 'application/x-www-form-urlencoded'})
 
     def test_compact_get(self):
         http = HTTPHelper()
-        response = http.get({
+        result = http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 201,
@@ -398,10 +348,10 @@ class TestHTTPHelperBase(unittest.TestCase):
             },
         })
 
-        assert response.request.method == "GET"
-        assert response.status_code == 201
-        assert json.loads(response.content.decode(response.encoding)).get("hello") == "world"
-        assert response.request.url == "mock://test.com"
+        self.assertEqual(result.get_response().request.method, "GET")
+        self.assertEqual(result.get_response().status_code, 201)
+        self.assertEqual(json.loads(result.get_response().content.decode(result.get_response().encoding)).get("hello"), "world")
+        self.assertEqual(result.get_response().request.url, "mock://test.com")
 
     def test_full_unicode_request_and_response(self):
         unicode = ""
@@ -409,7 +359,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             unicode = unicode + chr(i)
 
         http = HTTPHelper()
-        response = http.get({
+        result = http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
@@ -435,10 +385,10 @@ class TestHTTPHelperBase(unittest.TestCase):
             "response_status_code_validation": 200,
         })
 
-        assert response.request.method == "GET"
-        assert response.status_code == 200
-        assert response.request.url == "mock://test.com"
-        assert response.request.headers == {'a': '1', 'Content-Length': '100'}
+        self.assertEqual(result.get_response().request.method, "GET")
+        self.assertEqual(result.get_response().status_code, 200)
+        self.assertEqual(result.get_response().request.url, "mock://test.com")
+        self.assertEqual(result.get_response().request.headers, {'a': '1', 'Content-Length': '100'})
 
     def test_compact_unicode_response(self):
         unicode = ""
@@ -446,13 +396,13 @@ class TestHTTPHelperBase(unittest.TestCase):
             unicode = unicode + chr(i)
 
         http = HTTPHelper()
-        response = http.get({
+        result = http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 201,
             "mock_response": unicode,
         })
 
-        assert response.request.method == "GET"
-        assert response.status_code == 201
-        assert response.request.url == "mock://test.com"
+        self.assertEqual(result.get_response().request.method, "GET")
+        self.assertEqual(result.get_response().status_code, 201)
+        self.assertEqual(result.get_response().request.url, "mock://test.com")
