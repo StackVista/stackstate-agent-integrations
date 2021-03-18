@@ -1,3 +1,5 @@
+# coding=utf-8
+
 import json
 import requests_mock
 import logging
@@ -9,9 +11,16 @@ from requests import Session, Request
 from requests.auth import HTTPBasicAuth
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
+from ..utils.common import ensure_string, ensure_unicode
 import unicodedata
 import re
 from six import text_type
+import sys
+
+PY2 = sys.version_info[0] == 2
+PY3 = sys.version_info[0] == 3
+
+to_string = ensure_unicode if PY3 else ensure_string
 
 try:
     import urlparse
@@ -816,24 +825,72 @@ class HTTPHelperResponseHandler:
         return self._response_model.response.status_code
 
     def get_json(self):
-        """
-        Return the already decoded json from the executed Session() object
-        """
-        # We first decode the response with the encoding header
-        decoded_response = self._response_model.response.content.decode(
-            self._response_model.response.encoding
-        )
+        if PY2:
+            try:
+                fixed_value = to_string(self._response_model.response.content.decode(
+                    self._response_model.response.encoding
+                ))
+                print("fixed_value-", fixed_value)
+            except UnicodeError as e:
+                self.log.warning("Error while encoding unicode to string")
+                raise e
 
-        # Next we use the json load function with its build-in unicode functionality to decode the object
-        # This will work on straight text or json objects
-        # This should take the object from a unicode state to a dict state
-        json_decoded_response = json.loads(decoded_response)
+            try:
+                fixed_value = to_string(self._response_model.response.content)
+                print("fixed_value-", fixed_value)
+            except UnicodeError as e:
+                self.log.warning("Error while encoding unicode to string")
+                raise e
 
-        # If valid json was found return this json
-        if issubclass(type(json_decoded_response), dict):
-            return json_decoded_response
-        else:
+            try:
+                fixed_value = to_string(self._response_model.response.text)
+                print("fixed_value-", fixed_value)
+            except UnicodeError as e:
+                self.log.warning("Error while encoding unicode to string")
+                raise e
+
+            # print("-- testing PY2 -- awe")
+            # text = self._response_model.response.text
+            # print(text)
+            # print(ensure_string(text))
+#
+            # content = self._response_model.response.content
+            # print(ensure_string(content))
+#
+            # data1 = self._response_model.response.text.encode("utf-8")
+            # print(data1)
+#
+            # data2 = data1.decode("utf-8")
+            # print(data2)
+
+            # print("-- testing PY2 --")
+            # decoded_response = self._response_model.response.content.decode('latin1')
+            # print(self._response_model.response.encoding)
+            # print(decoded_response)
             return None
+
+        else:
+            """
+            Return the already decoded json from the executed Session() object
+            """
+            # We first decode the response with the encoding header
+            decoded_response = self._response_model.response.content.decode(
+                self._response_model.response.encoding
+            )
+
+            # Next we use the json load function with its build-in unicode functionality to decode the object
+            # This will work on straight text or json objects
+            # This should take the object from a unicode state to a dict state
+            json_decoded_response = json.loads(decoded_response)
+
+            print("-- testing PY3 --")
+            print(json_decoded_response)
+
+            # If valid json was found return this json
+            if issubclass(type(json_decoded_response), dict):
+                return json_decoded_response
+            else:
+                return None
 
     def get_request_method(self):
         """
