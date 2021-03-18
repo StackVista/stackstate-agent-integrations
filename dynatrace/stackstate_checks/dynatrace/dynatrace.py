@@ -308,8 +308,8 @@ class DynatraceCheck(AgentCheck):
         """
         entities_with_events = []
         events, events_limit_reached = self._collect_events(instance_info)
-        closed_events = len([e for e in events if e.get('eventStatus') == 'CLOSED'])
         open_events = len([e for e in events if e.get('eventStatus') == 'OPEN'])
+        closed_events = len(events) - open_events
         self.log.info("Collected %d events, %d are open and %d are closed.", len(events), open_events, closed_events)
         for event in events:
             self._create_event(event, instance_info.url)
