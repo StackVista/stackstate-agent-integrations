@@ -22,6 +22,12 @@ instances:
     # Verify https. Default value is true.
     # verify_https: true
 
+    # path to certificate file for https verification
+    # cert: /path/to/cert.pem
+
+    # path to public key of certificate for https verification
+    # keyfile: /path/to/key.pem
+
     # ServiceNow Custom filter. Check ServiceNow documentation about filtering with sysparm_query parameter.
     # https://developer.servicenow.com/dev.do#!/learn/learning-plans/orlando/servicenow_application_developer/app_store_learnv2_rest_orlando_more_about_query_parameters
 
