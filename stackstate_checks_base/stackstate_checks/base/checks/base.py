@@ -235,6 +235,11 @@ class AgentCheckBase(object):
             if self._get_instance_key().with_snapshots:
                 topology.submit_start_snapshot(self, self.check_id, self._get_instance_key_dict())
 
+            # run all check mixin pre run tasks
+            for base in self.__class__.__bases__:
+                if issubclass(base, CheckMixin):
+                    base.pre_run_task(self)
+
             # create integration instance components for monitoring purposes
             self.create_integration_instance()
             # create a copy of the check instance, get state if any and add it to the instance object for the check
@@ -257,6 +262,11 @@ class AgentCheckBase(object):
             # stop auto snapshot if with_snapshots is set to True
             if self._get_instance_key().with_snapshots:
                 topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key_dict())
+
+            # run all check mixin pre run tasks
+            for base in self.__class__.__bases__:
+                if issubclass(base, CheckMixin):
+                    base.post_run_task(self)
 
             result = default_result
         except Exception as e:
@@ -1262,6 +1272,56 @@ class __AgentCheckPy2(AgentCheckBase):
 
     def run(self):
         return self._check_run_base(b'')
+
+
+class CheckMixin(object):
+
+    def __init__(self, *args, **kwargs):
+        # Initialize AgentCheck's base class
+        super(CheckMixin, self).__init__(*args, **kwargs)
+
+    def pre_run_task(self, **kwargs):
+        raise NotImplementedError
+    def post_run_task(self, **kwargs):
+        raise NotImplementedError
+
+
+class AutoSnapshotMixin(CheckMixin):
+
+    def pre_run_task(self, **kwargs):
+        # start auto snapshot if with_snapshots is set to True
+        topology.submit_start_snapshot(self, self.check_id, self._get_instance_key_dict())
+
+    def post_run_task(self, **kwargs):
+        # stop auto snapshot if with_snapshots is set to True
+        topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key_dict())
+
+
+class StateFulMixin(CheckMixin):
+
+    def __init__(self, *args, **kwargs):
+        # Initialize AgentCheck's base class
+        super(StateFulMixin, self).__init__(*args, **kwargs)
+        self.state_manager = StateManager(self.log)
+
+    def pre_run_task(self, **kwargs):
+        state_descriptor = self._get_state_descriptor()
+        current_state = copy.deepcopy(self.state_manager.get_state(state_descriptor))
+        if current_state:
+            check_instance[self.STATE_FIELD_NAME] = current_state
+
+    def post_run_task(self, **kwargs):
+        # set the state from the check instance
+        self.state_manager.set_state(state_descriptor, check_instance.get(self.STATE_FIELD_NAME))
+
+    def _get_state_descriptor(self):
+        integration_instance = self._get_instance_key()
+        instance_key = to_string(
+            self.normalize("instance.{}.{}".format(integration_instance.type, integration_instance.url),
+                           extra_disallowed_chars=b":")
+        )
+
+        return StateDescriptor(instance_key, self.get_check_state_path())
 
 
 if PY3:

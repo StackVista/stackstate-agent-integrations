@@ -31,7 +31,7 @@ class DynatraceTopologyCheck(AgentCheck):
         if 'url' not in instance:
             raise ConfigurationError('Missing url in configuration.')
 
-        return TopologyInstance(self.INSTANCE_TYPE, instance["url"], with_snapshots=False)
+        return TopologyInstance(self.INSTANCE_TYPE, instance["url"])
 
     def check(self, instance):
         """
