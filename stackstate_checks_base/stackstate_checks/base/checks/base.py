@@ -1027,7 +1027,7 @@ class __AgentCheckPy3(AgentCheckBase):
         if event.get('source_type_name'):
             self._log_deprecation("source_type_name")
             if 'event_type' not in event:
-                event['event_type'] = ensure_string(event['source_type_name'])
+                event['event_type'] = ensure_unicode(event['source_type_name'])
 
         if 'context' in event:
             telemetry.submit_topology_event(self, self.check_id, event)
