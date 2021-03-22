@@ -11,16 +11,11 @@ from requests import Session, Request
 from requests.auth import HTTPBasicAuth
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
-from ..utils.common import ensure_string, ensure_unicode
-import unicodedata
-import re
-from six import text_type
+from ..utils.common import ensure_string, ensure_unicode, to_string
 import sys
 
 PY2 = sys.version_info[0] == 2
 PY3 = sys.version_info[0] == 3
-
-to_string = ensure_unicode if PY3 else ensure_string
 
 try:
     import urlparse
@@ -62,7 +57,8 @@ class HTTPHelperModel(Model):
     """
     mock_enable = BooleanType(required=False, default=False)
     mock_status = IntType(required=False, default=None)
-    mock_response = BaseType(required=False, default=None)
+    mock_json = BaseType(required=False, default=None)
+    mock_text = BaseType(required=False, default=None)
     endpoint = StringType(required=True, default=None)
     auth_data = DictType(BaseType, required=False, default=None)
     auth_type = BaseType(required=False, default=None)
@@ -147,7 +143,8 @@ class HTTPHelper:
                 "auth_type": http_model.session_auth_type,
                 "mock_enable": http_model.mock_enable,
                 "mock_status": http_model.mock_status,
-                "mock_response": http_model.mock_response
+                "mock_json": http_model.mock_json,
+                "mock_text": http_model.mock_text
             })
 
         request = HTTPHelperRequestHandler({
@@ -512,7 +509,8 @@ class HTTPHelperSessionModel(Model):
     """
     mock_enable = BooleanType(required=False, default=False)
     mock_status = IntType(required=False, default=None)
-    mock_response = BaseType(required=False, default=None)
+    mock_json = BaseType(required=False, default=None)
+    mock_text = BaseType(required=False, default=None)
     headers = DictType(StringType, default=dict({}))
     auth_data = BaseType(required=False, default=None)
     auth_type = BaseType(required=False, default=None)
@@ -756,7 +754,8 @@ class HTTPHelperConnectionHandler:
             adapter.register_uri(request_handler.get_request_model().method,
                                  str(request_handler.get_request_model().endpoint),
                                  status_code=session_handler.get_session_model().mock_status,
-                                 json=session_handler.get_session_model().mock_response)
+                                 json=session_handler.get_session_model().mock_json,
+                                 text=session_handler.get_session_model().mock_text)
             session.mount('mock://', adapter)
 
         # Apply the retry policy
@@ -826,48 +825,27 @@ class HTTPHelperResponseHandler:
 
     def get_json(self):
         if PY2:
-            try:
-                fixed_value = to_string(self._response_model.response.content.decode(
-                    self._response_model.response.encoding
-                ))
-                print("fixed_value-", fixed_value)
-            except UnicodeError as e:
-                self.log.warning("Error while encoding unicode to string")
-                raise e
+            """
+            Return the already decoded json from the executed Session() object
+            """
 
-            try:
-                fixed_value = to_string(self._response_model.response.content)
-                print("fixed_value-", fixed_value)
-            except UnicodeError as e:
-                self.log.warning("Error while encoding unicode to string")
-                raise e
+            # We first decode the response with the encoding header
+            decoded_response = self._response_model.response.content.decode(
+                self._response_model.response.encoding
+            )
 
-            try:
-                fixed_value = to_string(self._response_model.response.text)
-                print("fixed_value-", fixed_value)
-            except UnicodeError as e:
-                self.log.warning("Error while encoding unicode to string")
-                raise e
+            ensured_string_values = to_string(decoded_response)
 
-            # print("-- testing PY2 -- awe")
-            # text = self._response_model.response.text
-            # print(text)
-            # print(ensure_string(text))
-#
-            # content = self._response_model.response.content
-            # print(ensure_string(content))
-#
-            # data1 = self._response_model.response.text.encode("utf-8")
-            # print(data1)
-#
-            # data2 = data1.decode("utf-8")
-            # print(data2)
+            # Next we use the json load function with its build-in unicode functionality to decode the object
+            # This will work on straight text or json objects
+            # This should take the object from a unicode state to a dict state
+            json_decoded_response = json.loads(ensured_string_values)
 
-            # print("-- testing PY2 --")
-            # decoded_response = self._response_model.response.content.decode('latin1')
-            # print(self._response_model.response.encoding)
-            # print(decoded_response)
-            return None
+            # If valid json was found return this json
+            if issubclass(type(json_decoded_response), dict):
+                return json_decoded_response
+            else:
+                return None
 
         else:
             """
@@ -878,13 +856,12 @@ class HTTPHelperResponseHandler:
                 self._response_model.response.encoding
             )
 
+            ensured_string_values = to_string(decoded_response)
+
             # Next we use the json load function with its build-in unicode functionality to decode the object
             # This will work on straight text or json objects
             # This should take the object from a unicode state to a dict state
-            json_decoded_response = json.loads(decoded_response)
-
-            print("-- testing PY3 --")
-            print(json_decoded_response)
+            json_decoded_response = json.loads(ensured_string_values)
 
             # If valid json was found return this json
             if issubclass(type(json_decoded_response), dict):

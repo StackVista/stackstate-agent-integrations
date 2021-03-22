@@ -8,6 +8,7 @@ from stackstate_checks.utils.http_helper import HTTPHelper, HTTPRequestType, HTT
 from stackstate_checks.utils.http_helper import HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPMethod
 from stackstate_checks.utils.http_helper import HTTPHelperResponseHandler, HTTPHelperConnectionHandler, \
     HTTPHelperRequestModel, HTTPHelperConnectionModel, HTTPHelperSessionModel, HTTPHelperResponseModel
+from stackstate_checks.utils.common import ensure_string, ensure_unicode, to_string
 
 """
 Structures used within the test cases
@@ -28,34 +29,26 @@ class BodyResponseSchematicTest(Model):
     pong = BooleanType(required=True)
 
 
-"""
- HTTP Helper Request Class
-"""
-
 class TestHTTPHelperBase(unittest.TestCase):
+    """
+     HTTP Helper Request Class
+    """
     def test_compact_unicode_response(self):
         http = HTTPHelper()
-        unicode_json_response = http.get({
+        http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_response": {
-                'hello': u"Klüft skräms inför på fédéral électoral große",
-                '頁設是': u"頁設是煵엌嫠쯦案煪㍱從つ浳浤搰㍭煤洳橱橱迎事網計簡大㍵畱煵田煱둻睤㌹楤ぱ椹ぱ頹",
+            "mock_json": {
+                'hello': "Klüft skräms inför på fédéral électoral große",
+                '頁設是': "頁設是煵엌嫠쯦案煪㍱從つ浳浤搰㍭煤洳橱橱迎事網計簡大㍵畱煵田煱둻睤㌹楤ぱ椹ぱ頹",
             },
         })
-        self.assertEqual(unicode_json_response.get_json(), {
-            'hello': u"Klüft skräms inför på fédéral électoral große",
-            '頁設是': u"頁設是煵엌嫠쯦案煪㍱從つ浳浤搰㍭煤洳橱橱迎事網計簡大㍵畱煵田煱둻睤㌹楤ぱ椹ぱ頹",
-        })
-
-        # http.get({
-        #     "endpoint": "mock://test.com",
-        #     "mock_enable": True,
-        #     "mock_status": 200,
-        #     "mock_response": u"頁設是煵엌嫠 Klüft skräms inför på 頁設是煵엌嫠 fédéral électoral große"
-        # })
         # unicode_json_response.get_json()
+        # self.assertEqual(unicode_json_response.get_json(), {
+        #     'hello': u"Klüft skräms inför på fédéral électoral große",
+        #     '頁設是': u"頁設是煵엌嫠쯦案煪㍱從つ浳浤搰㍭煤洳橱橱迎事網計簡大㍵畱煵田煱둻睤㌹楤ぱ椹ぱ頹",
+        # })
 
     def test_full_get(self):
         http = HTTPHelper()
@@ -63,7 +56,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_response": {
+            "mock_json": {
                 'hello': 'world',
                 'pong': True,
             },
@@ -109,7 +102,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 201,
-            "mock_response": {
+            "mock_json": {
                 'hello': 'world',
                 'pong': True,
             },
@@ -133,7 +126,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_response": unicode,
+            "mock_json": unicode,
             "auth_data": {
                 'username': 'world',
                 'password': 'hello'
@@ -355,7 +348,7 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_response": {
+            "mock_json": {
                 'hello': 'world',
                 'pong': True,
             },
@@ -368,7 +361,7 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_response": {
+            "mock_json": {
                 'hello': 'world',
                 'pong': True,
             },
@@ -384,7 +377,7 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_response": {
+            "mock_json": {
                 'hello': 'world',
                 'pong': True,
             },
@@ -397,7 +390,7 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_response": {
+            "mock_json": {
                 'hello': 'world',
                 'pong': True,
             },
@@ -410,7 +403,7 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_response": {
+            "mock_json": {
                 'hello': 'world',
                 'pong': True,
             },
@@ -423,7 +416,7 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_response": {
+            "mock_json": {
                 'hello': 'world',
                 'pong': True,
             },
@@ -435,7 +428,7 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
                 "endpoint": "mock://test.com",
                 "mock_enable": True,
                 "mock_status": 200,
-                "mock_response": "test",
+                "mock_json": "test",
                 "response_schematic_validation": BodyResponseSchematicTest,
             })
 
@@ -445,7 +438,7 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_response": {
+            "mock_json": {
                 'hello': 'world',
                 'pong': True,
             },
@@ -457,7 +450,7 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
                 "endpoint": "mock://test.com",
                 "mock_enable": True,
                 "mock_status": 200,
-                "mock_response": "test",
+                "mock_json": "test",
                 "response_type_validation": HTTPResponseType.JSON,
             })
 
@@ -467,7 +460,7 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_response": {
+            "mock_json": {
                 'hello': 'world',
                 'pong': True,
             },
@@ -479,7 +472,6 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
                 "endpoint": "mock://test.com",
                 "mock_enable": True,
                 "mock_status": 201,
-                "mock_response": "test",
+                "mock_json": "test",
                 "response_status_code_validation": 200,
             })
-#
