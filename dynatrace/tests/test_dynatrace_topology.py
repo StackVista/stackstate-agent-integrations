@@ -112,14 +112,10 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         Testing Dynatrace check should collect applications and also the tags properly coming from dynatrace
         """
         self._set_http_responses(m, apps=read_file("application_response.json"))
-
         self.check.url = self.instance.get('url')
-
         self.check.run()
-
         topo_instances = topology.get_snapshot(self.check.check_id)
         expected_topology = load_json_from_file("expected_application_topology.json")
-
         # sort the keys of components and relations, so we match it in actual
         self.assert_topology(expected_topology, topo_instances)
 
@@ -129,13 +125,10 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         Testing Dynatrace check should collect process-groups
         """
         self._set_http_responses(m, proc_groups=read_file("process-group_response.json"))
-
         self.check.url = self.instance.get('url')
         self.check.run()
-
         topo_instances = topology.get_snapshot(self.check.check_id)
         actual_topology = load_json_from_file("expected_process-group_topology.json")
-
         # sort the keys of components and relations, so we match it in actual
         self.assert_topology(actual_topology, topo_instances)
 
@@ -147,11 +140,9 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         self._set_http_responses(m, hosts=read_file("host_response.json"))
         self.check.url = self.instance.get('url')
         self.check.run()
-
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 2)
         self.assertEqual(len(topo_instances['relations']), 5)
-
         # since all relations are to this host itself so target id is same
         relation = topo_instances['relations'][0]
         self.assertEqual(relation['target_id'], 'HOST-6AAE0F78BCF2E0F4')

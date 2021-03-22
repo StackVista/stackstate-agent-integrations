@@ -34,12 +34,16 @@ def test_instance():
         "token": "some_token",
         "events_process_limit": 10,
         "events_boostrap_days": 5,
-        "timeout": 20
+        "timeout": 20,
+        "stackstate-layer": "test-layer",
+        "stackstate-domain": "test-domain",
+        "stackstate-environment": "test-environment",
+        "stackstate-identifier": "test-identifier"
     }
 
 
 @pytest.fixture
-def dynatrace_event_check(test_instance):
+def dynatrace_check(test_instance):
     check = DynatraceCheck('dynatrace', {}, instances=[test_instance])
     yield check
     aggregator.reset()
