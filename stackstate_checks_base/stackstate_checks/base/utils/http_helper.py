@@ -834,7 +834,7 @@ class HTTPHelperResponseHandler:
                 self._response_model.response.encoding
             )
 
-            ensured_string_values = to_string(decoded_response)
+            ensured_string_values = ensure_unicode(decoded_response)
 
             # Next we use the json load function with its build-in unicode functionality to decode the object
             # This will work on straight text or json objects
