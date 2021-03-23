@@ -4,12 +4,13 @@
 import datetime
 import json
 
+from requests import Session
+
 try:
     json_parse_exception = json.decoder.JSONDecodeError
 except AttributeError:  # Python 2
     json_parse_exception = ValueError
 
-import requests
 from schematics import Model
 from schematics.exceptions import DataError
 from schematics.types import URLType, StringType, ListType, IntType, DictType, DateTimeType, ModelType, BooleanType
@@ -98,6 +99,8 @@ class InstanceInfo(Model):
     batch_size = IntType(default=BATCH_DEFAULT_SIZE, max_value=BATCH_MAX_SIZE)
     timeout = IntType(default=TIMEOUT)
     verify_https = BooleanType(default=VERIFY_HTTPS)
+    cert = StringType()
+    keyfile = StringType()
     instance_tags = ListType(StringType, default=[])
     change_request_bootstrap_days = IntType(default=CRS_BOOTSTRAP_DAYS_DEFAULT)
     change_request_process_limit = IntType(default=CRS_DEFAULT_PROCESS_LIMIT)
@@ -201,12 +204,13 @@ class ServicenowCheck(AgentCheck):
         :return: dict, raw response from CMDB
         """
         auth = (instance_info.user, instance_info.password)
+        cert = (instance_info.cert, instance_info.keyfile)
         url = instance_info.url + '/api/now/table/cmdb_ci'
         sys_class_filter_query = self._get_sys_class_component_filter_query(instance_info.include_resource_types)
         params = self._params_append_to_sysparm_query(add_to_query=sys_class_filter_query)
         params = self._params_append_to_sysparm_query(add_to_query=instance_info.cmdb_ci_sysparm_query, params=params)
         params = self._prepare_json_batch_params(params, offset, instance_info.batch_size)
-        return self._get_json(url, instance_info.timeout, params, auth, instance_info.verify_https)
+        return self._get_json(url, instance_info.timeout, params, auth, instance_info.verify_https, cert)
 
     def _batch_collect(self, collect_function, instance_info):
         """
@@ -281,13 +285,14 @@ class ServicenowCheck(AgentCheck):
         collect relations between components from cmdb_rel_ci and publish these in batches.
         """
         auth = (instance_info.user, instance_info.password)
+        cert = (instance_info.cert, instance_info.keyfile)
         url = instance_info.url + '/api/now/table/cmdb_rel_ci'
         sys_class_filter_query = self._get_sys_class_relation_filter_query(instance_info.include_resource_types)
         params = self._params_append_to_sysparm_query(add_to_query=sys_class_filter_query)
         params = self._params_append_to_sysparm_query(add_to_query=instance_info.cmdb_rel_ci_sysparm_query,
                                                       params=params)
         params = self._prepare_json_batch_params(params, offset, instance_info.batch_size)
-        return self._get_json(url, instance_info.timeout, params, auth, instance_info.verify_https)
+        return self._get_json(url, instance_info.timeout, params, auth, instance_info.verify_https, cert)
 
     def _process_relations(self, instance_info):
         """
@@ -321,6 +326,7 @@ class ServicenowCheck(AgentCheck):
 
     def _collect_change_requests(self, instance_info):
         auth = (instance_info.user, instance_info.password)
+        cert = (instance_info.cert, instance_info.keyfile)
         url = instance_info.url + '/api/now/table/change_request'
         reformatted_date = instance_info.state.latest_sys_updated_on.strftime("'%Y-%m-%d', '%H:%M:%S'")
         sysparm_query = 'sys_updated_on>javascript:gs.dateGenerate(%s)' % reformatted_date
@@ -332,7 +338,7 @@ class ServicenowCheck(AgentCheck):
             'sysparm_query': sysparm_query
         }
         params = self._params_append_to_sysparm_query(instance_info.change_request_sysparm_query, params)
-        return self._get_json(url, instance_info.timeout, params, auth, instance_info.verify_https)
+        return self._get_json(url, instance_info.timeout, params, auth, instance_info.verify_https, cert)
 
     def _process_change_requests(self, instance_info):
         response = self._collect_change_requests(instance_info)
@@ -426,35 +432,39 @@ class ServicenowCheck(AgentCheck):
         )
         return params
 
-    def _get_json(self, url, timeout, params, auth=None, verify=True):
+    def _get_json(self, url, timeout, params, auth=None, verify=True, cert=None):
         execution_time_exceeded_error_message = 'Transaction cancelled: maximum execution time exceeded'
 
-        response = requests.get(url, timeout=timeout, params=params, auth=auth, verify=verify)
-        if response.status_code != 200:
-            raise CheckException('Got status: %d when hitting %s' % (response.status_code, response.url))
+        with Session() as session:
+            session.verify = verify
+            if cert:
+                session.cert = cert
+            response = session.get(url, params=params, auth=auth, timeout=timeout)
 
-        try:
-            response_json = json.loads(response.text.encode('utf-8'))
-        except UnicodeEncodeError as e:
-            raise CheckException('Encoding error: "%s" in response from url %s' % (e, response.url))
-        except json_parse_exception as e:
-            # Fix for ServiceNow bug: Sometimes there is a response with status 200 and malformed json with
-            # error message 'Transaction cancelled: maximum execution time exceeded'.
-            # We send right error message because ParserError is just side effect error.
-            if execution_time_exceeded_error_message in response.text:
-                error_msg = 'ServiceNow Error "%s" in response from url %s' % (
-                    execution_time_exceeded_error_message, response.url
-                )
-            else:
-                error_msg = 'Json parse error: "%s" in response from url %s' % (e, response.url)
-            raise CheckException(error_msg)
+            if response.status_code != 200:
+                raise CheckException('Got status: %d when hitting %s' % (response.status_code, response.url))
 
-        if response_json.get('error'):
-            raise CheckException(
-                'ServiceNow error: "%s" in response from url %s' % (response_json['error'].get('message'), response.url)
-            )
+            try:
+                response_json = json.loads(response.text.encode('utf-8'))
+            except UnicodeEncodeError as e:
+                raise CheckException('Encoding error: "%s" in response from url %s' % (e, response.url))
+            except json_parse_exception as e:
+                # Fix for ServiceNow bug: Sometimes there is a response with status 200 and malformed json with
+                # error message 'Transaction cancelled: maximum execution time exceeded'.
+                # We send right error message because ParserError is just side effect error.
+                if execution_time_exceeded_error_message in response.text:
+                    error_msg = 'ServiceNow Error "%s" in response from url %s' % (
+                        execution_time_exceeded_error_message, response.url
+                    )
+                else:
+                    error_msg = 'Json parse error: "%s" in response from url %s' % (e, response.url)
+                raise CheckException(error_msg)
 
-        if response_json.get('result'):
-            self.log.debug('Got %d results in response', len(response_json['result']))
+            if response_json.get('error'):
+                raise CheckException('ServiceNow error: "%s" in response from url %s' %
+                                     (response_json['error'].get('message'), response.url))
+
+            if response_json.get('result'):
+                self.log.debug('Got %d results in response', len(response_json['result']))
 
         return response_json
