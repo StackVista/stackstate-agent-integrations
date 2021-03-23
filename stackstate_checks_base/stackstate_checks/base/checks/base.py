@@ -481,6 +481,10 @@ class AgentCheckBase(object):
         if isinstance(identifier_tag, str):
             identifier_tag_content = identifier_tag.split('stackstate-identifiers:')[1]
             if len(identifier_tag_content) > 0:
+                # Remove the tag if valid identifiers was found
+                tags.remove(identifier_tag)
+
+                # Split the list on comma or spaces based values
                 result = self.split_on_commas_and_spaces(identifier_tag_content)
                 identifiers = identifiers + result
 
@@ -501,7 +505,8 @@ class AgentCheckBase(object):
         return data
 
     # Regex function used to split a string on commas and/or spaces
-    def split_on_commas_and_spaces(self, content):
+    @staticmethod
+    def split_on_commas_and_spaces(content):
         if isinstance(content, str):
             """
                 We are testing the following with the regex block below
@@ -536,6 +541,8 @@ class AgentCheckBase(object):
         find_tag = next((tag for tag in tags if (target + ':' in tag)), None)
         if isinstance(find_tag, str) and find_tag.index(":") > 0:
             result = [find_tag.split(target + ':')[1]] if return_array is True else find_tag.split(target + ':')[1]
+            # Remove the tag from tags if found
+            tags.remove(find_tag)
             if return_direct_value is True:
                 return result
             data[origin] = result
@@ -993,7 +1000,7 @@ class __AgentCheckPy3(AgentCheckBase):
         if event.get('source_type_name'):
             self._log_deprecation("source_type_name")
             if 'event_type' not in event:
-                event['event_type'] = ensure_string(event['source_type_name'])
+                event['event_type'] = ensure_unicode(event['source_type_name'])
 
         if 'context' in event:
             telemetry.submit_topology_event(self, self.check_id, event)

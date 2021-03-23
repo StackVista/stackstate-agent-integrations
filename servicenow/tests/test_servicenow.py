@@ -280,7 +280,7 @@ instance_info = InstanceInfo(
 )
 
 
-def mock_get_json(url, timeout, params, auth=None, verify=True):
+def mock_get_json(url, timeout, params, auth=None, verify=True, cert=None):
     """Mock method for testing _get_json_batch"""
     return params
 
@@ -362,7 +362,7 @@ class TestServicenow(unittest.TestCase):
                           "00a96c0d3790200044e0bfc8bcbe5db4",
                           "urn:host:/macbook pro 15",
                           "lupulus"])
-        self.assertIn('stackstate-identifier:lupulus', topo_instances['components'][0]['data']['tags'])
+        self.assertNotIn('stackstate-identifier:lupulus', topo_instances['components'][0]['data']['tags'])
         self.assertIn('stackstate', topo_instances['components'][0]['data']['tags'])
 
     def test_collect_relations(self):
@@ -384,7 +384,7 @@ class TestServicenow(unittest.TestCase):
         self.assertEqual(len(topo_instances['components']), 0)
         self.assertEqual(topo_instances['relations'][0]['type'], 'Cools')
 
-    @mock.patch('requests.get')
+    @mock.patch('requests.Session.get')
     def test_get_json_ok_status(self, mock_req_get):
         """
         Test to check the method _get_json with positive response and get a OK service check
@@ -395,16 +395,16 @@ class TestServicenow(unittest.TestCase):
         result = self.check._get_json(url, timeout=10, params={}, auth=auth)
         self.assertEqual(example, result)
 
-    @mock.patch('requests.get')
+    @mock.patch('requests.Session.get')
     def test_get_json_error_status(self, mock_req_get):
         """
         Test for Check Exception if response code is not 200
         """
         url, auth = self._get_url_auth()
         mock_req_get.return_value = mock.MagicMock(status_code=300, text=json.dumps({'key': 'value'}))
-        self.assertRaises(CheckException, self.check._get_json, url, 10, auth)
+        self.assertRaises(CheckException, self.check._get_json, url, 10, {}, auth)
 
-    @mock.patch('requests.get')
+    @mock.patch('requests.Session.get')
     def test_get_json_ok_status_with_error_in_response(self, mock_req_get):
         """
         Test for situation when we get error in json and request status is OK
@@ -412,7 +412,7 @@ class TestServicenow(unittest.TestCase):
         url, auth = self._get_url_auth()
         response_txt = json.dumps({'error': {'message': 'test error'}})
         mock_req_get.return_value = mock.MagicMock(status_code=200, text=response_txt)
-        self.assertRaises(CheckException, self.check._get_json, url, 10, auth)
+        self.assertRaises(CheckException, self.check._get_json, url, 10, {}, auth)
 
     def test_get_sys_class_component_filter_query(self):
         """
@@ -650,7 +650,7 @@ class TestServicenow(unittest.TestCase):
         topology_instance = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topology_instance['components']), 5)
 
-    @mock.patch('requests.get')
+    @mock.patch('requests.Session.get')
     def test_get_json_utf_encoding(self, mock_req_get):
         """
         Test to check the method _get_json response with unicode character in name
@@ -660,7 +660,7 @@ class TestServicenow(unittest.TestCase):
         response = self.check._get_json(url, timeout=10, params={}, auth=auth)
         self.assertEqual(u'Avery® Wizard 2.1 forMicrosoft® Word 2000', response.get('result').get('name'))
 
-    @mock.patch('requests.get')
+    @mock.patch('requests.Session.get')
     def test_get_json_malformed_json(self, mock_request_get):
         """
         Test just malformed json
@@ -669,7 +669,7 @@ class TestServicenow(unittest.TestCase):
         mock_request_get.return_value = mock.MagicMock(status_code=200, text=mock_result_with_malformed_str)
         self.assertRaises(CheckException, self.check._get_json, url, 10, auth)
 
-    @mock.patch('requests.get')
+    @mock.patch('requests.Session.get')
     def test_get_json_malformed_json_and_execution_time_exceeded_error(self, mock_request_get):
         """
         Test malformed json that sometimes happens with
@@ -688,7 +688,7 @@ class TestServicenow(unittest.TestCase):
         result = json.loads(check.run())
         self.assertEqual('{"batch_size": ["Int value should be less than or equal to 10000."]}', result[0]['message'])
 
-    @mock.patch('requests.get')
+    @mock.patch('requests.Session.get')
     def test_get_json_timeout(self, mock_request_get):
         """
         Test timeout exception exception gets critical service check
@@ -703,18 +703,18 @@ class TestServicenow(unittest.TestCase):
         self.assertEqual('Timeout: ', service_checks[0].message)
         self.check.commit_state(None)
 
-    @mock.patch('requests.get')
+    @mock.patch('requests.Session.get')
     def test_get_json_error_msg(self, mock_request_get):
         """
         Test malformed json error message
         """
         url, auth = self._get_url_auth()
         mock_request_get.return_value = mock.MagicMock(status_code=200, text=mock_result_with_malformed_str,
-                                                       url='http:/test.org')
+                                                       url='http://test.org')
         msg_py3 = 'Json parse error: "Expecting property name enclosed in double quotes: ' \
-                  'line 11 column 5 (char 232)" in response from url http:/test.org'
+                  'line 11 column 5 (char 232)" in response from url http://test.org'
         msg_py2 = 'Json parse error: "Expecting property name: ' \
-                  'line 11 column 5 (char 232)" in response from url http:/test.org'
+                  'line 11 column 5 (char 232)" in response from url http://test.org'
         expected_msg = msg_py3 if PY3 else msg_py2
         with self.assertRaises(CheckException) as context:
             self.check._get_json(url, 10, {}, auth)
