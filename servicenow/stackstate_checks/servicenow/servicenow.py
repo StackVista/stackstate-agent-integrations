@@ -14,7 +14,7 @@ from schematics import Model
 from schematics.exceptions import DataError
 from schematics.types import URLType, StringType, ListType, IntType, DictType, DateTimeType, ModelType, BooleanType
 
-from stackstate_checks.base import AgentCheck, StackPackInstance, Identifiers, to_string
+from stackstate_checks.base import AgentCheck, StateFulMixin, StackPackInstance, Identifiers, to_string
 from stackstate_checks.base.errors import CheckException
 
 BATCH_DEFAULT_SIZE = 2500
@@ -108,7 +108,7 @@ class InstanceInfo(Model):
     state = ModelType(State)
 
 
-class ServicenowCheck(AgentCheck):
+class ServicenowCheck(StateFulMixin, AgentCheck):
     INSTANCE_TYPE = "servicenow_cmdb"
     SERVICE_CHECK_NAME = "servicenow.cmdb.topology_information"
     INSTANCE_SCHEMA = InstanceInfo

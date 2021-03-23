@@ -2,7 +2,8 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 from .__about__ import __version__
-from .checks import AgentCheck, AutoSnapshotMixin, StateFulMixin, TopologyInstance, StackPackInstance, AgentIntegrationInstance
+from .checks import AgentCheck, AutoSnapshotMixin, StateFulMixin, TopologyInstance, StackPackInstance, \
+    AgentIntegrationInstance
 from .checks.openmetrics import OpenMetricsBaseCheck
 
 from .config import is_affirmative

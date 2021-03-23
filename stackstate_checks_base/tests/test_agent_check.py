@@ -10,7 +10,8 @@ from schematics.types import IntType, StringType, ModelType
 import pytest
 from six import PY3
 
-from stackstate_checks.checks import AgentCheck, AutoSnapshotMixin, StateFulMixin, TopologyInstance, AgentIntegrationInstance
+from stackstate_checks.checks import AgentCheck, AutoSnapshotMixin, StateFulMixin, TopologyInstance, \
+    AgentIntegrationInstance
 from stackstate_checks.base.utils.agent_integration_test_util import AgentIntegrationTestUtil
 from stackstate_checks.base.stubs.topology import component, relation
 

@@ -7,7 +7,8 @@ try:
     from checks import AgentCheck, AutoSnapshotMixin, StateFulMixin
     from checks.network_checks import NetworkCheck, Status, EventType
 except ImportError:
-    from .base import AgentCheck, AutoSnapshotMixin, StateFulMixin, TopologyInstance, StackPackInstance, AgentIntegrationInstance
+    from .base import AgentCheck, AutoSnapshotMixin, StateFulMixin, TopologyInstance, StackPackInstance, \
+        AgentIntegrationInstance
     from .network import NetworkCheck, Status, EventType
 
 __all__ = [

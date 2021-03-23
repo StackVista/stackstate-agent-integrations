@@ -1235,6 +1235,7 @@ class CheckMixin(object):
 
     def pre_run_task(self, check_instance):
         raise NotImplementedError
+
     def post_run_task(self, check_instance):
         raise NotImplementedError
 
