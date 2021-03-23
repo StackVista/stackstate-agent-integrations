@@ -343,18 +343,11 @@ class TopologyCheck(AgentCheck):
 
 
 class TopologyAutoSnapshotMixinCheck(AutoSnapshotMixin, TopologyCheck):
-    def __init__(self):
-        instances = [{'a': 'b'}]
-        super(TopologyAutoSnapshotMixinCheck, self) \
-            .__init__(TopologyInstance("mytype", "someurl"), "test", {}, instances)
-
     def check(self, instance):
         pass
 
 
 class TopologyBrokenCheck(AutoSnapshotMixin, TopologyCheck):
-    def __init__(self):
-        super(TopologyBrokenCheck, self).__init__()
 
     def check(self, instance):
         raise Exception("some error in my check")
@@ -370,9 +363,7 @@ TEST_STATE = {
 }
 
 
-class TopologyStatefulCheck(StateFulMixin, AutoSnapshotMixin, AgentCheck):
-    def __init__(self):
-        super(TopologyStatefulCheck, self).__init__()
+class TopologyStatefulCheck(StateFulMixin, AutoSnapshotMixin, TopologyCheck):
 
     @staticmethod
     def get_agent_conf_d_path():
@@ -382,11 +373,7 @@ class TopologyStatefulCheck(StateFulMixin, AutoSnapshotMixin, AgentCheck):
         instance.update({'state': TEST_STATE})
 
 
-class TopologyStatefulStateDescriptorCleanupCheck(StateFulMixin, AutoSnapshotMixin, AgentCheck):
-    def __init__(self):
-        instances = [{'a': 'b'}]
-        super(TopologyStatefulStateDescriptorCleanupCheck, self) \
-            .__init__(TopologyInstance("mytype", "https://some.type.url"), "test", {}, instances)
+class TopologyStatefulStateDescriptorCleanupCheck(StateFulMixin, AutoSnapshotMixin, TopologyCheck):
 
     @staticmethod
     def get_agent_conf_d_path():
@@ -396,17 +383,15 @@ class TopologyStatefulStateDescriptorCleanupCheck(StateFulMixin, AutoSnapshotMix
         instance.update({'state': TEST_STATE})
 
 
-class TopologyStatefulCheckStateLocation(StateFulMixin, AutoSnapshotMixin, AgentCheck):
+class TopologyStatefulCheckStateLocation(StateFulMixin, AutoSnapshotMixin, TopologyCheck):
     def __init__(self):
-        instances = [{"state_location": "./test_data_2"}]
-        super(TopologyStatefulCheckStateLocation, self) \
-            .__init__(TopologyInstance("mytype", "https://some.type.url"), "test", {}, instances)
+        super(TopologyStatefulCheckStateLocation, self).__init__(instances=[{"state_location": "./test_data_2"}])
 
     def check(self, instance):
         instance.update({'state': TEST_STATE})
 
 
-class TopologyClearStatefulCheck(StateFulMixin, AutoSnapshotMixin, AgentCheck):
+class TopologyClearStatefulCheck(StateFulMixin, AutoSnapshotMixin, TopologyCheck):
     def __init__(self):
         super(TopologyClearStatefulCheck, self).__init__()
 
@@ -414,9 +399,7 @@ class TopologyClearStatefulCheck(StateFulMixin, AutoSnapshotMixin, AgentCheck):
         instance.update({'state': None})
 
 
-class TopologyBrokenStatefulCheck(StateFulMixin, AutoSnapshotMixin, AgentCheck):
-    def __init__(self):
-        super(TopologyBrokenStatefulCheck, self).__init__()
+class TopologyBrokenStatefulCheck(StateFulMixin, AutoSnapshotMixin, TopologyCheck):
 
     def check(self, instance):
         instance.update({'state': TEST_STATE})
@@ -468,8 +451,11 @@ class CheckInstanceSchema(Model):
     state = ModelType(StateSchema, required=True, default=StateSchema({'offset': 0}))
 
 
-class TopologyStatefulSchemaCheck(TopologyStatefulCheck):
+class TopologyStatefulSchemaCheck(StateFulMixin, AutoSnapshotMixin, TopologyCheck):
     INSTANCE_SCHEMA = CheckInstanceSchema
+
+    def __init__(self, *args, **kwargs):
+        super(TopologyStatefulSchemaCheck, self).__init__(instances=[{'a': 'b'}])
 
     def check(self, instance):
         print(instance.a)
@@ -708,8 +694,8 @@ class TestTopology:
     def test_stateful_state_descriptor_cleanup_check(self, topology, state):
         check = TopologyStatefulStateDescriptorCleanupCheck()
         state_descriptor = check._get_state_descriptor()
-        assert state_descriptor.instance_key == "instance.mytype.https_some.type.url"
-        assert check._get_instance_key_dict() == {'type': 'mytype', 'url': 'https://some.type.url'}
+        assert state_descriptor.instance_key == "instance.mytype.someurl"
+        assert check._get_instance_key_dict() == {'type': 'mytype', 'url': 'someurl'}
         state.assert_state_check(check, expected_pre_run_state=None, expected_post_run_state=TEST_STATE)
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)

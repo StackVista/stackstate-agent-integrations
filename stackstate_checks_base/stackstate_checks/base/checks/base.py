@@ -179,11 +179,6 @@ class AgentCheckBase(object):
     """
     INSTANCE_SCHEMA = None
 
-    """
-    STATE_FIELD_NAME is used to determine to which key the check state should be set, defaults to `state`
-    """
-    STATE_FIELD_NAME = 'state'
-
     def __init__(self, *args, **kwargs):
         self.check_id = ''
         self.metrics = defaultdict(list)
@@ -218,7 +213,6 @@ class AgentCheckBase(object):
         self.cluster_name = AgentCheckBase.get_cluster_name()
 
         self.log = logging.getLogger('{}.{}'.format(__name__, self.name))
-        self.state_manager = StateManager(self.log)
         self._deprecations = {}
         # Set proxy settings
         self.proxies = self._get_requests_proxy()
@@ -231,42 +225,27 @@ class AgentCheckBase(object):
 
     def _check_run_base(self, default_result):
         try:
-            # start auto snapshot if with_snapshots is set to True
-            if self._get_instance_key().with_snapshots:
-                topology.submit_start_snapshot(self, self.check_id, self._get_instance_key_dict())
-
-            # run all check mixin pre run tasks
-            for base in self.__class__.__bases__:
-                if issubclass(base, CheckMixin):
-                    base.pre_run_task(self)
-
             # create integration instance components for monitoring purposes
             self.create_integration_instance()
-            # create a copy of the check instance, get state if any and add it to the instance object for the check
-            instance = self.instances[0]
-            check_instance = copy.deepcopy(instance)
-            # if this instance has some stored state set it to 'state'
-            state_descriptor = self._get_state_descriptor()
-            current_state = copy.deepcopy(self.state_manager.get_state(state_descriptor))
-            if current_state:
-                check_instance[self.STATE_FIELD_NAME] = current_state
+
+            # create a copy of the check instance
+            check_instance = copy.deepcopy(self.instance)
+
+            # run all check mixin pre run tasks with the check_instance
+            for base in self.__class__.__bases__:
+                if issubclass(base, CheckMixin):
+                    base.pre_run_task(self, check_instance)
+
             # if this check has a instance schema defined, cast it into that type and validate it
             if self.INSTANCE_SCHEMA:
                 check_instance = self.INSTANCE_SCHEMA(check_instance, strict=False)  # strict=False ignores extra fields
                 check_instance.validate()
             self.check(check_instance)
 
-            # set the state from the check instance
-            self.state_manager.set_state(state_descriptor, check_instance.get(self.STATE_FIELD_NAME))
-
-            # stop auto snapshot if with_snapshots is set to True
-            if self._get_instance_key().with_snapshots:
-                topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key_dict())
-
             # run all check mixin pre run tasks
             for base in self.__class__.__bases__:
                 if issubclass(base, CheckMixin):
-                    base.post_run_task(self)
+                    base.post_run_task(self, check_instance)
 
             result = default_result
         except Exception as e:
@@ -282,14 +261,6 @@ class AgentCheckBase(object):
 
         return result
 
-    def commit_state(self, state, flush=True):
-        """
-        commit_state can be used to immediately set (and optionally flush) state in the agent, instead of first
-        completing
-        the check
-        """
-        self.state_manager.set_state(self._get_state_descriptor(), state, flush)
-
     def set_metric_limits(self):
         try:
             metric_limit = self.instances[0].get('max_returned_metrics', self.DEFAULT_METRIC_LIMIT)
@@ -304,15 +275,6 @@ class AgentCheckBase(object):
             metric_limit = self.DEFAULT_METRIC_LIMIT
         if metric_limit > 0:
             self.metric_limiter = Limiter(self.name, 'metrics', metric_limit, self.warning)
-
-    def _get_state_descriptor(self):
-        integration_instance = self._get_instance_key()
-        instance_key = to_string(
-            self.normalize("instance.{}.{}".format(integration_instance.type, integration_instance.url),
-                           extra_disallowed_chars=b":")
-        )
-
-        return StateDescriptor(instance_key, self.get_check_state_path())
 
     @staticmethod
     def get_cluster_name():
@@ -909,15 +871,6 @@ class AgentCheckBase(object):
 
         return False
 
-    def get_check_state_path(self):
-        """
-        get_check_state_path returns the path where the check state is stored. By default the check configuration
-        location will be used. If state_location is set in the check configuration that will be used instead.
-        """
-        state_location = self.instance.get("state_location", self.get_agent_conf_d_path())
-
-        return "{}.d".format(os.path.join(state_location, self.name))
-
     def get_check_config_path(self):
         return "{}.d".format(os.path.join(self.get_agent_conf_d_path(), self.name))
 
@@ -1280,48 +1233,99 @@ class CheckMixin(object):
         # Initialize AgentCheck's base class
         super(CheckMixin, self).__init__(*args, **kwargs)
 
-    def pre_run_task(self, **kwargs):
+    def pre_run_task(self, check_instance):
         raise NotImplementedError
-    def post_run_task(self, **kwargs):
+    def post_run_task(self, check_instance):
         raise NotImplementedError
 
 
 class AutoSnapshotMixin(CheckMixin):
+    """
+    AutoSnapshotMixin submits a start snapshot before the check run and a stop snapshot after the check has completed
+    successfully.
+    """
 
-    def pre_run_task(self, **kwargs):
-        # start auto snapshot if with_snapshots is set to True
+    def pre_run_task(self, _):
+        """
+        Submit the start of the snapshot before the check is run
+        """
         topology.submit_start_snapshot(self, self.check_id, self._get_instance_key_dict())
 
-    def post_run_task(self, **kwargs):
-        # stop auto snapshot if with_snapshots is set to True
+    def post_run_task(self, _):
+        """
+        Submit the stop of the snapshot before the check is run
+        """
         topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key_dict())
 
 
 class StateFulMixin(CheckMixin):
+    """
+    StateFulMixin can be added to any Agent Check to make the check Stateful. This will use the persistent state to
+    store data across check runs.
+    """
+
+    """
+    STATE_FIELD_NAME is used to determine to which key the check state should be set, defaults to `state`
+    """
+    STATE_FIELD_NAME = 'state'
 
     def __init__(self, *args, **kwargs):
         # Initialize AgentCheck's base class
         super(StateFulMixin, self).__init__(*args, **kwargs)
         self.state_manager = StateManager(self.log)
 
-    def pre_run_task(self, **kwargs):
+    def pre_run_task(self, check_instance):
+        """
+        Fetch the current state before the check is run and add it the current state to the check instance.
+        """
         state_descriptor = self._get_state_descriptor()
         current_state = copy.deepcopy(self.state_manager.get_state(state_descriptor))
         if current_state:
             check_instance[self.STATE_FIELD_NAME] = current_state
 
-    def post_run_task(self, **kwargs):
+    def post_run_task(self, check_instance):
+        """
+        Set the state that was returned after the check completed succesfully.
+        """
         # set the state from the check instance
+        state_descriptor = self._get_state_descriptor()
         self.state_manager.set_state(state_descriptor, check_instance.get(self.STATE_FIELD_NAME))
 
     def _get_state_descriptor(self):
+        """
+        Returns the state descriptor that contains the state instance key and the state location.
+        """
         integration_instance = self._get_instance_key()
+
+        instance_type = integration_instance.type
+        instance_url = integration_instance.url
+        if isinstance(integration_instance, AgentIntegrationInstance):
+            instance_type = integration_instance.integration
+            instance_url = integration_instance.name
+
         instance_key = to_string(
-            self.normalize("instance.{}.{}".format(integration_instance.type, integration_instance.url),
+            self.normalize("instance.{}.{}".format(instance_type, instance_url),
                            extra_disallowed_chars=b":")
         )
 
         return StateDescriptor(instance_key, self.get_check_state_path())
+
+    def commit_state(self, state, flush=True):
+        """
+        commit_state can be used to immediately set (and optionally flush) state in the agent, instead of first
+        completing
+        the check
+        """
+        self.state_manager.set_state(self._get_state_descriptor(), state, flush)
+
+    def get_check_state_path(self):
+        """
+        get_check_state_path returns the path where the check state is stored. By default the check configuration
+        location will be used. If state_location is set in the check configuration that will be used instead.
+        """
+        state_location = self.instance.get("state_location", self.get_agent_conf_d_path())
+
+        return "{}.d".format(os.path.join(state_location, self.name))
 
 
 if PY3:

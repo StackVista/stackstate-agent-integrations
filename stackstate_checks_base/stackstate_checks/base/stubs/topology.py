@@ -50,11 +50,19 @@ class TopologyStub(object):
         self._ensure_instance(check_id, instance_key)["stop_snapshot"] = True
 
     def get_snapshot(self, check_id):
-        return self._snapshots[check_id]
+        return self._snapshots.get(check_id, {})
 
     def assert_snapshot(self, check_id, instance_key,
                         start_snapshot=False, stop_snapshot=False, components=[], relations=[]):
-        assert self.get_snapshot(check_id) == {
+        empty_snapshot = {
+            "start_snapshot": False,
+            "stop_snapshot": False,
+            "instance_key": instance_key.to_dict(),
+            "components": [],
+            "relations": [],
+        }
+
+        assert dict(empty_snapshot, **self.get_snapshot(check_id)) == {
             "start_snapshot": start_snapshot,
             "stop_snapshot": stop_snapshot,
             "instance_key": instance_key.to_dict(),
