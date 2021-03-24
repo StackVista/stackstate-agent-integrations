@@ -1,5 +1,9 @@
 # StackState Agent Integrations v2 releases
 
+## 1.11.0 / 2020-03-24
+
+* [Added] ServiceNow - Implement query param change for retrieving tags from ServiceNow.
+
 ## 1.10.1 / 2020-03-11
 
 * [Fixed] Remove `stackstate-identifier`, `stackstate-environment`, `stackstate-layer`, `stackstate-domain` and `stackstate-identifiers` from the tags object if it has been mapped to the data object.
