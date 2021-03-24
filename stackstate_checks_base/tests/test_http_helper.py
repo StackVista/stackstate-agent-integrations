@@ -8,6 +8,7 @@ from schematics.models import Model, DataError
 from schematics.types import StringType, IntType, BooleanType
 from six import PY3
 
+from stackstate_checks.base.utils.common import read_file, load_json_from_file
 from stackstate_checks.utils.http_helper import (HTTPHelper, HTTPRequestType, HTTPAuthenticationType, HTTPResponseType)
 from stackstate_checks.utils.http_helper import HTTPHelperConnectionHandler, \
     HTTPHelperRequestModel, HTTPHelperConnectionModel, HTTPHelperSessionModel
@@ -391,18 +392,3 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
                 "mock_text": "test",
                 "response_status_code_validation": 200,
             })
-
-
-def read_file(filename):
-    with open(get_path_to_file(filename), "r") as f:
-        return f.read() if PY3 else f.read().decode("utf-8")
-
-
-def load_json_from_file(filename):
-    raw_json_file = read_file(filename)
-    return json.loads(raw_json_file)
-
-
-def get_path_to_file(filename):
-    path_to_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'samples', filename)
-    return path_to_file
