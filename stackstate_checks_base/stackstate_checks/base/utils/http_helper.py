@@ -365,59 +365,8 @@ class HTTPHelperRequestHandler:
             raise TypeError(message)
 
     def validate_auth(self):
-        """
-        Functionality:
-            Validate the state of the two auth objects that will be used to apply authentication
-            Test if the auth_schematic passed does exist in the HTTPAuthenticationType enum
-            We also do a second test to make sure the auth_schematic.value is also a model
-        """
-        if isinstance(self._request_model.auth_type, Enum) and \
-                self._request_model.auth_type.value in self._authentication_types and \
-                issubclass(self._request_model.auth_type.value, Model):
-            try:
-                # Validate the schematic object with the current authentication details
-                self._request_model.auth_type.value(self._request_model.auth_data).validate()
-
-                # We need to manually map the supported types to the correct object for the Request() auth
-                if self._request_model.auth_type is HTTPAuthenticationType.BasicAuth:
-                    HTTPBasicAuth(self._request_model.auth_data.get('username'),
-                                  self._request_model.auth_data.get('password'))
-                    return True
-                else:
-                    message = """We are unable to map the enum `HTTPAuthenticationType`
-                                 to the request auth object. Please verify if the object exists in the
-                                 HTTPAuthenticationType enum and if it does then the mapping for {0}
-                                 is missing from the _set_auth function. You need to add a check for
-                                 the enum and map the values over to the requests object""" \
-                        .format(str(self._request_model.auth_type))
-                    raise NotImplementedError(message)
-
-            except DataError as e:
-                message = """The authentication supplied {0} does not match the required
-                             schema {1}. You can view the layout of the schema on the
-                             `HTTPAuthenticationType` enum.
-
-                             The error provided by the execution
-                             {2}""".format(str(self._request_model.auth_data), str(self._request_model.auth_type), e)
-                raise e
-
-            except TypeError as e:
-                message = """The authentication details object passed to this function failed as
-                             the type of this object is incorrect. The type passed down was
-                             {0} and the expected type is a iterable value that matches the
-                             `HTTPAuthenticationType` enum
-
-                             The error provided by the execution
-                             {1}""".format(type(self._request_model.auth_data), e)
-                raise TypeError(message)
-
-        else:
-            message = """The `auth_schematic` variable passed to the `_set_auth` function"
-                         is currently invalid. You need to pass down a schematic object from the
-                         `HTTPAuthenticationType` Enum or a type" error will occur.
-                         The current schematic passed to this function is: {0}
-                         """.format(str(self._request_model.auth_type))
-            raise TypeError(message)
+        return validate_auth(self._request_model.auth_type,
+                             self._request_model.auth_data)
 
     def validate_body_type(self):
         if self._request_model.request_type_validation is None:
@@ -578,59 +527,8 @@ class HTTPHelperSessionHandler:
             raise TypeError(message)
 
     def validate_auth(self):
-        """
-        Functionality:
-            Validate the state of the two auth objects that will be used to apply authentication
-            Test if the auth_schematic passed does exist in the HTTPAuthenticationType enum
-            We also do a second test to make sure the auth_schematic.value is also a model
-        """
-        if isinstance(self._session_model.auth_type, Enum) and \
-                self._session_model.auth_type.value in self._authentication_types and \
-                issubclass(self._session_model.auth_type.value, Model):
-            try:
-                # Validate the schematic object with the current authentication details
-                self._session_model.auth_type.value(self._session_model.auth_data).validate()
-
-                # We need to manually map the supported types to the correct object for the Request() auth
-                if self._session_model.auth_type is HTTPAuthenticationType.BasicAuth:
-                    HTTPBasicAuth(self._session_model.auth_data.get('username'),
-                                  self._session_model.auth_data.get('password'))
-                    return True
-                else:
-                    message = """We are unable to map the enum `HTTPAuthenticationType`
-                                 to the request auth object. Please verify if the object exists in the
-                                 HTTPAuthenticationType enum and if it does then the mapping for {0}
-                                 is missing from the _set_auth function. You need to add a check for
-                                 the enum and map the values over to the requests object""" \
-                        .format(str(self._session_model.auth_type))
-                    raise NotImplementedError(message)
-
-            except DataError as e:
-                message = """The authentication supplied {0} does not match the required
-                             schema {1}. You can view the layout of the schema on the
-                             `HTTPAuthenticationType` enum.
-
-                             The error provided by the execution
-                             {2}""".format(str(self._session_model.auth_data), str(self._session_model.auth_type), e)
-                raise e
-
-            except TypeError as e:
-                message = """The authentication details object passed to this function failed as
-                             the type of this object is incorrect. The type passed down was
-                             {0} and the expected type is a iterable value that matches the
-                             `HTTPAuthenticationType` enum
-
-                             The error provided by the execution
-                             {1}""".format(type(self._session_model.auth_data), e)
-                raise TypeError(message)
-
-        else:
-            message = """The `auth_schematic` variable passed to the `_set_auth` function"
-                         is currently invalid. You need to pass down a schematic object from the
-                         `HTTPAuthenticationType` Enum or a type" error will occur.
-                         The current schematic passed to this function is: {0}
-                         """.format(str(self._session_model.auth_type))
-            raise TypeError(message)
+        return validate_auth(self._session_model.auth_type,
+                             self._session_model.auth_data)
 
     def create_basic_auth(self):
         return HTTPBasicAuth(self._session_model.auth_data.get('username'),
@@ -971,3 +869,62 @@ class HTTPHelperResponseHandler:
                          enum, If not then add the type tot the `HTTPResponseType` enum to allow it
                          """.format(str(type(self._response_model.response_type_validation)))
             raise TypeError(message)
+
+
+def validate_auth(auth_type, auth_data):
+    """
+    Functionality:
+        Validate the state of the two auth objects that will be used to apply authentication
+        Test if the auth_schematic passed and does exist in the HTTPAuthenticationType enum
+        We also do a second test to make sure the auth_schematic.value is also a model
+    """
+
+    authentication_types = [item.value for item in HTTPAuthenticationType]
+
+    if isinstance(auth_type, Enum) and \
+            auth_type.value in authentication_types and \
+            issubclass(auth_type.value, Model):
+        try:
+            # Validate the schematic object with the current authentication details
+            auth_type.value(auth_data).validate()
+
+            # We need to manually map the supported types to the correct object for the Request() auth
+            if auth_type is HTTPAuthenticationType.BasicAuth:
+                HTTPBasicAuth(auth_data.get('username'),
+                              auth_data.get('password'))
+                return True
+            else:
+                message = """We are unable to map the enum `HTTPAuthenticationType`
+                             to the request auth object. Please verify if the object exists in the
+                             HTTPAuthenticationType enum and if it does then the mapping for {0}
+                             is missing from the _set_auth function. You need to add a check for
+                             the enum and map the values over to the requests object""" \
+                    .format(str(auth_type))
+                raise NotImplementedError(message)
+
+        except DataError as e:
+            message = """The authentication supplied {0} does not match the required
+                         schema {1}. You can view the layout of the schema on the
+                         `HTTPAuthenticationType` enum.
+
+                         The error provided by the execution
+                         {2}""".format(str(auth_data), str(auth_type), e)
+            raise e
+
+        except TypeError as e:
+            message = """The authentication details object passed to this function failed as
+                         the type of this object is incorrect. The type passed down was
+                         {0} and the expected type is a iterable value that matches the
+                         `HTTPAuthenticationType` enum
+
+                         The error provided by the execution
+                         {1}""".format(type(auth_data), e)
+            raise TypeError(message)
+
+    else:
+        message = """The `auth_schematic` variable passed to the `_set_auth` function"
+                     is currently invalid. You need to pass down a schematic object from the
+                     `HTTPAuthenticationType` Enum or a type" error will occur.
+                     The current schematic passed to this function is: {0}
+                     """.format(str(auth_type))
+        raise TypeError(message)
