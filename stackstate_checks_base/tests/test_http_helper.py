@@ -40,7 +40,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_json": {
+            "mock_text": {
                 'hello': "Klüft skräms inför på fédéral électoral große",
                 '頁設是': "頁設是煵엌嫠쯦案煪㍱從つ浳浤搰㍭煤洳橱橱迎事網計簡大㍵畱煵田煱둻睤㌹楤ぱ椹ぱ頹",
             },
@@ -57,7 +57,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_json": {
+            "mock_text": {
                 'hello': 'world',
                 'pong': True,
             },
@@ -103,7 +103,7 @@ class TestHTTPHelperBase(unittest.TestCase):
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 201,
-            "mock_json": {
+            "mock_text": {
                 'hello': 'world',
                 'pong': True,
             },
@@ -117,49 +117,17 @@ class TestHTTPHelperBase(unittest.TestCase):
         })
         self.assertEqual(result.get_request_url(), "mock://test.com")
 
-    def test_full_unicode_request_and_response(self):
-        unicode = ""
-        for i in range(100):
-            unicode = unicode + chr(i)
-
-        http = HTTPHelper()
-        result = http.get({
-            "endpoint": "mock://test.com",
-            "mock_enable": True,
-            "mock_status": 200,
-            "mock_json": unicode,
-            "auth_data": {
-                'username': 'world',
-                'password': 'hello'
-            },
-            "auth_type": HTTPRequestType.JSON,
-            "session_auth_data": {
-                'username': 'world',
-                'password': 'hello'
-            },
-            "session_auth_type": HTTPRequestType.JSON,
-            "body": unicode,
-            "proxy": {"hello": "world"},
-            "headers": {"a": "1"},
-            "session_headers": {"b": "1"},
-            "query": {"c": "1"},
-            "timeout": 30,
-            "ssl_verify": True,
-            "retry_policy": {},
-            "response_status_code_validation": 200,
-        })
-
-        self.assertEqual(result.get_request_method(), "GET")
-        self.assertEqual(result.get_status_code(), 200)
-        self.assertEqual(result.get_request_url(), "mock://test.com")
-        self.assertEqual(result.get_request_headers(), {'a': '1', 'Content-Length': '100'})
-
 
 class TestHTTPHelperRequestHandler(unittest.TestCase):
     def test_get_request_model(self):
         request_handler = HTTPHelperRequestHandler()
         model = request_handler.get_request_model()
         self.assertTrue(isinstance(model, HTTPHelperRequestModel))
+        self.assertRaises(DataError, request_handler.validate_request_model())
+
+        # TODO
+        # with self.assertRaises(TypeError):
+        #     request_handler.validate_request_model()
 
         with pytest.raises(DataError):
             request_handler.validate_request_model()
@@ -349,7 +317,7 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_json": {
+            "mock_text": {
                 'hello': 'world',
                 'pong': True,
             },
@@ -362,7 +330,7 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_json": {
+            "mock_text": {
                 'hello': 'world',
                 'pong': True,
             },
@@ -378,7 +346,7 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_json": {
+            "mock_text": {
                 'hello': 'world',
                 'pong': True,
             },
@@ -391,7 +359,7 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_json": {
+            "mock_text": {
                 'hello': 'world',
                 'pong': True,
             },
@@ -404,7 +372,7 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_json": {
+            "mock_text": {
                 'hello': 'world',
                 'pong': True,
             },
@@ -417,7 +385,7 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_json": {
+            "mock_text": {
                 'hello': 'world',
                 'pong': True,
             },
@@ -429,7 +397,7 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
                 "endpoint": "mock://test.com",
                 "mock_enable": True,
                 "mock_status": 200,
-                "mock_json": "test",
+                "mock_text": "test",
                 "response_schematic_validation": BodyResponseSchematicTest,
             })
 
@@ -439,7 +407,7 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_json": {
+            "mock_text": {
                 'hello': 'world',
                 'pong': True,
             },
@@ -451,7 +419,7 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
                 "endpoint": "mock://test.com",
                 "mock_enable": True,
                 "mock_status": 200,
-                "mock_json": "test",
+                "mock_text": "test",
                 "response_type_validation": HTTPResponseType.JSON,
             })
 
@@ -461,7 +429,7 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_json": {
+            "mock_text": {
                 'hello': 'world',
                 'pong': True,
             },
@@ -473,6 +441,6 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
                 "endpoint": "mock://test.com",
                 "mock_enable": True,
                 "mock_status": 201,
-                "mock_json": "test",
+                "mock_text": "test",
                 "response_status_code_validation": 200,
             })

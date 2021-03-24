@@ -57,7 +57,6 @@ class HTTPHelperModel(Model):
     """
     mock_enable = BooleanType(required=False, default=False)
     mock_status = IntType(required=False, default=None)
-    mock_json = BaseType(required=False, default=None)
     mock_text = BaseType(required=False, default=None)
     endpoint = StringType(required=True, default=None)
     auth_data = DictType(BaseType, required=False, default=None)
@@ -143,7 +142,6 @@ class HTTPHelper:
                 "auth_type": http_model.session_auth_type,
                 "mock_enable": http_model.mock_enable,
                 "mock_status": http_model.mock_status,
-                "mock_json": http_model.mock_json,
                 "mock_text": http_model.mock_text
             })
 
@@ -509,7 +507,6 @@ class HTTPHelperSessionModel(Model):
     """
     mock_enable = BooleanType(required=False, default=False)
     mock_status = IntType(required=False, default=None)
-    mock_json = BaseType(required=False, default=None)
     mock_text = BaseType(required=False, default=None)
     headers = DictType(StringType, default=dict({}))
     auth_data = BaseType(required=False, default=None)
@@ -754,7 +751,6 @@ class HTTPHelperConnectionHandler:
             adapter.register_uri(request_handler.get_request_model().method,
                                  str(request_handler.get_request_model().endpoint),
                                  status_code=session_handler.get_session_model().mock_status,
-                                 json=session_handler.get_session_model().mock_json,
                                  text=session_handler.get_session_model().mock_text)
             session.mount('mock://', adapter)
 
