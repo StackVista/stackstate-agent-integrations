@@ -11,11 +11,7 @@ from requests import Session, Request
 from requests.auth import HTTPBasicAuth
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
-from ..utils.common import ensure_string, ensure_unicode, to_string
-import sys
-
-PY2 = sys.version_info[0] == 2
-PY3 = sys.version_info[0] == 3
+from ..utils.common import to_string
 
 try:
     import urlparse

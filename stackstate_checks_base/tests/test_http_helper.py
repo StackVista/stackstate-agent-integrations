@@ -1,14 +1,10 @@
 # coding=utf-8
-import json
-import os
 import unittest
 
-import pytest
 from schematics.models import Model, DataError
 from schematics.types import StringType, IntType, BooleanType
-from six import PY3
 
-from stackstate_checks.base.utils.common import read_file, load_json_from_file
+from stackstate_checks.base.utils.common import read_file, load_json_from_file, get_path_to_file
 from stackstate_checks.utils.http_helper import (HTTPHelper, HTTPRequestType, HTTPAuthenticationType, HTTPResponseType)
 from stackstate_checks.utils.http_helper import HTTPHelperConnectionHandler, \
     HTTPHelperRequestModel, HTTPHelperConnectionModel, HTTPHelperSessionModel
@@ -41,19 +37,19 @@ class TestHTTPHelperBase(unittest.TestCase):
 
     def test_compact_unicode_response(self):
         http = HTTPHelper()
-        mock_text = read_file('unicode_sample.json')
+        mock_text = read_file('unicode_sample.json', 'samples')
         unicode_json_response = http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
             "mock_text": mock_text
         })
-        expected_result = load_json_from_file('unicode_sample.json')
+        expected_result = load_json_from_file('unicode_sample.json', 'samples')
         self.assertEqual(unicode_json_response.get_json(), expected_result)
 
     def test_full_get(self):
         http = HTTPHelper()
-        mock_text = read_file('data_sample.json')
+        mock_text = read_file('data_sample.json', 'samples')
         result = http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
@@ -97,7 +93,7 @@ class TestHTTPHelperBase(unittest.TestCase):
 
     def test_compact_get(self):
         http = HTTPHelper()
-        mock_text = read_file('data_sample.json')
+        mock_text = read_file('data_sample.json', 'samples')
         result = http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
@@ -280,7 +276,7 @@ class TestHTTPHelperConnectionHandler(unittest.TestCase):
 class TestHTTPHelperResponseHandler(unittest.TestCase):
     def test_get_status_code(self):
         http = HTTPHelper()
-        mock_text = read_file('data_sample.json')
+        mock_text = read_file('data_sample.json', 'samples')
         response = http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
@@ -291,7 +287,7 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
 
     def test_get_json(self):
         http = HTTPHelper()
-        mock_text = read_file('data_sample.json')
+        mock_text = read_file('data_sample.json', 'samples')
         response = http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
@@ -305,7 +301,7 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
 
     def test_get_request_method(self):
         http = HTTPHelper()
-        mock_text = read_file('data_sample.json')
+        mock_text = read_file('data_sample.json', 'samples')
         response = http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
@@ -316,7 +312,7 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
 
     def test_get_request_url(self):
         http = HTTPHelper()
-        mock_text = read_file('data_sample.json')
+        mock_text = read_file('data_sample.json', 'samples')
         response = http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
@@ -327,7 +323,7 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
 
     def test_get_request_headers(self):
         http = HTTPHelper()
-        mock_text = read_file('data_sample.json')
+        mock_text = read_file('data_sample.json', 'samples')
         response = http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
@@ -338,7 +334,7 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
 
     def test_body_schematic_validation(self):
         http = HTTPHelper()
-        mock_text = read_file('data_sample.json')
+        mock_text = read_file('data_sample.json', 'samples')
         http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
@@ -357,7 +353,7 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
 
     def test_body_type_validation(self):
         http = HTTPHelper()
-        mock_text = read_file('data_sample.json')
+        mock_text = read_file('data_sample.json', 'samples')
         http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
@@ -376,7 +372,7 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
 
     def test_status_code_validation(self):
         http = HTTPHelper()
-        mock_text = read_file('data_sample.json')
+        mock_text = read_file('data_sample.json', 'samples')
         http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
