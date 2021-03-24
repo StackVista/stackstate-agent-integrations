@@ -1,14 +1,17 @@
 # coding=utf-8
-
+import json
+import os
 import unittest
 
 import pytest
 from schematics.models import Model, DataError
 from schematics.types import StringType, IntType, BooleanType
+from six import PY3
 
 from stackstate_checks.utils.http_helper import (HTTPHelper, HTTPRequestType, HTTPAuthenticationType, HTTPResponseType)
 from stackstate_checks.utils.http_helper import HTTPHelperConnectionHandler, \
     HTTPHelperRequestModel, HTTPHelperConnectionModel, HTTPHelperSessionModel
+
 from stackstate_checks.utils.http_helper import HTTPHelperRequestHandler, HTTPHelperSessionHandler
 
 """
@@ -34,33 +37,27 @@ class TestHTTPHelperBase(unittest.TestCase):
     """
      HTTP Helper Request Class
     """
+
     def test_compact_unicode_response(self):
         http = HTTPHelper()
-        http.get({
+        mock_text = read_file('unicode_sample.json')
+        unicode_json_response = http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_text": {
-                'hello': "Klüft skräms inför på fédéral électoral große",
-                '頁設是': "頁設是煵엌嫠쯦案煪㍱從つ浳浤搰㍭煤洳橱橱迎事網計簡大㍵畱煵田煱둻睤㌹楤ぱ椹ぱ頹",
-            },
+            "mock_text": mock_text
         })
-        # unicode_json_response.get_json()
-        # self.assertEqual(unicode_json_response.get_json(), {
-        #     'hello': u"Klüft skräms inför på fédéral électoral große",
-        #     '頁設是': u"頁設是煵엌嫠쯦案煪㍱從つ浳浤搰㍭煤洳橱橱迎事網計簡大㍵畱煵田煱둻睤㌹楤ぱ椹ぱ頹",
-        # })
+        expected_result = load_json_from_file('unicode_sample.json')
+        self.assertEqual(unicode_json_response.get_json(), expected_result)
 
     def test_full_get(self):
         http = HTTPHelper()
+        mock_text = read_file('data_sample.json')
         result = http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_text": {
-                'hello': 'world',
-                'pong': True,
-            },
+            "mock_text": mock_text,
             "auth_data": {
                 'username': 'world',
                 'password': 'hello'
@@ -99,14 +96,12 @@ class TestHTTPHelperBase(unittest.TestCase):
 
     def test_compact_get(self):
         http = HTTPHelper()
+        mock_text = read_file('data_sample.json')
         result = http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 201,
-            "mock_text": {
-                'hello': 'world',
-                'pong': True,
-            },
+            "mock_text": mock_text,
         })
 
         self.assertEqual(result.get_request_method(), "GET")
@@ -123,14 +118,7 @@ class TestHTTPHelperRequestHandler(unittest.TestCase):
         request_handler = HTTPHelperRequestHandler()
         model = request_handler.get_request_model()
         self.assertTrue(isinstance(model, HTTPHelperRequestModel))
-        self.assertRaises(DataError, request_handler.validate_request_model())
-
-        # TODO
-        # with self.assertRaises(TypeError):
-        #     request_handler.validate_request_model()
-
-        with pytest.raises(DataError):
-            request_handler.validate_request_model()
+        self.assertRaises(DataError, request_handler.validate_request_model)
 
     def test_create_request_object(self):
         HTTPHelperRequestHandler({"method": "GET",
@@ -140,23 +128,15 @@ class TestHTTPHelperRequestHandler(unittest.TestCase):
         self.assertEqual(HTTPHelperRequestHandler({"method": "GET"}).get_request_model().method, "GET")
         self.assertEqual(HTTPHelperRequestHandler({"method": "RANDOM"}).get_request_model().method, "RANDOM")
         self.assertTrue(HTTPHelperRequestHandler({"method": "GET"}).validate_method())
-
-        with pytest.raises(ValueError):
-            HTTPHelperRequestHandler().validate_method()
-
-        with pytest.raises(NotImplementedError):
-            HTTPHelperRequestHandler({"method": "RANDOM"}).validate_method()
+        self.assertRaises(ValueError, HTTPHelperRequestHandler().validate_method)
+        self.assertRaises(NotImplementedError, HTTPHelperRequestHandler({"method": "RANDOM"}).validate_method)
 
     def test_url(self):
         self.assertEqual(HTTPHelperRequestHandler({"endpoint": "http://mock.com"}).get_request_model().endpoint,
                          "http://mock.com")
         self.assertTrue(HTTPHelperRequestHandler({"endpoint": "http://mock.com"}).validate_endpoint())
-
-        with pytest.raises(ValueError):
-            HTTPHelperRequestHandler().validate_endpoint()
-
-        with pytest.raises(TypeError):
-            HTTPHelperRequestHandler(-1).validate_endpoint()
+        self.assertRaises(ValueError, HTTPHelperRequestHandler().validate_endpoint)
+        self.assertRaises(TypeError, HTTPHelperRequestHandler, -1)
 
     def test_query_parameters(self):
         self.assertTrue(HTTPHelperRequestHandler().validate_query_param())
@@ -193,8 +173,7 @@ class TestHTTPHelperRequestHandler(unittest.TestCase):
         self.assertEqual(auth_invalid.get_request_model().auth_data, {})
         self.assertEqual(auth_invalid.get_request_model().auth_type, -1)
         self.assertTrue(auth_valid.validate_auth())
-        with pytest.raises(TypeError):
-            auth_invalid.validate_auth()
+        self.assertRaises(TypeError, auth_invalid.validate_auth)
 
     def test_body_type_validation(self):
         self.assertTrue(HTTPHelperRequestHandler().validate_body_type())
@@ -206,11 +185,9 @@ class TestHTTPHelperRequestHandler(unittest.TestCase):
             "body": {},
             "request_type_validation": HTTPRequestType.JSON
         }).validate_body_type())
-
-        with pytest.raises(ValueError):
-            HTTPHelperRequestHandler({
+        self.assertRaises(ValueError, HTTPHelperRequestHandler({
                 "request_type_validation": HTTPRequestType.JSON
-            }).validate_body_type()
+            }).validate_body_type)
 
     def test_body_schematic_validation(self):
         self.assertTrue(HTTPHelperRequestHandler().validate_body_schematic())
@@ -226,11 +203,10 @@ class TestHTTPHelperRequestHandler(unittest.TestCase):
             "request_schematic_validation": BodyRequestSchematicTest
         }).validate_body_schematic())
 
-        with pytest.raises(DataError):
-            HTTPHelperRequestHandler({
+        self.assertRaises(DataError, HTTPHelperRequestHandler({
                 "body": {},
                 "request_schematic_validation": BodyRequestSchematicTest
-            }).validate_body_schematic()
+            }).validate_body_schematic)
 
 
 class TestHTTPHelperSessionHandler(unittest.TestCase):
@@ -266,9 +242,7 @@ class TestHTTPHelperSessionHandler(unittest.TestCase):
         self.assertEqual(auth_invalid.get_session_model().auth_data, {})
         self.assertEqual(auth_invalid.get_session_model().auth_type, -1)
         self.assertTrue(auth_valid.validate_auth())
-
-        with pytest.raises(TypeError):
-            auth_invalid.validate_auth()
+        self.assertRaises(TypeError, auth_invalid.validate_auth)
 
 
 class TestHTTPHelperConnectionHandler(unittest.TestCase):
@@ -282,58 +256,46 @@ class TestHTTPHelperConnectionHandler(unittest.TestCase):
     def test_timeout(self):
         self.assertEqual(HTTPHelperConnectionHandler({"timeout": 10}).get_connection_model().timeout, 10)
         self.assertTrue(HTTPHelperConnectionHandler({"timeout": 10}).validate_timeout())
-
-        with pytest.raises(DataError):
-            HTTPHelperConnectionHandler({"timeout": "RANDOM"})
-
-        with pytest.raises(DataError):
-            HTTPHelperConnectionHandler({"timeout": "RANDOM"}).validate_timeout()
+        self.assertRaises(DataError, HTTPHelperConnectionHandler, {"timeout": "RANDOM"})
 
     def test_retry_policy(self):
         self.assertEqual(HTTPHelperConnectionHandler({"retry_policy": {}}).get_connection_model().retry_policy, {})
         self.assertEqual(HTTPHelperConnectionHandler({"retry_policy": 1}).get_connection_model().retry_policy, 1)
         self.assertTrue(HTTPHelperConnectionHandler({"retry_policy": {}}).validate_retry_policy())
-        with pytest.raises(TypeError):
-            HTTPHelperConnectionHandler({"retry_policy": {"random": 0}}).validate_retry_policy()
+        self.assertRaises(TypeError, HTTPHelperConnectionHandler({"retry_policy": {"random": 0}}).validate_retry_policy)
 
     def test_ssl_verify(self):
         self.assertTrue(HTTPHelperConnectionHandler({"ssl_verify": True}).get_connection_model().ssl_verify)
         self.assertTrue(HTTPHelperConnectionHandler({"ssl_verify": True}).validate_ssl_verify())
-        with pytest.raises(DataError):
-            HTTPHelperConnectionHandler({"ssl_verify": "-1"}).validate_ssl_verify()
+        self.assertRaises(DataError, HTTPHelperConnectionHandler, {"ssl_verify": "-1"})
 
     def test_retry_proxy(self):
         self.assertEqual(HTTPHelperConnectionHandler({"proxy": {}}).get_connection_model().proxy, {})
         self.assertEqual(HTTPHelperConnectionHandler({"proxy": 1}).get_connection_model().proxy, 1)
         self.assertTrue(HTTPHelperConnectionHandler({"proxy": {}}).validate_proxy())
-        with pytest.raises(TypeError):
-            HTTPHelperConnectionHandler({"proxy": 1}).validate_proxy()
+        self.assertRaises(TypeError, HTTPHelperConnectionHandler({"proxy": 1}).validate_proxy)
 
 
 class TestHTTPHelperResponseHandler(unittest.TestCase):
     def test_get_status_code(self):
         http = HTTPHelper()
+        mock_text = read_file('data_sample.json')
         response = http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_text": {
-                'hello': 'world',
-                'pong': True,
-            },
+            "mock_text": mock_text,
         })
         self.assertEqual(response.get_status_code(), 200)
 
     def test_get_json(self):
         http = HTTPHelper()
+        mock_text = read_file('data_sample.json')
         response = http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_text": {
-                'hello': 'world',
-                'pong': True,
-            },
+            "mock_text": mock_text,
         })
         self.assertEqual(response.get_json(), {
             'hello': 'world',
@@ -342,58 +304,49 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
 
     def test_get_request_method(self):
         http = HTTPHelper()
+        mock_text = read_file('data_sample.json')
         response = http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_text": {
-                'hello': 'world',
-                'pong': True,
-            },
+            "mock_text": mock_text,
         })
         self.assertEqual(response.get_request_method(), "GET")
 
     def test_get_request_url(self):
         http = HTTPHelper()
+        mock_text = read_file('data_sample.json')
         response = http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_text": {
-                'hello': 'world',
-                'pong': True,
-            },
+            "mock_text": mock_text,
         })
         self.assertEqual(response.get_request_url(), "mock://test.com")
 
     def test_get_request_headers(self):
         http = HTTPHelper()
+        mock_text = read_file('data_sample.json')
         response = http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_text": {
-                'hello': 'world',
-                'pong': True,
-            },
+            "mock_text": mock_text,
         })
         self.assertEqual(response.get_request_headers(), {})
 
     def test_body_schematic_validation(self):
         http = HTTPHelper()
+        mock_text = read_file('data_sample.json')
         http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_text": {
-                'hello': 'world',
-                'pong': True,
-            },
+            "mock_text": mock_text,
             "response_schematic_validation": BodyResponseSchematicTest,
         })
 
-        with pytest.raises(ValueError):
-            http.get({
+        self.assertRaises(ValueError, http.get, {
                 "endpoint": "mock://test.com",
                 "mock_enable": True,
                 "mock_status": 200,
@@ -403,19 +356,16 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
 
     def test_body_type_validation(self):
         http = HTTPHelper()
+        mock_text = read_file('data_sample.json')
         http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_text": {
-                'hello': 'world',
-                'pong': True,
-            },
+            "mock_text": mock_text,
             "response_type_validation": HTTPResponseType.JSON,
         })
 
-        with pytest.raises(ValueError):
-            http.get({
+        self.assertRaises(ValueError, http.get, {
                 "endpoint": "mock://test.com",
                 "mock_enable": True,
                 "mock_status": 200,
@@ -425,22 +375,34 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
 
     def test_status_code_validation(self):
         http = HTTPHelper()
+        mock_text = read_file('data_sample.json')
         http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_text": {
-                'hello': 'world',
-                'pong': True,
-            },
+            "mock_text": mock_text,
             "response_status_code_validation": 200,
         })
 
-        with pytest.raises(ValueError):
-            http.get({
+        self.assertRaises(ValueError, http.get, {
                 "endpoint": "mock://test.com",
                 "mock_enable": True,
                 "mock_status": 201,
                 "mock_text": "test",
                 "response_status_code_validation": 200,
             })
+
+
+def read_file(filename):
+    with open(get_path_to_file(filename), "r") as f:
+        return f.read() if PY3 else f.read().decode("utf-8")
+
+
+def load_json_from_file(filename):
+    raw_json_file = read_file(filename)
+    return json.loads(raw_json_file)
+
+
+def get_path_to_file(filename):
+    path_to_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'samples', filename)
+    return path_to_file
