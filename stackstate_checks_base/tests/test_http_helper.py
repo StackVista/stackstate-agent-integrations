@@ -4,11 +4,10 @@ import unittest
 from schematics.models import Model, DataError
 from schematics.types import StringType, IntType, BooleanType
 
-from stackstate_checks.base.utils.common import read_file, load_json_from_file, get_path_to_file
+from stackstate_checks.base.utils.common import read_file, load_json_from_file
 from stackstate_checks.utils.http_helper import (HTTPHelper, HTTPRequestType, HTTPAuthenticationType, HTTPResponseType)
 from stackstate_checks.utils.http_helper import HTTPHelperConnectionHandler, \
     HTTPHelperRequestModel, HTTPHelperConnectionModel, HTTPHelperSessionModel
-
 from stackstate_checks.utils.http_helper import HTTPHelperRequestHandler, HTTPHelperSessionHandler
 
 """
@@ -183,8 +182,8 @@ class TestHTTPHelperRequestHandler(unittest.TestCase):
             "request_type_validation": HTTPRequestType.JSON
         }).validate_body_type())
         self.assertRaises(ValueError, HTTPHelperRequestHandler({
-                "request_type_validation": HTTPRequestType.JSON
-            }).validate_body_type)
+            "request_type_validation": HTTPRequestType.JSON
+        }).validate_body_type)
 
     def test_body_schematic_validation(self):
         self.assertTrue(HTTPHelperRequestHandler().validate_body_schematic())
@@ -201,9 +200,9 @@ class TestHTTPHelperRequestHandler(unittest.TestCase):
         }).validate_body_schematic())
 
         self.assertRaises(DataError, HTTPHelperRequestHandler({
-                "body": {},
-                "request_schematic_validation": BodyRequestSchematicTest
-            }).validate_body_schematic)
+            "body": {},
+            "request_schematic_validation": BodyRequestSchematicTest
+        }).validate_body_schematic)
 
 
 class TestHTTPHelperSessionHandler(unittest.TestCase):
@@ -344,12 +343,12 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
         })
 
         self.assertRaises(ValueError, http.get, {
-                "endpoint": "mock://test.com",
-                "mock_enable": True,
-                "mock_status": 200,
-                "mock_text": "test",
-                "response_schematic_validation": BodyResponseSchematicTest,
-            })
+            "endpoint": "mock://test.com",
+            "mock_enable": True,
+            "mock_status": 200,
+            "mock_text": "test",
+            "response_schematic_validation": BodyResponseSchematicTest,
+        })
 
     def test_body_type_validation(self):
         http = HTTPHelper()
@@ -363,12 +362,12 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
         })
 
         self.assertRaises(ValueError, http.get, {
-                "endpoint": "mock://test.com",
-                "mock_enable": True,
-                "mock_status": 200,
-                "mock_text": "test",
-                "response_type_validation": HTTPResponseType.JSON,
-            })
+            "endpoint": "mock://test.com",
+            "mock_enable": True,
+            "mock_status": 200,
+            "mock_text": "test",
+            "response_type_validation": HTTPResponseType.JSON,
+        })
 
     def test_status_code_validation(self):
         http = HTTPHelper()
@@ -382,9 +381,9 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
         })
 
         self.assertRaises(ValueError, http.get, {
-                "endpoint": "mock://test.com",
-                "mock_enable": True,
-                "mock_status": 201,
-                "mock_text": "test",
-                "response_status_code_validation": 200,
-            })
+            "endpoint": "mock://test.com",
+            "mock_enable": True,
+            "mock_status": 201,
+            "mock_text": "test",
+            "response_status_code_validation": 200,
+        })

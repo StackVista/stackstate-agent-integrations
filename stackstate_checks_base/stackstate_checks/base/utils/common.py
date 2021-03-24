@@ -1,6 +1,7 @@
 # (C) Datadog, Inc. 2018
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
+import inspect
 import json
 from decimal import ROUND_HALF_UP, Decimal
 import os
@@ -71,7 +72,7 @@ def __return_self(obj):
 
 
 def read_file(filename, extended_path=""):
-    with open(get_path_to_file(filename, extended_path), "r") as f:
+    with open(_get_path_to_file(filename, extended_path), "r") as f:
         return f.read() if PY3 else f.read().decode("utf-8")
 
 
@@ -80,7 +81,12 @@ def load_json_from_file(filename, extended_path=""):
     return json.loads(raw_json_file)
 
 
-def get_path_to_file(filename, extended_path=""):
-    path_to_directory = os.path.join(os.path.dirname(os.path.abspath(filename)), extended_path)
-    path_to_file = os.path.join(path_to_directory, filename)
+def _get_path_to_file(filename, extended_path=""):
+    caller_file = inspect.stack()[2].filename if PY3 else inspect.stack()[2][1]
+    if caller_file == __file__:
+        caller_file = inspect.stack()[3].filename if PY3 else inspect.stack()[3][1]
+    print("caller_file", caller_file)
+    path_to_callers_file = os.path.abspath(caller_file)
+    path_with_extended_part = os.path.join(os.path.dirname(path_to_callers_file), extended_path)
+    path_to_file = os.path.join(path_with_extended_part, filename)
     return path_to_file
