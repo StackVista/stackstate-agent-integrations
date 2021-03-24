@@ -824,50 +824,26 @@ class HTTPHelperResponseHandler:
         return self._response_model.response.status_code
 
     def get_json(self):
-        if PY2:
-            """
-            Return the already decoded json from the executed Session() object
-            """
+        """
+        Return the already decoded json from the executed Session() object
+        """
+        # We first decode the response with the encoding header
+        decoded_response = self._response_model.response.content.decode(
+            self._response_model.response.encoding
+        )
 
-            # We first decode the response with the encoding header
-            decoded_response = self._response_model.response.content.decode(
-                self._response_model.response.encoding
-            )
+        ensured_string_values = to_string(decoded_response)
 
-            ensured_string_values = ensure_unicode(decoded_response)
+        # Next we use the json load function with its build-in unicode functionality to decode the object
+        # This will work on straight text or json objects
+        # This should take the object from a unicode state to a dict state
+        json_decoded_response = json.loads(ensured_string_values)
 
-            # Next we use the json load function with its build-in unicode functionality to decode the object
-            # This will work on straight text or json objects
-            # This should take the object from a unicode state to a dict state
-            json_decoded_response = json.loads(ensured_string_values)
-
-            # If valid json was found return this json
-            if issubclass(type(json_decoded_response), dict):
-                return json_decoded_response
-            else:
-                return None
-
+        # If valid json was found return this json
+        if issubclass(type(json_decoded_response), dict):
+            return json_decoded_response
         else:
-            """
-            Return the already decoded json from the executed Session() object
-            """
-            # We first decode the response with the encoding header
-            decoded_response = self._response_model.response.content.decode(
-                self._response_model.response.encoding
-            )
-
-            ensured_string_values = to_string(decoded_response)
-
-            # Next we use the json load function with its build-in unicode functionality to decode the object
-            # This will work on straight text or json objects
-            # This should take the object from a unicode state to a dict state
-            json_decoded_response = json.loads(ensured_string_values)
-
-            # If valid json was found return this json
-            if issubclass(type(json_decoded_response), dict):
-                return json_decoded_response
-            else:
-                return None
+            return None
 
     def get_request_method(self):
         """
