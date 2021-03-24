@@ -1,14 +1,17 @@
 # coding=utf-8
-
+import json
+import os
 import unittest
 
 import pytest
 from schematics.models import Model, DataError
 from schematics.types import StringType, IntType, BooleanType
+from six import PY3
 
 from stackstate_checks.utils.http_helper import (HTTPHelper, HTTPRequestType, HTTPAuthenticationType, HTTPResponseType)
 from stackstate_checks.utils.http_helper import HTTPHelperConnectionHandler, \
     HTTPHelperRequestModel, HTTPHelperConnectionModel, HTTPHelperSessionModel
+
 from stackstate_checks.utils.http_helper import HTTPHelperRequestHandler, HTTPHelperSessionHandler
 
 """
@@ -34,22 +37,19 @@ class TestHTTPHelperBase(unittest.TestCase):
     """
      HTTP Helper Request Class
     """
+
     def test_compact_unicode_response(self):
         http = HTTPHelper()
-        http.get({
+        mock_text = read_file('unicode_sample.json')
+        unicode_json_response = http.get({
             "endpoint": "mock://test.com",
             "mock_enable": True,
             "mock_status": 200,
-            "mock_json": {
-                'hello': "Klüft skräms inför på fédéral électoral große",
-                '頁設是': "頁設是煵엌嫠쯦案煪㍱從つ浳浤搰㍭煤洳橱橱迎事網計簡大㍵畱煵田煱둻睤㌹楤ぱ椹ぱ頹",
-            },
+            "mock_text": mock_text
+            ,
         })
-        # unicode_json_response.get_json()
-        # self.assertEqual(unicode_json_response.get_json(), {
-        #     'hello': u"Klüft skräms inför på fédéral électoral große",
-        #     '頁設是': u"頁設是煵엌嫠쯦案煪㍱從つ浳浤搰㍭煤洳橱橱迎事網計簡大㍵畱煵田煱둻睤㌹楤ぱ椹ぱ頹",
-        # })
+        expected_result = load_json_from_file('unicode_sample.json')
+        self.assertEqual(unicode_json_response.get_json(), expected_result)
 
     def test_full_get(self):
         http = HTTPHelper()
@@ -476,3 +476,18 @@ class TestHTTPHelperResponseHandler(unittest.TestCase):
                 "mock_json": "test",
                 "response_status_code_validation": 200,
             })
+
+
+def read_file(filename):
+    with open(get_path_to_file(filename), "r") as f:
+        return f.read() if PY3 else f.read().decode("utf-8")
+
+
+def load_json_from_file(filename):
+    raw_json_file = read_file(filename)
+    return json.loads(raw_json_file)
+
+
+def get_path_to_file(filename):
+    path_to_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'samples', filename)
+    return path_to_file
