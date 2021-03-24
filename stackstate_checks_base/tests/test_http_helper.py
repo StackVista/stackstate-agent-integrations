@@ -1,14 +1,15 @@
 # coding=utf-8
 
 import unittest
+
 import pytest
 from schematics.models import Model, DataError
 from schematics.types import StringType, IntType, BooleanType
-from stackstate_checks.utils.http_helper import HTTPHelper, HTTPRequestType, HTTPAuthenticationType, HTTPResponseType
-from stackstate_checks.utils.http_helper import HTTPHelperRequestHandler, HTTPHelperSessionHandler, HTTPMethod
-from stackstate_checks.utils.http_helper import HTTPHelperResponseHandler, HTTPHelperConnectionHandler, \
-    HTTPHelperRequestModel, HTTPHelperConnectionModel, HTTPHelperSessionModel, HTTPHelperResponseModel
-from stackstate_checks.utils.common import ensure_string, ensure_unicode, to_string
+
+from stackstate_checks.utils.http_helper import (HTTPHelper, HTTPRequestType, HTTPAuthenticationType, HTTPResponseType)
+from stackstate_checks.utils.http_helper import HTTPHelperConnectionHandler, \
+    HTTPHelperRequestModel, HTTPHelperConnectionModel, HTTPHelperSessionModel
+from stackstate_checks.utils.http_helper import HTTPHelperRequestHandler, HTTPHelperSessionHandler
 
 """
 Structures used within the test cases
