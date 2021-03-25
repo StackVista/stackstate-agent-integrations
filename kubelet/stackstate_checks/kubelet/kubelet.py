@@ -185,7 +185,7 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
         kubelet_conn_info = get_connection_info()
         endpoint = kubelet_conn_info.get('url')
         if endpoint is None:
-            raise CheckException("Unable to detect the kubelet URL automatically.")
+            raise CheckException("Unable to detect the kubelet URL automatically: " + kubelet_conn_info.get('err', ''))
 
         self.kube_health_url = urljoin(endpoint, KUBELET_HEALTH_PATH)
         self.node_spec_url = urljoin(endpoint, NODE_SPEC_PATH)
@@ -300,13 +300,21 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
         """
         Retrieve node spec from kubelet.
         """
-        node_spec = self.perform_kubelet_query(self.node_spec_url).json()
-        # TODO: report allocatable for cpu, mem, and pod capacity
-        # if we can get it locally or thru the DCA instead of the /nodes endpoint directly
-        return node_spec
+        node_resp = self.perform_kubelet_query(self.node_spec_url)
+        return node_resp
 
     def _report_node_metrics(self, instance_tags):
-        node_spec = self._retrieve_node_spec()
+        try:
+            node_resp = self._retrieve_node_spec()
+            node_resp.raise_for_status()
+        except requests.HTTPError as e:
+            if node_resp.status_code == 404:
+                # ignore HTTPError, for supporting k8s >= 1.18 in a degrated mode
+                # in 1.18 the /spec can be reactivated from the kubelet config
+                # in 1.19 the /spec will removed.
+                return
+            raise e
+        node_spec = node_resp.json()
         num_cores = node_spec.get('num_cores', 0)
         memory_capacity = node_spec.get('memory_capacity', 0)
 
