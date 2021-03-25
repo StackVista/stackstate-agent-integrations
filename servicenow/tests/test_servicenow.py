@@ -302,8 +302,8 @@ class TestServicenow(unittest.TestCase):
         """
         Destroy the check state
         """
-        state_descriptor = self.check._get_state_descriptor()
-        self.check.state_manager.clear(state_descriptor)
+        state_descriptor = self.check.get_state_descriptor()
+        self.check.get_state_manager().clear(state_descriptor)
 
     def test_check(self):
         """
