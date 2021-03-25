@@ -218,7 +218,8 @@ def state():
                     assert check.get_state_manager().get_state(state_descriptor, state_schema) is None
                 check.run()
                 if expected_post_run_state:
-                    assert check.get_state_manager().get_state(state_descriptor, state_schema) == expected_post_run_state
+                    assert check.get_state_manager().get_state(state_descriptor, state_schema) == \
+                           expected_post_run_state
                 else:
                     assert check.get_state_manager().get_state(state_descriptor, state_schema) is None
             finally:
