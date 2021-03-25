@@ -34,11 +34,7 @@ def test_instance():
         "token": "some_token",
         "events_process_limit": 10,
         "events_boostrap_days": 5,
-        "timeout": 20,
-        "stackstate-layer": "test-layer",
-        "stackstate-domain": "test-domain",
-        "stackstate-environment": "test-environment",
-        "stackstate-identifier": "test-identifier"
+        "timeout": 20
     }
 
 
