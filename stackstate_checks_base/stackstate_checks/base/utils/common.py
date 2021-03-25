@@ -71,7 +71,7 @@ def __return_self(obj):
     return obj
 
 
-def read_file(filename, extended_path=None):
+def read_file(filename, extended_path=""):
     """
     Return file contents as string. It supports UTF-8 characters in both PY2 and PY3.
     :param filename: String
@@ -82,7 +82,7 @@ def read_file(filename, extended_path=None):
         return f.read() if PY3 else f.read().decode("utf-8")
 
 
-def load_json_from_file(filename, extended_path=None):
+def load_json_from_file(filename, extended_path=""):
     """
     Returns dictionary with file contents. It supports UTF-8 characters in both PY2 and PY3.
     :param filename: String
@@ -93,7 +93,7 @@ def load_json_from_file(filename, extended_path=None):
     return json.loads(raw_json_file)
 
 
-def _get_path_to_file(filename, extended_path=None):
+def _get_path_to_file(filename, extended_path=""):
     """
     Only works when called from load_json_from_file or read_file functions.
     It calculates absolute path to filename relative to caller file location.
