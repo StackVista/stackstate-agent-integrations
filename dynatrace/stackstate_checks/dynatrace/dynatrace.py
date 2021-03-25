@@ -178,7 +178,7 @@ class DynatraceCheck(AgentCheck):
                 "identifiers": identifiers,
                 "tags": tags,
                 "domain": instance_info.domain,
-                "environment": instance_info.environment,
+                "environments": [instance_info.environment],
                 "instance": instance_info.url,
             })
             self.component(external_id, component_type, data)
