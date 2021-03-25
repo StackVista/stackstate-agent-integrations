@@ -131,8 +131,7 @@ class HTTPHelper:
             "proxy": http_model.proxy,
         })
 
-        session = session_handler if type(session_handler) is HTTPHelperSessionHandler \
-            else HTTPHelperSessionHandler({
+        session = session_handler if type(session_handler) is HTTPHelperSessionHandler else HTTPHelperSessionHandler({
             "headers": http_model.session_headers,
             "auth_data": http_model.session_auth_data,
             "auth_type": http_model.session_auth_type,
