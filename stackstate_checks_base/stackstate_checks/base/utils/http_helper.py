@@ -133,13 +133,13 @@ class HTTPHelper:
 
         session = session_handler if type(session_handler) is HTTPHelperSessionHandler \
             else HTTPHelperSessionHandler({
-                "headers": http_model.session_headers,
-                "auth_data": http_model.session_auth_data,
-                "auth_type": http_model.session_auth_type,
-                "mock_enable": http_model.mock_enable,
-                "mock_status": http_model.mock_status,
-                "mock_text": http_model.mock_text
-            })
+            "headers": http_model.session_headers,
+            "auth_data": http_model.session_auth_data,
+            "auth_type": http_model.session_auth_type,
+            "mock_enable": http_model.mock_enable,
+            "mock_status": http_model.mock_status,
+            "mock_text": http_model.mock_text
+        })
 
         request = HTTPHelperRequestHandler({
             "method": active_method,
