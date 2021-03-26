@@ -208,7 +208,10 @@ class TestPersistentState:
                 s2 = {'a': 'b'}
                 state.persistent_state.set_state(instance, s2)
 
-            assert str(e.value) == """[Errno 13] Permission denied: './on.disk.state.flush.read.only.state'"""
+            if platform.system() == "Windows":
+                assert str(e.value) == """[Errno 5] Access is denied: '.\\on.disk.state.flush.read.only.state'"""
+            else:
+                assert str(e.value) == """[Errno 13] Permission denied: './on.disk.state.flush.read.only.state'"""
 
         finally:
             state.persistent_state.clear(instance)
