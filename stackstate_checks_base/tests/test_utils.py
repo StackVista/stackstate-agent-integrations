@@ -5,7 +5,6 @@ from decimal import ROUND_HALF_DOWN, ROUND_HALF_UP
 
 import pytest
 import os
-from stat import S_IREAD, S_IRGRP, S_IROTH
 import platform
 from stackstate_checks.utils.common import pattern_filter, round_value
 from stackstate_checks.utils.limiter import Limiter
@@ -192,29 +191,6 @@ class TestPersistentState:
         s = {'a': 'b', 'c': 1, 'd': ['e', 'f', 'g'], 'h': {'i': 'j', 'k': True}}
         instance = StateDescriptor("on.disk.state", ".")
         state.assert_state(instance, s)
-
-    def test_state_flushing_read_only(self, state):
-        try:
-            instance = StateDescriptor("on.disk.state.flush.read.only", ".")
-            state.persistent_state.get_state(instance)
-
-            s = {'a': 'b', 'c': 1, 'd': ['e', 'f', 'g'], 'h': {'i': 'j', 'k': True}}
-            state.persistent_state.set_state(instance, s)
-
-            # Set the file to read only before writing
-            os.chmod(instance.file_location, S_IREAD | S_IRGRP | S_IROTH)
-
-            with pytest.raises(StateNotPersistedException) as e:
-                s2 = {'a': 'b'}
-                state.persistent_state.set_state(instance, s2)
-
-            if platform.system() == "Windows":
-                assert str(e.value) == """[Errno 5] Access is denied: '.\\on.disk.state.flush.read.only.state'"""
-            else:
-                assert str(e.value) == """[Errno 13] Permission denied: './on.disk.state.flush.read.only.state'"""
-
-        finally:
-            state.persistent_state.clear(instance)
 
     def test_state_flushing_with_schema(self, state):
         s = TestStorageSchema({'offset': 10})
