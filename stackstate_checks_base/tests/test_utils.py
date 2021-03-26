@@ -5,7 +5,7 @@ from decimal import ROUND_HALF_DOWN, ROUND_HALF_UP
 
 import pytest
 import os
-from stat import S_IREAD
+from stat import S_IREAD, S_IRGRP, S_IROTH
 import platform
 from stackstate_checks.utils.common import pattern_filter, round_value
 from stackstate_checks.utils.limiter import Limiter
@@ -202,7 +202,7 @@ class TestPersistentState:
             state.persistent_state.set_state(instance, s)
 
             # Set the file to read only before writing
-            os.chmod(instance.file_location, S_IREAD)
+            os.chmod(instance.file_location, S_IREAD | S_IRGRP | S_IROTH)
 
             with pytest.raises(StateNotPersistedException) as e:
                 s2 = {'a': 'b'}
