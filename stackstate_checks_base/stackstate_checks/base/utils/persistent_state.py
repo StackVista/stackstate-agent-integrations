@@ -83,7 +83,7 @@ class StateManager:
             self.log.error("PersistentState: State file is corrupted for instance: {} stored at: {}. {}"
                            .format(instance.instance_key, instance.file_location, e))
             raise StateCorruptedException(e)
-        except IOError as e:
+        except (OSError, IOError) as e:
             # File not found / no file for this state so the state doesn't exist. Catch exception and return None
             if e.errno == errno.ENOENT or e.errno == errno.EINVAL:
                 self.log.debug("PersistentState: No state file found for instance: {}"
@@ -150,7 +150,7 @@ class StateManager:
 
                 with open(instance.file_location, 'w+') as f:
                     f.write(json.dumps(self.state[instance.instance_key]))
-            except OSError as e:
+            except (IOError, OSError) as e:
                 if e.errno != errno.EEXIST:
                     # if we couldn't save, log the state
                     self.log.error('PersistentState: Could not persist state for instance: {} at {}, '
