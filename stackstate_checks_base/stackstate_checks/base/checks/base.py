@@ -964,8 +964,10 @@ class AgentCheckBase(object):
     def get_config(key):
         return datadog_agent.get_config(key)
 
-    def register_hook(self, check_hook):
+    def register_hook(self, check_hook_cls):
+        check_hook = check_hook_cls(check_hook_contract=self.check_hook_contract())
         self.check_hooks.append(check_hook)
+        return check_hook
 
 
 class __AgentCheckPy3(AgentCheckBase):
@@ -1328,10 +1330,8 @@ class StateFulMixin(CheckMixin):
     StateFulMixin registers the Stateful hook to be used by the agent base and the check itself.
     """
     def __init__(self, *args, **kwargs):
-        # Initialize AgentCheck's base class
         super(StateFulMixin, self).__init__(*args, **kwargs)
-        self.stateful_hook = StateFulHook(check_hook_contract=self.check_hook_contract())
-        self.register_hook(self.stateful_hook)
+        self.stateful_hook = self.register_hook(StateFulHook)
 
     def get_state_descriptor(self):
         return self.stateful_hook.get_state_descriptor()
@@ -1351,9 +1351,8 @@ class AutoSnapshotMixin(CheckMixin):
     AutoSnapshotMixin registers the Stateful hook to be used by the agent base and the check itself.
     """
     def __init__(self, *args, **kwargs):
-        # Initialize AgentCheck's base class
         super(AutoSnapshotMixin, self).__init__(*args, **kwargs)
-        self.register_hook(AutoSnapshotHook(check_hook_contract=self.check_hook_contract()))
+        self.register_hook(AutoSnapshotHook)
 
 
 class CheckHookContract:
