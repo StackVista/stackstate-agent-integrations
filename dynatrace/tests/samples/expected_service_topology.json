@@ -23,7 +23,7 @@
         ],
         "path": "/Exchange.HighAvailability/ServerLocator",
         "domain": "dynatrace",
-        "environment": "production",
+        "environments": ["production"],
         "identifiers": [
           "urn:dynatrace:/SERVICE-923B9ABBC3F9DB68"
         ],
@@ -63,7 +63,7 @@
         "path": "/Microsoft.Exchange.Directory.TopologyService",
         "port": 890,
         "domain": "dynatrace",
-        "environment": "production",
+        "environments": ["production"],
         "identifiers": [
           "urn:dynatrace:/SERVICE-8745799105D02C01"
         ],
@@ -121,7 +121,7 @@
           }
         ],
         "domain": "dynatrace",
-        "environment": "production",
+        "environments": ["production"],
         "identifiers": [
           "urn:dynatrace:/SERVICE-329B4CC95B522941"
         ],

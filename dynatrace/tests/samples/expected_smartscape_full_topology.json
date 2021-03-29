@@ -58,7 +58,7 @@
           "integration-url:https://ton48129.live.dynatrace.com"
         ],
         "domain": "dynatrace",
-        "environment": "production",
+        "environments": ["production"],
         "instance": "https://ton48129.live.dynatrace.com"
       }
     },
@@ -139,7 +139,7 @@
           "integration-url:https://ton48129.live.dynatrace.com"
         ],
         "domain": "dynatrace",
-        "environment": "production",
+        "environments": ["production"],
         "instance": "https://ton48129.live.dynatrace.com"
       }
     },
@@ -201,7 +201,7 @@
           "integration-url:https://ton48129.live.dynatrace.com"
         ],
         "domain": "dynatrace",
-        "environment": "production",
+        "environments": ["production"],
         "instance": "https://ton48129.live.dynatrace.com"
       }
     },
@@ -259,7 +259,7 @@
           "integration-url:https://ton48129.live.dynatrace.com"
         ],
         "domain": "dynatrace",
-        "environment": "production",
+        "environments": ["production"],
         "instance": "https://ton48129.live.dynatrace.com"
       }
     },
@@ -316,7 +316,7 @@
           "integration-url:https://ton48129.live.dynatrace.com"
         ],
         "domain": "dynatrace",
-        "environment": "production",
+        "environments": ["production"],
         "instance": "https://ton48129.live.dynatrace.com"
       }
     },
@@ -360,7 +360,7 @@
           "managementZones:app name exists"
         ],
         "domain": "dynatrace",
-        "environment": "production",
+        "environments": ["production"],
         "instance": "https://ton48129.live.dynatrace.com"
       }
     },
@@ -395,7 +395,7 @@
           "managementZones:easyTravel"
         ],
         "domain": "dynatrace",
-        "environment": "production",
+        "environments": ["production"],
         "instance": "https://ton48129.live.dynatrace.com"
       }
     },
@@ -432,7 +432,7 @@
           "portal"
         ],
         "domain": "dynatrace",
-        "environment": "production",
+        "environments": ["production"],
         "instance": "https://ton48129.live.dynatrace.com"
       }
     },
@@ -486,7 +486,7 @@
           "integration-url:https://ton48129.live.dynatrace.com"
         ],
         "domain": "dynatrace",
-        "environment": "production",
+        "environments": ["production"],
         "instance": "https://ton48129.live.dynatrace.com"
       }
     },
@@ -551,7 +551,7 @@
           "integration-url:https://ton48129.live.dynatrace.com"
         ],
         "domain": "dynatrace",
-        "environment": "production",
+        "environments": ["production"],
         "instance": "https://ton48129.live.dynatrace.com"
       }
     },
@@ -605,7 +605,7 @@
           "integration-url:https://ton48129.live.dynatrace.com"
         ],
         "domain": "dynatrace",
-        "environment": "production",
+        "environments": ["production"],
         "instance": "https://ton48129.live.dynatrace.com"
       }
     },
@@ -644,7 +644,7 @@
           "integration-url:https://ton48129.live.dynatrace.com"
         ],
         "domain": "dynatrace",
-        "environment": "production",
+        "environments": ["production"],
         "instance": "https://ton48129.live.dynatrace.com"
       }
     },
@@ -684,7 +684,7 @@
           "integration-url:https://ton48129.live.dynatrace.com"
         ],
         "domain": "dynatrace",
-        "environment": "production",
+        "environments": ["production"],
         "instance": "https://ton48129.live.dynatrace.com"
       }
     },
@@ -746,7 +746,7 @@
           "integration-url:https://ton48129.live.dynatrace.com"
         ],
         "domain": "dynatrace",
-        "environment": "production",
+        "environments": ["production"],
         "instance": "https://ton48129.live.dynatrace.com"
       }
     }

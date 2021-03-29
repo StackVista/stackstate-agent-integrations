@@ -25,7 +25,7 @@
           }
         ],
         "domain": "dynatrace",
-        "environment": "production",
+        "environments": ["production"],
         "identifiers": [
           "urn:dynatrace:/APPLICATION-EA7C4B59F27D43EB"
         ],
@@ -63,7 +63,7 @@
           }
         ],
         "domain": "dynatrace",
-        "environment": "production",
+        "environments": ["production"],
         "identifiers": [
           "urn:dynatrace:/APPLICATION-BBFA55551D507E2B"
         ],
@@ -99,7 +99,7 @@
           }
         ],
         "domain": "dynatrace",
-        "environment": "production",
+        "environments": ["production"],
         "identifiers": [
           "urn:dynatrace:/MOBILE_APPLICATION-752C288D59734C79"
         ],

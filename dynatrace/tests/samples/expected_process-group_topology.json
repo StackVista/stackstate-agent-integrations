@@ -38,7 +38,7 @@
           6671
         ],
         "domain": "dynatrace",
-        "environment": "production",
+        "environments": ["production"],
         "identifiers": [
           "urn:dynatrace:/PROCESS_GROUP-518359807AEC7140"
         ],
@@ -102,7 +102,7 @@
           9300
         ],
         "domain": "dynatrace",
-        "environment": "production",
+        "environments": ["production"],
         "identifiers": [
           "urn:dynatrace:/PROCESS_GROUP-647A29F2E878C508"
         ],
@@ -156,7 +156,7 @@
           444
         ],
         "domain": "dynatrace",
-        "environment": "production",
+        "environments": ["production"],
         "identifiers": [
           "urn:dynatrace:/PROCESS_GROUP-3D9D854163F8F07A"
         ],

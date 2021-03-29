@@ -40,7 +40,7 @@
         "amiId": "ami-044b14bf9ccadeee9",
         "awsInstanceId": "i-0de40b60fae0f6846",
         "domain": "dynatrace",
-        "environment": "production",
+        "environments": ["production"],
         "identifiers": [
           "urn:dynatrace:/HOST-6AAE0F78BCF2E0F4",
           "urn:host:/ec2-3-249-27-126.eu-west-1.compute.amazonaws.com",
@@ -97,7 +97,7 @@
         "amiId": "ami-076c188b0006a9c1c",
         "awsInstanceId": "i-0eee811b00ae31c95",
         "domain": "dynatrace",
-        "environment": "production",
+        "environments": ["production"],
         "identifiers": [
           "urn:dynatrace:/HOST-AA6A5D81A0006807",
           "urn:host:/ec2-34-242-110-40.eu-west-1.compute.amazonaws.com",

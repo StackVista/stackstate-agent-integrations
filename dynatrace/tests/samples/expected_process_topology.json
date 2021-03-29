@@ -7,7 +7,7 @@
         "displayName": "EdgeTransport.exe",
         "domain": "dynatrace",
         "entityId": "PROCESS_GROUP_INSTANCE-F25A8361C6742030",
-        "environment": "production",
+        "environments": ["production"],
         "firstSeenTimestamp": 1600180620000,
         "identifiers": [
           "urn:dynatrace:/PROCESS_GROUP_INSTANCE-F25A8361C6742030"
@@ -77,7 +77,7 @@
         "displayName": "Elasticsearch stackstate (stackstate-prod-0)",
         "domain": "dynatrace",
         "entityId": "PROCESS_GROUP_INSTANCE-3A6855F295757634",
-        "environment": "production",
+        "environments": ["production"],
         "firstSeenTimestamp": 1600092000000,
         "identifiers": [
           "urn:dynatrace:/PROCESS_GROUP_INSTANCE-3A6855F295757634"
@@ -150,7 +150,7 @@
         "displayName": "IIS",
         "domain": "dynatrace",
         "entityId": "PROCESS_GROUP_INSTANCE-D87BE1EAFC600996",
-        "environment": "production",
+        "environments": ["production"],
         "firstSeenTimestamp": 1600180620000,
         "identifiers": [
           "urn:dynatrace:/PROCESS_GROUP_INSTANCE-D87BE1EAFC600996"
