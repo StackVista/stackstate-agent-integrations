@@ -31,7 +31,7 @@ instance_config = InstanceInfo([])
 @pytest.mark.usefixtures("instance")
 class TestAgentIntegration(unittest.TestCase):
     """Basic Test for servicenow integration."""
-    CHECK_NAME = 'servicenow'
+    CHECK_NAME = 'agent-integration-sample'
 
     def setUp(self):
         """
@@ -56,6 +56,7 @@ class TestAgentIntegration(unittest.TestCase):
         aggregator.assert_metric('location.availability', count=3, tags=["hostname:this-host", "region:eu-west-1"])
         aggregator.assert_metric('2xx.responses', count=4, tags=["application:some_application", "region:eu-west-1"])
         aggregator.assert_metric('5xx.responses', count=4, tags=["application:some_application", "region:eu-west-1"])
+        aggregator.assert_metric('check_runs', count=1, tags=["integration:agent_integration_sample"])
         aggregator.assert_event('Http request to {} timed out after {} seconds.'.format('http://localhost', 5.0),
                                 count=1)
         telemetry.assert_topology_event(
