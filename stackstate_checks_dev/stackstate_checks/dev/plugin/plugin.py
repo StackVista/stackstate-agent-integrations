@@ -224,7 +224,7 @@ def state():
             finally:
                 # remove all test data
                 check.state_manager.clear(state_descriptor)
-                shutil.rmtree(check.get_agent_conf_d_path())
+                shutil.rmtree(check.get_check_state_path(), ignore_errors=True)
 
         def assert_state(self, instance, state, state_schema=None, with_clear=True):
             """
