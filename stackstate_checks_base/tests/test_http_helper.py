@@ -199,7 +199,7 @@ class TestHTTPHelperRequestHandler(unittest.TestCase):
             "request_schematic_validation": BodyRequestSchematicTest
         }).validate_body_schematic())
 
-        self.assertRaises(DataError, HTTPHelperRequestHandler({
+        self.assertRaises(TypeError, HTTPHelperRequestHandler({
             "body": {},
             "request_schematic_validation": BodyRequestSchematicTest
         }).validate_body_schematic)

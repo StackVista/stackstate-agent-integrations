@@ -405,7 +405,7 @@ class HTTPHelperRequestHandler:
                              The error provided by the schematic validation is {0}
                              To fix this you can either modify the schematic validation or remove it entirely
                              """.format(e)
-                raise e
+                raise DataError(message)
 
             except TypeError as e:
                 message = """The request was unable to conform to the validation schematic. The
@@ -786,7 +786,7 @@ class HTTPHelperResponseHandler:
                              The error provided by the schematic validation is {0}
                              To fix this you can either modify the schematic validation or remove it entirely
                              """.format(e)
-                raise e
+                raise DataError(message)
 
             except ValueError as e:
                 message = """Unable to parse the response as JSON.
@@ -908,7 +908,7 @@ def validate_auth(auth_type, auth_data):
 
                          The error provided by the execution
                          {2}""".format(str(auth_data), str(auth_type), e)
-            raise e
+            raise DataError(message)
 
         except TypeError as e:
             message = """The authentication details object passed to this function failed as
