@@ -1,4 +1,4 @@
-# (C) StackState 2020
+# (C) StackState 2021
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 from codecs import open  # To use a consistent encoding
@@ -10,7 +10,7 @@ HERE = path.dirname(path.abspath(__file__))
 
 # Get version info
 ABOUT = {}
-with open(path.join(HERE, 'stackstate_checks', 'dynatrace_topology', '__about__.py')) as f:
+with open(path.join(HERE, 'stackstate_checks', 'dynatrace', '__about__.py')) as f:
     exec(f.read(), ABOUT)
 
 # Get the long description from the README file
@@ -22,18 +22,18 @@ CHECKS_BASE_REQ = 'stackstate-checks-base'
 
 
 setup(
-    name='stackstate-dynatrace_topology',
+    name='stackstate-dynatrace',
     version=ABOUT['__version__'],
-    description='The Dynatrace Topology check',
+    description='The Dynatrace check',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    keywords='stackstate agent dynatrace_topology check',
+    keywords='stackstate agent dynatrace check',
 
     # The project's main homepage.
     url='https://github.com/StackVista/stackstate-agent-integrations',
 
     # Author details
-    author='Vishal Kumar',
+    author='StackState',
     author_email='info@stackstate.com',
 
     # License
@@ -52,7 +52,7 @@ setup(
     ],
 
     # The package we're going to ship
-    packages=['stackstate_checks.dynatrace_topology'],
+    packages=['stackstate_checks.dynatrace'],
 
     # Run-time dependencies
     install_requires=[CHECKS_BASE_REQ],
