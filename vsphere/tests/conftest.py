@@ -14,7 +14,8 @@ def _instance():
     """
     Create a default instance, used by multiple fixtures
     """
-    return {'name': 'vsphere_mock', 'tags': ['foo:bar'], 'host': 'test'}
+    return {'name': 'vsphere_mock', 'tags': ['foo:bar'], 'host': 'test', 'username': 'test', 'password': 'test',
+            'all_metrics': False}
 
 
 @pytest.fixture

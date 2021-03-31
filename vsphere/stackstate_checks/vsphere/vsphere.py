@@ -20,6 +20,10 @@ from six import itervalues
 from six.moves import range
 from vmware.vapi.vsphere.client import create_vsphere_client
 from com.vmware.vapi.std_client import DynamicID
+from schematics import Model
+from schematics.exceptions import DataError
+from schematics.types import StringType, BooleanType, ListType
+
 
 from stackstate_checks.base import AgentCheck, StackPackInstance, ConfigurationError
 from stackstate_checks.base.checks.libs.thread_pool import SENTINEL, Pool
@@ -85,6 +89,17 @@ def trace_method(method):
             args[0].print_exception("A worker thread crashed:\n" + traceback.format_exc())
 
     return wrapper
+
+
+class InstanceConfig(Model):
+    name = StringType(required=True)
+    host = StringType(required=True)
+    username = StringType(required=True)
+    password = StringType(required=True)
+    all_metrics = BooleanType(required=True)
+    # optional fields for new check
+    tags = ListType(StringType)
+    excluded_host_tags = ListType(StringType)
 
 
 class VSphereCheck(AgentCheck):
@@ -1325,6 +1340,12 @@ class VSphereCheck(AgentCheck):
         #     "To use the newer version, please update your configuration file based on the provided example. "
         #     "Look for the `use_legacy_check_version` configuration option."
         # )
+        try:
+            instance_info = InstanceConfig(instance)
+            instance_info.validate()
+        except DataError as e:
+            self.log.error("Missing required element in configuration: " + str(e))
+            raise e
         try:
             self.exception_printed = 0
 
