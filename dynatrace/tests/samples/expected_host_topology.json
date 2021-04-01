@@ -1,0 +1,151 @@
+{
+  "components": [
+    {
+      "data": {
+        "entityId": "HOST-6AAE0F78BCF2E0F4",
+        "displayName": "EX01.stackstate.lab",
+        "discoveredName": "EX01.stackstate.lab",
+        "firstSeenTimestamp": 1600180637597,
+        "lastSeenTimestamp": 1601447916389,
+        "osType": "WINDOWS",
+        "osArchitecture": "X86",
+        "osVersion": "Windows Server 2016 Datacenter 1607, ver. 10.0.14393 with unicode char: ",
+        "hypervisorType": "XEN",
+        "ipAddresses": [
+          "3.249.27.126",
+          "172.31.29.43"
+        ],
+        "bitness": "64bit",
+        "cpuCores": 2,
+        "logicalCpuCores": 2,
+        "cloudType": "EC2",
+        "monitoringMode": "FULL_STACK",
+        "networkZoneId": "default",
+        "agentVersion": {
+          "major": 1,
+          "minor": 201,
+          "revision": 127,
+          "timestamp": "20200925-143440"
+        },
+        "consumedHostUnits": "0.5",
+        "userLevel": "SUPERUSER",
+        "awsSecurityGroup": [
+          "melnemrSG"
+        ],
+        "publicHostName": "ec2-3-249-27-126.eu-west-1.compute.amazonaws.com",
+        "localIp": "172.31.29.43",
+        "publicIp": "3.249.27.126",
+        "awsInstanceType": "t2.large",
+        "localHostName": "ip-172-31-29-43.eu-west-1.compute.internal",
+        "amiId": "ami-044b14bf9ccadeee9",
+        "awsInstanceId": "i-0de40b60fae0f6846",
+        "domain": "dynatrace",
+        "environments": ["production"],
+        "identifiers": [
+          "urn:dynatrace:/HOST-6AAE0F78BCF2E0F4",
+          "urn:host:/ec2-3-249-27-126.eu-west-1.compute.amazonaws.com",
+          "urn:host:/ip-172-31-29-43.eu-west-1.compute.internal",
+          "urn:host:/EX01.stackstate.lab",
+          "urn:host:/ex01.stackstate.lab"
+        ],
+        "instance": "https://ton48129.live.dynatrace.com",
+        "tags": [
+          "HOST-6AAE0F78BCF2E0F4",
+          "integration-type:dynatrace",
+          "integration-url:https://ton48129.live.dynatrace.com"
+        ]
+      },
+      "id": "HOST-6AAE0F78BCF2E0F4",
+      "type": "host"
+    },
+    {
+      "data": {
+        "entityId": "HOST-AA6A5D81A0006807",
+        "displayName": "SQL01.stackstate.lab",
+        "discoveredName": "SQL01.stackstate.lab",
+        "firstSeenTimestamp": 1600177757775,
+        "lastSeenTimestamp": 1601447899018,
+        "osType": "WINDOWS",
+        "osArchitecture": "X86",
+        "osVersion": "Windows Server 2016 Datacenter 1607, ver. 10.0.14393",
+        "ipAddresses": [
+          "34.242.110.40",
+          "172.31.30.110"
+        ],
+        "bitness": "64bit",
+        "cpuCores": 2,
+        "logicalCpuCores": 4,
+        "cloudType": "EC2",
+        "monitoringMode": "FULL_STACK",
+        "networkZoneId": "default",
+        "agentVersion": {
+          "major": 1,
+          "minor": 201,
+          "revision": 127,
+          "timestamp": "20200925-143440"
+        },
+        "consumedHostUnits": 1,
+        "userLevel": "SUPERUSER",
+        "awsSecurityGroup": [
+          "melnemrSG"
+        ],
+        "publicHostName": "ec2-34-242-110-40.eu-west-1.compute.amazonaws.com",
+        "localIp": "172.31.30.110",
+        "publicIp": "34.242.110.40",
+        "awsInstanceType": "t3a.xlarge",
+        "localHostName": "ip-172-31-30-110.eu-west-1.compute.internal",
+        "amiId": "ami-076c188b0006a9c1c",
+        "awsInstanceId": "i-0eee811b00ae31c95",
+        "domain": "dynatrace",
+        "environments": ["production"],
+        "identifiers": [
+          "urn:dynatrace:/HOST-AA6A5D81A0006807",
+          "urn:host:/ec2-34-242-110-40.eu-west-1.compute.amazonaws.com",
+          "urn:host:/ip-172-31-30-110.eu-west-1.compute.internal",
+          "urn:host:/SQL01.stackstate.lab",
+          "urn:host:/sql01.stackstate.lab"
+        ],
+        "instance": "https://ton48129.live.dynatrace.com",
+        "tags": [
+          "HOST-AA6A5D81A0006807",
+          "integration-type:dynatrace",
+          "integration-url:https://ton48129.live.dynatrace.com"
+        ]
+      },
+      "id": "HOST-AA6A5D81A0006807",
+      "type": "host"
+    }
+  ],
+  "relations": [
+    {
+      "data": {},
+      "source_id": "PROCESS_GROUP_INSTANCE-0EC2543319EDF0A3",
+      "target_id": "HOST-6AAE0F78BCF2E0F4",
+      "type": "isProcessOf"
+    },
+    {
+      "data": {},
+      "source_id": "PROCESS_GROUP_INSTANCE-F25A8361C6742030",
+      "target_id": "HOST-6AAE0F78BCF2E0F4",
+      "type": "isProcessOf"
+    },
+    {
+      "data": {},
+      "source_id": "PROCESS_GROUP-55BB99EBACB51463",
+      "target_id": "HOST-6AAE0F78BCF2E0F4",
+      "type": "runsOn"
+    },
+    {
+      "data": {},
+      "source_id": "PROCESS_GROUP_INSTANCE-840D594BDCBD7CD8",
+      "target_id": "HOST-AA6A5D81A0006807",
+      "type": "isProcessOf"
+    },
+    {
+      "data": {},
+      "source_id": "PROCESS_GROUP-FEB4657B2B2296B4",
+      "target_id": "HOST-AA6A5D81A0006807",
+      "type": "runsOn"
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "nextEventStartTms": 1600873810000,
+  "nextEventId": 4693051395068987000,
+  "nextCursor": "123",
+  "from": 1598283212803,
+  "to": 1600875212803,
+  "totalEventCount": 12,
+  "events": [
+    {
+      "eventId": -5695353740630077000,
+      "startTime": 1600875000000,
+      "endTime": 1600875010000,
+      "entityId": "PROCESS_GROUP_INSTANCE-824A512BB875431D",
+      "entityName": "SFControl.exe",
+      "impactLevel": "INFRASTRUCTURE",
+      "eventType": "PROCESS_RESTART",
+      "eventStatus": "CLOSED",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "prod"
+        }
+      ],
+      "id": "-5695353740630077232_1600875000000",
+      "source": "builtin"
+    },
+    {
+      "eventId": 1273921780227268600,
+      "startTime": 1600875000000,
+      "endTime": 1600875010000,
+      "entityId": "PROCESS_GROUP_INSTANCE-874A7BE975CB6D92",
+      "entityName": "csc.exe",
+      "impactLevel": "INFRASTRUCTURE",
+      "eventType": "PROCESS_RESTART",
+      "eventStatus": "CLOSED",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "prod"
+        }
+      ],
+      "id": "1273921780227268668_1600875000000",
+      "source": "builtin"
+    },
+    {
+      "eventId": -1920904455712359000,
+      "startTime": 1600874700000,
+      "endTime": -1,
+      "entityId": "SERVICE-FAA29C9BB1C02F9B",
+      "entityName": "Ivory Server CTP Inbound PROD",
+      "severityLevel": "ERROR",
+      "impactLevel": "SERVICE",
+      "eventType": "FAILURE_RATE_INCREASED",
+      "eventStatus": "OPEN",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "app-ivory"
+        },
+        {
+          "context": "CONTEXTLESS",
+          "key": "comp-ivory_to_ctp"
+        },
+        {
+          "context": "CONTEXTLESS",
+          "key": "product-bcops"
+        },
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "prod"
+        }
+      ],
+      "id": "-1920904455712358970_1600874700000",
+      "affectedRequestsPerMinute": 35.4,
+      "service": "Ivory Server CTP Inbound PROD",
+      "source": "builtin",
+      "serviceMethod": "/soap/DistributionEinheitInfoGet_5"
+    }
+  ]
+}

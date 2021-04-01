@@ -1,10 +1,11 @@
-# (C) StackState 2020
+# (C) StackState 2021
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 from .__about__ import __version__
-from .dynatrace_topology import DynatraceTopologyCheck
+from .dynatrace import DynatraceCheck, dynatrace_entities_cache
 
 __all__ = [
     '__version__',
-    'DynatraceTopologyCheck'
+    'DynatraceCheck',
+    'dynatrace_entities_cache'
 ]

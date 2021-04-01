@@ -25,22 +25,20 @@
           }
         ],
         "domain": "dynatrace",
-        "environment": "production",
+        "environments": ["production"],
         "identifiers": [
           "urn:dynatrace:/APPLICATION-EA7C4B59F27D43EB"
         ],
         "instance": "https://ton48129.live.dynatrace.com",
         "tags": [
+          "APPLICATION-EA7C4B59F27D43EB",
+          "Mytag",
+          "Test",
           "integration-type:dynatrace",
-          "integration-url:https://ton48129.live.dynatrace.com"
-        ],
-        "labels": [
-          "dynatrace-managementZones:allTypes",
-          "dynatrace-managementZones:app name exists",
-          "dynatrace-managementZones:Applications except easyTravel",
-          "dynatrace-APPLICATION-EA7C4B59F27D43EB",
-          "dynatrace-Mytag",
-          "dynatrace-Test"
+          "integration-url:https://ton48129.live.dynatrace.com",
+          "managementZones:Applications except easyTravel",
+          "managementZones:allTypes",
+          "managementZones:app name exists"
         ]
       },
       "id": "APPLICATION-EA7C4B59F27D43EB",
@@ -65,19 +63,17 @@
           }
         ],
         "domain": "dynatrace",
-        "environment": "production",
+        "environments": ["production"],
         "identifiers": [
           "urn:dynatrace:/APPLICATION-BBFA55551D507E2B"
         ],
         "instance": "https://ton48129.live.dynatrace.com",
         "tags": [
+          "APPLICATION-BBFA55551D507E2B",
           "integration-type:dynatrace",
-          "integration-url:https://ton48129.live.dynatrace.com"
-        ],
-        "labels": [
-          "dynatrace-managementZones:allTypes",
-          "dynatrace-managementZones:easyTravel",
-          "dynatrace-APPLICATION-BBFA55551D507E2B"
+          "integration-url:https://ton48129.live.dynatrace.com",
+          "managementZones:allTypes",
+          "managementZones:easyTravel"
         ]
       },
       "id": "APPLICATION-BBFA55551D507E2B",
@@ -103,20 +99,18 @@
           }
         ],
         "domain": "dynatrace",
-        "environment": "production",
+        "environments": ["production"],
         "identifiers": [
           "urn:dynatrace:/MOBILE_APPLICATION-752C288D59734C79"
         ],
         "instance": "https://ton48129.live.dynatrace.com",
         "tags": [
+          "MOBILE_APPLICATION-752C288D59734C79",
+          "easyTravel",
           "integration-type:dynatrace",
-          "integration-url:https://ton48129.live.dynatrace.com"
-        ],
-        "labels": [
-          "dynatrace-managementZones:easyTravel",
-          "dynatrace-MOBILE_APPLICATION-752C288D59734C79",
-          "dynatrace-portal",
-          "dynatrace-easyTravel"
+          "integration-url:https://ton48129.live.dynatrace.com",
+          "managementZones:easyTravel",
+          "portal"
         ]
       },
       "id": "MOBILE_APPLICATION-752C288D59734C79",
