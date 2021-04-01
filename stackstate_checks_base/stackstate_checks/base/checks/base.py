@@ -312,7 +312,9 @@ class AgentCheckBase(object):
             check_instance = copy.deepcopy(self.instance)
 
             for check_hook in self.check_hooks:
-                check_hook.pre_run_task(check_instance)
+                pre_run_res = check_hook.pre_run_task()
+                if pre_run_res:
+                    check_instance = dict(check_instance, **pre_run_res)
 
             # if this check has a instance schema defined, cast it into that type and validate it
             if self.INSTANCE_SCHEMA:
@@ -321,7 +323,7 @@ class AgentCheckBase(object):
             self.check(check_instance)
 
             for check_hook in self.check_hooks:
-                check_hook.post_run_task(check_instance)
+                check_hook.post_run_task(copy.deepcopy(check_instance))
 
             result = default_result
         except Exception as e:
@@ -1375,10 +1377,10 @@ class CheckHook(object):
     def __init__(self, check_hook_contract, *args, **kwargs):
         self.check_hook_contract = check_hook_contract
 
-    def pre_run_task(self, check_instance):
+    def pre_run_task(self):
         raise NotImplementedError
 
-    def post_run_task(self, check_instance):
+    def post_run_task(self, post_check_instance):
         raise NotImplementedError
 
 
@@ -1388,18 +1390,18 @@ class AutoSnapshotHook(CheckHook):
     successfully.
     """
 
-    def pre_run_task(self, _):
+    def pre_run_task(self):
         """
         Submit the start of the snapshot before the check is run
         """
-        topology.submit_start_snapshot(_, self.check_hook_contract.check_id,
+        topology.submit_start_snapshot(None, self.check_hook_contract.check_id,
                                        self.check_hook_contract.topology_instance.to_dict())
 
-    def post_run_task(self, _):
+    def post_run_task(self, post_check_instance):
         """
         Submit the stop of the snapshot before the check is run
         """
-        topology.submit_stop_snapshot(_, self.check_hook_contract.check_id,
+        topology.submit_stop_snapshot(None, self.check_hook_contract.check_id,
                                       self.check_hook_contract.topology_instance.to_dict())
 
 
@@ -1418,22 +1420,23 @@ class StateFulHook(CheckHook):
         super(StateFulHook, self).__init__(check_hook_contract, *args, **kwargs)
         self.state_manager = StateManager(check_hook_contract.log)
 
-    def pre_run_task(self, check_instance):
+    def pre_run_task(self):
         """
         Fetch the current state before the check is run and add it the current state to the check instance.
         """
         state_descriptor = self.get_state_descriptor()
         current_state = copy.deepcopy(self.state_manager.get_state(state_descriptor))
         if current_state:
-            check_instance[self.STATE_FIELD_NAME] = current_state
+            return {self.STATE_FIELD_NAME: current_state}
 
-    def post_run_task(self, check_instance):
+        return
+    def post_run_task(self, post_check_instance):
         """
         Set the state that was returned after the check completed succesfully.
         """
         # set the state from the check instance
         state_descriptor = self.get_state_descriptor()
-        self.state_manager.set_state(state_descriptor, check_instance.get(self.STATE_FIELD_NAME))
+        self.state_manager.set_state(state_descriptor, post_check_instance.get(self.STATE_FIELD_NAME))
 
     def get_state_manager(self):
         return self.state_manager
