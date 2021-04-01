@@ -298,7 +298,7 @@ class AgentCheckBase(object):
             name=self.name,
             check_id=self.check_id,
             log=self.log,
-            check_instance=self.instance,
+            check_instance=copy.deepcopy(self.instance),
             topology_instance=topology_instance,
             agent_conf_d_path=self.get_agent_conf_d_path()
         )
