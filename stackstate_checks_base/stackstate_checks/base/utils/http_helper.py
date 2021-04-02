@@ -598,11 +598,11 @@ class HTTPHelperConnectionHandler:
 
         # Auth will already have gone through validation thus we just test types and apply values
         # Request - HTTPBasicAuth
-        if request_handler.get_request_model().auth_type is "basic":
+        if request_handler.get_request_model().auth_type == "basic":
             request.auth = request_handler.create_basic_auth()
 
         # Session - HTTPBasicAuth
-        if session_handler.get_session_model().auth_type is "basic":
+        if session_handler.get_session_model().auth_type == "basic":
             session.auth = session_handler.create_basic_auth()
 
         return session.send(request.prepare(), timeout=self._connection_model.timeout)
@@ -767,7 +767,7 @@ def validate_auth(auth_type, auth_data):
     if auth_type is None and auth_data is None:
         return True
 
-    if auth_type in authentication_choices and auth_type is "basic":
+    if auth_type in authentication_choices and auth_type == "basic":
         if auth_data.get('username') is None or auth_data.get('password') is None:
             message = """For the Basic Authentication a username and password is required. The
                          current authentication data passed to this function is incorrect. The authentication
@@ -780,7 +780,7 @@ def validate_auth(auth_type, auth_data):
 
     else:
         message = """We are unable to find the authentication defined within the http_method_choices var.
-                     Please verify if the authentication type {0} exists within the http_method_choices 
+                     Please verify if the authentication type {0} exists within the http_method_choices
                      variable. If it does not then you need to either change the authentication type
                      or add the authentication variable inside the http_method_choices var""" \
             .format(str(auth_type))
