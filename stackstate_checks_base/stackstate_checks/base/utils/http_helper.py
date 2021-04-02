@@ -157,7 +157,8 @@ class HTTPHelper:
         })
 
         # Run Validation
-        self.log.info("Attempting to validate the response status code")
+        self.log.info("Attempting to validate the response")
+        response_handler.validate_response_model()
         response_handler.validate_status_code()
 
         return response_handler
