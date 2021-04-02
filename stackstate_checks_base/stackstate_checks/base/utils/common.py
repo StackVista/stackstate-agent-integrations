@@ -74,6 +74,8 @@ def __return_self(obj):
 def read_file(filename, extended_path=""):
     """
     Return file contents as string. It supports UTF-8 characters in both PY2 and PY3.
+    Warning Note: The filename will be a relative to the callers py file
+
     :param filename: String
     :param extended_path: Optional path
     :return: String with file contents.
@@ -85,6 +87,8 @@ def read_file(filename, extended_path=""):
 def load_json_from_file(filename, extended_path=""):
     """
     Returns dictionary with file contents. It supports UTF-8 characters in both PY2 and PY3.
+    Warning Note: The filename will be a relative to the callers py file
+
     :param filename: String
     :param extended_path: Optional path
     :return: Dictionary with the file contents.
@@ -105,7 +109,6 @@ def _get_path_to_file(filename, extended_path=""):
     caller_file = inspect.stack()[2].filename if PY3 else inspect.stack()[2][1]
     if caller_file == __file__:
         caller_file = inspect.stack()[3].filename if PY3 else inspect.stack()[3][1]
-    print("caller_file", caller_file)
     path_to_callers_file = os.path.abspath(caller_file)
     path_with_extended_part = os.path.join(os.path.dirname(path_to_callers_file), extended_path)
     path_to_file = os.path.join(path_with_extended_part, filename)

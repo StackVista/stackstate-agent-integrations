@@ -19,21 +19,8 @@ except ImportError:
     import urllib.parse as urlparse
 
 
-class HTTPBasicAuthentication(Model):
-    username = StringType(required=True)
-    password = StringType(required=True)
-
-
-class HTTPAuthenticationType(Enum):
-    BasicAuth = HTTPBasicAuthentication
-
-
-class HTTPMethod(Enum):
-    GET = 'GET'
-    POST = 'POST'
-    PUT = 'PUT'
-    PATCH = 'PATCH'
-    DELETE = 'DELETE'
+http_method_choices = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
+authentication_choices = ['basic']
 
 
 class HTTPRequestType(Enum):
@@ -56,9 +43,9 @@ class HTTPHelperModel(Model):
     mock_text = BaseType(required=False, default=None)
     endpoint = StringType(required=True, default=None)
     auth_data = DictType(BaseType, required=False, default=None)
-    auth_type = BaseType(required=False, default=None)
+    auth_type = StringType(required=False, choices=authentication_choices, default=None)
     session_auth_data = BaseType(required=False, default=None)
-    session_auth_type = BaseType(required=False, default=None)
+    session_auth_type = StringType(required=False, choices=authentication_choices, default=None)
     body = BaseType(required=False, default=None)
     proxy = BaseType(required=False, default=None)
     headers = DictType(StringType, required=False, default=None)
@@ -94,21 +81,21 @@ class HTTPHelper:
         pass
 
     def get(self, http_model, session_handler=None):
-        return self._builder("GET", HTTPHelperModel(http_model), session_handler)
+        return self._build_validate_and_execute("GET", HTTPHelperModel(http_model), session_handler)
 
     def post(self, http_model, session_handler=None):
-        return self._builder("POST", HTTPHelperModel(http_model), session_handler)
+        return self._build_validate_and_execute("POST", HTTPHelperModel(http_model), session_handler)
 
     def put(self, http_model, session_handler=None):
-        return self._builder("PUT", HTTPHelperModel(http_model), session_handler)
+        return self._build_validate_and_execute("PUT", HTTPHelperModel(http_model), session_handler)
 
     def delete(self, http_model, session_handler=None):
-        return self._builder("DELETE", HTTPHelperModel(http_model), session_handler)
+        return self._build_validate_and_execute("DELETE", HTTPHelperModel(http_model), session_handler)
 
     def patch(self, http_model, session_handler=None):
-        return self._builder("PATCH", HTTPHelperModel(http_model), session_handler)
+        return self._build_validate_and_execute("PATCH", HTTPHelperModel(http_model), session_handler)
 
-    def _builder(self, active_method, http_model, session_handler=None):
+    def _build_validate_and_execute(self, active_method, http_model, session_handler=None):
         """
         Functionality:
             A generic builder to contains most of the functionality on the Connection, Request, Session and Response
@@ -152,8 +139,14 @@ class HTTPHelper:
             "request_type_validation": http_model.request_type_validation,
         })
 
-        request_response = connection.send(session, request)
+        # Run Validation
+        self.log.info("Running connection, session and request validation")
+        connection.validate_connection_model()
+        session.validate_session_model()
+        request.validate_request_model()
 
+        # Send the request to the endpoint
+        request_response = connection.send(session, request)
         self.log.info("Received the following response from the external endpoint: {0}".format(request_response))
 
         response_handler = HTTPHelperResponseHandler({
@@ -163,11 +156,9 @@ class HTTPHelper:
             "response_schematic_validation": http_model.response_schematic_validation,
         })
 
-        self.log.info("Attempting to validate the response content")
-
-        response_handler.validate_body_schematic()
+        # Run Validation
+        self.log.info("Attempting to validate the response status code")
         response_handler.validate_status_code()
-        response_handler.validate_body_type()
 
         return response_handler
 
@@ -184,7 +175,7 @@ class HTTPHelperRequestModel(Model):
     headers = DictType(StringType, default=dict({}))
     body = BaseType(required=False, default=None)
     auth_data = DictType(BaseType, required=False, default=None)
-    auth_type = BaseType(required=False, default=None)
+    auth_type = StringType(required=False, choices=authentication_choices, default=None)
     request_schematic_validation = BaseType(required=False, default=None)
     request_type_validation = BaseType(required=False, default=None)
 
@@ -203,9 +194,7 @@ class HTTPHelperRequestHandler:
             - SET && VALIDATE HTTP Headers
             - SET && VALIDATE HTTP Auth
     """
-    _authentication_types = [item.value for item in HTTPAuthenticationType]
     _request_types = [item.value for item in HTTPRequestType]
-    _http_method_enums = [item.value for item in HTTPMethod]
     log = logging.getLogger('%s.request_handler' % __name__)
 
     def __init__(self, request_model=None):
@@ -261,6 +250,7 @@ class HTTPHelperRequestHandler:
         request_object.data = self._request_model.body
 
         # Authentication Apply and validation
+        self.validate_auth()
         request_object.auth_data = self._request_model.auth_data
         request_object.auth_type = self._request_model.auth_type
 
@@ -275,36 +265,23 @@ class HTTPHelperRequestHandler:
             message = """The http method has not been applied"""
             raise ValueError(message)
 
-        # ENUM Check
-        # We attempt to see if the provided variable exists inside the enum
-        # The following checks are made
-        # - Is the method a enum value
-        # - Does the method exist in the enum
-        # - Can we get the value data from the method
-        elif isinstance(self._request_model.method, Enum) and \
-                hasattr(self._request_model.method, "value") and \
-                self._request_model.method.value in self._http_method_enums:
-            self.log.info("Enum Method found inside the `HTTPMethod` enum, Applying {0} as the active"
-                          "method.".format(str(self._request_model.method.value)))
-            return True
-
         # String Check
         # If the value was not found in a enum then we attempt to find the enum that contains the same as the
         # string value provided.
         # The following checks are made
         # - Is the method passed a string so that we can match it in the enum
         # - Does that string exist in the mapped enum list.
-        elif self._request_model.method in self._http_method_enums:
-            self.log.info("String method found inside the `HTTPMethod` enum, Applying {0} as the active"
+        if self._request_model.method in http_method_choices:
+            self.log.info("String method found inside the `http_method_choices` array, Applying {0} as the active"
                           "method.".format(str(self._request_model.method)))
             return True
 
         # If we do not find the value inside the enum then it means that we do not support the method yet
         else:
             message = """Unable to find the provided {0} method. Currently the code
-                         block only supports the methods provided in the `HTTPMethod`
-                         Enum. If you would like to add another method feel free to add it
-                         within the `HTTPMethod` Enum or change the supplied {1} to a
+                         block only supports the methods provided in the http_method_choices
+                         array. If you would like to add another method feel free to add it
+                         within the http_method_choices array or change the supplied {1} to a
                          supported type""".format(str(self._request_model.method), str(self._request_model.method))
             raise NotImplementedError(message)
 
@@ -404,7 +381,7 @@ class HTTPHelperRequestHandler:
                 message = """The request was unable to conform to the validation schematic.
                              The error provided by the schematic validation is {0}
                              To fix this you can either modify the schematic validation or remove it entirely
-                             """.format(e)
+                             """.format(str(e))
                 raise DataError(message)
 
             except TypeError as e:
@@ -414,29 +391,6 @@ class HTTPHelperRequestHandler:
                              To fix this you can either modify the schematic validation or remove it entirely
                              """.format(str(self._request_model.request_schematic_validation), e)
                 raise TypeError(message)
-
-    @staticmethod
-    def split_string_into_dict(target, delimiter, sub_delimiter):
-        """
-        Functionality:
-            Split a string into a dictionary the string must follow a list + key value structure
-            For example random=test&hello=world or for example random:123|test:123.
-
-        Input:
-            @target
-                The primary string that should be made into a dictionary
-            @delimiter
-                The item that will make the string into a list of strings
-            @sub_delimiter
-                The sub delimiter is used to split the list of strings into a dictionary
-        """
-        if isinstance(target, str):
-            items = (item.split(sub_delimiter) for item in target.split(delimiter))
-            try:
-                return dict((left.strip(), right.strip()) for left, right in items)
-            except ValueError:
-                return {}
-        return None
 
     def create_basic_auth(self):
         return HTTPBasicAuth(self._request_model.auth_data.get('username'),
@@ -454,7 +408,7 @@ class HTTPHelperSessionModel(Model):
     mock_text = BaseType(required=False, default=None)
     headers = DictType(StringType, default=dict({}))
     auth_data = BaseType(required=False, default=None)
-    auth_type = BaseType(required=False, default=None)
+    auth_type = StringType(required=False, choices=authentication_choices, default=None)
 
 
 class HTTPHelperSessionHandler:
@@ -467,8 +421,6 @@ class HTTPHelperSessionHandler:
             - SET && GET HTTP Headers
             - SET && GET HTTP Auth
     """
-
-    _authentication_types = [item.value for item in HTTPAuthenticationType]
 
     log = logging.getLogger('%s.session_handler' % __name__)
 
@@ -504,6 +456,7 @@ class HTTPHelperSessionHandler:
         session_object.headers = self._session_model.headers
 
         # Authentication Apply and validation
+        self.validate_auth()
         session_object.auth_type = self._session_model.auth_type
         session_object.auth_data = self._session_model.auth_data
 
@@ -580,16 +533,6 @@ class HTTPHelperConnectionHandler:
         """
         self._connection_model.validate()
 
-    def validate_timeout(self):
-        if isinstance(self._connection_model.timeout, int) or self._connection_model.timeout is None:
-            return True
-
-        else:
-            message = """The parameters timeout does not contain the correct type.
-                         The provided type is {0}. This function only accepts int as a valid timeout""" \
-                .format(str(type(self._connection_model.timeout)))
-            raise TypeError(message)
-
     def validate_retry_policy(self):
         if self._connection_model.retry_policy is None:
             return True
@@ -599,15 +542,6 @@ class HTTPHelperConnectionHandler:
             return True
 
         return False
-
-    def validate_ssl_verify(self):
-        if isinstance(self._connection_model.ssl_verify, bool):
-            return True
-        else:
-            message = """Unable to set the SSL Verification as the defined parameters is the
-                         incorrect type, The type passed to the function is {0} and a int is
-                         expected""".format(str(type(self._connection_model.ssl_verify)))
-            raise TypeError(message)
 
     def validate_proxy(self):
         if isinstance(self._connection_model.proxy, dict) or self._connection_model.proxy is None:
@@ -663,11 +597,11 @@ class HTTPHelperConnectionHandler:
 
         # Auth will already have gone through validation thus we just test types and apply values
         # Request - HTTPBasicAuth
-        if request_handler.get_request_model().auth_type is HTTPAuthenticationType.BasicAuth:
+        if request_handler.get_request_model().auth_type is "basic":
             request.auth = request_handler.create_basic_auth()
 
         # Session - HTTPBasicAuth
-        if session_handler.get_session_model().auth_type is HTTPAuthenticationType.BasicAuth:
+        if session_handler.get_session_model().auth_type is "basic":
             session.auth = session_handler.create_basic_auth()
 
         return session.send(request.prepare(), timeout=self._connection_model.timeout)
@@ -714,7 +648,8 @@ class HTTPHelperResponseHandler:
 
     def get_json(self):
         """
-        Return the already decoded json from the executed Session() object
+        First we attempt to decode the json then we run validation on the data.
+        This will then return valid decoded json from the execute Session() object
         """
         # We first decode the response with the encoding header
         decoded_response = self._response_model.response.content.decode(
@@ -729,7 +664,8 @@ class HTTPHelperResponseHandler:
         json_decoded_response = json.loads(ensured_string_values)
 
         # If valid json was found return this json
-        if issubclass(type(json_decoded_response), dict):
+        # Run validation before we return the value
+        if issubclass(type(json_decoded_response), dict) and self.validate_body_schematic(json_decoded_response):
             return json_decoded_response
         else:
             return None
@@ -759,24 +695,18 @@ class HTTPHelperResponseHandler:
         """
         self._response_model.validate()
 
-    def validate_body_schematic(self):
+    def validate_body_schematic(self, json_decoded_response):
         if self._response_model.response_schematic_validation is None or \
                 self._response_model.response is None:
             return True
 
         if issubclass(self._response_model.response_schematic_validation, Model) is True:
             try:
-                # Decode the response content with the encoding type also given by the response
-                decoded_response = self._response_model.response.content.decode(self._response_model.response.encoding)
-
-                # We attempt to decode the response to JSON. To test a schematic you need to have a JSON object to test
-                parsed_json = json.loads(decoded_response)
-
-                if isinstance(parsed_json, dict) is False:
+                if isinstance(json_decoded_response, dict) is False:
                     raise ValueError()
 
                 # The last part to test is does the Parsed JSON match the schematic validation
-                self._response_model.response_schematic_validation(parsed_json) \
+                self._response_model.response_schematic_validation(json_decoded_response) \
                     .validate()
 
                 return True
@@ -785,7 +715,7 @@ class HTTPHelperResponseHandler:
                 message = """The response was unable to conform to the validation schematic.
                              The error provided by the schematic validation is {0}
                              To fix this you can either modify the schematic validation or remove it entirely
-                             """.format(e)
+                             """.format(str(e))
                 raise DataError(message)
 
             except ValueError as e:
@@ -825,105 +755,32 @@ class HTTPHelperResponseHandler:
                          status code against""".format(str(type(self._response_model.response_status_code_validation)))
             raise TypeError(message)
 
-    def validate_body_type(self):
-        if self._response_model.response_type_validation is None:
-            return True
-
-        if isinstance(self._response_model.response_type_validation, Enum) and \
-                self._response_model.response_type_validation.value in self._response_types:
-
-            # If the type set is JSON. We then attempt to parse it and see if it is valid
-            if issubclass(HTTPResponseType.JSON.value, self._response_model.response_type_validation.value):
-                try:
-                    data = json.loads(self._response_model.response.content.decode(
-                        self._response_model.response.encoding))
-                    if isinstance(data, HTTPResponseType.JSON.value) is False:
-                        raise ValueError()
-                    else:
-                        return True
-
-                except ValueError as e:
-                    message = """Unable to parse the response as JSON.
-                                 The response received was {0}.
-                                 Full error from the JSON parse attempt {1}
-                                 """.format(str(self._response_model.response.content), e)
-                    raise ValueError(message)
-
-            elif isinstance(self._response_model.response_type_validation.value,
-                            type(self._response_model.response.content)) is False:
-                message = """The response content type does not conform to the validation type. The response
-                             type is {0}. The expected type is {1}
-                             To fix this you can either modify the type validation or remove it entirely
-                             """.format(str(type(self._response_model.response.content)),
-                                        str(self._response_model.response_type_validation.value))
-                raise TypeError(message)
-
-            else:
-                return True
-
-        else:
-            message = """The `response_type` argument is the incorrect type. The provided type
-                         is {0} and was not found within the `HTTPResponseType` enum. Please make
-                         sure that the `response_type` argument is a instance of the HTTPResponseType
-                         enum, If not then add the type tot the `HTTPResponseType` enum to allow it
-                         """.format(str(type(self._response_model.response_type_validation)))
-            raise TypeError(message)
-
 
 def validate_auth(auth_type, auth_data):
     """
     Functionality:
         Validate the state of the two auth objects that will be used to apply authentication
-        Test if the auth_schematic passed and does exist in the HTTPAuthenticationType enum
+        Test if the auth_schematic passed
         We also do a second test to make sure the auth_schematic.value is also a model
     """
+    if auth_type is None and auth_data is None:
+        return True
 
-    authentication_types = [item.value for item in HTTPAuthenticationType]
-
-    if isinstance(auth_type, Enum) and \
-            auth_type.value in authentication_types and \
-            issubclass(auth_type.value, Model):
-        try:
-            # Validate the schematic object with the current authentication details
-            auth_type.value(auth_data).validate()
-
-            # We need to manually map the supported types to the correct object for the Request() auth
-            if auth_type is HTTPAuthenticationType.BasicAuth:
-                HTTPBasicAuth(auth_data.get('username'),
-                              auth_data.get('password'))
-                return True
-            else:
-                message = """We are unable to map the enum `HTTPAuthenticationType`
-                             to the request auth object. Please verify if the object exists in the
-                             HTTPAuthenticationType enum and if it does then the mapping for {0}
-                             is missing from the _set_auth function. You need to add a check for
-                             the enum and map the values over to the requests object""" \
-                    .format(str(auth_type))
-                raise NotImplementedError(message)
-
-        except DataError as e:
-            message = """The authentication supplied {0} does not match the required
-                         schema {1}. You can view the layout of the schema on the
-                         `HTTPAuthenticationType` enum.
-
-                         The error provided by the execution
-                         {2}""".format(str(auth_data), str(auth_type), e)
+    if auth_type in authentication_choices and auth_type is "basic":
+        if auth_data.get('username') is None or auth_data.get('password') is None:
+            message = """For the Basic Authentication a username and password is required. The
+                         current authentication data passed to this function is incorrect. The authentication
+                         data is {0}""".format(str(auth_data))
             raise DataError(message)
 
-        except TypeError as e:
-            message = """The authentication details object passed to this function failed as
-                         the type of this object is incorrect. The type passed down was
-                         {0} and the expected type is a iterable value that matches the
-                         `HTTPAuthenticationType` enum
-
-                         The error provided by the execution
-                         {1}""".format(type(auth_data), e)
-            raise TypeError(message)
+        HTTPBasicAuth(auth_data.get('username'),
+                      auth_data.get('password'))
+        return True
 
     else:
-        message = """The `auth_schematic` variable passed to the `_set_auth` function"
-                     is currently invalid. You need to pass down a schematic object from the
-                     `HTTPAuthenticationType` Enum or a type" error will occur.
-                     The current schematic passed to this function is: {0}
-                     """.format(str(auth_type))
-        raise TypeError(message)
+        message = """We are unable to find the authentication defined within the http_method_choices var.
+                     Please verify if the authentication type {0} exists within the http_method_choices 
+                     variable. If it does not then you need to either change the authentication type
+                     or add the authentication variable inside the http_method_choices var""" \
+            .format(str(auth_type))
+        raise NotImplementedError(message)
