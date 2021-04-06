@@ -20,7 +20,8 @@ from .resources import (
     process_api_gateway,
     process_security_group,
     process_elb_v2,
-    process_sns
+    process_sns,
+    process_firehose
 )
 
 memory_data = {}  # name -> arn for cloudformation
@@ -68,6 +69,11 @@ ALL_APIS = {
     'sns': {
         'parts': [
             process_sns
+        ]
+    },
+    'firehose': {
+        'parts': [
+            process_firehose
         ]
     }
 }
