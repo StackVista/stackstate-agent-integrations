@@ -167,3 +167,9 @@ class AgentIntegrationSampleCheck(AgentCheck):
 
         # some logic here to test our connection and if successful:
         self.service_check("example.can_connect", AgentCheck.OK, tags=["instance_url:%s" % instance_url])
+
+        # produce current state as a count metric for assertions
+        state = instance.get('state', {'run_count': 0})
+        state['run_count'] = state['run_count'] + 1
+        instance.update({'state': state})
+        self.count("check_runs", state['run_count'], tags=["integration:agent_integration_sample"])

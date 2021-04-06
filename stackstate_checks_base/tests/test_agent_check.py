@@ -385,6 +385,16 @@ class TopologyStatefulCheck(TopologyAutoSnapshotCheck):
         instance.update({'state': TEST_STATE})
 
 
+class TopologyStatefulCheckStateLocation(TopologyAutoSnapshotCheck):
+    def __init__(self):
+        instances = [{"state_location": "./test_data_2"}]
+        super(TopologyAutoSnapshotCheck, self) \
+            .__init__(TopologyInstance("mytype", "https://some.type.url", with_snapshots=True), "test", {}, instances)
+
+    def check(self, instance):
+        instance.update({'state': TEST_STATE})
+
+
 class TopologyStatefulStateDescriptorCleanupCheck(TopologyAutoSnapshotCheck):
     def __init__(self):
         instances = [{'a': 'b'}]
@@ -700,6 +710,12 @@ class TestTopology:
 
     def test_stateful_check(self, topology, state):
         check = TopologyStatefulCheck()
+        state.assert_state_check(check, expected_pre_run_state=None, expected_post_run_state=TEST_STATE)
+        # assert auto snapshotting occurred
+        topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
+
+    def test_stateful_check_config_location(self, topology, state):
+        check = TopologyStatefulCheckStateLocation()
         state.assert_state_check(check, expected_pre_run_state=None, expected_post_run_state=TEST_STATE)
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
