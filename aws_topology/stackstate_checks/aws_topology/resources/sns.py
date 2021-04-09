@@ -12,7 +12,7 @@ def process_sns(location_info, client, agent):
             topic_data.update(location_info)
             topic_data.update(with_dimensions([{'key': 'TopicName', 'value': topic_name}]))
 
-            topic_data["Tags"] = client.list_tags_for_resource(ResourceArn=topic_arn)['Tags']
+            topic_data["Tags"] = client.list_tags_for_resource(ResourceArn=topic_arn).get('Tags') or []
 
             agent.component(topic_arn, 'aws.sns', correct_tags(topic_data))
             sns[topic_name] = topic_arn
