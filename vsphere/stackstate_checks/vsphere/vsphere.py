@@ -22,7 +22,7 @@ from vmware.vapi.vsphere.client import create_vsphere_client
 from com.vmware.vapi.std_client import DynamicID
 from schematics import Model
 from schematics.exceptions import DataError
-from schematics.types import StringType, BooleanType, ListType
+from schematics.types import StringType, BooleanType
 
 
 from stackstate_checks.base import AgentCheck, StackPackInstance, ConfigurationError
@@ -97,9 +97,6 @@ class InstanceConfig(Model):
     username = StringType(required=True)
     password = StringType(required=True)
     all_metrics = BooleanType(required=True)
-    # optional fields for new check
-    tags = ListType(StringType)
-    excluded_host_tags = ListType(StringType)
 
 
 class VSphereCheck(AgentCheck):
@@ -1341,7 +1338,7 @@ class VSphereCheck(AgentCheck):
         #     "Look for the `use_legacy_check_version` configuration option."
         # )
         try:
-            instance_info = InstanceConfig(instance)
+            instance_info = InstanceConfig(instance, strict=False)
             instance_info.validate()
         except DataError as e:
             self.log.error("Missing required element in configuration: " + str(e))
