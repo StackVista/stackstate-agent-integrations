@@ -21,7 +21,9 @@ from .resources import (
     process_security_group,
     process_elb_v2,
     process_sns,
-    process_firehose
+    process_firehose,
+    process_route_53_domains,
+    process_route_53_hosted_zones
 )
 
 memory_data = {}  # name -> arn for cloudformation
@@ -75,6 +77,18 @@ ALL_APIS = {
         'parts': [
             process_firehose
         ]
+    },
+    'route53domains': {
+        'parts': [
+            process_route_53_domains
+        ],
+        'client_region': 'us-east-1'  # TODO this is a bit strange same will be fetched for every region maybe better
+    },
+    'route53': {
+        'parts': [
+            process_route_53_hosted_zones
+        ],
+        'client_region': 'us-east-1'  # TODO this is a bit strange same will be fetched for every region maybe better
     }
 }
 
@@ -148,11 +162,11 @@ class AwsTopologyCheck(AgentCheck):
         keys = self.APIS.keys()
         if instance_info.apis_to_run is not None:
             keys = instance_info.apis_to_run
-        location = location_info(instance_info.account_id, instance_info.region)
+        location = location_info(instance_info.account_id, instance_info.region)  # route53/domains issue!
         errors = []
         for api in keys:
             try:
-                client = aws_client._get_boto3_client(api)
+                client = aws_client._get_boto3_client(api, region=self.APIS[api].get('client_region'))
                 for part in self.APIS[api]['parts']:
                     result = part(location, client, self)
                     if result:
@@ -193,8 +207,8 @@ class AwsClient:
     def get_account_id(self):
         return self._get_boto3_client('sts').get_caller_identity().get('Account')
 
-    def _get_boto3_client(self, service_name):
-        return boto3.client(service_name, region_name=self.region, config=DEFAULT_BOTO3_CONFIG,
+    def _get_boto3_client(self, service_name, region=None):
+        return boto3.client(service_name, region_name=region or self.region, config=DEFAULT_BOTO3_CONFIG,
                             aws_access_key_id=self.aws_access_key_id,
                             aws_secret_access_key=self.aws_secret_access_key,
                             aws_session_token=self.aws_session_token)

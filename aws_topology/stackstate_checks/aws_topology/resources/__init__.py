@@ -7,6 +7,8 @@ from .ec2_vpn_gateway import process_vpn_gateways
 from .security_group import process_security_group
 from .sns import process_sns
 from .firehose import process_firehose
+from .route53_domains import process_route_53_domains
+from .route53_hostedzones import process_route_53_hosted_zones
 
 __all__ = [
     'process_s3',
@@ -17,5 +19,7 @@ __all__ = [
     'process_vpn_gateways',
     'process_security_group',
     'process_sns',
-    'process_firehose'
+    'process_firehose',
+    'process_route_53_domains',
+    'process_route_53_hosted_zones'
 ]
