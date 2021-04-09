@@ -13,14 +13,12 @@ from stackstate_checks.base import AgentCheck, TopologyInstance
 from .utils import location_info
 
 from .resources import (
-    process_s3,
     process_vpn_gateways,
     process_vpcs,
     process_auto_scaling,
     process_api_gateway,
     process_security_group,
     process_elb_v2,
-    process_sns,
     process_firehose,
     process_route_53_domains,
     process_route_53_hosted_zones,
@@ -41,11 +39,6 @@ DEFAULT_BOTO3_CONFIG = Config(
 DEFAULT_COLLECTION_INTERVAL = 60
 
 ALL_APIS = {
-    's3': {
-        'parts': [
-            process_s3
-        ]
-    },
     'ec2': {
         'parts': [
             process_vpn_gateways,
@@ -69,11 +62,6 @@ ALL_APIS = {
             process_api_gateway
         ],
         'memory_key': 'api_stage'
-    },
-    'sns': {
-        'parts': [
-            process_sns
-        ]
     },
     'firehose': {
         'parts': [
