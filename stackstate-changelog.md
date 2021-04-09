@@ -1,5 +1,13 @@
 # StackState Agent Integrations v2 releases
 
+## 1.13.0 / 2020-03-30
+
+* [Added] Dynatrace - Gathers Dynatrace events for determining health state of Dynatrace components is StackState. 
+
+## 1.12.0 / 2020-03-30
+
+* [Added] Make the check state location configurable in the `conf.d` of the check. See [#123](https://github.com/StackVista/stackstate-agent-integrations/pull/123).
+
 ## 1.11.0 / 2020-03-24
 
 * [Added] ServiceNow - Implement query param change for retrieving tags from ServiceNow.

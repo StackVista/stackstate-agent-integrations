@@ -1,12 +1,15 @@
 # (C) Datadog, Inc. 2018
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
+import json
 from decimal import ROUND_HALF_DOWN, ROUND_HALF_UP
 
 import pytest
 import os
 import platform
-from stackstate_checks.utils.common import pattern_filter, round_value
+
+from stackstate_checks.base.utils.common import load_json_from_file
+from stackstate_checks.utils.common import pattern_filter, round_value, read_file
 from stackstate_checks.utils.limiter import Limiter
 from stackstate_checks.utils.persistent_state import StateManager, StateDescriptor, StateNotPersistedException, \
     StateCorruptedException, StateReadException
@@ -208,3 +211,23 @@ class TestPersistentState:
 
         # assert the state remains unchanged, state should have offset as 10
         state.assert_state(instance, s, TestStorageSchema)
+
+
+class TestCommon:
+    SAMPLE_FILE_CONTET = '{\n    "hello": "world",\n    "pong": true\n}\n'
+
+    def test_read_file_from_samples_directory(self):
+        file = read_file('data_sample.json', 'samples')
+        assert file == self.SAMPLE_FILE_CONTET
+
+    def test_read_file_from_same_directory(self):
+        file = read_file('test_data_sample.json')
+        assert file == self.SAMPLE_FILE_CONTET
+
+    def test_load_json_from_samples_directory(self):
+        dict_from_json = load_json_from_file('data_sample.json', 'samples')
+        assert dict_from_json == json.loads(self.SAMPLE_FILE_CONTET)
+
+    def test_load_json_from_same_directory(self):
+        dict_from_json = load_json_from_file('test_data_sample.json')
+        assert dict_from_json == json.loads(self.SAMPLE_FILE_CONTET)
