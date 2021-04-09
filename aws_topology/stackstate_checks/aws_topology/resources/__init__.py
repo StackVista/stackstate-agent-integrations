@@ -9,6 +9,8 @@ from .sns import process_sns
 from .firehose import process_firehose
 from .route53_domains import process_route_53_domains
 from .route53_hostedzones import process_route_53_hosted_zones
+from .kinesis import process_kinesis_streams
+from .registry import ResourceRegistry, RegisteredResource
 
 __all__ = [
     'process_s3',
@@ -21,5 +23,8 @@ __all__ = [
     'process_sns',
     'process_firehose',
     'process_route_53_domains',
-    'process_route_53_hosted_zones'
+    'process_route_53_hosted_zones',
+    'process_kinesis_streams',
+    'ResourceRegistry',
+    'RegisteredResource'
 ]

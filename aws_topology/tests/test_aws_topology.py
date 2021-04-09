@@ -5,7 +5,6 @@ import pytest
 import unittest
 from mock import patch
 from copy import deepcopy
-
 from stackstate_checks.base.stubs import topology, aggregator
 from stackstate_checks.base import AgentCheck
 from stackstate_checks.aws_topology import AwsTopologyCheck, InstanceInfo, memory_data
@@ -98,29 +97,65 @@ class TestAWSTopologyCheck(unittest.TestCase):
         """
         Testing execution failure
         """
-        def raise_error():
-            raise Exception("error")
-        self.check.APIS = {
-            's3': {'memory_key': 'test_key', 'parts': [lambda i, c, a: raise_error()]}
+
+        class s3(object):
+            API = "s3"
+
+            def __init__(self, location_info, client, agent):
+                pass
+
+            def process_all(self):
+                raise Exception("error")
+
+        registry = {
+            's3': [
+                {
+                    'constructor': s3
+                }
+            ]
         }
-        self.check.run()
-        service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_EXECUTE_NAME)
-        self.assertGreater(len(service_checks), 0)
-        self.assertIn('topology collection failed', service_checks[0].message)
+
+        self.check.APIS = {
+            's3': {}
+        }
+        with patch('stackstate_checks.aws_topology.AwsTopologyCheck.get_registry', return_value=registry):
+            self.check.run()
+            service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_EXECUTE_NAME)
+            self.assertGreater(len(service_checks), 0)
+            self.assertIn('topology collection failed', service_checks[0].message)
 
     def test_topology_memory(self):
         """
         Testing memory
         """
+        class s3(object):
+            API = "s3"
+            MEMORY_KEY = 'test_key'
+
+            def __init__(self, location_info, client, agent):
+                pass
+
+            def process_all(self):
+                return {'abc': 'def'}
+
+        registry = {
+            's3': [
+                {
+                    'constructor': s3
+                }
+            ]
+        }
+
         self.check.APIS = {
             's3': {'memory_key': 'test_key', 'parts': [lambda i, c, a: {'abc': 'def'}]},
             'autoscaling': {'parts': [lambda i, c, a: None]},
             'ec2': {'parts': [lambda i, c, a: {'xyz': 'xyz'}, lambda i, a, c: {'ttt': 'ttt'}]}
         }
-        self.check.run()
-        self.assertEqual(memory_data.get('test_key'), {'abc': 'def'})
-        self.assertEqual(memory_data.get('autoscaling'), None)
-        self.assertEqual(memory_data.get('ec2'), {'xyz': 'xyz', 'ttt': 'ttt'})
+        with patch('stackstate_checks.aws_topology.AwsTopologyCheck.get_registry', return_value=registry):
+            self.check.run()
+            self.assertEqual(memory_data.get('test_key'), {'abc': 'def'})
+            self.assertEqual(memory_data.get('autoscaling'), None)
+            self.assertEqual(memory_data.get('ec2'), {'xyz': 'xyz', 'ttt': 'ttt'})
 
     def test_metadata(self):
         self.api_results.update({
@@ -131,8 +166,9 @@ class TestAWSTopologyCheck(unittest.TestCase):
             }
         })
         self.check.run()
+        service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_EXECUTE_NAME)
+        self.assertEquals(service_checks[0].status, AgentCheck.OK)
         test_topology = topology.get_snapshot(self.check.check_id)
-        print(test_topology)
         self.assertEqual(len(test_topology['components']), 1)
         self.assertIsNotNone(test_topology['components'][0]['data'])
         self.assertEqual(test_topology['components'][0]['data']['Tags'], {})
@@ -144,6 +180,4 @@ class TestAWSTopologyCheck(unittest.TestCase):
             test_topology['components'][0]['data']['tags'],
             ['integration-type:aws', 'integration-url:123456789012']
         )
-        service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_EXECUTE_NAME)
         self.assertGreater(len(service_checks), 0)
-        self.assertEquals(service_checks[0].status, AgentCheck.OK)

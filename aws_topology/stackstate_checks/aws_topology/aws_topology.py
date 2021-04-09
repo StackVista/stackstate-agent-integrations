@@ -23,8 +23,10 @@ from .resources import (
     process_sns,
     process_firehose,
     process_route_53_domains,
-    process_route_53_hosted_zones
+    process_route_53_hosted_zones,
+    process_kinesis_streams
 )
+from .resources import ResourceRegistry
 
 memory_data = {}  # name -> arn for cloudformation
 
@@ -89,6 +91,11 @@ ALL_APIS = {
             process_route_53_hosted_zones
         ],
         'client_region': 'us-east-1'  # TODO this is a bit strange same will be fetched for every region maybe better
+    },
+    'kinesis': {
+        'parts': {
+            process_kinesis_streams
+        }
     }
 }
 
@@ -115,6 +122,9 @@ class AwsTopologyCheck(AgentCheck):
     SERVICE_CHECK_EXECUTE_NAME = 'aws_topology.can_execute'
     INSTANCE_SCHEMA = InstanceInfo
     APIS = deepcopy(ALL_APIS)
+
+    def get_registry(self):
+        return ResourceRegistry.get_registry()
 
     def get_instance_key(self, instance_info):
         return TopologyInstance(self.INSTANCE_TYPE, str(instance_info.account_id))
@@ -158,13 +168,37 @@ class AwsTopologyCheck(AgentCheck):
         """Gets AWS Topology returns them in Agent format."""
         self.start_snapshot()
 
-        # TODO https://docs.aws.amazon.com/AWSEC2/latest/APIReference/throttling.html
-        keys = self.APIS.keys()
-        if instance_info.apis_to_run is not None:
-            keys = instance_info.apis_to_run
         location = location_info(instance_info.account_id, instance_info.region)  # route53/domains issue!
         errors = []
+        # experimental
+        # print('start experiment')
+        registry = self.get_registry()
+        print(registry)
+        keys = registry.keys()
         for api in keys:
+            print('RUNNING new ' + api)
+            try:
+                client = aws_client._get_boto3_client(api)  # todo global
+                for part in registry[api]:
+                    processor = part['constructor'](location, client, self)
+                    result = processor.process_all()
+                    if result:
+                        memory_key = processor.MEMORY_KEY or api
+                        if memory_data.get(memory_key) is not None:
+                            memory_data[memory_key].update(result)
+                        else:
+                            memory_data[memory_key] = result
+            except Exception:
+                errors.append('API %s ended with exception: %s' % (api, traceback.format_exc()))
+        # print('end experiment')
+        # TODO https://docs.aws.amazon.com/AWSEC2/latest/APIReference/throttling.html
+        okeys = list(self.APIS)
+        if instance_info.apis_to_run is not None:
+            okeys = instance_info.apis_to_run
+        for api in keys:
+            if api in okeys:
+                okeys.remove('s3')
+        for api in okeys:
             try:
                 client = aws_client._get_boto3_client(api, region=self.APIS[api].get('client_region'))
                 for part in self.APIS[api]['parts']:
