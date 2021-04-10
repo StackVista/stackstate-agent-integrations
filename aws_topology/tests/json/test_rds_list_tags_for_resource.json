@@ -1,0 +1,12 @@
+{
+    "TagList": [
+        {
+	    "Key" : "stackstate-domain",
+	    "Value" : "AWS"
+	}, {
+            
+            "Key" : "stackstate-environment",
+	    "Value" : "Production"
+        }
+    ]
+}

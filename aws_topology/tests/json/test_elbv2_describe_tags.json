@@ -1,0 +1,16 @@
+{
+    "TagDescriptions": [
+        {
+            "ResourceArn": "arn:foo:bar",
+            "Tags": [
+                {
+		    "Key" : "stackstate-domain",
+                    "Value" : "AWS"
+		}, {
+		    "Key": "stackstate-environment",
+		    "Value": "Production"
+                }
+            ]
+        }
+    ]
+}
