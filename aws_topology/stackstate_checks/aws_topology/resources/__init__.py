@@ -15,6 +15,7 @@ from .ec2 import ec2  # noqa: F401
 from .redshift import redshift  # noqa: F401
 from .elb_classic import elb_classic  # noqa: F401
 from .rds import rds  # noqa: F401
+from .lambdaf import Lambda  # noqa: F401
 
 __all__ = [
     'process_elb_v2',

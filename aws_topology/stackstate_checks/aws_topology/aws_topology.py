@@ -13,7 +13,6 @@ from stackstate_checks.base import AgentCheck, TopologyInstance
 from .utils import location_info
 
 from .resources import (
-    process_auto_scaling,
     process_api_gateway,
     process_security_group,
     process_elb_v2,
@@ -47,11 +46,6 @@ ALL_APIS = {
             process_elb_v2
         ],
         'memory_key': 'target_group'
-    },
-    'autoscaling': {
-        'parts': [
-            process_auto_scaling
-        ]
     },
     'apigateway': {
         'parts': [
