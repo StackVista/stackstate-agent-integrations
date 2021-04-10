@@ -17,9 +17,7 @@ from .resources import (
     process_security_group,
     process_elb_v2,
     process_firehose,
-    process_route_53_domains,
-    process_route_53_hosted_zones,
-    process_kinesis_streams
+    process_route_53_hosted_zones
 )
 from .resources import ResourceRegistry
 
@@ -58,22 +56,11 @@ ALL_APIS = {
             process_firehose
         ]
     },
-    'route53domains': {
-        'parts': [
-            process_route_53_domains
-        ],
-        'client_region': 'us-east-1'  # TODO this is a bit strange same will be fetched for every region maybe better
-    },
     'route53': {
         'parts': [
             process_route_53_hosted_zones
         ],
         'client_region': 'us-east-1'  # TODO this is a bit strange same will be fetched for every region maybe better
-    },
-    'kinesis': {
-        'parts': {
-            process_kinesis_streams
-        }
     }
 }
 
@@ -154,9 +141,9 @@ class AwsTopologyCheck(AgentCheck):
         print(registry)
         keys = registry.keys()
         for api in keys:
-            print('RUNNING new ' + api)
+            global_api = api.startswith('route53')
             try:
-                client = aws_client._get_boto3_client(api)  # todo global
+                client = aws_client._get_boto3_client(api, region='us-east-1' if global_api else None)
                 for part in registry[api]:
                     processor = registry[api][part](location, client, self)
                     result = processor.process_all()
