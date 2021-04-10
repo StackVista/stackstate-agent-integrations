@@ -10,6 +10,7 @@ import dateutil.parser
 import datetime
 from stackstate_checks.base.stubs import topology as top, aggregator
 from stackstate_checks.aws_topology import AwsTopologyCheck, InstanceInfo
+from stackstate_checks.base import AgentCheck
 from botocore.exceptions import ClientError
 
 
@@ -28,6 +29,19 @@ TEST_REGION = 'eu-west-1'
 THROTTLING_COUNT_TAGS = 0
 
 
+def get_config_for_only(api):
+    return InstanceInfo(
+        {
+            "aws_access_key_id": "some_key",
+            "aws_secret_access_key": "some_secret",
+            "role_arn": "some_role",
+            "account_id": "731070500579",
+            "region": "eu-west-1",
+            "apis_to_run": [api]
+        }
+    )
+
+
 @pytest.mark.usefixtures("instance")
 class TestTemplate(unittest.TestCase):
 
@@ -37,15 +51,20 @@ class TestTemplate(unittest.TestCase):
     def assert_location_info(self, component):
         self.assertEqual(component['data']['Location']['AwsAccount'], '731070500579')
 
-        if component['type'] == 'aws.route53.domain':  # was ['type']['name']
+        if component['type'] == 'aws.route53.domain':  # DIFF was ['type']['name']
             self.assertEqual(component['data']['Location']['AwsRegion'], 'us-east-1')
-        elif component['type'] == 'aws.route53.hostedzone':  # was ['type']['name']
+        elif component['type'] == 'aws.route53.hostedzone':  # DIFF was ['type']['name']
             self.assertEqual(component['data']['Location']['AwsRegion'], 'us-east-1')
         else:
             self.assertEqual(component['data']['Location']['AwsRegion'], TEST_REGION)
 
     def assert_stream_dimensions(self, element, dimensions):
         self.assertEqual(element['data']['CW']['Dimensions'], dimensions)
+
+    def assert_executed_ok(self):
+        service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_EXECUTE_NAME)
+        self.assertGreater(len(service_checks), 0)
+        self.assertEqual(service_checks[0].status, AgentCheck.OK, service_checks[0].message)
 
     def mock_boto_calls(self, operation_name, kwarg):
         print(operation_name)
@@ -368,16 +387,7 @@ class TestTemplate(unittest.TestCase):
         test_instance_type = 'm4.xlarge'
         test_public_ip = '172.30.0.96'
         test_public_dns = 'ec2-172-30-0-96.eu-west-1.compute.amazonaws.com'
-        config = InstanceInfo(
-            {
-                "aws_access_key_id": "some_key",
-                "aws_secret_access_key": "some_secret",
-                "role_arn": "some_role",
-                "account_id": "731070500579",
-                "region": "eu-west-1",
-                "apis_to_run": ['ec2|aws.ec2']
-            }
-        )
+        config = get_config_for_only('ec2|aws.ec2')
         self.check.check(config)
         topology = [top.get_snapshot(self.check.check_id)]
         # TODO events = telemetry.get_events()
@@ -385,10 +395,10 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(len(topology), 1)
         self.assertEqual(len(topology[0]['relations']), 2)
         self.assertEqual(len(topology[0]['components']), 1)
-        self.assertEqual(topology[0]['components'][0]['id'], test_instance_id)  # was externalId
+        self.assertEqual(topology[0]['components'][0]['id'], test_instance_id)  # DIFF was externalId
         self.assertEqual(topology[0]['components'][0]['data']['InstanceId'], test_instance_id)
         self.assertEqual(topology[0]['components'][0]['data']['InstanceType'], test_instance_type)
-        self.assertEqual(topology[0]['components'][0]['type'], 'aws.ec2')  # was ['type']['name']
+        self.assertEqual(topology[0]['components'][0]['type'], 'aws.ec2')  # DIFF was ['type']['name']
         self.assert_location_info(topology[0]['components'][0])
         self.assertEqual(topology[0]['components'][0]['data']['URN'], [
             "urn:host:/{}".format(test_instance_id),
@@ -397,6 +407,53 @@ class TestTemplate(unittest.TestCase):
             "urn:host:/{}".format(test_public_ip)
         ])
 
-        # TODO self.assertEqual(len(events), 1)
-        # TODO self.assertEqual(events[0]['host'], test_instance_id)
-        # TODO self.assertEqual(events[0]['tags'], ["state:stopped"])
+        # DIFF self.assertEqual(len(events), 1)
+        # DIFF self.assertEqual(events[0]['host'], test_instance_id)
+        # DIFF self.assertEqual(events[0]['tags'], ["state:stopped"])
+
+    @patch('botocore.client.BaseClient._make_api_call', mock_boto_calls)
+    def test_process_elb_v2_target_group_instance(self):
+        config = get_config_for_only('elbv2|aws.elb_v2')
+        self.check.check(config)
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+
+        instance_a = "i-0a7182087df63a90b"
+        instance_b = "i-0d857740370079c95"
+
+        # ELB Target Group Instance A
+        self.assertEqual(
+            topology[0]['components'][2]['id'], 'urn:aws/target-group-instance/' + instance_a
+        )  # DIFF was externalId
+        self.assertEqual(topology[0]['components'][2]['data']['URN'][0], instance_a)
+        self.assertEqual(
+            topology[0]['components'][2]['type'], 'aws.elb_v2_target_group_instance'
+        )  # DIFF was ['type']['name']
+
+        # ELB Target Group Instance B
+        self.assertEqual(
+            topology[0]['components'][3]['id'], 'urn:aws/target-group-instance/' + instance_b
+        )  # DIFF was externalId
+        self.assertEqual(topology[0]['components'][3]['data']['URN'][0], instance_b)
+        self.assertEqual(
+            topology[0]['components'][3]['type'], 'aws.elb_v2_target_group_instance'
+        )  # DIFF was externalId
+
+        # Load Balancer A and Target Group A relationship test
+        self.assertEqual(
+            topology[0]['relations'][4]['target_id'], 'urn:aws/target-group-instance/' + instance_a
+        )  # DIFF was targetId
+        self.assertEqual(
+            topology[0]['relations'][4]['source_id'],
+            'arn:aws:elasticloadbalancing:eu-west-1:731070500579:targetgroup/myfirsttargetgroup/28ddec997ec55d21'
+        )  # DIFF was sourceId
+
+        # Load Balancer B and Target Group B relationship test
+        self.assertEqual(
+            topology[0]['relations'][5]['target_id'], 'urn:aws/target-group-instance/' + instance_b
+        )  # DIFF was targetId
+        self.assertEqual(
+            topology[0]['relations'][5]['source_id'],
+            'arn:aws:elasticloadbalancing:eu-west-1:731070500579:targetgroup/myfirsttargetgroup/28ddec997ec55d21'
+        )  # DIFF was sourceId
