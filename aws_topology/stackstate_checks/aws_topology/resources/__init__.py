@@ -19,10 +19,10 @@ from .lambdaf import Lambda  # noqa: F401
 from .dynamodb import dynamodb  # noqa: F401
 from .lambda_event_source_mapping import lambnda_event_source_mapping  # noqa: F401
 from .ecs import ecs  # noqa: F401
+from .cloudformation import cloudformation  # noqa: F401
 
 __all__ = [
     'process_api_gateway',
-    'process_security_group',
     'ResourceRegistry',
     'RegisteredResource'
 ]
