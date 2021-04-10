@@ -138,7 +138,7 @@ def create_hash(dict):
 def create_security_group_relations(resource_id, resource_data, agent, security_group_field='SecurityGroups'):
     if resource_data.get(security_group_field):
         for security_group_id in resource_data[security_group_field]:
-            agent.relation(resource_id, security_group_id, 'uses service')
+            agent.relation(resource_id, security_group_id, 'uses service', {})
 
 
 def get_partition_name(region):
