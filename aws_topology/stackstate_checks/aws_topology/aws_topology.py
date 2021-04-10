@@ -13,7 +13,6 @@ from stackstate_checks.base import AgentCheck, TopologyInstance
 from .utils import location_info
 
 from .resources import (
-    process_vpcs,
     process_auto_scaling,
     process_api_gateway,
     process_security_group,
@@ -40,7 +39,6 @@ DEFAULT_COLLECTION_INTERVAL = 60
 ALL_APIS = {
     'ec2': {
         'parts': [
-            process_vpcs,
             process_security_group
         ]
     },

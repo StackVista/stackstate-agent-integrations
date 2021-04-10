@@ -33,8 +33,8 @@ class ec2(RegisteredResource):
             create_host_urn(instance_id),
             create_resource_arn(
                 'ec2',
-                self.location_info['AwsRegion'],
-                self.location_info['AwsAccount'],
+                self.location_info['Location']['AwsRegion'],
+                self.location_info['Location']['AwsAccount'],
                 'instance',
                 instance_id)
         ]
