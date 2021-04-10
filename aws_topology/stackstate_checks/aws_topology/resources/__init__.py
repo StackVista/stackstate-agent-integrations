@@ -13,6 +13,7 @@ from .kinesis import process_kinesis_streams
 from .registry import ResourceRegistry, RegisteredResource
 from .ec2 import ec2  # noqa: F401
 from .redshift import redshift  # noqa: F401
+from .elb_classic import elb_classic  # noqa: F401
 
 __all__ = [
     'process_elb_v2',

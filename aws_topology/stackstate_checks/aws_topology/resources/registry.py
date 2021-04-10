@@ -38,6 +38,11 @@ class AgentProxy(object):
     def event(self, event):
         self.agent.event(event)
 
+    def create_security_group_relations(self, resource_id, resource_data, security_group_field='SecurityGroups'):
+        if resource_data.get(security_group_field):
+            for security_group_id in resource_data[security_group_field]:
+                self.relation(resource_id, security_group_id, 'uses service', {})
+
 
 class RegisteredResource(with_metaclass(ResourceRegistry, object)):
     """
