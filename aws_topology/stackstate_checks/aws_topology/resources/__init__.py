@@ -5,7 +5,7 @@ from .autoscaling import autoscaling  # noqa: F401
 from .api_gateway import process_api_gateway
 from .ec2_vpc import vpc  # noqa: F401
 from .ec2_vpn_gateway import vpn_gateway  # noqa: F401
-from .security_group import process_security_group
+from .security_group import security_group  # noqa: F401
 from .sns import sns  # noqa: F401
 from .firehose import firehose  # noqa: F401
 from .route53_domain import route53_domain  # noqa: F401

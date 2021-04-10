@@ -13,8 +13,7 @@ from stackstate_checks.base import AgentCheck, TopologyInstance
 from .utils import location_info
 
 from .resources import (
-    process_api_gateway,
-    process_security_group
+    process_api_gateway
 )
 from .resources import ResourceRegistry
 
@@ -31,11 +30,6 @@ DEFAULT_BOTO3_CONFIG = Config(
 DEFAULT_COLLECTION_INTERVAL = 60
 
 ALL_APIS = {
-    'ec2': {
-        'parts': [
-            process_security_group
-        ]
-    },
     'apigateway': {
         'parts': [
             process_api_gateway
