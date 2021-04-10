@@ -457,3 +457,23 @@ class TestTemplate(unittest.TestCase):
             topology[0]['relations'][5]['source_id'],
             'arn:aws:elasticloadbalancing:eu-west-1:731070500579:targetgroup/myfirsttargetgroup/28ddec997ec55d21'
         )  # DIFF was sourceId
+
+    @patch('botocore.client.BaseClient._make_api_call', mock_boto_calls)
+    def test_process_elb_classic(self):
+        config = get_config_for_only('elb|aws.elb_classic')
+        self.check.check(config)
+        topology = [top.get_snapshot(self.check.check_id)]
+
+        # TODO events = agent.get_events()
+
+        # todo: add test which asserts that the relation corresponds with the component info.
+
+        self.assertEqual(len(topology), 1)
+        # TODO self.assertEqual(len(events), 2)
+        self.assertEqual(len(topology[0]['relations']), 4)
+        self.assertEqual(len(topology[0]['components']), 1)
+        self.assertEqual(topology[0]['components'][0]['data']['LoadBalancerName'], 'classic-loadbalancer-1')
+        self.assertEqual(topology[0]['components'][0]['data']['Tags']['stackstate-environment'], 'Production')
+        self.assertEqual(topology[0]['components'][0]['data']['URN'], [
+            "arn:aws:elasticloadbalancing:{}:731070500579:loadbalancer/{}".format(TEST_REGION, 'classic-loadbalancer-1')
+        ])
