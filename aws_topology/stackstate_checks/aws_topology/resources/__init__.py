@@ -1,6 +1,6 @@
 from .s3 import s3  # noqa: F401
 from .elb_v2 import process_elb_v2
-from .autoscaling import process_auto_scaling
+from .autoscaling import autoscaling  # noqa: F401
 from .api_gateway import process_api_gateway
 from .ec2_vpc import vpc  # noqa: F401
 from .ec2_vpn_gateway import vpn_gateway  # noqa: F401
@@ -18,7 +18,6 @@ from .rds import rds  # noqa: F401
 
 __all__ = [
     'process_elb_v2',
-    'process_auto_scaling',
     'process_api_gateway',
     'process_security_group',
     'process_firehose',
