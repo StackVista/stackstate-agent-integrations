@@ -15,7 +15,6 @@ from .utils import location_info
 from .resources import (
     process_api_gateway,
     process_security_group,
-    process_elb_v2,
     process_firehose
 )
 from .resources import ResourceRegistry
@@ -37,12 +36,6 @@ ALL_APIS = {
         'parts': [
             process_security_group
         ]
-    },
-    'elbv2': {
-        'parts': [
-            process_elb_v2
-        ],
-        'memory_key': 'target_group'
     },
     'apigateway': {
         'parts': [

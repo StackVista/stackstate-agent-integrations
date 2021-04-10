@@ -1,6 +1,6 @@
 from .registry import ResourceRegistry, RegisteredResource
 from .s3 import s3  # noqa: F401
-from .elb_v2 import process_elb_v2
+from .elb_v2 import elb_v2  # noqa: F401
 from .autoscaling import autoscaling  # noqa: F401
 from .api_gateway import process_api_gateway
 from .ec2_vpc import vpc  # noqa: F401
@@ -21,7 +21,6 @@ from .lambda_event_source_mapping import lambnda_event_source_mapping  # noqa: F
 from .ecs import ecs  # noqa: F401
 
 __all__ = [
-    'process_elb_v2',
     'process_api_gateway',
     'process_security_group',
     'process_firehose',
