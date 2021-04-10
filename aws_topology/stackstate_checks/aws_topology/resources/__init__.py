@@ -8,8 +8,8 @@ from .ec2_vpn_gateway import vpn_gateway  # noqa: F401
 from .security_group import process_security_group
 from .sns import sns  # noqa: F401
 from .firehose import process_firehose
-from .route53_domain import route53domain  # noqa: F401
-from .route53_hostedzones import process_route_53_hosted_zones
+from .route53_domain import route53_domain  # noqa: F401
+from .route53_hostedzone import route53_hostedzone  # noqa: F401
 from .kinesis import kinesis  # noqa: F401
 from .ec2 import ec2  # noqa: F401
 from .redshift import redshift  # noqa: F401
@@ -23,7 +23,6 @@ __all__ = [
     'process_api_gateway',
     'process_security_group',
     'process_firehose',
-    'process_route_53_hosted_zones',
     'ResourceRegistry',
     'RegisteredResource'
 ]

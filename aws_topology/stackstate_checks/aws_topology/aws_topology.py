@@ -16,8 +16,7 @@ from .resources import (
     process_api_gateway,
     process_security_group,
     process_elb_v2,
-    process_firehose,
-    process_route_53_hosted_zones
+    process_firehose
 )
 from .resources import ResourceRegistry
 
@@ -55,12 +54,6 @@ ALL_APIS = {
         'parts': [
             process_firehose
         ]
-    },
-    'route53': {
-        'parts': [
-            process_route_53_hosted_zones
-        ],
-        'client_region': 'us-east-1'  # TODO this is a bit strange same will be fetched for every region maybe better
     }
 }
 
