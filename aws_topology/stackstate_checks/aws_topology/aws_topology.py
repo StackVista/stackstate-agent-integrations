@@ -14,8 +14,7 @@ from .utils import location_info
 
 from .resources import (
     process_api_gateway,
-    process_security_group,
-    process_firehose
+    process_security_group
 )
 from .resources import ResourceRegistry
 
@@ -42,11 +41,6 @@ ALL_APIS = {
             process_api_gateway
         ],
         'memory_key': 'api_stage'
-    },
-    'firehose': {
-        'parts': [
-            process_firehose
-        ]
     }
 }
 

@@ -7,7 +7,7 @@ from .ec2_vpc import vpc  # noqa: F401
 from .ec2_vpn_gateway import vpn_gateway  # noqa: F401
 from .security_group import process_security_group
 from .sns import sns  # noqa: F401
-from .firehose import process_firehose
+from .firehose import firehose  # noqa: F401
 from .route53_domain import route53_domain  # noqa: F401
 from .route53_hostedzone import route53_hostedzone  # noqa: F401
 from .kinesis import kinesis  # noqa: F401
@@ -23,7 +23,6 @@ from .ecs import ecs  # noqa: F401
 __all__ = [
     'process_api_gateway',
     'process_security_group',
-    'process_firehose',
     'ResourceRegistry',
     'RegisteredResource'
 ]
