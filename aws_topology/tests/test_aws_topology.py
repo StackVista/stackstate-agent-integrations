@@ -108,11 +108,9 @@ class TestAWSTopologyCheck(unittest.TestCase):
                 raise Exception("error")
 
         registry = {
-            's3': [
-                {
-                    'constructor': s3
-                }
-            ]
+            's3': {
+                'aws.s3': s3
+            }
         }
 
         self.check.APIS = {
@@ -139,11 +137,9 @@ class TestAWSTopologyCheck(unittest.TestCase):
                 return {'abc': 'def'}
 
         registry = {
-            's3': [
-                {
-                    'constructor': s3
-                }
-            ]
+            's3': {
+                'aws.s3': s3
+            }
         }
 
         self.check.APIS = {

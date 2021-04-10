@@ -14,19 +14,13 @@ class ResourceRegistry(type):
         """
         if new_cls.API != '??':
             if (cls.REGISTRY.get(new_cls.API) is None):
-                cls.REGISTRY[new_cls.API] = []
-            cls.REGISTRY[new_cls.API].append({
-                'constructor': new_cls
-            })
+                cls.REGISTRY[new_cls.API] = {}
+            cls.REGISTRY[new_cls.API][new_cls.COMPONENT_TYPE] = new_cls
         return new_cls
 
     @classmethod
     def get_registry(cls):
         return dict(cls.REGISTRY)
-
-    @classmethod
-    def clear_registry(cls):
-        cls.REGISTRY = {}
 
 
 class AgentProxy(object):
@@ -53,6 +47,7 @@ class RegisteredResource(with_metaclass(ResourceRegistry, object)):
     """
     API = "??"
     MEMORY_KEY = "??"
+    COMPONENT_TYPE = "??"
 
     def __init__(self, location_info, client, agent):
         self.client = client

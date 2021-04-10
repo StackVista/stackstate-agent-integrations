@@ -1,13 +1,20 @@
-from ..utils import make_valid_data, correct_tags
+from ..utils import make_valid_data
+from .registry import RegisteredResource
 
 
-def process_vpn_gateways(location_info, client, agent):
-    for vpn_description_raw in client.describe_vpn_gateways().get('VpnGateways') or []:
-        vpn_description = make_valid_data(vpn_description_raw)
+class vpn_gateway(RegisteredResource):
+    API = "ec2"
+    COMPONENT_TYPE = "aws.vpngateway"
+
+    def process_all(self):
+        for vpn_description_raw in self.client.describe_vpn_gateways().get('VpnGateways') or []:
+            vpn_description = make_valid_data(vpn_description_raw)
+            self.process_vpn_gateway(vpn_description)
+
+    def process_vpn_gateway(self, vpn_description):
         vpn_id = vpn_description['VpnGatewayId']
-        vpn_description.update(location_info)
-        agent.component(vpn_id, 'aws.vpngateway', correct_tags(vpn_description))
+        self.agent.component(vpn_id, self.COMPONENT_TYPE, vpn_description)
         if vpn_description.get('VpcAttachments'):
             for vpn_attachment in vpn_description['VpcAttachments']:
                 vpc_id = vpn_attachment['VpcId']
-                agent.relation(vpn_id, vpc_id, 'uses service', {})
+                self.agent.relation(vpn_id, vpc_id, 'uses service', {})

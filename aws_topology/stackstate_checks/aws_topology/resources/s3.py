@@ -4,6 +4,7 @@ from .registry import RegisteredResource
 
 class s3(RegisteredResource):
     API = "s3"
+    COMPONENT_TYPE = "aws.s3_bucket"
 
     def process_all(self):
         s3_bucket = {}
@@ -25,7 +26,7 @@ class s3(RegisteredResource):
         except Exception:
             bucket_tags = []
         bucket_data["Tags"] = bucket_tags
-        self.agent.component(bucket_arn, "aws.s3_bucket", bucket_data)
+        self.agent.component(bucket_arn, self.COMPONENT_TYPE, bucket_data)
         bucket_notification_configurations = self.client.get_bucket_notification_configuration(Bucket=bucket_name).get(
             "LambdaFunctionConfigurations"
         )

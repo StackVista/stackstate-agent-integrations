@@ -13,7 +13,6 @@ from stackstate_checks.base import AgentCheck, TopologyInstance
 from .utils import location_info
 
 from .resources import (
-    process_vpn_gateways,
     process_vpcs,
     process_auto_scaling,
     process_api_gateway,
@@ -41,7 +40,6 @@ DEFAULT_COLLECTION_INTERVAL = 60
 ALL_APIS = {
     'ec2': {
         'parts': [
-            process_vpn_gateways,
             process_vpcs,
             process_security_group
         ]
@@ -168,7 +166,7 @@ class AwsTopologyCheck(AgentCheck):
             try:
                 client = aws_client._get_boto3_client(api)  # todo global
                 for part in registry[api]:
-                    processor = part['constructor'](location, client, self)
+                    processor = registry[api][part](location, client, self)
                     result = processor.process_all()
                     if result:
                         memory_key = processor.MEMORY_KEY or api
@@ -185,7 +183,7 @@ class AwsTopologyCheck(AgentCheck):
             okeys = instance_info.apis_to_run
         for api in keys:
             if api in okeys:
-                okeys.remove('s3')
+                okeys.remove(api)
         for api in okeys:
             try:
                 client = aws_client._get_boto3_client(api, region=self.APIS[api].get('client_region'))

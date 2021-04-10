@@ -37,6 +37,10 @@ def correct_tags(data):
     return data
 
 
+def create_host_urn(instance_id):
+    return "urn:host:/{}".format(instance_id)
+
+
 def create_resource_arn(resource, region, account_id, sub_resource, resource_id):
     # TODO aws is not always partition!!
     return "arn:aws:{}:{}:{}:{}/{}".format(resource, region, account_id, sub_resource, resource_id)

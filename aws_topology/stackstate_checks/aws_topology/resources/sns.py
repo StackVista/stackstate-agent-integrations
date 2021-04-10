@@ -4,6 +4,7 @@ from .registry import RegisteredResource
 
 class sns(RegisteredResource):
     API = "sns"
+    COMPONENT_TYPE = "aws.sns"
 
     def process_all(self):
         sns = {}
@@ -20,7 +21,7 @@ class sns(RegisteredResource):
         topic_name = topic_arn.rsplit(':', 1)[-1]
         topic_data.update(with_dimensions([{'key': 'TopicName', 'value': topic_name}]))
         topic_data["Tags"] = self.client.list_tags_for_resource(ResourceArn=topic_arn).get('Tags') or []
-        self.agent.component(topic_arn, 'aws.sns', topic_data)
+        self.agent.component(topic_arn, self.COMPONENT_TYPE, topic_data)
         for subscriptions_by_topicpage in self.client.get_paginator('list_subscriptions_by_topic').paginate(
                 TopicArn=topic_arn):
             for subscription_by_topic in subscriptions_by_topicpage.get('Subscriptions') or []:
