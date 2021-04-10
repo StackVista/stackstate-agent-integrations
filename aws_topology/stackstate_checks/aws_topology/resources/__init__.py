@@ -18,6 +18,7 @@ from .rds import rds  # noqa: F401
 from .lambdaf import Lambda  # noqa: F401
 from .dynamodb import dynamodb  # noqa: F401
 from .lambda_event_source_mapping import lambnda_event_source_mapping  # noqa: F401
+from .ecs import ecs  # noqa: F401
 
 __all__ = [
     'process_elb_v2',

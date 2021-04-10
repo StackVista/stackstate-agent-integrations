@@ -131,13 +131,17 @@ class AwsTopologyCheck(AgentCheck):
         # experimental
         # print('start experiment')
         registry = self.get_registry()
-        print(registry)
         keys = registry.keys()
+        if instance_info.apis_to_run is not None:
+            keys = [api.split('|')[0] for api in instance_info.apis_to_run]
         for api in keys:
             global_api = api.startswith('route53')
             try:
                 client = aws_client._get_boto3_client(api, region='us-east-1' if global_api else None)
                 for part in registry[api]:
+                    if instance_info.apis_to_run is not None:
+                        if not (api + '|' + part) in instance_info.apis_to_run:
+                            continue
                     processor = registry[api][part](location, client, self)
                     result = processor.process_all()
                     if result:
@@ -152,7 +156,7 @@ class AwsTopologyCheck(AgentCheck):
         # TODO https://docs.aws.amazon.com/AWSEC2/latest/APIReference/throttling.html
         okeys = list(self.APIS)
         if instance_info.apis_to_run is not None:
-            okeys = instance_info.apis_to_run
+            okeys = [api.split('|')[0] for api in instance_info.apis_to_run]
         for api in keys:
             if api in okeys:
                 okeys.remove(api)

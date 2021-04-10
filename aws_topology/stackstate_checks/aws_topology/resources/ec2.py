@@ -23,7 +23,7 @@ class ec2(RegisteredResource):
 
     def process_instance(self, instance_data):
         if self.nitroInstances is None:
-            instance_types = self.client.get_instance_types()['InstanceTypes']
+            instance_types = self.client.describe_instance_types()['InstanceTypes']
             self.nitroInstances = list(filter(
                 lambda instanceType: 'Hypervisor' not in instanceType or instanceType['Hypervisor'] == "nitro",
                 instance_types
