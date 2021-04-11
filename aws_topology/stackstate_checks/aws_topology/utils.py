@@ -152,3 +152,18 @@ def get_partition_name(region):
     elif region_string.startswith("us-gov"):
         partition = "aws-us-gov"
     return partition
+
+
+def capitalize_keys(in_dict):
+    if type(in_dict) is dict:
+        out_dict = {}
+        for key, item in in_dict.items():
+            if key == "Tags":
+                out_dict[key] = item
+            else:
+                out_dict[key[:1].upper() + key[1:]] = capitalize_keys(item)
+        return out_dict
+    elif type(in_dict) is list:
+        return [capitalize_keys(obj) for obj in in_dict]
+    else:
+        return in_dict

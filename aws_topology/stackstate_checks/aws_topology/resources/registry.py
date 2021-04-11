@@ -1,5 +1,5 @@
 from six import with_metaclass
-from ..utils import correct_tags
+from ..utils import correct_tags, capitalize_keys
 
 
 class ResourceRegistry(type):
@@ -30,7 +30,7 @@ class AgentProxy(object):
 
     def component(self, id, type, data):
         data.update(self.location_info)
-        self.agent.component(id, type, correct_tags(data))
+        self.agent.component(id, type, capitalize_keys(correct_tags(data)))
 
     def relation(self, source_id, target_id, type, data):
         self.agent.relation(source_id, target_id, type, data)
