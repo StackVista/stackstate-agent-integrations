@@ -507,3 +507,39 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(topology[0]['components'][0]['type'], 'aws.s3_bucket')  # DIFF was ['type']['name']
         self.assertEqual(topology[0]['components'][0]['data']['Name'], 'stackstate.com')
         self.assert_location_info(topology[0]['components'][0])
+
+    @patch('botocore.client.BaseClient._make_api_call', mock_boto_calls)
+    def test_process_rds(self):
+        config = get_config_for_only('rds|aws.rds_cluster')
+        self.check.check(config)
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assert_executed_ok()
+        # TODO events = agent.get_events()
+
+        # TODO self.assertEqual(len(events), 0)
+        self.assertEqual(len(topology), 1)
+        self.assertEqual(len(topology[0]['relations']), 6)
+        self.assertEqual(len(topology[0]['components']), 3)
+        self.assertEqual(
+            topology[0]['components'][1]['id'],
+            'arn:aws:rds:eu-west-1:731070500579:db:productiondatabase-eu-west-1c'
+        )  # DIFF was exteralId
+        self.assertEqual(topology[0]['components'][1]['data']['DBInstanceIdentifier'], 'productiondatabase-eu-west-1c')
+        self.assertEqual(topology[0]['components'][1]['data']['Name'], 'productiondatabase-eu-west-1c')
+        self.assert_stream_dimensions(
+            topology[0]['components'][1],
+            [{'Key': 'DBInstanceIdentifier', 'Value': 'productiondatabase-eu-west-1c'}]
+        )
+
+        self.assertEqual(
+            topology[0]['components'][2]['data']['DBClusterArn'],
+            'arn:aws:rds:eu-west-1:731070500579:cluster:productiondatabasecluster'
+        )
+        self.assertEqual(
+            topology[0]['components'][2]['data']['Name'],
+            'arn:aws:rds:eu-west-1:731070500579:cluster:productiondatabasecluster'
+        )
+        self.assert_stream_dimensions(
+            topology[0]['components'][2],
+            [{'Key': 'DBClusterIdentifier', 'Value': 'productiondatabasecluster'}]
+        )
