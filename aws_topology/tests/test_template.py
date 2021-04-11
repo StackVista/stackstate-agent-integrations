@@ -650,3 +650,145 @@ class TestTemplate(unittest.TestCase):
         )
 
         self.assert_location_info(topology[0]["components"][0])
+
+    @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    def test_process_dynamodb(self):
+        config = get_config_for_only("dynamodb|aws.dynamodb")
+        self.check.check(config)
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assert_executed_ok()
+
+        self.assertEqual(len(topology), 1)
+        self.assertEqual(len(topology[0]["relations"]), 1)
+        self.assertEqual(
+            topology[0]["relations"][0]["source_id"], "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1"
+        )  # DIFF
+        self.assertEqual(
+            topology[0]["relations"][0]["target_id"],
+            "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1/stream/2018-05-17T08:09:27.110",
+        )  # DIFF
+        self.assertEqual(len(topology[0]["components"]), 5)
+        self.assertEqual(
+            topology[0]["components"][0]["id"], "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1"
+        )  # DIFF
+        self.assertEqual(
+            topology[0]["components"][0]["data"]["TableArn"], "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1"
+        )
+        self.assertEqual(topology[0]["components"][0]["type"], "aws.dynamodb")  # DIFF
+        self.assertEqual(
+            topology[0]["components"][0]["data"]["Name"], "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1"
+        )
+        self.assert_stream_dimensions(topology[0]["components"][0], [{"Key": "TableName", "Value": "table_1"}])
+        self.assertEqual(
+            topology[0]["components"][1]["id"],
+            "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1/stream/2018-05-17T08:09:27.110",
+        )  # DIFF
+        self.assertEqual(topology[0]["components"][1]["type"], "aws.dynamodb.streams")  # DIFF
+        self.assertEqual(
+            topology[0]["components"][1]["data"]["LatestStreamArn"],
+            "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1/stream/2018-05-17T08:09:27.110",
+        )
+        self.assertEqual(
+            topology[0]["components"][1]["data"]["Name"],
+            "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1/stream/2018-05-17T08:09:27.110",
+        )
+        self.assert_stream_dimensions(
+            topology[0]["components"][1],
+            [{"Key": "TableName", "Value": "table_1"}, {"Key": "StreamLabel", "Value": "2018-05-17T08:09:27.110"}],
+        )
+        self.assertEqual(
+            topology[0]["components"][2]["id"], "arn:aws:dynamodb:eu-west-1:731070500579:table/table_2"
+        )  # DIFF
+        self.assertEqual(topology[0]["components"][2]["type"], "aws.dynamodb")  # DIFF
+        self.assertEqual(
+            topology[0]["components"][3]["id"], "arn:aws:dynamodb:eu-west-1:731070500579:table/table_3"
+        )  # DIFF
+        self.assertEqual(topology[0]["components"][3]["type"], "aws.dynamodb")  # DIFF
+        self.assertEqual(
+            topology[0]["components"][4]["id"], "arn:aws:dynamodb:eu-west-1:731070500579:table/table_4"
+        )  # DIFF
+        self.assertEqual(topology[0]["components"][4]["type"], "aws.dynamodb")  # DIFF
+
+    @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    def test_process_lambda_event_source_mappings(self):
+        config = get_config_for_only("lambda|aws.lambda.event_source_mapping")
+        self.check.check(config)
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assert_executed_ok()
+
+        self.assertEqual(len(topology), 1)
+        self.assertEqual(len(topology[0]["components"]), 0)
+        self.assertEqual(len(topology[0]["relations"]), 2)
+        self.assertEqual(
+            topology[0]["relations"][0]["source_id"],
+            "arn:aws:lambda:eu-west-1:731070500579:function:com-stackstate-prod-PersonIdDynamoDBHandler-6KMIBXKKKCEZ",
+        )  # DIFF
+        self.assertEqual(
+            topology[0]["relations"][0]["target_id"],
+            "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1/stream/2018-05-17T08:09:27.110",
+        )  # DIFF
+        self.assertEqual(
+            topology[0]["relations"][1]["source_id"],
+            "arn:aws:lambda:eu-west-1:731070500579:function:com-stackstate-prod-PersonCreatedKinesisHand-19T8EJADX2DE",
+        )  # DIFF
+        self.assertEqual(
+            topology[0]["relations"][1]["target_id"], "arn:aws:kinesis:eu-west-1:731070500579:stream/stream_1"
+        )  # DIFF
+
+    @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    def test_process_kinesis_streams(self):
+        config = get_config_for_only("kinesis|aws.kinesis")
+        self.check.check(config)
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assert_executed_ok()
+
+        base_stream_arn = "arn:aws:kinesis:eu-west-1:731070500579:stream/"
+
+        self.assertEqual(len(topology), 1)
+        self.assertEqual(len(topology[0]["relations"]), 0)
+        self.assertEqual(len(topology[0]["components"]), 4)
+        self.assertEqual(topology[0]["components"][0]["id"], base_stream_arn + "stream_1")  # DIFF
+        self.assertEqual(topology[0]["components"][0]["type"], "aws.kinesis")  # DIFF
+        self.assertEqual(
+            topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamARN"],
+            "arn:aws:kinesis:eu-west-1:731070500579:stream/stream_1",
+        )
+        self.assertEqual(topology[0]["components"][1]["id"], base_stream_arn + "stream_2")  # DIFF
+        self.assertEqual(topology[0]["components"][1]["type"], "aws.kinesis")  # DIFF
+        self.assertEqual(topology[0]["components"][2]["id"], base_stream_arn + "stream_3")  # DIFF
+        self.assertEqual(topology[0]["components"][2]["type"], "aws.kinesis")  # DIFF
+        self.assertEqual(topology[0]["components"][3]["id"], base_stream_arn + "stream_4")  # DIFF
+        self.assertEqual(topology[0]["components"][3]["type"], "aws.kinesis")  # DIFF
+
+    @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    def test_process_firehose(self):
+        config = get_config_for_only("firehose|aws.firehose")
+        self.check.check(config)
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assert_executed_ok()
+
+        firehose_arn_prefix = "arn:aws:firehose:eu-west-1:731070500579:deliverystream/"
+        self.assertEqual(len(topology), 1)
+        self.assertEqual(len(topology[0]["components"]), 2)
+        self.assertEqual(topology[0]["components"][0]["id"], firehose_arn_prefix + "firehose_1")  # DIFF
+        self.assertEqual(topology[0]["components"][0]["type"], "aws.firehose")  # DIFF
+        self.assertEqual(
+            topology[0]["components"][0]["data"]["DeliveryStreamDescription"]["DeliveryStreamARN"],
+            "arn:aws:firehose:eu-west-1:731070500579:deliverystream/firehose_1",
+        )
+        self.assertEqual(topology[0]["components"][0]["data"]["Tags"]["SomeKey"], "SomeValue")
+        self.assert_stream_dimensions(
+            topology[0]["components"][0],
+            [{"Key": "DeliveryStreamName", "Value": "dnv-sam-seed-button-clicked-firehose"}],
+        )
+        self.assertEqual(topology[0]["components"][1]["id"], firehose_arn_prefix + "firehose_2")  # DIFF
+        self.assertEqual(topology[0]["components"][1]["type"], "aws.firehose")  # DIFF
+        self.assertEqual(len(topology[0]["relations"]), 3)
+        self.assertEqual(
+            topology[0]["relations"][0]["source_id"], "arn:aws:kinesis:eu-west-1:731070500579:stream/stream_1"
+        )  # DIFF
+        self.assertEqual(topology[0]["relations"][0]["target_id"], firehose_arn_prefix + "firehose_1")  # DIFF
+        self.assertEqual(topology[0]["relations"][1]["source_id"], firehose_arn_prefix + "firehose_1")  # DIFF
+        self.assertEqual(topology[0]["relations"][1]["target_id"], "arn:aws:s3:::firehose-bucket_1")  # DIFF
+        self.assertEqual(topology[0]["relations"][2]["source_id"], firehose_arn_prefix + "firehose_2")  # DIFF
+        self.assertEqual(topology[0]["relations"][2]["target_id"], "arn:aws:s3:::firehose-bucket_2")  # DIFF
