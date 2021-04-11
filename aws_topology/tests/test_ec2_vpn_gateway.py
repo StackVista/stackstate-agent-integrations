@@ -95,7 +95,6 @@ class TestVpnGateway(unittest.TestCase):
         })
         self.check.run()
         test_topology = topology.get_snapshot(self.check.check_id)
-        print(test_topology)
         self.assertEqual(len(test_topology['components']), 1)
         self.assertIsNotNone(test_topology['components'][0]['data'])
         self.assertEqual(test_topology['components'][0]['data']['Tags'], {'Name': 'my-first-vpn-gateway'})

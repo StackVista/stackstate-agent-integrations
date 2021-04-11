@@ -10,7 +10,6 @@ class elb_v2(RegisteredResource):
     MEMORY_KEY = "target_group"
 
     def process_all(self):
-        print('ELB_V2')
         result = {}
         target_group = {}
         load_balancer = {}
@@ -18,7 +17,6 @@ class elb_v2(RegisteredResource):
         for elb_data_raw in self.client.describe_load_balancers().get('LoadBalancers') or []:
             elb_data = make_valid_data(elb_data_raw)
             elb_external_id = elb_data['LoadBalancerArn']
-            print(elb_data)
             # can become 1 call!
             elb_tags = self.client.describe_tags(ResourceArns=[elb_external_id]).get('TagDescriptions')
             if len(elb_tags) > 0:
