@@ -13,7 +13,7 @@ class sns(RegisteredResource):
                 topic_data = make_valid_data(topic_data_raw)
                 result = self.process_topic(topic_data)
                 sns.update(result)
-                return sns
+        return sns
 
     def process_topic(self, topic_data):
         topic_arn = topic_data['TopicArn']
