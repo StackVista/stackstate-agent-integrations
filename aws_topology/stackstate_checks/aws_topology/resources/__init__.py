@@ -20,6 +20,7 @@ from .dynamodb import dynamodb  # noqa: F401
 from .lambda_event_source_mapping import lambnda_event_source_mapping  # noqa: F401
 from .ecs import ecs  # noqa: F401
 from .cloudformation import cloudformation  # noqa: F401
+from .sqs import sqs  # noqa: F401
 
 __all__ = [
     'ResourceRegistry',
