@@ -2,7 +2,7 @@ from .registry import ResourceRegistry, RegisteredResource
 from .s3 import s3  # noqa: F401
 from .elb_v2 import elb_v2  # noqa: F401
 from .autoscaling import autoscaling  # noqa: F401
-from .api_gateway import process_api_gateway
+from .api_gateway import api_gateway  # noqa: F401
 from .ec2_vpc import vpc  # noqa: F401
 from .ec2_vpn_gateway import vpn_gateway  # noqa: F401
 from .security_group import security_group  # noqa: F401
@@ -22,7 +22,6 @@ from .ecs import ecs  # noqa: F401
 from .cloudformation import cloudformation  # noqa: F401
 
 __all__ = [
-    'process_api_gateway',
     'ResourceRegistry',
     'RegisteredResource'
 ]

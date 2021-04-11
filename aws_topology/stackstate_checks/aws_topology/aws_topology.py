@@ -7,14 +7,10 @@ import boto3
 from schematics import Model
 from schematics.types import StringType, ListType, DictType
 from botocore.config import Config
-from copy import deepcopy
 from stackstate_checks.base import AgentCheck, TopologyInstance
 
 from .utils import location_info
 
-from .resources import (
-    process_api_gateway
-)
 from .resources import ResourceRegistry
 
 memory_data = {}  # name -> arn for cloudformation
@@ -28,15 +24,6 @@ DEFAULT_BOTO3_CONFIG = Config(
 )
 
 DEFAULT_COLLECTION_INTERVAL = 60
-
-ALL_APIS = {
-    'apigateway': {
-        'parts': [
-            process_api_gateway
-        ],
-        'memory_key': 'api_stage'
-    }
-}
 
 
 class State(Model):
@@ -60,7 +47,6 @@ class AwsTopologyCheck(AgentCheck):
     SERVICE_CHECK_CONNECT_NAME = 'aws_topology.can_connect'
     SERVICE_CHECK_EXECUTE_NAME = 'aws_topology.can_execute'
     INSTANCE_SCHEMA = InstanceInfo
-    APIS = deepcopy(ALL_APIS)
 
     def get_registry(self):
         return ResourceRegistry.get_registry()
@@ -109,8 +95,6 @@ class AwsTopologyCheck(AgentCheck):
 
         location = location_info(instance_info.account_id, instance_info.region)  # route53/domains issue!
         errors = []
-        # experimental
-        # print('start experiment')
         registry = self.get_registry()
         keys = registry.keys()
         if instance_info.apis_to_run is not None:
@@ -131,29 +115,8 @@ class AwsTopologyCheck(AgentCheck):
                             memory_data[memory_key].update(result)
                         else:
                             memory_data[memory_key] = result
-            except Exception:
-                errors.append('API %s ended with exception: %s' % (api, traceback.format_exc()))
-        # print('end experiment')
-        # TODO https://docs.aws.amazon.com/AWSEC2/latest/APIReference/throttling.html
-        okeys = list(self.APIS)
-        if instance_info.apis_to_run is not None:
-            okeys = [api.split('|')[0] for api in instance_info.apis_to_run]
-        for api in keys:
-            if api in okeys:
-                okeys.remove(api)
-        for api in okeys:
-            try:
-                client = aws_client._get_boto3_client(api, region=self.APIS[api].get('client_region'))
-                for part in self.APIS[api]['parts']:
-                    result = part(location, client, self)
-                    if result:
-                        memory_key = self.APIS[api].get('memory_key') or api
-                        if memory_data.get(memory_key) is not None:
-                            memory_data[memory_key].update(result)
-                        else:
-                            memory_data[memory_key] = result
-            except Exception:
-                errors.append('API %s ended with exception: %s' % (api, traceback.format_exc()))
+            except Exception as e:
+                errors.append('API %s ended with exception: %s %s' % (api, str(e), traceback.format_exc()))
         if len(errors) > 0:
             raise Exception('get_topology gave following exceptions: %s' % ', '.join(errors))
 
@@ -172,8 +135,12 @@ class AwsClient:
         self.aws_session_token = None
 
         if aws_secret_access_key and aws_access_key_id and role_arn and self.region:
-            sts_client = boto3.client('sts', config=DEFAULT_BOTO3_CONFIG, aws_access_key_id=aws_access_key_id,
-                                      aws_secret_access_key=aws_secret_access_key)
+            sts_client = boto3.client(
+                'sts',
+                config=DEFAULT_BOTO3_CONFIG,
+                aws_access_key_id=aws_access_key_id,
+                aws_secret_access_key=aws_secret_access_key
+            )
             role = sts_client.assume_role(RoleArn=role_arn, RoleSessionName='sts-agent-check')
             self.aws_access_key_id = role['Credentials']['AccessKeyId']
             self.aws_secret_access_key = role['Credentials']['SecretAccessKey']

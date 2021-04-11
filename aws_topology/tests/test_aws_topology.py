@@ -126,26 +126,51 @@ class TestAWSTopologyCheck(unittest.TestCase):
         """
         Testing memory
         """
-        class s3(object):
-            API = "s3"
-            MEMORY_KEY = 'test_key'
+        class base(object):
+            API = "??"
+            MEMORY_KEY = None
 
             def __init__(self, location_info, client, agent):
                 pass
 
+        class s3(base):
+            API = "s3"
+            MEMORY_KEY = 'test_key'
+
             def process_all(self):
                 return {'abc': 'def'}
+
+        class ec2_1(base):
+            API = "ec2"
+            COMPONENT_TYPE = "ec2_1"
+
+            def process_all(self):
+                return {'xyz': 'xyz'}
+
+        class ec2_2(base):
+            API = "ec2"
+            COMPONENT_TYPE = "ec2_2"
+
+            def process_all(self):
+                return {'ttt': 'ttt'}
+
+        class autoscaling(base):
+            API = "autoscaling"
+
+            def process_all(self):
+                pass
 
         registry = {
             's3': {
                 'aws.s3': s3
+            },
+            'ec2': {
+                'aws.1': ec2_1,
+                'aws.2': ec2_2
+            },
+            'autoscaling': {
+                'autoscaling': autoscaling
             }
-        }
-
-        self.check.APIS = {
-            's3': {'memory_key': 'test_key', 'parts': [lambda i, c, a: {'abc': 'def'}]},
-            'autoscaling': {'parts': [lambda i, c, a: None]},
-            'ec2': {'parts': [lambda i, c, a: {'xyz': 'xyz'}, lambda i, a, c: {'ttt': 'ttt'}]}
         }
         with patch('stackstate_checks.aws_topology.AwsTopologyCheck.get_registry', return_value=registry):
             self.check.run()

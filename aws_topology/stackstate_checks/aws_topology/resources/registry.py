@@ -54,7 +54,7 @@ class RegisteredResource(with_metaclass(ResourceRegistry, object)):
     class and the associated value, the class itself.
     """
     API = "??"
-    MEMORY_KEY = "??"
+    MEMORY_KEY = None
     COMPONENT_TYPE = "??"
 
     def __init__(self, location_info, client, agent):
