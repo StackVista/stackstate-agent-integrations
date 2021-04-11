@@ -477,3 +477,33 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(topology[0]['components'][0]['data']['URN'], [
             "arn:aws:elasticloadbalancing:{}:731070500579:loadbalancer/{}".format(TEST_REGION, 'classic-loadbalancer-1')
         ])
+
+    @patch('botocore.client.BaseClient._make_api_call', mock_boto_calls)
+    def test_process_s3(self):
+        config = get_config_for_only('s3|aws.s3_bucket')
+        self.check.check(config)
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assert_executed_ok()
+
+        target_id = 'arn:aws:lambda:eu-west-1:731070500579:' + \
+            'function:com-stackstate-prod-s-NotifyBucketEventsHandle-1W0B5NSZYJ3G1'
+
+        self.assertEqual(len(topology), 1)
+        self.assertEqual(len(topology[0]['relations']), 4)
+        self.assertEqual(topology[0]['relations'][0]['source_id'], 'arn:aws:s3:::stackstate.com')  # DIFF was sourceId
+        self.assertEqual(topology[0]['relations'][0]['target_id'], target_id)  # DIFF was targetId
+        self.assertEqual(topology[0]['relations'][0]['type'], 'uses service')  # DIFF was ['type']['name']
+        self.assertEqual(topology[0]['relations'][1]['source_id'], 'arn:aws:s3:::stackstate.com')  # DIFF was sourceId
+        self.assertEqual(topology[0]['relations'][1]['target_id'], target_id)  # DIFF was targetId
+        self.assertEqual(topology[0]['relations'][1]['type'], 'uses service')  # DIFF was ['type']['name']
+        self.assertEqual(topology[0]['relations'][2]['source_id'], 'arn:aws:s3:::binx.io')  # DIFF was sourceId
+        self.assertEqual(topology[0]['relations'][2]['target_id'], target_id)  # DIFF was targetId
+        self.assertEqual(topology[0]['relations'][2]['type'], 'uses service')  # DIFF was ['type']['name']
+        self.assertEqual(topology[0]['relations'][3]['source_id'], 'arn:aws:s3:::binx.io')  # DIFF was sourceId
+        self.assertEqual(topology[0]['relations'][3]['target_id'], target_id)  # DIFF was targetId
+        self.assertEqual(topology[0]['relations'][3]['type'], 'uses service')  # DIFF was ['type']['name']
+        self.assertEqual(len(topology[0]['components']), 2)
+        self.assertEqual(topology[0]['components'][0]['id'], 'arn:aws:s3:::stackstate.com')  # DIFF was externalId
+        self.assertEqual(topology[0]['components'][0]['type'], 'aws.s3_bucket')  # DIFF was ['type']['name']
+        self.assertEqual(topology[0]['components'][0]['data']['Name'], 'stackstate.com')
+        self.assert_location_info(topology[0]['components'][0])
