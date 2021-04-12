@@ -13,7 +13,7 @@ class ResourceRegistry(type):
             parameter.
         """
         if new_cls.API != '??':
-            if (cls.REGISTRY.get(new_cls.API) is None):
+            if cls.REGISTRY.get(new_cls.API) is None:
                 cls.REGISTRY[new_cls.API] = {}
             cls.REGISTRY[new_cls.API][new_cls.COMPONENT_TYPE] = new_cls
         return new_cls

@@ -48,9 +48,6 @@ class AwsTopologyCheck(AgentCheck):
     SERVICE_CHECK_EXECUTE_NAME = 'aws_topology.can_execute'
     INSTANCE_SCHEMA = InstanceInfo
 
-    def get_registry(self):
-        return ResourceRegistry.get_registry()
-
     def get_instance_key(self, instance_info):
         return TopologyInstance(self.INSTANCE_TYPE, str(instance_info.account_id))
 
@@ -95,14 +92,14 @@ class AwsTopologyCheck(AgentCheck):
 
         errors = []
         self.delete_ids = []
-        registry = self.get_registry()
+        registry = ResourceRegistry.get_registry()
         keys = registry.keys()
         if instance_info.apis_to_run is not None:
             keys = [api.split('|')[0] for api in instance_info.apis_to_run]
         for api in keys:
             global_api = api.startswith('route53')
             try:
-                client = aws_client._get_boto3_client(api, region='us-east-1' if global_api else None)
+                client = aws_client.get_boto3_client(api, region='us-east-1' if global_api else None)
                 location = location_info(instance_info.account_id, 'us-east-1' if global_api else instance_info.region)
                 for part in registry[api]:
                     if instance_info.apis_to_run is not None:
@@ -151,9 +148,9 @@ class AwsClient:
             raise Exception("Received no session token during AWS client initialization")
 
     def get_account_id(self):
-        return self._get_boto3_client('sts').get_caller_identity().get('Account')
+        return self.get_boto3_client('sts').get_caller_identity().get('Account')
 
-    def _get_boto3_client(self, service_name, region=None):
+    def get_boto3_client(self, service_name, region=None):
         return boto3.client(service_name, region_name=region or self.region, config=DEFAULT_BOTO3_CONFIG,
                             aws_access_key_id=self.aws_access_key_id,
                             aws_secret_access_key=self.aws_secret_access_key,

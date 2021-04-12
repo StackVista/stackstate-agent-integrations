@@ -20,11 +20,11 @@ def location_info(account_id, region):
     return {'Location': {'AwsAccount': account_id, 'AwsRegion': region}}
 
 
-def tags_as_dictionary(lisfOfTags, cap_flag=True):
-    if lisfOfTags and cap_flag:
-        return dict((item['Key'], item['Value']) for item in lisfOfTags)
-    elif lisfOfTags and not cap_flag:
-        return dict((item['key'], item['value']) for item in lisfOfTags)
+def tags_as_dictionary(lisf_of_tags, cap_flag=True):
+    if lisf_of_tags and cap_flag:
+        return dict((item['Key'], item['Value']) for item in lisf_of_tags)
+    elif lisf_of_tags and not cap_flag:
+        return dict((item['key'], item['value']) for item in lisf_of_tags)
     else:
         return {}
 
@@ -55,13 +55,12 @@ def with_dimensions(dimensions):
     return {'CW': {'Dimensions': dimensions}}
 
 
-def extract_dimension_name(arn, resourceType):
-    regex = r"arn:aws:[a-zA-Z0-9]*:[a-zA-Z0-9\-]*:[a-zA-Z0-9]*:{}\/(.*)".format(resourceType)
+def extract_dimension_name(arn, resource_type):
+    regex = r"arn:aws:[a-zA-Z0-9]*:[a-zA-Z0-9\-]*:[a-zA-Z0-9]*:{}\/(.*)".format(resource_type)
     try:
         match = re.search(regex, arn)
         return match.group(1)
     except Exception as err:
-
         print(str(err))
         return ""
 
@@ -76,7 +75,7 @@ def replace_stage_variables(string, variables):
     """
     Given a string and a replacement map, it returns the replaced string.
     :param str string: string to execute replacements on
-    :param dict replacements: replacement dictionary {value to find: value to replace}
+    :param dict variables: replacement dictionary {value to find: value to replace}
     :rtype: str
     """
     # Make sure there's something that needs to be replaced

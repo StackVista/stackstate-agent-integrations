@@ -25,7 +25,7 @@ class EC2_Instance_Collector(RegisteredResourceCollector):
         if self.nitroInstances is None:
             instance_types = self.client.describe_instance_types()['InstanceTypes']
             self.nitroInstances = list(filter(
-                lambda instanceType: 'Hypervisor' not in instanceType or instanceType['Hypervisor'] == "nitro",
+                lambda instance_type: 'Hypervisor' not in instance_type or instance_type['Hypervisor'] == "nitro",
                 instance_types
             ))
         instance_id = instance_data['InstanceId']
