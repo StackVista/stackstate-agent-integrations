@@ -94,6 +94,7 @@ class AwsTopologyCheck(AgentCheck):
         self.start_snapshot()
 
         errors = []
+        self.delete_ids = []
         registry = self.get_registry()
         keys = registry.keys()
         if instance_info.apis_to_run is not None:
@@ -115,6 +116,7 @@ class AwsTopologyCheck(AgentCheck):
                             memory_data[memory_key].update(result)
                         else:
                             memory_data[memory_key] = result
+                    self.delete_ids += processor.get_delete_ids()
             except Exception as e:
                 errors.append('API %s ended with exception: %s %s' % (api, str(e), traceback.format_exc()))
         if len(errors) > 0:

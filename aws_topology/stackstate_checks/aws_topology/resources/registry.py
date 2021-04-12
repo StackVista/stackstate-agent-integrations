@@ -27,10 +27,11 @@ class AgentProxy(object):
     def __init__(self, agent, location_info):
         self.agent = agent
         self.location_info = location_info
+        self.delete_ids = []
 
     def component(self, id, type, data):
         data.update(self.location_info)
-        self.agent.component(id, type, capitalize_keys(correct_tags(data)))
+        self.agent.component(id, type, correct_tags(capitalize_keys(data)))
 
     def relation(self, source_id, target_id, type, data):
         self.agent.relation(source_id, target_id, type, data)
@@ -39,7 +40,7 @@ class AgentProxy(object):
         self.agent.event(event)
 
     def delete(self, id):
-        self.agent.delete(id)
+        self.delete_ids.append(id)
 
     def create_security_group_relations(self, resource_id, resource_data, security_group_field='SecurityGroups'):
         if resource_data.get(security_group_field):
@@ -47,7 +48,7 @@ class AgentProxy(object):
                 self.relation(resource_id, security_group_id, 'uses service', {})
 
 
-class RegisteredResource(with_metaclass(ResourceRegistry, object)):
+class RegisteredResourceCollector(with_metaclass(ResourceRegistry, object)):
     """
     Any class that will inherits from BaseRegisteredClass will be included
     inside the dict RegistryHolder.REGISTRY, the key being the name of the
@@ -61,3 +62,6 @@ class RegisteredResource(with_metaclass(ResourceRegistry, object)):
         self.client = client
         self.location_info = location_info
         self.agent = AgentProxy(agent, location_info)
+
+    def get_delete_ids(self):
+        return self.agent.delete_ids
