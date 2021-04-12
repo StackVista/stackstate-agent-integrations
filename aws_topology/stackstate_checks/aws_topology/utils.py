@@ -96,43 +96,8 @@ def replace_stage_variables(string, variables):
     return regexp.sub(lambda match: replacements[match.group(0)], string)
 
 
-def deep_sort(input):
-
-    def do_deep_sort(obj):
-        sortby = []
-
-        if isinstance(obj, dict):
-            # Note that dicts are order preserving as of Python 3.6
-            for k, v in sorted(obj.items()):
-                sortby.append(k)
-                if isinstance(v, dict) or isinstance(v, list):
-                    r = do_deep_sort(v)
-                    obj[k] = r[0]
-                    sortby = sortby + r[1]
-                else:
-                    obj[k] = v
-                    sortby.append(v)
-
-        if isinstance(obj, list):
-            temp = obj
-            for i, v in enumerate(obj):
-                if isinstance(v, dict) or isinstance(v, list):
-                    temp[i] = do_deep_sort(v)
-                else:
-                    temp[i] = (v, [v])
-
-            temp = sorted(temp, key=lambda v: v[1])
-            for i, v in enumerate(temp):
-                obj[i] = v[0]
-                sortby = sortby + v[1]
-
-        return (obj, sortby)
-
-    return do_deep_sort(input)[0]
-
-
 def create_hash(dict):
-    return hashlib.sha256(str(json.dumps(deep_sort(dict))).encode('utf-8')).hexdigest()
+    return hashlib.sha256(str(json.dumps(dict, sort_keys=True)).encode('utf-8')).hexdigest()
 
 
 def create_security_group_relations(resource_id, resource_data, agent, security_group_field='SecurityGroups'):
