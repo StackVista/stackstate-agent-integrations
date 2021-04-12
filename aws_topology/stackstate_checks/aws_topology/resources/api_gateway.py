@@ -38,7 +38,6 @@ class api_gateway(RegisteredResource):
                     for resource in rest_api_resource_page['items']
                     if 'resourceMethods' in resource
                 ]
-
                 http_methods_per_resource = {
                     resource['id']: [
                         method_details
@@ -48,7 +47,7 @@ class api_gateway(RegisteredResource):
                                 resourceId=resource['id'],
                                 httpMethod=http_method
                             )
-                            for http_method in resource['resourceMethods']
+                            for http_method in sorted(resource['resourceMethods'].keys())
                         ]
                         if method_details.get('methodIntegration') and method_details['methodIntegration']['type']
                         in ['AWS_PROXY', 'AWS', 'HTTP_PROXY']
@@ -69,6 +68,8 @@ class api_gateway(RegisteredResource):
                         'DeploymentId': stage['deploymentId'],
                         'StageName': stage_name
                     }
+                    if 'tags' in stage:
+                        stage_data['tags'] = stage['tags']
                     stage_data.update(rest_api_data)
                     stage_data.update(with_dimensions([
                         {'key': 'Stage', 'value': stage_name},

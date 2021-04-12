@@ -792,3 +792,214 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(topology[0]["relations"][1]["target_id"], "arn:aws:s3:::firehose-bucket_1")  # DIFF
         self.assertEqual(topology[0]["relations"][2]["source_id"], firehose_arn_prefix + "firehose_2")  # DIFF
         self.assertEqual(topology[0]["relations"][2]["target_id"], "arn:aws:s3:::firehose-bucket_2")  # DIFF
+
+    @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    def test_process_api_gateway(self):
+        config = get_config_for_only("apigateway|aws.apigateway.stage")
+        self.check.check(config)
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assert_executed_ok()
+
+        stage_arn_prefix = "arn:aws:execute-api:eu-west-1:731070500579:api_1/stage{}"
+        resource_arn_prefix = "arn:aws:execute-api:eu-west-1:731070500579:api_1/stage{}/*/hello"
+        method_arn_prefix = "arn:aws:execute-api:eu-west-1:731070500579:api_1/stage{}/{}/hello"
+        lambda_arn_prefix = "arn:aws:lambda:eu-west-1:731070500579:function:{}"
+        sqs_arn = "arn:aws:sqs:eu-west-1:731070500579:STS_stackpack_test"
+
+        self.assertEqual(len(topology), 1)
+        # we have 2 stages
+        for n in range(0, 2):
+            self.assertEqual(topology[0]["components"][0 + (n * 15)]["id"], stage_arn_prefix.format(n + 1))  # DIFF
+            self.assertEqual(topology[0]["components"][0 + (n * 15)]["type"], "aws.apigateway.stage")  # DIFF
+            self.assertEqual(topology[0]["components"][0 + (n * 15)]["data"]["RestApiName"], "api_1")
+            print(topology[0]["components"][0 + (n * 15)]["data"])
+            self.assertEqual(
+                topology[0]["components"][0 + (n * 15)]["data"]["Tags"]["StageTagKey" + str(n + 1)],
+                "StageTagValue" + str(n + 1),
+            )
+            self.assert_stream_dimensions(
+                topology[0]["components"][0 + (n * 15)],
+                [
+                    {"Key": "Stage", "Value": "stage{}".format(n + 1)},
+                    {"Key": "ApiName", "Value": topology[0]["components"][0 + (n * 15)]["data"]["RestApiName"]},
+                ],
+            )
+
+            self.assertEqual(topology[0]["components"][1 + (n * 15)]["id"], resource_arn_prefix.format(n + 1))  # DIFF
+            self.assertEqual(topology[0]["components"][1 + (n * 15)]["type"], "aws.apigateway.resource")  # DIFF
+            self.assertEqual(topology[0]["components"][1 + (n * 15)]["data"]["Path"], "/hello")
+            self.assert_stream_dimensions(
+                topology[0]["components"][1 + (n * 15)],
+                [
+                    {"Key": "Stage", "Value": "stage{}".format(n + 1)},
+                    {"Key": "ApiName", "Value": topology[0]["components"][1 + (n * 15)]["data"]["RestApiName"]},
+                ],
+            )
+
+            self.assertEqual(
+                topology[0]["components"][2 + (n * 15)]["id"], method_arn_prefix.format(n + 1, "DELETE")
+            )  # DIFF
+            self.assertEqual(topology[0]["components"][2 + (n * 15)]["type"], "aws.apigateway.method")  # DIFF
+            self.assertEqual(topology[0]["components"][2 + (n * 15)]["data"]["HttpMethod"], "DELETE")
+            self.assert_stream_dimensions(
+                topology[0]["components"][2 + (n * 15)],
+                [
+                    {"Key": "Method", "Value": topology[0]["components"][2 + (n * 15)]["data"]["HttpMethod"]},
+                    {"Key": "Resource", "Value": topology[0]["components"][2 + (n * 15)]["data"]["Path"]},
+                    {"Key": "Stage", "Value": "stage{}".format(n + 1)},
+                    {"Key": "ApiName", "Value": topology[0]["components"][2 + (n * 15)]["data"]["RestApiName"]},
+                ],
+            )
+
+            self.assertEqual(
+                topology[0]["components"][3 + (n * 15)]["id"], method_arn_prefix.format(n + 1, "GET")
+            )  # DIFF
+            self.assertEqual(topology[0]["components"][3 + (n * 15)]["type"], "aws.apigateway.method")  # DIFF
+            self.assertEqual(topology[0]["components"][3 + (n * 15)]["data"]["HttpMethod"], "GET")
+            self.assert_stream_dimensions(
+                topology[0]["components"][3 + (n * 15)],
+                [
+                    {"Key": "Method", "Value": topology[0]["components"][3 + (n * 15)]["data"]["HttpMethod"]},
+                    {"Key": "Resource", "Value": topology[0]["components"][3 + (n * 15)]["data"]["Path"]},
+                    {"Key": "Stage", "Value": "stage{}".format(n + 1)},
+                    {"Key": "ApiName", "Value": topology[0]["components"][3 + (n * 15)]["data"]["RestApiName"]},
+                ],
+            )
+
+            self.assertEqual(
+                topology[0]["components"][4 + (n * 15)]["id"], method_arn_prefix.format(n + 1, "PATCH")
+            )  # DIFF
+            self.assertEqual(topology[0]["components"][4 + (n * 15)]["type"], "aws.apigateway.method")  # DIFF
+            self.assertEqual(topology[0]["components"][4 + (n * 15)]["data"]["HttpMethod"], "PATCH")
+            self.assert_stream_dimensions(
+                topology[0]["components"][4 + (n * 15)],
+                [
+                    {"Key": "Method", "Value": topology[0]["components"][4 + (n * 15)]["data"]["HttpMethod"]},
+                    {"Key": "Resource", "Value": topology[0]["components"][4 + (n * 15)]["data"]["Path"]},
+                    {"Key": "Stage", "Value": "stage{}".format(n + 1)},
+                    {"Key": "ApiName", "Value": topology[0]["components"][4 + (n * 15)]["data"]["RestApiName"]},
+                ],
+            )
+
+            self.assertEqual(
+                topology[0]["components"][5 + (n * 15)]["id"], method_arn_prefix.format(n + 1, "POST")
+            )  # DIFF
+            self.assertEqual(topology[0]["components"][5 + (n * 15)]["type"], "aws.apigateway.method")  # DIFF
+            self.assertEqual(topology[0]["components"][5 + (n * 15)]["data"]["HttpMethod"], "POST")
+            self.assert_stream_dimensions(
+                topology[0]["components"][5 + (n * 15)],
+                [
+                    {"Key": "Method", "Value": topology[0]["components"][5 + (n * 15)]["data"]["HttpMethod"]},
+                    {"Key": "Resource", "Value": topology[0]["components"][5 + (n * 15)]["data"]["Path"]},
+                    {"Key": "Stage", "Value": "stage{}".format(n + 1)},
+                    {"Key": "ApiName", "Value": topology[0]["components"][5 + (n * 15)]["data"]["RestApiName"]},
+                ],
+            )
+
+            self.assertEqual(topology[0]["components"][6 + (n * 15)]["id"], "urn:service:/84.35.236.89")  # DIFF
+            self.assertEqual(
+                topology[0]["components"][6 + (n * 15)]["type"], "aws.apigateway.method.http.integration"
+            )  # DIFF
+
+            self.assertEqual(
+                topology[0]["components"][7 + (n * 15)]["id"], method_arn_prefix.format(n + 1, "PUT")
+            )  # DIFF
+            self.assertEqual(topology[0]["components"][7 + (n * 15)]["type"], "aws.apigateway.method")  # DIFF
+            self.assertEqual(topology[0]["components"][7 + (n * 15)]["data"]["HttpMethod"], "PUT")
+            self.assert_stream_dimensions(
+                topology[0]["components"][7 + (n * 15)],
+                [
+                    {"Key": "Method", "Value": topology[0]["components"][7 + (n * 15)]["data"]["HttpMethod"]},
+                    {"Key": "Resource", "Value": topology[0]["components"][7 + (n * 15)]["data"]["Path"]},
+                    {"Key": "Stage", "Value": "stage{}".format(n + 1)},
+                    {"Key": "ApiName", "Value": topology[0]["components"][7 + (n * 15)]["data"]["RestApiName"]},
+                ],
+            )
+
+        self.assertEqual(len(topology[0]["components"]), 30)
+
+        # we have 2 stages
+        for n in range(0, 2):
+            self.assertEqual(
+                topology[0]["relations"][0 + (n * 22)]["source_id"], stage_arn_prefix.format(n + 1)
+            )  # DIFF
+            self.assertEqual(
+                topology[0]["relations"][0 + (n * 22)]["target_id"], resource_arn_prefix.format(n + 1)
+            )  # DIFF
+            self.assert_method_relations(
+                topology,
+                method_arn_prefix.format(n + 1, "PATCH"),
+                resource_arn_prefix.format(n + 1),
+                sqs_arn,
+                5 + (n * 22),
+            )
+            self.assert_method_relations(
+                topology,
+                method_arn_prefix.format(n + 1, "PUT"),
+                resource_arn_prefix.format(n + 1),
+                lambda_arn_prefix.format("PutHello-1LUD3ESBOR6EY"),
+                9 + (n * 22),
+            )
+            self.assert_method_relations(
+                topology,
+                method_arn_prefix.format(n + 1, "POST"),
+                resource_arn_prefix.format(n + 1),
+                "urn:service:/84.35.236.89",
+                7 + (n * 22),
+            )
+            self.assert_method_relations(
+                topology,
+                method_arn_prefix.format(n + 1, "GET"),
+                resource_arn_prefix.format(n + 1),
+                lambda_arn_prefix.format("GetHello-1CZ5O92284Z69"),
+                3 + (n * 22),
+            )
+            self.assert_method_relations(
+                topology,
+                method_arn_prefix.format(n + 1, "DELETE"),
+                resource_arn_prefix.format(n + 1),
+                lambda_arn_prefix.format("DeleteHello-1LDFJCU54ZL5"),
+                1 + (n * 22),
+            )
+
+        self.assertEqual(len(topology[0]["relations"]), 44)
+
+    def assert_method_relations(self, topology, method_arn, resource_arn, lambda_arn, index):
+        self.assertEqual(topology[0]["relations"][index]["source_id"], resource_arn)  # DIFF
+        self.assertEqual(topology[0]["relations"][index]["target_id"], method_arn)  # DIFF
+        self.assertEqual(topology[0]["relations"][index + 1]["source_id"], method_arn)  # DIFF
+        self.assertEqual(topology[0]["relations"][index + 1]["target_id"], lambda_arn)  # DIFF
+
+    @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    def test_process_route53_domains(self):
+        config = get_config_for_only("route53domains|aws.route53.domain")
+        self.check.check(config)
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assert_executed_ok()
+
+        self.assertEqual(len(topology), 1)
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(topology[0]["components"][0]["id"], "stackstate.com")  # DIFF
+        self.assertEqual(topology[0]["components"][0]["type"], "aws.route53.domain")  # DIFF
+        self.assertEqual(
+            topology[0]["components"][0]["data"]["URN"], ["arn:aws:route53::731070500579:domain/stackstate.com"]
+        )
+        self.assertEqual(topology[0]["components"][0]["data"]["Tags"]["Route53DomainTagKey"], "Route53DomainTagValue")
+        self.assertEqual(topology[0]["components"][0]["data"]["DomainName"], "stackstate.com")
+        self.assert_location_info(topology[0]["components"][0])
+
+    @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    def test_process_route_53_hosted_zones(self):
+        config = get_config_for_only("route53|aws.route53.hostedzone")
+        self.check.check(config)
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assert_executed_ok()
+
+        self.assertEqual(len(topology), 1)
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(topology[0]["components"][0]["id"], "/hostedzone/Z4OKCQBA0VS63")  # DIFF
+        self.assertEqual(topology[0]["components"][0]["type"], "aws.route53.hostedzone")  # DIFF
+        self.assertEqual(topology[0]["components"][0]["data"]["URN"], ["arn:aws:route53:::hostedzone/Z4OKCQBA0VS63"])
+        self.assertEqual(topology[0]["components"][0]["data"]["Tags"]["ResourceTagKey"], "ResourceTagValue")
+        self.assertEqual(topology[0]["components"][0]["data"]["HostedZone"]["Name"], "serverless.nl.")
+        self.assert_location_info(topology[0]["components"][0])

@@ -93,7 +93,6 @@ class AwsTopologyCheck(AgentCheck):
         """Gets AWS Topology returns them in Agent format."""
         self.start_snapshot()
 
-        location = location_info(instance_info.account_id, instance_info.region)  # route53/domains issue!
         errors = []
         registry = self.get_registry()
         keys = registry.keys()
@@ -103,6 +102,7 @@ class AwsTopologyCheck(AgentCheck):
             global_api = api.startswith('route53')
             try:
                 client = aws_client._get_boto3_client(api, region='us-east-1' if global_api else None)
+                location = location_info(instance_info.account_id, 'us-east-1' if global_api else instance_info.region)
                 for part in registry[api]:
                     if instance_info.apis_to_run is not None:
                         if not (api + '|' + part) in instance_info.apis_to_run:
