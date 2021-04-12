@@ -812,7 +812,6 @@ class TestTemplate(unittest.TestCase):
             self.assertEqual(topology[0]["components"][0 + (n * 15)]["id"], stage_arn_prefix.format(n + 1))  # DIFF
             self.assertEqual(topology[0]["components"][0 + (n * 15)]["type"], "aws.apigateway.stage")  # DIFF
             self.assertEqual(topology[0]["components"][0 + (n * 15)]["data"]["RestApiName"], "api_1")
-            print(topology[0]["components"][0 + (n * 15)]["data"])
             self.assertEqual(
                 topology[0]["components"][0 + (n * 15)]["data"]["Tags"]["StageTagKey" + str(n + 1)],
                 "StageTagValue" + str(n + 1),
@@ -1003,3 +1002,116 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(topology[0]["components"][0]["data"]["Tags"]["ResourceTagKey"], "ResourceTagValue")
         self.assertEqual(topology[0]["components"][0]["data"]["HostedZone"]["Name"], "serverless.nl.")
         self.assert_location_info(topology[0]["components"][0])
+
+    @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    def test_process_auto_scaling(self):
+        config = get_config_for_only("autoscaling|aws.autoscaling")
+        self.check.check(config)
+        topology = [top.get_snapshot(self.check.check_id)]
+        # TODO this needs to be fixed in go, delete_ids need to be passed
+        topology[0]["delete_ids"] = self.check.delete_ids
+        self.assert_executed_ok()
+
+        self.assertEqual(len(topology), 1)
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            topology[0]["components"][0]["data"]["AutoScalingGroupARN"],
+            "arn:aws:autoscaling:eu-west-1:731070500579:autoScalingGroup:e1155c2b-016a-40ad-8cba-2423c349574b:"
+            + "autoScalingGroupName/awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM",
+        )
+        self.assertEqual(
+            topology[0]["components"][0]["id"],
+            "arn:aws:autoscaling:eu-west-1:731070500579:autoScalingGroup:e1155c2b-016a-40ad-8cba-2423c349574b:"
+            + "autoScalingGroupName/awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM",
+        )  # DIFF
+        self.assertEqual(topology[0]["components"][0]["type"], "aws.autoscaling")  # DIFF
+        self.assert_location_info(topology[0]["components"][0])
+        self.assertEqual(len(topology[0]["delete_ids"]), 3)
+        self.assertEqual(len(topology[0]["relations"]), 4)
+
+    @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    def test_process_security_group(self):
+        first_sg_group_id = "sg-002abe0b505ad7002"
+        config = get_config_for_only("ec2|aws.security-group")
+        self.check.check(config)
+        self.assert_executed_ok()
+        topology = [top.get_snapshot(self.check.check_id)]
+
+        self.assertEqual(len(topology), 1)
+        self.assertEqual(len(topology[0]["components"]), 49)
+        self.assertEqual(len(topology[0]["relations"]), 49)
+        self.assertEqual(
+            topology[0]["components"][0]["data"]["URN"],
+            ["arn:aws:ec2:{}:731070500579:security-group/{}".format(TEST_REGION, first_sg_group_id)],
+        )
+        self.assertEqual(topology[0]["components"][0]["id"], first_sg_group_id)  # DIFF
+        self.assertEqual(
+            topology[0]["components"][0]["data"]["Version"],
+            "98607ca852bd0bd895f1a5301130904d2f64bb53b9698976b2793b009614b7b1",
+        )  # DIFF was "cb3857fbd9fc6d5c0509f218d8f7abe0ea3a00499cda699b6cc4010be4d16780"
+        # was caused by type.name, externalId and tag integration
+        self.assertEqual(topology[0]["components"][0]["data"]["Name"], "network-ALBSecurityGroupPublic-1DNVWX102724V")
+
+    def mock_security_group_2_boto_calls(self, operation_name, kwarg):
+        print(operation_name)
+        if operation_name == "AssumeRole":
+            return {"Credentials": {"AccessKeyId": "KEY_ID", "SecretAccessKey": "ACCESS_KEY", "SessionToken": "TOKEN"}}
+        elif operation_name == "DescribeSecurityGroups":
+            return resource("json/test_describe_security_groups_2.json")
+        elif operation_name == "DescribeInstanceTypes":
+            return resource("json/test_describe_instance_types.json")
+        elif operation_name == "GetCallerIdentity":
+            return resource("json/test_get_caller_identity.json")
+
+    @patch("botocore.client.BaseClient._make_api_call", mock_security_group_2_boto_calls)
+    def test_process_security_group_version_hash_is_not_affected_by_order(self):
+        first_sg_group_id = "sg-002abe0b505ad7002"
+        config = get_config_for_only("ec2|aws.security-group")
+        self.check.check(config)
+        self.assert_executed_ok()
+        topology = [top.get_snapshot(self.check.check_id)]
+
+        self.assertEqual(len(topology), 1)
+        self.assertEqual(len(topology[0]["components"]), 49)
+        self.assertEqual(len(topology[0]["relations"]), 49)
+        self.assertEqual(
+            topology[0]["components"][0]["data"]["URN"],
+            ["arn:aws:ec2:{}:731070500579:security-group/{}".format(TEST_REGION, first_sg_group_id)],
+        )
+        self.assertEqual(topology[0]["components"][0]["id"], first_sg_group_id)  # DIFF
+        self.assertEqual(
+            topology[0]["components"][0]["data"]["Version"],
+            "c4867128bc023a41cb70b1a5b40f6b28c4f9554a2828cfd3fe920fbc27b9b4c0",
+        )  # DIFF was "cb3857fbd9fc6d5c0509f218d8f7abe0ea3a00499cda699b6cc4010be4d16780"
+        # was caused by type.name, externalId and tag integration
+        self.assertEqual(topology[0]["components"][0]["data"]["Name"], "network-ALBSecurityGroupPublic-1DNVWX102724V")
+
+    @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    def test_process_vpcs(self):
+        config = get_config_for_only("ec2|aws.vpc")
+        self.check.check(config)
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assert_executed_ok()
+
+        self.assertEqual(len(topology), 1)
+        self.assertEqual(len(topology[0]["components"]), 2)
+        self.assertEqual(topology[0]["components"][0]["id"], "vpc-6b25d10e")  # DIFF
+        self.assertEqual(topology[0]["components"][0]["type"], "aws.vpc")  # DIFF
+        self.assertEqual(topology[0]["components"][0]["data"]["VpcId"], "vpc-6b25d10e")
+        self.assertEqual(
+            topology[0]["components"][0]["data"]["URN"],
+            ["arn:aws:ec2:{}:731070500579:vpc/{}".format(TEST_REGION, "vpc-6b25d10e")],
+        )
+        self.assert_location_info(topology[0]["components"][0])
+        self.assertEqual(topology[0]["components"][1]["id"], "subnet-9e4be5f9")  # DIFF
+        self.assertEqual(topology[0]["components"][1]["type"], "aws.subnet")  # DIFF
+        self.assertEqual(topology[0]["components"][1]["data"]["SubnetId"], "subnet-9e4be5f9")
+        self.assertEqual(topology[0]["components"][1]["data"]["Tags"], {"Name": "demo-deployments"})
+        self.assertEqual(
+            topology[0]["components"][1]["data"]["URN"],
+            ["arn:aws:ec2:{}:731070500579:subnet/{}".format(TEST_REGION, "subnet-9e4be5f9")],
+        )
+        self.assert_location_info(topology[0]["components"][1])
+        self.assertEqual(len(topology[0]["relations"]), 1)
+        self.assertEqual(topology[0]["relations"][0]["source_id"], "subnet-9e4be5f9")  # DIFF
+        self.assertEqual(topology[0]["relations"][0]["target_id"], "vpc-6b25d10e")  # DIFF
