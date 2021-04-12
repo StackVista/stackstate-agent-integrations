@@ -133,6 +133,9 @@ class TestAWSTopologyCheck(unittest.TestCase):
             def __init__(self, location_info, client, agent):
                 pass
 
+            def get_delete_ids(self):
+                return []
+
         class s3(base):
             API = "s3"
             MEMORY_KEY = 'test_key'
