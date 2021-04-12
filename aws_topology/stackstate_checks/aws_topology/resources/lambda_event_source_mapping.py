@@ -1,8 +1,8 @@
 from ..utils import make_valid_data
-from .registry import RegisteredResource
+from .registry import RegisteredResourceCollector
 
 
-class lambnda_event_source_mapping(RegisteredResource):
+class LambdaEventSourceMapping_Collector(RegisteredResourceCollector):
     API = "lambda"
     COMPONENT_TYPE = "aws.lambda.event_source_mapping"
 
