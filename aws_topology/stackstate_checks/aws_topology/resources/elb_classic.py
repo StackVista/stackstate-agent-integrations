@@ -1,9 +1,9 @@
 import time
 from ..utils import make_valid_data, create_resource_arn
-from .registry import RegisteredResource
+from .registry import RegisteredResourceCollector
 
 
-class elb_classic(RegisteredResource):
+class ELB_Classic_Collector(RegisteredResourceCollector):
     API = "elb"
     COMPONENT_TYPE = "aws.elb_classic"
 

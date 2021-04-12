@@ -1,8 +1,8 @@
 from ..utils import make_valid_data
-from .registry import RegisteredResource
+from .registry import RegisteredResourceCollector
 
 
-class kinesis(RegisteredResource):
+class Kinesis_Collector(RegisteredResourceCollector):
     API = "kinesis"
     COMPONENT_TYPE = "aws.kinesis"
 

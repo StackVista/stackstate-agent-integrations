@@ -1,8 +1,8 @@
 from ..utils import make_valid_data, with_dimensions
-from .registry import RegisteredResource
+from .registry import RegisteredResourceCollector
 
 
-class sns(RegisteredResource):
+class SNS_Collector(RegisteredResourceCollector):
     API = "sns"
     COMPONENT_TYPE = "aws.sns"
 

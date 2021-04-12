@@ -1,7 +1,7 @@
 import boto3
 from botocore.config import Config
 from ..utils import with_dimensions
-from .registry import RegisteredResource
+from .registry import RegisteredResourceCollector
 
 
 DEFAULT_BOTO3_RETRIES_COUNT = 50
@@ -13,7 +13,7 @@ DEFAULT_BOTO3_CONFIG = Config(
 )
 
 
-class ecs(RegisteredResource):
+class ECS_Collector(RegisteredResourceCollector):
     API = "ecs"
     COMPONENT_TYPE = "aws.ecs.cluster"
 

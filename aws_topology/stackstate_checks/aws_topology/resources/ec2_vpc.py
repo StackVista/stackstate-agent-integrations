@@ -1,8 +1,8 @@
 from ..utils import make_valid_data, correct_tags, create_resource_arn
-from .registry import RegisteredResource
+from .registry import RegisteredResourceCollector
 
 
-class vpc(RegisteredResource):
+class Vpc_Collector(RegisteredResourceCollector):
     API = "ec2"
     COMPONENT_TYPE = "aws.vpc"
 

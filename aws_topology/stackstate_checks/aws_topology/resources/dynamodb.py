@@ -1,8 +1,8 @@
 from ..utils import make_valid_data, with_dimensions
-from .registry import RegisteredResource
+from .registry import RegisteredResourceCollector
 
 
-class dynamodb(RegisteredResource):
+class DynamoDB_Table_Collector(RegisteredResourceCollector):
     API = "dynamodb"
     COMPONENT_TYPE = "aws.dynamodb"
 

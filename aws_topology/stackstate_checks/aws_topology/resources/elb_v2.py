@@ -1,10 +1,10 @@
 from ..utils import make_valid_data, with_dimensions, extract_dimension_name, \
     update_dimensions, create_security_group_relations
 import time
-from .registry import RegisteredResource
+from .registry import RegisteredResourceCollector
 
 
-class elb_v2(RegisteredResource):
+class ELB_V2_Collector(RegisteredResourceCollector):
     API = "elbv2"
     COMPONENT_TYPE = "aws.elb_v2"
     MEMORY_KEY = "target_group"

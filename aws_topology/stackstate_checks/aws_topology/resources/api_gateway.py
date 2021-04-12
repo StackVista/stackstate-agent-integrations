@@ -1,7 +1,7 @@
 import copy
 import re
 from ..utils import with_dimensions, make_valid_data, create_arn, replace_stage_variables
-from .registry import RegisteredResource
+from .registry import RegisteredResourceCollector
 
 try:
     from urlparse import urlparse
@@ -9,7 +9,7 @@ except ImportError:
     from urllib.parse import urlparse
 
 
-class api_gateway(RegisteredResource):
+class ApiGateway_Stage_Collector(RegisteredResourceCollector):
     API = "apigateway"
     COMPONENT_TYPE = "aws.apigateway.stage"
     MEMORY_KEY = "api_stage"

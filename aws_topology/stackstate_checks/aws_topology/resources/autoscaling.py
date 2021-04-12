@@ -1,8 +1,8 @@
 from ..utils import make_valid_data
-from .registry import RegisteredResource
+from .registry import RegisteredResourceCollector
 
 
-class autoscaling(RegisteredResource):
+class AutoScaling_Collector(RegisteredResourceCollector):
     API = "autoscaling"
     COMPONENT_TYPE = "aws.autoscaling"
 

@@ -1,11 +1,11 @@
 from ..utils import make_valid_data
-from .registry import RegisteredResource
+from .registry import RegisteredResourceCollector
 
 # TODO memorydata
 memory_data = {}
 
 
-class cloudformation(RegisteredResource):
+class CloudFormation_Collector(RegisteredResourceCollector):
     API = "cloudformation"
     COMPONENT_TYPE = "aws.cloudformation"
 

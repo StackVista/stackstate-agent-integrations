@@ -1,10 +1,10 @@
 import time
 from botocore.exceptions import ClientError
 from ..utils import make_valid_data
-from .registry import RegisteredResource
+from .registry import RegisteredResourceCollector
 
 
-class Lambda(RegisteredResource):
+class Lambda_Collector(RegisteredResourceCollector):
     API = "lambda"
     COMPONENT_TYPE = "aws.lambda"
     MEMORY_KEY = "lambda_func"

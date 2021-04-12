@@ -1,14 +1,14 @@
 from ..utils import make_valid_data, create_host_urn, create_resource_arn
 import time
-from .registry import RegisteredResource
+from .registry import RegisteredResourceCollector
 
 
-class ec2(RegisteredResource):
+class EC2_Instance_Collector(RegisteredResourceCollector):
     API = "ec2"
     COMPONENT_TYPE = "aws.ec2"
 
     def __init__(self, location_info, client, agent):
-        RegisteredResource.__init__(self, location_info, client, agent)
+        RegisteredResourceCollector.__init__(self, location_info, client, agent)
         self.nitroInstances = None
 
     def process_all(self):
