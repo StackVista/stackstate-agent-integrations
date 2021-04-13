@@ -2,6 +2,7 @@ from six import string_types, integer_types
 import re
 import hashlib
 import simplejson as json
+from datetime import datetime, date
 
 
 def make_valid_data(data):
@@ -12,6 +13,8 @@ def make_valid_data(data):
     elif data is None or isinstance(data, string_types) or isinstance(data, integer_types) or \
             isinstance(data, float) or isinstance(data, bool):
         return data
+    elif isinstance(data, (datetime, date)):
+        return data.isoformat()
     else:
         return str(data)
 

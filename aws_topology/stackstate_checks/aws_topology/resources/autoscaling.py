@@ -5,6 +5,7 @@ from .registry import RegisteredResourceCollector
 class AutoScaling_Collector(RegisteredResourceCollector):
     API = "autoscaling"
     COMPONENT_TYPE = "aws.autoscaling"
+    MEMORY_KEY = "auto_scaling"
 
     def process_all(self):
         auto_scaling = {}

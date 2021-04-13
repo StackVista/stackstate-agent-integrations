@@ -6,6 +6,7 @@ from .registry import RegisteredResourceCollector
 class ELB_Classic_Collector(RegisteredResourceCollector):
     API = "elb"
     COMPONENT_TYPE = "aws.elb_classic"
+    MEMORY_KEY = "elb_classic"
 
     def process_all(self):
         elb_classic = {}

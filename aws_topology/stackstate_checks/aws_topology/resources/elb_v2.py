@@ -7,11 +7,10 @@ from .registry import RegisteredResourceCollector
 class ELB_V2_Collector(RegisteredResourceCollector):
     API = "elbv2"
     COMPONENT_TYPE = "aws.elb_v2"
-    MEMORY_KEY = "target_group"
+    MEMORY_KEY = "MULTIPLE"
 
     def process_all(self):
         result = {}
-        target_group = {}
         load_balancer = {}
         lb_type = {}
         for elb_data_raw in self.client.describe_load_balancers().get('LoadBalancers') or []:
@@ -45,7 +44,7 @@ class ELB_V2_Collector(RegisteredResourceCollector):
             lb_type[elb_external_id] = elb_data['Type'].lower()
             self.agent.relation(elb_external_id, vpc_id, 'uses service', {})
         result['load_balancer'] = load_balancer
-
+        target_group = {}
         for target_group_data_raw in self.client.describe_target_groups().get('TargetGroups') or []:
             target_group_data = make_valid_data(target_group_data_raw)
             target_group_external_id = target_group_data['TargetGroupArn']

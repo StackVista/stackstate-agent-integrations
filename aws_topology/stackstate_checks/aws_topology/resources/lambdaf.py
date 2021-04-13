@@ -16,6 +16,7 @@ class Lambda_Collector(RegisteredResourceCollector):
                 function_data = make_valid_data(function_data_raw)
                 result = self.process_lambda(function_data)
                 lambda_func.update(result)
+        return lambda_func
 
     def process_lambda(self, function_data):
         function_arn = function_data['FunctionArn']

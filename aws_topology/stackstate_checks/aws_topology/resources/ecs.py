@@ -1,6 +1,6 @@
 import boto3
 from botocore.config import Config
-from ..utils import with_dimensions
+from ..utils import make_valid_data, with_dimensions
 from .registry import RegisteredResourceCollector
 
 
@@ -16,14 +16,16 @@ DEFAULT_BOTO3_CONFIG = Config(
 class ECS_Collector(RegisteredResourceCollector):
     API = "ecs"
     COMPONENT_TYPE = "aws.ecs.cluster"
-
+    MEMORY_KEY = "ecs_cluster"
+    
     def process_all(self):
         ecs_cluster = {}
         for cluster_page in self.client.get_paginator('list_clusters').paginate():
             cluster_arns = cluster_page.get('clusterArns') or []
-            for cluster_data in self.client.describe_clusters(
+            for cluster_data_raw in self.client.describe_clusters(
                 clusters=cluster_arns, include=['TAGS']
             ).get('clusters') or []:
+                cluster_data = make_valid_data(cluster_data_raw)
                 result = self.process_cluster(cluster_data)
                 ecs_cluster.update(result)
 
@@ -61,7 +63,8 @@ class ECS_Collector(RegisteredResourceCollector):
         task_map = {}
         for task_page in self.client.get_paginator('list_tasks').paginate(cluster=cluster_arn):
             if len(task_page['taskArns']) >= 1:
-                for task_data in self.client.describe_tasks(cluster=cluster_arn, tasks=task_page['taskArns'])['tasks']:
+                for task_data_raw in self.client.describe_tasks(cluster=cluster_arn, tasks=task_page['taskArns'])['tasks']:
+                    task_data = make_valid_data(task_data_raw)
                     result = self.process_cluster_task(cluster_arn, task_data)
                     task_map.update(result)
         return task_map
@@ -109,8 +112,9 @@ class ECS_Collector(RegisteredResourceCollector):
     def process_services(self, cluster_arn, cluster_name):
         for services_page in self.client.get_paginator('list_services').paginate(cluster=cluster_arn):
             if len(services_page['serviceArns']) >= 1:
-                for service_data in self.client.describe_services(
+                for service_data_raw in self.client.describe_services(
                         cluster=cluster_arn, include=['TAGS'], services=services_page['serviceArns'])['services']:
+                    service_data = make_valid_data(service_data_raw)
                     self.process_service(cluster_name, cluster_name, service_data)
 
     def process_service(self, cluster_arn, cluster_name, service_data):
@@ -148,6 +152,7 @@ class ECS_Collector(RegisteredResourceCollector):
         self.agent.component(service_arn, 'aws.ecs.service', service_data)
         self.agent.relation(cluster_arn, service_arn, 'has_cluster_node', {})
 
+        # TODO makes new client ? should we do that here ?
         for registry in service_data['serviceRegistries']:
             registry_arn = registry['registryArn']
             discovery_client = boto3.client('servicediscovery', config=DEFAULT_BOTO3_CONFIG)

@@ -13,7 +13,6 @@ from .utils import location_info
 
 from .resources import ResourceRegistry
 
-memory_data = {}  # name -> arn for cloudformation
 
 DEFAULT_BOTO3_RETRIES_COUNT = 50
 
@@ -90,12 +89,16 @@ class AwsTopologyCheck(AgentCheck):
         """Gets AWS Topology returns them in Agent format."""
         self.start_snapshot()
 
+        self.memory_data = {}  # name -> arn for cloudformation
         errors = []
         self.delete_ids = []
         registry = ResourceRegistry.get_registry()
         keys = registry.keys()
         if instance_info.apis_to_run is not None:
             keys = [api.split('|')[0] for api in instance_info.apis_to_run]
+        # move cloudformation to the end
+        if 'cloudformation' in keys:
+            keys.append(keys.pop(keys.index('cloudformation')))
         for api in keys:
             global_api = api.startswith('route53')
             try:
@@ -106,13 +109,23 @@ class AwsTopologyCheck(AgentCheck):
                         if not (api + '|' + part) in instance_info.apis_to_run:
                             continue
                     processor = registry[api][part](location, client, self)
-                    result = processor.process_all()
+                    if api != 'cloudformation':
+                        result = processor.process_all()
+                    else:
+                        result = processor.process_all(self.memory_data)
                     if result:
                         memory_key = processor.MEMORY_KEY or api
-                        if memory_data.get(memory_key) is not None:
-                            memory_data[memory_key].update(result)
+                        if memory_key != "MULTIPLE":
+                            if self.memory_data.get(memory_key) is not None:
+                                self.memory_data[memory_key].update(result)
+                            else:
+                                self.memory_data[memory_key] = result
                         else:
-                            memory_data[memory_key] = result
+                            for rk in result:
+                                if self.memory_data.get(rk) is not None:
+                                    self.memory_data[rk].update(result[rk])
+                                else:
+                                    self.memory_data[rk] = result[rk]
                     self.delete_ids += processor.get_delete_ids()
             except Exception as e:
                 errors.append('API %s ended with exception: %s %s' % (api, str(e), traceback.format_exc()))

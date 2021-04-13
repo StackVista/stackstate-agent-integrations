@@ -5,6 +5,7 @@ from .registry import RegisteredResourceCollector
 class Kinesis_Collector(RegisteredResourceCollector):
     API = "kinesis"
     COMPONENT_TYPE = "aws.kinesis"
+    MEMORY_KEY = "kinesis_stream"
 
     def process_all(self):
         kinesis_stream = {}

@@ -7,7 +7,7 @@ from mock import patch
 from copy import deepcopy
 from stackstate_checks.base.stubs import topology, aggregator
 from stackstate_checks.base import AgentCheck
-from stackstate_checks.aws_topology import AwsTopologyCheck, InstanceInfo, memory_data
+from stackstate_checks.aws_topology import AwsTopologyCheck, InstanceInfo
 
 REGION = "test-region"
 KEY_ID = "1234"
@@ -177,9 +177,9 @@ class TestAWSTopologyCheck(unittest.TestCase):
         }
         with patch('stackstate_checks.aws_topology.resources.ResourceRegistry.get_registry', return_value=registry):
             self.check.run()
-            self.assertEqual(memory_data.get('test_key'), {'abc': 'def'})
-            self.assertEqual(memory_data.get('autoscaling'), None)
-            self.assertEqual(memory_data.get('ec2'), {'xyz': 'xyz', 'ttt': 'ttt'})
+            self.assertEqual(self.check.memory_data.get('test_key'), {'abc': 'def'})
+            self.assertEqual(self.check.memory_data.get('autoscaling'), None)
+            self.assertEqual(self.check.memory_data.get('ec2'), {'xyz': 'xyz', 'ttt': 'ttt'})
 
     def test_metadata(self):
         self.api_results.update({
