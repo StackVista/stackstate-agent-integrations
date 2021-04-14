@@ -93,7 +93,7 @@ class AwsTopologyCheck(AgentCheck):
         errors = []
         self.delete_ids = []
         registry = ResourceRegistry.get_registry()
-        keys = registry.keys()
+        keys = [key for key in registry.keys()]
         if instance_info.apis_to_run is not None:
             keys = [api.split('|')[0] for api in instance_info.apis_to_run]
         # move cloudformation to the end
