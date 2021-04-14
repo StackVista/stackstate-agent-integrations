@@ -506,24 +506,6 @@
       "data": {}
     },
     {
-      "externalId": "arn:aws:ecs:eu-west-1:850318095909:cluster/StackState-ECS-Cluster-uses_ec2_host-string",
-      "type": {
-        "name": "uses_ec2_host"
-      },
-      "sourceId": "arn:aws:ecs:eu-west-1:850318095909:cluster/StackState-ECS-Cluster",
-      "targetId": "string",
-      "data": {}
-    },
-    {
-      "externalId": "arn:aws:ecs:eu-west-1:850318095909:cluster/default-uses_ec2_host-string",
-      "type": {
-        "name": "uses_ec2_host"
-      },
-      "sourceId": "arn:aws:ecs:eu-west-1:850318095909:cluster/default",
-      "targetId": "string",
-      "data": {}
-    },
-    {
       "externalId": "arn:aws:ecs:eu-west-1:850318095909:service/sample-app-service-uses service-arn:aws:elasticloadbalancing:eu-west-1:850318095909:targetgroup/EC2Co-Defau-7HYSTVRX07KO/a7e4eb718fda7510",
       "type": {
         "name": "uses service"
