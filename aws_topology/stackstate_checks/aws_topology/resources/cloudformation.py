@@ -20,6 +20,7 @@ type_map = {
     'AWS::EC2::Instance': 'ec2'
 }
 
+
 class CloudFormation_Collector(RegisteredResourceCollector):
     API = "cloudformation"
     COMPONENT_TYPE = "aws.cloudformation"
