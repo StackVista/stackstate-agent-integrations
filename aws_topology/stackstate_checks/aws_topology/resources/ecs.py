@@ -17,7 +17,7 @@ class ECS_Collector(RegisteredResourceCollector):
     API = "ecs"
     COMPONENT_TYPE = "aws.ecs.cluster"
     MEMORY_KEY = "ecs_cluster"
-    
+
     def process_all(self):
         ecs_cluster = {}
         for cluster_page in self.client.get_paginator('list_clusters').paginate():
@@ -63,7 +63,10 @@ class ECS_Collector(RegisteredResourceCollector):
         task_map = {}
         for task_page in self.client.get_paginator('list_tasks').paginate(cluster=cluster_arn):
             if len(task_page['taskArns']) >= 1:
-                for task_data_raw in self.client.describe_tasks(cluster=cluster_arn, tasks=task_page['taskArns'])['tasks']:
+                for task_data_raw in self.client.describe_tasks(
+                    cluster=cluster_arn,
+                    tasks=task_page['taskArns']
+                ).get('tasks') or []:
                     task_data = make_valid_data(task_data_raw)
                     result = self.process_cluster_task(cluster_arn, task_data)
                     task_map.update(result)
@@ -115,7 +118,7 @@ class ECS_Collector(RegisteredResourceCollector):
                 for service_data_raw in self.client.describe_services(
                         cluster=cluster_arn, include=['TAGS'], services=services_page['serviceArns'])['services']:
                     service_data = make_valid_data(service_data_raw)
-                    self.process_service(cluster_name, cluster_name, service_data)
+                    self.process_service(cluster_arn, cluster_name, service_data)
 
     def process_service(self, cluster_arn, cluster_name, service_data):
         service_arn = service_data['serviceArn']
