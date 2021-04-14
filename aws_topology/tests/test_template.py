@@ -1,7 +1,7 @@
 # (C) StackState 2021
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
-import pytest
+import difflib
 import unittest
 import os
 import json
@@ -9,7 +9,7 @@ from mock import patch
 import dateutil.parser
 import datetime
 from stackstate_checks.base.stubs import topology as top, aggregator
-from stackstate_checks.aws_topology import AwsTopologyCheck, InstanceInfo
+from stackstate_checks.aws_topology import AwsTopologyCheck
 from stackstate_checks.base import AgentCheck
 from botocore.exceptions import ClientError
 
@@ -25,24 +25,33 @@ def resource(path):
     return x
 
 
+def normalize_relation(r):
+    r["source_id"] = r.pop("sourceId")
+    r["target_id"] = r.pop("targetId")
+    r.pop("externalId")
+    r["type"] = r["type"]["name"]
+
+    return r
+
+
+def normalize_component(r):
+    r["id"] = r.pop("externalId")
+    r["type"] = r["type"]["name"]
+    return r
+
+
 TEST_REGION = "eu-west-1"
 THROTTLING_COUNT_TAGS = 0
 
 
-def get_config_for_only(api):
-    return InstanceInfo(
-        {
-            "aws_access_key_id": "some_key",
-            "aws_secret_access_key": "some_secret",
-            "role_arn": "some_role",
-            "account_id": "731070500579",
-            "region": "eu-west-1",
-            "apis_to_run": [api],
-        }
-    )
+def set_api(value):
+    def inner(func):
+        func.api = value
+        return func
+
+    return inner
 
 
-@pytest.mark.usefixtures("instance")
 class TestTemplate(unittest.TestCase):
 
     CHECK_NAME = "aws_topology"
@@ -67,7 +76,7 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(service_checks[0].status, AgentCheck.OK, service_checks[0].message)
 
     def mock_boto_calls(self, operation_name, kwarg):
-        print(operation_name)
+        # print(operation_name)
         if operation_name == "AssumeRole":
             return {"Credentials": {"AccessKeyId": "KEY_ID", "SecretAccessKey": "ACCESS_KEY", "SessionToken": "TOKEN"}}
         elif operation_name == "DescribeInstances":
@@ -369,30 +378,39 @@ class TestTemplate(unittest.TestCase):
             raise ValueError("Unknown operation name", operation_name)
 
     def unique_topology_types(self, topology):
-        return set([c["type"]["name"] for ti in topology for c in ti["components"]])
+        return set([c["type"] for ti in topology for c in ti["components"]])  # DIFF
 
     def setUp(self):
         """
         Initialize and patch the check, i.e.
         """
-        config = {}
+        method = getattr(self, self._testMethodName)
         self.patcher = patch("botocore.client.BaseClient._make_api_call")
         self.mock_object = self.patcher.start()
         top.reset()
         aggregator.reset()
-        self.check = AwsTopologyCheck(self.CHECK_NAME, config, instances=[self.instance])
+        cfg = {
+            "aws_access_key_id": "some_key",
+            "aws_secret_access_key": "some_secret",
+            "role_arn": "some_role",
+            "account_id": "731070500579",
+            "region": "eu-west-1",
+        }
+        if method.api:
+            cfg.update({"apis_to_run": [method.api]})
+        self.check = AwsTopologyCheck(self.CHECK_NAME, cfg, instances=[cfg])
         self.mock_object.side_effect = self.mock_boto_calls
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    @set_api("ec2|aws.ec2")
     def test_process_ec2(self):
         test_instance_id = "i-0aac5bab082561475"
         test_instance_type = "m4.xlarge"
         test_public_ip = "172.30.0.96"
         test_public_dns = "ec2-172-30-0-96.eu-west-1.compute.amazonaws.com"
-        config = get_config_for_only("ec2|aws.ec2")
-        self.check.check(config)
+        self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
-        # TODO events = telemetry.get_events()
+        events = aggregator.events
 
         self.assertEqual(len(topology), 1)
         self.assertEqual(len(topology[0]["relations"]), 2)
@@ -412,14 +430,14 @@ class TestTemplate(unittest.TestCase):
             ],
         )
 
-        # DIFF self.assertEqual(len(events), 1)
-        # DIFF self.assertEqual(events[0]['host'], test_instance_id)
-        # DIFF self.assertEqual(events[0]['tags'], ["state:stopped"])
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["host"], test_instance_id)
+        self.assertEqual(events[0]["tags"], ["state:stopped"])
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    @set_api("elbv2|aws.elb_v2")
     def test_process_elb_v2_target_group_instance(self):
-        config = get_config_for_only("elbv2|aws.elb_v2")
-        self.check.check(config)
+        self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
@@ -464,9 +482,9 @@ class TestTemplate(unittest.TestCase):
         )  # DIFF was sourceId
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    @set_api("elb|aws.elb_classic")
     def test_process_elb_classic(self):
-        config = get_config_for_only("elb|aws.elb_classic")
-        self.check.check(config)
+        self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
 
         # TODO events = agent.get_events()
@@ -489,9 +507,9 @@ class TestTemplate(unittest.TestCase):
         )
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    @set_api("s3|aws.s3_bucket")
     def test_process_s3(self):
-        config = get_config_for_only("s3|aws.s3_bucket")
-        self.check.check(config)
+        self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assert_executed_ok()
 
@@ -521,9 +539,9 @@ class TestTemplate(unittest.TestCase):
         self.assert_location_info(topology[0]["components"][0])
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    @set_api("rds|aws.rds_cluster")
     def test_process_rds(self):
-        config = get_config_for_only("rds|aws.rds_cluster")
-        self.check.check(config)
+        self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assert_executed_ok()
         # TODO events = agent.get_events()
@@ -554,9 +572,9 @@ class TestTemplate(unittest.TestCase):
         )
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    @set_api("lambda|aws.lambda")
     def test_process_lambda(self):
-        config = get_config_for_only("lambda|aws.lambda")
-        self.check.check(config)
+        self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assert_executed_ok()
 
@@ -584,9 +602,9 @@ class TestTemplate(unittest.TestCase):
         self.assert_location_info(topology[0]["components"][0])
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    @set_api("sns|aws.sns")
     def test_process_sns(self):
-        config = get_config_for_only("sns|aws.sns")
-        self.check.check(config)
+        self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assert_executed_ok()
 
@@ -623,9 +641,9 @@ class TestTemplate(unittest.TestCase):
         self.assert_location_info(topology[0]["components"][0])
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    @set_api("sqs|aws.sqs")
     def test_process_sqs(self):
-        config = get_config_for_only("sqs|aws.sqs")
-        self.check.check(config)
+        self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assert_executed_ok()
 
@@ -652,9 +670,9 @@ class TestTemplate(unittest.TestCase):
         self.assert_location_info(topology[0]["components"][0])
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    @set_api("dynamodb|aws.dynamodb")
     def test_process_dynamodb(self):
-        config = get_config_for_only("dynamodb|aws.dynamodb")
-        self.check.check(config)
+        self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assert_executed_ok()
 
@@ -710,9 +728,9 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(topology[0]["components"][4]["type"], "aws.dynamodb")  # DIFF
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    @set_api("lambda|aws.lambda.event_source_mapping")
     def test_process_lambda_event_source_mappings(self):
-        config = get_config_for_only("lambda|aws.lambda.event_source_mapping")
-        self.check.check(config)
+        self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assert_executed_ok()
 
@@ -736,9 +754,9 @@ class TestTemplate(unittest.TestCase):
         )  # DIFF
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    @set_api("kinesis|aws.kinesis")
     def test_process_kinesis_streams(self):
-        config = get_config_for_only("kinesis|aws.kinesis")
-        self.check.check(config)
+        self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assert_executed_ok()
 
@@ -761,9 +779,9 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(topology[0]["components"][3]["type"], "aws.kinesis")  # DIFF
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    @set_api("firehose|aws.firehose")
     def test_process_firehose(self):
-        config = get_config_for_only("firehose|aws.firehose")
-        self.check.check(config)
+        self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assert_executed_ok()
 
@@ -794,9 +812,9 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(topology[0]["relations"][2]["target_id"], "arn:aws:s3:::firehose-bucket_2")  # DIFF
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    @set_api("apigateway|aws.apigateway.stage")
     def test_process_api_gateway(self):
-        config = get_config_for_only("apigateway|aws.apigateway.stage")
-        self.check.check(config)
+        self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assert_executed_ok()
 
@@ -970,9 +988,9 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(topology[0]["relations"][index + 1]["target_id"], lambda_arn)  # DIFF
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    @set_api("route53domains|aws.route53.domain")
     def test_process_route53_domains(self):
-        config = get_config_for_only("route53domains|aws.route53.domain")
-        self.check.check(config)
+        self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assert_executed_ok()
 
@@ -988,9 +1006,9 @@ class TestTemplate(unittest.TestCase):
         self.assert_location_info(topology[0]["components"][0])
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    @set_api("route53|aws.route53.hostedzone")
     def test_process_route_53_hosted_zones(self):
-        config = get_config_for_only("route53|aws.route53.hostedzone")
-        self.check.check(config)
+        self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assert_executed_ok()
 
@@ -1004,9 +1022,9 @@ class TestTemplate(unittest.TestCase):
         self.assert_location_info(topology[0]["components"][0])
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    @set_api("autoscaling|aws.autoscaling")
     def test_process_auto_scaling(self):
-        config = get_config_for_only("autoscaling|aws.autoscaling")
-        self.check.check(config)
+        self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         # TODO this needs to be fixed in go, delete_ids need to be passed
         topology[0]["delete_ids"] = self.check.delete_ids
@@ -1030,10 +1048,10 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(len(topology[0]["relations"]), 4)
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    @set_api("ec2|aws.security-group")
     def test_process_security_group(self):
         first_sg_group_id = "sg-002abe0b505ad7002"
-        config = get_config_for_only("ec2|aws.security-group")
-        self.check.check(config)
+        self.check.run()
         self.assert_executed_ok()
         topology = [top.get_snapshot(self.check.check_id)]
 
@@ -1053,7 +1071,7 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(topology[0]["components"][0]["data"]["Name"], "network-ALBSecurityGroupPublic-1DNVWX102724V")
 
     def mock_security_group_2_boto_calls(self, operation_name, kwarg):
-        print(operation_name)
+        # print(operation_name)
         if operation_name == "AssumeRole":
             return {"Credentials": {"AccessKeyId": "KEY_ID", "SecretAccessKey": "ACCESS_KEY", "SessionToken": "TOKEN"}}
         elif operation_name == "DescribeSecurityGroups":
@@ -1064,10 +1082,10 @@ class TestTemplate(unittest.TestCase):
             return resource("json/test_get_caller_identity.json")
 
     @patch("botocore.client.BaseClient._make_api_call", mock_security_group_2_boto_calls)
+    @set_api("ec2|aws.security-group")
     def test_process_security_group_version_hash_is_not_affected_by_order(self):
         first_sg_group_id = "sg-002abe0b505ad7002"
-        config = get_config_for_only("ec2|aws.security-group")
-        self.check.check(config)
+        self.check.run()
         self.assert_executed_ok()
         topology = [top.get_snapshot(self.check.check_id)]
 
@@ -1087,9 +1105,9 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(topology[0]["components"][0]["data"]["Name"], "network-ALBSecurityGroupPublic-1DNVWX102724V")
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    @set_api("ec2|aws.vpc")
     def test_process_vpcs(self):
-        config = get_config_for_only("ec2|aws.vpc")
-        self.check.check(config)
+        self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assert_executed_ok()
 
@@ -1115,3 +1133,170 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(len(topology[0]["relations"]), 1)
         self.assertEqual(topology[0]["relations"][0]["source_id"], "subnet-9e4be5f9")  # DIFF
         self.assertEqual(topology[0]["relations"][0]["target_id"], "vpc-6b25d10e")  # DIFF
+
+    @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    @set_api("ec2|aws.vpngateway")
+    def test_process_vpn_gateways(self):
+        self.check.run()
+        self.assert_executed_ok()
+        topology = [top.get_snapshot(self.check.check_id)]
+
+        self.assertEqual(len(topology), 1)
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(topology[0]["components"][0]["id"], "vgw-b8c2fccc")  # DIFF
+        self.assertEqual(topology[0]["components"][0]["data"]["VpnGatewayId"], "vgw-b8c2fccc")
+        self.assertEqual(topology[0]["components"][0]["type"], "aws.vpngateway")  # DIFF
+        self.assert_location_info(topology[0]["components"][0])
+        self.assertEqual(len(topology[0]["relations"]), 1)
+        self.assertEqual(topology[0]["relations"][0]["source_id"], "vgw-b8c2fccc")  # DIFF
+        self.assertEqual(topology[0]["relations"][0]["target_id"], "vpc-6b25d10e")  # DIFF
+
+    @staticmethod
+    def _compute_topologies_diff(computed_dict, expected_filepath):
+        # print(topology)
+        with open(expected_filepath) as f:
+            expected_topology = f.read()
+            top = json.loads(expected_topology)
+            top["relations"] = list(map(lambda x: normalize_relation(x), top["relations"]))
+            top["relations"].sort(key=lambda x: x["source_id"] + "-" + x["type"] + x["target_id"])
+            top["components"] = list(map(lambda x: normalize_component(x), top["components"]))
+            top["components"].sort(key=lambda x: x["type"] + "-" + x["id"])
+            top["start_snapshot"] = True
+            top["stop_snapshot"] = True
+            top["instance_key"] = top.pop("instance")
+            top.pop("delete_ids")
+            for comp in computed_dict["components"]:
+                comp["data"].pop("tags")
+            computed_dict["relations"].sort(key=lambda x: x["source_id"] + "-" + x["type"] + x["target_id"])
+            computed_dict["components"].sort(key=lambda x: x["type"] + "-" + x["id"])
+            topology = json.dumps(computed_dict, default=str, indent=2, sort_keys=True)
+            expected_topology = json.dumps(top, default=str, indent=2, sort_keys=True)
+            delta = difflib.unified_diff(a=expected_topology.strip().splitlines(), b=topology.strip().splitlines())
+            for line in delta:
+                print(line)
+            return "".join(delta)
+
+    @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    @set_api("ecs|aws.ecs.cluster")
+    def test_process_ecs(self):
+        self.check.run()
+        self.assert_executed_ok()
+        topology = top.get_snapshot(self.check.check_id)
+
+        diff = self._compute_topologies_diff(
+            computed_dict=topology, expected_filepath=relative_path("expected_topology/ecs.json")
+        )
+        self.assertEqual(diff, "")
+
+    @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    @set_api(None)
+    def test_process_cloudformation(self):
+        self.check.run()
+        self.assert_executed_ok()
+
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+
+        stacks = list(filter(lambda x: x["type"] == "aws.cloudformation", topology[0]["components"]))
+        self.assertEqual(len(stacks), 2)
+        self.assertEqual(
+            stacks[0]["id"],
+            "arn:aws:cloudformation:eu-west-1:731070500579" +
+            ":stack/stackstate-topo-publisher/71ea3f80-9919-11e9-a261-0a99a68566c4",
+        )  # DIFF
+        self.assertEqual(stacks[0]["data"]["StackName"], "stackstate-topo-publisher")
+        self.assertTrue(stacks[0]["data"]["LastUpdatedTime"])
+        self.assertEqual(stacks[0]["type"], "aws.cloudformation")  # DIFF
+        self.assert_location_info(stacks[0])
+
+        # total relations should be 14 for each stack
+        relations = list(
+            filter(
+                lambda x: x["type"] == "has resource" and x["source_id"].startswith("arn:aws:cloudformation"),
+                topology[0]["relations"],
+            )
+        )
+        self.assertEqual(len(relations), 30)
+
+        # assert for common sourceID and type for the relations
+        self.assertEqual(relations[0]["source_id"], stacks[0]["id"])  # DIFF
+        self.assertEqual(relations[0]["type"], "has resource")  # DIFF
+
+        # assert for lambda function relation
+        self.assertEqual(
+            relations[0]["target_id"],
+            "arn:aws:lambda:eu-west-1:731070500579:function:com-stackstate-prod-sam-seed-PutHello-1LUD3ESBOR6EY",
+        )
+        # assert for kinesis stream relation
+        self.assertEqual(relations[1]["target_id"], "arn:aws:kinesis:eu-west-1:731070500579:stream/stream_1")
+        # assert for s3 bucket relation
+        self.assertEqual(relations[2]["target_id"], "arn:aws:s3:::stackstate.com")
+        # assert for api_stage stage1 relation
+        self.assertEqual(relations[3]["target_id"], "arn:aws:execute-api:eu-west-1:731070500579:api_1/stage1")
+        # assert for api_stage stage2 relation
+        self.assertEqual(relations[4]["target_id"], "arn:aws:execute-api:eu-west-1:731070500579:api_1/stage2")
+        # assert for target group relation
+        self.assertEqual(
+            relations[5]["target_id"],
+            "arn:aws:elasticloadbalancing:eu-west-1:731070500579:targetgroup/myfirsttargetgroup/28ddec997ec55d21",
+        )
+        # assert for loadbalancer relation
+        self.assertEqual(
+            relations[6]["target_id"],
+            "arn:aws:elasticloadbalancing:eu-west-1:731070500579:loadbalancer/app/myfirstloadbalancer/90dd512583d2d7e9",
+        )
+        # assert for autoscaling group relation
+        self.assertEqual(
+            relations[7]["target_id"],
+            "arn:aws:autoscaling:eu-west-1:731070500579:autoScalingGroup:e1155c2b-016a-40ad-8cba-2423c349574b:" +
+            "autoScalingGroupName/awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM",
+        )
+        # assert for elb classic loadbalancer  relation
+        self.assertEqual(relations[8]["target_id"], "classic_elb_classic-loadbalancer-1")
+        # assert for rds relation
+        self.assertEqual(relations[9]["target_id"], "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase")
+        # assert for sns topic relation
+        self.assertEqual(relations[10]["target_id"], "arn:aws:sns:eu-west-1:731070500579:my-topic-3")
+        # assert for sqs queue relation
+        self.assertEqual(relations[11]["target_id"], "arn:aws:sqs:eu-west-1:508573134510:STS_stackpack_test")
+        # assert for dynamodb table relation
+        self.assertEqual(relations[12]["target_id"], "arn:aws:dynamodb:eu-west-1:731070500579:table/table_3")
+        # assert for ecs cluster relation
+        self.assertEqual(
+            relations[13]["target_id"], "arn:aws:ecs:eu-west-1:850318095909:cluster/StackState-ECS-Cluster"
+        )
+        # assert for ec2 instance relation
+        self.assertEqual(relations[14]["target_id"], "i-0aac5bab082561475")
+
+    @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    @set_api("cloudformation|aws.cloudformation")
+    def test_process_cloudformation_stack_relation(self):
+        self.check.run()
+        self.assert_executed_ok()
+        topology = [top.get_snapshot(self.check.check_id)]
+
+        self.assertEqual(len(topology), 1)
+        self.assertEqual(len(topology[0]["relations"]), 1)
+        self.assertEqual(
+            topology[0]["relations"][0]["source_id"],
+            "arn:aws:cloudformation:eu-west-1:731070500579:stack/stackstate-topo-publisher/71ea3f80-9919",
+        )  # DIFF
+        self.assertEqual(
+            topology[0]["relations"][0]["target_id"],
+            "arn:aws:cloudformation:eu-west-1:731070500579:stack/some-parent-stack-id/71ea3a23-9919-54ad",
+        )  # DIFF
+        self.assertEqual(topology[0]["relations"][0]["type"], "child of")  # DIFF
+
+    @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    @set_api(None)
+    def test_check(self):
+        self.check.run()
+        self.assert_executed_ok()
+        topology = [top.get_snapshot(self.check.check_id)]
+        events = aggregator.events
+
+        aws_agent_check_errors = list(filter(lambda x: x["event_type"] == "aws_agent_check_error", events))
+        self.assertEqual(len(aws_agent_check_errors), 0)
+
+        unique_types = self.unique_topology_types(topology)
+        self.assertEqual(len(unique_types), 31)
