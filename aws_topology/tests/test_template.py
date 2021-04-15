@@ -487,12 +487,12 @@ class TestTemplate(unittest.TestCase):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
 
-        # TODO events = agent.get_events()
+        events = aggregator.events
 
         # todo: add test which asserts that the relation corresponds with the component info.
 
         self.assertEqual(len(topology), 1)
-        # TODO self.assertEqual(len(events), 2)
+        self.assertEqual(len(events), 2)
         self.assertEqual(len(topology[0]["relations"]), 4)
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(topology[0]["components"][0]["data"]["LoadBalancerName"], "classic-loadbalancer-1")
@@ -544,9 +544,9 @@ class TestTemplate(unittest.TestCase):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assert_executed_ok()
-        # TODO events = agent.get_events()
+        events = aggregator.events
 
-        # TODO self.assertEqual(len(events), 0)
+        self.assertEqual(len(events), 0)
         self.assertEqual(len(topology), 1)
         self.assertEqual(len(topology[0]["relations"]), 6)
         self.assertEqual(len(topology[0]["components"]), 3)
