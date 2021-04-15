@@ -12,7 +12,7 @@ from stackstate_checks.base.stubs import topology as top, aggregator
 from stackstate_checks.aws_topology import AwsTopologyCheck
 from stackstate_checks.base import AgentCheck
 from botocore.exceptions import ClientError
-
+from parameterized import parameterized
 
 def relative_path(path):
     script_dir = os.path.dirname(__file__)
