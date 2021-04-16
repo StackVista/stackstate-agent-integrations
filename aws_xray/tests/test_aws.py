@@ -14,8 +14,17 @@ AWS_REGION = 'eu-west-1'
 AWS_ACCOUNT = '672574731473'
 
 
+class MockBrokenAwsClient():
+    def __init__(self, instance, init_config):
+        self.region = AWS_REGION
+
+    @staticmethod
+    def get_account_id():
+        raise Exception("some dummy error: could not get the account id")
+
+
 class MockAwsClient():
-    def __init__(self, instance):
+    def __init__(self, instance, init_config):
         self.region = AWS_REGION
 
     @staticmethod
@@ -27,10 +36,14 @@ class MockAwsClient():
     def get_account_id():
         return AWS_ACCOUNT
 
+    @staticmethod
+    def write_cache_file():
+        pass
+
 
 def test_traces():
     check = AwsCheck('test', {}, {})
-    aws_client = MockAwsClient({})
+    aws_client = MockAwsClient({}, {})
     check.region = aws_client.region
     check.account_id = aws_client.get_account_id()
     traces = check._process_xray_traces(aws_client)
@@ -41,11 +54,20 @@ def test_traces():
     assert len(traces[2]) == 5
 
 
-@patch('stackstate_checks.aws_xray.aws_xray.AwsClient', MockAwsClient)
-def test_service_check(aggregator, instance):
-    aws_check = AwsCheck('test', {}, {})
-    aws_check.check(instance)
+@patch('stackstate_checks.aws_xray.aws_xray.AwsClient', MockBrokenAwsClient)
+def test_service_check_broken_client(aggregator, instance):
+    aws_check = AwsCheck('test', {}, {}, instances=[instance])
+    aws_check.run()
     aggregator.assert_service_check('aws_xray.can_connect', aws_check.CRITICAL)
+
+
+@patch('stackstate_checks.aws_xray.aws_xray.AwsClient', MockAwsClient)
+def test_service_check_ok(aggregator, instance):
+    aws_check = AwsCheck('test', {}, {}, instances=[instance])
+    result = aws_check.run()
+    assert result == ''
+    aggregator.assert_service_check('aws_xray.can_connect', aws_check.OK)
+    aggregator.assert_service_check('aws_xray.can_execute', aws_check.OK)
 
 
 def test_span_generation():
