@@ -4,7 +4,7 @@ from .registry import RegisteredResourceCollector
 
 class Redshift_Collector(RegisteredResourceCollector):
     API = "redshift"
-    COMPONENT_TYPE = "'aws.redshift'"
+    COMPONENT_TYPE = "aws.redshift"
 
     def process_all(self):
         for page in self.client.get_paginator('describe_clusters').paginate():
