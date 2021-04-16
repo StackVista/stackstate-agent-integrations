@@ -2,6 +2,7 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import logging
+import time
 import traceback
 import boto3
 from schematics import Model
@@ -101,14 +102,14 @@ class AwsTopologyCheck(AgentCheck):
             keys.append(keys.pop(keys.index('cloudformation')))
         for api in keys:
             global_api = api.startswith('route53')
-            try:
-                client = aws_client.get_boto3_client(api, region='us-east-1' if global_api else None)
-                location = location_info(instance_info.account_id, 'us-east-1' if global_api else instance_info.region)
-                for part in registry[api]:
-                    if instance_info.apis_to_run is not None:
-                        if not (api + '|' + part) in instance_info.apis_to_run:
-                            continue
-                    processor = registry[api][part](location, client, self)
+            client = aws_client.get_boto3_client(api, region='us-east-1' if global_api else None)
+            location = location_info(instance_info.account_id, 'us-east-1' if global_api else instance_info.region)
+            for part in registry[api]:
+                if instance_info.apis_to_run is not None:
+                    if not (api + '|' + part) in instance_info.apis_to_run:
+                        continue
+                processor = registry[api][part](location, client, self)
+                try:
                     if api != 'cloudformation':
                         result = processor.process_all()
                     else:
@@ -127,8 +128,20 @@ class AwsTopologyCheck(AgentCheck):
                                 else:
                                     self.memory_data[rk] = result[rk]
                     self.delete_ids += processor.get_delete_ids()
-            except Exception as e:
-                errors.append('API %s ended with exception: %s %s' % (api, str(e), traceback.format_exc()))
+                except Exception as e:
+                    event = {
+                        'timestamp': int(time.time()),
+                        'event_type': 'aws_agent_check_error',
+                        'msg_title': e.__class__.__name__ + " in api " + api + " component_type " + part,
+                        'msg_text': str(e),
+                        'tags': [
+                            'aws_region:' + location["Location"]["AwsRegion"],
+                            'account_id:' + location["Location"]["AwsAccount"],
+                            'process:' + api + "|" + part
+                        ]
+                    }
+                    self.event(event)
+                    errors.append('API %s ended with exception: %s %s' % (api, str(e), traceback.format_exc()))
         if len(errors) > 0:
             raise Exception('get_topology gave following exceptions: %s' % ', '.join(errors))
 
