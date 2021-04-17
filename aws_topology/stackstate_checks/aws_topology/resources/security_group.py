@@ -1,4 +1,4 @@
-from ..utils import make_valid_data, create_resource_arn, create_hash
+from .utils import make_valid_data, create_resource_arn, create_hash
 from .registry import RegisteredResourceCollector
 
 

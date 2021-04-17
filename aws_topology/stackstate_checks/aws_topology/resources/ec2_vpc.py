@@ -1,4 +1,4 @@
-from ..utils import make_valid_data, correct_tags, create_resource_arn
+from .utils import make_valid_data, create_resource_arn
 from .registry import RegisteredResourceCollector
 
 
@@ -43,7 +43,7 @@ class Vpc_Collector(RegisteredResourceCollector):
                 vpc_id
             )
         ]
-        self.agent.component(vpc_id, self.COMPONENT_TYPE, correct_tags(vpc_description))
+        self.agent.component(vpc_id, self.COMPONENT_TYPE, vpc_description)
         subnets_for_vpc = list(filter(lambda subnet: subnet['VpcId'] == vpc_id, subnet_descriptions))
         for subnet_for_vpc in subnets_for_vpc:
             self.agent.relation(subnet_for_vpc['SubnetId'], vpc_id, 'uses service', {})

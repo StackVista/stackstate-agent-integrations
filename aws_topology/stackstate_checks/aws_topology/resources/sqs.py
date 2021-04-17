@@ -1,4 +1,4 @@
-from ..utils import make_valid_data, with_dimensions
+from .utils import make_valid_data, with_dimensions
 from .registry import RegisteredResourceCollector
 
 

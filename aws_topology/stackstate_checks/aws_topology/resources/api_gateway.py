@@ -1,6 +1,6 @@
 import copy
 import re
-from ..utils import with_dimensions, make_valid_data, create_arn, replace_stage_variables
+from .utils import with_dimensions, make_valid_data, create_arn, replace_stage_variables
 from .registry import RegisteredResourceCollector
 
 try:

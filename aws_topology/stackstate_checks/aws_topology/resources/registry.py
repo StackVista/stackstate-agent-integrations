@@ -1,5 +1,5 @@
 from six import with_metaclass
-from ..utils import correct_tags, capitalize_keys
+from .utils import correct_tags, capitalize_keys
 
 
 class ResourceRegistry(type):

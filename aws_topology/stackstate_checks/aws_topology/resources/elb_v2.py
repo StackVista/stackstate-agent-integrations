@@ -1,4 +1,4 @@
-from ..utils import make_valid_data, with_dimensions, extract_dimension_name, \
+from .utils import make_valid_data, with_dimensions, extract_dimension_name, \
     update_dimensions, create_security_group_relations
 import time
 from .registry import RegisteredResourceCollector

@@ -1,5 +1,5 @@
 import time
-from ..utils import make_valid_data, create_resource_arn
+from .utils import make_valid_data, create_resource_arn
 from .registry import RegisteredResourceCollector
 
 

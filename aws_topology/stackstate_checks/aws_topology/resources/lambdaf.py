@@ -1,6 +1,6 @@
 import time
 from botocore.exceptions import ClientError
-from ..utils import make_valid_data
+from .utils import make_valid_data
 from .registry import RegisteredResourceCollector
 
 

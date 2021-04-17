@@ -1,5 +1,5 @@
-from ..utils import make_valid_data, create_host_urn, create_resource_arn
 import time
+from .utils import make_valid_data, create_host_urn, create_resource_arn
 from .registry import RegisteredResourceCollector
 
 
