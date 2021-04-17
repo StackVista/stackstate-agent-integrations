@@ -16,7 +16,6 @@ from botocore.exceptions import ClientError
 from parameterized import parameterized
 from copy import deepcopy
 import traceback
-import pytest
 
 
 def relative_path(path):
