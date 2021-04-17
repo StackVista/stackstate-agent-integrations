@@ -16,6 +16,7 @@ from botocore.exceptions import ClientError
 from parameterized import parameterized
 from copy import deepcopy
 import traceback
+import pytest
 
 
 def relative_path(path):
@@ -387,6 +388,34 @@ def mock_boto_calls(self, operation_name, kwarg):
         return resource("json/test_firehose_deliverystream_tags.json")
     else:
         raise ValueError("Unknown operation name", operation_name)
+
+
+def compute_topologies_diff(computed_dict, expected_filepath):
+    # print(topology)
+    with open(expected_filepath) as f:
+        expected_topology = f.read()
+        top = json.loads(expected_topology)
+        top["relations"] = list(map(lambda x: normalize_relation(x), top["relations"]))
+        top["relations"].sort(key=lambda x: x["source_id"] + "-" + x["type"] + x["target_id"])
+        top["components"] = list(map(lambda x: normalize_component(x), top["components"]))
+        top["components"].sort(key=lambda x: x["type"] + "-" + x["id"])
+        top["start_snapshot"] = True
+        top["stop_snapshot"] = True
+        top["instance_key"] = top.pop("instance")
+        top.pop("delete_ids")
+
+        for comp in computed_dict["components"]:
+            comp["data"].pop("tags")
+        computed_dict["relations"].sort(key=lambda x: x["source_id"] + "-" + x["type"] + x["target_id"])
+        computed_dict["components"].sort(key=lambda x: x["type"] + "-" + x["id"])
+        with open(relative_path('input.json'), 'wt') as f:
+            f.write(json.dumps(top, sort_keys=True, default=str, indent=2))
+        topology = json.dumps(computed_dict, default=str, indent=2, sort_keys=True)
+        expected_topology = json.dumps(top, default=str, indent=2, sort_keys=True)
+        delta = difflib.unified_diff(a=expected_topology.strip().splitlines(), b=topology.strip().splitlines())
+        # for line in delta:
+        #     print(line)
+        return "".join(delta)
 
 
 class TestTemplate(unittest.TestCase):
@@ -1186,31 +1215,6 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(topology[0]["relations"][0]["source_id"], "vgw-b8c2fccc")  # DIFF
         self.assertEqual(topology[0]["relations"][0]["target_id"], "vpc-6b25d10e")  # DIFF
 
-    @staticmethod
-    def _compute_topologies_diff(computed_dict, expected_filepath):
-        # print(topology)
-        with open(expected_filepath) as f:
-            expected_topology = f.read()
-            top = json.loads(expected_topology)
-            top["relations"] = list(map(lambda x: normalize_relation(x), top["relations"]))
-            top["relations"].sort(key=lambda x: x["source_id"] + "-" + x["type"] + x["target_id"])
-            top["components"] = list(map(lambda x: normalize_component(x), top["components"]))
-            top["components"].sort(key=lambda x: x["type"] + "-" + x["id"])
-            top["start_snapshot"] = True
-            top["stop_snapshot"] = True
-            top["instance_key"] = top.pop("instance")
-            top.pop("delete_ids")
-            for comp in computed_dict["components"]:
-                comp["data"].pop("tags")
-            computed_dict["relations"].sort(key=lambda x: x["source_id"] + "-" + x["type"] + x["target_id"])
-            computed_dict["components"].sort(key=lambda x: x["type"] + "-" + x["id"])
-            topology = json.dumps(computed_dict, default=str, indent=2, sort_keys=True)
-            expected_topology = json.dumps(top, default=str, indent=2, sort_keys=True)
-            delta = difflib.unified_diff(a=expected_topology.strip().splitlines(), b=topology.strip().splitlines())
-            for line in delta:
-                print(line)
-            return "".join(delta)
-
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
     @set_api("ecs|aws.ecs.cluster")
     def test_process_ecs(self):
@@ -1218,7 +1222,7 @@ class TestTemplate(unittest.TestCase):
         self.assert_executed_ok()
         topology = top.get_snapshot(self.check.check_id)
 
-        diff = self._compute_topologies_diff(
+        diff = compute_topologies_diff(
             computed_dict=topology, expected_filepath=relative_path("expected_topology/ecs.json")
         )
         self.assertEqual(diff, "")
@@ -1335,6 +1339,30 @@ class TestTemplate(unittest.TestCase):
 
         unique_types = self.unique_topology_types(topology)
         self.assertEqual(len(unique_types), 31)
+
+    # @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    # @set_api(None)
+    # def test_old_agent(self):
+    #     self.check.run()
+    #     self.assert_executed_ok()
+    #     topology = [top.get_snapshot(self.check.check_id)]
+    #     events = aggregator.events
+
+    #     aws_agent_check_errors = list(filter(lambda x: x["event_type"] == "aws_agent_check_error", events))
+    #     self.assertEqual(len(aws_agent_check_errors), 0)
+
+    #     tosave = deepcopy(topology[0])
+    #     for comp in tosave["components"]:
+    #         comp["data"].pop("tags")
+    #     tosave["relations"].sort(key=lambda x: x["source_id"] + "-" + x["type"] + x["target_id"])
+    #     tosave["components"].sort(key=lambda x: x["type"] + "-" + x["id"])
+    #     with open(relative_path('output.json'), 'wt') as f:
+    #         f.write(json.dumps(tosave, sort_keys=True, default=str, indent=2))
+
+    #     diff = compute_topologies_diff(
+    #         computed_dict=topology[0], expected_filepath=relative_path("expected_topology/from_old_agent.json")
+    #     )
+    #     self.assertEqual(diff, "")
 
 
 class TestTemplatePathedRegistry(unittest.TestCase):
