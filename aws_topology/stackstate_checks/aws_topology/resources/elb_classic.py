@@ -28,7 +28,11 @@ class ELB_Classic_Collector(RegisteredResourceCollector):
                 elb_name
             )
         ]
-        elb_data['Tags'] = self.client.describe_tags(LoadBalancerNames=[elb_name])['TagDescriptions'][0]['Tags']
+        taginfo = self.client.describe_tags(LoadBalancerNames=[elb_name]).get('TagDescriptions')
+        if taginfo and len(taginfo) > 0:
+            tags = taginfo[0].get('Tags')
+        if tags:
+            elb_data['Tags'] = tags
         self.agent.component(instance_id, self.COMPONENT_TYPE, elb_data)
 
         vpc_id = elb_data['VPCId']
