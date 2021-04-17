@@ -38,10 +38,20 @@ class EC2_Instance_Collector(RegisteredResourceCollector):
                 'instance',
                 instance_id)
         ]
+
+        if 'Tags' not in instance_data:
+            instance_data['Tags'] = []
+        instance_data['Tags'].append({'Key': 'host', 'Value': instance_id})
+        instance_data['Tags'].append({'Key': 'instance-id', 'Value': instance_id})
+        if instance_data.get('PrivateIpAddress') and instance_data.get('PrivateIpAddress') != "":
+            instance_data['Tags'].append({'Key': 'private-ip', 'Value': instance_data['PrivateIpAddress']})
         if instance_data.get('PublicDnsName') and instance_data.get('PublicDnsName') != "":
+            instance_data['Tags'].append({'Key': 'fqdn', 'Value': instance_data['PublicDnsName']})
             instance_data['URN'].append(create_host_urn(instance_data['PublicDnsName']))
         if instance_data.get('PublicIpAddress') and instance_data.get('PublicIpAddress') != "":
+            instance_data['Tags'].append({'Key': 'public-ip', 'Value': instance_data['PublicIpAddress']})
             instance_data['URN'].append(create_host_urn(instance_data['PublicIpAddress']))
+
         instance_data['isNitro'] = False
         if instance_data['InstanceType'] in map(lambda x: x['InstanceType'], self.nitroInstances):
             instance_data['isNitro'] = True

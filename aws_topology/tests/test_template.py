@@ -481,6 +481,12 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(topology[0]["components"][0]["id"], test_instance_id)  # DIFF was externalId
         self.assertEqual(topology[0]["components"][0]["data"]["InstanceId"], test_instance_id)
         self.assertEqual(topology[0]["components"][0]["data"]["InstanceType"], test_instance_type)
+        self.assertIsNotNone(topology[0]['components'][0]['data']['Tags'])
+        self.assertEqual(topology[0]['components'][0]['data']['Tags']['host'], test_instance_id)
+        self.assertEqual(topology[0]['components'][0]['data']['Tags']['instance-id'], test_instance_id)
+        self.assertEqual(topology[0]['components'][0]['data']['Tags']['private-ip'], test_public_ip)
+        self.assertEqual(topology[0]['components'][0]['data']['Tags']['fqdn'], test_public_dns)
+        self.assertEqual(topology[0]['components'][0]['data']['Tags']['public-ip'], test_public_ip)
         self.assertEqual(topology[0]["components"][0]["type"], "aws.ec2")  # DIFF was ['type']['name']
         self.assert_location_info(topology[0]["components"][0])
         self.assertEqual(
