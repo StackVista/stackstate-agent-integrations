@@ -116,7 +116,7 @@ class TestAWSTopologyCheck(unittest.TestCase):
         self.check.APIS = {
             's3': {}
         }
-        with patch('stackstate_checks.aws_topology.resources.ResourceRegistry.get_registry', return_value=registry):
+        with patch('stackstate_checks.base.checks.aws.ResourceRegistry.get_registry', return_value=registry):
             self.check.run()
             service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_EXECUTE_NAME)
             self.assertGreater(len(service_checks), 0)
@@ -175,7 +175,7 @@ class TestAWSTopologyCheck(unittest.TestCase):
                 'autoscaling': autoscaling
             }
         }
-        with patch('stackstate_checks.aws_topology.resources.ResourceRegistry.get_registry', return_value=registry):
+        with patch('stackstate_checks.base.checks.aws.ResourceRegistry.get_registry', return_value=registry):
             self.check.run()
             self.assertEqual(self.check.memory_data.get('test_key'), {'abc': 'def'})
             self.assertEqual(self.check.memory_data.get('autoscaling'), None)
