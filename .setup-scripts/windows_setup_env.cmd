@@ -5,10 +5,8 @@ set
 
 dir
 
-IF EXIST %WORKON_HOME%\venv GOTO VENV_EXIST
+rmdir /q /s %WORKON_HOME%\venv
 call mkvirtualenv venv
-:VENV_EXIST
 
 echo call %WORKON_HOME%\venv\Scripts\activate.bat
 call %WORKON_HOME%\venv\Scripts\activate.bat
-
