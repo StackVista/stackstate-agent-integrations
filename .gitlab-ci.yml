@@ -252,6 +252,8 @@ test_nagios:
     - win_deps
   script:
     - checksdev test -c %CHECK%
+  tags:
+    - sts_windows
 
 test_stackstate_checks_dev_win:
   <<: *windows_test
