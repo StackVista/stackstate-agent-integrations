@@ -9,6 +9,7 @@ from mock import patch
 
 from stackstate_checks.aws_xray import AwsCheck
 from stackstate_checks.aws_xray.aws_xray import AwsClient
+from stackstate_checks.base import TopologyInstance
 
 AWS_REGION = 'eu-west-1'
 AWS_ACCOUNT = '672574731473'
@@ -64,8 +65,12 @@ def test_service_check_broken_client(aggregator, instance):
 @patch('stackstate_checks.aws_xray.aws_xray.AwsClient', MockAwsClient)
 def test_service_check_ok(aggregator, instance):
     aws_check = AwsCheck('test', {}, {}, instances=[instance])
+    # test instance key before check run
+    assert aws_check.get_instance_key(instance) == TopologyInstance('aws', 'arn:aws:iam::0123456789:role/OtherRoleName')
     result = aws_check.run()
     assert result == ''
+    # test instance key after check run, assert that the account has been set
+    assert aws_check.get_instance_key(instance) == TopologyInstance('aws', AWS_ACCOUNT)
     aggregator.assert_service_check('aws_xray.can_connect', aws_check.OK)
     aggregator.assert_service_check('aws_xray.can_execute', aws_check.OK)
 
