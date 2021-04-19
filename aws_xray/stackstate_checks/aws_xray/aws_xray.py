@@ -39,7 +39,8 @@ class AwsCheck(AgentCheck):
         self.log.setLevel(logging.DEBUG)
         self.trace_ids = {}
         self.region = None
-        self.account_id = None
+        # default the account id to the role_arn, this will be replaced by the account id after a successful login
+        self.account_id = self.instance.get('role_arn', 'unknown-instance')
         self.tags = None
         self.arns = {}
 
