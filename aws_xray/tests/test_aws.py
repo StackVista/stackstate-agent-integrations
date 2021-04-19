@@ -15,15 +15,6 @@ AWS_REGION = 'eu-west-1'
 AWS_ACCOUNT = '672574731473'
 
 
-class MockBrokenAwsClient():
-    def __init__(self, instance, init_config):
-        self.region = AWS_REGION
-
-    @staticmethod
-    def get_account_id():
-        raise Exception("some dummy error: could not get the account id")
-
-
 class MockAwsClient():
     def __init__(self, instance, init_config):
         self.region = AWS_REGION
@@ -40,6 +31,13 @@ class MockAwsClient():
     @staticmethod
     def write_cache_file():
         pass
+
+
+class MockBrokenAwsClient(MockAwsClient):
+
+    @staticmethod
+    def get_account_id():
+        raise Exception("some dummy error: could not get the account id")
 
 
 def test_traces():
