@@ -1,6 +1,3 @@
-# (C) StackState 2021
-# All rights reserved
-# Licensed under a 3-clause BSD style license (see LICENSE)
 import difflib
 import unittest
 import os
@@ -9,13 +6,18 @@ from mock import patch
 import dateutil.parser
 import datetime
 from stackstate_checks.base.stubs import topology as top, aggregator
-from stackstate_checks.aws_topology import AwsTopologyCheck
-from stackstate_checks.aws_topology.resources import ResourceRegistry
+from stackstate_checks.base.checks.aws import ResourceRegistry, AWSTopologyBaseCheck
 from stackstate_checks.base import AgentCheck
 from botocore.exceptions import ClientError
-from parameterized import parameterized
 from copy import deepcopy
 import traceback
+from parameterized import parameterized
+import sys
+import pytest
+
+requires_py3 = pytest.mark.skipif(
+    sys.version_info.major < 3, reason="Only python3 because of type hinting"
+)
 
 
 def relative_path(path):
@@ -461,7 +463,7 @@ class TestTemplate(unittest.TestCase):
         }
         if method.api:
             cfg.update({"apis_to_run": [method.api]})
-        self.check = AwsTopologyCheck(self.CHECK_NAME, cfg, instances=[cfg])
+        self.check = AWSTopologyBaseCheck(self.CHECK_NAME, cfg, instances=[cfg])
         self.mock_object.side_effect = mock_boto_calls
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
@@ -1378,6 +1380,7 @@ class TestTemplatePathedRegistry(unittest.TestCase):
     def unique_topology_types(self, topology):
         return set([c["type"] for ti in topology for c in ti["components"]])  # DIFF
 
+    @requires_py3
     @parameterized.expand([
         ('ec2|aws.vpngateway', 30),
         ('ec2|aws.vpc', 29),
@@ -1408,10 +1411,11 @@ class TestTemplatePathedRegistry(unittest.TestCase):
     ])
     @set_api(None)
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    @requires_py3
     def test_check_error_handling(self, check_name, expected_unique_topology_types):
         try:
             with patch(
-                'stackstate_checks.aws_topology.resources.ResourceRegistry.get_registry',
+                'stackstate_checks.base.checks.aws.ResourceRegistry.get_registry',
                 wraps=get_wrapper(check_name)
             ):
                 top.reset()
@@ -1423,7 +1427,7 @@ class TestTemplatePathedRegistry(unittest.TestCase):
                     "account_id": "731070500579",
                     "region": "eu-west-1",
                 }
-                self.check = AwsTopologyCheck(self.CHECK_NAME, cfg, instances=[cfg])
+                self.check = AWSTopologyBaseCheck(self.CHECK_NAME, cfg, instances=[cfg])
                 self.check.run()
 
                 topology = [top.get_snapshot(self.check.check_id)]
