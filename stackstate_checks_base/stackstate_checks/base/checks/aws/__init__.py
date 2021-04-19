@@ -21,8 +21,10 @@ from .lambda_event_source_mapping import LambdaEventSourceMapping_Collector  # n
 from .ecs import ECS_Collector  # noqa: F401
 from .cloudformation import CloudFormation_Collector  # noqa: F401
 from .sqs import SQS_Collector  # noqa: F401
+from .base_check import AWSTopologyBaseCheck
 
 __all__ = [
     'ResourceRegistry',
-    'RegisteredResourceCollector'
+    'RegisteredResourceCollector',
+    'AWSTopologyBaseCheck'
 ]

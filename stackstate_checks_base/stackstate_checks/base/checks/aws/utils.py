@@ -77,7 +77,7 @@ def replace_stage_variables(string, variables):
     if len(variables) == 0:
         return string
 
-    replacements = {'${stageVariables.'+name+'}': value for (name, value) in variables.items()}
+    replacements = {'${stageVariables.' + name + '}': value for (name, value) in variables.items()}
     # Place longer ones first to keep shorter substrings from matching where the longer ones should take place
     # For instance given the replacements {'ab': 'AB', 'abc': 'ABC'} against the string 'hey abc', it should produce
     # 'hey ABC' and not 'hey ABc'
