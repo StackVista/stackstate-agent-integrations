@@ -407,8 +407,8 @@ def compute_topologies_diff(computed_dict, expected_filepath):
             comp["data"].pop("tags")
         computed_dict["relations"].sort(key=lambda x: x["source_id"] + "-" + x["type"] + x["target_id"])
         computed_dict["components"].sort(key=lambda x: x["type"] + "-" + x["id"])
-        with open(relative_path('input.json'), 'wt') as f:
-            f.write(json.dumps(top, sort_keys=True, default=str, indent=2))
+        # with open(relative_path('input.json'), 'wt') as f:
+        #     f.write(json.dumps(top, sort_keys=True, default=str, indent=2))
         topology = json.dumps(computed_dict, default=str, indent=2, sort_keys=True)
         expected_topology = json.dumps(top, default=str, indent=2, sort_keys=True)
         delta = difflib.unified_diff(a=expected_topology.strip().splitlines(), b=topology.strip().splitlines())
