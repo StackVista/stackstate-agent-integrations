@@ -10,8 +10,9 @@ import mock
 import pytest
 from mock import MagicMock
 from pyVmomi import vim
+from schematics.exceptions import DataError
 
-from stackstate_checks.base import ConfigurationError, StackPackInstance
+from stackstate_checks.base import StackPackInstance
 from stackstate_checks.vsphere import VSphereCheck
 from stackstate_checks.vsphere.cache_config import CacheConfig
 from stackstate_checks.vsphere.errors import BadConfigError, ConnectionError
@@ -1195,11 +1196,31 @@ def test_get_topology_items_vms_no_unicode(instance, topology):
                 assert type(tag) is str
 
 
-def test_missing_conf(instance):
+def test_missing_host_conf(instance):
     """
-    Test to check if ConfigurationError raised for missing host
+    Test to check if DataError raised for missing host
     """
     del instance["host"]
     vsphere_check = VSphereCheck("vsphere", {}, instances=[instance])
-    with pytest.raises(ConfigurationError, match=r"Missing.*in instance configuration"):
+    with pytest.raises(DataError):
+        vsphere_check.check(instance)
+
+
+def test_missing_username_conf(instance):
+    """
+    Test to check if DataError raised for missing username
+    """
+    del instance["username"]
+    vsphere_check = VSphereCheck("vsphere", {}, instances=[instance])
+    with pytest.raises(DataError):
+        vsphere_check.check(instance)
+
+
+def test_missing_all_metrics_conf(instance):
+    """
+    Test to check if DataError raised for missing all_metrics
+    """
+    del instance["all_metrics"]
+    vsphere_check = VSphereCheck("vsphere", {}, instances=[instance])
+    with pytest.raises(DataError):
         vsphere_check.check(instance)
