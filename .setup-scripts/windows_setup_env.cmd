@@ -5,8 +5,12 @@ set
 
 dir
 
-rmdir /q /s %WORKON_HOME%\venv
+IF EXIST %WORKON_HOME%\venv GOTO VENV_EXIST
 call mkvirtualenv venv
+:VENV_EXIST
 
 echo call %WORKON_HOME%\venv\Scripts\activate.bat
 call %WORKON_HOME%\venv\Scripts\activate.bat
+
+echo call %WORKON_HOME%\.setup-scripts\windows_load_env.cmd
+call %WORKON_HOME%\.setup-scripts\windows_load_env.cmd
