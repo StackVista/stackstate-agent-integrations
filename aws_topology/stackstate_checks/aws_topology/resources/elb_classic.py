@@ -3,7 +3,7 @@ from .utils import make_valid_data, create_resource_arn
 from .registry import RegisteredResourceCollector
 
 
-class ElbClassicCollector(RegisteredResourceCollector):
+class ELBClassicCollector(RegisteredResourceCollector):
     API = "elb"
     COMPONENT_TYPE = "aws.elb_classic"
     MEMORY_KEY = "elb_classic"

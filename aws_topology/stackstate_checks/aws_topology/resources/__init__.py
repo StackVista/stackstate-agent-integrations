@@ -13,7 +13,7 @@ from .route53_hostedzone import Route53HostedzoneCollector  # noqa: F401
 from .kinesis import KinesisCollector  # noqa: F401
 from .ec2 import Ec2InstanceCollector  # noqa: F401
 from .redshift import RedshiftCollector  # noqa: F401
-from .elb_classic import ElbClassicCollector  # noqa: F401
+from .elb_classic import ELBClassicCollector  # noqa: F401
 from .rds import RdsCollector  # noqa: F401
 from .lambdaf import LambdaCollector  # noqa: F401
 from .dynamodb import DynamodbTableCollector  # noqa: F401
