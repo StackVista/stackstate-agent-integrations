@@ -9,7 +9,7 @@ except ImportError:
     from urllib.parse import urlparse
 
 
-class ApiGateway_Stage_Collector(RegisteredResourceCollector):
+class ApigatewayStageCollector(RegisteredResourceCollector):
     API = "apigateway"
     COMPONENT_TYPE = "aws.apigateway.stage"
     MEMORY_KEY = "api_stage"

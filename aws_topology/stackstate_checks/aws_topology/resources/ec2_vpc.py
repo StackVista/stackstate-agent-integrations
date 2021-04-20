@@ -2,7 +2,7 @@ from .utils import make_valid_data, create_resource_arn
 from .registry import RegisteredResourceCollector
 
 
-class Vpc_Collector(RegisteredResourceCollector):
+class VpcCollector(RegisteredResourceCollector):
     API = "ec2"
     COMPONENT_TYPE = "aws.vpc"
 

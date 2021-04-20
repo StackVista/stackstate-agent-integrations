@@ -2,7 +2,7 @@ from .utils import make_valid_data, with_dimensions
 from .registry import RegisteredResourceCollector
 
 
-class Firehose_Collector(RegisteredResourceCollector):
+class FirehoseCollector(RegisteredResourceCollector):
     API = "firehose"
     COMPONENT_TYPE = "aws.firehose"
 

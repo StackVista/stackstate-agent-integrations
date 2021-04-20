@@ -2,7 +2,7 @@ from .utils import make_valid_data, with_dimensions
 from .registry import RegisteredResourceCollector
 
 
-class SQS_Collector(RegisteredResourceCollector):
+class SqsCollector(RegisteredResourceCollector):
     API = "sqs"
     COMPONENT_TYPE = "aws.sqs"
 

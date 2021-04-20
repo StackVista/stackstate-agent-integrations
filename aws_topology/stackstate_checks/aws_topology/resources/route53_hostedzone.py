@@ -2,7 +2,7 @@ from .utils import make_valid_data
 from .registry import RegisteredResourceCollector
 
 
-class Route53_HostedZone_Collector(RegisteredResourceCollector):
+class Route53HostedzoneCollector(RegisteredResourceCollector):
     API = "route53"
     COMPONENT_TYPE = "aws.route53.hostedzone"
 

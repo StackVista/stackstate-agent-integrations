@@ -2,7 +2,7 @@ from .utils import make_valid_data
 from .registry import RegisteredResourceCollector
 
 
-class Route53_Domain_Collector(RegisteredResourceCollector):
+class Route53DomainCollector(RegisteredResourceCollector):
     API = "route53domains"
     COMPONENT_TYPE = "aws.route53.domain"
 

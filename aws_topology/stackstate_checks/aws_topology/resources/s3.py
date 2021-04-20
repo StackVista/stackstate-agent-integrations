@@ -2,7 +2,7 @@ from .utils import make_valid_data
 from .registry import RegisteredResourceCollector
 
 
-class S3_Collector(RegisteredResourceCollector):
+class S3Collector(RegisteredResourceCollector):
     API = "s3"
     COMPONENT_TYPE = "aws.s3_bucket"
 

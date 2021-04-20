@@ -4,7 +4,7 @@ from .utils import make_valid_data
 from .registry import RegisteredResourceCollector
 
 
-class Lambda_Collector(RegisteredResourceCollector):
+class LambdaCollector(RegisteredResourceCollector):
     API = "lambda"
     COMPONENT_TYPE = "aws.lambda"
     MEMORY_KEY = "lambda_func"

@@ -2,7 +2,7 @@ from .utils import make_valid_data
 from .registry import RegisteredResourceCollector
 
 
-class VPN_Gateway_Collector(RegisteredResourceCollector):
+class VpnGatewayCollector(RegisteredResourceCollector):
     API = "ec2"
     COMPONENT_TYPE = "aws.vpngateway"
 

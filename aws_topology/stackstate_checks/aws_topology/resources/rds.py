@@ -2,7 +2,7 @@ from .utils import make_valid_data, with_dimensions
 from .registry import RegisteredResourceCollector
 
 
-class RDS_Collector(RegisteredResourceCollector):
+class RdsCollector(RegisteredResourceCollector):
     API = "rds"
     COMPONENT_TYPE = "aws.rds_cluster"
 
