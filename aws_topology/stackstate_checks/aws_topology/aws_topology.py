@@ -23,10 +23,6 @@ DEFAULT_BOTO3_CONFIG = Config(
 DEFAULT_COLLECTION_INTERVAL = 60
 
 
-class State(Model):
-    code = StringType(required=True)
-
-
 class InstanceInfo(Model):
     region = StringType(required=True)
     aws_access_key_id = StringType(required=True)
