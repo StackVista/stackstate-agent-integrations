@@ -1,6 +1,8 @@
 # (C) Datadog, Inc. 2018
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
+import inspect
+import json
 from decimal import ROUND_HALF_UP, Decimal
 import os
 import re
@@ -67,3 +69,47 @@ def _filter(items, pattern_list, key):
 
 def __return_self(obj):
     return obj
+
+
+def read_file(filename, extended_path=""):
+    """
+    Return file contents as string. It supports UTF-8 characters in both PY2 and PY3.
+    Warning Note: The filename will be a relative to the callers py file
+
+    :param filename: String
+    :param extended_path: Optional path
+    :return: String with file contents.
+    """
+    with open(_get_path_to_file(filename, extended_path), "r") as f:
+        return f.read() if PY3 else f.read().decode("utf-8")
+
+
+def load_json_from_file(filename, extended_path=""):
+    """
+    Returns dictionary with file contents. It supports UTF-8 characters in both PY2 and PY3.
+    Warning Note: The filename will be a relative to the callers py file
+
+    :param filename: String
+    :param extended_path: Optional path
+    :return: Dictionary with the file contents.
+    """
+    raw_json_file = read_file(filename, extended_path)
+    return json.loads(raw_json_file)
+
+
+def _get_path_to_file(filename, extended_path=""):
+    """
+    Only works when called from load_json_from_file or read_file functions.
+    It calculates absolute path to filename relative to caller file location.
+    Caller file is python module where read_file or load_json_from_file was called.
+    :param filename: String
+    :param extended_path: Optional path
+    :return: String with absolut path to file
+    """
+    caller_file = inspect.stack()[2].filename if PY3 else inspect.stack()[2][1]
+    if caller_file == __file__:
+        caller_file = inspect.stack()[3].filename if PY3 else inspect.stack()[3][1]
+    path_to_callers_file = os.path.abspath(caller_file)
+    path_with_extended_part = os.path.join(os.path.dirname(path_to_callers_file), extended_path)
+    path_to_file = os.path.join(path_with_extended_part, filename)
+    return path_to_file

@@ -50,7 +50,7 @@ instances:
     # do not care about. We have selected a set of metrics
     # that are interesting to monitor for you if false
     # optional
-    # all_metrics: false # /!\ will generate a lot of metrics
+    all_metrics: false # /!\ will generate a lot of metrics
 
     # Event config is a dictionary
     # For now the only switch you can flip is collect_vcenter_alarms
