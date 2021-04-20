@@ -2,7 +2,7 @@ from .utils import make_valid_data
 from .registry import RegisteredResourceCollector
 
 
-class Redshift_Collector(RegisteredResourceCollector):
+class RedshiftCollector(RegisteredResourceCollector):
     API = "redshift"
     COMPONENT_TYPE = "aws.redshift"
 

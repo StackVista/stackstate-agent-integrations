@@ -21,7 +21,7 @@ type_map = {
 }
 
 
-class CloudFormation_Collector(RegisteredResourceCollector):
+class CloudformationCollector(RegisteredResourceCollector):
     API = "cloudformation"
     COMPONENT_TYPE = "aws.cloudformation"
 

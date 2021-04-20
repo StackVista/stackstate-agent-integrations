@@ -2,7 +2,7 @@ from .utils import make_valid_data
 from .registry import RegisteredResourceCollector
 
 
-class Kinesis_Collector(RegisteredResourceCollector):
+class KinesisCollector(RegisteredResourceCollector):
     API = "kinesis"
     COMPONENT_TYPE = "aws.kinesis"
     MEMORY_KEY = "kinesis_stream"

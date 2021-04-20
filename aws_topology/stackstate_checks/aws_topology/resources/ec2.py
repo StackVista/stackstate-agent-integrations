@@ -3,7 +3,7 @@ from .utils import make_valid_data, create_host_urn, create_resource_arn
 from .registry import RegisteredResourceCollector
 
 
-class EC2_Instance_Collector(RegisteredResourceCollector):
+class Ec2InstanceCollector(RegisteredResourceCollector):
     API = "ec2"
     COMPONENT_TYPE = "aws.ec2"
 

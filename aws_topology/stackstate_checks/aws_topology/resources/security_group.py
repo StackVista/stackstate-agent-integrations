@@ -2,7 +2,7 @@ from .utils import make_valid_data, create_resource_arn, create_hash
 from .registry import RegisteredResourceCollector
 
 
-class SecurityGroup_Collector(RegisteredResourceCollector):
+class SecuritygroupCollector(RegisteredResourceCollector):
     API = "ec2"
     COMPONENT_TYPE = "aws.security-group"
 
