@@ -27,12 +27,6 @@ try:
 except ImportError:
     KubeLeaderElectionBaseCheck = None
 
-# AWS dep will not alwyas be installed
-try:
-    from .checks.aws import ResourceRegistry
-except ImportError:
-    ResourceRegistry = None
-
 __all__ = [
     '__version__',
     'AgentCheck',
