@@ -1,0 +1,27 @@
+{
+  "InstanceStates": [
+    {
+      "InstanceId": "i-09388d5bfc0ab9e78",
+      "ReasonCode": "Instance",
+      "State": "OutOfService",
+      "Description": "Instance has failed at least the UnhealthyThreshold number of health checks consecutively."
+    },
+    {
+      "InstanceId": "i-05b20853cc72c23c4",
+      "ReasonCode": "Instance",
+      "State": "OutOfService",
+      "Description": "Instance has failed at least the UnhealthyThreshold number of health checks consecutively."
+    }
+  ],
+  "ResponseMetadata": {
+    "RetryAttempts": 0,
+    "HTTPStatusCode": 200,
+    "RequestId": "88c087fa-43c4-11e8-ad55-79faea9e9a4c",
+    "HTTPHeaders": {
+      "x-amzn-requestid": "88c087fa-43c4-11e8-ad55-79faea9e9a4c",
+      "date": "Thu, 19 Apr 2018 11:26:41 GMT",
+      "content-length": "926",
+      "content-type": "text/xml"
+    }
+  }
+}

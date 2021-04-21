@@ -1,0 +1,10 @@
+{
+  "Domains": [
+    {
+      "DomainName": "stackstate.com",
+      "AutoRenew": true,
+      "TransferLock": false,
+      "Expiry": 1533772800.0
+    }
+  ]
+}

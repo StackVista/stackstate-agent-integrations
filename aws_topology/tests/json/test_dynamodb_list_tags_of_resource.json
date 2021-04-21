@@ -1,0 +1,12 @@
+{
+    "Tags": [
+        {
+	    "Key": "stackstate-domain",
+	    "Value" : "AWS"
+	}, {
+	    "Key" : "stackstate-environment",
+	    "Value" : "Production"
+	}
+    ],
+    "NextToken": "foobar"
+}

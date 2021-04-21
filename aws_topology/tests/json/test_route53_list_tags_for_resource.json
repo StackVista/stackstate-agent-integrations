@@ -1,0 +1,10 @@
+{
+    "ResourceTagSet": {
+        "Tags": [
+            {
+                "Key": "ResourceTagKey",
+                "Value": "ResourceTagValue"
+            }
+        ]
+    }
+}

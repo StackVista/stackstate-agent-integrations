@@ -1,0 +1,19 @@
+{
+  "clusterArns": [
+    "arn:aws:ecs:eu-west-1:850318095909:cluster/StackState-ECS-Cluster",
+    "arn:aws:ecs:eu-west-1:850318095909:cluster/default"
+  ],
+  "ResponseMetadata": {
+    "RetryAttempts": 0,
+    "HTTPStatusCode": 200,
+    "RequestId": "a9dd01fa-7adb-11e8-bfef-89bc2c02b88e",
+    "HTTPHeaders": {
+      "x-amzn-requestid": "a9dd01fa-7adb-11e8-bfef-89bc2c02b88e",
+      "content-length": "138",
+      "server": "Server",
+      "connection": "keep-alive",
+      "date": "Thu, 28 Jun 2018 14:00:50 GMT",
+      "content-type": "application/x-amz-json-1.1"
+    }
+  }
+}
