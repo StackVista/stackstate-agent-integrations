@@ -98,11 +98,11 @@ class AwsTopologyCheck(AgentCheck):
             location = location_info(instance_info.account_id, 'us-east-1' if global_api else instance_info.region)
             client = None
             for part in registry[api]:
-                if client is None:
-                    client = aws_client.get_boto3_client(api, region='us-east-1' if global_api else None)
                 if instance_info.apis_to_run is not None:
                     if not (api + '|' + part) in instance_info.apis_to_run:
                         continue
+                if client is None:
+                    client = aws_client.get_boto3_client(api, region='us-east-1' if global_api else None)
                 processor = registry[api][part](location, client, AgentProxy(self, location))
                 try:
                     if api != 'cloudformation':
