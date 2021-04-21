@@ -10,7 +10,7 @@ from schematics.types import StringType, ListType, DictType
 from botocore.config import Config
 from stackstate_checks.base import AgentCheck, TopologyInstance
 from .resources import ResourceRegistry
-from .utils import location_info
+from .utils import location_info, correct_tags, capitalize_keys
 
 DEFAULT_BOTO3_RETRIES_COUNT = 50
 
@@ -95,13 +95,15 @@ class AwsTopologyCheck(AgentCheck):
             keys.append(keys.pop(keys.index('cloudformation')))
         for api in keys:
             global_api = api.startswith('route53')
-            client = aws_client.get_boto3_client(api, region='us-east-1' if global_api else None)
             location = location_info(instance_info.account_id, 'us-east-1' if global_api else instance_info.region)
+            client = None
             for part in registry[api]:
+                if client is None:
+                    client = aws_client.get_boto3_client(api, region='us-east-1' if global_api else None)
                 if instance_info.apis_to_run is not None:
                     if not (api + '|' + part) in instance_info.apis_to_run:
                         continue
-                processor = registry[api][part](location, client, self)
+                processor = registry[api][part](location, client, AgentProxy(self, location))
                 try:
                     if api != 'cloudformation':
                         result = processor.process_all()
@@ -139,6 +141,31 @@ class AwsTopologyCheck(AgentCheck):
             raise Exception('get_topology gave following exceptions: %s' % ', '.join(errors))
 
         self.stop_snapshot()
+
+
+class AgentProxy(object):
+    def __init__(self, agent, location):
+        self.agent = agent
+        self.location = location
+        self.delete_ids = []
+
+    def component(self, id, type, data):
+        data.update(self.location)
+        self.agent.component(id, type, correct_tags(capitalize_keys(data)))
+
+    def relation(self, source_id, target_id, type, data):
+        self.agent.relation(source_id, target_id, type, data)
+
+    def event(self, event):
+        self.agent.event(event)
+
+    def delete(self, id):
+        self.delete_ids.append(id)
+
+    def create_security_group_relations(self, resource_id, resource_data, security_group_field='SecurityGroups'):
+        if resource_data.get(security_group_field):
+            for security_group_id in resource_data[security_group_field]:
+                self.relation(resource_id, security_group_id, 'uses service', {})
 
 
 class AwsClient:
