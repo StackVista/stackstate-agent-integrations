@@ -253,7 +253,7 @@ test_nagios:
   script:
     - checksdev test -c %CHECK%
   tags:
-    - sts_windows
+    - agent_windows_6
 
 test_stackstate_checks_dev_win:
   <<: *windows_test
