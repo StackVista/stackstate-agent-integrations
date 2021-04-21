@@ -17,3 +17,12 @@ def instance():
         'role_arn': 'arn:aws:iam::0123456789:role/OtherRoleName',
         'region': 'ijk'
     }
+
+
+@pytest.fixture
+def instance_no_role_arn():
+    return {
+        'aws_access_key_id': 'abc',
+        'aws_secret_access_key': 'cde',
+        'region': 'ijk'
+    }

@@ -14,7 +14,7 @@ AWS_REGION = 'eu-west-1'
 AWS_ACCOUNT = '672574731473'
 
 
-class MockAwsClient():
+class MockAwsClient:
     def __init__(self, instance, init_config):
         self.region = AWS_REGION
 
@@ -72,6 +72,15 @@ def test_service_check_ok(aggregator, instance):
     assert aws_check.get_instance_key(instance) == TopologyInstance('aws', AWS_ACCOUNT)
     aggregator.assert_service_check('aws_xray.can_connect', aws_check.OK)
     aggregator.assert_service_check('aws_xray.can_execute', aws_check.OK)
+
+
+def test_no_role_arn(aggregator, instance_no_role_arn):
+    aws_check = AwsCheck('test', {}, {}, instances=[instance_no_role_arn])
+    assert aws_check.get_instance_key(instance_no_role_arn) == TopologyInstance('aws', 'unknown-instance')
+    aws_client = AwsClient(instance_no_role_arn, config={})
+    assert aws_client.aws_access_key_id == instance_no_role_arn.get('aws_access_key_id')
+    assert aws_client.aws_secret_access_key == instance_no_role_arn.get('aws_secret_access_key')
+    assert aws_client.aws_session_token is None
 
 
 def test_span_generation():
