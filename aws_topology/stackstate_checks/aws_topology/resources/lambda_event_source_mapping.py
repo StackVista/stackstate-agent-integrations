@@ -4,6 +4,7 @@ from .registry import RegisteredResourceCollector
 
 class LambdaeventsourcemappingCollector(RegisteredResourceCollector):
     API = "lambda"
+    API_TYPE = "regional"
     COMPONENT_TYPE = "aws.lambda.event_source_mapping"
 
     def process_all(self):

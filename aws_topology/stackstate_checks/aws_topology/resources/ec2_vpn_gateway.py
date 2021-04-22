@@ -4,6 +4,7 @@ from .registry import RegisteredResourceCollector
 
 class VpnGatewayCollector(RegisteredResourceCollector):
     API = "ec2"
+    API_TYPE = "regional"
     COMPONENT_TYPE = "aws.vpngateway"
 
     def process_all(self):

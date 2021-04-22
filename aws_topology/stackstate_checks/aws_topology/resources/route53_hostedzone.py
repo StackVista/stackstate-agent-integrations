@@ -4,6 +4,7 @@ from .registry import RegisteredResourceCollector
 
 class Route53HostedzoneCollector(RegisteredResourceCollector):
     API = "route53"
+    API_TYPE = "global"
     COMPONENT_TYPE = "aws.route53.hostedzone"
 
     def process_all(self):

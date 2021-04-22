@@ -4,6 +4,7 @@ from .registry import RegisteredResourceCollector
 
 class SqsCollector(RegisteredResourceCollector):
     API = "sqs"
+    API_TYPE = "regional"
     COMPONENT_TYPE = "aws.sqs"
 
     def process_all(self):

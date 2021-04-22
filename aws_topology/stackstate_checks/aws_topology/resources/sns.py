@@ -4,6 +4,7 @@ from .registry import RegisteredResourceCollector
 
 class SnsCollector(RegisteredResourceCollector):
     API = "sns"
+    API_TYPE = "regional"
     COMPONENT_TYPE = "aws.sns"
 
     def process_all(self):

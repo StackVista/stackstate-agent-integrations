@@ -5,9 +5,10 @@ import pytest
 import unittest
 from mock import patch
 from copy import deepcopy
+from botocore.exceptions import ClientError
 from stackstate_checks.base.stubs import topology, aggregator
 from stackstate_checks.base import AgentCheck
-from stackstate_checks.aws_topology import AwsTopologyCheck, InstanceInfo
+from stackstate_checks.aws_topology import AwsTopologyCheck, InstanceInfo, InitConfig
 
 REGION = "test-region"
 KEY_ID = "1234"
@@ -42,16 +43,29 @@ class TestAWSTopologyCheck(unittest.TestCase):
         """
         Initialize and patch the check, i.e.
         """
-        config = {}
+        config = InitConfig(
+            {
+                "aws_access_key_id": "some_key",
+                "aws_secret_access_key": "some_secret",
+                "external_id": "secret_string"
+            }
+        )
         self.patcher = patch('botocore.client.BaseClient._make_api_call')
         self.mock_object = self.patcher.start()
         self.api_results = deepcopy(API_RESULTS)
         topology.reset()
         aggregator.reset()
-        self.check = AwsTopologyCheck(self.CHECK_NAME, config, instances=[self.instance])
+        self.check = AwsTopologyCheck(self.CHECK_NAME, config, [InstanceInfo(self.instance)])
 
-        def results(operation_name, kwarg):
-            return self.api_results.get(operation_name) or {}
+        def results(operation_name, api_params):
+            if operation_name == 'AssumeRole' and 'ExternalId' not in api_params:
+                raise ClientError({
+                    'Error': {
+                        'Code': 'AccessDeniedException'
+                    }
+                }, operation_name)
+            else:
+                return self.api_results.get(operation_name) or {}
 
         self.mock_object.side_effect = results
 
@@ -59,18 +73,14 @@ class TestAWSTopologyCheck(unittest.TestCase):
         """
         Testing AWS Topology check should not produce any topology (apis_to_run set to empty array)
         """
-        config = InstanceInfo(
+        instance = InstanceInfo(
             {
-                "aws_access_key_id": "some_key",
-                "aws_secret_access_key": "some_secret",
-                "role_arn": "some_role",
-                "account_id": "123456789012",
-                "region": "eu-west-1",
+                "role_arn": "arn:aws:iam::123456789012:role/RoleName",
+                "regions": ["eu-west-1"],
                 "apis_to_run": []
             }
         )
-
-        self.check.check(config)
+        self.check.check(instance)
         test_topology = topology.get_snapshot(self.check.check_id)
         self.assertEqual(test_topology['instance_key'], {'type': 'aws', 'url': '123456789012'})
         self.assertEqual(test_topology['components'], [])
@@ -82,16 +92,16 @@ class TestAWSTopologyCheck(unittest.TestCase):
         self.assertGreater(len(service_checks), 0)
         self.assertEqual(service_checks[0].status, AgentCheck.OK)
 
-    def test_connect_failure(self):
-        """
-        Testing connection failure
-        """
-        self.api_results['GetCallerIdentity']['Account'] = WRONG_ACCOUNT_ID
-        self.check.run()
+    # def test_connect_failure(self):
+    #     """
+    #     Testing connection failure
+    #     """
+    #     self.api_results['GetCallerIdentity']['Account'] = WRONG_ACCOUNT_ID
+    #     self.check.run()
 
-        service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_CONNECT_NAME)
-        self.assertGreater(len(service_checks), 0)
-        self.assertIn('caller identity does not return correct account_id', service_checks[0].message)
+    #     service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_CONNECT_NAME)
+    #     self.assertGreater(len(service_checks), 0)
+    #     self.assertIn('caller identity does not return correct account_id', service_checks[0].message)
 
     def test_execute_failure(self):
         """
@@ -108,13 +118,18 @@ class TestAWSTopologyCheck(unittest.TestCase):
                 raise Exception("error")
 
         registry = {
-            's3': {
-                'aws.s3': s3
-            }
+            'regional': {
+                's3': {
+                    'aws.s3': s3
+                }
+            },
+            'global': {}
         }
 
         self.check.APIS = {
-            's3': {}
+            'regional': {
+                's3': {}
+            }
         }
         with patch('stackstate_checks.aws_topology.resources.ResourceRegistry.get_registry', return_value=registry):
             self.check.run()
@@ -128,6 +143,7 @@ class TestAWSTopologyCheck(unittest.TestCase):
         """
         class base(object):
             API = "??"
+            API_TYPE = "??"
             MEMORY_KEY = None
 
             def __init__(self, location_info, client, agent):
@@ -138,6 +154,7 @@ class TestAWSTopologyCheck(unittest.TestCase):
 
         class s3(base):
             API = "s3"
+            API_TYPE = "regional"
             MEMORY_KEY = 'test_key'
 
             def process_all(self):
@@ -145,6 +162,7 @@ class TestAWSTopologyCheck(unittest.TestCase):
 
         class ec2_1(base):
             API = "ec2"
+            API_TYPE = "regional"
             COMPONENT_TYPE = "ec2_1"
 
             def process_all(self):
@@ -152,6 +170,7 @@ class TestAWSTopologyCheck(unittest.TestCase):
 
         class ec2_2(base):
             API = "ec2"
+            API_TYPE = "regional"
             COMPONENT_TYPE = "ec2_2"
 
             def process_all(self):
@@ -159,21 +178,25 @@ class TestAWSTopologyCheck(unittest.TestCase):
 
         class autoscaling(base):
             API = "autoscaling"
+            API_TYPE = "regional"
 
             def process_all(self):
                 pass
 
         registry = {
-            's3': {
-                'aws.s3': s3
+            'regional': {
+                's3': {
+                    'aws.s3': s3
+                },
+                'ec2': {
+                    'aws.1': ec2_1,
+                    'aws.2': ec2_2
+                },
+                'autoscaling': {
+                    'autoscaling': autoscaling
+                }
             },
-            'ec2': {
-                'aws.1': ec2_1,
-                'aws.2': ec2_2
-            },
-            'autoscaling': {
-                'autoscaling': autoscaling
-            }
+            'global': {}
         }
         with patch('stackstate_checks.aws_topology.resources.ResourceRegistry.get_registry', return_value=registry):
             self.check.run()

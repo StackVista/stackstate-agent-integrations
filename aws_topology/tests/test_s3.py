@@ -8,7 +8,7 @@ from copy import deepcopy
 
 from stackstate_checks.base.stubs import topology, aggregator
 from stackstate_checks.base import AgentCheck
-from stackstate_checks.aws_topology import AwsTopologyCheck
+from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig, InstanceInfo
 
 from .conftest import API_RESULTS
 
@@ -37,13 +37,19 @@ class TestS3(unittest.TestCase):
         """
         Initialize and patch the check, i.e.
         """
-        config = {}
+        config = InitConfig(
+            {
+                "aws_access_key_id": "some_key",
+                "aws_secret_access_key": "some_secret",
+                "external_id": "disable_external_id_this_is_unsafe"
+            }
+        )
         self.patcher = patch('botocore.client.BaseClient._make_api_call')
         self.mock_object = self.patcher.start()
         self.api_results = deepcopy(API_RESULTS)
         topology.reset()
         aggregator.reset()
-        self.check = AwsTopologyCheck(self.CHECK_NAME, config, instances=[self.instance])
+        self.check = AwsTopologyCheck(self.CHECK_NAME, config, [InstanceInfo(self.instance)])
 
         def results(operation_name, kwarg):
             return self.api_results.get(operation_name) or {}
