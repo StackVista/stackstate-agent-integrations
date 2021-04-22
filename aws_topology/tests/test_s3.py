@@ -8,7 +8,7 @@ from copy import deepcopy
 
 from stackstate_checks.base.stubs import topology, aggregator
 from stackstate_checks.base import AgentCheck
-from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig, InstanceInfo
+from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
 
 from .conftest import API_RESULTS
 
@@ -49,7 +49,7 @@ class TestS3(unittest.TestCase):
         self.api_results = deepcopy(API_RESULTS)
         topology.reset()
         aggregator.reset()
-        self.check = AwsTopologyCheck(self.CHECK_NAME, config, [InstanceInfo(self.instance)])
+        self.check = AwsTopologyCheck(self.CHECK_NAME, config, [self.instance])
 
         def results(operation_name, kwarg):
             return self.api_results.get(operation_name) or {}

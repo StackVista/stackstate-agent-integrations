@@ -55,7 +55,7 @@ class TestAWSTopologyCheck(unittest.TestCase):
         self.api_results = deepcopy(API_RESULTS)
         topology.reset()
         aggregator.reset()
-        self.check = AwsTopologyCheck(self.CHECK_NAME, config, [InstanceInfo(self.instance)])
+        self.check = AwsTopologyCheck(self.CHECK_NAME, config, [self.instance])
 
         def results(operation_name, api_params):
             if operation_name == 'AssumeRole' and 'ExternalId' not in api_params:

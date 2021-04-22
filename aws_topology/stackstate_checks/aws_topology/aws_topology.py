@@ -100,7 +100,7 @@ class AwsTopologyCheck(AgentCheck):
                 keys.append(keys.pop(keys.index('cloudformation')))
             for api in keys:
                 client = session.client(api)
-                location = location_info(self.get_account_id(instance_info), session.region)
+                location = location_info(self.get_account_id(instance_info), session.region_name)
                 for part in registry[api]:
                     if instance_info.apis_to_run is not None:
                         if not (api + '|' + part) in instance_info.apis_to_run:

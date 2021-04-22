@@ -6,9 +6,8 @@ from mock import patch
 import dateutil.parser
 import datetime
 from stackstate_checks.base.stubs import topology as top, aggregator
-from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig, InstanceInfo
+from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
 from stackstate_checks.base import AgentCheck
-from stackstate_checks.aws_topology import AwsTopologyCheck
 from stackstate_checks.aws_topology.resources import ResourceRegistry
 from botocore.exceptions import ClientError
 from copy import deepcopy
@@ -85,7 +84,10 @@ def get_wrapper(check_name):
                 raise Exception("Oops")
 
         # patch the registry
-        registry[api][comptype] = error
+        if api.startswith('route53'):
+            registry['global'][api][comptype] = error
+        else:
+            registry['regional'][api][comptype] = error
         return registry
     return registry_wrapper
 
@@ -463,11 +465,22 @@ class TestTemplate(unittest.TestCase):
         })
         instance = {
             "role_arn": "arn:aws:iam::731070500579:role/RoleName",
-            "regions": ["eu-west-1"],
+            "regions": ["global", "eu-west-1"],
         }
         if method.api:
+            if method.api.startswith('route53'):
+                instance = {
+                    "role_arn": "arn:aws:iam::731070500579:role/RoleName",
+                    "regions": ["global"],
+                }
+            else:
+                instance = {
+                    "role_arn": "arn:aws:iam::731070500579:role/RoleName",
+                    "regions": ["eu-west-1"],
+                }
             instance.update({"apis_to_run": [method.api]})
-        self.check = AwsTopologyCheck(self.CHECK_NAME, InitConfig(init_config), [InstanceInfo(instance)])
+
+        self.check = AwsTopologyCheck(self.CHECK_NAME, InitConfig(init_config), [instance])
         self.mock_object.side_effect = mock_boto_calls
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
@@ -1423,14 +1436,14 @@ class TestTemplatePathedRegistry(unittest.TestCase):
             ):
                 top.reset()
                 aggregator.reset()
-                init_config = {
+                init_config = InitConfig({
                     "aws_access_key_id": "some_key",
                     "aws_secret_access_key": "some_secret",
-                    "external_id": "731070500579",
-                }
+                    "external_id": "disable_external_id_this_is_unsafe",
+                })
                 instance = {
-                    "role_arn": "some_role",
-                    "regions": ["eu-west-1"],
+                    "role_arn": "arn:aws:iam::731070500579:role/RoleName",
+                    "regions": ["global", "eu-west-1"],
                 }
                 self.check = AwsTopologyCheck(self.CHECK_NAME, init_config, [instance])
                 self.check.run()
