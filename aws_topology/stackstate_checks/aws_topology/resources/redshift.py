@@ -4,6 +4,7 @@ from .registry import RegisteredResourceCollector
 
 class RedshiftCollector(RegisteredResourceCollector):
     API = "redshift"
+    API_TYPE = "regional"
     COMPONENT_TYPE = "aws.redshift"
 
     def process_all(self):

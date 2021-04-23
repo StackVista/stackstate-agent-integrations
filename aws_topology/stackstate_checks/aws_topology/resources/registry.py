@@ -4,7 +4,10 @@ from .utils import correct_tags, capitalize_keys
 
 class ResourceRegistry(type):
 
-    REGISTRY = {}
+    REGISTRY = {
+        'global': {},
+        'regional': {}
+    }
 
     def __new__(cls, name, bases, attrs):
         new_cls = type.__new__(cls, name, bases, attrs)
@@ -12,10 +15,10 @@ class ResourceRegistry(type):
             Here the name of the class is used as key but it could be any class
             parameter.
         """
-        if new_cls.API != '??':
-            if cls.REGISTRY.get(new_cls.API) is None:
-                cls.REGISTRY[new_cls.API] = {}
-            cls.REGISTRY[new_cls.API][new_cls.COMPONENT_TYPE] = new_cls
+        if '??' not in [new_cls.API, new_cls.API_TYPE]:
+            if cls.REGISTRY[new_cls.API_TYPE].get(new_cls.API) is None:
+                cls.REGISTRY[new_cls.API_TYPE][new_cls.API] = {}
+            cls.REGISTRY[new_cls.API_TYPE][new_cls.API][new_cls.COMPONENT_TYPE] = new_cls
         return new_cls
 
     @classmethod
@@ -55,6 +58,7 @@ class RegisteredResourceCollector(with_metaclass(ResourceRegistry, object)):
     class and the associated value, the class itself.
     """
     API = "??"
+    API_TYPE = "??"
     MEMORY_KEY = None
     COMPONENT_TYPE = "??"
 

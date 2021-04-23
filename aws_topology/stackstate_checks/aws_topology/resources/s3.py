@@ -4,6 +4,7 @@ from .registry import RegisteredResourceCollector
 
 class S3Collector(RegisteredResourceCollector):
     API = "s3"
+    API_TYPE = "regional"
     COMPONENT_TYPE = "aws.s3_bucket"
 
     def process_all(self):

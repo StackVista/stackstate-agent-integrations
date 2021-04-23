@@ -15,6 +15,7 @@ DEFAULT_BOTO3_CONFIG = Config(
 
 class EcsCollector(RegisteredResourceCollector):
     API = "ecs"
+    API_TYPE = "regional"
     COMPONENT_TYPE = "aws.ecs.cluster"
     MEMORY_KEY = "ecs_cluster"
 

@@ -4,6 +4,7 @@ from .registry import RegisteredResourceCollector
 
 class FirehoseCollector(RegisteredResourceCollector):
     API = "firehose"
+    API_TYPE = "regional"
     COMPONENT_TYPE = "aws.firehose"
 
     def process_all(self):

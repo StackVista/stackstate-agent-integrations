@@ -4,6 +4,7 @@ from .registry import RegisteredResourceCollector
 
 class AutoscalingCollector(RegisteredResourceCollector):
     API = "autoscaling"
+    API_TYPE = "regional"
     COMPONENT_TYPE = "aws.autoscaling"
     MEMORY_KEY = "auto_scaling"
 
