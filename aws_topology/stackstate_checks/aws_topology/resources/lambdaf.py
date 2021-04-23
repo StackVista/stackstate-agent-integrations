@@ -6,6 +6,7 @@ from .registry import RegisteredResourceCollector
 
 class LambdaCollector(RegisteredResourceCollector):
     API = "lambda"
+    API_TYPE = "regional"
     COMPONENT_TYPE = "aws.lambda"
     MEMORY_KEY = "lambda_func"
 

@@ -5,6 +5,7 @@ from .registry import RegisteredResourceCollector
 
 class Ec2InstanceCollector(RegisteredResourceCollector):
     API = "ec2"
+    API_TYPE = "regional"
     COMPONENT_TYPE = "aws.ec2"
 
     def __init__(self, location_info, client, agent):

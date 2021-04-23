@@ -23,6 +23,7 @@ type_map = {
 
 class CloudformationCollector(RegisteredResourceCollector):
     API = "cloudformation"
+    API_TYPE = "regional"
     COMPONENT_TYPE = "aws.cloudformation"
 
     def process_all(self, memory_data=None):

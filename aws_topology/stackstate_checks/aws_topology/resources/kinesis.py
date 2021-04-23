@@ -4,6 +4,7 @@ from .registry import RegisteredResourceCollector
 
 class KinesisCollector(RegisteredResourceCollector):
     API = "kinesis"
+    API_TYPE = "regional"
     COMPONENT_TYPE = "aws.kinesis"
     MEMORY_KEY = "kinesis_stream"
 

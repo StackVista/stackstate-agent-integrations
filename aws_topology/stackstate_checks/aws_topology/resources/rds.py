@@ -4,6 +4,7 @@ from .registry import RegisteredResourceCollector
 
 class RdsCollector(RegisteredResourceCollector):
     API = "rds"
+    API_TYPE = "regional"
     COMPONENT_TYPE = "aws.rds_cluster"
 
     def process_all(self):

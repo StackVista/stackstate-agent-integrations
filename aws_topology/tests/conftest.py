@@ -32,21 +32,35 @@ def sts_environment():
     #  The start command places this as a `conf.yaml` in the `conf.d/mycheck/` directory.
     #  If you want to run an environment this object can not be empty.
     return {
-        "aws_access_key_id": "some_key",
-        "aws_secret_access_key": "some_secret",
-        "role_arn": "some_role",
-        "account_id": "123456789012",
-        "region": "eu-west-1"
+        "role_arn": "arn:aws:iam::123456789012:role/RoleName",
+        "regions": ["eu-west-1"],
     }
 
 
 @pytest.fixture(scope="class")
 def instance(request):
     cfg = {
-        "aws_access_key_id": "some_key",
-        "aws_secret_access_key": "some_secret",
-        "role_arn": "some_role",
-        "account_id": "123456789012",
-        "region": "eu-west-1"
+            "role_arn": "arn:aws:iam::123456789012:role/RoleName",
+            "regions": ["eu-west-1"],
     }
     request.cls.instance = cfg
+
+
+@pytest.fixture(scope="class")
+def init_config(request):
+    cfg = {
+        "aws_access_key_id": "abc",
+        "aws_secret_access_key": "cde",
+        "external_id": "randomvalue"
+    }
+    request.cls.config = cfg
+
+
+@pytest.fixture(scope="class")
+def init_config_override(request):
+    cfg = {
+        "aws_access_key_id": "abc",
+        "aws_secret_access_key": "cde",
+        "external_id": "disable_external_id_this_is_unsafe",
+    }
+    request.cls.config = cfg

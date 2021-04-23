@@ -5,6 +5,7 @@ from .registry import RegisteredResourceCollector
 
 class ELBClassicCollector(RegisteredResourceCollector):
     API = "elb"
+    API_TYPE = "regional"
     COMPONENT_TYPE = "aws.elb_classic"
     MEMORY_KEY = "elb_classic"
 
