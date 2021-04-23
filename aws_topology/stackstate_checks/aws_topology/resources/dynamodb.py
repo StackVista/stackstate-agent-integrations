@@ -4,6 +4,7 @@ from .registry import RegisteredResourceCollector
 
 class DynamodbTableCollector(RegisteredResourceCollector):
     API = "dynamodb"
+    API_TYPE = "regional"
     COMPONENT_TYPE = "aws.dynamodb"
 
     def process_all(self):

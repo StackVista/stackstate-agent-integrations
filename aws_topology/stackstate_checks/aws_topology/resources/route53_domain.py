@@ -4,6 +4,7 @@ from .registry import RegisteredResourceCollector
 
 class Route53DomainCollector(RegisteredResourceCollector):
     API = "route53domains"
+    API_TYPE = "global"
     COMPONENT_TYPE = "aws.route53.domain"
 
     def process_all(self):

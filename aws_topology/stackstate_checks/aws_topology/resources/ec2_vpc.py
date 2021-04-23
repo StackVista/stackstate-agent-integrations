@@ -4,6 +4,7 @@ from .registry import RegisteredResourceCollector
 
 class VpcCollector(RegisteredResourceCollector):
     API = "ec2"
+    API_TYPE = "regional"
     COMPONENT_TYPE = "aws.vpc"
 
     def process_all(self):

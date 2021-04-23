@@ -11,6 +11,7 @@ except ImportError:
 
 class ApigatewayStageCollector(RegisteredResourceCollector):
     API = "apigateway"
+    API_TYPE = "regional"
     COMPONENT_TYPE = "aws.apigateway.stage"
     MEMORY_KEY = "api_stage"
 
