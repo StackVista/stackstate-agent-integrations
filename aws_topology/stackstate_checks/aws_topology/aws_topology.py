@@ -53,7 +53,9 @@ class AwsTopologyCheck(AgentCheck):
 
     def check(self, instance_info):
         try:
-            aws_client = AwsClient(self.init_config)
+            init_config = InitConfig(self.init_config)
+            init_config.validate()
+            aws_client = AwsClient(init_config)
             self.service_check(self.SERVICE_CHECK_CONNECT_NAME, AgentCheck.OK, tags=instance_info.tags)
         except Exception as e:
             msg = 'AWS connection failed: {}'.format(e)
