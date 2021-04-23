@@ -108,7 +108,7 @@ class AwsTopologyCheck(AgentCheck):
                             continue
                     if client is None:
                         client = session.client(api)
-                    processor = registry[api][part](location, client, self)
+                    processor = registry[api][part](location, client, AgentProxy(self, location))
                     try:
                         if api != 'cloudformation':
                             result = processor.process_all()
