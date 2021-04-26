@@ -6,11 +6,11 @@ import json
 import logging
 import os
 import tempfile
+import uuid
 
 import boto3
 import flatten_dict
 import requests
-import uuid
 from botocore.config import Config
 
 from stackstate_checks.base import AgentCheck, TopologyInstance, is_affirmative
@@ -36,7 +36,7 @@ class AwsCheck(AgentCheck):
 
     def __init__(self, name, init_config, agentConfig, instances=None):
         AgentCheck.__init__(self, name, init_config, agentConfig, instances)
-        self.log.setLevel(logging.DEBUG)
+        self.log.setLevel(logging.INFO)
         self.trace_ids = {}
         self.region = None
         # default the account id to the role_arn, this will be replaced by the account id after a successful login
@@ -87,13 +87,16 @@ class AwsCheck(AgentCheck):
         """Gets AWS X-Ray traces returns them in Trace Agent format."""
         traces = []
         xray_traces_batch = aws_client.get_xray_traces()
+        self.log.info('XXXXX started processing xray traces.')
         for xray_traces in xray_traces_batch:
             for xray_trace in xray_traces['Traces']:
                 trace = []
                 for segment in xray_trace['Segments']:
                     segment_documents = [json.loads(segment['Document'])]
                     trace.extend(self._generate_spans(segment_documents))
+                self.log.info('XXXXX appended %s traces', len(trace))
                 traces.append(trace)
+        self.log.info('XXXXX total %s traces.', len(traces))
         return traces
 
     def _generate_spans(self, segments, trace_id=None, parent_id=None):
@@ -269,6 +272,7 @@ class AwsClient:
         xray_client = self._get_boto3_client('xray')
 
         start_time = self._get_last_request_end_time()
+        traces = []
 
         operation_params = {
             'StartTime': start_time,
@@ -285,7 +289,6 @@ class AwsClient:
             traces.append(xray_client.batch_get_traces(TraceIds=[trace_summary['Id']]))
 
         self.last_end_time = operation_params['EndTime']
-
         return traces
 
     def _get_boto3_client(self, service_name):
@@ -302,12 +305,19 @@ class AwsClient:
                 self.log.info(
                     'Read {}. Start time for X-Ray retrieval period is last retrieval end time: {}'.format(
                         self.cache_file, start_time))
+                if datetime.datetime.now() - datetime.timedelta(hours=24) > start_time:
+                    start_time = self.default_start_time()
+                    self.log.info('Time range cannot be longer than 24 hours. '
+                                  'New Start time for X-Ray retrieval period is: {}'.format(start_time))
         except IOError:
-            start_time = datetime.datetime.utcnow() - datetime.timedelta(seconds=self.collection_interval)
+            start_time = self.default_start_time()
             self.log.info(
                 'Cache file {} not found. Start time for X-Ray retrieval period is: {}'.format(self.cache_file,
                                                                                                start_time))
         return start_time
+
+    def default_start_time(self):
+        return datetime.datetime.utcnow() - datetime.timedelta(seconds=self.collection_interval)
 
     def write_cache_file(self):
         with open(self.cache_file, 'w') as file:
