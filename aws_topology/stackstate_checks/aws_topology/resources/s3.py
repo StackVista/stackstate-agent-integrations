@@ -1,5 +1,24 @@
-from .utils import make_valid_data
+from .utils import make_valid_data, create_arn as arn, client_array_operation
 from .registry import RegisteredResourceCollector
+from collections import namedtuple
+from schematics import Model
+from schematics.types import StringType, ListType
+
+
+def create_arn(resource_id=None, **kwargs):
+    return arn(resource='s3', region='', account_id='', resource_id=resource_id)
+
+
+BucketData = namedtuple('BucketData', ['bucket', 'location', 'tags', 'config'])
+
+
+class Bucket(Model):
+    Name = StringType()
+
+
+class BucketNotification(Model):
+    LambdaFunctionArn = StringType(required=True)
+    Events = ListType(StringType, required=True)
 
 
 class S3Collector(RegisteredResourceCollector):
@@ -7,34 +26,58 @@ class S3Collector(RegisteredResourceCollector):
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.s3_bucket"
 
-    def process_all(self):
-        s3_bucket = {}
-        for bucket_data_raw in self.client.list_buckets().get("Buckets") or []:  # TODO no paginator!
-            bucket_data = make_valid_data(bucket_data_raw)
-            result = self.process_bucket(bucket_data)
-            s3_bucket.update(result)
-        return s3_bucket
-
-    def process_bucket(self, bucket_data):
-        bucket_name = bucket_data["Name"]
-        bucket_arn = "arn:aws:s3:::" + bucket_name  # TODO use proper arn constructor
-        bucket_location = self.client.get_bucket_location(Bucket=bucket_name)
-        if bucket_location and bucket_location["LocationConstraint"]:
-            bucket_data["BucketLocation"] = bucket_location["LocationConstraint"]
+    def collect_bucket(self, bucket):
+        name = bucket.get('Name')
         try:
-            # raises error when there aren't any tags, see:https://github.com/boto/boto3/issues/341
-            bucket_tags = self.client.get_bucket_tagging(Bucket=bucket_name)["TagSet"]
-        except Exception:
-            bucket_tags = []
-        bucket_data["Tags"] = bucket_tags
-        self.agent.component(bucket_arn, self.COMPONENT_TYPE, bucket_data)
-        bucket_notification_configurations = self.client.get_bucket_notification_configuration(Bucket=bucket_name).get(
-            "LambdaFunctionConfigurations"
-        )
-        if bucket_notification_configurations:
-            for bucket_notification in bucket_notification_configurations:
-                function_arn = bucket_notification["LambdaFunctionArn"]
-                for event_raw in bucket_notification["Events"]:
-                    event = make_valid_data(event_raw)
+            location = self.client.get_bucket_location(Bucket=name).get('LocationConstraint', '')
+        except Exception:  # TODO catch throttle + permission exceptions
+            location = ''
+        try:
+            tags = self.client.get_bucket_tagging(Bucket=name).get("TagSet", [])
+        except Exception:  # TODO catch throttle + permission exceptions
+            tags = []
+        try:
+            config = self.client.get_bucket_notification_configuration(Bucket=name).get(
+                "LambdaFunctionConfigurations", []
+            )
+        except Exception:  # TODO catch throttle + permission exceptions
+            config = []
+        return BucketData(bucket=bucket, location=location, tags=tags, config=config)
+
+    def collect_buckets(self):
+        for bucket in [
+                self.collect_bucket(bucket) for bucket in client_array_operation(
+                    self.client,
+                    'list_buckets',
+                    'Buckets'
+                )
+            ]:
+                yield bucket
+
+    def process_all(self):
+        s3_buckets = {}
+        # buckets should only be fetched for global OR filtered by LocationConstraint
+        for bucket_data in self.collect_buckets():
+            s3_buckets.update(self.process_bucket(bucket_data))
+        return s3_buckets
+
+    def process_bucket(self, data):
+        output = make_valid_data(data.bucket)
+
+        bucket = Bucket(data.bucket, strict=False)
+        config = [BucketNotification(notification, strict=False) for notification in data.config]
+
+        bucket_name = bucket.Name
+        bucket_arn = create_arn(resource_id=bucket_name)
+
+        if data.location:
+            output["BucketLocation"] = data.location
+        output["Tags"] = data.tags
+
+        self.agent.component(bucket_arn, self.COMPONENT_TYPE, output)
+        for bucket_notification in config:
+            function_arn = bucket_notification.LambdaFunctionArn
+            if function_arn:
+                for event in bucket_notification.Events:
                     self.agent.relation(bucket_arn, function_arn, "uses service", {"event_type": event})
         return {bucket_name: bucket_arn}

@@ -5,11 +5,11 @@ import json
 from datetime import datetime, date
 
 
-def make_valid_data(data):
+def make_valid_data_internal(data):
     if isinstance(data, list):
-        return [make_valid_data(x) for x in data]
+        return [make_valid_data_internal(x) for x in data]
     elif isinstance(data, dict):
-        return {key: make_valid_data(val) for key, val in data.items()}
+        return {key: make_valid_data_internal(val) for key, val in data.items()}
     elif data is None or isinstance(data, string_types) or isinstance(data, integer_types) or \
             isinstance(data, float) or isinstance(data, bool):
         return data
@@ -18,6 +18,11 @@ def make_valid_data(data):
     else:
         return str(data)
 
+def make_valid_data(data):
+    result = make_valid_data_internal(data)
+    if 'ResponseMetadata' in result:
+        result.pop('ResponseMetadata')
+    return result
 
 def get_partition_name(region):
     region_string = region.lower()
@@ -32,7 +37,7 @@ def get_partition_name(region):
     return partition
 
 
-def create_arn(resource, region, account_id, resource_id):
+def create_arn(resource='', region='', account_id='', resource_id=''):
     # TODO aws is not always partition!!
     return "arn:aws:{}:{}:{}:{}".format(resource, region, account_id, resource_id)
 
@@ -98,3 +103,16 @@ def create_security_group_relations(resource_id, resource_data, agent, security_
 
 def create_hash(dict):
     return hashlib.sha256(str(json.dumps(dict, sort_keys=True)).encode('utf-8')).hexdigest()
+
+
+def client_array_operation(client, operation_name, array_field_name, **kwargs):
+    method = getattr(client, operation_name, None)
+    if method is None:
+        raise Exception("Method not found")
+    if client.can_paginate(operation_name):
+        for page in client.get_paginator(operation_name).paginate(**kwargs):
+            for item in page.get(array_field_name) or []:
+                yield item
+    else:
+        for item in method(**kwargs).get(array_field_name) or []:
+            yield item
