@@ -10,8 +10,14 @@ from schematics import Model
 from schematics.types import StringType, ListType, DictType
 from botocore.config import Config
 from stackstate_checks.base import AgentCheck, TopologyInstance
-from .resources import ResourceRegistry
+from .resources import ResourceRegistry, listen_for, type_arn
 from .utils import location_info, correct_tags, capitalize_keys
+import json
+from datetime import datetime
+import pytz
+import dateutil.parser
+import copy
+
 
 DEFAULT_BOTO3_RETRIES_COUNT = 50
 
@@ -70,6 +76,7 @@ class AwsTopologyCheck(AgentCheck):
 
         try:
             self.get_topology(instance_info, aws_client)
+            # self.get_topology_update(instance_info, aws_client)
             self.service_check(self.SERVICE_CHECK_EXECUTE_NAME, AgentCheck.OK, tags=instance_info.tags)
         except Exception as e:
             msg = 'AWS topology collection failed: {}'.format(e)
@@ -88,6 +95,7 @@ class AwsTopologyCheck(AgentCheck):
         self.memory_data = {}  # name -> arn for cloudformation
         errors = []
         self.delete_ids = []
+        agent_proxy = AgentProxy(self)
         for region in instance_info.regions:
             session = aws_client.get_session(instance_info.role_arn, region)
             registry = ResourceRegistry.get_registry()["regional" if region != "global" else "global"]
@@ -102,13 +110,14 @@ class AwsTopologyCheck(AgentCheck):
             for api in keys:
                 client = None
                 location = location_info(self.get_account_id(instance_info), session.region_name)
+                agent_proxy.location = copy.deepcopy(location)
                 for part in registry[api]:
                     if instance_info.apis_to_run is not None:
                         if not (api + '|' + part) in instance_info.apis_to_run:
                             continue
                     if client is None:
                         client = session.client(api)
-                    processor = registry[api][part](location, client, AgentProxy(self, location))
+                    processor = registry[api][part](location, client, agent_proxy)
                     try:
                         if api != 'cloudformation':
                             result = processor.process_all()
@@ -142,30 +151,94 @@ class AwsTopologyCheck(AgentCheck):
                         }
                         self.event(event)
                         errors.append('API %s ended with exception: %s %s' % (api, str(e), traceback.format_exc()))
+        agent_proxy.send_parked_relations()  # TODO this should be for tests, in production these relations should not be sent out
         if len(errors) > 0:
             raise Exception('get_topology gave following exceptions: %s' % ', '.join(errors))
 
         self.stop_snapshot()
 
+    def get_topology_update(self, instance_info, aws_client):
+        for region in instance_info.regions:
+            session = aws_client.get_session(instance_info.role_arn, region)
+            client = session.client('cloudtrail')
+            stop = False
+            for pg in client.get_paginator('lookup_events').paginate(
+                LookupAttributes=[
+                    {
+                        'AttributeKey': 'ReadOnly',
+                        'AttributeValue': 'false'
+                    }
+                ],
+            ):
+                for itm in pg.get('Events') or []:
+                    rec = json.loads(itm['CloudTrailEvent'])
+                    event_date = dateutil.parser.isoparse(rec['eventTime'])
+                    delta = datetime.utcnow().replace(tzinfo=pytz.utc) - event_date
+                    if delta.total_seconds() > 60*60*24*5:
+                        stop = True
+                        break
+                    print(region + '-' + rec['eventName'] + '-' + rec['eventSource'])
+                    if listen_for.get(rec['eventSource']):
+                        eventclass = listen_for[rec['eventSource']].get(rec['eventName'])
+                        if eventclass:
+                            print(rec['eventName'] + '-' + rec['eventSource'])
+                            if not isinstance(eventclass, bool) and issubclass(eventclass, Model):
+                                event = eventclass(rec, strict=False)
+                                print(event.to_primitive())
+                            else:
+                                print('should interpret: ' + rec['eventName'] + '-' + rec['eventSource'])
+                                print(rec)
+                if stop:
+                    break
+
 
 class AgentProxy(object):
-    def __init__(self, agent, location):
+    def __init__(self, agent):
         self.agent = agent
-        self.location = location
+        self.location = {}
         self.delete_ids = []
+        self.components_seen = set()
+        self.parked_relations = []
 
     def component(self, id, type, data):
+        self.components_seen.add(id)
         data.update(self.location)
         self.agent.component(id, type, correct_tags(capitalize_keys(data)))
+        for i in range(len(self.parked_relations)-1, 0, -1):
+            relation = self.parked_relations[i]
+            if relation['source_id'] == id and relation['target_id'] in self.components_seen:
+                self.agent.relation(relation['source_id'], relation['target_id'], relation['type'], relation['data'])
+                self.parked_relations.remove(relation)
+            if relation['target_id'] == id and relation['source_id'] in self.components_seen:
+                self.agent.relation(relation['source_id'], relation['target_id'], relation['type'], relation['data'])
+                self.parked_relations.remove(relation)
 
     def relation(self, source_id, target_id, type, data):
-        self.agent.relation(source_id, target_id, type, data)
+        if source_id in self.components_seen and target_id in self.components_seen:
+            self.agent.relation(source_id, target_id, type, data)
+        else:
+            self.parked_relations.append({
+                'type': type,
+                'source_id': source_id,
+                'target_id': target_id,
+                'data': data
+            })
+
+    def send_parked_relations(self):
+        for relation in self.parked_relations:
+            self.agent.relation(relation['source_id'], relation['target_id'], relation['type'], relation['data'])
 
     def event(self, event):
         self.agent.event(event)
 
     def delete(self, id):
         self.delete_ids.append(id)
+
+    def create_arn(self, type, resource_id=''):
+        func = type_arn.get(type)
+        if func:
+            return func(region=self.location['AwsRegion'], account_id=self.location['AwsAccount'], resource_id=resource_id)
+        return "UNSUPPORTED_ARN-" + type + "-" + resource_id
 
     def create_security_group_relations(self, resource_id, resource_data, security_group_field='SecurityGroups'):
         if resource_data.get(security_group_field):
