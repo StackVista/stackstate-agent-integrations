@@ -1,6 +1,9 @@
-from .utils import make_valid_data
+from .utils import make_valid_data, create_arn
 from .registry import RegisteredResourceCollector
-
+from .s3 import create_arn as s3_arn
+from .lambdaf import create_arn as lambda_arn
+from .kinesis import create_arn as kinesis_arn
+from .dynamodb import create_table_arn as dynamodb_table_arn
 # TODO memorydata
 memory_data = {}
 
@@ -18,6 +21,24 @@ type_map = {
     'AWS::DynamoDB::Table': 'dynamodb',
     'AWS::ECS::Cluster': 'ecs_cluster',
     'AWS::EC2::Instance': 'ec2'
+}
+
+
+type_arn = {
+    'AWS::Lambda::Function': lambda_arn,
+    'AWS::Kinesis::Stream': kinesis_arn,
+    'AWS::S3::Bucket': s3_arn,
+    'AWS::ElasticLoadBalancingV2::TargetGroup': create_arn,
+    'AWS::ElasticLoadBalancingV2::LoadBalancer': create_arn,
+    'AWS::AutoScaling::AutoScalingGroup': create_arn,
+    'AWS::ElasticLoadBalancing::LoadBalancer': create_arn,
+    'AWS::RDS::DBInstance': create_arn,
+    'AWS::SNS::Topic': create_arn,
+    'AWS::SQS::Queue': create_arn,
+    'AWS::DynamoDB::Table': dynamodb_table_arn,
+    'AWS::ECS::Cluster': create_arn,
+    'AWS::EC2::Instance': create_arn,
+    'AWS::ApiGateway::RestApi': create_arn
 }
 
 

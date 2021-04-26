@@ -1,5 +1,9 @@
-from .utils import make_valid_data, with_dimensions
+from .utils import make_valid_data, with_dimensions, create_arn as arn
 from .registry import RegisteredResourceCollector
+
+
+def create_table_arn(region=None, account_id=None, resource_id=None, **kwargs):
+    return arn(resource='dynamodb', region=region, account_id=account_id, resource_id='table/' + resource_id)
 
 
 class DynamodbTableCollector(RegisteredResourceCollector):

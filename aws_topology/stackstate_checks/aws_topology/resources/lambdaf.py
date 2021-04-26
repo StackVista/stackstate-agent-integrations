@@ -1,7 +1,11 @@
 import time
 from botocore.exceptions import ClientError
-from .utils import make_valid_data
+from .utils import make_valid_data, create_arn as arn
 from .registry import RegisteredResourceCollector
+
+
+def create_arn(resource_id, region, account_id, **kwargs):
+    return arn(resource='lambda', region=region, account_id=account_id, resource_id='function:' + resource_id)
 
 
 class LambdaCollector(RegisteredResourceCollector):

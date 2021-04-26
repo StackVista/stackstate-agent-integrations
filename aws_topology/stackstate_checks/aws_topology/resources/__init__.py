@@ -19,10 +19,15 @@ from .lambdaf import LambdaCollector  # noqa: F401
 from .dynamodb import DynamodbTableCollector  # noqa: F401
 from .lambda_event_source_mapping import LambdaeventsourcemappingCollector  # noqa: F401
 from .ecs import EcsCollector  # noqa: F401
-from .cloudformation import CloudformationCollector  # noqa: F401
+from .cloudformation import CloudformationCollector, type_arn  # noqa: F401
 from .sqs import SqsCollector  # noqa: F401
+from .stepfunction import StepFunctionCollector
+
+from .cloudtrail import listen_for
 
 __all__ = [
     'ResourceRegistry',
-    'RegisteredResourceCollector'
+    'RegisteredResourceCollector',
+    'listen_for',
+    'type_arn'
 ]

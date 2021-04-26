@@ -1,5 +1,9 @@
-from .utils import make_valid_data
+from .utils import make_valid_data, create_arn as arn
 from .registry import RegisteredResourceCollector
+
+
+def create_arn(region=None, account_id=None, resource_id=None, **kwargs):
+    return arn(resource='kinesis', region=region, account_id=account_id, resource_id='stream/' + resource_id)
 
 
 class KinesisCollector(RegisteredResourceCollector):
