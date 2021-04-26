@@ -391,6 +391,10 @@ def mock_boto_calls(self, operation_name, kwarg):
 
     elif operation_name == "ListTagsForDeliveryStream":
         return resource("json/test_firehose_deliverystream_tags.json")
+    elif operation_name == "LookupEvents":
+        return {}
+    elif operation_name == 'ListStateMachines':
+        return {}
     else:
         raise ValueError("Unknown operation name", operation_name)
 
@@ -552,22 +556,18 @@ class TestTemplate(unittest.TestCase):
         )  # DIFF was externalId
 
         # Load Balancer A and Target Group A relationship test
-        self.assertEqual(
-            topology[0]["relations"][4]["target_id"], "urn:aws/target-group-instance/" + instance_a
-        )  # DIFF was targetId
-        self.assertEqual(
-            topology[0]["relations"][4]["source_id"],
+        self.assertEqual(self.has_relation(
+            topology[0]["relations"], 
             "arn:aws:elasticloadbalancing:eu-west-1:731070500579:targetgroup/myfirsttargetgroup/28ddec997ec55d21",
-        )  # DIFF was sourceId
+            "urn:aws/target-group-instance/" + instance_a
+        ), True)
 
         # Load Balancer B and Target Group B relationship test
-        self.assertEqual(
-            topology[0]["relations"][5]["target_id"], "urn:aws/target-group-instance/" + instance_b
-        )  # DIFF was targetId
-        self.assertEqual(
-            topology[0]["relations"][5]["source_id"],
+        self.assertEqual(self.has_relation(
+            topology[0]["relations"],
             "arn:aws:elasticloadbalancing:eu-west-1:731070500579:targetgroup/myfirsttargetgroup/28ddec997ec55d21",
-        )  # DIFF was sourceId
+            "urn:aws/target-group-instance/" + instance_b
+        ), True)
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
     @set_api("elb|aws.elb_classic")
@@ -1023,57 +1023,33 @@ class TestTemplate(unittest.TestCase):
 
         self.assertEqual(len(topology[0]["components"]), 30)
 
+
         # we have 2 stages
         for n in range(0, 2):
-            self.assertEqual(
-                topology[0]["relations"][0 + (n * 22)]["source_id"], stage_arn_prefix.format(n + 1)
-            )  # DIFF
-            self.assertEqual(
-                topology[0]["relations"][0 + (n * 22)]["target_id"], resource_arn_prefix.format(n + 1)
-            )  # DIFF
-            self.assert_method_relations(
-                topology,
-                method_arn_prefix.format(n + 1, "PATCH"),
-                resource_arn_prefix.format(n + 1),
-                sqs_arn,
-                5 + (n * 22),
-            )
-            self.assert_method_relations(
-                topology,
-                method_arn_prefix.format(n + 1, "PUT"),
-                resource_arn_prefix.format(n + 1),
-                lambda_arn_prefix.format("PutHello-1LUD3ESBOR6EY"),
-                9 + (n * 22),
-            )
-            self.assert_method_relations(
-                topology,
-                method_arn_prefix.format(n + 1, "POST"),
-                resource_arn_prefix.format(n + 1),
-                "urn:service:/84.35.236.89",
-                7 + (n * 22),
-            )
-            self.assert_method_relations(
-                topology,
-                method_arn_prefix.format(n + 1, "GET"),
-                resource_arn_prefix.format(n + 1),
-                lambda_arn_prefix.format("GetHello-1CZ5O92284Z69"),
-                3 + (n * 22),
-            )
-            self.assert_method_relations(
-                topology,
-                method_arn_prefix.format(n + 1, "DELETE"),
-                resource_arn_prefix.format(n + 1),
-                lambda_arn_prefix.format("DeleteHello-1LDFJCU54ZL5"),
-                1 + (n * 22),
-            )
+            self.assertEqual(self.has_relation(topology[0]["relations"], stage_arn_prefix.format(n + 1), resource_arn_prefix.format(n + 1)), True)
+
+            self.assertEqual(self.has_relation(topology[0]["relations"], resource_arn_prefix.format(n + 1), method_arn_prefix.format(n + 1, "PATCH")), True)
+            self.assertEqual(self.has_relation(topology[0]["relations"], method_arn_prefix.format(n + 1, "PATCH"), sqs_arn), True)
+
+            self.assertEqual(self.has_relation(topology[0]["relations"], resource_arn_prefix.format(n + 1), method_arn_prefix.format(n + 1, "PUT")), True)
+            self.assertEqual(self.has_relation(topology[0]["relations"], method_arn_prefix.format(n + 1, "PUT"), lambda_arn_prefix.format("PutHello-1LUD3ESBOR6EY")), True)
+
+            self.assertEqual(self.has_relation(topology[0]["relations"], resource_arn_prefix.format(n + 1), method_arn_prefix.format(n + 1, "POST")), True)
+            self.assertEqual(self.has_relation(topology[0]["relations"], method_arn_prefix.format(n + 1, "POST"), "urn:service:/84.35.236.89"), True)
+
+            self.assertEqual(self.has_relation(topology[0]["relations"], resource_arn_prefix.format(n + 1), method_arn_prefix.format(n + 1, "GET")), True)
+            self.assertEqual(self.has_relation(topology[0]["relations"], method_arn_prefix.format(n + 1, "GET"), lambda_arn_prefix.format("GetHello-1CZ5O92284Z69")), True)
+
+            self.assertEqual(self.has_relation(topology[0]["relations"], resource_arn_prefix.format(n + 1), method_arn_prefix.format(n + 1, "DELETE")), True)
+            self.assertEqual(self.has_relation(topology[0]["relations"], method_arn_prefix.format(n + 1, "DELETE"), lambda_arn_prefix.format("DeleteHello-1LDFJCU54ZL5")), True)
 
         self.assertEqual(len(topology[0]["relations"]), 44)
 
-    def assert_method_relations(self, topology, method_arn, resource_arn, lambda_arn, index):
-        self.assertEqual(topology[0]["relations"][index]["source_id"], resource_arn)  # DIFF
-        self.assertEqual(topology[0]["relations"][index]["target_id"], method_arn)  # DIFF
-        self.assertEqual(topology[0]["relations"][index + 1]["source_id"], method_arn)  # DIFF
-        self.assertEqual(topology[0]["relations"][index + 1]["target_id"], lambda_arn)  # DIFF
+    def has_relation(self, relations, source_id, target_id):
+        for relation in relations:
+            if relation['source_id'] == source_id and relation['target_id'] == target_id:
+                return True
+        return False
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
     @set_api("route53domains|aws.route53.domain")
@@ -1168,6 +1144,8 @@ class TestTemplate(unittest.TestCase):
             return resource("json/test_describe_instance_types.json")
         elif operation_name == "GetCallerIdentity":
             return resource("json/test_get_caller_identity.json")
+        elif operation_name == "LookupEvents":
+            return {}
 
     @patch("botocore.client.BaseClient._make_api_call", mock_security_group_2_boto_calls)
     @set_api("ec2|aws.security-group")
