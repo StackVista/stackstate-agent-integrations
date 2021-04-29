@@ -1,36 +1,5 @@
-from schematics import Model
-from schematics.types import StringType, ModelType
-from .sqs import SqsCollector
-
-
-class Sqs_Generic(Model):
-    class RequestParameters(Model):
-        queueUrl = StringType(required=True)
-
-    requestParameters = ModelType(RequestParameters, required=True)
-
-    def process(self, event_name, session, location, agent):
-        client = session.client('sqs')
-        if event_name == 'DeleteQueue':
-            agent.delete(self.requestParameters.queueUrl)
-        elif event_name == 'PurgeQueue':
-            # TODO this should probably emit some event to StackState
-            pass
-        else:
-            collector = SqsCollector(location, client, agent)
-            collector.process_queue(self.requestParameters.queueUrl)
-
-
-class Sqs_CreateQueue(Model):
-    class ResponseElements(Model):
-        queueUrl = StringType(required=True)
-
-    responseElements = ModelType(ResponseElements, required=True)
-
-    def process(self, event_name, session, location, agent):
-        client = session.client('sqs')
-        collector = SqsCollector(location, client, agent)
-        collector.process_queue(self.responseElements.queueUrl)
+from .sqs import Sqs_CreateQueue, Sqs_UpdateQueue
+from .firehose import Firehose_CreateStream, Firehose_UpdateStream
 
 
 listen_for = {
@@ -62,13 +31,13 @@ listen_for = {
     },
     'sqs.amazonaws.com': {
         'CreateQueue': Sqs_CreateQueue,
-        'DeleteQueue': Sqs_Generic,
+        'DeleteQueue': Sqs_UpdateQueue,
         'AddPermission': True,
         'RemovePermission': True,
-        'SetQueueAttributes': Sqs_Generic,
-        'TagQueue': Sqs_Generic,
-        'UntagQueue': Sqs_Generic,
-        'PurgeQueue': Sqs_Generic  # should emit event instead
+        'SetQueueAttributes': Sqs_UpdateQueue,
+        'TagQueue': Sqs_UpdateQueue,
+        'UntagQueue': Sqs_UpdateQueue,
+        'PurgeQueue': Sqs_UpdateQueue
     },
     'sns.amazonaws.com': {
         'CreateTopic': True,
@@ -86,34 +55,47 @@ listen_for = {
         # SetTopicAttributes
     },
     'firehose.amazonaws.com': {
-        'CreateDeliveryStream': True,
-        'DeleteDeliveryStream': True
-        # UpdateDestination
-        # TagDeliveryStream
-        # UntagDeliveryStream
-        # StartDeliveryStreamEncryption
-        # StopDeliveryStreamEncryption
+        'CreateDeliveryStream': Firehose_CreateStream,
+        'DeleteDeliveryStream': Firehose_UpdateStream,
+        'UpdateDestination': Firehose_UpdateStream,
+        'TagDeliveryStream': Firehose_UpdateStream,
+        'UntagDeliveryStream': Firehose_UpdateStream,
+        'StartDeliveryStreamEncryption': Firehose_UpdateStream,
+        'StopDeliveryStreamEncryption': Firehose_UpdateStream,
     },
     'kinesis.amazonaws.com': {
         'CreateStream': True,
         'DeleteStream': True
-        # DisableEnhancedMonitoring
-        # EnableEnhancedMonitoring
-        # IncreaseStreamRetentionPeriod
-        # DecreaseStreamRetentionPeriod
-        # MergeShards
-        # RegisterStreamConsumer
-        # DeregisterStreamConsumer
         # AddTagsToStream
         # RemoveTagsFromStream
         # StartStreamEncryption
         # StopStreamEncryption
+        # MergeShards
         # SplitShard
         # UpdateShardCount
+        # DisableEnhancedMonitoring
+        # EnableEnhancedMonitoring
+        # IncreaseStreamRetentionPeriod
+        # DecreaseStreamRetentionPeriod
+
+        # events
+        # RegisterStreamConsumer ???
+        # DeregisterStreamConsumer ???
     },
     'dynamodb.amazonaws.com': {
         'CreateTable': True,
         'DeleteTable': True
+        # TagResource
+        # UntagResource
+        # UpdateTable
+        # UpdateTimeToLive
+        # UpdateGlobalTable
+        # CreateGlobalTable
+
+        # events
+        # RestoreTableFromBackup
+        # RestoreTableToPointInTime
+        # DeleteBackup
     },
     'lambda.amazonaws.com': {
         'CreateFunction20150331': True,

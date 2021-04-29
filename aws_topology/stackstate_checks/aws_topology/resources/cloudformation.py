@@ -4,6 +4,9 @@ from .s3 import create_arn as s3_arn
 from .lambdaf import create_arn as lambda_arn
 from .kinesis import create_arn as kinesis_arn
 from .dynamodb import create_table_arn as dynamodb_table_arn
+from .firehose import create_arn as firehose_arn
+
+
 # TODO memorydata
 memory_data = {}
 
@@ -27,6 +30,7 @@ type_map = {
 type_arn = {
     'AWS::Lambda::Function': lambda_arn,
     'AWS::Kinesis::Stream': kinesis_arn,
+    'AWS::KinesisFirehose::DeliveryStream': firehose_arn,
     'AWS::S3::Bucket': s3_arn,
     'AWS::ElasticLoadBalancingV2::TargetGroup': create_arn,
     'AWS::ElasticLoadBalancingV2::LoadBalancer': create_arn,

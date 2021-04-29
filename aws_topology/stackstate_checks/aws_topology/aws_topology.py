@@ -187,6 +187,7 @@ class AwsTopologyCheck(AgentCheck):
                         if event_class:
                             if not isinstance(event_class, bool) and issubclass(event_class, Model):
                                 event = event_class(rec, strict=False)
+                                event.validate()
                                 if event.process:
                                     event.process(event_name, session, location, agent_proxy)
                             else:

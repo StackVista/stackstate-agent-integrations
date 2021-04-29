@@ -3,6 +3,7 @@ import re
 import hashlib
 import json
 from datetime import datetime, date
+from schematics import Model
 
 
 def make_valid_data_internal(data):
@@ -118,3 +119,7 @@ def client_array_operation(client, operation_name, array_field_name, **kwargs):
     else:
         for item in method(**kwargs).get(array_field_name) or []:
             yield item
+
+
+class CloudTrailEventBase(Model):
+    pass
