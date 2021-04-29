@@ -76,10 +76,10 @@ class AwsTopologyCheck(AgentCheck):
 
         try:
             self.get_topology(instance_info, aws_client)
-            # self.get_topology_update(instance_info, aws_client)
+            self.get_topology_update(instance_info, aws_client)
             self.service_check(self.SERVICE_CHECK_EXECUTE_NAME, AgentCheck.OK, tags=instance_info.tags)
         except Exception as e:
-            msg = 'AWS topology collection failed: {}'.format(e)
+            msg = 'AWS topology collection failed: {} {}'.format(e, traceback.format_exc(e))
             self.log.error(msg)
             self.service_check(
                 self.SERVICE_CHECK_EXECUTE_NAME,
@@ -151,16 +151,20 @@ class AwsTopologyCheck(AgentCheck):
                         }
                         self.event(event)
                         errors.append('API %s ended with exception: %s %s' % (api, str(e), traceback.format_exc()))
-        agent_proxy.send_parked_relations()  # TODO this should be for tests, in production these relations should not be sent out
+        # TODO this should be for tests, in production these relations should not be sent out
+        agent_proxy.send_parked_relations()
         if len(errors) > 0:
             raise Exception('get_topology gave following exceptions: %s' % ', '.join(errors))
 
         self.stop_snapshot()
 
     def get_topology_update(self, instance_info, aws_client):
+        self.delete_ids = []
+        agent_proxy = AgentProxy(self)
         for region in instance_info.regions:
             session = aws_client.get_session(instance_info.role_arn, region)
             client = session.client('cloudtrail')
+            location = location_info(self.get_account_id(instance_info), session.region_name)
             stop = False
             for pg in client.get_paginator('lookup_events').paginate(
                 LookupAttributes=[
@@ -177,19 +181,20 @@ class AwsTopologyCheck(AgentCheck):
                     if delta.total_seconds() > 60*60*24*5:
                         stop = True
                         break
-                    print(region + '-' + rec['eventName'] + '-' + rec['eventSource'])
                     if listen_for.get(rec['eventSource']):
-                        eventclass = listen_for[rec['eventSource']].get(rec['eventName'])
-                        if eventclass:
-                            print(rec['eventName'] + '-' + rec['eventSource'])
-                            if not isinstance(eventclass, bool) and issubclass(eventclass, Model):
-                                event = eventclass(rec, strict=False)
-                                print(event.to_primitive())
+                        event_name = rec.get('eventName')
+                        event_class = listen_for[rec['eventSource']].get(event_name)
+                        if event_class:
+                            if not isinstance(event_class, bool) and issubclass(event_class, Model):
+                                event = event_class(rec, strict=False)
+                                if event.process:
+                                    event.process(event_name, session, location, agent_proxy)
                             else:
                                 print('should interpret: ' + rec['eventName'] + '-' + rec['eventSource'])
                                 print(rec)
                 if stop:
                     break
+        self.delete_ids += agent_proxy.delete_ids
 
 
 class AgentProxy(object):
@@ -237,7 +242,11 @@ class AgentProxy(object):
     def create_arn(self, type, resource_id=''):
         func = type_arn.get(type)
         if func:
-            return func(region=self.location['AwsRegion'], account_id=self.location['AwsAccount'], resource_id=resource_id)
+            return func(
+                region=self.location['AwsRegion'],
+                account_id=self.location['AwsAccount'],
+                resource_id=resource_id
+            )
         return "UNSUPPORTED_ARN-" + type + "-" + resource_id
 
     def create_security_group_relations(self, resource_id, resource_data, security_group_field='SecurityGroups'):

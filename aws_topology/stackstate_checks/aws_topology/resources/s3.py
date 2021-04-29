@@ -51,8 +51,8 @@ class S3Collector(RegisteredResourceCollector):
                     'list_buckets',
                     'Buckets'
                 )
-            ]:
-                yield bucket
+        ]:
+            yield bucket
 
     def process_all(self):
         s3_buckets = {}

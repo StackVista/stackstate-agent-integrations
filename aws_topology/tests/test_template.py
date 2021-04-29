@@ -557,7 +557,7 @@ class TestTemplate(unittest.TestCase):
 
         # Load Balancer A and Target Group A relationship test
         self.assertEqual(self.has_relation(
-            topology[0]["relations"], 
+            topology[0]["relations"],
             "arn:aws:elasticloadbalancing:eu-west-1:731070500579:targetgroup/myfirsttargetgroup/28ddec997ec55d21",
             "urn:aws/target-group-instance/" + instance_a
         ), True)
@@ -1023,25 +1023,47 @@ class TestTemplate(unittest.TestCase):
 
         self.assertEqual(len(topology[0]["components"]), 30)
 
-
         # we have 2 stages
-        for n in range(0, 2):
-            self.assertEqual(self.has_relation(topology[0]["relations"], stage_arn_prefix.format(n + 1), resource_arn_prefix.format(n + 1)), True)
+        relations = topology[0]["relations"]
+        for n in range(1, 3):
+            self.assertEqual(self.has_relation(
+                relations, stage_arn_prefix.format(n), resource_arn_prefix.format(n)
+            ), True)
 
-            self.assertEqual(self.has_relation(topology[0]["relations"], resource_arn_prefix.format(n + 1), method_arn_prefix.format(n + 1, "PATCH")), True)
-            self.assertEqual(self.has_relation(topology[0]["relations"], method_arn_prefix.format(n + 1, "PATCH"), sqs_arn), True)
+            self.assertEqual(self.has_relation(
+                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "PATCH")
+            ), True)
+            self.assertEqual(self.has_relation(
+                relations, method_arn_prefix.format(n, "PATCH"), sqs_arn
+            ), True)
 
-            self.assertEqual(self.has_relation(topology[0]["relations"], resource_arn_prefix.format(n + 1), method_arn_prefix.format(n + 1, "PUT")), True)
-            self.assertEqual(self.has_relation(topology[0]["relations"], method_arn_prefix.format(n + 1, "PUT"), lambda_arn_prefix.format("PutHello-1LUD3ESBOR6EY")), True)
+            self.assertEqual(self.has_relation(
+                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "PUT")
+            ), True)
+            self.assertEqual(self.has_relation(
+                relations, method_arn_prefix.format(n, "PUT"), lambda_arn_prefix.format("PutHello-1LUD3ESBOR6EY")
+            ), True)
 
-            self.assertEqual(self.has_relation(topology[0]["relations"], resource_arn_prefix.format(n + 1), method_arn_prefix.format(n + 1, "POST")), True)
-            self.assertEqual(self.has_relation(topology[0]["relations"], method_arn_prefix.format(n + 1, "POST"), "urn:service:/84.35.236.89"), True)
+            self.assertEqual(self.has_relation(
+                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "POST")
+            ), True)
+            self.assertEqual(self.has_relation(
+                relations, method_arn_prefix.format(n, "POST"), "urn:service:/84.35.236.89"
+            ), True)
 
-            self.assertEqual(self.has_relation(topology[0]["relations"], resource_arn_prefix.format(n + 1), method_arn_prefix.format(n + 1, "GET")), True)
-            self.assertEqual(self.has_relation(topology[0]["relations"], method_arn_prefix.format(n + 1, "GET"), lambda_arn_prefix.format("GetHello-1CZ5O92284Z69")), True)
+            self.assertEqual(self.has_relation(
+                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "GET")
+            ), True)
+            self.assertEqual(self.has_relation(
+                relations, method_arn_prefix.format(n, "GET"), lambda_arn_prefix.format("GetHello-1CZ5O92284Z69")
+            ), True)
 
-            self.assertEqual(self.has_relation(topology[0]["relations"], resource_arn_prefix.format(n + 1), method_arn_prefix.format(n + 1, "DELETE")), True)
-            self.assertEqual(self.has_relation(topology[0]["relations"], method_arn_prefix.format(n + 1, "DELETE"), lambda_arn_prefix.format("DeleteHello-1LDFJCU54ZL5")), True)
+            self.assertEqual(self.has_relation(
+                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "DELETE")
+            ), True)
+            self.assertEqual(self.has_relation(
+                relations, method_arn_prefix.format(n, "DELETE"), lambda_arn_prefix.format("DeleteHello-1LDFJCU54ZL5")
+            ), True)
 
         self.assertEqual(len(topology[0]["relations"]), 44)
 

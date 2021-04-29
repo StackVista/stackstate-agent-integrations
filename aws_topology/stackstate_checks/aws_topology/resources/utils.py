@@ -18,11 +18,13 @@ def make_valid_data_internal(data):
     else:
         return str(data)
 
+
 def make_valid_data(data):
     result = make_valid_data_internal(data)
     if 'ResponseMetadata' in result:
         result.pop('ResponseMetadata')
     return result
+
 
 def get_partition_name(region):
     region_string = region.lower()

@@ -1,5 +1,6 @@
 from schematics import Model
 from schematics.types import StringType, ModelType
+from .sqs import SqsCollector
 
 
 class Sqs_Generic(Model):
@@ -8,12 +9,28 @@ class Sqs_Generic(Model):
 
     requestParameters = ModelType(RequestParameters, required=True)
 
+    def process(self, event_name, session, location, agent):
+        client = session.client('sqs')
+        if event_name == 'DeleteQueue':
+            agent.delete(self.requestParameters.queueUrl)
+        elif event_name == 'PurgeQueue':
+            # TODO this should probably emit some event to StackState
+            pass
+        else:
+            collector = SqsCollector(location, client, agent)
+            collector.process_queue(self.requestParameters.queueUrl)
+
 
 class Sqs_CreateQueue(Model):
-    class RequestParameters(Model):
-        queueName = StringType(required=True)
+    class ResponseElements(Model):
+        queueUrl = StringType(required=True)
 
-    requestParameters = ModelType(RequestParameters, required=True)
+    responseElements = ModelType(ResponseElements, required=True)
+
+    def process(self, event_name, session, location, agent):
+        client = session.client('sqs')
+        collector = SqsCollector(location, client, agent)
+        collector.process_queue(self.responseElements.queueUrl)
 
 
 listen_for = {
@@ -21,7 +38,7 @@ listen_for = {
         'CreateBucket': True,
         'DeleteBucket': True
     },
-    'redshift.amazonaws.com' : {
+    'redshift.amazonaws.com': {
         'CreateCluster': True,
         'DeleteCluster': True
     },
@@ -66,7 +83,7 @@ listen_for = {
         # SetPlatformApplicationAttributes
         # SetSMSAttributes
         # SetSubscriptionAttributes
-        # SetTopicAttributes        
+        # SetTopicAttributes
     },
     'firehose.amazonaws.com': {
         'CreateDeliveryStream': True,
@@ -92,7 +109,7 @@ listen_for = {
         # StartStreamEncryption
         # StopStreamEncryption
         # SplitShard
-        # UpdateShardCount        
+        # UpdateShardCount
     },
     'dynamodb.amazonaws.com': {
         'CreateTable': True,
@@ -115,7 +132,7 @@ listen_for = {
         # DeleteEventSourceMapping
         # UpdateEventSourceMapping
         # UpdateFunctionCode
-        # UpdateFunctionConfiguration        
+        # UpdateFunctionConfiguration
     },
     'ecs.amazonaws.com': {
         'CreateCluster': True,
