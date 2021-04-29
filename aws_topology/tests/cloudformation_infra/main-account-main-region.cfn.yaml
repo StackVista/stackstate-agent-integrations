@@ -1,0 +1,401 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Template for the primary account and region for testing
+
+Parameters:
+  VpcId:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /stackstate/test-infra/vpc/vpc-id
+  VpcSubnet1Id:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /stackstate/test-infra/vpc/private-subnet-1-id
+  VpcSubnet2Id:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /stackstate/test-infra/vpc/private-subnet-2-id
+  VpcSubnet3Id:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /stackstate/test-infra/vpc/private-subnet-3-id
+  KeyPairName:
+    Type: String
+    Default: stackstate
+
+Conditions:
+  IsKeyPair: !Not [!Equals [!Ref KeyPairName, ""]]
+
+Mappings:
+  EcsOptimizedAmi:
+    eu-west-1:
+      AmiId: ami-0c62045417a6d2199
+    us-east-1:
+      AmiId: ami-0be13a99cd970f6a9
+    ap-southeast-2:
+      AmiId: ami-0b7b6bcd2b4f6d036
+
+Resources:
+  StepFunctionsIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: !Sub states.${AWS::URLSuffix}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: default
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: xray
+                Effect: Allow
+                Action:
+                  - xray:PutTraceSegments
+                  - xray:PutTelemetryRecords
+                  - xray:GetSamplingRules
+                  - xray:GetSamplingTargets
+                Resource: "*"
+              - Sid: dynamodb
+                Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                Resource: !GetAtt DynamoDbTable.Arn
+              - Sid: ecs
+                Effect: Allow
+                Action:
+                  - ecs:RunTask
+                Resource: !Ref EcsTaskDefinition
+              - Sid: lambda
+                Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !GetAtt LambdaFunction.Arn
+                  - !Sub ${LambdaFunction.Arn}:*
+              - Sid: sns
+                Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: !Ref SnsTopic
+
+  StepFunctionsStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      RoleArn: !GetAtt StepFunctionsIamRole.Arn
+      Definition:
+        Comment: Test State Machine
+        StartAt: ECS
+        States:
+          ECS:
+            Type: Task
+            Resource: arn:aws:states:::ecs:runTask
+            Parameters:
+              LaunchType: EC2
+              Cluster: !GetAtt EcsCluster.Arn
+              TaskDefinition: !Ref EcsTaskDefinition
+            Next: Lambda
+          Lambda:
+            Type: Task
+            Resource: arn:aws:states:::lambda:invoke
+            Parameters:
+              FunctionName: !Sub ${LambdaFunction.Arn}:$LATEST
+              Payload:
+                Input:
+                  message: World
+            Next: DynamoDB
+          DynamoDB:
+            Type: Task
+            Resource: arn:aws:states:::dynamodb:putItem
+            Parameters:
+              TableName: !GetAtt DynamoDbTable.Arn
+              Item:
+                key:
+                  S: testing
+            Next: SNS
+          SNS:
+            Type: Task
+            Resource: arn:aws:states:::sns:publish
+            Parameters:
+              Message:
+                Input: Testing 123
+              TopicArn: !Ref SnsTopic
+            Next: World
+          World:
+            Type: Pass
+            Result: World
+            End: true
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - E3002 # Step Functions supports objects now
+
+  ApiGatewayApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: ApiGatewayApiTest
+      ProtocolType: HTTP
+  LambdaFunctionIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: !Sub lambda.${AWS::URLSuffix}
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaENIManagementAccess
+  LambdaFunctionSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VpcId
+      GroupDescription: LambdaFunctionSecurityGroup
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Role: !GetAtt LambdaFunctionIamRole.Arn
+      Runtime: python3.7
+      Code:
+        ZipFile: |
+          def handler(event, context):
+            return f'Hello {event.get("message")}'
+      Timeout: 5
+      VpcConfig:
+        SecurityGroupIds:
+          - !GetAtt LambdaFunctionSecurityGroup.GroupId
+        SubnetIds:
+          - !Ref VpcSubnet1Id
+          - !Ref VpcSubnet2Id
+          - !Ref VpcSubnet3Id
+  DynamoDbTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: key
+          AttributeType: S
+      KeySchema:
+        - AttributeName: key
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      TimeToLiveSpecification:
+        AttributeName: timestamp
+        Enabled: true
+  SnsTopic:
+    Type: AWS::SNS::Topic
+
+  # ECS Cluster
+
+  EcsCluster:
+    Type: AWS::ECS::Cluster
+  EcsSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ECS Security Group
+      VpcId: !Ref VpcId
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          FromPort: 0
+          ToPort: 0
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: "-1"
+          FromPort: 0
+          ToPort: 0
+          CidrIpv6: ::/0
+  EcsSecurityGroupAlbPorts:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !GetAtt EcsSecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 31000
+      ToPort: 61000
+      SourceSecurityGroupId: !GetAtt AlbSecurityGroup.GroupId
+  EcsServiceTaskIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: !Sub lambda.${AWS::URLSuffix}
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+  EcsLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 14
+  EcsService:
+    Type: AWS::ECS::Service
+    DependsOn:
+      - AlbListener
+    Properties:
+      DesiredCount: 1
+      TaskDefinition: !Ref EcsTaskDefinition
+      LoadBalancers:
+        - TargetGroupArn: !Ref AlbEcsTargetGroup
+          ContainerPort: 80
+          ContainerName: nginx
+      Cluster: !Ref EcsCluster
+  EcsTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      ContainerDefinitions:
+        - Name: nginx
+          Essential: true
+          Image: nginx:latest
+          MemoryReservation: 128
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref EcsLogGroup
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: EcsTaskDefinition
+          PortMappings:
+            - ContainerPort: 80
+  AlbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ECS Security Group
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIpv6: ::/0
+  AlbSecurityGroupEcsPorts:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !GetAtt AlbSecurityGroup.GroupId
+      IpProtocol: tcp
+      FromPort: 31000
+      ToPort: 61000
+      DestinationSecurityGroupId: !GetAtt EcsSecurityGroup.GroupId
+  Alb:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Type: application
+      Scheme: internal
+      Subnets:
+        - !Ref VpcSubnet1Id
+        - !Ref VpcSubnet2Id
+        - !Ref VpcSubnet3Id
+      SecurityGroups:
+        - !GetAtt AlbSecurityGroup.GroupId
+  AlbListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref Alb
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref AlbEcsTargetGroup
+      Port: 80
+      Protocol: HTTP
+  AlbEcsTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Port: 80
+      Protocol: HTTP
+      VpcId: !Ref VpcId
+  EcsAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier:
+        - !Ref VpcSubnet1Id
+        - !Ref VpcSubnet2Id
+        - !Ref VpcSubnet3Id
+      MaxSize: "1"
+      MinSize: "1"
+      DesiredCapacity: "1"
+      MixedInstancesPolicy:
+        InstancesDistribution:
+          OnDemandBaseCapacity: 0
+          OnDemandPercentageAboveBaseCapacity: 0
+          SpotAllocationStrategy: lowest-price
+          SpotInstancePools: 1
+        LaunchTemplate:
+          LaunchTemplateSpecification:
+            LaunchTemplateId: !Ref EcsEc2LaunchTemplate
+            Version: !GetAtt EcsEc2LaunchTemplate.LatestVersionNumber
+          Overrides:
+            - InstanceType: t3a.nano
+            - InstanceType: t3.nano
+            - InstanceType: t2.nano
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT15M
+  EcsEc2IamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: !Sub ec2.${AWS::URLSuffix}
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: ecs-service
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ecs:CreateCluster
+                  - ecs:DeregisterContainerInstance
+                  - ecs:DiscoverPollEndpoint
+                  - ecs:Poll
+                  - ecs:RegisterContainerInstance
+                  - ecs:StartTelemetrySession
+                  - ecs:Submit*
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+  EcsEc2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+        - !Ref EcsEc2IamRole
+  EcsEc2LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        KeyName: !If
+          - IsKeyPair
+          - !Ref KeyPairName
+          - !Ref "AWS::NoValue"
+        BlockDeviceMappings:
+          - Ebs:
+              VolumeSize: 8
+              Throughput: 125
+              VolumeType: gp3
+              DeleteOnTermination: true
+            DeviceName: /dev/xvdcz
+        ImageId: !FindInMap [EcsOptimizedAmi, !Ref "AWS::Region", AmiId]
+        InstanceType: t3a.nano
+        IamInstanceProfile:
+          Arn: !GetAtt EcsEc2InstanceProfile.Arn
+        SecurityGroupIds:
+          - !GetAtt EcsSecurityGroup.GroupId
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash -xe
+            echo ECS_CLUSTER=${EcsCluster} >> /etc/ecs/ecs.config
+            yum install -y aws-cfn-bootstrap
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EcsAutoScalingGroup --region ${AWS::Region}
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - E3002 # Throughput is used for gp3
+            - E3030 # gp3 is a new volume type
