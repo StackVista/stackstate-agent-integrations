@@ -6,6 +6,9 @@ Parameters:
     AllowedPattern: >-
       ^(\d{1,3}\.){3}\d{1,3}\/16$
     ConstraintDescription: Must be a valid IPv4 address with a /16 subnet mask
+  ResourcesStackName:
+    Type: String
+    Default: stackstate-resources-debug
 
 Conditions:
   IsUSEast1: !Equals [!Ref "AWS::Region", "us-east-1"]
@@ -486,11 +489,6 @@ Resources:
       Tags:
         - Key: ApplicationName
           Value: StackState Test Infrastructure
-  VpcFlowLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: /stackstate/vpc/flow-logs/stackstate-vpc
-      RetentionInDays: 7
 
   VpcFlowLogRole:
     Type: AWS::IAM::Role
@@ -511,17 +509,18 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - logs:CreateLogGroup
-                  - logs:CreateLogStream
-                  - logs:DescribeLogGroups
-                  - logs:DescribeLogStreams
-                  - logs:PutLogEvents
+                  - logs:CreateLogDelivery
+                  - logs:DeleteLogDelivery
                 Resource: "*"
   VpcFlowLog:
     Type: AWS::EC2::FlowLog
     Properties:
       DeliverLogsPermissionArn: !GetAtt VpcFlowLogRole.Arn
-      LogGroupName: /stackstate/vpc/flow-logs/stackstate-vpc
+      LogDestinationType: s3
+      LogDestination: 
+        Fn::ImportValue:
+          !Sub ${ResourcesStackName}-StackStateLogsBucketArn
+      MaxAggregationInterval: 60
       ResourceId: !Ref Vpc
       ResourceType: VPC
       TrafficType: ALL
@@ -709,13 +708,6 @@ Resources:
       Type: String
       Value: !Ref DBSubnetGroup
       Description: Database Subnet Group Name
-  VpcFlowLogsLogGroupArnParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Name: /stackstate/test-infra/vpc/vpc-flow-logs-log-group-arn
-      Type: String
-      Value: !GetAtt VpcFlowLogGroup.Arn
-      Description: VPC Flow Logs CloudWatch Logs log group ARN
   PublicSubnet1CidrParameter:
     Type: AWS::SSM::Parameter
     Properties:
