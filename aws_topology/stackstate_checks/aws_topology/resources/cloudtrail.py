@@ -1,5 +1,5 @@
 from .sqs import Sqs_CreateQueue, Sqs_UpdateQueue
-from .firehose import Firehose_CreateStream, Firehose_UpdateStream
+from .firehose import FIREHOSE_EVENTSOURCE, FIREHOSE_CLOUDTRAIL
 
 
 listen_for = {
@@ -53,15 +53,6 @@ listen_for = {
         # SetSMSAttributes
         # SetSubscriptionAttributes
         # SetTopicAttributes
-    },
-    'firehose.amazonaws.com': {
-        'CreateDeliveryStream': Firehose_CreateStream,
-        'DeleteDeliveryStream': Firehose_UpdateStream,
-        'UpdateDestination': Firehose_UpdateStream,
-        'TagDeliveryStream': Firehose_UpdateStream,
-        'UntagDeliveryStream': Firehose_UpdateStream,
-        'StartDeliveryStreamEncryption': Firehose_UpdateStream,
-        'StopDeliveryStreamEncryption': Firehose_UpdateStream,
     },
     'kinesis.amazonaws.com': {
         'CreateStream': True,
@@ -121,3 +112,7 @@ listen_for = {
         'CreateService': True
     }
 }
+
+listen_for.update({
+    FIREHOSE_EVENTSOURCE: FIREHOSE_CLOUDTRAIL
+})

@@ -122,4 +122,8 @@ def client_array_operation(client, operation_name, array_field_name, **kwargs):
 
 
 class CloudTrailEventBase(Model):
-    pass
+    def _internal_process(self, event_name, session, location, agent):
+        raise NotImplementedError
+
+    def process(self, event_name, session, location, agent):
+        self._internal_process(event_name, session, location, agent)

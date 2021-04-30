@@ -41,7 +41,7 @@ class Sqs_CreateQueue(CloudTrailEventBase):
 
     responseElements = ModelType(ResponseElements, required=True)
 
-    def process(self, event_name, session, location, agent):
+    def _internal_process(self, event_name, session, location, agent):
         client = session.client('sqs')
         collector = SqsCollector(location, client, agent)
         collector.process_queue(self.responseElements.queueUrl)
@@ -53,7 +53,7 @@ class Sqs_UpdateQueue(CloudTrailEventBase):
 
     requestParameters = ModelType(RequestParameters, required=True)
 
-    def process(self, event_name, session, location, agent):
+    def _internal_process(self, event_name, session, location, agent):
         if event_name == 'DeleteQueue':
             agent.delete(self.requestParameters.queueUrl)
         elif event_name == 'PurgeQueue':

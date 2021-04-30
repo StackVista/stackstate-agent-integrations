@@ -58,7 +58,7 @@ class Firehose_CreateStream(CloudTrailEventBase):
 
     responseElements = ModelType(ResponseElements, required=True)
 
-    def process(self, event_name, session, location, agent):
+    def _internal_process(self, event_name, session, location, agent):
         client = session.client('firehose')
         collector = FirehoseCollector(location, client, agent)
         part = self.responseElements.deliveryStreamARN.split(':')[:-1]
@@ -74,10 +74,25 @@ class Firehose_UpdateStream(CloudTrailEventBase):
 
     requestParameters = ModelType(RequestParameters)
 
-    def process(self, event_name, session, location, agent):
+    def _internal_process(self, event_name, session, location, agent):
         if event_name == 'DeleteStream':
-            agent.delete(agent.create_arn('AWS::KinesisFirehose::DeliveryStream', self.requestParameters.deliveryStreamName))
+            agent.delete(agent.create_arn(
+                'AWS::KinesisFirehose::DeliveryStream',
+                self.requestParameters.deliveryStreamName
+            ))
         else:
             client = session.client('firehose')
             collector = FirehoseCollector(location, client, agent)
             collector.process_delivery_stream(self.requestParameters.deliveryStreamName)
+
+
+FIREHOSE_EVENTSOURCE = 'firehose.amazonaws.com'
+FIREHOSE_CLOUDTRAIL = {
+    'CreateDeliveryStream': Firehose_CreateStream,
+    'DeleteDeliveryStream': Firehose_UpdateStream,
+    'UpdateDestination': Firehose_UpdateStream,
+    'TagDeliveryStream': Firehose_UpdateStream,
+    'UntagDeliveryStream': Firehose_UpdateStream,
+    'StartDeliveryStreamEncryption': Firehose_UpdateStream,
+    'StopDeliveryStreamEncryption': Firehose_UpdateStream,
+}

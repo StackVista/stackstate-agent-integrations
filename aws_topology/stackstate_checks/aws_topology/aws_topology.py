@@ -75,11 +75,12 @@ class AwsTopologyCheck(AgentCheck):
             return
 
         try:
+            self.delete_ids = []
             self.get_topology(instance_info, aws_client)
             self.get_topology_update(instance_info, aws_client)
             self.service_check(self.SERVICE_CHECK_EXECUTE_NAME, AgentCheck.OK, tags=instance_info.tags)
         except Exception as e:
-            msg = 'AWS topology collection failed: {} {}'.format(e, traceback.format_exc(e))
+            msg = 'AWS topology collection failed: {}'.format(e)
             self.log.error(msg)
             self.service_check(
                 self.SERVICE_CHECK_EXECUTE_NAME,
@@ -94,7 +95,6 @@ class AwsTopologyCheck(AgentCheck):
 
         self.memory_data = {}  # name -> arn for cloudformation
         errors = []
-        self.delete_ids = []
         agent_proxy = AgentProxy(self)
         for region in instance_info.regions:
             session = aws_client.get_session(instance_info.role_arn, region)
@@ -159,7 +159,6 @@ class AwsTopologyCheck(AgentCheck):
         self.stop_snapshot()
 
     def get_topology_update(self, instance_info, aws_client):
-        self.delete_ids = []
         agent_proxy = AgentProxy(self)
         for region in instance_info.regions:
             session = aws_client.get_session(instance_info.role_arn, region)
