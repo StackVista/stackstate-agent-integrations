@@ -93,64 +93,89 @@ Resources:
       RoleArn: !GetAtt StepFunctionsIamRole.Arn
       Definition:
         Comment: Test State Machine
-        StartAt: ECS
+        StartAt: ParallelRun
         States:
-          ECS:
-            Type: Task
-            Resource: arn:aws:states:::ecs:runTask
-            Parameters:
-              LaunchType: EC2
-              Cluster: !GetAtt EcsCluster.Arn
-              TaskDefinition: !Ref EcsTaskDefinition
-            Next: Lambda
-          Lambda:
-            Type: Task
-            Resource: arn:aws:states:::lambda:invoke
-            Parameters:
-              FunctionName: !Sub ${LambdaFunction.Arn}:$LATEST
-              Payload:
-                Input:
-                  message: World
-            Next: DynamoDB
-          DynamoDB:
-            Type: Task
-            Resource: arn:aws:states:::dynamodb:putItem
-            Parameters:
-              TableName: !Ref DynamoDbTable
-              Item:
-                key:
-                  S: testing
-            Next: SNS
-          SNS:
-            Type: Task
-            Resource: arn:aws:states:::sns:publish
-            Parameters:
-              Message:
-                Input: Testing 123
-              TopicArn: !Ref SnsTopic
-            Next: SQS
-          SQS:
-            Type: Task
-            Resource: arn:aws:states:::sqs:sendMessage
-            Parameters:
-              QueueUrl: !Ref SqsQueue
-              MessageBody:
-                Input: testing
-            Next: ApiGateway
-          ApiGateway:
-            Type: Task
-            Resource: arn:aws:states:::apigateway:invoke
-            Parameters:
-              ApiEndpoint: !Sub ${ApiGatewayApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}
-              Method: GET
-              Headers: {}
-              Stage: !Ref ApiGatewayStage
-              Path: /test
-              QueryParameters: {}
-              RequestBody:
-                Payload: 
-                  message: test
-              AuthType: NO_AUTH
+          ParallelRun:
+            Type: Parallel
+            Branches:
+              - StartAt: ECS
+                States:
+                  ECS:
+                    Type: Task
+                    Resource: arn:aws:states:::ecs:runTask
+                    Parameters:
+                      LaunchType: EC2
+                      Cluster: !GetAtt EcsCluster.Arn
+                      TaskDefinition: !Ref EcsTaskDefinition
+                    End: true
+              - StartAt: SNS
+                States:
+                  SNS:
+                    Type: Task
+                    Resource: arn:aws:states:::sns:publish
+                    Parameters:
+                      Message:
+                        Input: Testing 123
+                      TopicArn: !Ref SnsTopic
+                    Next: SQS
+                  SQS:
+                    Type: Task
+                    Resource: arn:aws:states:::sqs:sendMessage
+                    Parameters:
+                      QueueUrl: !Ref SqsQueue
+                      MessageBody:
+                        Input: testing
+                    End: true
+              - StartAt: Lambda
+                States:
+                  Lambda:
+                    Type: Task
+                    Resource: arn:aws:states:::lambda:invoke
+                    Parameters:
+                      FunctionName: !Sub ${LambdaFunction.Arn}:$LATEST
+                      Payload:
+                        Input:
+                          message: World
+                    Next: DynamoDB
+                  DynamoDB:
+                    Type: Task
+                    Resource: arn:aws:states:::dynamodb:putItem
+                    Parameters:
+                      TableName: !Ref DynamoDbTable
+                      Item:
+                        key:
+                          S: testing
+                    End: true
+            Next: FakeInput
+          FakeInput:
+            Type: Pass
+            Result:
+              tomap:
+                - 1
+                - 2
+                - 3
+            Next: ApiMap
+          ApiMap:
+            Type: Map
+            ItemsPath: $.tomap
+            Iterator:
+              StartAt: ApiGateway
+              States:
+                ApiGateway:
+                  Type: Task
+                  Resource: arn:aws:states:::apigateway:invoke
+                  Parameters:
+                    ApiEndpoint: !Sub ${ApiGatewayApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}
+                    Method: GET
+                    Headers: {}
+                    Stage: !Ref ApiGatewayStage
+                    Path: /test
+                    QueryParameters: {}
+                    RequestBody:
+                      Payload:
+                        message: test
+                    AuthType: NO_AUTH
+                  End: true
             Next: FakeChoice
           FakeChoice:
             Type: Choice
@@ -158,15 +183,15 @@ Resources:
               - Variable: $.ResponseBody
                 StringEquals: ThisWillFail
                 Next: Activity
-            Default: World
+            Default: Finish
           Activity:
             Type: Task
             Resource: !Ref StepFunctionsActivity
-            Next: World
-          World:
-            Type: Pass
-            Result: World
-            End: true
+            Next: NoFinish
+          NoFinish:
+            Type: Fail
+          Finish:
+            Type: Succeed
     Metadata:
       cfn-lint:
         config:
@@ -200,7 +225,7 @@ Resources:
       ApiId: !Ref ApiGatewayApi
       IntegrationType: AWS_PROXY
       IntegrationUri: !GetAtt LambdaFunction.Arn
-      PayloadFormatVersion: '2.0'
+      PayloadFormatVersion: "2.0"
 
   LambdaFunctionPermission:
     Type: AWS::Lambda::Permission
