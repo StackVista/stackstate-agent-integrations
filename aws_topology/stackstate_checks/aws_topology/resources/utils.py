@@ -29,6 +29,7 @@ def make_valid_data(data):
 
 def get_partition_name(region):
     region_string = region.lower()
+    partition = 'aws'
     if region_string.startswith("cn-"):
         partition = "aws-cn"
     elif region_string.startswith("us-iso-"):
