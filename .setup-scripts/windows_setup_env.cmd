@@ -1,6 +1,8 @@
 set WIN_CI_PROJECT_DIR=%CD%
 set WORKON_HOME=%WIN_CI_PROJECT_DIR%
 
+SET PATH=%PATH%;C:\tools\miniconda3\Library\bin
+
 set
 
 dir
