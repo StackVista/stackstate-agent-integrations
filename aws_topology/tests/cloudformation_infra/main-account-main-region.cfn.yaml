@@ -18,6 +18,9 @@ Parameters:
   KeyPairName:
     Type: String
     Default: stackstate
+  SecondaryRegionSqsQueue:
+    Type: String
+    Description: The Ref of the SqsQueue created in main-account-secondary-region
 
 Conditions:
   IsKeyPair: !Not [!Equals [!Ref KeyPairName, ""]]
@@ -86,6 +89,14 @@ Resources:
                   - sqs:SendMessage
                 Resource:
                   - !GetAtt SqsQueue.Arn
+                  - !Join
+                    - ":"
+                    - - arn
+                      - !Ref AWS::Partition
+                      - sqs
+                      - !Select [1, !Split [".", !Ref SecondaryRegionSqsQueue]]
+                      - !Select [3, !Split ["/", !Ref SecondaryRegionSqsQueue]]
+                      - !Select [4, !Split ["/", !Ref SecondaryRegionSqsQueue]]
 
   StepFunctionsStateMachine:
     Type: AWS::StepFunctions::StateMachine
@@ -125,6 +136,14 @@ Resources:
                       QueueUrl: !Ref SqsQueue
                       MessageBody:
                         Input: testing
+                    Next: SQSSecondaryRegion
+                  SQSSecondaryRegion:
+                    Type: Task
+                    Resource: arn:aws:states:::sqs:sendMessage
+                    Parameters:
+                      QueueUrl: !Ref SecondaryRegionSqsQueue
+                      MessageBody:
+                        Input: testing
                     End: true
               - StartAt: Lambda
                 States:
@@ -136,6 +155,15 @@ Resources:
                       Payload:
                         Input:
                           message: World
+                    Next: LambdaOldVersion
+                  LambdaOldVersion:
+                    Type: Task
+                    Resource: arn:aws:states:::lambda:invoke
+                    Parameters:
+                      FunctionName: !Ref LambdaFunctionVersion
+                      Payload:
+                        Input:
+                          message: Old
                     Next: DynamoDB
                   DynamoDB:
                     Type: Task
@@ -180,7 +208,7 @@ Resources:
           FakeChoice:
             Type: Choice
             Choices:
-              - Variable: $.ResponseBody
+              - Variable: $[0].ResponseBody
                 StringEquals: ThisWillFail
                 Next: Activity
             Default: Finish
@@ -270,6 +298,11 @@ Resources:
           - !Ref VpcSubnet1Id
           - !Ref VpcSubnet2Id
           - !Ref VpcSubnet3Id
+  LambdaFunctionVersion:
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName: !GetAtt LambdaFunction.Arn
+      Description: Test older version
   DynamoDbTable:
     Type: AWS::DynamoDB::Table
     Properties:

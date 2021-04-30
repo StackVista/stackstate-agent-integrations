@@ -6,28 +6,11 @@ Parameters:
     AllowedPattern: >-
       ^(\d{1,3}\.){3}\d{1,3}\/16$
     ConstraintDescription: Must be a valid IPv4 address with a /16 subnet mask
-  BuildAccountId:
-    Type: String
-    Default: "123456789012"
 
 Conditions:
   IsUSEast1: !Equals [!Ref "AWS::Region", "us-east-1"]
 
 Resources:
-  # PipelineRole:
-  #   Type: AWS::IAM::Role
-  #   Properties:
-  #     ManagedPolicyArns:
-  #       - arn:aws:iam::aws:policy/AdministratorAccess
-  #     AssumeRolePolicyDocument:
-  #       Version: 2012-10-17
-  #       Statement:
-  #         - Effect: Allow
-  #           Principal:
-  #             AWS: !Sub arn:${AWS::Partition}:iam::${BuildAccountId}:root
-  #           Action:
-  #             - sts:AssumeRole
-
   Vpc:
     Type: AWS::EC2::VPC
     Properties:
