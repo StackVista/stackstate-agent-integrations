@@ -8,10 +8,54 @@ def create_arn(region=None, account_id=None, resource_id=None, **kwargs):
     return arn(resource='firehose', region=region, account_id=account_id, resource_id='deliverystream/' + resource_id)
 
 
+class Firehose_CreateStream(CloudTrailEventBase):
+    class ResponseElements(Model):
+        deliveryStreamARN = StringType(required=True)
+
+    responseElements = ModelType(ResponseElements, required=True)
+
+    def _internal_process(self, event_name, session, location, agent):
+        client = session.client('firehose')
+        collector = FirehoseCollector(location, client, agent)
+        # TODO make splitting safer
+        part = self.responseElements.deliveryStreamARN.split(':')[-1:].pop()
+        name = part.split('/')[-1:].pop()
+        collector.process_delivery_stream(name)
+
+
+class Firehose_UpdateStream(CloudTrailEventBase):
+    class RequestParameters(Model):
+        deliveryStreamName = StringType(required=True)
+
+    requestParameters = ModelType(RequestParameters)
+
+    def _internal_process(self, event_name, session, location, agent):
+        print(event_name)
+        if event_name == 'DeleteDeliveryStream':
+            agent.delete(agent.create_arn(
+                'AWS::KinesisFirehose::DeliveryStream',
+                self.requestParameters.deliveryStreamName
+            ))
+        else:
+            client = session.client('firehose')
+            collector = FirehoseCollector(location, client, agent)
+            collector.process_delivery_stream(self.requestParameters.deliveryStreamName)
+
+
 class FirehoseCollector(RegisteredResourceCollector):
     API = "firehose"
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.firehose"
+    EVENT_SOURCE = 'firehose.amazonaws.com'
+    CLOUDTRAIL_EVENTS = {
+        'CreateDeliveryStream': Firehose_CreateStream,
+        'DeleteDeliveryStream': Firehose_UpdateStream,
+        'UpdateDestination': Firehose_UpdateStream,
+        'TagDeliveryStream': Firehose_UpdateStream,
+        'UntagDeliveryStream': Firehose_UpdateStream,
+        'StartDeliveryStreamEncryption': Firehose_UpdateStream,
+        'StopDeliveryStreamEncryption': Firehose_UpdateStream,
+    }
 
     def process_all(self):
         for delivery_stream_name in self.client.list_delivery_streams(Limit=10000).get("DeliveryStreamNames") or []:
@@ -50,50 +94,3 @@ class FirehoseCollector(RegisteredResourceCollector):
         # There can also be a relation with another S3 bucket for source record backup
 
         # Destinations can also be S3 / Redshift / ElasticSearch / HTTP / Third Party Service Provider
-
-
-class Firehose_CreateStream(CloudTrailEventBase):
-    class ResponseElements(Model):
-        deliveryStreamARN = StringType(required=True)
-
-    responseElements = ModelType(ResponseElements, required=True)
-
-    def _internal_process(self, event_name, session, location, agent):
-        client = session.client('firehose')
-        collector = FirehoseCollector(location, client, agent)
-        # TODO make splitting safer
-        part = self.responseElements.deliveryStreamARN.split(':')[-1:].pop()
-        name = part.split('/')[-1:].pop()
-        collector.process_delivery_stream(name)
-
-
-class Firehose_UpdateStream(CloudTrailEventBase):
-    API = 'firehose'
-
-    class RequestParameters(Model):
-        deliveryStreamName = StringType(required=True)
-
-    requestParameters = ModelType(RequestParameters)
-
-    def _internal_process(self, event_name, session, location, agent):
-        if event_name == 'DeleteStream':
-            agent.delete(agent.create_arn(
-                'AWS::KinesisFirehose::DeliveryStream',
-                self.requestParameters.deliveryStreamName
-            ))
-        else:
-            client = session.client('firehose')
-            collector = FirehoseCollector(location, client, agent)
-            collector.process_delivery_stream(self.requestParameters.deliveryStreamName)
-
-
-FIREHOSE_EVENTSOURCE = 'firehose.amazonaws.com'
-FIREHOSE_CLOUDTRAIL = {
-    'CreateDeliveryStream': Firehose_CreateStream,
-    'DeleteDeliveryStream': Firehose_UpdateStream,
-    'UpdateDestination': Firehose_UpdateStream,
-    'TagDeliveryStream': Firehose_UpdateStream,
-    'UntagDeliveryStream': Firehose_UpdateStream,
-    'StartDeliveryStreamEncryption': Firehose_UpdateStream,
-    'StopDeliveryStreamEncryption': Firehose_UpdateStream,
-}

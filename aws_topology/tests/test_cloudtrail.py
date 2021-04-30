@@ -165,3 +165,12 @@ class TestCloudtrail(unittest.TestCase):
             'dnv-sam-seed-button-clicked-firehose',
             topology[0]["components"][0]["data"]["DeliveryStreamDescription"]["DeliveryStreamName"]
         )
+
+    @set_event('firehose_delete_stream')
+    def test_process_firehose_delete_stream(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 0)
+        self.assertIn('arn:aws:firehose:eu-west-1:731070500579:deliverystream/AnotherDelivery', self.check.delete_ids)

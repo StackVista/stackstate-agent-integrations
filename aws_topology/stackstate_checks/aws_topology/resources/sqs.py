@@ -4,37 +4,6 @@ from schematics import Model
 from schematics.types import StringType, ModelType
 
 
-class SqsCollector(RegisteredResourceCollector):
-    API = "sqs"
-    API_TYPE = "regional"
-    COMPONENT_TYPE = "aws.sqs"
-
-    def process_all(self):
-        sqs = {}
-        for queue_url in self.client.list_queues().get('QueueUrls', []):
-            result = self.process_queue(queue_url)
-            sqs.update(result)
-        return sqs
-
-    def process_queue(self, queue_url):
-        queue_data_raw = self.client.get_queue_attributes(
-            QueueUrl=queue_url,
-            AttributeNames=['All']
-        ).get('Attributes', {})
-        queue_data = make_valid_data(queue_data_raw)
-        queue_arn = queue_data.get('QueueArn')
-        queue_data['Tags'] = self.client.list_queue_tags(QueueUrl=queue_url).get('Tags')
-        queue_data['URN'] = [queue_url]
-        queue_data['Name'] = queue_url
-        queue_data['QueueUrl'] = queue_url
-        queue_name = queue_url.rsplit('/', 1)[-1]
-        queue_data.update(with_dimensions([{'key': 'QueueName', 'value': queue_name}]))
-
-        self.agent.component(queue_arn, self.COMPONENT_TYPE, queue_data)
-
-        return {queue_name: queue_arn}
-
-
 class Sqs_CreateQueue(CloudTrailEventBase):
     class ResponseElements(Model):
         queueUrl = StringType(required=True)
@@ -63,3 +32,45 @@ class Sqs_UpdateQueue(CloudTrailEventBase):
             client = session.client('sqs')
             collector = SqsCollector(location, client, agent)
             collector.process_queue(self.requestParameters.queueUrl)
+
+
+class SqsCollector(RegisteredResourceCollector):
+    API = "sqs"
+    API_TYPE = "regional"
+    COMPONENT_TYPE = "aws.sqs"
+    EVENT_SOURCE = "sqs.amazonaws.com"
+    CLOUDTRAIL_EVENTS = {
+        'CreateQueue': Sqs_CreateQueue,
+        'DeleteQueue': Sqs_UpdateQueue,
+        'AddPermission': True,
+        'RemovePermission': True,
+        'SetQueueAttributes': Sqs_UpdateQueue,
+        'TagQueue': Sqs_UpdateQueue,
+        'UntagQueue': Sqs_UpdateQueue,
+        'PurgeQueue': Sqs_UpdateQueue
+    }
+
+    def process_all(self):
+        sqs = {}
+        for queue_url in self.client.list_queues().get('QueueUrls', []):
+            result = self.process_queue(queue_url)
+            sqs.update(result)
+        return sqs
+
+    def process_queue(self, queue_url):
+        queue_data_raw = self.client.get_queue_attributes(
+            QueueUrl=queue_url,
+            AttributeNames=['All']
+        ).get('Attributes', {})
+        queue_data = make_valid_data(queue_data_raw)
+        queue_arn = queue_data.get('QueueArn')
+        queue_data['Tags'] = self.client.list_queue_tags(QueueUrl=queue_url).get('Tags')
+        queue_data['URN'] = [queue_url]
+        queue_data['Name'] = queue_url
+        queue_data['QueueUrl'] = queue_url
+        queue_name = queue_url.rsplit('/', 1)[-1]
+        queue_data.update(with_dimensions([{'key': 'QueueName', 'value': queue_name}]))
+
+        self.agent.component(queue_arn, self.COMPONENT_TYPE, queue_data)
+
+        return {queue_name: queue_arn}

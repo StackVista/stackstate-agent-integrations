@@ -1,7 +1,3 @@
-from .sqs import Sqs_CreateQueue, Sqs_UpdateQueue
-from .firehose import FIREHOSE_EVENTSOURCE, FIREHOSE_CLOUDTRAIL
-
-
 listen_for = {
     's3.amazonaws.com': {
         'CreateBucket': True,
@@ -28,16 +24,6 @@ listen_for = {
     },
     'ec2.amazonaws.com': {
         'RunInstances': True
-    },
-    'sqs.amazonaws.com': {
-        'CreateQueue': Sqs_CreateQueue,
-        'DeleteQueue': Sqs_UpdateQueue,
-        'AddPermission': True,
-        'RemovePermission': True,
-        'SetQueueAttributes': Sqs_UpdateQueue,
-        'TagQueue': Sqs_UpdateQueue,
-        'UntagQueue': Sqs_UpdateQueue,
-        'PurgeQueue': Sqs_UpdateQueue
     },
     'sns.amazonaws.com': {
         'CreateTopic': True,
@@ -112,7 +98,3 @@ listen_for = {
         'CreateService': True
     }
 }
-
-listen_for.update({
-    FIREHOSE_EVENTSOURCE: FIREHOSE_CLOUDTRAIL
-})

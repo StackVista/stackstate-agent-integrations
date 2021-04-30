@@ -1,5 +1,5 @@
 from six import with_metaclass
-
+from .cloudtrail import listen_for
 
 class ResourceRegistry(type):
 
@@ -7,6 +7,7 @@ class ResourceRegistry(type):
         'global': {},
         'regional': {}
     }
+    CLOUDTRAIL=listen_for
 
     def __new__(cls, name, bases, attrs):
         new_cls = type.__new__(cls, name, bases, attrs)
@@ -18,6 +19,10 @@ class ResourceRegistry(type):
             if cls.REGISTRY[new_cls.API_TYPE].get(new_cls.API) is None:
                 cls.REGISTRY[new_cls.API_TYPE][new_cls.API] = {}
             cls.REGISTRY[new_cls.API_TYPE][new_cls.API][new_cls.COMPONENT_TYPE] = new_cls
+        if '??' != new_cls.EVENT_SOURCE and not new_cls.CLOUDTRAIL_EVENTS is None:
+            cls.CLOUDTRAIL.update({
+                new_cls.EVENT_SOURCE: new_cls.CLOUDTRAIL_EVENTS
+            })
         return new_cls
 
     @classmethod
@@ -35,6 +40,9 @@ class RegisteredResourceCollector(with_metaclass(ResourceRegistry, object)):
     API_TYPE = "??"
     MEMORY_KEY = None
     COMPONENT_TYPE = "??"
+    EVENT_SOURCE = "??"
+    CLOUDTRAIL_EVENTS = None
+
 
     def __init__(self, location_info, client, agent):
         self.client = client
