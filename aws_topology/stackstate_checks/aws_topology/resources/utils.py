@@ -128,3 +128,13 @@ class CloudTrailEventBase(Model):
 
     def process(self, event_name, session, location, agent):
         self._internal_process(event_name, session, location, agent)
+
+
+def set_required_access(value):
+    def inner(func):
+        cls = func.__class__
+        access = getattr(cls, 'iam_access', [])
+        access.append(value)
+        return func
+
+    return inner
