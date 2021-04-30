@@ -30,7 +30,6 @@ class Firehose_UpdateStream(CloudTrailEventBase):
     requestParameters = ModelType(RequestParameters)
 
     def _internal_process(self, event_name, session, location, agent):
-        print(event_name)
         if event_name == 'DeleteDeliveryStream':
             agent.delete(agent.create_arn(
                 'AWS::KinesisFirehose::DeliveryStream',

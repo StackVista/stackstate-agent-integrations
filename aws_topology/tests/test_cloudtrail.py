@@ -174,3 +174,63 @@ class TestCloudtrail(unittest.TestCase):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 0)
         self.assertIn('arn:aws:firehose:eu-west-1:731070500579:deliverystream/AnotherDelivery', self.check.delete_ids)
+
+    @set_event('firehose_start_encryption')
+    def test_process_firehose_start_encryption(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'arn:aws:firehose:eu-west-1:731070500579:deliverystream/firehose_1',
+            topology[0]["components"][0]["id"]
+        )
+
+    @set_event('firehose_stop_encryption')
+    def test_process_firehose_stop_encryption(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'arn:aws:firehose:eu-west-1:731070500579:deliverystream/firehose_1',
+            topology[0]["components"][0]["id"]
+        )
+
+    @set_event('firehose_tag_stream')
+    def test_process_firehose_tag_stream(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'arn:aws:firehose:eu-west-1:731070500579:deliverystream/firehose_1',
+            topology[0]["components"][0]["id"]
+        )
+
+    @set_event('firehose_untag_stream')
+    def test_process_firehose_untag_stream(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'arn:aws:firehose:eu-west-1:731070500579:deliverystream/firehose_1',
+            topology[0]["components"][0]["id"]
+        )
+
+    @set_event('firehose_update_destination')
+    def test_process_firehose_update_destination(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'arn:aws:firehose:eu-west-1:731070500579:deliverystream/firehose_1',
+            topology[0]["components"][0]["id"]
+        )

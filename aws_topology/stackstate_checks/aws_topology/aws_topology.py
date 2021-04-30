@@ -10,7 +10,7 @@ from schematics import Model
 from schematics.types import StringType, ListType, DictType
 from botocore.config import Config
 from stackstate_checks.base import AgentCheck, TopologyInstance
-from .resources import ResourceRegistry, listen_for, type_arn
+from .resources import ResourceRegistry, type_arn
 from .utils import location_info, correct_tags, capitalize_keys
 import json
 from datetime import datetime
@@ -160,10 +160,12 @@ class AwsTopologyCheck(AgentCheck):
 
     def get_topology_update(self, instance_info, aws_client):
         agent_proxy = AgentProxy(self)
+        listen_for = ResourceRegistry.CLOUDTRAIL
         for region in instance_info.regions:
             session = aws_client.get_session(instance_info.role_arn, region)
             client = session.client('cloudtrail')
             location = location_info(self.get_account_id(instance_info), session.region_name)
+            agent_proxy.location = copy.deepcopy(location)
             stop = False
             for pg in client.get_paginator('lookup_events').paginate(
                 LookupAttributes=[
@@ -243,8 +245,8 @@ class AgentProxy(object):
         func = type_arn.get(type)
         if func:
             return func(
-                region=self.location['AwsRegion'],
-                account_id=self.location['AwsAccount'],
+                region=self.location['Location']['AwsRegion'],
+                account_id=self.location['Location']['AwsAccount'],
                 resource_id=resource_id
             )
         return "UNSUPPORTED_ARN-" + type + "-" + resource_id
