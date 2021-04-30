@@ -1,0 +1,16 @@
+{
+  "Topics": [
+    {
+      "TopicArn": "arn:aws:sns:eu-west-1:731070500579:my-topic-1"
+    },
+    {
+      "TopicArn": "arn:aws:sns:eu-west-1:731070500579:my-topic-2"
+    },
+    {
+      "TopicArn": "arn:aws:sns:eu-west-1:731070500579:my-topic-3"
+    },
+    {
+      "TopicArn": "arn:aws:sns:eu-west-1:731070500579:my-topic-4"
+    }
+  ]
+}

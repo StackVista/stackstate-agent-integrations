@@ -1,0 +1,103 @@
+{
+  "services": [
+    {
+      "status": "ACTIVE",
+      "serviceRegistries": [],
+      "pendingCount": 0,
+      "launchType": "FARGATE",
+      "healthCheckGracePeriodSeconds": 0,
+      "loadBalancers": [
+        {
+          "containerName": "sample-app",
+          "targetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:850318095909:targetgroup/EC2Co-Defau-7HYSTVRX07KO/a7e4eb718fda7510",
+          "containerPort": 80
+        }
+      ],
+      "roleArn": "arn:aws:iam::850318095909:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS",
+      "placementConstraints": [],
+      "createdAt": "2018-06-28T14:14:51.445000+02:00",
+      "desiredCount": 1,
+      "networkConfiguration": {
+        "awsvpcConfiguration": {
+          "subnets": [
+            "subnet-8b8016c3",
+            "subnet-acb373f6"
+          ],
+          "securityGroups": [
+            "sg-1aacb367"
+          ],
+          "assignPublicIp": "ENABLED"
+        }
+      },
+      "platformVersion": "LATEST",
+      "serviceName": "sample-app-service",
+      "clusterArn": "arn:aws:ecs:eu-west-1:850318095909:cluster/default",
+      "taskDefinition": "arn:aws:ecs:eu-west-1:850318095909:task-definition/first-run-task-definition:2",
+      "serviceArn": "arn:aws:ecs:eu-west-1:850318095909:service/sample-app-service",
+      "deploymentConfiguration": {
+        "maximumPercent": 200,
+        "minimumHealthyPercent": 100
+      },
+      "deployments": [
+        {
+          "status": "PRIMARY",
+          "networkConfiguration": {
+            "awsvpcConfiguration": {
+              "subnets": [
+                "subnet-8b8016c3",
+                "subnet-acb373f6"
+              ],
+              "securityGroups": [
+                "sg-1aacb367"
+              ],
+              "assignPublicIp": "ENABLED"
+            }
+          },
+          "pendingCount": 0,
+          "launchType": "FARGATE",
+          "createdAt": "2018-06-28T14:14:51.445000+02:00",
+          "desiredCount": 1,
+          "taskDefinition": "arn:aws:ecs:eu-west-1:850318095909:task-definition/first-run-task-definition:2",
+          "updatedAt": "2018-06-28T14:14:51.445000+02:00",
+          "platformVersion": "1.1.0",
+          "id": "ecs-svc/9223370506666684362",
+          "runningCount": 1
+        }
+      ],
+      "events": [
+        {
+          "message": "(service sample-app-service) has reached a steady state.",
+          "id": "9711d0fc-1617-4391-8f38-84ba18d28d3a",
+          "createdAt": "2018-06-28T14:15:52.284000+02:00"
+        },
+        {
+          "message": "(service sample-app-service) registered 1 targets in (target-group arn:aws:elasticloadbalancing:eu-west-1:850318095909:targetgroup/EC2Co-Defau-7HYSTVRX07KO/a7e4eb718fda7510)",
+          "id": "541526fd-bf30-4c30-aed5-ea1af3365ab2",
+          "createdAt": "2018-06-28T14:15:40.036000+02:00"
+        },
+        {
+          "message": "(service sample-app-service) has started 1 tasks: (task f89e69d0-0829-48b8-a503-c7b02a62fe9f).",
+          "id": "64dde3e6-1505-4efa-865e-ed9ccb494dab",
+          "createdAt": "2018-06-28T14:14:56.183000+02:00"
+        }
+      ],
+      "runningCount": 1,
+      "placementStrategy": [],
+      "tags": [{"key": "test-tag", "value": "test-tag-value"}]
+    }
+  ],
+  "failures": [],
+  "ResponseMetadata": {
+    "RetryAttempts": 0,
+    "HTTPStatusCode": 200,
+    "RequestId": "46eb195f-7ad7-11e8-895f-1be6a762b442",
+    "HTTPHeaders": {
+      "x-amzn-requestid": "46eb195f-7ad7-11e8-895f-1be6a762b442",
+      "content-length": "2200",
+      "server": "Server",
+      "connection": "keep-alive",
+      "date": "Thu, 28 Jun 2018 13:29:26 GMT",
+      "content-type": "application/x-amz-json-1.1"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "ResponseMetadata": {
+    "RetryAttempts": 0,
+    "HTTPStatusCode": 200,
+    "RequestId": "b8808dca-7ad7-11e8-959e-330230225a15",
+    "HTTPHeaders": {
+      "x-amzn-requestid": "b8808dca-7ad7-11e8-959e-330230225a15",
+      "content-length": "93",
+      "server": "Server",
+      "connection": "keep-alive",
+      "date": "Thu, 28 Jun 2018 13:32:36 GMT",
+      "content-type": "application/x-amz-json-1.1"
+    }
+  },
+  "taskArns": [
+    "arn:aws:ecs:eu-west-1:850318095909:task/f89e69d0-0829-48b8-a503-c7b02a62fe9f"
+  ]
+}

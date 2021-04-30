@@ -1,0 +1,101 @@
+{
+  "failures": [],
+  "tasks": [
+    {
+      "launchType": "FARGATE",
+      "attachments": [
+        {
+          "status": "ATTACHED",
+          "type": "ElasticNetworkInterface",
+          "id": "6cfb7da6-10aa-4467-b727-9765a18fdcb7",
+          "details": [
+            {
+              "name": "subnetId",
+              "value": "subnet-acb373f6"
+            },
+            {
+              "name": "networkInterfaceId",
+              "value": "eni-98c93e9e"
+            },
+            {
+              "name": "macAddress",
+              "value": "0a:3d:db:a5:fc:ec"
+            },
+            {
+              "name": "privateIPv4Address",
+              "value": "10.0.0.53"
+            }
+          ]
+        }
+      ],
+      "clusterArn": "arn:aws:ecs:eu-west-1:850318095909:cluster/default",
+      "desiredStatus": "RUNNING",
+      "createdAt": "2018-06-28T14:14:56.166000+02:00",
+      "taskArn": "arn:aws:ecs:eu-west-1:850318095909:task/f89e69d0-0829-48b8-a503-c7b02a62fe9f",
+      "group": "service:sample-app-service",
+      "pullStartedAt": "2018-06-28T14:15:07.801000+02:00",
+      "version": 3,
+      "memory": "512",
+      "connectivityAt": "2018-06-28T14:15:00.964000+02:00",
+      "startedAt": "2018-06-28T14:15:29.801000+02:00",
+      "taskDefinitionArn": "arn:aws:ecs:eu-west-1:850318095909:task-definition/first-run-task-definition:2",
+      "containers": [
+        {
+          "containerArn": "arn:aws:ecs:eu-west-1:850318095909:container/b0eee7fe-43be-4f77-9345-fb02c8d82290",
+          "taskArn": "arn:aws:ecs:eu-west-1:850318095909:task/f89e69d0-0829-48b8-a503-c7b02a62fe9f",
+          "name": "sample-app",
+          "networkBindings": [],
+          "lastStatus": "RUNNING",
+          "healthStatus": "UNKNOWN",
+          "networkInterfaces": [
+            {
+              "privateIpv4Address": "10.0.0.53",
+              "attachmentId": "6cfb7da6-10aa-4467-b727-9765a18fdcb7"
+            }
+          ]
+        },
+        {
+          "containerArn": "arn:aws:ecs:eu-west-1:850318095909:container/b0eee7fe-43be-4f77-8844-fb02c8d82290",
+          "taskArn": "arn:aws:ecs:eu-west-1:850318095909:task/f89e69d0-0829-48b8-a503-c7b02a62fe9f",
+          "name": "xray-daemon",
+          "networkBindings": [],
+          "lastStatus": "RUNNING",
+          "healthStatus": "UNKNOWN",
+          "networkInterfaces": [
+            {
+              "privateIpv4Address": "10.0.0.54",
+              "attachmentId": "6cfb7da6-10aa-4467-b727-9765a18fdcb7"
+            }
+          ]
+        }
+      ],
+      "lastStatus": "RUNNING",
+      "connectivity": "CONNECTED",
+      "healthStatus": "UNKNOWN",
+      "platformVersion": "1.1.0",
+      "overrides": {
+        "containerOverrides": [
+          {
+            "name": "sample-app"
+          }
+        ]
+      },
+      "pullStoppedAt": "2018-06-28T14:15:29.801000+02:00",
+      "cpu": "256",
+      "startedBy": "ecs-svc/9223370506666684362"
+    }
+  ],
+  "ResponseMetadata": {
+    "RetryAttempts": 0,
+    "HTTPStatusCode": 200,
+    "RequestId": "1639529a-7ad8-11e8-a83e-834ea04b46d5",
+    "HTTPHeaders": {
+      "x-amzn-requestid": "1639529a-7ad8-11e8-a83e-834ea04b46d5",
+      "content-length": "1499",
+      "server": "Server",
+      "connection": "keep-alive",
+      "date": "Thu, 28 Jun 2018 13:35:13 GMT",
+      "content-type": "application/x-amz-json-1.1"
+    }
+  }
+}

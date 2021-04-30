@@ -1,0 +1,70 @@
+{
+  "Metrics": [
+    {
+      "Namespace": "AWS/ApplicationELB",
+      "Dimensions": [
+        {
+          "Name": "LoadBalancer",
+          "Value": "app/myfirstloadbalancer/90dd512583d2d7e9"
+        }
+      ],
+      "MetricName": "HTTPCode_ELB_5XX_Count"
+    },
+    {
+      "Namespace": "AWS/ApplicationELB",
+      "Dimensions": [
+        {
+          "Name": "LoadBalancer",
+          "Value": "app/anotherloadbalancer/90dd512583d2d7e9"
+        }
+      ],
+      "MetricName": "RequestCountPerTarget"
+    },
+    {
+      "Namespace": "AWS/ApplicationELB",
+      "Dimensions": [
+        {
+          "Name": "LoadBalancer",
+          "Value": "app/myfirstloadbalancer/90dd512583d2d7e9"
+        },
+        {
+          "Name": "TargetGroup",
+          "Value": "targetgroup/myfirsttargetgroup/28ddec997ec55d21"
+        }
+      ],
+      "MetricName": "HTTPCode_ELB_4XX_Count"
+    },
+    {
+      "Namespace": "AWS/ApplicationELB",
+      "Dimensions": [
+        {
+          "Name": "LoadBalancer",
+          "Value": "app/myfirstloadbalancer/90dd512583d2d7e9"
+        },
+        {
+          "Name": "TargetGroup",
+          "Value": "targetgroup/myfirsttargetgroup/28ddec997ec55d21"
+        },
+        {
+          "Name": "AZ",
+          "Value": "eu-west-1b"
+        }
+      ],
+      "MetricName": "HTTPCode_Target_3XX_Count"
+    },
+    {
+      "Namespace": "AWS/ApplicationELB",
+      "Dimensions": [
+        {
+          "Name": "LoadBalancer",
+          "Value": "app/myfirstloadbalancer/90dd512583d2d7e9"
+        },
+        {
+          "Name": "AZ",
+          "Value": "eu-west-1b"
+        }
+      ],
+      "MetricName": "HTTPCode_Target_3XX_Count"
+    }
+  ]
+}
