@@ -80,6 +80,12 @@ Resources:
                 Action:
                   - sns:Publish
                 Resource: !Ref SnsTopic
+              - Sid: sqs
+                Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                Resource:
+                  - !GetAtt SqsQueue.Arn
 
   StepFunctionsStateMachine:
     Type: AWS::StepFunctions::StateMachine
@@ -110,7 +116,7 @@ Resources:
             Type: Task
             Resource: arn:aws:states:::dynamodb:putItem
             Parameters:
-              TableName: !GetAtt DynamoDbTable.Arn
+              TableName: !Ref DynamoDbTable
               Item:
                 key:
                   S: testing
@@ -122,6 +128,40 @@ Resources:
               Message:
                 Input: Testing 123
               TopicArn: !Ref SnsTopic
+            Next: SQS
+          SQS:
+            Type: Task
+            Resource: arn:aws:states:::sqs:sendMessage
+            Parameters:
+              QueueUrl: !Ref SqsQueue
+              MessageBody:
+                Input: testing
+            Next: ApiGateway
+          ApiGateway:
+            Type: Task
+            Resource: arn:aws:states:::apigateway:invoke
+            Parameters:
+              ApiEndpoint: !Sub ${ApiGatewayApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}
+              Method: GET
+              Headers: {}
+              Stage: !Ref ApiGatewayStage
+              Path: /test
+              QueryParameters: {}
+              RequestBody:
+                Payload: 
+                  message: test
+              AuthType: NO_AUTH
+            Next: FakeChoice
+          FakeChoice:
+            Type: Choice
+            Choices:
+              - Variable: $.ResponseBody
+                StringEquals: ThisWillFail
+                Next: Activity
+            Default: World
+          Activity:
+            Type: Task
+            Resource: !Ref StepFunctionsActivity
             Next: World
           World:
             Type: Pass
@@ -132,12 +172,43 @@ Resources:
         config:
           ignore_checks:
             - E3002 # Step Functions supports objects now
+  StepFunctionsActivity:
+    Type: AWS::StepFunctions::Activity
+    Properties:
+      Name: TestActivity
 
   ApiGatewayApi:
     Type: AWS::ApiGatewayV2::Api
     Properties:
       Name: ApiGatewayApiTest
       ProtocolType: HTTP
+  ApiGatewayStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      StageName: test
+      ApiId: !Ref ApiGatewayApi
+      AutoDeploy: true
+  ApiGatewayRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      RouteKey: $default
+      ApiId: !Ref ApiGatewayApi
+      Target: !Sub integrations/${ApiGatewayIntegration}
+  ApiGatewayIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGatewayApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt LambdaFunction.Arn
+      PayloadFormatVersion: '2.0'
+
+  LambdaFunctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt LambdaFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: !Sub apigateway.${AWS::URLSuffix}
+      SourceArn: !Sub arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGatewayApi}/*/$default
   LambdaFunctionIamRole:
     Type: AWS::IAM::Role
     Properties:
@@ -189,6 +260,10 @@ Resources:
         Enabled: true
   SnsTopic:
     Type: AWS::SNS::Topic
+  SqsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 60
 
   # ECS Cluster
 
