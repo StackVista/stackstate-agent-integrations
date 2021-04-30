@@ -45,7 +45,9 @@ def mock_event(event_name):
             return msg
         elif operation_name == 'GetQueueAttributes':
             return resource("json/cloudtrail/get_queue_attributes.json")
-        elif operation_name == 'ListQueueTags':
+        elif operation_name == 'DescribeDeliveryStream':
+            return resource("json/cloudtrail/describe_delivery_stream.json")
+        elif operation_name == 'ListQueueTags' or operation_name == 'ListTagsForDeliveryStream':
             return {}
         raise ValueError("Unknown operation name", operation_name)
 
@@ -150,3 +152,16 @@ class TestCloudtrail(unittest.TestCase):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 0)
         self.assertEqual(len(self.check.delete_ids), 0)
+        # TODO test that an event is emitted
+
+    @set_event('firehose_create_stream')
+    def test_process_firehose_create_stream(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'dnv-sam-seed-button-clicked-firehose',
+            topology[0]["components"][0]["data"]["DeliveryStreamDescription"]["DeliveryStreamName"]
+        )

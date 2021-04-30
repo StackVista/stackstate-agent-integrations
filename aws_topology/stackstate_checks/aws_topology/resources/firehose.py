@@ -61,8 +61,9 @@ class Firehose_CreateStream(CloudTrailEventBase):
     def _internal_process(self, event_name, session, location, agent):
         client = session.client('firehose')
         collector = FirehoseCollector(location, client, agent)
-        part = self.responseElements.deliveryStreamARN.split(':')[:-1]
-        name = part.split('/')[:-1]
+        # TODO make splitting safer
+        part = self.responseElements.deliveryStreamARN.split(':')[-1:].pop()
+        name = part.split('/')[-1:].pop()
         collector.process_delivery_stream(name)
 
 
