@@ -44,8 +44,7 @@ class KinesisCollector(RegisteredResourceCollector):
         'EnableEnhancedMonitoring': Kinesis_Stream,
         'IncreaseStreamRetentionPeriod': Kinesis_Stream,
         'DecreaseStreamRetentionPeriod': Kinesis_Stream,
-
-        # events
+        # TODO events
         # RegisterStreamConsumer ???
         # DeregisterStreamConsumer ???
         # MergeShards

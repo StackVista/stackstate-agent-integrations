@@ -40,21 +40,6 @@ listen_for = {
         # SetSubscriptionAttributes
         # SetTopicAttributes
     },
-    'dynamodb.amazonaws.com': {
-        'CreateTable': True,
-        'DeleteTable': True
-        # TagResource
-        # UntagResource
-        # UpdateTable
-        # UpdateTimeToLive
-        # UpdateGlobalTable
-        # CreateGlobalTable
-
-        # events
-        # RestoreTableFromBackup
-        # RestoreTableToPointInTime
-        # DeleteBackup
-    },
     'lambda.amazonaws.com': {
         'CreateFunction20150331': True,
         'UpdateFunctionConfiguration20150331v2': True,

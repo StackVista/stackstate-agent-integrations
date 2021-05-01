@@ -47,7 +47,16 @@ def mock_event(event_name):
             return resource("json/cloudtrail/get_queue_attributes.json")
         elif operation_name == 'DescribeDeliveryStream':
             return resource("json/cloudtrail/describe_delivery_stream.json")
-        elif operation_name == 'ListQueueTags' or operation_name == 'ListTagsForDeliveryStream':
+        elif operation_name == 'DescribeStreamSummary':
+            return resource("json/cloudtrail/describe_stream_summary.json")
+        elif operation_name == 'DescribeTable':
+            return resource("json/cloudtrail/describe_table.json")
+        elif (
+            operation_name == 'ListQueueTags'
+            or operation_name == 'ListTagsForDeliveryStream'
+            or operation_name == 'ListTagsForStream'
+            or operation_name == 'ListTagsOfResource'
+        ):
             return {}
         raise ValueError("Unknown operation name", operation_name)
 
@@ -233,4 +242,178 @@ class TestCloudtrail(unittest.TestCase):
         self.assertEqual(
             'arn:aws:firehose:eu-west-1:731070500579:deliverystream/firehose_1',
             topology[0]["components"][0]["id"]
+        )
+
+    @set_event('kinesis_create_stream')
+    def test_process_kinesis_create_stream(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'dnv-sam-seed-stream_1',
+            topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"]
+        )
+
+    @set_event('kinesis_delete_stream')
+    def test_process_kinesis_delete_stream(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 0)
+        self.assertIn('arn:aws:kinesis:eu-west-1:731070500579:stream/TestStream', self.check.delete_ids)
+
+    @set_event('kinesis_tag_stream')
+    def test_process_kinesis_tag_stream(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'dnv-sam-seed-stream_1',
+            topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"]
+        )
+
+    @set_event('kinesis_untag_stream')
+    def test_process_kinesis_untag_stream(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'dnv-sam-seed-stream_1',
+            topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"]
+        )
+
+    @set_event('kinesis_increase_retention')
+    def test_process_kinesis_increase_retention(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'dnv-sam-seed-stream_1',
+            topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"]
+        )
+
+    @set_event('kinesis_decrease_retention')
+    def test_process_kinesis_decrease_retention(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'dnv-sam-seed-stream_1',
+            topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"]
+        )
+
+    @set_event('kinesis_enable_enh_monitoring')
+    def test_process_kinesis_enable_enh_monitoring(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'dnv-sam-seed-stream_1',
+            topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"]
+        )
+
+    @set_event('kinesis_disable_enh_monitoring')
+    def test_process_kinesis_disable_enh_monitoring(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'dnv-sam-seed-stream_1',
+            topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"]
+        )
+
+    @set_event('kinesis_start_encryption')
+    def test_process_kinesis_start_encryption(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'dnv-sam-seed-stream_1',
+            topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"]
+        )
+
+    @set_event('kinesis_stop_encryption')
+    def test_process_kinesis_stop_encryption(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'dnv-sam-seed-stream_1',
+            topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"]
+        )
+
+    @set_event('kinesis_update_shard_count')
+    def test_process_update_shard_count(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'dnv-sam-seed-stream_1',
+            topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"]
+        )
+
+    @set_event('dynamodb_create_table')
+    def test_process_dynamodb_create_table(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'arn:aws:dynamodb:eu-west-1:731070500579:table/table_1',
+            topology[0]["components"][0]["data"]["Name"]
+        )
+
+    @set_event('dynamodb_delete_table')
+    def test_process_dynamodb_delete_table(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 0)
+        self.assertIn('arn:aws:dynamodb:eu-west-1:731070500579:table/JpkTest', self.check.delete_ids)
+
+    @set_event('dynamodb_tag_table')
+    def test_process_dynamodb_tag_table(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'arn:aws:dynamodb:eu-west-1:731070500579:table/table_1',
+            topology[0]["components"][0]["data"]["Name"]
+        )
+
+    @set_event('dynamodb_untag_table')
+    def test_process_dynamodb_untag_table(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'arn:aws:dynamodb:eu-west-1:731070500579:table/table_1',
+            topology[0]["components"][0]["data"]["Name"]
         )
