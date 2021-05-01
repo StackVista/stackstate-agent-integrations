@@ -40,25 +40,6 @@ listen_for = {
         # SetSubscriptionAttributes
         # SetTopicAttributes
     },
-    'kinesis.amazonaws.com': {
-        'CreateStream': True,
-        'DeleteStream': True
-        # AddTagsToStream
-        # RemoveTagsFromStream
-        # StartStreamEncryption
-        # StopStreamEncryption
-        # MergeShards
-        # SplitShard
-        # UpdateShardCount
-        # DisableEnhancedMonitoring
-        # EnableEnhancedMonitoring
-        # IncreaseStreamRetentionPeriod
-        # DecreaseStreamRetentionPeriod
-
-        # events
-        # RegisterStreamConsumer ???
-        # DeregisterStreamConsumer ???
-    },
     'dynamodb.amazonaws.com': {
         'CreateTable': True,
         'DeleteTable': True
