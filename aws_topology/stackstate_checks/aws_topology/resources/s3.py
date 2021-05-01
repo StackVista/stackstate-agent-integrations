@@ -1,8 +1,8 @@
-from .utils import make_valid_data, create_arn as arn, client_array_operation
+from .utils import make_valid_data, create_arn as arn, client_array_operation, CloudTrailEventBase
 from .registry import RegisteredResourceCollector
 from collections import namedtuple
 from schematics import Model
-from schematics.types import StringType, ListType
+from schematics.types import StringType, ListType, ModelType
 
 
 def create_arn(resource_id=None, **kwargs):
@@ -21,10 +21,33 @@ class BucketNotification(Model):
     Events = ListType(StringType, required=True)
 
 
+class S3_UpdateBucket(CloudTrailEventBase):
+    class RequestParameters(Model):
+        bucketName = StringType(required=True)
+
+    requestParameters = ModelType(RequestParameters, required=True)
+
+    def _internal_process(self, event_name, session, location, agent):
+        if event_name == 'DeleteBucket':
+            agent.delete(agent.create_arn(
+                'AWS::S3::Bucket',
+                self.requestParameters.bucketName
+            ))
+        else:
+            client = session.client('s3')
+            collector = S3Collector(location, client, agent)
+            collector.process_one_bucket(self.requestParameters.bucketName)
+
+
 class S3Collector(RegisteredResourceCollector):
     API = "s3"
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.s3_bucket"
+    EVENT_SOURCE = 's3.amazonaws.com'
+    CLOUDTRAIL_EVENTS = {
+        'CreateBucket': S3_UpdateBucket,
+        'DeleteBucket': S3_UpdateBucket
+    }
 
     def collect_bucket(self, bucket):
         name = bucket.get('Name')
@@ -60,6 +83,9 @@ class S3Collector(RegisteredResourceCollector):
         for bucket_data in self.collect_buckets():
             s3_buckets.update(self.process_bucket(bucket_data))
         return s3_buckets
+
+    def process_one_bucket(self, bucket_name):
+        self.process_bucket(self.collect_bucket({'Name': bucket_name}))
 
     def process_bucket(self, data):
         output = make_valid_data(data.bucket)

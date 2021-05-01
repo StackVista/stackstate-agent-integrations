@@ -1,8 +1,4 @@
 listen_for = {
-    's3.amazonaws.com': {
-        'CreateBucket': True,
-        'DeleteBucket': True
-    },
     'redshift.amazonaws.com': {
         'CreateCluster': True,
         'DeleteCluster': True
