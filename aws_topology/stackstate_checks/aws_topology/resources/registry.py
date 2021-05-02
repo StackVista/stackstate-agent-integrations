@@ -37,7 +37,6 @@ class RegisteredResourceCollector(with_metaclass(ResourceRegistry, object)):
     """
     API = "??"
     API_TYPE = "??"
-    MEMORY_KEY = None
     COMPONENT_TYPE = "??"
     EVENT_SOURCE = "??"
     CLOUDTRAIL_EVENTS = None

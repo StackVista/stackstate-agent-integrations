@@ -78,11 +78,9 @@ class S3Collector(RegisteredResourceCollector):
             yield bucket
 
     def process_all(self, filter=None):
-        s3_buckets = {}
         # buckets should only be fetched for global OR filtered by LocationConstraint
         for bucket_data in self.collect_buckets():
-            s3_buckets.update(self.process_bucket(bucket_data))
-        return s3_buckets
+            self.process_bucket(bucket_data)
 
     def process_one_bucket(self, bucket_name):
         self.process_bucket(self.collect_bucket({'Name': bucket_name}))
@@ -106,4 +104,3 @@ class S3Collector(RegisteredResourceCollector):
             if function_arn:
                 for event in bucket_notification.Events:
                     self.agent.relation(bucket_arn, function_arn, "uses service", {"event_type": event})
-        return {bucket_name: bucket_arn}

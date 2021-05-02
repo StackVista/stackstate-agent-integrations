@@ -21,18 +21,15 @@ class EcsCollector(RegisteredResourceCollector):
     API = "ecs"
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.ecs.cluster"
-    MEMORY_KEY = "ecs_cluster"
 
     def process_all(self, filter=None):
-        ecs_cluster = {}
         for cluster_page in self.client.get_paginator('list_clusters').paginate():
             cluster_arns = cluster_page.get('clusterArns') or []
             for cluster_data_raw in self.client.describe_clusters(
                 clusters=cluster_arns, include=['TAGS']
             ).get('clusters') or []:
                 cluster_data = make_valid_data(cluster_data_raw)
-                result = self.process_cluster(cluster_data)
-                ecs_cluster.update(result)
+                self.process_cluster(cluster_data)
 
             for cluster_arn in cluster_arns:
                 for container_instance_page in self.client.get_paginator(
@@ -45,8 +42,6 @@ class EcsCollector(RegisteredResourceCollector):
                         )
                         for container_instance in described_container_instance['containerInstances']:
                             self.agent.relation(cluster_arn, container_instance['ec2InstanceId'], 'uses_ec2_host', {})
-
-        return ecs_cluster
 
     def process_cluster(self, cluster_data):
         cluster_arn = cluster_data['clusterArn']
@@ -61,8 +56,6 @@ class EcsCollector(RegisteredResourceCollector):
         self.ecs_containers_per_service = self.process_cluster_tasks(cluster_arn)
 
         self.process_services(cluster_arn, cluster_name)
-
-        return {cluster_name: cluster_arn}
 
     def process_cluster_tasks(self, cluster_arn):
         task_map = {}

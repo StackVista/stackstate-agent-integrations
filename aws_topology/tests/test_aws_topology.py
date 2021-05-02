@@ -135,58 +135,6 @@ class TestAWSTopologyCheck(unittest.TestCase):
             self.assertGreater(len(service_checks), 0)
             self.assertIn('topology collection failed', service_checks[0].message)
 
-    def test_topology_memory(self):
-        """
-        Testing memory
-        """
-        class base(object):
-            API = "??"
-            API_TYPE = "??"
-            MEMORY_KEY = None
-
-            def __init__(self, location_info, client, agent):
-                pass
-
-            def get_delete_ids(self):
-                return []
-
-        class s3(base):
-            API = "s3"
-            API_TYPE = "regional"
-            MEMORY_KEY = 'test_key'
-
-            def process_all(self, filter=None):
-                return {'abc': 'def'}
-
-        class ec2(base):
-            API = "ec2"
-            API_TYPE = "regional"
-            COMPONENT_TYPE = "ec2_1"
-
-            def process_all(self, filter=None):
-                return {'xyz': 'xyz'}
-
-        class autoscaling(base):
-            API = "autoscaling"
-            API_TYPE = "regional"
-
-            def process_all(self, filter=None):
-                pass
-
-        registry = {
-            'regional': {
-                's3':  s3,
-                'ec2': ec2,
-                'autoscaling': autoscaling
-            },
-            'global': {}
-        }
-        with patch('stackstate_checks.aws_topology.resources.ResourceRegistry.get_registry', return_value=registry):
-            self.check.run()
-            self.assertEqual(self.check.memory_data.get('test_key'), {'abc': 'def'})
-            self.assertEqual(self.check.memory_data.get('autoscaling'), None)
-            self.assertEqual(self.check.memory_data.get('ec2'), {'xyz': 'xyz'})
-
     def test_metadata(self):
         self.api_results.update({
             'ListBuckets': {

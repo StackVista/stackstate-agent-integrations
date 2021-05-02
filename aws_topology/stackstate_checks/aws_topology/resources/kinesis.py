@@ -30,7 +30,6 @@ class KinesisCollector(RegisteredResourceCollector):
     API = "kinesis"
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.kinesis"
-    MEMORY_KEY = "kinesis_stream"
     EVENT_SOURCE = "kinesis.amazonaws.com"
     CLOUDTRAIL_EVENTS = {
         'CreateStream': Kinesis_Stream,  # responseElements sometimes is empty so parsing requestParameters here
@@ -52,12 +51,9 @@ class KinesisCollector(RegisteredResourceCollector):
     }
 
     def process_all(self, filter=None):
-        kinesis_stream = {}
         for list_streams_page in self.client.get_paginator('list_streams').paginate():
             for stream_name in list_streams_page.get('StreamNames') or []:
-                result = self.process_stream(stream_name)
-                kinesis_stream.update(result)
-        return kinesis_stream
+                self.process_stream(stream_name)
 
     def process_stream(self, stream_name):
         stream_summary_raw = self.client.describe_stream_summary(StreamName=stream_name)
@@ -67,4 +63,3 @@ class KinesisCollector(RegisteredResourceCollector):
         stream_arn = stream_summary['StreamDescriptionSummary']['StreamARN']
         self.agent.component(stream_arn, self.COMPONENT_TYPE, stream_summary)
         # There can also be relations with EC2 instances as enhanced fan out consumers
-        return {stream_name: stream_arn}

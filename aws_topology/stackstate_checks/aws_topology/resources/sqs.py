@@ -55,11 +55,8 @@ class SqsCollector(RegisteredResourceCollector):
     }
 
     def process_all(self, filter=None):
-        sqs = {}
         for queue_url in self.client.list_queues().get('QueueUrls', []):
-            result = self.process_queue(queue_url)
-            sqs.update(result)
-        return sqs
+            self.process_queue(queue_url)
 
     def process_queue(self, queue_url):
         queue_data_raw = self.client.get_queue_attributes(
@@ -76,5 +73,3 @@ class SqsCollector(RegisteredResourceCollector):
         queue_data.update(with_dimensions([{'key': 'QueueName', 'value': queue_name}]))
 
         self.agent.component(queue_arn, self.COMPONENT_TYPE, queue_data)
-
-        return {queue_name: queue_arn}

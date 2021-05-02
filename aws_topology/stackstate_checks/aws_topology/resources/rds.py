@@ -26,8 +26,6 @@ class RdsCollector(RegisteredResourceCollector):
             cluster_data = make_valid_data(cluster_data_raw)
             self.process_cluster(cluster_data, rds)
 
-        return rds
-
     def process_instance(self, instance_data):
         instance_arn = instance_data['DBInstanceArn']
         instance_id = instance_data['DBInstanceIdentifier']

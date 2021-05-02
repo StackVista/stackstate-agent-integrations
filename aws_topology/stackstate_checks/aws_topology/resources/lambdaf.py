@@ -12,13 +12,11 @@ class LambdaCollector(RegisteredResourceCollector):
     API = "lambda"
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.lambda"
-    MEMORY_KEY = "lambda_func"
 
     def process_all(self, filter=None):
-        functions = {}
         if not filter or "functions" in filter:
             try:
-                functions = self.process_functions()
+                self.process_functions()
             except Exception:
                 pass
         if not filter or "mappings" in filter:
@@ -26,16 +24,12 @@ class LambdaCollector(RegisteredResourceCollector):
                 self.process_event_source_mappings()
             except Exception:
                 pass
-        return functions
 
     def process_functions(self):
-        lambda_func = {}
         for page in self.client.get_paginator('list_functions').paginate():
             for function_data_raw in page.get('Functions') or []:
                 function_data = make_valid_data(function_data_raw)
-                result = self.process_lambda(function_data)
-                lambda_func.update(result)
-        return lambda_func
+                self.process_lambda(function_data)
 
     def process_event_source_mappings(self):
         for page in self.client.get_paginator('list_event_source_mappings').paginate():
@@ -52,7 +46,6 @@ class LambdaCollector(RegisteredResourceCollector):
 
     def process_lambda(self, function_data):
         function_arn = function_data['FunctionArn']
-        function_name = function_data['FunctionName']
         function_tags = None
         while function_tags is None:
             try:
@@ -77,4 +70,3 @@ class LambdaCollector(RegisteredResourceCollector):
             self.agent.component(alias_arn, 'aws.lambda.alias', alias_data)
             if vpc_id:
                 self.agent.relation(alias_arn, vpc_id, 'uses service', {})
-        return {function_name: function_arn}

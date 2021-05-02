@@ -11,15 +11,11 @@ class ELBClassicCollector(RegisteredResourceCollector):
     API = "elb"
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.elb_classic"
-    MEMORY_KEY = "elb_classic"
 
     def process_all(self, filter=None):
-        elb_classic = {}
         for elb_data_raw in self.client.describe_load_balancers().get('LoadBalancerDescriptions') or []:
             elb_data = make_valid_data(elb_data_raw)
-            result = self.process_loadbalancer(elb_data)
-            elb_classic.update(result)
-        return elb_classic
+            self.process_loadbalancer(elb_data)
 
     def process_loadbalancer(self, elb_data):
         elb_name = elb_data['LoadBalancerName']
@@ -64,4 +60,3 @@ class ELBClassicCollector(RegisteredResourceCollector):
             self.agent.event(event)
 
         self.agent.create_security_group_relations(instance_id, elb_data)
-        return {elb_name: instance_id}

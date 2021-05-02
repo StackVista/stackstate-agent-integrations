@@ -93,7 +93,6 @@ class AwsTopologyCheck(AgentCheck):
         """Gets AWS Topology returns them in Agent format."""
         self.start_snapshot()
 
-        self.memory_data = {}  # name -> arn for cloudformation
         errors = []
         agent_proxy = AgentProxy(self)
         for region in instance_info.regions:
@@ -104,9 +103,6 @@ class AwsTopologyCheck(AgentCheck):
                 if instance_info.apis_to_run is None
                 else [api.split('|')[0] for api in instance_info.apis_to_run]
             )
-            # move cloudformation to the end
-            if 'cloudformation' in keys:
-                keys.append(keys.pop(keys.index('cloudformation')))
             for api in keys:
                 client = None
                 location = location_info(self.get_account_id(instance_info), session.region_name)
@@ -120,23 +116,7 @@ class AwsTopologyCheck(AgentCheck):
                     client = session.client(api)
                 processor = registry[api](location, client, agent_proxy)
                 try:
-                    if api != 'cloudformation':
-                        result = processor.process_all(filter=filter)
-                    else:
-                        result = processor.process_all(self.memory_data, filter=filter)
-                    if result:
-                        memory_key = processor.MEMORY_KEY or api
-                        if memory_key != "MULTIPLE":
-                            if self.memory_data.get(memory_key) is not None:
-                                self.memory_data[memory_key].update(result)
-                            else:
-                                self.memory_data[memory_key] = result
-                        else:
-                            for rk in result:
-                                if self.memory_data.get(rk) is not None:
-                                    self.memory_data[rk].update(result[rk])
-                                else:
-                                    self.memory_data[rk] = result[rk]
+                    processor.process_all(filter=filter)
                     self.delete_ids += processor.get_delete_ids()
                 except Exception as e:
                     event = {

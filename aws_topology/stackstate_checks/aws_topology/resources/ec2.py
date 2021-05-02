@@ -7,37 +7,27 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
     API = "ec2"
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.ec2"
-    MEMORY_KEY = "MULTIPLE"
 
     def __init__(self, location_info, client, agent):
         RegisteredResourceCollector.__init__(self, location_info, client, agent)
         self.nitroInstances = None
 
     def process_all(self, filter=None):
-        instances = {}
-        groups = {}
         if not filter or "instances" in filter:
-            instances = self.process_instances()
+            self.process_instances()
         if not filter or "security_groups" in filter:
-            groups = self.process_security_groups()
+            self.process_security_groups()
         if not filter or "vpcs" in filter:
             self.process_vpcs()
         if not filter or "vpn_gateways" in filter:
             self.process_vpn_gateways()
-        return {
-            'ec2': instances,
-            'groups': groups
-        }
 
     def process_instances(self):
-        ec2 = {}
         for reservation in self.client.describe_instances().get('Reservations') or []:
             for instance_data_raw in reservation.get('Instances') or []:
                 instance_data = make_valid_data(instance_data_raw)
                 if instance_data['State']['Name'] != "terminated":
-                    result = self.process_instance(instance_data)
-                    ec2.update(result)
-        return ec2
+                    self.process_instance(instance_data)
 
     def process_instance(self, instance_data):
         if self.nitroInstances is None:
@@ -99,12 +89,9 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         return {instance_id: instance_id}
 
     def process_security_groups(self):
-        groups = {}
         for group_data_raw in self.client.describe_security_groups().get('SecurityGroups') or []:
             group_data = make_valid_data(group_data_raw)
-            result = self.process_security_group(group_data)
-            groups.update(result)
-        return groups
+            self.process_security_group(group_data)
 
     def process_security_group(self, group_data):
         group_id = group_data['GroupId']
@@ -123,7 +110,6 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
 
         if group_data.get('VpcId'):
             self.agent.relation(group_data['VpcId'], group_id, 'has resource', {})
-        return {group_id: group_id}
 
     def process_vpcs(self):
         vpc_descriptions = self.client.describe_vpcs().get('Vpcs') or []

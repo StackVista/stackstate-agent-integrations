@@ -65,12 +65,9 @@ class DynamodbTableCollector(RegisteredResourceCollector):
     }
 
     def process_all(self, filter=None):
-        dynamodb = {}
         for page in self.client.get_paginator('list_tables').paginate():
             for table_name in page.get('TableNames') or []:
-                result = self.process_table(table_name)
-                dynamodb.update(result)
-        return dynamodb
+                self.process_table(table_name)
 
     def process_table(self, table_name):
         table_description_raw = self.client.describe_table(TableName=table_name)

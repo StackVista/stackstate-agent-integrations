@@ -12,9 +12,6 @@ from .ecs import create_cluster_arn as ecs_cluster_arn
 from .api_gateway import create_api_arn, create_stage_arn, create_resource_arn, create_method_arn
 from .elb_classic import create_arn as create_elb_arn
 
-# TODO memorydata
-memory_data = {}
-
 type_map = {
     'AWS::Lambda::Function': 'lambda_func',
     'AWS::Kinesis::Stream': 'kinesis_stream',
@@ -68,8 +65,7 @@ class CloudformationCollector(RegisteredResourceCollector):
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.cloudformation"
 
-    def process_all(self, memory_data=None, filter=None):
-        self.memory_data = memory_data
+    def process_all(self, filter=None):
         for stack_description_raw in self.client.describe_stacks().get('Stacks') or []:
             stack_description = make_valid_data(stack_description_raw)
             stack_id = stack_description['StackId']

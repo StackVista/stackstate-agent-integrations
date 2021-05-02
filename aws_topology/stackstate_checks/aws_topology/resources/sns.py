@@ -12,13 +12,10 @@ class SnsCollector(RegisteredResourceCollector):
     COMPONENT_TYPE = "aws.sns"
 
     def process_all(self, filter=None):
-        sns = {}
         for topic_page in self.client.get_paginator('list_topics').paginate():
             for topic_data_raw in topic_page.get('Topics') or []:
                 topic_data = make_valid_data(topic_data_raw)
-                result = self.process_topic(topic_data)
-                sns.update(result)
-        return sns
+                self.process_topic(topic_data)
 
     def process_topic(self, topic_data):
         topic_arn = topic_data['TopicArn']
@@ -34,4 +31,3 @@ class SnsCollector(RegisteredResourceCollector):
                         subscription_by_topic['TopicArn'] == topic_arn:
                     # TODO subscriptions can be cross region! probably also cross account
                     self.agent.relation(topic_arn, subscription_by_topic['Endpoint'], 'uses service', {})
-        return {topic_name: topic_arn}
