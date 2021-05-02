@@ -417,3 +417,24 @@ class TestCloudtrail(unittest.TestCase):
             'arn:aws:dynamodb:eu-west-1:731070500579:table/table_1',
             topology[0]["components"][0]["data"]["Name"]
         )
+
+    @set_event('s3_create_bucket')
+    def test_process_s3_create_bucket(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'stackstate-logs-123456789012',
+            topology[0]["components"][0]["data"]["Name"]
+        )
+
+    @set_event('s3_delete_bucket')
+    def test_process_s3_delete_bucket(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 0)
+        self.assertIn('arn:aws:s3:::stackstate-logs-123456789012', self.check.delete_ids)
