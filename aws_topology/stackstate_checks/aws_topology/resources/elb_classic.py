@@ -3,6 +3,10 @@ from .utils import make_valid_data, create_resource_arn
 from .registry import RegisteredResourceCollector
 
 
+def create_arn(region=None, account_id=None, resource_id=None, **kwargs):
+    return "classic_elb_" + resource_id
+
+
 class ELBClassicCollector(RegisteredResourceCollector):
     API = "elb"
     API_TYPE = "regional"

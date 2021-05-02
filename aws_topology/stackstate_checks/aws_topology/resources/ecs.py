@@ -1,6 +1,6 @@
 import boto3
 from botocore.config import Config
-from .utils import make_valid_data, with_dimensions
+from .utils import make_valid_data, with_dimensions, create_arn as arn
 from .registry import RegisteredResourceCollector
 
 
@@ -11,6 +11,10 @@ DEFAULT_BOTO3_CONFIG = Config(
         max_attempts=DEFAULT_BOTO3_RETRIES_COUNT
     )
 )
+
+
+def create_cluster_arn(region=None, account_id=None, resource_id=None, **kwargs):
+    return arn(resource='ecs', region=region, account_id=account_id, resource_id='cluster/' + resource_id)
 
 
 class EcsCollector(RegisteredResourceCollector):

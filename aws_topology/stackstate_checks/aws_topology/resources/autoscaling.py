@@ -20,7 +20,11 @@ class AutoscalingCollector(RegisteredResourceCollector):
     def process_autoscaling_group(self, auto_scaling_group_description):
         auto_scaling_group_arn = auto_scaling_group_description['AutoScalingGroupARN']
         auto_scaling_group_name = auto_scaling_group_description['AutoScalingGroupName']
-        self.agent.component(auto_scaling_group_arn, self.COMPONENT_TYPE, auto_scaling_group_description)
+        auto_scaling_group_description['URN'] = [
+            auto_scaling_group_arn
+        ]
+        # using name here, s unique in region, arn is not resolvable from CF-resources
+        self.agent.component(auto_scaling_group_name, self.COMPONENT_TYPE, auto_scaling_group_description)
         for instance in auto_scaling_group_description['Instances']:
             instance_id = instance['InstanceId']
             self.agent.relation(auto_scaling_group_arn, instance_id, 'uses service', {})
@@ -42,4 +46,4 @@ class AutoscalingCollector(RegisteredResourceCollector):
                 instance_id = instance["InstanceId"]
                 relation_id = target_group_arn + '-uses service-' + instance_id
                 self.agent.delete(relation_id)
-        return {auto_scaling_group_name: auto_scaling_group_arn}
+        return {auto_scaling_group_name: auto_scaling_group_name}

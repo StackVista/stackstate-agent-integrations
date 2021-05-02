@@ -1,12 +1,28 @@
 import copy
 import re
-from .utils import with_dimensions, make_valid_data, create_arn, replace_stage_variables
+from .utils import with_dimensions, make_valid_data, create_arn as arn, replace_stage_variables
 from .registry import RegisteredResourceCollector
 
 try:
     from urlparse import urlparse
 except ImportError:
     from urllib.parse import urlparse
+
+
+def create_api_arn(region=None, account_id=None, resource_id=None, **kwargs):
+    return arn(resource='execute-api', region=region, account_id=account_id, resource_id=resource_id)
+
+
+def create_stage_arn(region=None, account_id=None, resource_id=None, **kwargs):
+    return arn(resource='execute-api', region=region, account_id=account_id, resource_id=resource_id)
+
+
+def create_resource_arn(region=None, account_id=None, resource_id=None, **kwargs):
+    return arn(resource='execute-api', region=region, account_id=account_id, resource_id=resource_id)
+
+
+def create_method_arn(region=None, account_id=None, resource_id=None, **kwargs):
+    return arn(resource='execute-api', region=region, account_id=account_id, resource_id=resource_id)
 
 
 class ApigatewayStageCollector(RegisteredResourceCollector):
@@ -26,7 +42,8 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
                     'RestApiId': rest_api['id'],
                     'RestApiName': rest_api['name']
                 }
-
+                rest_api_arn = self.agent.create_arn('AWS::ApiGateway::RestApi', rest_api_id)
+                self.agent.component(rest_api_arn, 'aws.apigateway', rest_api_data)
                 stages = [
                     stage
                     for stage in self.client.get_stages(restApiId=rest_api_id)['item']
@@ -78,6 +95,7 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
                     ]))
 
                     self.agent.component(stage_arn, self.COMPONENT_TYPE, stage_data)
+                    self.agent.relation(rest_api_arn, stage_arn, "has resource", {})
                     api_stage.append({rest_api_id: stage_arn})
 
                     # send resources per stage
@@ -118,8 +136,9 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
                                     method_integration_uri.rfind('arn'):method_integration_uri.find('/invocations')
                                 ]
                             elif re.match("arn:aws:apigateway:.+:sqs:path/.+", method_integration_uri):
+                                #  TODO cross region fails
                                 queue_name = method_integration_uri.rsplit('/', 1)[-1]
-                                queue_arn = create_arn(
+                                queue_arn = arn(
                                     'sqs',
                                     self.location_info['Location']['AwsRegion'],
                                     self.location_info['Location']['AwsAccount'],

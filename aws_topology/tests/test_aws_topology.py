@@ -185,7 +185,7 @@ class TestAWSTopologyCheck(unittest.TestCase):
             self.check.run()
             self.assertEqual(self.check.memory_data.get('test_key'), {'abc': 'def'})
             self.assertEqual(self.check.memory_data.get('autoscaling'), None)
-            self.assertEqual(self.check.memory_data.get('ec2'), {'xyz': 'xyz' })
+            self.assertEqual(self.check.memory_data.get('ec2'), {'xyz': 'xyz'})
 
     def test_metadata(self):
         self.api_results.update({

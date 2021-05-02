@@ -1,7 +1,11 @@
-from .utils import make_valid_data, with_dimensions, CloudTrailEventBase
+from .utils import make_valid_data, with_dimensions, CloudTrailEventBase, create_arn as arn
 from .registry import RegisteredResourceCollector
 from schematics import Model
 from schematics.types import StringType, ModelType
+
+
+def create_arn(region=None, account_id=None, resource_id=None, **kwargs):
+    return arn(resource='sqs', region=region, account_id=account_id, resource_id=resource_id)
 
 
 class Sqs_CreateQueue(CloudTrailEventBase):

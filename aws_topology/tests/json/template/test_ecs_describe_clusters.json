@@ -8,7 +8,7 @@
       "pendingTasksCount": 0,
       "runningTasksCount": 1,
       "activeServicesCount": 1,
-      "clusterArn": "arn:aws:ecs:eu-west-1:850318095909:cluster/default",
+      "clusterArn": "arn:aws:ecs:eu-west-1:731070500579:cluster/default",
       "tags": [{"key": "stackstate-identifier", "value": "sts-ecs-test"}]
     },
     {
@@ -19,7 +19,7 @@
       "pendingTasksCount": 0,
       "runningTasksCount": 0,
       "activeServicesCount": 0,
-      "clusterArn": "arn:aws:ecs:eu-west-1:850318095909:cluster/StackState-ECS-Cluster",
+      "clusterArn": "arn:aws:ecs:eu-west-1:731070500579:cluster/StackState-ECS-Cluster",
       "tags": [{"key": "StackstateIdentifier", "value": "camel-case-id"}]
     }
   ],

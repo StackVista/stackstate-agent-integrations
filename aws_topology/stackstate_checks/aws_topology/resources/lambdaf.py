@@ -26,7 +26,7 @@ class LambdaCollector(RegisteredResourceCollector):
                 self.process_event_source_mappings()
             except Exception:
                 pass
-        return functions 
+        return functions
 
     def process_functions(self):
         lambda_func = {}

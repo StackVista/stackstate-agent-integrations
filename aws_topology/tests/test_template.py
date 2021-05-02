@@ -94,10 +94,13 @@ def get_wrapper(check_name):
                 else:
                     return self.original_processor.process_all(filter=comptype)
 
-
         registry[api_type][api] = error
         return registry
     return registry_wrapper
+
+
+def dont_send_parked_relations(self):
+    pass
 
 
 def mock_boto_calls(self, operation_name, kwarg):
@@ -410,7 +413,6 @@ def mock_boto_calls(self, operation_name, kwarg):
 
 
 def compute_topologies_diff(computed_dict, expected_filepath):
-    # print(topology)
     with open(expected_filepath) as f:
         expected_topology = f.read()
         top = json.loads(expected_topology)
@@ -432,8 +434,6 @@ def compute_topologies_diff(computed_dict, expected_filepath):
         topology = json.dumps(computed_dict, default=str, indent=2, sort_keys=True)
         expected_topology = json.dumps(top, default=str, indent=2, sort_keys=True)
         delta = difflib.unified_diff(a=expected_topology.strip().splitlines(), b=topology.strip().splitlines())
-        # for line in delta:
-        #     print(line)
         return "".join(delta)
 
 
@@ -748,7 +748,7 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(len(topology), 1)
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            topology[0]["components"][0]["id"], "arn:aws:sqs:eu-west-1:508573134510:STS_stackpack_test"
+            topology[0]["components"][0]["id"], "arn:aws:sqs:eu-west-1:731070500579:STS_stackpack_test"
         )  # DIFF externalId
         self.assertEqual(topology[0]["components"][0]["type"], "aws.sqs")  # DIFF was ['type']['name']
         self.assertEqual(topology[0]["components"][0]["data"]["Tags"], {"a": "b"})
@@ -916,6 +916,7 @@ class TestTemplate(unittest.TestCase):
         topology = [top.get_snapshot(self.check.check_id)]
         self.assert_executed_ok()
 
+        api_arn = "arn:aws:execute-api:eu-west-1:731070500579:api_1"
         stage_arn_prefix = "arn:aws:execute-api:eu-west-1:731070500579:api_1/stage{}"
         resource_arn_prefix = "arn:aws:execute-api:eu-west-1:731070500579:api_1/stage{}/*/hello"
         method_arn_prefix = "arn:aws:execute-api:eu-west-1:731070500579:api_1/stage{}/{}/hello"
@@ -925,117 +926,138 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(len(topology), 1)
         # we have 2 stages
         for n in range(0, 2):
-            self.assertEqual(topology[0]["components"][0 + (n * 15)]["id"], stage_arn_prefix.format(n + 1))  # DIFF
-            self.assertEqual(topology[0]["components"][0 + (n * 15)]["type"], "aws.apigateway.stage")  # DIFF
-            self.assertEqual(topology[0]["components"][0 + (n * 15)]["data"]["RestApiName"], "api_1")
+            comp = self.assert_has_component(
+                topology[0]["components"],
+                stage_arn_prefix.format(n + 1),
+                "aws.apigateway.stage"
+            )
+            self.assertEqual(comp["data"]["RestApiName"], "api_1")
             self.assertEqual(
-                topology[0]["components"][0 + (n * 15)]["data"]["Tags"]["StageTagKey" + str(n + 1)],
-                "StageTagValue" + str(n + 1),
+                comp["data"]["Tags"]["StageTagKey" + str(n + 1)], "StageTagValue" + str(n + 1)
             )
             self.assert_stream_dimensions(
-                topology[0]["components"][0 + (n * 15)],
+                comp,
                 [
                     {"Key": "Stage", "Value": "stage{}".format(n + 1)},
                     {"Key": "ApiName", "Value": topology[0]["components"][0 + (n * 15)]["data"]["RestApiName"]},
                 ],
             )
 
-            self.assertEqual(topology[0]["components"][1 + (n * 15)]["id"], resource_arn_prefix.format(n + 1))  # DIFF
-            self.assertEqual(topology[0]["components"][1 + (n * 15)]["type"], "aws.apigateway.resource")  # DIFF
-            self.assertEqual(topology[0]["components"][1 + (n * 15)]["data"]["Path"], "/hello")
+            comp = self.assert_has_component(
+                topology[0]["components"],
+                resource_arn_prefix.format(n + 1),
+                "aws.apigateway.resource"
+            )
+            self.assertEqual(comp["data"]["Path"], "/hello")
             self.assert_stream_dimensions(
-                topology[0]["components"][1 + (n * 15)],
+                comp,
                 [
                     {"Key": "Stage", "Value": "stage{}".format(n + 1)},
-                    {"Key": "ApiName", "Value": topology[0]["components"][1 + (n * 15)]["data"]["RestApiName"]},
+                    {"Key": "ApiName", "Value": comp["data"]["RestApiName"]},
                 ],
             )
 
-            self.assertEqual(
-                topology[0]["components"][2 + (n * 15)]["id"], method_arn_prefix.format(n + 1, "DELETE")
-            )  # DIFF
-            self.assertEqual(topology[0]["components"][2 + (n * 15)]["type"], "aws.apigateway.method")  # DIFF
-            self.assertEqual(topology[0]["components"][2 + (n * 15)]["data"]["HttpMethod"], "DELETE")
+            comp = self.assert_has_component(
+                topology[0]["components"],
+                method_arn_prefix.format(n + 1, "DELETE"),
+                "aws.apigateway.method"
+            )
+            self.assertEqual(comp["data"]["HttpMethod"], "DELETE")
             self.assert_stream_dimensions(
-                topology[0]["components"][2 + (n * 15)],
+                comp,
                 [
-                    {"Key": "Method", "Value": topology[0]["components"][2 + (n * 15)]["data"]["HttpMethod"]},
-                    {"Key": "Resource", "Value": topology[0]["components"][2 + (n * 15)]["data"]["Path"]},
+                    {"Key": "Method", "Value": comp["data"]["HttpMethod"]},
+                    {"Key": "Resource", "Value": comp["data"]["Path"]},
                     {"Key": "Stage", "Value": "stage{}".format(n + 1)},
-                    {"Key": "ApiName", "Value": topology[0]["components"][2 + (n * 15)]["data"]["RestApiName"]},
+                    {"Key": "ApiName", "Value": comp["data"]["RestApiName"]},
                 ],
             )
 
-            self.assertEqual(
-                topology[0]["components"][3 + (n * 15)]["id"], method_arn_prefix.format(n + 1, "GET")
-            )  # DIFF
-            self.assertEqual(topology[0]["components"][3 + (n * 15)]["type"], "aws.apigateway.method")  # DIFF
-            self.assertEqual(topology[0]["components"][3 + (n * 15)]["data"]["HttpMethod"], "GET")
+            comp = self.assert_has_component(
+                topology[0]["components"],
+                method_arn_prefix.format(n + 1, "GET"),
+                "aws.apigateway.method"
+            )
+            self.assertEqual(comp["data"]["HttpMethod"], "GET")
             self.assert_stream_dimensions(
-                topology[0]["components"][3 + (n * 15)],
+                comp,
                 [
-                    {"Key": "Method", "Value": topology[0]["components"][3 + (n * 15)]["data"]["HttpMethod"]},
-                    {"Key": "Resource", "Value": topology[0]["components"][3 + (n * 15)]["data"]["Path"]},
+                    {"Key": "Method", "Value": comp["data"]["HttpMethod"]},
+                    {"Key": "Resource", "Value": comp["data"]["Path"]},
                     {"Key": "Stage", "Value": "stage{}".format(n + 1)},
-                    {"Key": "ApiName", "Value": topology[0]["components"][3 + (n * 15)]["data"]["RestApiName"]},
+                    {"Key": "ApiName", "Value": comp["data"]["RestApiName"]},
                 ],
             )
 
-            self.assertEqual(
-                topology[0]["components"][4 + (n * 15)]["id"], method_arn_prefix.format(n + 1, "PATCH")
-            )  # DIFF
-            self.assertEqual(topology[0]["components"][4 + (n * 15)]["type"], "aws.apigateway.method")  # DIFF
-            self.assertEqual(topology[0]["components"][4 + (n * 15)]["data"]["HttpMethod"], "PATCH")
+            comp = self.assert_has_component(
+                topology[0]["components"],
+                method_arn_prefix.format(n + 1, "PATCH"),
+                "aws.apigateway.method"
+            )
+            self.assertEqual(comp["data"]["HttpMethod"], "PATCH")
             self.assert_stream_dimensions(
-                topology[0]["components"][4 + (n * 15)],
+                comp,
                 [
-                    {"Key": "Method", "Value": topology[0]["components"][4 + (n * 15)]["data"]["HttpMethod"]},
-                    {"Key": "Resource", "Value": topology[0]["components"][4 + (n * 15)]["data"]["Path"]},
+                    {"Key": "Method", "Value": comp["data"]["HttpMethod"]},
+                    {"Key": "Resource", "Value": comp["data"]["Path"]},
                     {"Key": "Stage", "Value": "stage{}".format(n + 1)},
-                    {"Key": "ApiName", "Value": topology[0]["components"][4 + (n * 15)]["data"]["RestApiName"]},
+                    {"Key": "ApiName", "Value": comp["data"]["RestApiName"]},
                 ],
             )
 
-            self.assertEqual(
-                topology[0]["components"][5 + (n * 15)]["id"], method_arn_prefix.format(n + 1, "POST")
-            )  # DIFF
-            self.assertEqual(topology[0]["components"][5 + (n * 15)]["type"], "aws.apigateway.method")  # DIFF
-            self.assertEqual(topology[0]["components"][5 + (n * 15)]["data"]["HttpMethod"], "POST")
+            comp = self.assert_has_component(
+                topology[0]["components"],
+                method_arn_prefix.format(n + 1, "POST"),
+                "aws.apigateway.method"
+            )
+            self.assertEqual(comp["data"]["HttpMethod"], "POST")
             self.assert_stream_dimensions(
-                topology[0]["components"][5 + (n * 15)],
+                comp,
                 [
-                    {"Key": "Method", "Value": topology[0]["components"][5 + (n * 15)]["data"]["HttpMethod"]},
-                    {"Key": "Resource", "Value": topology[0]["components"][5 + (n * 15)]["data"]["Path"]},
+                    {"Key": "Method", "Value": comp["data"]["HttpMethod"]},
+                    {"Key": "Resource", "Value": comp["data"]["Path"]},
                     {"Key": "Stage", "Value": "stage{}".format(n + 1)},
-                    {"Key": "ApiName", "Value": topology[0]["components"][5 + (n * 15)]["data"]["RestApiName"]},
+                    {"Key": "ApiName", "Value": comp["data"]["RestApiName"]},
                 ],
             )
 
-            self.assertEqual(topology[0]["components"][6 + (n * 15)]["id"], "urn:service:/84.35.236.89")  # DIFF
-            self.assertEqual(
-                topology[0]["components"][6 + (n * 15)]["type"], "aws.apigateway.method.http.integration"
-            )  # DIFF
+            comp = self.assert_has_component(
+                topology[0]["components"],
+                "urn:service:/84.35.236.89",
+                "aws.apigateway.method.http.integration"
+            )
 
-            self.assertEqual(
-                topology[0]["components"][7 + (n * 15)]["id"], method_arn_prefix.format(n + 1, "PUT")
-            )  # DIFF
-            self.assertEqual(topology[0]["components"][7 + (n * 15)]["type"], "aws.apigateway.method")  # DIFF
-            self.assertEqual(topology[0]["components"][7 + (n * 15)]["data"]["HttpMethod"], "PUT")
+            comp = self.assert_has_component(
+                topology[0]["components"],
+                method_arn_prefix.format(n + 1, "PUT"),
+                "aws.apigateway.method"
+            )
+            self.assertEqual(comp["data"]["HttpMethod"], "PUT")
             self.assert_stream_dimensions(
-                topology[0]["components"][7 + (n * 15)],
+                comp,
                 [
-                    {"Key": "Method", "Value": topology[0]["components"][7 + (n * 15)]["data"]["HttpMethod"]},
-                    {"Key": "Resource", "Value": topology[0]["components"][7 + (n * 15)]["data"]["Path"]},
+                    {"Key": "Method", "Value": comp["data"]["HttpMethod"]},
+                    {"Key": "Resource", "Value": comp["data"]["Path"]},
                     {"Key": "Stage", "Value": "stage{}".format(n + 1)},
-                    {"Key": "ApiName", "Value": topology[0]["components"][7 + (n * 15)]["data"]["RestApiName"]},
+                    {"Key": "ApiName", "Value": comp["data"]["RestApiName"]},
                 ],
             )
 
-        self.assertEqual(len(topology[0]["components"]), 30)
+        comp = self.assert_has_component(
+            topology[0]["components"],
+            api_arn,
+            "aws.apigateway"
+        )
+
+        self.assertEqual(len(topology[0]["components"]), 31)
 
         # we have 2 stages
         relations = topology[0]["relations"]
         for n in range(1, 3):
+            self.assertEqual(self.has_relation(
+                relations, api_arn, stage_arn_prefix.format(n)
+            ), True)
+
             self.assertEqual(self.has_relation(
                 relations, stage_arn_prefix.format(n), resource_arn_prefix.format(n)
             ), True)
@@ -1075,13 +1097,19 @@ class TestTemplate(unittest.TestCase):
                 relations, method_arn_prefix.format(n, "DELETE"), lambda_arn_prefix.format("DeleteHello-1LDFJCU54ZL5")
             ), True)
 
-        self.assertEqual(len(topology[0]["relations"]), 44)
+        self.assertEqual(len(topology[0]["relations"]), 46)
 
     def has_relation(self, relations, source_id, target_id):
         for relation in relations:
             if relation['source_id'] == source_id and relation['target_id'] == target_id:
                 return True
         return False
+
+    def assert_has_component(self, components, id, tp):
+        for component in components:
+            if component['id'] == id and component['type'] == tp:
+                return component
+        self.assertFalse(True, "Component not found " + id + " - " + tp)
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
     @set_api("route53domains|aws.route53.domain")
@@ -1135,8 +1163,7 @@ class TestTemplate(unittest.TestCase):
         )
         self.assertEqual(
             topology[0]["components"][0]["id"],
-            "arn:aws:autoscaling:eu-west-1:731070500579:autoScalingGroup:e1155c2b-016a-40ad-8cba-2423c349574b:"
-            + "autoScalingGroupName/awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM",
+            "awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM",
         )  # DIFF
         self.assertEqual(topology[0]["components"][0]["type"], "aws.autoscaling")  # DIFF
         self.assert_location_info(topology[0]["components"][0])
@@ -1262,6 +1289,7 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(diff, "")
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    # @patch("stackstate_checks.aws_topology.aws_topology.AgentProxy.send_parked_relations", dont_send_parked_relations)
     @set_api(None)
     def test_process_cloudformation(self):
         self.check.run()
@@ -1295,54 +1323,71 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(relations[0]["source_id"], stacks[0]["id"])  # DIFF
         self.assertEqual(relations[0]["type"], "has resource")  # DIFF
 
+        source_id = relations[0]["source_id"]
         # assert for lambda function relation
-        self.assertEqual(
-            relations[0]["target_id"],
-            "arn:aws:lambda:eu-west-1:731070500579:function:com-stackstate-prod-sam-seed-PutHello-1LUD3ESBOR6EY",
-        )
+        self.assertEqual(self.has_relation(
+            relations, source_id,
+            "arn:aws:lambda:eu-west-1:731070500579:function:com-stackstate-prod-sam-seed-PutHello-1LUD3ESBOR6EY"
+        ), True)
         # assert for kinesis stream relation
-        self.assertEqual(relations[1]["target_id"], "arn:aws:kinesis:eu-west-1:731070500579:stream/stream_1")
+        self.assertEqual(self.has_relation(
+            relations, source_id, "arn:aws:kinesis:eu-west-1:731070500579:stream/stream_1"
+        ), True)
         # assert for s3 bucket relation
-        self.assertEqual(relations[2]["target_id"], "arn:aws:s3:::stackstate.com")
-        # assert for api_stage stage1 relation
-        self.assertEqual(relations[3]["target_id"], "arn:aws:execute-api:eu-west-1:731070500579:api_1/stage1")
-        # assert for api_stage stage2 relation
-        self.assertEqual(relations[4]["target_id"], "arn:aws:execute-api:eu-west-1:731070500579:api_1/stage2")
-        # assert for target group relation
-        self.assertEqual(
-            relations[5]["target_id"],
-            "arn:aws:elasticloadbalancing:eu-west-1:731070500579:targetgroup/myfirsttargetgroup/28ddec997ec55d21",
-        )
+        self.assertEqual(self.has_relation(
+            relations, source_id, "arn:aws:s3:::stackstate.com"
+        ), True)
+        # assert for api_stage relation
+        self.assertEqual(self.has_relation(
+            relations, source_id, "arn:aws:execute-api:eu-west-1:731070500579:api_1"
+        ), True)
         # assert for loadbalancer relation
-        self.assertEqual(
-            relations[6]["target_id"],
+        self.assertEqual(self.has_relation(
+            relations, source_id,
             "arn:aws:elasticloadbalancing:eu-west-1:731070500579:loadbalancer/app/myfirstloadbalancer/90dd512583d2d7e9",
-        )
+        ), True)
+        # assert for target group relation
+        self.assertEqual(self.has_relation(
+            relations, source_id,
+            "arn:aws:elasticloadbalancing:eu-west-1:731070500579:targetgroup/myfirsttargetgroup/28ddec997ec55d21",
+        ), True)
         # assert for autoscaling group relation
-        self.assertEqual(
-            relations[7]["target_id"],
-            "arn:aws:autoscaling:eu-west-1:731070500579:autoScalingGroup:e1155c2b-016a-40ad-8cba-2423c349574b:" +
-            "autoScalingGroupName/awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM",
-        )
+        self.assertEqual(self.has_relation(
+            relations, source_id,
+            "awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM",
+        ), True)
         # assert for elb classic loadbalancer  relation
-        self.assertEqual(relations[8]["target_id"], "classic_elb_classic-loadbalancer-1")
+        self.assertEqual(self.has_relation(
+            relations, source_id, "classic_elb_classic-loadbalancer-1"
+        ), True)
         # assert for rds relation
-        self.assertEqual(relations[9]["target_id"], "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase")
+        self.assertEqual(self.has_relation(
+            relations, source_id, "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase"
+        ), True)
         # assert for sns topic relation
-        self.assertEqual(relations[10]["target_id"], "arn:aws:sns:eu-west-1:731070500579:my-topic-3")
+        self.assertEqual(self.has_relation(
+            relations, source_id, "arn:aws:sns:eu-west-1:731070500579:my-topic-3"
+        ), True)
         # assert for sqs queue relation
-        self.assertEqual(relations[11]["target_id"], "arn:aws:sqs:eu-west-1:508573134510:STS_stackpack_test")
+        self.assertEqual(self.has_relation(
+            relations, source_id, "arn:aws:sqs:eu-west-1:731070500579:STS_stackpack_test"
+        ), True)
         # assert for dynamodb table relation
-        self.assertEqual(relations[12]["target_id"], "arn:aws:dynamodb:eu-west-1:731070500579:table/table_3")
+        self.assertEqual(self.has_relation(
+            relations, source_id, "arn:aws:dynamodb:eu-west-1:731070500579:table/table_3"
+        ), True)
         # assert for ecs cluster relation
-        self.assertEqual(
-            relations[13]["target_id"], "arn:aws:ecs:eu-west-1:850318095909:cluster/StackState-ECS-Cluster"
-        )
+        self.assertEqual(self.has_relation(
+            relations, source_id, "arn:aws:ecs:eu-west-1:731070500579:cluster/StackState-ECS-Cluster"
+        ), True)
         # assert for ec2 instance relation
-        self.assertEqual(relations[14]["target_id"], "i-0aac5bab082561475")
+        self.assertEqual(self.has_relation(
+            relations, source_id, "i-0aac5bab082561475"
+        ), True)
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
-    @set_api("cloudformation|aws.cloudformation")
+    @set_api("cloudformation")
+    @patch("stackstate_checks.aws_topology.aws_topology.AgentProxy.send_parked_relations", dont_send_parked_relations)
     def test_process_cloudformation_stack_relation(self):
         self.check.run()
         self.assert_executed_ok()
@@ -1352,11 +1397,13 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(len(topology[0]["relations"]), 1)
         self.assertEqual(
             topology[0]["relations"][0]["source_id"],
-            "arn:aws:cloudformation:eu-west-1:731070500579:stack/stackstate-topo-publisher/71ea3f80-9919",
+            "arn:aws:cloudformation:eu-west-1:731070500579:stack/stackstate-topo-publisher/" +
+            "71ea3f80-9919-11e9-a261-0a99a68566c4",
         )  # DIFF
         self.assertEqual(
             topology[0]["relations"][0]["target_id"],
-            "arn:aws:cloudformation:eu-west-1:731070500579:stack/some-parent-stack-id/71ea3a23-9919-54ad",
+            "arn:aws:cloudformation:eu-west-1:731070500579:stack/stackstate-topo-cwevents/" +
+            "077bd960-9919-11e9-adb7-02135cc8443e",
         )  # DIFF
         self.assertEqual(topology[0]["relations"][0]["type"], "child of")  # DIFF
 
@@ -1372,7 +1419,7 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(len(aws_agent_check_errors), 0)
 
         unique_types = self.unique_topology_types(topology)
-        self.assertEqual(len(unique_types), 31)
+        self.assertEqual(len(unique_types), 32)  # +1 for RestApi that is now emitted
 
     # @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
     # @set_api(None)
@@ -1409,32 +1456,32 @@ class TestTemplatePathedRegistry(unittest.TestCase):
 
     @requires_py3
     @parameterized.expand([
-        ('ec2|instances vpcs security_groups', 30),
-        ('ec2|instances vpn_gateways security_groups', 29),
-        ('autoscaling', 30),
-        ('apigateway', 27),
-        ('firehose', 30),
+        ('ec2|instances vpcs security_groups', 31),
+        ('ec2|instances vpn_gateways security_groups', 30),
+        ('autoscaling', 31),
+        ('apigateway', 27),  # all have +1 of CF link, this one has -1 because -2 stage relations + 1 api relation
+        ('firehose', 31),
 
-        ('kinesis', 30),
-        ('dynamodb', 29),
-        ('lambda|mappings', 29),
-        ('lambda|functions', 31),  # TODO: why not same as happy flow???
-        ('sqs', 30),
+        ('kinesis', 31),
+        ('dynamodb', 30),
+        ('lambda|mappings', 30),
+        ('lambda|functions', 32),  # TODO: why not same as happy flow???
+        ('sqs', 31),
 
-        ('sns', 30),
-        ('redshift', 31),  # TODO: why not same as happy flow???
-        ('s3', 30),
-        ('rds', 29),
-        ('elbv2', 28),
+        ('sns', 31),
+        ('redshift', 32),  # TODO: why not same as happy flow???
+        ('s3', 31),
+        ('rds', 30),
+        ('elbv2', 29),
 
-        ('elb', 30),
-        ('ec2|vpcs vpn_gateways security_groups', 30),
-        ('ecs', 28),
-        ('route53domains', 30),
-        ('route53', 30),
-        ('cloudformation', 30),
+        ('elb', 31),
+        ('ec2|vpcs vpn_gateways security_groups', 31),
+        ('ecs', 29),
+        ('route53domains', 31),
+        ('route53', 31),
+        ('cloudformation', 31),
         # ('process_cloudformation_stack_relation', 31),  # DIFF give only did relations move to cloudformation
-        ('ec2|instances vpcs vpn_gateways', 30),
+        ('ec2|instances vpcs vpn_gateways', 31),
     ])
     @set_api(None)
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
@@ -1463,8 +1510,8 @@ class TestTemplatePathedRegistry(unittest.TestCase):
 
                 unique_types = self.unique_topology_types(topology)
                 self.assertEqual(len(unique_types), expected_unique_topology_types)
-
-                if "|" not in check_name:  # TODO I can't return an error when running an API partly (error handling is WIP)
+                # TODO I can't return an error when running an API partly (error handling is WIP)
+                if "|" not in check_name:
                     aws_agent_check_errors = list(filter(lambda x: x['event_type'] == 'aws_agent_check_error', events))
                     self.assertEqual(len(aws_agent_check_errors), 1)
         except Exception:
