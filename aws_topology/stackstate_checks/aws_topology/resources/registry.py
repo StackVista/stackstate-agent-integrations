@@ -17,9 +17,7 @@ class ResourceRegistry(type):
             parameter.
         """
         if '??' not in [new_cls.API, new_cls.API_TYPE]:
-            if cls.REGISTRY[new_cls.API_TYPE].get(new_cls.API) is None:
-                cls.REGISTRY[new_cls.API_TYPE][new_cls.API] = {}
-            cls.REGISTRY[new_cls.API_TYPE][new_cls.API][new_cls.COMPONENT_TYPE] = new_cls
+            cls.REGISTRY[new_cls.API_TYPE][new_cls.API] = new_cls
         if '??' != new_cls.EVENT_SOURCE and new_cls.CLOUDTRAIL_EVENTS is not None:
             cls.CLOUDTRAIL.update({
                 new_cls.EVENT_SOURCE: new_cls.CLOUDTRAIL_EVENTS
@@ -52,5 +50,5 @@ class RegisteredResourceCollector(with_metaclass(ResourceRegistry, object)):
     def get_delete_ids(self):
         return self.agent.delete_ids
 
-    def process_all(self):
+    def process_all(self, filter=None):
         raise NotImplementedError

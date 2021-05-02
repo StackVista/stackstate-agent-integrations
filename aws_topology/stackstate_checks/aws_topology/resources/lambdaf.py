@@ -14,7 +14,21 @@ class LambdaCollector(RegisteredResourceCollector):
     COMPONENT_TYPE = "aws.lambda"
     MEMORY_KEY = "lambda_func"
 
-    def process_all(self):
+    def process_all(self, filter=None):
+        functions = {}
+        if not filter or "functions" in filter:
+            try:
+                functions = self.process_functions()
+            except Exception:
+                pass
+        if not filter or "mappings" in filter:
+            try:
+                self.process_event_source_mappings()
+            except Exception:
+                pass
+        return functions 
+
+    def process_functions(self):
         lambda_func = {}
         for page in self.client.get_paginator('list_functions').paginate():
             for function_data_raw in page.get('Functions') or []:
@@ -22,6 +36,19 @@ class LambdaCollector(RegisteredResourceCollector):
                 result = self.process_lambda(function_data)
                 lambda_func.update(result)
         return lambda_func
+
+    def process_event_source_mappings(self):
+        for page in self.client.get_paginator('list_event_source_mappings').paginate():
+            for event_source_raw in page.get('EventSourceMappings') or []:
+                event_source = make_valid_data(event_source_raw)
+                if event_source['State'] == 'Enabled':
+                    self.process_event_source(event_source)
+
+    def process_event_source(self, event_source):
+        source_id = event_source['EventSourceArn']
+        target_id = event_source['FunctionArn']
+        # Swapping source/target: StackState models dependencies, not data flow
+        self.agent.relation(target_id, source_id, 'uses service', event_source)
 
     def process_lambda(self, function_data):
         function_arn = function_data['FunctionArn']

@@ -8,7 +8,7 @@ class AutoscalingCollector(RegisteredResourceCollector):
     COMPONENT_TYPE = "aws.autoscaling"
     MEMORY_KEY = "auto_scaling"
 
-    def process_all(self):
+    def process_all(self, filter=None):
         auto_scaling = {}
         for describe_auto_scaling_groups_page in self.client.get_paginator('describe_auto_scaling_groups').paginate():
             for auto_scaling_group_description_raw in describe_auto_scaling_groups_page.get('AutoScalingGroups') or []:

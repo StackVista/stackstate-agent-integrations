@@ -7,7 +7,7 @@ class Route53HostedzoneCollector(RegisteredResourceCollector):
     API_TYPE = "global"
     COMPONENT_TYPE = "aws.route53.hostedzone"
 
-    def process_all(self):
+    def process_all(self, filter=None):
         """
         Route 53 hosted zones contain DNS records. A AWS Domain can point to a hosted zone.
         """

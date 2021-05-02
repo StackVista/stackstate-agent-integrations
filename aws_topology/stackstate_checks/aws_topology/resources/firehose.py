@@ -56,7 +56,7 @@ class FirehoseCollector(RegisteredResourceCollector):
         'StopDeliveryStreamEncryption': Firehose_UpdateStream,
     }
 
-    def process_all(self):
+    def process_all(self, filter=None):
         for delivery_stream_name in self.client.list_delivery_streams(Limit=10000).get("DeliveryStreamNames") or []:
             self.process_delivery_stream(delivery_stream_name)
 

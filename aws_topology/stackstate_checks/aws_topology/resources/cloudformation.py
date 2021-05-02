@@ -51,7 +51,7 @@ class CloudformationCollector(RegisteredResourceCollector):
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.cloudformation"
 
-    def process_all(self, memory_data=None):
+    def process_all(self, memory_data=None, filter=None):
         self.memory_data = memory_data
         for stack_description_raw in self.client.describe_stacks().get('Stacks') or []:
             stack_description = make_valid_data(stack_description_raw)

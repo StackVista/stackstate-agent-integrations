@@ -7,7 +7,7 @@ class RedshiftCollector(RegisteredResourceCollector):
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.redshift"
 
-    def process_all(self):
+    def process_all(self, filter=None):
         for page in self.client.get_paginator('describe_clusters').paginate():
             for redshift_data_raw in page.get('Clusters') or []:
                 redshift_data = make_valid_data(redshift_data_raw)

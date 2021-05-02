@@ -7,7 +7,7 @@ class RdsCollector(RegisteredResourceCollector):
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.rds_cluster"
 
-    def process_all(self):
+    def process_all(self, filter=None):
         rds = {}
         for instance_data_raw in self.client.describe_db_instances().get('DBInstances') or []:
             instance_data = make_valid_data(instance_data_raw)

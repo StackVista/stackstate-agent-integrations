@@ -114,14 +114,12 @@ class TestAWSTopologyCheck(unittest.TestCase):
             def __init__(self, location_info, client, agent):
                 pass
 
-            def process_all(self):
+            def process_all(self, filter=None):
                 raise Exception("error")
 
         registry = {
             'regional': {
-                's3': {
-                    'aws.s3': s3
-                }
+                's3':  s3
             },
             'global': {}
         }
@@ -157,44 +155,29 @@ class TestAWSTopologyCheck(unittest.TestCase):
             API_TYPE = "regional"
             MEMORY_KEY = 'test_key'
 
-            def process_all(self):
+            def process_all(self, filter=None):
                 return {'abc': 'def'}
 
-        class ec2_1(base):
+        class ec2(base):
             API = "ec2"
             API_TYPE = "regional"
             COMPONENT_TYPE = "ec2_1"
 
-            def process_all(self):
+            def process_all(self, filter=None):
                 return {'xyz': 'xyz'}
-
-        class ec2_2(base):
-            API = "ec2"
-            API_TYPE = "regional"
-            COMPONENT_TYPE = "ec2_2"
-
-            def process_all(self):
-                return {'ttt': 'ttt'}
 
         class autoscaling(base):
             API = "autoscaling"
             API_TYPE = "regional"
 
-            def process_all(self):
+            def process_all(self, filter=None):
                 pass
 
         registry = {
             'regional': {
-                's3': {
-                    'aws.s3': s3
-                },
-                'ec2': {
-                    'aws.1': ec2_1,
-                    'aws.2': ec2_2
-                },
-                'autoscaling': {
-                    'autoscaling': autoscaling
-                }
+                's3':  s3,
+                'ec2': ec2,
+                'autoscaling': autoscaling
             },
             'global': {}
         }
@@ -202,7 +185,7 @@ class TestAWSTopologyCheck(unittest.TestCase):
             self.check.run()
             self.assertEqual(self.check.memory_data.get('test_key'), {'abc': 'def'})
             self.assertEqual(self.check.memory_data.get('autoscaling'), None)
-            self.assertEqual(self.check.memory_data.get('ec2'), {'xyz': 'xyz', 'ttt': 'ttt'})
+            self.assertEqual(self.check.memory_data.get('ec2'), {'xyz': 'xyz' })
 
     def test_metadata(self):
         self.api_results.update({

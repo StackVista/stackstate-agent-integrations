@@ -50,7 +50,7 @@ class SqsCollector(RegisteredResourceCollector):
         'PurgeQueue': Sqs_UpdateQueue
     }
 
-    def process_all(self):
+    def process_all(self, filter=None):
         sqs = {}
         for queue_url in self.client.list_queues().get('QueueUrls', []):
             result = self.process_queue(queue_url)

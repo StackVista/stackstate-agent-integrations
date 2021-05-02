@@ -111,46 +111,47 @@ class AwsTopologyCheck(AgentCheck):
                 client = None
                 location = location_info(self.get_account_id(instance_info), session.region_name)
                 agent_proxy.location = copy.deepcopy(location)
-                for part in registry[api]:
-                    if instance_info.apis_to_run is not None:
-                        if not (api + '|' + part) in instance_info.apis_to_run:
-                            continue
-                    if client is None:
-                        client = session.client(api)
-                    processor = registry[api][part](location, client, agent_proxy)
-                    try:
-                        if api != 'cloudformation':
-                            result = processor.process_all()
-                        else:
-                            result = processor.process_all(self.memory_data)
-                        if result:
-                            memory_key = processor.MEMORY_KEY or api
-                            if memory_key != "MULTIPLE":
-                                if self.memory_data.get(memory_key) is not None:
-                                    self.memory_data[memory_key].update(result)
-                                else:
-                                    self.memory_data[memory_key] = result
+                filter = None
+                if instance_info.apis_to_run is not None:
+                    for to_run in instance_info.apis_to_run:
+                        if (api + '|') in to_run:
+                            filter = to_run.split('|')[1]
+                if client is None:
+                    client = session.client(api)
+                processor = registry[api](location, client, agent_proxy)
+                try:
+                    if api != 'cloudformation':
+                        result = processor.process_all(filter=filter)
+                    else:
+                        result = processor.process_all(self.memory_data, filter=filter)
+                    if result:
+                        memory_key = processor.MEMORY_KEY or api
+                        if memory_key != "MULTIPLE":
+                            if self.memory_data.get(memory_key) is not None:
+                                self.memory_data[memory_key].update(result)
                             else:
-                                for rk in result:
-                                    if self.memory_data.get(rk) is not None:
-                                        self.memory_data[rk].update(result[rk])
-                                    else:
-                                        self.memory_data[rk] = result[rk]
-                        self.delete_ids += processor.get_delete_ids()
-                    except Exception as e:
-                        event = {
-                            'timestamp': int(time.time()),
-                            'event_type': 'aws_agent_check_error',
-                            'msg_title': e.__class__.__name__ + " in api " + api + " component_type " + part,
-                            'msg_text': str(e),
-                            'tags': [
-                                'aws_region:' + location["Location"]["AwsRegion"],
-                                'account_id:' + location["Location"]["AwsAccount"],
-                                'process:' + api + "|" + part
-                            ]
-                        }
-                        self.event(event)
-                        errors.append('API %s ended with exception: %s %s' % (api, str(e), traceback.format_exc()))
+                                self.memory_data[memory_key] = result
+                        else:
+                            for rk in result:
+                                if self.memory_data.get(rk) is not None:
+                                    self.memory_data[rk].update(result[rk])
+                                else:
+                                    self.memory_data[rk] = result[rk]
+                    self.delete_ids += processor.get_delete_ids()
+                except Exception as e:
+                    event = {
+                        'timestamp': int(time.time()),
+                        'event_type': 'aws_agent_check_error',
+                        'msg_title': e.__class__.__name__ + " in api " + api,
+                        'msg_text': str(e),
+                        'tags': [
+                            'aws_region:' + location["Location"]["AwsRegion"],
+                            'account_id:' + location["Location"]["AwsAccount"],
+                            'process:' + api
+                        ]
+                    }
+                    self.event(event)
+                    errors.append('API %s ended with exception: %s %s' % (api, str(e), traceback.format_exc()))
         # TODO this should be for tests, in production these relations should not be sent out
         agent_proxy.send_parked_relations()
         if len(errors) > 0:

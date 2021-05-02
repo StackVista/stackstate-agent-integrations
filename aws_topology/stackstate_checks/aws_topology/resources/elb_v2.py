@@ -10,7 +10,7 @@ class ElbV2Collector(RegisteredResourceCollector):
     COMPONENT_TYPE = "aws.elb_v2"
     MEMORY_KEY = "MULTIPLE"
 
-    def process_all(self):
+    def process_all(self, filter=None):
         result = {}
         load_balancer = {}
         lb_type = {}

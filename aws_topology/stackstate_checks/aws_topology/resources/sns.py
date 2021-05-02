@@ -7,7 +7,7 @@ class SnsCollector(RegisteredResourceCollector):
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.sns"
 
-    def process_all(self):
+    def process_all(self, filter=None):
         sns = {}
         for topic_page in self.client.get_paginator('list_topics').paginate():
             for topic_data_raw in topic_page.get('Topics') or []:

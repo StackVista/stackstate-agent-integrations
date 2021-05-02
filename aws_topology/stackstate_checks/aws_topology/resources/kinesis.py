@@ -51,7 +51,7 @@ class KinesisCollector(RegisteredResourceCollector):
         # SplitShard
     }
 
-    def process_all(self):
+    def process_all(self, filter=None):
         kinesis_stream = {}
         for list_streams_page in self.client.get_paginator('list_streams').paginate():
             for stream_name in list_streams_page.get('StreamNames') or []:

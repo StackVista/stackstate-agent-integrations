@@ -19,7 +19,7 @@ class EcsCollector(RegisteredResourceCollector):
     COMPONENT_TYPE = "aws.ecs.cluster"
     MEMORY_KEY = "ecs_cluster"
 
-    def process_all(self):
+    def process_all(self, filter=None):
         ecs_cluster = {}
         for cluster_page in self.client.get_paginator('list_clusters').paginate():
             cluster_arns = cluster_page.get('clusterArns') or []

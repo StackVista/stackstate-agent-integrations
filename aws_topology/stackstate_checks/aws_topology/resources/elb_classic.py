@@ -9,7 +9,7 @@ class ELBClassicCollector(RegisteredResourceCollector):
     COMPONENT_TYPE = "aws.elb_classic"
     MEMORY_KEY = "elb_classic"
 
-    def process_all(self):
+    def process_all(self, filter=None):
         elb_classic = {}
         for elb_data_raw in self.client.describe_load_balancers().get('LoadBalancerDescriptions') or []:
             elb_data = make_valid_data(elb_data_raw)

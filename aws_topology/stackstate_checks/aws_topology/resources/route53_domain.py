@@ -7,7 +7,7 @@ class Route53DomainCollector(RegisteredResourceCollector):
     API_TYPE = "global"
     COMPONENT_TYPE = "aws.route53.domain"
 
-    def process_all(self):
+    def process_all(self, filter=None):
         """
         Route 53 Domains define which domains are owned by the account.
         """

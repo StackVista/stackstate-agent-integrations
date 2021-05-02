@@ -64,7 +64,7 @@ class DynamodbTableCollector(RegisteredResourceCollector):
         # DeleteBackup
     }
 
-    def process_all(self):
+    def process_all(self, filter=None):
         dynamodb = {}
         for page in self.client.get_paginator('list_tables').paginate():
             for table_name in page.get('TableNames') or []:

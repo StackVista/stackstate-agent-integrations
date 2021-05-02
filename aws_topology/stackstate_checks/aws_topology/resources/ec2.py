@@ -1,5 +1,5 @@
 import time
-from .utils import make_valid_data, create_host_urn, create_resource_arn
+from .utils import make_valid_data, create_host_urn, create_resource_arn, create_hash
 from .registry import RegisteredResourceCollector
 
 
@@ -7,12 +7,29 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
     API = "ec2"
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.ec2"
+    MEMORY_KEY = "MULTIPLE"
 
     def __init__(self, location_info, client, agent):
         RegisteredResourceCollector.__init__(self, location_info, client, agent)
         self.nitroInstances = None
 
-    def process_all(self):
+    def process_all(self, filter=None):
+        instances = {}
+        groups = {}
+        if not filter or "instances" in filter:
+            instances = self.process_instances()
+        if not filter or "security_groups" in filter:
+            groups = self.process_security_groups()
+        if not filter or "vpcs" in filter:
+            self.process_vpcs()
+        if not filter or "vpn_gateways" in filter:
+            self.process_vpn_gateways()
+        return {
+            'ec2': instances,
+            'groups': groups
+        }
+
+    def process_instances(self):
         ec2 = {}
         for reservation in self.client.describe_instances().get('Reservations') or []:
             for instance_data_raw in reservation.get('Instances') or []:
@@ -80,3 +97,85 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         }
         self.agent.event(event)
         return {instance_id: instance_id}
+
+    def process_security_groups(self):
+        groups = {}
+        for group_data_raw in self.client.describe_security_groups().get('SecurityGroups') or []:
+            group_data = make_valid_data(group_data_raw)
+            result = self.process_security_group(group_data)
+            groups.update(result)
+        return groups
+
+    def process_security_group(self, group_data):
+        group_id = group_data['GroupId']
+        group_data['Version'] = create_hash(group_data)
+        group_data['Name'] = group_data['GroupName']
+        group_data['URN'] = [
+            create_resource_arn(
+                'ec2',
+                self.location_info['Location']['AwsRegion'],
+                self.location_info['Location']['AwsAccount'],
+                'security-group', group_id
+            )
+        ]
+
+        self.agent.component(group_id, "aws.security-group", group_data)
+
+        if group_data.get('VpcId'):
+            self.agent.relation(group_data['VpcId'], group_id, 'has resource', {})
+        return {group_id: group_id}
+
+    def process_vpcs(self):
+        vpc_descriptions = self.client.describe_vpcs().get('Vpcs') or []
+        vpc_ids = list(map(lambda vpc: vpc['VpcId'], vpc_descriptions))
+        subnet_descriptions = self.client.describe_subnets(
+            Filters=[{'Name': 'vpc-id', 'Values': vpc_ids}]
+        ).get('Subnets') or []
+
+        # Create all vpc
+        for vpc_description in vpc_descriptions:
+            self.process_vpc(vpc_description, subnet_descriptions)
+
+        # Create all subnet components
+        for subnet_description_raw in subnet_descriptions:
+            subnet_description = make_valid_data(subnet_description_raw)
+            subnet_id = subnet_description['SubnetId']
+            subnet_description['URN'] = [
+                create_resource_arn(
+                    'ec2',
+                    self.location_info['Location']['AwsRegion'],
+                    self.location_info['Location']['AwsAccount'],
+                    'subnet',
+                    subnet_id
+                )
+            ]
+            self.agent.component(subnet_id, 'aws.subnet', subnet_description)
+
+    def process_vpc(self, vpc_description, subnet_descriptions):
+        vpc_id = vpc_description['VpcId']
+        vpc_description['URN'] = [
+            create_resource_arn(
+                'ec2',
+                self.location_info['Location']['AwsRegion'],
+                self.location_info['Location']['AwsAccount'],
+                'vpc',
+                vpc_id
+            )
+        ]
+        self.agent.component(vpc_id, "aws.vpc", vpc_description)
+        subnets_for_vpc = list(filter(lambda subnet: subnet['VpcId'] == vpc_id, subnet_descriptions))
+        for subnet_for_vpc in subnets_for_vpc:
+            self.agent.relation(subnet_for_vpc['SubnetId'], vpc_id, 'uses service', {})
+
+    def process_vpn_gateways(self):
+        for vpn_description_raw in self.client.describe_vpn_gateways().get('VpnGateways') or []:
+            vpn_description = make_valid_data(vpn_description_raw)
+            self.process_vpn_gateway(vpn_description)
+
+    def process_vpn_gateway(self, vpn_description):
+        vpn_id = vpn_description['VpnGatewayId']
+        self.agent.component(vpn_id, "aws.vpngateway", vpn_description)
+        if vpn_description.get('VpcAttachments'):
+            for vpn_attachment in vpn_description['VpcAttachments']:
+                vpc_id = vpn_attachment['VpcId']
+                self.agent.relation(vpn_id, vpc_id, 'uses service', {})

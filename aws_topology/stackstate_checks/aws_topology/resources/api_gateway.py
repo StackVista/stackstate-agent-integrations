@@ -15,7 +15,7 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
     COMPONENT_TYPE = "aws.apigateway.stage"
     MEMORY_KEY = "api_stage"
 
-    def process_all(self):
+    def process_all(self, filter=None):
         # array because same rest_api_id can have multiple stages and cloudformation
         # takes rest_api_id as an Physical resource ID for the stack
         api_stage = []
