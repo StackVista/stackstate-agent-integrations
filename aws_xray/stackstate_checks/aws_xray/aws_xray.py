@@ -258,6 +258,9 @@ class AwsClient:
             self.aws_access_key_id = role['Credentials']['AccessKeyId']
             self.aws_secret_access_key = role['Credentials']['SecretAccessKey']
             self.aws_session_token = role['Credentials']['SessionToken']
+        else:
+            self.aws_access_key_id = aws_access_key_id
+            self.aws_secret_access_key = aws_secret_access_key
 
     def get_account_id(self):
         return self._get_boto3_client('sts').get_caller_identity().get('Account')
