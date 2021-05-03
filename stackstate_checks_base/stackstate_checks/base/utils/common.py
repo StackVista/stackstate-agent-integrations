@@ -80,7 +80,7 @@ def read_file(filename, extended_path=""):
     :param extended_path: Optional path
     :return: String with file contents.
     """
-    with open(_get_path_to_file(filename, extended_path), "r") as f:
+    with open(_get_path_to_file(filename, extended_path), "r", encoding="utf-8") as f:
         return f.read() if PY3 else f.read().decode("utf-8")
 
 
