@@ -36,7 +36,6 @@ class AwsCheck(AgentCheck):
 
     def __init__(self, name, init_config, agentConfig, instances=None):
         AgentCheck.__init__(self, name, init_config, agentConfig, instances)
-        self.log.setLevel(logging.INFO)
         self.trace_ids = {}
         self.region = None
         # default the account id to the role_arn, this will be replaced by the account id after a successful login
@@ -87,16 +86,15 @@ class AwsCheck(AgentCheck):
         """Gets AWS X-Ray traces returns them in Trace Agent format."""
         traces = []
         xray_traces_batch = aws_client.get_xray_traces()
-        self.log.info('XXXXX started processing xray traces.')
         for xray_traces in xray_traces_batch:
             for xray_trace in xray_traces['Traces']:
                 trace = []
                 for segment in xray_trace['Segments']:
                     segment_documents = [json.loads(segment['Document'])]
                     trace.extend(self._generate_spans(segment_documents))
-                self.log.info('XXXXX appended %s traces', len(trace))
                 traces.append(trace)
-        self.log.info('XXXXX total %s traces.', len(traces))
+                self.log.debug('Converted %s x-ray segments to traces.', len(trace))
+        self.log.debug('Collected total %s traces.', len(traces))
         return traces
 
     def _generate_spans(self, segments, trace_id=None, parent_id=None):
@@ -243,8 +241,6 @@ class AwsCheck(AgentCheck):
 class AwsClient:
     def __init__(self, instance, config):
         self.log = logging.getLogger(__name__)
-        self.log.setLevel(logging.INFO)
-
         aws_access_key_id = instance.get('aws_access_key_id')
         aws_secret_access_key = instance.get('aws_secret_access_key')
         role_arn = instance.get('role_arn')
@@ -307,8 +303,8 @@ class AwsClient:
                         self.cache_file, start_time))
                 if datetime.datetime.now() - datetime.timedelta(hours=24) > start_time:
                     start_time = self.default_start_time()
-                    self.log.info('Time range cannot be longer than 24 hours. '
-                                  'New Start time for X-Ray retrieval period is: {}'.format(start_time))
+                    self.log.warning('Time range cannot be longer than 24 hours. '
+                                     'New Start time for X-Ray retrieval period is: {}'.format(start_time))
         except IOError:
             start_time = self.default_start_time()
             self.log.info(
