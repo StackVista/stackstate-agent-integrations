@@ -51,6 +51,8 @@ def mock_event(event_name):
             return resource("json/cloudtrail/describe_stream_summary.json")
         elif operation_name == 'DescribeTable':
             return resource("json/cloudtrail/describe_table.json")
+        elif operation_name == 'DescribeAutoScalingGroups':
+            return resource("json/cloudtrail/describe_autoscaling_group.json")
         elif (
             operation_name == 'ListQueueTags'
             or operation_name == 'ListTagsForDeliveryStream'
@@ -438,3 +440,51 @@ class TestCloudtrail(unittest.TestCase):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 0)
         self.assertIn('arn:aws:s3:::stackstate-logs-123456789012', self.check.delete_ids)
+
+    @set_event('autoscaling_create_autoscaling_group')
+    def test_process_create_autoscaling_group(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM',
+            topology[0]["components"][0]["data"]["AutoScalingGroupName"]
+        )
+
+    @set_event('autoscaling_delete_autoscaling_group')
+    def test_process_autoscaling_delete_autoscaling_group(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 0)
+        self.assertIn(
+            'elvin-stackstate-tests-main-account-main-region-EcsAutoScalingGroup-VVC5WIJ3AI3K',
+            self.check.delete_ids
+        )
+
+    @set_event('autoscaling_create_or_update_tags')
+    def test_process_create_or_update_tags(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM',
+            topology[0]["components"][0]["data"]["AutoScalingGroupName"]
+        )
+
+    @set_event('autoscaling_update_autoscaling_group')
+    def test_process_autoscaling_update_autoscaling_group(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM',
+            topology[0]["components"][0]["data"]["AutoScalingGroupName"]
+        )

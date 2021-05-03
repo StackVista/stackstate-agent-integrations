@@ -4,6 +4,7 @@ import hashlib
 import json
 from datetime import datetime, date
 from schematics import Model
+from botocore.exceptions import ClientError
 
 
 def make_valid_data_internal(data):
@@ -138,3 +139,52 @@ def set_required_access(value):
         return func
 
     return inner
+
+
+_THROTTLED_ERROR_CODES = [
+    'Throttling',
+    'ThrottlingException',
+    'ThrottledException',
+    'RequestThrottledException',
+    'TooManyRequestsException',
+    'ProvisionedThroughputExceededException',
+    'TransactionInProgressException',
+    'RequestLimitExceeded',
+    'BandwidthLimitExceeded',
+    'LimitExceededException',
+    'RequestThrottled',
+    'SlowDown',
+    'PriorRequestNotComplete',
+    'EC2ThrottledException',
+]
+
+
+def is_throttling_error(code):
+    return code in _THROTTLED_ERROR_CODES
+
+
+def set_required_access_v2(value):
+    def decorator(func):
+        def inner_function(self, *args, **kwargs):
+            try:
+                result = func(self, *args, **kwargs)
+                return result
+            except ClientError as e:
+                error = e.response.get('Error', {})
+                code = error.get('Code', 'Unknown')
+                if code == 'AccessDenied':
+                    self.agent.warning(
+                        '{} encountered AccessDenied role {} needs {}'.format(func.__name__, self.agent.role_name,
+                                                                              value),
+                        **kwargs
+                    )
+                elif is_throttling_error(code):
+                    self.agent.warning(
+                        'throttling'
+                    )
+                else:
+                    raise e
+
+        return inner_function
+
+    return decorator

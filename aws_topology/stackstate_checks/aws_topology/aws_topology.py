@@ -23,7 +23,7 @@ DEFAULT_BOTO3_RETRIES_COUNT = 50
 
 DEFAULT_BOTO3_CONFIG = Config(
     retries=dict(
-        max_attempts=DEFAULT_BOTO3_RETRIES_COUNT
+        max_attempts=DEFAULT_BOTO3_RETRIES_COUNT,
     )
 )
 
@@ -94,7 +94,7 @@ class AwsTopologyCheck(AgentCheck):
         self.start_snapshot()
 
         errors = []
-        agent_proxy = AgentProxy(self)
+        agent_proxy = AgentProxy(self, instance_info.role_arn)
         for region in instance_info.regions:
             session = aws_client.get_session(instance_info.role_arn, region)
             registry = ResourceRegistry.get_registry()["regional" if region != "global" else "global"]
@@ -140,7 +140,7 @@ class AwsTopologyCheck(AgentCheck):
         self.stop_snapshot()
 
     def get_topology_update(self, instance_info, aws_client):
-        agent_proxy = AgentProxy(self)
+        agent_proxy = AgentProxy(self, instance_info.role_arn)
         listen_for = ResourceRegistry.CLOUDTRAIL
         for region in instance_info.regions:
             session = aws_client.get_session(instance_info.role_arn, region)
@@ -156,6 +156,7 @@ class AwsTopologyCheck(AgentCheck):
                     }
                 ],
             ):
+                # TODO collecting should happen first, then processing (to prevent duplication)
                 for itm in pg.get('Events') or []:
                     rec = json.loads(itm['CloudTrailEvent'])
                     event_date = dateutil.parser.isoparse(rec['eventTime'])
@@ -181,12 +182,13 @@ class AwsTopologyCheck(AgentCheck):
 
 
 class AgentProxy(object):
-    def __init__(self, agent):
+    def __init__(self, agent, role_name):
         self.agent = agent
         self.location = {}
         self.delete_ids = []
         self.components_seen = set()
         self.parked_relations = []
+        self.role_name = role_name
 
     def component(self, id, type, data):
         self.components_seen.add(id)
@@ -221,6 +223,11 @@ class AgentProxy(object):
 
     def delete(self, id):
         self.delete_ids.append(id)
+
+    def warning(self, error, **kwargs):
+        # TODO here we aggregate errors smartly to report back to StackState in the end
+        print("ERROR ", error)
+        print("KWARGS", kwargs)
 
     def create_arn(self, type, resource_id=''):
         func = type_arn.get(type)
