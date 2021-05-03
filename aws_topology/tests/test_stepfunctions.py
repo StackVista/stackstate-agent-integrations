@@ -70,12 +70,101 @@ class TestStepFunctions(unittest.TestCase):
         self.assertGreater(len(service_checks), 0)
         self.assertEqual(service_checks[0].status, AgentCheck.OK, service_checks[0].message)
 
-    def xtest_process_stepfunctions(self):
+    def assert_has_component(self, components, id, type):
+        for component in components:
+            if component["id"] == id and component["type"] == type:
+                return component
+        self.assertTrue(False, "Component expected id={} type={}".format(id, type))
+
+    def assert_has_relation(self, relations, source_id, target_id):
+        for relation in relations:
+            if relation["source_id"] == source_id and relation["target_id"] == target_id:
+                return relation
+        self.assertTrue(False, "Relation expected source_id={} target_id={}".format(source_id, target_id))
+
+    def test_process_stepfunctions(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
         # print(json.dumps(topology[0]["components"], indent=2))
+
+        sfn_id = 'arn:aws:states:eu-west-1:290794210101:stateMachine:StepFunctionsStateMachine-cLtKjmzGLpw8'        
+        components = topology[0]["components"]
+        relations = topology[0]["relations"]
+        self.assert_has_component(components, sfn_id, 'aws.stepfunction')
+        state_names = [
+            "Activity",
+            "ApiMap",
+            "ApiGateway",
+            "FakeChoice",
+            "FakeInput",
+            "Finish",
+            "NoFinish",
+            "ParallelRun",
+            "ECS",
+            "SNS",
+            "SQS",
+            "SQSSecondaryRegion",
+            "DynamoDB",
+            "Lambda",
+            "LambdaOldVersion"
+        ]
+        for state_name in state_names:
+            self.assert_has_component(components, sfn_id + ':state/' + state_name, 'aws.stepfunction.state')
+        self.assertEqual(len(components), len(state_names) + 1)
+        # starting state
+        self.assert_has_relation(relations, sfn_id, sfn_id + ':state/ParallelRun')
+        # parallel branch 1
+        self.assert_has_relation(relations, sfn_id + ':state/ParallelRun', sfn_id + ':state/ECS')
+        # parallel branch 2
+        self.assert_has_relation(relations, sfn_id + ':state/ParallelRun', sfn_id + ':state/SNS')
+        if True:
+            self.assert_has_relation(relations, sfn_id + ':state/SNS', sfn_id + ':state/SQS')
+            self.assert_has_relation(relations, sfn_id + ':state/SQS', sfn_id + ':state/SQSSecondaryRegion')
+        # parallel branch 3
+        self.assert_has_relation(relations, sfn_id + ':state/ParallelRun', sfn_id + ':state/Lambda')
+        if True:
+            self.assert_has_relation(relations, sfn_id + ':state/Lambda', sfn_id + ':state/LambdaOldVersion')
+            self.assert_has_relation(relations, sfn_id + ':state/LambdaOldVersion', sfn_id + ':state/DynamoDB')
+
+        self.assert_has_relation(relations, sfn_id + ':state/ParallelRun', sfn_id + ':state/FakeInput')
+        # iterator
+        self.assert_has_relation(relations, sfn_id + ':state/FakeInput', sfn_id + ':state/ApiMap')
+        if True:
+            self.assert_has_relation(relations, sfn_id + ':state/ApiMap', sfn_id + ':state/ApiGateway')
+        # choice
+        self.assert_has_relation(relations, sfn_id + ':state/ApiMap', sfn_id + ':state/FakeChoice')
+        if True:
+            self.assert_has_relation(relations, sfn_id + ':state/FakeChoice', sfn_id + ':state/Finish')
+            self.assert_has_relation(relations, sfn_id + ':state/FakeChoice', sfn_id + ':state/Activity')
+        # last
+        self.assert_has_relation(relations, sfn_id + ':state/Activity', sfn_id + ':state/NoFinish')
+
+        # 15 states
+
+        # integrations currently 4 (should be 9!)
+        self.assert_has_relation(
+            relations,
+            sfn_id + ':state/SNS', 
+            'arn:aws:sns:eu-west-1:290794210101:elvin-stackstate-tests-main-account-main-region-SnsTopic-1MQ0AIIPHC352'
+        )
+        self.assert_has_relation(
+            relations,
+            sfn_id + ':state/SQS', 
+            'https://sqs.eu-west-1.amazonaws.com/290794210101/elvin-stackstate-tests-main-account-main-region-SqsQueue-12QD0SDWO9WV1'
+        )
+        self.assert_has_relation(
+            relations,
+            sfn_id + ':state/SQSSecondaryRegion', 
+            'https://sqs.us-east-1.amazonaws.com/290794210101/elvin-stackstate-main-account-secondary-region-SqsQueue-142V2KSEY368Y'
+        )
+        self.assert_has_relation(
+            relations,
+            sfn_id + ':state/DynamoDB', 
+            'arn:aws:dynamodb:eu-west-1:731070500579:table/elvin-stackstate-tests-main-account-main-region-DynamoDbTable-16SXEQ30MM5RN'
+        )
+
         for component in topology[0]["components"]:
             print(component["id"] + " - " + component["type"])
         for relation in topology[0]["relations"]:
@@ -83,4 +172,4 @@ class TestStepFunctions(unittest.TestCase):
             print('dst: ' + relation["target_id"])
             print('tp : ' + relation["type"])
             print()
-        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(len(topology[0]["relations"]), 19)
