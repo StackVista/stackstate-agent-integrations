@@ -71,28 +71,28 @@ class StepFunctionCollector(RegisteredResourceCollector):
         start_state = data.get('StartAt')
         if states:
             for state_name, state in states.items():
-                self.process_state(arn, state_name, state, start_state == state_name)
+                self.process_state(arn, arn, state_name, state, start_state == state_name)
 
-    def process_state(self, arn, state_name, state, is_start=False):
+    def process_state(self, sfn_arn, arn, state_name, state, is_start=False):
         partition = get_partition_name(self.agent.location['Location']['AwsRegion'])
-        state_arn = arn + ':state/' + state_name
+        state_arn = sfn_arn + ':state/' + state_name
         if is_start:
             self.agent.relation(arn, state_arn, 'start state', {})
         self.agent.component(state_arn, 'aws.stepfunction.state', state)
         next_state = state.get('Next')
         if next_state:
-            next_state_arn = arn + ':state/' + next_state
+            next_state_arn = sfn_arn + ':state/' + next_state
             self.agent.relation(state_arn, next_state_arn, 'can transition to', {})
         if isinstance(state, dict) and state.get('Type') == 'Choice':
             choices = state.get('Choices') or []
             default_state = state.get('Default')
             if default_state:
-                default_state_arn = arn + ':state/' + default_state
+                default_state_arn = sfn_arn + ':state/' + default_state
                 self.agent.relation(state_arn, default_state_arn, 'can transition to (default)', {})
             for choice in choices:
                 choice_next = choice.get('Next')
                 if choice_next:
-                    choice_arn = arn + ':state/' + choice_next
+                    choice_arn = sfn_arn + ':state/' + choice_next
                     self.agent.relation(state_arn, choice_arn, 'can transition to (choice)', {})
         if isinstance(state, dict) and state.get('Type') == 'Map':
             iterator = state.get('Iterator')
@@ -100,14 +100,14 @@ class StepFunctionCollector(RegisteredResourceCollector):
                 start_at = iterator.get('StartAt')
                 states = iterator.get('States') or {}
                 for state_name, state in states.items():
-                    self.process_state(state_arn, state_name, state, state_name == start_at)
+                    self.process_state(sfn_arn, state_arn, state_name, state, state_name == start_at)
         if isinstance(state, dict) and state.get('Type') == 'Parallel':
             branches = state.get('Branches') or []
             for branch in branches:
                 start_at = branch.get('StartAt')
                 states = branch.get('States') or {}
                 for state_name, state in states.items():
-                    self.process_state(state_arn, state_name, state, state_name == start_at)
+                    self.process_state(sfn_arn, state_arn, state_name, state, state_name == start_at)
         if isinstance(state, dict) and state.get('Type') == 'Task':
             print('JPK ' + state_name + ': ' + state.get('Resource'))
             resource = state.get('Resource') or ''
@@ -126,28 +126,28 @@ class StepFunctionCollector(RegisteredResourceCollector):
                 if table_name:
                     operation = resource[len(start):]
                     table_arn = self.agent.create_arn('AWS::DynamoDB::Table', resource_id=table_name)
-                    self.agent.relation(arn, table_arn, 'uses service', {'operation': operation})
+                    self.agent.relation(state_arn, table_arn, 'uses service', {'operation': operation})
             if resource.startswith('arn:{}:states:::states:'.format(partition)):
                 sfn_arn = parameters.get('StateMachineArn')
                 if sfn_arn:
-                    self.agent.relation(arn, sfn_arn, 'uses service', {})  # TODO get the type of action
+                    self.agent.relation(state_arn, sfn_arn, 'uses service', {})  # TODO get the type of action
             if resource.startswith('arn:{}:states:::sns:'.format(partition)):
                 # TopicArn (to topic) or TargetArn (to platform, no component yet)
                 topic_arn = parameters.get('TopicArn')
                 if topic_arn:
-                    self.agent.relation(arn, topic_arn, 'uses service', {})  # TODO get the type of action
+                    self.agent.relation(state_arn, topic_arn, 'uses service', {})  # TODO get the type of action
             if resource.startswith('arn:{}:states:::sqs:'.format(partition)):
                 # QueueUrl
                 # This can be cross region!! (tested)
                 queue_url = parameters.get('QueueUrl')
                 if queue_url:
                     queue_arn = queue_url  # TODO convert to ARN
-                    self.agent.relation(arn, queue_arn, 'uses service', {})  # TODO get the type of action
+                    self.agent.relation(state_arn, queue_arn, 'uses service', {})  # TODO get the type of action
             if resource.startswith('arn:{}:states:::ecs:'.format(partition)):
                 definition_id = parameters.get('taskDefinition')
                 if definition_id:
                     definition_arn = definition_id  # TODO can be full ARN or family:revision
-                    self.agent.relation(arn, definition_arn, 'uses service', {})  # TODO get the type of action
+                    self.agent.relation(state_arn, definition_arn, 'uses service', {})  # TODO get the type of action
                 cluster_id = parameters.get('cluster')
                 if cluster_id:
                     cluster_arn = cluster_id  # TODO shortname or ARN
