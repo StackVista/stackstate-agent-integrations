@@ -80,8 +80,12 @@ def read_file(filename, extended_path=""):
     :param extended_path: Optional path
     :return: String with file contents.
     """
-    with open(_get_path_to_file(filename, extended_path), "r") as f:
-        return f.read() if PY3 else f.read().decode("utf-8")
+    if PY3:
+        with open(_get_path_to_file(filename, extended_path), "r", encoding="utf-8") as f:
+            return f.read()
+    else:
+        with open(_get_path_to_file(filename, extended_path), "r") as f:
+            return f.read().decode("utf-8")
 
 
 def load_json_from_file(filename, extended_path=""):
