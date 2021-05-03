@@ -154,7 +154,11 @@ class TestPersistentState:
         with pytest.raises(StateNotPersistedException) as e:
             state.persistent_state.set_state(instance, s)
         if platform.system() == "Windows":
-            assert str(e.value) == """[WinError 3] The system cannot find the path specified: ''"""
+            if PY3:
+                expected_message = """[WinError 3] The system cannot find the path specified: ''"""
+            else:
+                expected_message = """[Error 3] The system cannot find the path specified: ''"""
+            assert str(e.value) == expected_message
         else:
             assert str(e.value) == """[Errno 2] No such file or directory: ''"""
 
