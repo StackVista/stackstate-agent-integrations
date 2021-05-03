@@ -52,7 +52,6 @@ class StepFunctionCollector(RegisteredResourceCollector):
         # generate component
         arn = data.state_machine.get('stateMachineArn')
         output = make_valid_data(data.state_machine)
-        print(output)
         if 'definition' in output:
             output.pop('definition')
         self.agent.component(arn, self.COMPONENT_TYPE, output)
@@ -63,7 +62,7 @@ class StepFunctionCollector(RegisteredResourceCollector):
     def process_activity(self, data):
         activity_arn = data.get('activityArn')
         data["Tags"] = self.collect_tags(activity_arn)
-        self.agent.component(arn, 'aws.stepfunction.activity', data)
+        self.agent.component(activity_arn, 'aws.stepfunction.activity', data)
 
     def process_state_machine_relations(self, arn, definition):
         data = json.loads(definition)
@@ -94,74 +93,93 @@ class StepFunctionCollector(RegisteredResourceCollector):
                 if choice_next:
                     choice_arn = sfn_arn + ':state/' + choice_next
                     self.agent.relation(state_arn, choice_arn, 'can transition to (choice)', {})
-        if isinstance(state, dict) and state.get('Type') == 'Map':
+        elif isinstance(state, dict) and state.get('Type') == 'Map':
             iterator = state.get('Iterator')
             if iterator:
                 start_at = iterator.get('StartAt')
                 states = iterator.get('States') or {}
                 for state_name, state in states.items():
                     self.process_state(sfn_arn, state_arn, state_name, state, state_name == start_at)
-        if isinstance(state, dict) and state.get('Type') == 'Parallel':
+        elif isinstance(state, dict) and state.get('Type') == 'Parallel':
             branches = state.get('Branches') or []
             for branch in branches:
                 start_at = branch.get('StartAt')
                 states = branch.get('States') or {}
                 for state_name, state in states.items():
                     self.process_state(sfn_arn, state_arn, state_name, state, state_name == start_at)
-        if isinstance(state, dict) and state.get('Type') == 'Task':
-            print('JPK ' + state_name + ': ' + state.get('Resource'))
+        elif isinstance(state, dict) and state.get('Type') == 'Task':
             resource = state.get('Resource') or ''
             parameters = state.get('Parameters') or {}
             if resource.startswith('arn:{}:states:::lambda:'.format(partition)):
-                # we need to figure out if it is version/alias (*aliases are components)
-                # support function_name, arn, partial arn (with version/alias)
-                pass
-            if resource.startswith('arn:aws:lambda:'):
-                # we need to figure out if it is version/alias (*aliases are components)
-                # support function_name, arn, partial arn (with version/alias)
-                pass
-            start = 'arn:{}:states:::dynamodb:'.format(partition)
-            if resource.startswith(start):
+                function = parameters.get('FunctionName')
+                parts = function.split(':', -1)
+                fn_arn = ''
+                if len(parts) == 7:
+                    fn_arn = ':'.join(parts)
+                elif len(parts) == 8 and parts[7].isdigit():
+                    fn_arn = ':'.join(parts[0:7])  # versions are not in StackState so omit
+                elif len(parts) == 8:
+                    fn_arn = ':'.join(parts)
+                elif len(parts) >= 3:
+                    fn_arn = self.agent.create_arn('AWS::Lambda::Function', ':'.join(parts[2:]))
+                if fn_arn:
+                    self.agent.relation(state_arn, fn_arn, 'uses service', {})
+            elif resource.startswith('arn:aws:lambda:'):
+                function = resource
+                parts = function.split(':', -1)
+                fn_arn = ''
+                if len(parts) == 8 and parts[7].isdigit():
+                    fn_arn = ':'.join(parts[0:7])  # versions are not in StackState so omit
+                elif len(parts) == 8:
+                    fn_arn = ':'.join(parts)
+                elif len(parts) >= 3:
+                    fn_arn = self.agent.create_arn('AWS::Lambda::Function', ':'.join(parts[2:]))
+                if fn_arn:
+                    self.agent.relation(state_arn, fn_arn, 'uses service', {})
+            elif resource.startswith('arn:{}:states:::dynamodb:'.format(partition)):
                 table_name = parameters.get('TableName')
                 if table_name:
-                    operation = resource[len(start):]
+                    operation = resource[len('arn:{}:states:::dynamodb:'.format(partition)):]
                     table_arn = self.agent.create_arn('AWS::DynamoDB::Table', resource_id=table_name)
                     self.agent.relation(state_arn, table_arn, 'uses service', {'operation': operation})
-            if resource.startswith('arn:{}:states:::states:'.format(partition)):
+            elif resource.startswith('arn:{}:states:::states:'.format(partition)):
                 sfn_arn = parameters.get('StateMachineArn')
                 if sfn_arn:
                     self.agent.relation(state_arn, sfn_arn, 'uses service', {})  # TODO get the type of action
-            if resource.startswith('arn:{}:states:::sns:'.format(partition)):
+            elif ':activity:' in resource:
+                self.agent.relation(state_arn, resource, 'uses service', {})
+            elif resource.startswith('arn:{}:states:::sns:'.format(partition)):
                 # TopicArn (to topic) or TargetArn (to platform, no component yet)
                 topic_arn = parameters.get('TopicArn')
                 if topic_arn:
                     self.agent.relation(state_arn, topic_arn, 'uses service', {})  # TODO get the type of action
-            if resource.startswith('arn:{}:states:::sqs:'.format(partition)):
-                # QueueUrl
-                # This can be cross region!! (tested)
+            elif resource.startswith('arn:{}:states:::sqs:'.format(partition)):
                 queue_url = parameters.get('QueueUrl')
                 if queue_url:
-                    queue_arn = queue_url  # TODO convert to ARN
+                    queue_arn = queue_url
                     self.agent.relation(state_arn, queue_arn, 'uses service', {})  # TODO get the type of action
-            if resource.startswith('arn:{}:states:::ecs:'.format(partition)):
-                definition_id = parameters.get('taskDefinition')
+            elif resource.startswith('arn:{}:states:::ecs:'.format(partition)):
+                definition_id = parameters.get('TaskDefinition')
                 if definition_id:
                     definition_arn = definition_id  # TODO can be full ARN or family:revision
                     self.agent.relation(state_arn, definition_arn, 'uses service', {})  # TODO get the type of action
-                cluster_id = parameters.get('cluster')
+                cluster_id = parameters.get('Cluster')
                 if cluster_id:
-                    cluster_arn = cluster_id  # TODO shortname or ARN
-                    cluster_arn
+                    cluster_arn = cluster_id
+                    if not cluster_id.startswith('arn:'):
+                        cluster_arn = self.agent.create_arn('AWS::ECS::Cluster', cluster_id)
+                    self.agent.relation(state_arn, cluster_arn, 'uses service', {})
                 # TODO NetworkConfiguration also has connection to securitygroups AND subnets
-            if resource.startswith('arn:{}:states:::apigateway:'.format(partition)):
+            elif resource.startswith('arn:{}:states:::apigateway:'.format(partition)):
                 api_host = parameters.get('ApiEndpoint')
-                # <API ID>.execute-api.<region>.amazonaws.com
+                api_id = api_host.split('.')[0]
                 api_method = parameters.get('Method')
                 api_path = parameters.get('Path')
                 api_stage = parameters.get('Stage')
-                api_method
-                api_path
-                api_stage
-                api_host
+                api_arn = self.agent.create_arn(
+                    'AWS::ApiGateway::Method',
+                    api_id + '/' + api_stage + '/' + api_method + api_path
+                )
+                self.agent.relation(state_arn, api_arn, 'uses service', {})
             # TODO support AWS Batch / AWS Glue (DataBrew) / EMR / EMR on EKS / EKS / CodeBuild
             # TODO decide on (Athena / SageMaker)

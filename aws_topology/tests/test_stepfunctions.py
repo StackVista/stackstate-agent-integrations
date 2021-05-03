@@ -32,7 +32,7 @@ def mock_boto_calls(operation_name, kwarg=None):
     elif operation_name == 'DescribeStateMachine':
         return resource('json/stepfunctions/describe_state_machine.json')
     elif operation_name == 'ListActivities':
-        return {}
+        return resource('json/stepfunctions/list_activities.json')
     elif operation_name == 'LookupEvents':
         return {}
     raise ValueError("Unknown operation name", operation_name)
@@ -87,12 +87,15 @@ class TestStepFunctions(unittest.TestCase):
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
-        # print(json.dumps(topology[0]["components"], indent=2))
 
-        sfn_id = 'arn:aws:states:eu-west-1:290794210101:stateMachine:StepFunctionsStateMachine-cLtKjmzGLpw8'        
+        sfn_id = 'arn:aws:states:eu-west-1:290794210101:stateMachine:StepFunctionsStateMachine-cLtKjmzGLpw8'
         components = topology[0]["components"]
         relations = topology[0]["relations"]
         self.assert_has_component(components, sfn_id, 'aws.stepfunction')
+        self.assert_has_component(
+            components,
+            'arn:aws:states:eu-west-1:290794210101:activity:TestActivity',
+            'aws.stepfunction.activity')
         state_names = [
             "Activity",
             "ApiMap",
@@ -112,7 +115,7 @@ class TestStepFunctions(unittest.TestCase):
         ]
         for state_name in state_names:
             self.assert_has_component(components, sfn_id + ':state/' + state_name, 'aws.stepfunction.state')
-        self.assertEqual(len(components), len(state_names) + 1)
+        self.assertEqual(len(components), len(state_names) + 2)
         # starting state
         self.assert_has_relation(relations, sfn_id, sfn_id + ':state/ParallelRun')
         # parallel branch 1
@@ -143,33 +146,63 @@ class TestStepFunctions(unittest.TestCase):
 
         # 15 states
 
-        # integrations currently 4 (should be 9!)
+        # integrations currently 4 (should be 10 since ECS 2x!)
         self.assert_has_relation(
             relations,
-            sfn_id + ':state/SNS', 
+            sfn_id + ':state/SNS',
             'arn:aws:sns:eu-west-1:290794210101:elvin-stackstate-tests-main-account-main-region-SnsTopic-1MQ0AIIPHC352'
         )
         self.assert_has_relation(
             relations,
-            sfn_id + ':state/SQS', 
-            'https://sqs.eu-west-1.amazonaws.com/290794210101/elvin-stackstate-tests-main-account-main-region-SqsQueue-12QD0SDWO9WV1'
+            sfn_id + ':state/SQS',
+            'https://sqs.eu-west-1.amazonaws.com/290794210101/'
+            + 'elvin-stackstate-tests-main-account-main-region-SqsQueue-12QD0SDWO9WV1'
         )
         self.assert_has_relation(
             relations,
-            sfn_id + ':state/SQSSecondaryRegion', 
-            'https://sqs.us-east-1.amazonaws.com/290794210101/elvin-stackstate-main-account-secondary-region-SqsQueue-142V2KSEY368Y'
+            sfn_id + ':state/SQSSecondaryRegion',
+            'https://sqs.us-east-1.amazonaws.com/290794210101/'
+            + 'elvin-stackstate-main-account-secondary-region-SqsQueue-142V2KSEY368Y'
         )
         self.assert_has_relation(
             relations,
-            sfn_id + ':state/DynamoDB', 
-            'arn:aws:dynamodb:eu-west-1:731070500579:table/elvin-stackstate-tests-main-account-main-region-DynamoDbTable-16SXEQ30MM5RN'
+            sfn_id + ':state/DynamoDB',
+            'arn:aws:dynamodb:eu-west-1:731070500579:table/'
+            + 'elvin-stackstate-tests-main-account-main-region-DynamoDbTable-16SXEQ30MM5RN'
+        )
+        self.assert_has_relation(
+            relations,
+            sfn_id + ':state/ApiGateway',
+            'arn:aws:execute-api:eu-west-1:731070500579:z3scu84808/test/GET/test'
+        )
+        self.assert_has_relation(
+            relations,
+            sfn_id + ':state/Lambda',
+            'arn:aws:lambda:eu-west-1:290794210101:function:'
+            + 'elvin-stackstate-tests-main-account-LambdaFunction-199Z59KY5LNOM:$LATEST'
+        )
+        self.assert_has_relation(
+            relations,
+            sfn_id + ':state/LambdaOldVersion',
+            'arn:aws:lambda:eu-west-1:290794210101:function:'
+            + 'elvin-stackstate-tests-main-account-LambdaFunction-199Z59KY5LNOM'
+        )
+        self.assert_has_relation(
+            relations,
+            sfn_id + ':state/ECS',
+            'arn:aws:ecs:eu-west-1:290794210101:task-definition/'
+            + 'elvin-stackstate-tests-main-account-main-region-EcsTaskDefinition-2BeEG06Qwhoq:1'
+        )
+        self.assert_has_relation(
+            relations,
+            sfn_id + ':state/ECS',
+            'arn:aws:ecs:eu-west-1:290794210101:cluster/'
+            + 'elvin-stackstate-tests-main-account-main-region-EcsCluster-QAt7B7u3rss9'
+        )
+        self.assert_has_relation(
+            relations,
+            sfn_id + ':state/Activity',
+            'arn:aws:states:eu-west-1:290794210101:activity:TestActivity'
         )
 
-        for component in topology[0]["components"]:
-            print(component["id"] + " - " + component["type"])
-        for relation in topology[0]["relations"]:
-            print('src: ' + relation["source_id"])
-            print('dst: ' + relation["target_id"])
-            print('tp : ' + relation["type"])
-            print()
-        self.assertEqual(len(topology[0]["relations"]), 19)
+        self.assertEqual(len(topology[0]["relations"]), 25)
