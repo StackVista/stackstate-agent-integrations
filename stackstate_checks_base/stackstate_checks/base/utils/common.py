@@ -85,7 +85,7 @@ def read_file(filename, extended_path=""):
             return f.read()
     else:
         with open(_get_path_to_file(filename, extended_path), "r") as f:
-            f.read().decode("utf-8")
+            return f.read().decode("utf-8")
 
 
 def load_json_from_file(filename, extended_path=""):
