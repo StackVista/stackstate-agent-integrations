@@ -69,7 +69,7 @@ class TestAWSClient(unittest.TestCase):
             else:
                 raise botocore.exceptions.ClientError({
                     'Error': {
-                        'Code': 'AccessDeniedException'
+                        'Code': 'AccessDenied'
                     }
                 }, operation_name)
         with patch('botocore.client.BaseClient._make_api_call') as mock_method:
@@ -82,7 +82,7 @@ class TestAWSClient(unittest.TestCase):
                     }
                 ))
                 client.get_session(instance['regions'][0], instance['role_arn'])
-        self.assertIn('AccessDeniedException', str(context.exception))
+        self.assertIn('AccessDenied', str(context.exception))
 
     def test_no_input_gives_exception(self):
         with self.assertRaises(Exception) as context:
@@ -102,7 +102,7 @@ class TestAWSClient(unittest.TestCase):
             else:
                 raise botocore.exceptions.ClientError({
                     'Error': {
-                        'Code': 'AccessDeniedException'
+                        'Code': 'AccessDenied'
                     }
                 }, operation_name)
         with patch('botocore.client.BaseClient._make_api_call') as mock_method:

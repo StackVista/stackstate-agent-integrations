@@ -61,7 +61,7 @@ class TestAWSTopologyCheck(unittest.TestCase):
             if operation_name == 'AssumeRole' and 'ExternalId' not in api_params:
                 raise ClientError({
                     'Error': {
-                        'Code': 'AccessDeniedException'
+                        'Code': 'AccessDenied'
                     }
                 }, operation_name)
             else:
