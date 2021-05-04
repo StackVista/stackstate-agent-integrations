@@ -60,7 +60,7 @@ class TestStepFunctions(unittest.TestCase):
             "role_arn": "arn:aws:iam::731070500579:role/RoleName",
             "regions": ["eu-west-1"],
         }
-        instance.update({"apis_to_run": ["stepfunctions|aws.stepfunction"]})
+        instance.update({"apis_to_run": ["stepfunctions"]})
 
         self.check = AwsTopologyCheck(self.CHECK_NAME, InitConfig(init_config), [instance])
         self.mock_object.side_effect = mock_boto_calls
