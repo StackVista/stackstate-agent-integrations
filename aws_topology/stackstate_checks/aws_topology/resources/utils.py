@@ -182,8 +182,7 @@ def set_required_access_v2(value):
                     self.agent.warning(
                         'throttling'
                     )
-                else:
-                    raise e
+                raise e  # to stop further processing
 
         return inner_function
 
