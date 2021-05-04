@@ -63,13 +63,13 @@ class StepFunctionCollector(RegisteredResourceCollector):
         output = make_valid_data(data.state_machine)
         if 'definition' in output:
             output.pop('definition')
-        output["Tags"] = data.tags
+        output["tags"] = data.tags
         self.agent.component(state_machine.stateMachineArn, self.COMPONENT_TYPE, output)
         self.process_state_machine_relations(state_machine.stateMachineArn, state_machine.definition)
 
     def process_activity(self, data):
         activity_arn = data.get('activityArn')
-        data["Tags"] = self.collect_tags(activity_arn)
+        data["tags"] = self.collect_tags(activity_arn)
         self.agent.component(activity_arn, 'aws.stepfunction.activity', data)
 
     def process_state_machine_relations(self, arn, definition):
