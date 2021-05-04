@@ -281,7 +281,7 @@ class AwsClient:
                     'For security reasons, please set the external ID.'
                 )
         except ClientError as error:
-            if error.response['Error']['Code'] == 'AccessDeniedException':
+            if error.response['Error']['Code'] == 'AccessDenied':
                 try:
                     role = self.sts_client.assume_role(
                         RoleArn=role_arn,
