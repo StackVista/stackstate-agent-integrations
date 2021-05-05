@@ -21,7 +21,7 @@ class StepFunction(Model):
 class StepFunctionCollector(RegisteredResourceCollector):
     API = "stepfunctions"
     API_TYPE = "regional"
-    COMPONENT_TYPE = "aws.stepfunction"
+    COMPONENT_TYPE = "aws.stepfunction.statemachine"
 
     @set_required_access('states:ListTagsForResource')
     def collect_tags(self, arn):
