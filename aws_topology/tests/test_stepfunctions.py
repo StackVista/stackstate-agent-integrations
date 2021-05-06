@@ -91,7 +91,7 @@ class TestStepFunctions(unittest.TestCase):
         sfn_id = 'arn:aws:states:eu-west-1:290794210101:stateMachine:StepFunctionsStateMachine-cLtKjmzGLpw8'
         components = topology[0]["components"]
         relations = topology[0]["relations"]
-        self.assert_has_component(components, sfn_id, 'aws.stepfunction')
+        self.assert_has_component(components, sfn_id, 'aws.stepfunction.statemachine')
         self.assert_has_component(
             components,
             'arn:aws:states:eu-west-1:290794210101:activity:TestActivity',
