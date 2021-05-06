@@ -104,6 +104,8 @@ class AwsTopologyCheck(AgentCheck):
                 else [api.split('|')[0] for api in instance_info.apis_to_run]
             )
             for api in keys:
+                if not registry.get(api):
+                    continue
                 client = None
                 location = location_info(self.get_account_id(instance_info), session.region_name)
                 agent_proxy.location = copy.deepcopy(location)
