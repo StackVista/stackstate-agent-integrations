@@ -4,6 +4,7 @@ from collections import namedtuple
 import json
 from schematics import Model
 from schematics.types import StringType
+from .sqs import get_queue_name_from_url
 
 
 def create_arn(region=None, account_id=None, resource_id=None, **kwargs):
@@ -84,37 +85,37 @@ class StepFunctionCollector(RegisteredResourceCollector):
         partition = get_partition_name(self.agent.location['Location']['AwsRegion'])
         state_arn = sfn_arn + ':state/' + state_name
         if is_start:
-            self.agent.relation(arn, state_arn, 'start state', {})
+            self.agent.relation(arn, state_arn, 'uses service', {})  # starts state
         state["Name"] = state_name
         next_state = state.get('Next')
         if next_state:
             next_state_arn = sfn_arn + ':state/' + next_state
-            self.agent.relation(state_arn, next_state_arn, 'can transition to', {})
+            self.agent.relation(state_arn, next_state_arn, 'uses service', {})  # can transition to
         if state.get('Type') == 'Choice':
             choices = state.get('Choices') or []
             default_state = state.get('Default')
             if default_state:
                 default_state_arn = sfn_arn + ':state/' + default_state
-                self.agent.relation(state_arn, default_state_arn, 'can transition to (default)', {})
+                self.agent.relation(state_arn, default_state_arn, 'uses service', {})  # can transition to (default)
             for choice in choices:
                 choice_next = choice.get('Next')
                 if choice_next:
                     choice_arn = sfn_arn + ':state/' + choice_next
-                    self.agent.relation(state_arn, choice_arn, 'can transition to (choice)', {})
+                    self.agent.relation(state_arn, choice_arn, 'uses service', {})  # can transition to (choice)
         elif state.get('Type') == 'Map':
             iterator = state.get('Iterator')
             if iterator:
                 start_at = iterator.get('StartAt')
                 states = iterator.get('States') or {}
-                for state_name, state in states.items():
-                    self.process_state(sfn_arn, state_arn, state_name, state, state_name == start_at)
+                for iterator_state_name, iterator_state in states.items():
+                    self.process_state(sfn_arn, state_arn, iterator_state_name, iterator_state, iterator_state_name == start_at)
         elif state.get('Type') == 'Parallel':
             branches = state.get('Branches') or []
             for branch in branches:
                 start_at = branch.get('StartAt')
                 states = branch.get('States') or {}
-                for state_name, state in states.items():
-                    self.process_state(sfn_arn, state_arn, state_name, state, state_name == start_at)
+                for branch_state_name, branch_state in states.items():
+                    self.process_state(sfn_arn, state_arn, branch_state_name, branch_state, branch_state_name == start_at)
         elif state.get('Type') == 'Task':
             # TODO sense intrinsics used in any integration parameter -> don't mae relation
             # TODO resource end part is invokation type put it in the state
@@ -132,7 +133,7 @@ class StepFunctionCollector(RegisteredResourceCollector):
                 fn_arn = ''
                 if len(parts) == 7:
                     fn_arn = ':'.join(parts)
-                elif len(parts) == 8 and parts[7].isdigit():
+                elif len(parts) == 8 and (parts[7].isdigit() or  parts[7].lower() == '$latest'):
                     fn_arn = ':'.join(parts[0:7])  # versions are not in StackState so omit
                 elif len(parts) == 8:
                     fn_arn = ':'.join(parts)
@@ -145,7 +146,7 @@ class StepFunctionCollector(RegisteredResourceCollector):
                 function = resource
                 parts = function.split(':', -1)
                 fn_arn = ''
-                if len(parts) == 8 and parts[7].isdigit():
+                if len(parts) == 8 and (parts[7].isdigit() or parts[7].lower() == '$latest'):
                     fn_arn = ':'.join(parts[0:7])  # versions are not in StackState so omit
                 elif len(parts) == 8:
                     fn_arn = ':'.join(parts)
@@ -178,7 +179,8 @@ class StepFunctionCollector(RegisteredResourceCollector):
                 state["IntegrationType"] = "sqs"
                 queue_url = parameters.get('QueueUrl')
                 if queue_url:
-                    queue_arn = queue_url
+                    queue_name = get_queue_name_from_url(queue_url)
+                    queue_arn = self.agent.create_arn('AWS::SQS::Queue', queue_name)
                     self.agent.relation(state_arn, queue_arn, 'uses service', {})  # TODO get the type of action
             elif resource.startswith('arn:{}:states:::ecs:'.format(partition)):
                 state["IntegrationType"] = "ecs"
@@ -196,15 +198,17 @@ class StepFunctionCollector(RegisteredResourceCollector):
             elif resource.startswith('arn:{}:states:::apigateway:'.format(partition)):
                 state["IntegrationType"] = "apigateway"
                 api_host = parameters.get('ApiEndpoint')
-                api_id = api_host.split('.')[0]
-                api_method = parameters.get('Method')
-                api_path = parameters.get('Path')
-                api_stage = parameters.get('Stage')
-                api_arn = self.agent.create_arn(
-                    'AWS::ApiGateway::Method',
-                    api_id + '/' + api_stage + '/' + api_method + api_path
-                )
-                self.agent.relation(state_arn, api_arn, 'uses service', {})
+                if api_host and not api_host.startswith('$.'):
+                    # api_method = parameters.get('Method')
+                    # api_path = parameters.get('Path')
+                    api_id = api_host.split('.')[0]
+                    api_stage = parameters.get('Stage')
+                    if api_stage and not api_stage.startswith('$.'):
+                        api_arn = self.agent.create_arn(
+                            'AWS::ApiGateway::RestApi',
+                            api_id + '/' + api_stage
+                        )
+                        self.agent.relation(state_arn, api_arn, 'uses service', {})
             # TODO support AWS Batch / AWS Glue (DataBrew) / EMR / EMR on EKS / EKS / CodeBuild
             # TODO decide on (Athena / SageMaker)
         self.agent.component(state_arn, 'aws.stepfunction.state', state)
