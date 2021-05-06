@@ -21,21 +21,6 @@ listen_for = {
     'ec2.amazonaws.com': {
         'RunInstances': True
     },
-    'sns.amazonaws.com': {
-        'CreateTopic': True,
-        'DeleteTopic': True
-        # CreateTopic
-        # DeleteTopic
-        # CreatePlatformEndpoint
-        # DeleteEndpoint
-        # CreatePlatformApplication
-        # DeletePlatformApplication
-        # SetEndpointAttributes
-        # SetPlatformApplicationAttributes
-        # SetSMSAttributes
-        # SetSubscriptionAttributes
-        # SetTopicAttributes
-    },
     'lambda.amazonaws.com': {
         'CreateFunction20150331': True,
         'UpdateFunctionConfiguration20150331v2': True,

@@ -10,6 +10,22 @@ class SnsCollector(RegisteredResourceCollector):
     API = "sns"
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.sns"
+    EVENT_SOURCE = "sns.amazonaws.com"
+    CLOUDTRAIL_EVENTS = {
+        'CreateTopic': True,
+        'DeleteTopic': True
+        # SetSMSAttributes
+        # SetSubscriptionAttributes
+        # SetTopicAttributes
+        # Subscribe
+
+        # CreatePlatformEndpoint
+        # DeleteEndpoint
+        # CreatePlatformApplication
+        # DeletePlatformApplication
+        # SetEndpointAttributes
+        # SetPlatformApplicationAttributes
+    }
 
     def process_all(self, filter=None):
         for topic_page in self.client.get_paginator('list_topics').paginate():
