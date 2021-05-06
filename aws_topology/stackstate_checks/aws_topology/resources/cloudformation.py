@@ -11,6 +11,7 @@ from .sqs import create_arn as sqs_arn
 from .ecs import create_cluster_arn as ecs_cluster_arn
 from .api_gateway import create_api_arn, create_stage_arn, create_resource_arn, create_method_arn
 from .elb_classic import create_arn as create_elb_arn
+from .api_gateway_v2 import create_httpapi_arn
 
 type_map = {
     'AWS::Lambda::Function': 'lambda_func',
@@ -48,6 +49,7 @@ type_arn = {
     'AWS::ApiGateway::Stage': create_stage_arn,
     'AWS::ApiGateway::Resource': create_resource_arn,
     'AWS::ApiGateway::Method': create_method_arn,
+    'AWS::ApiGatewayV2::Api': create_httpapi_arn,
     'AWS::ElasticLoadBalancing::LoadBalancer': create_elb_arn,  # TODO odd one
 
     'AWS::EC2::Instance': no_arn,
