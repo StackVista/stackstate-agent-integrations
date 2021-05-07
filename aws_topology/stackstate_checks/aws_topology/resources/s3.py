@@ -79,8 +79,9 @@ class S3Collector(RegisteredResourceCollector):
 
     def process_all(self, filter=None):
         # buckets should only be fetched for global OR filtered by LocationConstraint
-        for bucket_data in self.collect_buckets():
-            self.process_bucket(bucket_data)
+        if not filter or 'buckets' in filter:
+            for bucket_data in self.collect_buckets():
+                self.process_bucket(bucket_data)
 
     def process_one_bucket(self, bucket_name):
         self.process_bucket(self.collect_bucket({'Name': bucket_name}))
