@@ -27,12 +27,18 @@ class S3_UpdateBucket(CloudTrailEventBase):
 
     requestParameters = ModelType(RequestParameters, required=True)
 
-    def _internal_process(self, event_name, session, location, agent):
-        if event_name == 'DeleteBucket':
-            agent.delete(agent.create_arn(
-                'AWS::S3::Bucket',
-                self.requestParameters.bucketName
-            ))
+    def get_collector_class(self):
+        return S3Collector
+
+    def get_resource_name(self):
+        return self.requestParameters.bucketName
+
+    def get_operation_type(self):
+        return 'D' if self.eventName == 'DeleteBucket' else 'U'  # outputs C as U (does not matter yet)
+
+    def _internal_process(self, session, location, agent):
+        if self.get_operation_type() == 'D':
+            agent.delete(self.get_resource_arn(agent, location))
         else:
             client = session.client('s3')
             collector = S3Collector(location, client, agent)
@@ -48,6 +54,7 @@ class S3Collector(RegisteredResourceCollector):
         'CreateBucket': S3_UpdateBucket,
         'DeleteBucket': S3_UpdateBucket
     }
+    CLOUDFORMATION_TYPE = 'AWS::S3::Bucket'
 
     def collect_bucket(self, bucket):
         name = bucket.get('Name')
@@ -99,7 +106,7 @@ class S3Collector(RegisteredResourceCollector):
             output["BucketLocation"] = data.location
         output["Tags"] = data.tags
 
-        self.agent.component(bucket_arn, self.COMPONENT_TYPE, output)
+        self.emit_component(bucket_arn, self.COMPONENT_TYPE, output)
         for bucket_notification in config:
             function_arn = bucket_notification.LambdaFunctionArn
             if function_arn:

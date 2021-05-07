@@ -14,5 +14,5 @@ class RedshiftCollector(RegisteredResourceCollector):
                 self.process_redshift(redshift_data)
 
     def process_redshift(self, redshift_data):
-        self.agent.component(redshift_data['ClusterIdentifier'], self.COMPONENT_TYPE, redshift_data)
+        self.emit_component(redshift_data['ClusterIdentifier'], self.COMPONENT_TYPE, redshift_data)
         self.agent.relation(redshift_data['ClusterIdentifier'], redshift_data['VpcId'], 'uses service', {})

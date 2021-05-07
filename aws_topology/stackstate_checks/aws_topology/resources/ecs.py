@@ -50,7 +50,7 @@ class EcsCollector(RegisteredResourceCollector):
         cluster_data.update(with_dimensions([
             {'key': 'ClusterName', 'value': cluster_name}
         ]))
-        self.agent.component(cluster_arn, self.COMPONENT_TYPE, cluster_data)
+        self.emit_component(cluster_arn, self.COMPONENT_TYPE, cluster_data)
 
         # key: service_name, value: list of container_name
         self.ecs_containers_per_service = self.process_cluster_tasks(cluster_arn)
@@ -100,7 +100,7 @@ class EcsCollector(RegisteredResourceCollector):
         # TODO self.logger.debug('task {2}, group {0}: {1}'.
         # format(task_group, ecs_containers_per_service[task_group], task_data['Name']))
 
-        self.agent.component(task_arn, 'aws.ecs.task', task_data)
+        self.emit_component(task_arn, 'aws.ecs.task', task_data)
         if not has_group_service:
             self.agent.relation(cluster_arn, task_arn, 'has_cluster_node', {})
         return {
@@ -150,7 +150,7 @@ class EcsCollector(RegisteredResourceCollector):
         # else:
         # TODO   self.logger.warning('no containers for ecs service {0}'.format(service_name))
 
-        self.agent.component(service_arn, 'aws.ecs.service', service_data)
+        self.emit_component(service_arn, 'aws.ecs.service', service_data)
         self.agent.relation(cluster_arn, service_arn, 'has_cluster_node', {})
 
         # TODO makes new client ? should we do that here ?

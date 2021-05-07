@@ -12,36 +12,45 @@ def create_arn(region=None, account_id=None, resource_id=None, **kwargs):
     return arn(resource='firehose', region=region, account_id=account_id, resource_id='deliverystream/' + resource_id)
 
 
-class Firehose_CreateStream(CloudTrailEventBase):
+class FirehoseEventBase(CloudTrailEventBase):
+    def get_collector_class(self):
+        return FirehoseCollector
+
+    def _internal_process(self, session, location, agent):
+        if self.get_operation_type() == 'D':
+            agent.delete(self.get_resource_arn(agent, location))
+        else:
+            client = session.client('firehose')
+            collector = FirehoseCollector(location, client, agent)
+            collector.process_one_delivery_stream(self.get_resource_name())
+
+
+class Firehose_CreateStream(FirehoseEventBase):
     class ResponseElements(Model):
         deliveryStreamARN = StringType(required=True)
 
     responseElements = ModelType(ResponseElements, required=True)
 
-    def _internal_process(self, event_name, session, location, agent):
-        client = session.client('firehose')
-        collector = FirehoseCollector(location, client, agent)
+    def get_resource_name(self):
         part = self.responseElements.deliveryStreamARN.rsplit(':', 1)[-1]
         name = part.rsplit('/', 1)[-1]
-        collector.process_one_delivery_stream(name)
+        return name
+
+    def get_operation_type(self):
+        return 'C'
 
 
-class Firehose_UpdateStream(CloudTrailEventBase):
+class Firehose_UpdateStream(FirehoseEventBase):
     class RequestParameters(Model):
         deliveryStreamName = StringType(required=True)
 
     requestParameters = ModelType(RequestParameters)
 
-    def _internal_process(self, event_name, session, location, agent):
-        if event_name == 'DeleteDeliveryStream':
-            agent.delete(agent.create_arn(
-                FirehoseCollector.CLOUDFORMATION_TYPE,
-                self.requestParameters.deliveryStreamName
-            ))
-        else:
-            client = session.client('firehose')
-            collector = FirehoseCollector(location, client, agent)
-            collector.process_one_delivery_stream(self.requestParameters.deliveryStreamName)
+    def get_resource_name(self):
+        return self.requestParameters.deliveryStreamName
+
+    def get_operation_type(self):
+        return 'U' if self.eventName != 'DeleteDeliveryStream' else 'D'
 
 
 DeliveryStreamData = namedtuple('DeliveryStreamData', ['stream', 'tags'])
@@ -139,7 +148,7 @@ class FirehoseCollector(RegisteredResourceCollector):
                 "value": description.DeliveryStreamName
             }])
         )
-        self.agent.component(delivery_stream_arn, self.COMPONENT_TYPE, output)
+        self.emit_component(delivery_stream_arn, self.COMPONENT_TYPE, output)
 
         if description.DeliveryStreamType == "KinesisStreamAsSource":
             source = description.Source

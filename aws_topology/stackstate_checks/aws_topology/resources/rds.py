@@ -36,7 +36,7 @@ class RdsCollector(RegisteredResourceCollector):
         ]
         instance_data['Name'] = instance_id
         instance_data.update(with_dimensions([{'key': 'DBInstanceIdentifier', 'value': instance_id}]))
-        self.agent.component(instance_arn, 'aws.rds_instance', instance_data)
+        self.emit_component(instance_arn, 'aws.rds_instance', instance_data)
         vpc_id = instance_data['DBSubnetGroup']['VpcId']
         self.agent.relation(instance_arn, vpc_id, 'uses service', {})
         if instance_data.get('VpcSecurityGroups'):  # TODO agent.create_security_group_relations (but needs change?)
@@ -49,7 +49,7 @@ class RdsCollector(RegisteredResourceCollector):
         cluster_arn = cluster_data['DBClusterArn']
         cluster_data['Name'] = cluster_arn
         cluster_data.update(with_dimensions([{'key': 'DBClusterIdentifier', 'value': cluster_id}]))
-        self.agent.component(cluster_arn, self.COMPONENT_TYPE, cluster_data)
+        self.emit_component(cluster_arn, self.COMPONENT_TYPE, cluster_data)
         for cluster_member in cluster_data['DBClusterMembers']:
             db_identifier = cluster_member['DBInstanceIdentifier']
             if db_instance_map[db_identifier]:

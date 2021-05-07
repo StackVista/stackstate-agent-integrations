@@ -4,22 +4,33 @@ from schematics import Model
 from schematics.types import StringType, ListType, ModelType
 
 
-class AutoScalingEvent(CloudTrailEventBase):
+class AutoScalingEventBase(CloudTrailEventBase):
+    def get_collector_class(self):
+        return AutoscalingCollector
+
+
+class AutoScalingEvent(AutoScalingEventBase):
     class RequestParameters(Model):
         autoScalingGroupName = StringType()
 
     requestParameters = ModelType(RequestParameters)
 
-    def _internal_process(self, event_name, session, location, agent):
-        if event_name == 'DeleteAutoScalingGroup':
-            agent.delete(self.requestParameters.autoScalingGroupName)
+    def get_operation_type(self):
+        return 'D' if self.eventName == 'DeleteAutoScalingGroup' else 'U'
+
+    def get_resource_name(self):
+        return self.requestParameters.autoScalingGroupName
+
+    def _internal_process(self, session, location, agent):
+        if self.get_operation_type() == 'D':
+            agent.delete(self.get_resource_name())
         else:
             client = session.client('autoscaling')
             collector = AutoscalingCollector(location, client, agent)
-            collector.process_one_auto_scaling_group(self.requestParameters.autoScalingGroupName)
+            collector.process_one_auto_scaling_group(self.get_resource_name())
 
 
-class AutoScalingTagEvent(CloudTrailEventBase):
+class AutoScalingTagEvent(AutoScalingEventBase):
     class RequestParameters(Model):
         class AutoScalingTag(Model):
             resourceType = StringType(required=True)
@@ -28,13 +39,23 @@ class AutoScalingTagEvent(CloudTrailEventBase):
 
     requestParameters = ModelType(RequestParameters)
 
-    def _internal_process(self, event_name, session, location, agent):
+    def get_operation_type(self):
+        return 'U'
+
+    def get_resource_name(self):
         if len(self.requestParameters.tags) > 0:
             tag = self.requestParameters.tags[0]
-            if tag.resourceType == 'auto-scaling-group':
+            return tag.resourceId
+        return ""
+
+    def _internal_process(self, session, location, agent):
+        name = self.get_resource_name()
+        # TODO refactoring needed multiple resource type possible here
+        if name:
+            if self.requestParameters.tags[0].resourceType == 'auto-scaling-group':
                 client = session.client('autoscaling')
                 collector = AutoscalingCollector(location, client, agent)
-                collector.process_one_auto_scaling_group(tag.resourceId)
+                collector.process_one_auto_scaling_group(name)
 
 
 class AutoScalingGroup(Model):
@@ -59,6 +80,7 @@ class AutoscalingCollector(RegisteredResourceCollector):
         "UpdateAutoScalingGroup": AutoScalingEvent,
         "CreateOrUpdateTags": AutoScalingTagEvent
     }
+    CLOUDFORMATION_TYPE = "AWS::AutoScaling::AutoScalingGroup"
 
     def collect_auto_scaling_groups(self, **kwargs):
         for auto_scaling_group in client_array_operation(
@@ -90,7 +112,7 @@ class AutoscalingCollector(RegisteredResourceCollector):
             auto_scaling_group.AutoScalingGroupARN
         ]
         # using name here, s unique in region, arn is not resolvable from CF-resources
-        self.agent.component(auto_scaling_group.AutoScalingGroupName, self.COMPONENT_TYPE, output)
+        self.emit_component(auto_scaling_group.AutoScalingGroupName, self.COMPONENT_TYPE, output)
 
         for instance in auto_scaling_group.Instances:
             self.agent.relation(auto_scaling_group.AutoScalingGroupARN, instance.InstanceId, 'uses service', {})

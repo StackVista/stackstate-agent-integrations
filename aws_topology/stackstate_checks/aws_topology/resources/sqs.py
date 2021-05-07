@@ -8,34 +8,50 @@ def create_arn(region=None, account_id=None, resource_id=None, **kwargs):
     return arn(resource='sqs', region=region, account_id=account_id, resource_id=resource_id)
 
 
-class Sqs_CreateQueue(CloudTrailEventBase):
-    class ResponseElements(Model):
-        queueUrl = StringType(required=True)
+class SqsEventBase(CloudTrailEventBase):
+    def get_collector_class(self):
+        return SqsCollector
 
-    responseElements = ModelType(ResponseElements, required=True)
-
-    def _internal_process(self, event_name, session, location, agent):
-        client = session.client('sqs')
-        collector = SqsCollector(location, client, agent)
-        collector.process_queue(self.responseElements.queueUrl)
-
-
-class Sqs_UpdateQueue(CloudTrailEventBase):
-    class RequestParameters(Model):
-        queueUrl = StringType(required=True)
-
-    requestParameters = ModelType(RequestParameters, required=True)
-
-    def _internal_process(self, event_name, session, location, agent):
-        if event_name == 'DeleteQueue':
-            agent.delete(self.requestParameters.queueUrl)
-        elif event_name == 'PurgeQueue':
+    def _internal_process(self, session, location, agent):
+        operation_type = self.get_operation_type()
+        if operation_type == 'D':
+            agent.delete(self.get_resource_name())  # TODO Queue id has changed!
+        elif operation_type == 'E':
             # TODO this should probably emit some event to StackState
             pass
         else:
             client = session.client('sqs')
             collector = SqsCollector(location, client, agent)
-            collector.process_queue(self.requestParameters.queueUrl)
+            collector.process_queue(self.get_resource_name())
+
+class Sqs_CreateQueue(SqsEventBase):
+    class ResponseElements(Model):
+        queueUrl = StringType(required=True)
+
+    responseElements = ModelType(ResponseElements, required=True)
+
+    def get_resource_name(self):
+        return self.responseElements.queueUrl
+
+    def get_operation_type(self):
+        return 'C'
+
+
+class Sqs_UpdateQueue(SqsEventBase):
+    class RequestParameters(Model):
+        queueUrl = StringType(required=True)
+
+    requestParameters = ModelType(RequestParameters, required=True)
+
+    def get_resource_name(self):
+        return self.requestParameters.queueUrl
+
+    def get_operation_type(self):
+        if self.eventName == 'DeleteQueue':
+            return 'D'
+        elif self.eventName == 'PurgeQueue':
+            return 'E'
+        return 'U'
 
 
 class SqsCollector(RegisteredResourceCollector):
@@ -53,6 +69,7 @@ class SqsCollector(RegisteredResourceCollector):
         'UntagQueue': Sqs_UpdateQueue,
         'PurgeQueue': Sqs_UpdateQueue
     }
+    CLOUDFORMATION_TYPE = 'AWS::SQS::Queue'
 
     def process_all(self, filter=None):
         for queue_url in self.client.list_queues().get('QueueUrls', []):
@@ -72,4 +89,4 @@ class SqsCollector(RegisteredResourceCollector):
         queue_name = queue_url.rsplit('/', 1)[-1]
         queue_data.update(with_dimensions([{'key': 'QueueName', 'value': queue_name}]))
 
-        self.agent.component(queue_arn, self.COMPONENT_TYPE, queue_data)
+        self.emit_component(queue_arn, self.COMPONENT_TYPE, queue_data)

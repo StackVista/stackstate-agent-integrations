@@ -63,7 +63,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         instance_data['isNitro'] = False
         if instance_data['InstanceType'] in map(lambda x: x['InstanceType'], self.nitroInstances):
             instance_data['isNitro'] = True
-        self.agent.component(instance_id, self.COMPONENT_TYPE, instance_data)
+        self.emit_component(instance_id, self.COMPONENT_TYPE, instance_data)
 
         # Map the subnet and if not available then map the VPC
         if instance_data.get('SubnetId'):
@@ -106,7 +106,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
             )
         ]
 
-        self.agent.component(group_id, "aws.security-group", group_data)
+        self.emit_component(group_id, "aws.security-group", group_data)
 
         if group_data.get('VpcId'):
             self.agent.relation(group_data['VpcId'], group_id, 'has resource', {})
@@ -135,7 +135,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
                     subnet_id
                 )
             ]
-            self.agent.component(subnet_id, 'aws.subnet', subnet_description)
+            self.emit_component(subnet_id, 'aws.subnet', subnet_description)
 
     def process_vpc(self, vpc_description, subnet_descriptions):
         vpc_id = vpc_description['VpcId']
@@ -148,7 +148,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
                 vpc_id
             )
         ]
-        self.agent.component(vpc_id, "aws.vpc", vpc_description)
+        self.emit_component(vpc_id, "aws.vpc", vpc_description)
         subnets_for_vpc = list(filter(lambda subnet: subnet['VpcId'] == vpc_id, subnet_descriptions))
         for subnet_for_vpc in subnets_for_vpc:
             self.agent.relation(subnet_for_vpc['SubnetId'], vpc_id, 'uses service', {})
@@ -160,7 +160,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
 
     def process_vpn_gateway(self, vpn_description):
         vpn_id = vpn_description['VpnGatewayId']
-        self.agent.component(vpn_id, "aws.vpngateway", vpn_description)
+        self.emit_component(vpn_id, "aws.vpngateway", vpn_description)
         if vpn_description.get('VpcAttachments'):
             for vpn_attachment in vpn_description['VpcAttachments']:
                 vpc_id = vpn_attachment['VpcId']

@@ -3,41 +3,54 @@ from .registry import RegisteredResourceCollector
 from schematics import Model
 from schematics.types import StringType, ModelType
 
+"""DynamodbTableCollector
+
+Tables
+    list_tables
+        list_tags_of_resource
+        describe_table
+"""
 
 def create_table_arn(region=None, account_id=None, resource_id=None, **kwargs):
     return arn(resource='dynamodb', region=region, account_id=account_id, resource_id='table/' + resource_id)
 
 
-class DynamoDB_UpdateTable(CloudTrailEventBase):
+class DynamoDBEventBase(CloudTrailEventBase):
+    def get_collector_class(self):
+        return DynamodbTableCollector
+
+    def _internal_process(self, session, location, agent):
+        if self.get_operation_type() == 'D':
+            agent.delete(self.get_resource_arn(agent, location))
+        else:
+            client = session.client('dynamodb')
+            collector = DynamodbTableCollector(location, client, agent)
+            collector.process_table(self.get_resource_name())
+
+class DynamoDB_UpdateTable(DynamoDBEventBase):
     class RequestParameters(Model):
         tableName = StringType(required=True)
 
     requestParameters = ModelType(RequestParameters, required=True)
 
-    def _internal_process(self, event_name, session, location, agent):
-        if event_name == 'DeleteTable':
-            agent.delete(agent.create_arn(
-                'AWS::DynamoDB::Table',
-                self.requestParameters.tableName
-            ))
-        else:
-            client = session.client('dynamodb')
-            collector = DynamodbTableCollector(location, client, agent)
-            collector.process_table(self.requestParameters.tableName)
+    def get_resource_name(self):
+        return self.requestParameters.tableName
+
+    def get_operation_type(self):
+        return 'D' if self.eventName == 'DeleteTable' else 'U'
 
 
-class DynamoDB_TagResource(CloudTrailEventBase):
+class DynamoDB_TagResource(DynamoDBEventBase):
     class RequestParameters(Model):
         resourceArn = StringType(required=True)
 
     requestParameters = ModelType(RequestParameters)
 
-    def _internal_process(self, event_name, session, location, agent):
-        client = session.client('dynamodb')
-        collector = DynamodbTableCollector(location, client, agent)
-        # TODO make split safe
-        name = self.requestParameters.resourceArn.split(':')[-1:].pop()
-        collector.process_table(name)
+    def get_operation_type(self):
+        return 'U'
+
+    def get_resource_name(self):
+        return self.requestParameters.resourceArn.split(':')[-1]
 
 
 class DynamodbTableCollector(RegisteredResourceCollector):
@@ -63,6 +76,7 @@ class DynamodbTableCollector(RegisteredResourceCollector):
         # RestoreTableToPointInTime
         # DeleteBackup
     }
+    CLOUDFORMATION_TYPE = 'AWS::DynamoDB::Table'
 
     def process_all(self, filter=None):
         for page in self.client.get_paginator('list_tables').paginate():
@@ -78,7 +92,7 @@ class DynamodbTableCollector(RegisteredResourceCollector):
         table_data['Tags'] = table_tags
         table_data['Name'] = table_arn
         table_data.update(with_dimensions([{'key': 'TableName', 'value': table_name}]))
-        self.agent.component(table_arn, self.COMPONENT_TYPE, table_data)
+        self.emit_component(table_arn, self.COMPONENT_TYPE, table_data)
         latest_stream_arn = table_data.get('LatestStreamArn')
         # TODO also streaming to kinesis also possible (relation)
         # TODO global tables possible (regions specified)
@@ -93,6 +107,6 @@ class DynamodbTableCollector(RegisteredResourceCollector):
                 {'key': 'TableName', 'value': table_name},
                 {'key': 'StreamLabel', 'value': latest_stream_label}
             ]))
-            self.agent.component(latest_stream_arn, 'aws.dynamodb.streams', stream_specification)
+            self.emit_component(latest_stream_arn, 'aws.dynamodb.streams', stream_specification)
             self.agent.relation(table_arn, latest_stream_arn, 'uses service', {})
         return {table_name: table_arn}

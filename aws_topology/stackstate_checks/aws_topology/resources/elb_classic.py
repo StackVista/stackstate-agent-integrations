@@ -34,7 +34,7 @@ class ELBClassicCollector(RegisteredResourceCollector):
             tags = taginfo[0].get('Tags')
         if tags:
             elb_data['Tags'] = tags
-        self.agent.component(instance_id, self.COMPONENT_TYPE, elb_data)
+        self.emit_component(instance_id, self.COMPONENT_TYPE, elb_data)
 
         vpc_id = elb_data['VPCId']
         self.agent.relation(instance_id, vpc_id, 'uses service', {})

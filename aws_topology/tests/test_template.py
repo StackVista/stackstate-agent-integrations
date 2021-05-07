@@ -605,7 +605,7 @@ class TestTemplate(unittest.TestCase):
         )
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
-    @set_api("s3|aws.s3_bucket")
+    @set_api("s3")
     def test_process_s3(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
@@ -877,7 +877,7 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(topology[0]["components"][3]["type"], "aws.kinesis")  # DIFF
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
-    @set_api("firehose|aws.firehose")
+    @set_api("firehose")
     def test_process_firehose(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]

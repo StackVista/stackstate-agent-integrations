@@ -37,4 +37,4 @@ class Route53HostedzoneCollector(RegisteredResourceCollector):
         hosted_zone_data['URN'] = [
             "arn:aws:route53:::{}".format(hosted_zone_id.lstrip('/'))
         ]
-        self.agent.component(hosted_zone_id, self.COMPONENT_TYPE, hosted_zone_data)
+        self.emit_component(hosted_zone_id, self.COMPONENT_TYPE, hosted_zone_data)

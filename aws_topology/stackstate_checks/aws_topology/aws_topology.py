@@ -17,6 +17,7 @@ from datetime import datetime
 import pytz
 import dateutil.parser
 import copy
+import concurrent.futures
 
 
 DEFAULT_BOTO3_RETRIES_COUNT = 50
@@ -76,7 +77,9 @@ class AwsTopologyCheck(AgentCheck):
 
         try:
             self.delete_ids = []
-            self.get_topology(instance_info, aws_client)
+            self.components_seen = set()
+            if True:  # TODO hourly
+                self.get_topology(instance_info, aws_client)
             self.get_topology_update(instance_info, aws_client)
             self.service_check(self.SERVICE_CHECK_EXECUTE_NAME, AgentCheck.OK, tags=instance_info.tags)
         except Exception as e:
@@ -95,49 +98,60 @@ class AwsTopologyCheck(AgentCheck):
 
         errors = []
         agent_proxy = AgentProxy(self, instance_info.role_arn)
-        for region in instance_info.regions:
-            session = aws_client.get_session(instance_info.role_arn, region)
-            registry = ResourceRegistry.get_registry()["regional" if region != "global" else "global"]
-            keys = (
-                [key for key in registry.keys()]
-                if instance_info.apis_to_run is None
-                else [api.split('|')[0] for api in instance_info.apis_to_run]
-            )
-            for api in keys:
-                if not registry.get(api):
-                    continue
-                client = None
-                location = location_info(self.get_account_id(instance_info), session.region_name)
-                agent_proxy.location = copy.deepcopy(location)
-                filter = None
-                if instance_info.apis_to_run is not None:
-                    for to_run in instance_info.apis_to_run:
-                        if (api + '|') in to_run:
-                            filter = to_run.split('|')[1]
-                if client is None:
-                    client = session.client(api)
-                processor = registry[api](location, client, agent_proxy)
+        futures = {}
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            for region in instance_info.regions:
+                session = aws_client.get_session(instance_info.role_arn, region)
+                registry = ResourceRegistry.get_registry()["regional" if region != "global" else "global"]
+                keys = (
+                    [key for key in registry.keys()]
+                    if instance_info.apis_to_run is None
+                    else [api.split('|')[0] for api in instance_info.apis_to_run]
+                )
+                for api in keys:
+                    if not registry.get(api):
+                        continue
+                    client = None
+                    location = location_info(self.get_account_id(instance_info), session.region_name)
+                    filter = None
+                    if instance_info.apis_to_run is not None:
+                        for to_run in instance_info.apis_to_run:
+                            if (api + '|') in to_run:
+                                filter = to_run.split('|')[1]
+                    if client is None:
+                        client = session.client(api)
+                    processor = registry[api](copy.deepcopy(location), client, agent_proxy)
+                    futures[executor.submit(processor.process_all, filter)] = {
+                        'location': copy.deepcopy(location),
+                        'api': api,
+                        'processor': processor
+                    }
+                    #processor.process_all(filter=filter)
+                    #self.delete_ids += processor.get_delete_ids()
+            for future in concurrent.futures.as_completed(futures):
+                spec = futures[future]
                 try:
-                    processor.process_all(filter=filter)
-                    self.delete_ids += processor.get_delete_ids()
+                    future.result()
+                    spec['processor'].deleted_ids
                 except Exception as e:
                     event = {
                         'timestamp': int(time.time()),
                         'event_type': 'aws_agent_check_error',
-                        'msg_title': e.__class__.__name__ + " in api " + api,
+                        'msg_title': e.__class__.__name__ + " in api " + spec['api'],
                         'msg_text': str(e),
                         'tags': [
-                            'aws_region:' + location["Location"]["AwsRegion"],
-                            'account_id:' + location["Location"]["AwsAccount"],
-                            'process:' + api
+                            'aws_region:' + spec['location']["Location"]["AwsRegion"],
+                            'account_id:' + spec['location']["Location"]["AwsAccount"],
+                            'process:' + spec['api']
                         ]
                     }
                     self.event(event)
-                    errors.append('API %s ended with exception: %s %s' % (api, str(e), traceback.format_exc()))
-        # TODO this should be for tests, in production these relations should not be sent out
-        agent_proxy.send_parked_relations()
-        if len(errors) > 0:
-            raise Exception('get_topology gave following exceptions: %s' % ', '.join(errors))
+                    errors.append('API %s ended with exception: %s %s' % (spec['api'], str(e), traceback.format_exc()))
+            # TODO this should be for tests, in production these relations should not be sent out
+            agent_proxy.send_parked_relations()
+            self.components_seen = agent_proxy.components_seen
+            if len(errors) > 0:
+                raise Exception('get_topology gave following exceptions: %s' % ', '.join(errors))
 
         self.stop_snapshot()
 
@@ -148,8 +162,10 @@ class AwsTopologyCheck(AgentCheck):
             session = aws_client.get_session(instance_info.role_arn, region)
             client = session.client('cloudtrail')
             location = location_info(self.get_account_id(instance_info), session.region_name)
-            agent_proxy.location = copy.deepcopy(location)
+            resources_seen = set()
+            events = []
             stop = False
+            # collect the events (ordering is most recent event first)
             for pg in client.get_paginator('lookup_events').paginate(
                 LookupAttributes=[
                     {
@@ -158,12 +174,11 @@ class AwsTopologyCheck(AgentCheck):
                     }
                 ],
             ):
-                # TODO collecting should happen first, then processing (to prevent duplication)
                 for itm in pg.get('Events') or []:
                     rec = json.loads(itm['CloudTrailEvent'])
                     event_date = dateutil.parser.isoparse(rec['eventTime'])
                     delta = datetime.utcnow().replace(tzinfo=pytz.utc) - event_date
-                    if delta.total_seconds() > 60*60*24*5:
+                    if delta.total_seconds() > 60*60*24*5:  # TODO have better stop condition!
                         stop = True
                         break
                     if listen_for.get(rec['eventSource']):
@@ -173,28 +188,49 @@ class AwsTopologyCheck(AgentCheck):
                             if not isinstance(event_class, bool) and issubclass(event_class, Model):
                                 event = event_class(rec, strict=False)
                                 event.validate()
-                                if event.process:
-                                    event.process(event_name, session, location, agent_proxy)
+                                resource_id = event.get_resource_arn(agent_proxy, copy.deepcopy(location))
+                                # only add the event if there was no event for the resource before
+                                if not resource_id in resources_seen:
+                                    events.append(event)
                             else:
                                 print('should interpret: ' + rec['eventName'] + '-' + rec['eventSource'])
                                 print(rec)
                 if stop:
                     break
+            # process the events (TODO maybe reverse for chronological order)
+            # TODO group events per api and call one process 
+            for event in events:
+                if event.process:
+                    # TODO if full snapshot ran just before we can use components_seen here too
+                    # operation type C=create D=delete U=update E=event
+                    # component seen: YES
+                    #  C -> skip
+                    #  U -> timing, do is safe
+                    #  D -> timing!, skip will leave component in for hour
+                    #  E -> do
+                    # component seen: NO
+                    #  C -> try
+                    #  U -> try
+                    #  D -> skip
+                    #  E -> timing, skip (!could have create before)
+                    try:
+                        event.process(session, copy.deepcopy(location), agent_proxy)
+                    except Exception as e:
+                        print(e)
         self.delete_ids += agent_proxy.delete_ids
 
 
 class AgentProxy(object):
     def __init__(self, agent, role_name):
         self.agent = agent
-        self.location = {}
         self.delete_ids = []
         self.components_seen = set()
         self.parked_relations = []
         self.role_name = role_name
 
-    def component(self, id, type, data):
+    def component(self, location, id, type, data):
         self.components_seen.add(id)
-        data.update(self.location)
+        data.update(location)
         self.agent.component(id, type, correct_tags(capitalize_keys(data)))
         for i in range(len(self.parked_relations)-1, 0, -1):
             relation = self.parked_relations[i]
@@ -231,12 +267,12 @@ class AgentProxy(object):
         print("ERROR ", error)
         print("KWARGS", kwargs)
 
-    def create_arn(self, type, resource_id=''):
+    def create_arn(self, type, location, resource_id=''):
         func = type_arn.get(type)
         if func:
             return func(
-                region=self.location['Location']['AwsRegion'],
-                account_id=self.location['Location']['AwsAccount'],
+                region=location['Location']['AwsRegion'],
+                account_id=location['Location']['AwsAccount'],
                 resource_id=resource_id
             )
         return "UNSUPPORTED_ARN-" + type + "-" + resource_id

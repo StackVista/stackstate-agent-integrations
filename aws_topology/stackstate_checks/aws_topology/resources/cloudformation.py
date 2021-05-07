@@ -81,7 +81,7 @@ class CloudformationCollector(RegisteredResourceCollector):
                 self.agent.relation(stack_id, parent_id, 'child of', stack)
 
     def process_stack(self, stack_id, stack_name, stack_description):
-        self.agent.component(stack_id, self.COMPONENT_TYPE, stack_description)
+        self.emit_component(stack_id, self.COMPONENT_TYPE, stack_description)
         self.process_resources(stack_id, stack_name)
 
     def process_resources(self, stack_id, stack_name):
@@ -93,5 +93,5 @@ class CloudformationCollector(RegisteredResourceCollector):
     def process_resource(self, stack_id, resource):
         resource_type = resource['ResourceType']
         if resource.get('PhysicalResourceId'):
-            arn = self.agent.create_arn(resource_type, resource.get('PhysicalResourceId'))
+            arn = self.agent.create_arn(resource_type, self.location_info, resource.get('PhysicalResourceId'))
             self.agent.relation(stack_id, arn, 'has resource', {})

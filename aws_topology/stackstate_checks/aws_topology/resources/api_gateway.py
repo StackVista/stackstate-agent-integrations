@@ -40,8 +40,8 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
                     'RestApiId': rest_api['id'],
                     'RestApiName': rest_api['name']
                 }
-                rest_api_arn = self.agent.create_arn('AWS::ApiGateway::RestApi', rest_api_id)
-                self.agent.component(rest_api_arn, 'aws.apigateway', rest_api_data)
+                rest_api_arn = self.agent.create_arn('AWS::ApiGateway::RestApi', self.location_info, rest_api_id)
+                self.emit_component(rest_api_arn, 'aws.apigateway', rest_api_data)
                 stages = [
                     stage
                     for stage in self.client.get_stages(restApiId=rest_api_id)['item']
@@ -92,7 +92,7 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
                         {'key': 'ApiName', 'value': rest_api_data['RestApiName']}
                     ]))
 
-                    self.agent.component(stage_arn, self.COMPONENT_TYPE, stage_data)
+                    self.emit_component(stage_arn, self.COMPONENT_TYPE, stage_data)
                     self.agent.relation(rest_api_arn, stage_arn, "has resource", {})
 
                     # send resources per stage
@@ -106,7 +106,7 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
                         }
 
                         resource_data.update(stage_data)
-                        self.agent.component(resource_arn, 'aws.apigateway.resource', resource_data)
+                        self.emit_component(resource_arn, 'aws.apigateway.resource', resource_data)
                         self.agent.relation(stage_arn, resource_arn, 'uses service', {})
 
                         # send methods per resource per stage
@@ -143,7 +143,7 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
                                 )
                                 integration_arn = queue_arn
 
-                            self.agent.component(method_arn, 'aws.apigateway.method', method_data)
+                            self.emit_component(method_arn, 'aws.apigateway.method', method_data)
                             self.agent.relation(resource_arn, method_arn, 'uses service', {})
 
                             if integration_arn:
@@ -155,7 +155,7 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
                                 parsed_uri = urlparse(method_data['methodIntegration']['uri'])
                                 service_integration_urn = 'urn:service:/{0}'.format(parsed_uri.hostname)
 
-                                self.agent.component(
+                                self.emit_component(
                                     service_integration_urn,
                                     'aws.apigateway.method.http.integration',
                                     {}

@@ -38,7 +38,7 @@ class ElbV2Collector(RegisteredResourceCollector):
                 listener = make_valid_data(listener_raw)
                 elb_data['listeners'].append(listener)
 
-            self.agent.component(elb_external_id, elb_type, elb_data)
+            self.emit_component(elb_external_id, elb_type, elb_data)
             load_balancer[elb_external_id] = elb_external_id
             lb_type[elb_external_id] = elb_data['Type'].lower()
             self.agent.relation(elb_external_id, vpc_id, 'uses service', {})
@@ -62,7 +62,7 @@ class ElbV2Collector(RegisteredResourceCollector):
                     'Value': extract_dimension_name(loadbalancer_arn, 'loadbalancer')
                 })
 
-            self.agent.component(target_group_external_id, 'aws.elb_v2_target_group', target_group_data)
+            self.emit_component(target_group_external_id, 'aws.elb_v2_target_group', target_group_data)
             target_group[target_group_external_id] = target_group_external_id
 
             self.agent.relation(target_group_external_id, vpc_id, 'uses service', {})
@@ -88,7 +88,7 @@ class ElbV2Collector(RegisteredResourceCollector):
                 ]
 
                 # Adding urn:aws/ to make it unique from the EC2 instance id
-                self.agent.component(
+                self.emit_component(
                     "urn:aws/target-group-instance/" + target_external_id,
                     'aws.elb_v2_target_group_instance',
                     target_data

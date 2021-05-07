@@ -8,22 +8,30 @@ def create_arn(region=None, account_id=None, resource_id=None, **kwargs):
     return arn(resource='kinesis', region=region, account_id=account_id, resource_id='stream/' + resource_id)
 
 
-class Kinesis_Stream(CloudTrailEventBase):
+class KinesisEventBase(CloudTrailEventBase):
+    def get_collector_class(self):
+        return KinesisCollector
+
+    
+class Kinesis_Stream(KinesisEventBase):
     class RequestParameters(Model):
         streamName = StringType(required=True)
 
     requestParameters = ModelType(RequestParameters)
 
-    def _internal_process(self, event_name, session, location, agent):
-        if event_name == 'DeleteStream':
-            agent.delete(agent.create_arn(
-                'AWS::Kinesis::Stream',
-                self.requestParameters.streamName
-            ))
+    def get_operation_type(self):
+        return 'D' if self.eventName == 'DeleteStream' else 'U'
+
+    def get_resource_name(self):
+        return self.requestParameters.streamName
+
+    def _internal_process(self, session, location, agent):
+        if self.get_operation_type() == 'D':
+            agent.delete(self.get_resource_arn(agent, location))
         else:
             client = session.client('kinesis')
             collector = KinesisCollector(location, client, agent)
-            collector.process_stream(self.requestParameters.streamName)
+            collector.process_stream(self.get_resource_name())
 
 
 class KinesisCollector(RegisteredResourceCollector):
@@ -49,6 +57,7 @@ class KinesisCollector(RegisteredResourceCollector):
         # MergeShards
         # SplitShard
     }
+    CLOUDFORMATION_TYPE = 'AWS::Kinesis::Stream'
 
     def process_all(self, filter=None):
         for list_streams_page in self.client.get_paginator('list_streams').paginate():
@@ -61,5 +70,5 @@ class KinesisCollector(RegisteredResourceCollector):
         stream_tags = self.client.list_tags_for_stream(StreamName=stream_name).get('Tags') or []
         stream_summary['Tags'] = stream_tags
         stream_arn = stream_summary['StreamDescriptionSummary']['StreamARN']
-        self.agent.component(stream_arn, self.COMPONENT_TYPE, stream_summary)
+        self.emit_component(stream_arn, self.COMPONENT_TYPE, stream_summary)
         # There can also be relations with EC2 instances as enhanced fan out consumers

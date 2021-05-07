@@ -49,5 +49,8 @@ class RegisteredResourceCollector(with_metaclass(ResourceRegistry, object)):
     def get_delete_ids(self):
         return self.agent.delete_ids
 
+    def emit_component(self, id, type, data):
+        self.agent.component(self.location_info, id, type, data)
+
     def process_all(self, filter=None):
         raise NotImplementedError

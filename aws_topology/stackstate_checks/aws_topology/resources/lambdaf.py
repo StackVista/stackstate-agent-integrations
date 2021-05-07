@@ -55,7 +55,7 @@ class LambdaCollector(RegisteredResourceCollector):
                     time.sleep(4)
                     pass
         function_data['Tags'] = function_tags
-        self.agent.component(function_arn, self.COMPONENT_TYPE, function_data)
+        self.emit_component(function_arn, self.COMPONENT_TYPE, function_data)
         lambda_vpc_config = function_data.get('VpcConfig')
         vpc_id = None
         if lambda_vpc_config:
@@ -67,6 +67,6 @@ class LambdaCollector(RegisteredResourceCollector):
         for alias_data in self.client.list_aliases(FunctionName=function_arn).get('Aliases') or []:
             alias_data['Function'] = function_data
             alias_arn = alias_data['AliasArn']
-            self.agent.component(alias_arn, 'aws.lambda.alias', alias_data)
+            self.emit_component(alias_arn, 'aws.lambda.alias', alias_data)
             if vpc_id:
                 self.agent.relation(alias_arn, vpc_id, 'uses service', {})

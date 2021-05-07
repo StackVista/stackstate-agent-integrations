@@ -5,6 +5,7 @@ import json
 from datetime import datetime, date
 from schematics import Model
 from botocore.exceptions import ClientError
+from schematics.types import StringType
 
 
 def make_valid_data_internal(data):
@@ -124,11 +125,28 @@ def client_array_operation(client, operation_name, array_field_name, **kwargs):
 
 
 class CloudTrailEventBase(Model):
-    def _internal_process(self, event_name, session, location, agent):
+    eventName = StringType(required=True)
+
+    def _internal_process(self, session, location, agent):
         raise NotImplementedError
 
-    def process(self, event_name, session, location, agent):
-        self._internal_process(event_name, session, location, agent)
+    def get_resource_name(self):
+        raise NotImplementedError
+    
+    def get_collector_class(self):
+        raise NotImplementedError
+
+    def get_resource_arn(self, agent, location):
+        return agent.create_arn(self.get_collector_class().CLOUDFORMATION_TYPE, location, self.get_resource_name())
+
+    def get_operation_type(self):
+        raise NotImplementedError
+
+    def event_identifier(self):
+        return self.get_operation_type() + ":" + self.get_resource_name()
+
+    def process(self, session, location, agent):
+        self._internal_process(session, location, agent)
 
 
 def set_required_access(value):
