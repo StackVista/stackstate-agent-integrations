@@ -173,9 +173,10 @@ def set_required_access_v2(value):
                 error = e.response.get('Error', {})
                 code = error.get('Code', 'Unknown')
                 if code == 'AccessDenied':
+                    iam_access = value if not isinstance(value, list) else ', '.join(value)
                     self.agent.warning(
                         '{} encountered AccessDenied role {} needs {}'.format(func.__name__, self.agent.role_name,
-                                                                              value),
+                                                                              iam_access),
                         **kwargs
                     )
                 elif is_throttling_error(code):
@@ -183,7 +184,21 @@ def set_required_access_v2(value):
                         'throttling'
                     )
                 raise e  # to stop further processing
-
         return inner_function
+    return decorator
 
+
+def transformation():
+    def decorator(func):
+        def inner_function(self, *args, **kwargs):
+            try:
+                result = func(self, *args, **kwargs)
+                return result
+            except Exception as e:
+                self.agent.warning(
+                    'Transformation failed in {}'.format(func.__name__),
+                    **kwargs
+                )
+                raise e  # to stop further processing
+        return inner_function
     return decorator
