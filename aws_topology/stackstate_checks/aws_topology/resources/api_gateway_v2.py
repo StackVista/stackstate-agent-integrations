@@ -28,9 +28,8 @@ class ApigatewayV2Collector(RegisteredResourceCollector):
             for apis_page in self.client.get_paginator('get_apis').paginate():
                 for api in apis_page.get('Items') or []:
                     api_id = api.get('ApiId')
-                    api_arn = self.agent.create_arn('AWS::ApiGatewayV2::Api', api_id)
-                    print("API", api_arn)
-                    self.agent.component(api_arn, 'aws.httpapi', make_valid_data(api))
+                    api_arn = self.agent.create_arn('AWS::ApiGatewayV2::Api', self.location_info, api_id)
+                    self.emit_component(api_arn, 'aws.httpapi', make_valid_data(api))
                     stages = [
                         stage
                         for stage in self.client.get_stages(ApiId=api_id)['Items']
@@ -57,8 +56,8 @@ class ApigatewayV2Collector(RegisteredResourceCollector):
                         if deployment_id:
                             stage_name = stage.get('StageName')
                             stage["Name"] = stage_name
-                            stage_arn = self.agent.create_arn('AWS::ApiGatewayV2::Api', api_id + '/' + stage_name)
-                            self.agent.component(stage_arn, 'aws.httpapi.stage', make_valid_data(stage))
+                            stage_arn = self.agent.create_arn('AWS::ApiGatewayV2::Api', self.location_info, api_id + '/' + stage_name)
+                            self.emit_component(stage_arn, 'aws.httpapi.stage', make_valid_data(stage))
                             self.agent.relation(api_arn, stage_arn, 'has resource', {})
                             for route in routes:
                                 target = (route.get('Target') or '').split('/')
