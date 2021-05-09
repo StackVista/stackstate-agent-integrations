@@ -175,7 +175,11 @@ class StepFunctionCollector(RegisteredResourceCollector):
                 table_name = parameters.get('TableName')
                 if table_name:
                     operation = resource[len('arn:{}:states:::dynamodb:'.format(partition)):]
-                    table_arn = self.agent.create_arn('AWS::DynamoDB::Table', self.location_info, resource_id=table_name)
+                    table_arn = self.agent.create_arn(
+                        'AWS::DynamoDB::Table',
+                        self.location_info,
+                        resource_id=table_name
+                    )
                     self.agent.relation(state_arn, table_arn, 'uses service', {'operation': operation})
             elif resource.startswith('arn:{}:states:::states:'.format(partition)):
                 state["IntegrationType"] = "stepfunctions"
