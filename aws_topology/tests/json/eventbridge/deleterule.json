@@ -1,0 +1,38 @@
+{
+    "eventVersion": "1.08",
+    "userIdentity": {
+        "type": "Root",
+        "principalId": "673385887142",
+        "arn": "arn:aws:iam::673385887142:root",
+        "accountId": "673385887142",
+        "accessKeyId": "ASIAZZSHNGWTASTRQBBG",
+        "sessionContext": {
+            "sessionIssuer": {},
+            "webIdFederationData": {},
+            "attributes": {
+                "mfaAuthenticated": "true",
+                "creationDate": "2021-05-08T05:05:24Z"
+            }
+        }
+    },
+    "eventTime": "2021-05-08T14:59:15Z",
+    "eventSource": "events.amazonaws.com",
+    "eventName": "DeleteRule",
+    "awsRegion": "eu-west-1",
+    "sourceIPAddress": "83.163.185.52",
+    "userAgent": "aws-internal/3 aws-sdk-java/1.11.997 Linux/5.4.109-57.182.amzn2int.x86_64 OpenJDK_64-Bit_Server_VM/25.282-b08 java/1.8.0_282 vendor/Oracle_Corporation cfg/retry-mode/legacy",
+    "requestParameters": {
+        "force": false,
+        "eventBusName": "default",
+        "name": "future-event-queuer-test1"
+    },
+    "responseElements": null,
+    "requestID": "4e561f89-4f81-4057-b7ad-f3430e374f44",
+    "eventID": "2d7890cd-d78d-4822-9917-21bb0af7a67c",
+    "readOnly": false,
+    "eventType": "AwsApiCall",
+    "apiVersion": "2015-10-07",
+    "managementEvent": true,
+    "eventCategory": "Management",
+    "recipientAccountId": "673385887142"
+}

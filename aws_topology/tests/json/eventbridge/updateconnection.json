@@ -1,0 +1,54 @@
+{
+    "eventVersion": "1.08",
+    "userIdentity": {
+        "type": "Root",
+        "principalId": "673385887142",
+        "arn": "arn:aws:iam::673385887142:root",
+        "accountId": "673385887142",
+        "accessKeyId": "ASIAZZSHNGWTASTRQBBG",
+        "sessionContext": {
+            "sessionIssuer": {},
+            "webIdFederationData": {},
+            "attributes": {
+                "mfaAuthenticated": "true",
+                "creationDate": "2021-05-08T05:05:24Z"
+            }
+        }
+    },
+    "eventTime": "2021-05-08T13:59:55Z",
+    "eventSource": "events.amazonaws.com",
+    "eventName": "UpdateConnection",
+    "awsRegion": "eu-west-1",
+    "sourceIPAddress": "83.163.185.52",
+    "userAgent": "aws-internal/3 aws-sdk-java/1.11.997 Linux/5.4.109-57.182.amzn2int.x86_64 OpenJDK_64-Bit_Server_VM/25.282-b08 java/1.8.0_282 vendor/Oracle_Corporation cfg/retry-mode/legacy",
+    "requestParameters": {
+        "authParameters": {
+            "apiKeyAuthParameters": {
+                "apiKeyName": "Test"
+            },
+            "invocationHttpParameters": {
+                "bodyParameters": [],
+                "queryStringParameters": [],
+                "headerParameters": []
+            }
+        },
+        "name": "TestConn",
+        "description": "Add a description",
+        "authorizationType": "API_KEY"
+    },
+    "responseElements": {
+        "connectionState": "AUTHORIZED",
+        "creationTime": "May 7, 2021 6:04:31 PM",
+        "connectionArn": "arn:aws:events:eu-west-1:673385887142:connection/TestConn/0487c914-b573-47e1-a993-149708e117fb",
+        "lastModifiedTime": "May 7, 2021 6:04:31 PM",
+        "lastAuthorizedTime": "May 8, 2021 1:59:55 PM"
+    },
+    "requestID": "5e5ac02f-533b-4dac-9d91-c48bfedfc9cc",
+    "eventID": "d208fa7a-04c2-4ea7-b757-630ae90b44a3",
+    "readOnly": false,
+    "eventType": "AwsApiCall",
+    "apiVersion": "2015-10-07",
+    "managementEvent": true,
+    "eventCategory": "Management",
+    "recipientAccountId": "673385887142"
+}
