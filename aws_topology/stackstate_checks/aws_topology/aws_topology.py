@@ -132,7 +132,6 @@ class AwsTopologyCheck(AgentCheck):
                 spec = futures[future]
                 try:
                     future.result()
-                    # TODO spec['processor'].deleted_ids
                 except Exception as e:
                     event = {
                         'timestamp': int(time.time()),
@@ -152,6 +151,7 @@ class AwsTopologyCheck(AgentCheck):
             self.components_seen = agent_proxy.components_seen
             if len(errors) > 0:
                 raise Exception('get_topology gave following exceptions: %s' % ', '.join(errors))
+        self.delete_ids += agent_proxy.delete_ids
 
         self.stop_snapshot()
 
