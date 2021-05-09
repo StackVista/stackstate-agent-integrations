@@ -132,7 +132,7 @@ class AwsTopologyCheck(AgentCheck):
                 spec = futures[future]
                 try:
                     future.result()
-                    spec['processor'].deleted_ids
+                    # TODO spec['processor'].deleted_ids
                 except Exception as e:
                     event = {
                         'timestamp': int(time.time()),
@@ -232,7 +232,7 @@ class AgentProxy(object):
         self.components_seen.add(id)
         data.update(location)
         self.agent.component(id, type, correct_tags(capitalize_keys(data)))
-        for i in range(len(self.parked_relations)-1, 0, -1):
+        for i in range(len(self.parked_relations)-1, -1, -1):
             relation = self.parked_relations[i]
             if relation['source_id'] == id and relation['target_id'] in self.components_seen:
                 self.agent.relation(relation['source_id'], relation['target_id'], relation['type'], relation['data'])
