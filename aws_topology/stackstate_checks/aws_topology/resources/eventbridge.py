@@ -1,9 +1,9 @@
-from .utils import set_required_access_v2, client_array_operation, make_valid_data, create_arn as arn, CloudTrailEventBase
+from .utils import set_required_access_v2, client_array_operation, make_valid_data, \
+    create_arn as arn, CloudTrailEventBase
 from .registry import RegisteredResourceCollector
 from collections import namedtuple
 from schematics import Model
 from schematics.types import StringType, ModelType
-import json
 
 """
 Cloudtrail events: (phase capturing messages)
@@ -56,6 +56,7 @@ Todo:
 
 """
 
+
 def create_event_bus_arn(region=None, account_id=None, resource_id=None, **kwargs):
     return arn(resource='events', region=region, account_id=account_id, resource_id='event-bus/' + resource_id)
 
@@ -74,13 +75,13 @@ class ReplayAction(CloudTrailEventBase):
         return 'E'
 
 
-
 EventBusData = namedtuple('EventBusData', ['summary', 'description', 'tags', 'rules'])
 RuleData = namedtuple('RuleData', ['summary', 'description', 'tags', 'targets'])
 ConnectionData = namedtuple('ConnectionData', ['summary', 'description'])
 ApiDestinationData = namedtuple('ApiDestinationData', ['summary', 'description'])
 ArchiveData = namedtuple('ArchiveData', ['summary', 'description'])
 ReplayData = namedtuple('ReplayData', ['summary', 'description'])
+
 
 class EventBusDescription(Model):
     Arn = StringType(required=True)
@@ -95,15 +96,18 @@ class RuleTarget(Model):
     Id = StringType(required=True)
     Arn = StringType(required=True)
 
+
 class ApiConnection(Model):
     ConnectionArn = StringType(required=True)
     ConnectionState = StringType(required=True)
     SecretArn = StringType()
 
+
 class ApiDestination(Model):
     ApiDestinationArn = StringType(required=True)
     ApiDestinationState = StringType(required=True)
     ConnectionArn = StringType(required=True)
+
 
 class Archive(Model):
     ArchiveArn = StringType(required=True)
@@ -111,20 +115,24 @@ class Archive(Model):
     EventSourceArn = StringType(required=True)
     State = StringType(required=True)
 
+
 class ReplayDestination(Model):
     Arn = StringType(required=True)
+
 
 class Replay(Model):
     ReplayName = StringType(required=True)
     ReplayArn = StringType(required=True)
     State = StringType(required=True)
     EventSourceArn = StringType(required=True)
-    Destination = ModelType(ReplayDestination,required=True)
+    Destination = ModelType(ReplayDestination, required=True)
+
 
 class EventSource(Model):
     Arn = StringType(required=True)
     Name = StringType(required=True)
     State = StringType(required=True)
+
 
 class EventBridgeProcessor(RegisteredResourceCollector):
     API = "events"
@@ -135,7 +143,7 @@ class EventBridgeProcessor(RegisteredResourceCollector):
     def collect_tags(self, arn):
         try:
             return self.client.list_tags_for_resource(ResourceARN=arn).get('Tags') or []
-        except:
+        except Exception:
             return []
 
     def collect_event_bus_description(self, arn):
@@ -185,7 +193,7 @@ class EventBridgeProcessor(RegisteredResourceCollector):
                     EventBusName=bus_name
                 )
         ]:
-            yield rule  
+            yield rule
 
     def collect_target(self, target):
         return target
@@ -200,12 +208,12 @@ class EventBridgeProcessor(RegisteredResourceCollector):
                     Rule=rule_name
                 )
         ]:
-            yield target  
+            yield target
 
     def collect_api_destination_description(self, name):
         try:
             return self.client.describe_api_destination(Name=name)
-        except:
+        except Exception:
             return {}
 
     def collect_api_destination(self, summary):
@@ -247,7 +255,7 @@ class EventBridgeProcessor(RegisteredResourceCollector):
     def collect_archive_description(self, name):
         try:
             return self.client.describe_archive(ArchiveName=name)
-        except:
+        except Exception:
             return {}
 
     def collect_archive(self, archive):
@@ -325,7 +333,6 @@ class EventBridgeProcessor(RegisteredResourceCollector):
     def process_api_destinations(self):
         for destination in self.collect_api_destinations():
             self.process_api_destination(destination)
-
 
     @set_required_access_v2('events:ListEventBuses')
     def process_connections(self):

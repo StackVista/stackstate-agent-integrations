@@ -54,7 +54,7 @@ type_arn = {
     'AWS::ApiGatewayV2::Api': create_httpapi_arn,
     'AWS::ElasticLoadBalancing::LoadBalancer': create_elb_arn,  # TODO odd one
     'AWS::Events::EventBus': create_event_bus_arn,
-    'AWS::Events::Rule': create_resource_arn,
+    'AWS::Events::Rule': create_rule_arn,
     'AWS::EC2::Instance': no_arn,
     'AWS::EC2::SecurityGroup': no_arn,
     'AWS::EC2::Vpc': no_arn,

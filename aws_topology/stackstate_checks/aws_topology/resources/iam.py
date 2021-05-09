@@ -1,9 +1,7 @@
-from .utils import set_required_access_v2, client_array_operation, make_valid_data, create_arn as arn, CloudTrailEventBase
+from .utils import make_valid_data, create_arn as arn
 from .registry import RegisteredResourceCollector
-from collections import namedtuple
 from schematics import Model
-from schematics.types import StringType, ModelType
-import json
+from schematics.types import StringType
 
 """
 Doing an API:
@@ -33,6 +31,7 @@ account aliases
 login profile
 """
 
+
 def create_group_arn(region=None, account_id=None, resource_id=None, **kwargs):
     return arn(resource='iam', region='', account_id=account_id, resource_id='group/' + resource_id)
 
@@ -60,6 +59,7 @@ class Group(Model):
 class Role(Model):
     Arn = StringType(required=True)
 
+
 class Policy(Model):
     Arn = StringType(required=True)
     DefaultVersionId = StringType(required=True)
@@ -81,7 +81,7 @@ class IAMProcessor(RegisteredResourceCollector):
             if page:
                 for user in page.get('UserDetailList', []):
                     self.process_user_details(user)
-                for group in  page.get('GroupDetailList', []):
+                for group in page.get('GroupDetailList', []):
                     self.process_group_details(group)
                 for role in page.get('RoleDetailList', []):
                     self.process_role_details(role)
@@ -119,7 +119,11 @@ class IAMProcessor(RegisteredResourceCollector):
         for attachment in attached_policies:
             self.process_policy_attachment(user, attachment)
         for group in groups:
-            self.agent.relation(user.Arn, self.agent.create_arn('AWS::IAM::Group', self.location_info, group), 'uses service', {})
+            self.agent.relation(user.Arn, self.agent.create_arn(
+                'AWS::IAM::Group',
+                self.location_info,
+                group
+            ), 'uses service', {})
         if boundary:
             self.process_boundary(user, boundary)
 
@@ -149,7 +153,7 @@ class IAMProcessor(RegisteredResourceCollector):
         attached_policies = role_detail.pop('AttachedManagedPolicies', [])
         instance_profiles = role_detail.pop('InstanceProfileList', [])
         boundary = role_detail.pop('PermissionsBoundary', {})
-        role = Role(role_detail, strict=False)     
+        role = Role(role_detail, strict=False)
         role.validate()
         output = make_valid_data(role_detail)
         self.emit_component(role.Arn, 'aws.iam.role', output)
@@ -168,5 +172,5 @@ class IAMProcessor(RegisteredResourceCollector):
         output = make_valid_data(policy)
         for version in versions:
             if version.get('VersionId') == pol.DefaultVersionId:
-                output['Document']= version.get('Document')
+                output['Document'] = version.get('Document')
         self.emit_component(pol.Arn, 'aws.iam.policy', output)
