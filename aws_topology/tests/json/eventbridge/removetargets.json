@@ -1,0 +1,44 @@
+{
+    "eventVersion": "1.08",
+    "userIdentity": {
+        "type": "Root",
+        "principalId": "673385887142",
+        "arn": "arn:aws:iam::673385887142:root",
+        "accountId": "673385887142",
+        "accessKeyId": "ASIAZZSHNGWTABHXVDVN",
+        "sessionContext": {
+            "sessionIssuer": {},
+            "webIdFederationData": {},
+            "attributes": {
+                "mfaAuthenticated": "true",
+                "creationDate": "2021-05-08T05:05:24Z"
+            }
+        }
+    },
+    "eventTime": "2021-05-08T14:47:52Z",
+    "eventSource": "events.amazonaws.com",
+    "eventName": "RemoveTargets",
+    "awsRegion": "eu-west-1",
+    "sourceIPAddress": "83.163.185.52",
+    "userAgent": "aws-internal/3 aws-sdk-java/1.11.997 Linux/5.4.109-57.183.amzn2int.x86_64 OpenJDK_64-Bit_Server_VM/25.282-b08 java/1.8.0_282 vendor/Oracle_Corporation cfg/retry-mode/legacy",
+    "requestParameters": {
+        "rule": "future-event-queuer-test1",
+        "ids": [
+            "ScheduleFunctionScheduleLambdaTarget"
+        ],
+        "force": false,
+        "eventBusName": "default"
+    },
+    "responseElements": {
+        "failedEntries": [],
+        "failedEntryCount": 0
+    },
+    "requestID": "4aa3fa9d-3a5e-46cf-b3fc-cea6129a89f6",
+    "eventID": "312a2de3-0461-4ccd-b71f-f2f893150825",
+    "readOnly": false,
+    "eventType": "AwsApiCall",
+    "apiVersion": "2015-10-07",
+    "managementEvent": true,
+    "eventCategory": "Management",
+    "recipientAccountId": "673385887142"
+}

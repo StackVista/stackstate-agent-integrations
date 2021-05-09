@@ -1,0 +1,38 @@
+{
+    "eventVersion": "1.08",
+    "userIdentity": {
+        "type": "Root",
+        "principalId": "673385887142",
+        "arn": "arn:aws:iam::673385887142:root",
+        "accountId": "673385887142",
+        "accessKeyId": "ASIAZZSHNGWTASTRQBBG",
+        "sessionContext": {
+            "sessionIssuer": {},
+            "webIdFederationData": {},
+            "attributes": {
+                "mfaAuthenticated": "true",
+                "creationDate": "2021-05-08T05:05:24Z"
+            }
+        }
+    },
+    "eventTime": "2021-05-08T13:38:24Z",
+    "eventSource": "events.amazonaws.com",
+    "eventName": "PutPermission",
+    "awsRegion": "eu-west-1",
+    "sourceIPAddress": "83.163.185.52",
+    "userAgent": "aws-internal/3 aws-sdk-java/1.11.997 Linux/5.4.109-57.182.amzn2int.x86_64 OpenJDK_64-Bit_Server_VM/25.282-b08 java/1.8.0_282 vendor/Oracle_Corporation cfg/retry-mode/legacy",
+    "requestParameters": {
+        "eventBusName": "ExtraBus",
+        "policy": "  {\n    \"Version\": \"2012-10-17\",\n    \"Statement\": [\n      {\n    \n        \"Sid\": \"allow_account_to_put_events\",\n        \"Effect\": \"Allow\",\n        \"Principal\": {\n          \"AWS\": \"673385887142\"\n        },\n        \"Action\": \"events:PutEvents\",\n        \"Resource\": \"arn:aws:events:eu-west-1:673385887142:event-bus/ExtraBus\"\n      }\n      ]\n  }",
+        "appendPolicyStatements": false
+    },
+    "responseElements": null,
+    "requestID": "1f86266d-2794-42ea-b482-4f0401822cbe",
+    "eventID": "9780fb8e-2851-4917-a26c-9673b76bb39c",
+    "readOnly": false,
+    "eventType": "AwsApiCall",
+    "apiVersion": "2015-10-07",
+    "managementEvent": true,
+    "eventCategory": "Management",
+    "recipientAccountId": "673385887142"
+}

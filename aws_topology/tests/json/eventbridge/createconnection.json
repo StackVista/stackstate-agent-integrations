@@ -1,0 +1,54 @@
+{
+    "eventVersion": "1.08",
+    "userIdentity": {
+        "type": "Root",
+        "principalId": "673385887142",
+        "arn": "arn:aws:iam::673385887142:root",
+        "accountId": "673385887142",
+        "accessKeyId": "ASIAZZSHNGWTA35RNK5U",
+        "sessionContext": {
+            "sessionIssuer": {},
+            "webIdFederationData": {},
+            "attributes": {
+                "mfaAuthenticated": "true",
+                "creationDate": "2021-05-07T07:02:39Z"
+            }
+        }
+    },
+    "eventTime": "2021-05-07T18:04:31Z",
+    "eventSource": "events.amazonaws.com",
+    "eventName": "CreateConnection",
+    "awsRegion": "eu-west-1",
+    "sourceIPAddress": "83.163.185.52",
+    "userAgent": "aws-internal/3 aws-sdk-java/1.11.997 Linux/5.4.102-52.177.amzn2int.x86_64 OpenJDK_64-Bit_Server_VM/25.282-b08 java/1.8.0_282 vendor/Oracle_Corporation cfg/retry-mode/legacy",
+    "requestParameters": {
+        "authorizationType": "API_KEY",
+        "name": "TestConn",
+        "description": "",
+        "authParameters": {
+            "invocationHttpParameters": {
+                "bodyParameters": [],
+                "queryStringParameters": [],
+                "headerParameters": []
+            },
+            "apiKeyAuthParameters": {
+                "apiKeyName": "Test",
+                "apiKeyValue": "HIDDEN_DUE_TO_SECURITY_REASONS"
+            }
+        }
+    },
+    "responseElements": {
+        "lastModifiedTime": "May 7, 2021 6:04:31 PM",
+        "connectionArn": "arn:aws:events:eu-west-1:673385887142:connection/TestConn/0487c914-b573-47e1-a993-149708e117fb",
+        "connectionState": "AUTHORIZED",
+        "creationTime": "May 7, 2021 6:04:31 PM"
+    },
+    "requestID": "5dfbf60a-d7ae-425a-a9a0-aa56dddaa104",
+    "eventID": "eb5bf628-dee3-4886-9406-1199e8123c72",
+    "readOnly": false,
+    "eventType": "AwsApiCall",
+    "apiVersion": "2015-10-07",
+    "managementEvent": true,
+    "eventCategory": "Management",
+    "recipientAccountId": "673385887142"
+}

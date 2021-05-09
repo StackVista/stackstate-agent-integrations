@@ -1,0 +1,46 @@
+{
+    "eventVersion": "1.08",
+    "userIdentity": {
+        "type": "Root",
+        "principalId": "673385887142",
+        "arn": "arn:aws:iam::673385887142:root",
+        "accountId": "673385887142",
+        "accessKeyId": "ASIAZZSHNGWTA35RNK5U",
+        "sessionContext": {
+            "sessionIssuer": {},
+            "webIdFederationData": {},
+            "attributes": {
+                "mfaAuthenticated": "true",
+                "creationDate": "2021-05-07T07:02:39Z"
+            }
+        }
+    },
+    "eventTime": "2021-05-07T18:04:31Z",
+    "eventSource": "events.amazonaws.com",
+    "eventName": "CreateApiDestination",
+    "awsRegion": "eu-west-1",
+    "sourceIPAddress": "83.163.185.52",
+    "userAgent": "aws-internal/3 aws-sdk-java/1.11.997 Linux/5.4.102-52.177.amzn2int.x86_64 OpenJDK_64-Bit_Server_VM/25.282-b08 java/1.8.0_282 vendor/Oracle_Corporation cfg/retry-mode/legacy",
+    "requestParameters": {
+        "invocationEndpoint": "https://www.google.com",
+        "name": "TestDest",
+        "connectionArn": "arn:aws:events:eu-west-1:673385887142:connection/TestConn/0487c914-b573-47e1-a993-149708e117fb",
+        "httpMethod": "GET",
+        "invocationRateLimitPerSecond": 1,
+        "description": ""
+    },
+    "responseElements": {
+        "creationTime": "May 7, 2021 6:04:31 PM",
+        "lastModifiedTime": "May 7, 2021 6:04:31 PM",
+        "apiDestinationArn": "arn:aws:events:eu-west-1:673385887142:api-destination/TestDest/fc240f7b-1890-4900-9761-171151d4cdd9",
+        "apiDestinationState": "ACTIVE"
+    },
+    "requestID": "e77c3d1a-9963-4114-9050-6997b0e7ed28",
+    "eventID": "3e53f820-b86b-492a-b926-fe9349af291c",
+    "readOnly": false,
+    "eventType": "AwsApiCall",
+    "apiVersion": "2015-10-07",
+    "managementEvent": true,
+    "eventCategory": "Management",
+    "recipientAccountId": "673385887142"
+}

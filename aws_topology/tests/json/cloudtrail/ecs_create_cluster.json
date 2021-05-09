@@ -1,0 +1,65 @@
+{
+    "eventVersion": "1.08",
+    "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROAUHNFPQM253JKRZCRS:elvin.luff@oblcc.com",
+        "arn": "arn:aws:sts::123456789012:assumed-role/oblcc-admin/elvin.luff@oblcc.com",
+        "accountId": "123456789012",
+        "accessKeyId": "ASIAJVWLKJWEWPOH3APQ",
+        "sessionContext": {
+            "sessionIssuer": {
+                "type": "Role",
+                "principalId": "AROAUHNFPQM253JKRZCRS",
+                "arn": "arn:aws:iam::123456789012:role/oblcc/oblcc-admin",
+                "accountId": "123456789012",
+                "userName": "oblcc-admin"
+            },
+            "webIdFederationData": {},
+            "attributes": {
+                "mfaAuthenticated": "false",
+                "creationDate": "2021-04-29T13:08:29Z"
+            }
+        },
+        "invokedBy": "cloudformation.amazonaws.com"
+    },
+    "eventTime": "2021-04-29T14:06:14Z",
+    "eventSource": "ecs.amazonaws.com",
+    "eventName": "CreateCluster",
+    "awsRegion": "eu-west-1",
+    "sourceIPAddress": "cloudformation.amazonaws.com",
+    "userAgent": "cloudformation.amazonaws.com",
+    "requestParameters": {
+        "clusterName": "elvin-stackstate-tests-main-account-main-region-EcsCluster-QAt7B7u3rss9",
+        "tags": [],
+        "settings": [],
+        "defaultCapacityProviderStrategy": []
+    },
+    "responseElements": {
+        "cluster": {
+            "clusterArn": "arn:aws:ecs:eu-west-1:123456789012:cluster/elvin-stackstate-tests-main-account-main-region-EcsCluster-QAt7B7u3rss9",
+            "clusterName": "elvin-stackstate-tests-main-account-main-region-EcsCluster-QAt7B7u3rss9",
+            "status": "ACTIVE",
+            "registeredContainerInstancesCount": 0,
+            "runningTasksCount": 0,
+            "pendingTasksCount": 0,
+            "activeServicesCount": 0,
+            "statistics": [],
+            "tags": [],
+            "settings": [
+                {
+                    "name": "containerInsights",
+                    "value": "disabled"
+                }
+            ],
+            "capacityProviders": [],
+            "defaultCapacityProviderStrategy": []
+        }
+    },
+    "requestID": "065eb152-a0eb-44d8-a3ab-0247c77f74ad",
+    "eventID": "100717ed-56e9-4a56-b746-96f48ecdf6ec",
+    "readOnly": false,
+    "eventType": "AwsApiCall",
+    "managementEvent": true,
+    "eventCategory": "Management",
+    "recipientAccountId": "123456789012"
+}

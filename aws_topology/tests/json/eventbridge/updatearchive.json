@@ -1,0 +1,43 @@
+{
+    "eventVersion": "1.08",
+    "userIdentity": {
+        "type": "Root",
+        "principalId": "673385887142",
+        "arn": "arn:aws:iam::673385887142:root",
+        "accountId": "673385887142",
+        "accessKeyId": "ASIAZZSHNGWTASTRQBBG",
+        "sessionContext": {
+            "sessionIssuer": {},
+            "webIdFederationData": {},
+            "attributes": {
+                "mfaAuthenticated": "true",
+                "creationDate": "2021-05-08T05:05:24Z"
+            }
+        }
+    },
+    "eventTime": "2021-05-08T13:40:02Z",
+    "eventSource": "events.amazonaws.com",
+    "eventName": "UpdateArchive",
+    "awsRegion": "eu-west-1",
+    "sourceIPAddress": "83.163.185.52",
+    "userAgent": "aws-internal/3 aws-sdk-java/1.11.997 Linux/5.4.109-57.182.amzn2int.x86_64 OpenJDK_64-Bit_Server_VM/25.282-b08 java/1.8.0_282 vendor/Oracle_Corporation cfg/retry-mode/legacy",
+    "requestParameters": {
+        "description": "desc",
+        "retentionDays": 1,
+        "archiveName": "MoreArchives",
+        "eventPattern": ""
+    },
+    "responseElements": {
+        "state": "ENABLED",
+        "creationTime": "May 8, 2021 1:39:40 PM",
+        "archiveArn": "arn:aws:events:eu-west-1:673385887142:archive/MoreArchives"
+    },
+    "requestID": "2d2aca0d-2a4a-49f0-8de7-d784c05c60a6",
+    "eventID": "bbc0b1c5-3de2-435e-b282-81771334e74d",
+    "readOnly": false,
+    "eventType": "AwsApiCall",
+    "apiVersion": "2015-10-07",
+    "managementEvent": true,
+    "eventCategory": "Management",
+    "recipientAccountId": "673385887142"
+}

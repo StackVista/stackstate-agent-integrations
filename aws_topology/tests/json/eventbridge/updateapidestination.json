@@ -1,0 +1,45 @@
+{
+    "eventVersion": "1.08",
+    "userIdentity": {
+        "type": "Root",
+        "principalId": "673385887142",
+        "arn": "arn:aws:iam::673385887142:root",
+        "accountId": "673385887142",
+        "accessKeyId": "ASIAZZSHNGWTASTRQBBG",
+        "sessionContext": {
+            "sessionIssuer": {},
+            "webIdFederationData": {},
+            "attributes": {
+                "mfaAuthenticated": "true",
+                "creationDate": "2021-05-08T05:05:24Z"
+            }
+        }
+    },
+    "eventTime": "2021-05-08T14:02:10Z",
+    "eventSource": "events.amazonaws.com",
+    "eventName": "UpdateApiDestination",
+    "awsRegion": "eu-west-1",
+    "sourceIPAddress": "83.163.185.52",
+    "userAgent": "aws-internal/3 aws-sdk-java/1.11.997 Linux/5.4.109-57.183.amzn2int.x86_64 OpenJDK_64-Bit_Server_VM/25.282-b08 java/1.8.0_282 vendor/Oracle_Corporation cfg/retry-mode/legacy",
+    "requestParameters": {
+        "invocationRateLimitPerSecond": 1,
+        "name": "TestDest",
+        "description": "",
+        "connectionArn": "arn:aws:events:eu-west-1:673385887142:connection/NextConn/0a2ee781-47be-4e05-ba48-2d90a3f24f0b",
+        "invocationEndpoint": "https://www.google.com"
+    },
+    "responseElements": {
+        "lastModifiedTime": "May 8, 2021 2:02:10 PM",
+        "apiDestinationState": "ACTIVE",
+        "apiDestinationArn": "arn:aws:events:eu-west-1:673385887142:api-destination/TestDest/fc240f7b-1890-4900-9761-171151d4cdd9",
+        "creationTime": "May 7, 2021 6:04:31 PM"
+    },
+    "requestID": "8e723db6-4f4a-4cce-a00e-1dae62cea82b",
+    "eventID": "2f914f47-9694-4072-9a34-9e5b7b1024c0",
+    "readOnly": false,
+    "eventType": "AwsApiCall",
+    "apiVersion": "2015-10-07",
+    "managementEvent": true,
+    "eventCategory": "Management",
+    "recipientAccountId": "673385887142"
+}

@@ -1,7 +1,5 @@
 import unittest
 import os
-import json
-from mock import patch
 from stackstate_checks.base.stubs import topology as top, aggregator
 from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
 from stackstate_checks.base import AgentCheck
@@ -11,6 +9,7 @@ import yaml
 def relative_path(path):
     script_dir = os.path.dirname(__file__)
     return os.path.abspath(os.path.join(script_dir, path))
+
 
 class TestEventBridge(unittest.TestCase):
 
@@ -55,7 +54,7 @@ class TestEventBridge(unittest.TestCase):
                 return relation
         self.assertTrue(False, "Relation expected source_id={} target_id={}".format(source_id, target_id))
 
-    def test_process_realaccount(self):
+    def xtest_process_realaccount(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
@@ -64,7 +63,7 @@ class TestEventBridge(unittest.TestCase):
         relations = topology[0]["relations"]
         print('# components: ', len(components))
         print('# relations: ', len(relations))
-        #for component in components:
+        # for component in components:
         #    print(json.dumps(component, indent=2, default=str))
-        #for relation in relations:
+        # for relation in relations:
         #    print(json.dumps(relation, indent=2, default=str))

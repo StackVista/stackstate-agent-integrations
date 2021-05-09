@@ -1,0 +1,39 @@
+{
+    "eventVersion": "1.08",
+    "userIdentity": {
+        "type": "Root",
+        "principalId": "673385887142",
+        "arn": "arn:aws:iam::673385887142:root",
+        "accountId": "673385887142",
+        "accessKeyId": "ASIAZZSHNGWTASTRQBBG",
+        "sessionContext": {
+            "sessionIssuer": {},
+            "webIdFederationData": {},
+            "attributes": {
+                "mfaAuthenticated": "true",
+                "creationDate": "2021-05-08T05:05:24Z"
+            }
+        }
+    },
+    "eventTime": "2021-05-08T11:37:04Z",
+    "eventSource": "events.amazonaws.com",
+    "eventName": "CreateEventBus",
+    "awsRegion": "eu-west-1",
+    "sourceIPAddress": "83.163.185.52",
+    "userAgent": "aws-internal/3 aws-sdk-java/1.11.997 Linux/5.4.109-57.183.amzn2int.x86_64 OpenJDK_64-Bit_Server_VM/25.282-b08 java/1.8.0_282 vendor/Oracle_Corporation cfg/retry-mode/legacy",
+    "requestParameters": {
+        "name": "aws.partner/auth0.com/dev-dlpfq-id-bde16c76-64f9-417b-bd83-065e8369a581/auth0.logs",
+        "eventSourceName": "aws.partner/auth0.com/dev-dlpfq-id-bde16c76-64f9-417b-bd83-065e8369a581/auth0.logs"
+    },
+    "responseElements": {
+        "eventBusArn": "arn:aws:events:eu-west-1:673385887142:event-bus/aws.partner/auth0.com/dev-dlpfq-id-bde16c76-64f9-417b-bd83-065e8369a581/auth0.logs"
+    },
+    "requestID": "df6c3662-be02-44bf-aca1-7b92f367dc3e",
+    "eventID": "81b40633-891b-42f5-a058-9e5712922f85",
+    "readOnly": false,
+    "eventType": "AwsApiCall",
+    "apiVersion": "2015-10-07",
+    "managementEvent": true,
+    "eventCategory": "Management",
+    "recipientAccountId": "673385887142"
+}

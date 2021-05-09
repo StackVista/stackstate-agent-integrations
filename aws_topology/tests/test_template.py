@@ -408,6 +408,22 @@ def mock_boto_calls(self, operation_name, kwarg):
         return {}
     elif operation_name == 'ListActivities':
         return {}
+    elif operation_name == "GetApis":
+        return {}
+    elif operation_name == 'GetAccountAuthorizationDetails':
+        return
+    elif operation_name == 'ListApiDestinations':
+        return {}
+    elif operation_name == 'ListConnections':
+        return {}
+    elif operation_name == 'ListEventSources':
+        return {}
+    elif operation_name == 'ListEventBuses':
+        return {}
+    elif operation_name == 'ListArchives':
+        return {}
+    elif operation_name == 'ListReplays':
+        return {}
     else:
         raise ValueError("Unknown operation name", operation_name)
 
