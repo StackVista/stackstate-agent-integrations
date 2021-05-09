@@ -155,14 +155,12 @@ class TestStepFunctions(unittest.TestCase):
         self.assert_has_relation(
             relations,
             sfn_id + ':state/SQS',
-            'https://sqs.eu-west-1.amazonaws.com/290794210101/'
-            + 'elvin-stackstate-tests-main-account-main-region-SqsQueue-12QD0SDWO9WV1'
+            'arn:aws:sqs::731070500579:elvin-stackstate-tests-main-account-main-region-SqsQueue-12QD0SDWO9WV1'
         )
         self.assert_has_relation(
             relations,
             sfn_id + ':state/SQSSecondaryRegion',
-            'https://sqs.us-east-1.amazonaws.com/290794210101/'
-            + 'elvin-stackstate-main-account-secondary-region-SqsQueue-142V2KSEY368Y'
+            'arn:aws:sqs::731070500579:elvin-stackstate-main-account-secondary-region-SqsQueue-142V2KSEY368Y'
         )
         self.assert_has_relation(
             relations,
@@ -173,13 +171,13 @@ class TestStepFunctions(unittest.TestCase):
         self.assert_has_relation(
             relations,
             sfn_id + ':state/ApiGateway',
-            'arn:aws:execute-api:eu-west-1:731070500579:z3scu84808/test/GET/test'
+            'arn:aws:execute-api:eu-west-1:731070500579:z3scu84808/test'
         )
         self.assert_has_relation(
             relations,
             sfn_id + ':state/Lambda',
             'arn:aws:lambda:eu-west-1:290794210101:function:'
-            + 'elvin-stackstate-tests-main-account-LambdaFunction-199Z59KY5LNOM:$LATEST'
+            + 'elvin-stackstate-tests-main-account-LambdaFunction-199Z59KY5LNOM'
         )
         self.assert_has_relation(
             relations,

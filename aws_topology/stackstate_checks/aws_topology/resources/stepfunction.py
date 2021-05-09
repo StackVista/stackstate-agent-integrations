@@ -82,7 +82,7 @@ class StepFunctionCollector(RegisteredResourceCollector):
                 self.process_state(arn, arn, state_name, state, start_state == state_name)
 
     def process_state(self, sfn_arn, arn, state_name, state, is_start=False):
-        partition = get_partition_name(self.agent.location['Location']['AwsRegion'])
+        partition = get_partition_name(self.location_info['Location']['AwsRegion'])
         state_arn = sfn_arn + ':state/' + state_name
         if is_start:
             self.agent.relation(arn, state_arn, 'uses service', {})  # starts state
@@ -108,14 +108,26 @@ class StepFunctionCollector(RegisteredResourceCollector):
                 start_at = iterator.get('StartAt')
                 states = iterator.get('States') or {}
                 for iterator_state_name, iterator_state in states.items():
-                    self.process_state(sfn_arn, state_arn, iterator_state_name, iterator_state, iterator_state_name == start_at)
+                    self.process_state(
+                        sfn_arn,
+                        state_arn,
+                        iterator_state_name,
+                        iterator_state,
+                        iterator_state_name == start_at
+                    )
         elif state.get('Type') == 'Parallel':
             branches = state.get('Branches') or []
             for branch in branches:
                 start_at = branch.get('StartAt')
                 states = branch.get('States') or {}
                 for branch_state_name, branch_state in states.items():
-                    self.process_state(sfn_arn, state_arn, branch_state_name, branch_state, branch_state_name == start_at)
+                    self.process_state(
+                        sfn_arn,
+                        state_arn,
+                        branch_state_name,
+                        branch_state,
+                        branch_state_name == start_at
+                    )
         elif state.get('Type') == 'Task':
             # TODO sense intrinsics used in any integration parameter -> don't mae relation
             # TODO resource end part is invokation type put it in the state
@@ -133,12 +145,16 @@ class StepFunctionCollector(RegisteredResourceCollector):
                 fn_arn = ''
                 if len(parts) == 7:
                     fn_arn = ':'.join(parts)
-                elif len(parts) == 8 and (parts[7].isdigit() or  parts[7].lower() == '$latest'):
+                elif len(parts) == 8 and (parts[7].isdigit() or parts[7].lower() == '$latest'):
                     fn_arn = ':'.join(parts[0:7])  # versions are not in StackState so omit
                 elif len(parts) == 8:
                     fn_arn = ':'.join(parts)
                 elif len(parts) >= 3:
-                    fn_arn = self.agent.create_arn('AWS::Lambda::Function', self.location_info, ':'.join(parts[2:]))
+                    fn_arn = self.agent.create_arn(
+                        'AWS::Lambda::Function',
+                        self.location_info,
+                        ':'.join(parts[2:])
+                    )
                 if fn_arn:
                     self.agent.relation(state_arn, fn_arn, 'uses service', {})
             elif resource.startswith('arn:aws:lambda:'):

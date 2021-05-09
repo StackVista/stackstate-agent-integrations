@@ -19,7 +19,11 @@ class SqsEventBase(CloudTrailEventBase):
     def _internal_process(self, session, location, agent):
         operation_type = self.get_operation_type()
         if operation_type == 'D':
-            agent.delete(self.get_resource_name())  # TODO Queue id has changed!
+            agent.delete(agent.create_arn(
+                'AWS::SQS::Queue',
+                location,
+                get_queue_name_from_url(self.get_resource_name())
+            ))
         elif operation_type == 'E':
             # TODO this should probably emit some event to StackState
             pass
@@ -87,7 +91,7 @@ class SqsCollector(RegisteredResourceCollector):
         ).get('Attributes', {})
         queue_name = get_queue_name_from_url(queue_url)
         queue_data = make_valid_data(queue_data_raw)
-        queue_arn = self.agent.create_arn('AWS::SQS::Queue', queue_name)
+        queue_arn = self.agent.create_arn('AWS::SQS::Queue', self.location_info, queue_name)
         queue_data['Tags'] = self.client.list_queue_tags(QueueUrl=queue_url).get('Tags')
         queue_data['URN'] = [queue_url]
         queue_data['Name'] = queue_url

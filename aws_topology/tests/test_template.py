@@ -748,7 +748,7 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(len(topology), 1)
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            topology[0]["components"][0]["id"], "arn:aws:sqs:eu-west-1:731070500579:STS_stackpack_test"
+            topology[0]["components"][0]["id"], "arn:aws:sqs::731070500579:STS_stackpack_test"
         )  # DIFF externalId
         self.assertEqual(topology[0]["components"][0]["type"], "aws.sqs")  # DIFF was ['type']['name']
         self.assertEqual(topology[0]["components"][0]["data"]["Tags"], {"a": "b"})
@@ -1370,7 +1370,7 @@ class TestTemplate(unittest.TestCase):
         ), True)
         # assert for sqs queue relation
         self.assertEqual(self.has_relation(
-            relations, source_id, "arn:aws:sqs:eu-west-1:731070500579:STS_stackpack_test"
+            relations, source_id, "arn:aws:sqs::731070500579:STS_stackpack_test"
         ), True)
         # assert for dynamodb table relation
         self.assertEqual(self.has_relation(
