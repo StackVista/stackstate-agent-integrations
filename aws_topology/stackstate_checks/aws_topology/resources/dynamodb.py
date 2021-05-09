@@ -11,6 +11,7 @@ Tables
         describe_table
 """
 
+
 def create_table_arn(region=None, account_id=None, resource_id=None, **kwargs):
     return arn(resource='dynamodb', region=region, account_id=account_id, resource_id='table/' + resource_id)
 
@@ -26,6 +27,7 @@ class DynamoDBEventBase(CloudTrailEventBase):
             client = session.client('dynamodb')
             collector = DynamodbTableCollector(location, client, agent)
             collector.process_table(self.get_resource_name())
+
 
 class DynamoDB_UpdateTable(DynamoDBEventBase):
     class RequestParameters(Model):

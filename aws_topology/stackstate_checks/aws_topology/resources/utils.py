@@ -132,7 +132,7 @@ class CloudTrailEventBase(Model):
 
     def get_resource_name(self):
         raise NotImplementedError
-    
+
     def get_collector_class(self):
         raise NotImplementedError
 

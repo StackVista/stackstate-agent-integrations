@@ -12,7 +12,7 @@ class KinesisEventBase(CloudTrailEventBase):
     def get_collector_class(self):
         return KinesisCollector
 
-    
+
 class Kinesis_Stream(KinesisEventBase):
     class RequestParameters(Model):
         streamName = StringType(required=True)

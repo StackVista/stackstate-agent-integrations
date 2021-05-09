@@ -126,8 +126,8 @@ class AwsTopologyCheck(AgentCheck):
                         'api': api,
                         'processor': processor
                     }
-                    #processor.process_all(filter=filter)
-                    #self.delete_ids += processor.get_delete_ids()
+                    # processor.process_all(filter=filter)
+                    # self.delete_ids += processor.get_delete_ids()
             for future in concurrent.futures.as_completed(futures):
                 spec = futures[future]
                 try:
@@ -190,7 +190,7 @@ class AwsTopologyCheck(AgentCheck):
                                 event.validate()
                                 resource_id = event.get_resource_arn(agent_proxy, copy.deepcopy(location))
                                 # only add the event if there was no event for the resource before
-                                if not resource_id in resources_seen:
+                                if resource_id not in resources_seen:
                                     events.append(event)
                             else:
                                 print('should interpret: ' + rec['eventName'] + '-' + rec['eventSource'])
@@ -198,7 +198,7 @@ class AwsTopologyCheck(AgentCheck):
                 if stop:
                     break
             # process the events (TODO maybe reverse for chronological order)
-            # TODO group events per api and call one process 
+            # TODO group events per api and call one process
             for event in events:
                 if event.process:
                     # TODO if full snapshot ran just before we can use components_seen here too

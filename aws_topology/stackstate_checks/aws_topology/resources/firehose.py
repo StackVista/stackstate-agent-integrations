@@ -1,4 +1,5 @@
-from .utils import make_valid_data, with_dimensions, create_arn as arn, CloudTrailEventBase, client_array_operation, set_required_access_v2, transformation
+from .utils import make_valid_data, with_dimensions, create_arn as arn, CloudTrailEventBase, \
+    client_array_operation, set_required_access_v2, transformation
 from .registry import RegisteredResourceCollector
 from collections import namedtuple
 from schematics import Model
@@ -6,7 +7,8 @@ from schematics.types import StringType, ModelType, ListType
 
 
 class RELATION_TYPE:
-      USES_SERVICE = "uses service"
+    USES_SERVICE = "uses service"
+
 
 def create_arn(region=None, account_id=None, resource_id=None, **kwargs):
     return arn(resource='firehose', region=region, account_id=account_id, resource_id='deliverystream/' + resource_id)
@@ -55,17 +57,22 @@ class Firehose_UpdateStream(FirehoseEventBase):
 
 DeliveryStreamData = namedtuple('DeliveryStreamData', ['stream', 'tags'])
 
+
 class KinesisStreamSourceDescription(Model):
     KinesisStreamARN = StringType()
+
 
 class DeliveryStreamSource(Model):
     KinesisStreamSourceDescription = ModelType(KinesisStreamSourceDescription)
 
+
 class DeliveryStreamS3Destination(Model):
     BucketARN = StringType(required=True)
 
+
 class DeliveryStreamDestinations(Model):
     S3DestinationDescription = ModelType(DeliveryStreamS3Destination, default=[])
+
 
 class DeliveryStreamDescription(Model):
     DeliveryStreamARN = StringType(required=True)
@@ -74,8 +81,10 @@ class DeliveryStreamDescription(Model):
     Source = ModelType(DeliveryStreamSource)
     Destinations = ListType(ModelType(DeliveryStreamDestinations, default=[]))
 
+
 class DeliveryStream(Model):
-    DeliveryStreamDescription = ModelType(DeliveryStreamDescription , required=True)
+    DeliveryStreamDescription = ModelType(DeliveryStreamDescription, required=True)
+
 
 class FirehoseCollector(RegisteredResourceCollector):
     API = "firehose"

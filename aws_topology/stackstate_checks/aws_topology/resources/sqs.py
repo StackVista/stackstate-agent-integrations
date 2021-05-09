@@ -24,6 +24,7 @@ class SqsEventBase(CloudTrailEventBase):
             collector = SqsCollector(location, client, agent)
             collector.process_queue(self.get_resource_name())
 
+
 class Sqs_CreateQueue(SqsEventBase):
     class ResponseElements(Model):
         queueUrl = StringType(required=True)
