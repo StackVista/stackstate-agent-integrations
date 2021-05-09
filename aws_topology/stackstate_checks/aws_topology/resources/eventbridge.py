@@ -301,7 +301,7 @@ class EventBridgeProcessor(RegisteredResourceCollector):
             yield source
 
     def process_all(self, filter=None):
-        print('{}.process_all starter with filter {}'.format(self.__class__.__name__, filter))
+        # print('{}.process_all starter with filter {}'.format(self.__class__.__name__, filter))
         if not filter or "api_destinations" in filter:
             self.process_api_destinations()
         if not filter or "connections" in filter:
@@ -317,7 +317,7 @@ class EventBridgeProcessor(RegisteredResourceCollector):
 
     @set_required_access_v2('events:ListEventBuses')
     def process_event_buses(self):
-        print('Processing of EventBuses started')
+        # print('Processing of EventBuses started')
         for event_bus in self.collect_event_buses():
             self.process_event_bus(event_bus)
 

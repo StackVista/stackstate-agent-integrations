@@ -78,14 +78,15 @@ class IAMProcessor(RegisteredResourceCollector):
     def process_all(self, filter=None):
         # handle summary
         for page in self.client.get_paginator('get_account_authorization_details').paginate():
-            for user in page.get('UserDetailList', []):
-                self.process_user_details(user)
-            for group in  page.get('GroupDetailList', []):
-                self.process_group_details(group)
-            for role in page.get('RoleDetailList', []):
-                self.process_role_details(role)
-            for policy in page.get('Policies', []):
-                self.process_policy(policy)
+            if page:
+                for user in page.get('UserDetailList', []):
+                    self.process_user_details(user)
+                for group in  page.get('GroupDetailList', []):
+                    self.process_group_details(group)
+                for role in page.get('RoleDetailList', []):
+                    self.process_role_details(role)
+                for policy in page.get('Policies', []):
+                    self.process_policy(policy)
 
     def process_policy_document(self, owner, policy):
         doc = PolicyDocument(policy, strict=False)
