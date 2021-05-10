@@ -230,6 +230,64 @@ Resources:
     Properties:
       Name: TestActivity
 
+  # EventBridge bus
+
+  EventBridgeCustomBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name: !Ref AWS::StackName
+  EventBridgeArchive:
+    Type: AWS::Events::Archive
+    Properties:
+      SourceArn: !GetAtt EventBridgeCustomBus.Arn
+      RetentionDays: 1
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - E3001 # Archive is supported here
+  EventBridgeCustomBusRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventBusName: !GetAtt EventBridgeCustomBus.Arn
+      EventPattern:
+        source:
+          - test.test
+        detail-type:
+          - Testing
+      Targets:
+        - Id: schedule
+          Arn: !Ref StepFunctionsStateMachine
+          RoleArn: !GetAtt EventBridgeIamRole.Arn
+  EventBridgeIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: !Sub events.${AWS::URLSuffix}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: default
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: states
+                Effect: Allow
+                Action:
+                  - states:StartExecution
+                Resource:
+                  - !Ref StepFunctionsStateMachine
+  EventBridgeCronRule:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: rate(3 hours)
+      Targets:
+        - Id: sqs
+          Arn: !GetAtt SqsQueue.Arn
+
   ApiGatewayApi:
     Type: AWS::ApiGatewayV2::Api
     Properties:
@@ -532,3 +590,28 @@ Resources:
           ignore_checks:
             - E3002 # Throughput is used for gp3
             - E3030 # gp3 is a new volume type
+
+  # IAM Resources
+
+  IamPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Test StackState Policy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: test
+            Effect: Deny
+            Action: "*"
+            Resource: "*"
+  IamGroup:
+    Type: AWS::IAM::Group
+    Properties:
+      ManagedPolicyArns:
+        - !Ref IamPolicy
+  IamUser:
+    Type: AWS::IAM::User
+    Properties:
+      Groups:
+        - !Ref IamGroup
+      PermissionsBoundary: !Ref IamPolicy
