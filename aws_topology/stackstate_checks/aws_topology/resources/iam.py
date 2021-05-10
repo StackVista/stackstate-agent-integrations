@@ -38,6 +38,7 @@ def create_group_arn(region=None, account_id=None, resource_id=None, **kwargs):
 
 class User(Model):
     Arn = StringType(required=True)
+    UserName = StringType(required=True)
 
 
 class PolicyDocument(Model):
@@ -46,6 +47,7 @@ class PolicyDocument(Model):
 
 class PolicyAttachment(Model):
     PolicyArn = StringType(required=True)
+    PolicyName = StringType(required=True)
 
 
 class Boundary(Model):
@@ -54,19 +56,23 @@ class Boundary(Model):
 
 class Group(Model):
     Arn = StringType(required=True)
+    GroupName = StringType(required=True)
 
 
 class Role(Model):
     Arn = StringType(required=True)
+    RoleName = StringType(required=True)
 
 
 class Policy(Model):
     Arn = StringType(required=True)
     DefaultVersionId = StringType(required=True)
+    PolicyName = StringType(required=True)
 
 
 class InstanceProfile(Model):
     Arn = StringType(required=True)
+    InstanceProfileName = StringType(required=True)
 
 
 class IAMProcessor(RegisteredResourceCollector):
@@ -92,6 +98,7 @@ class IAMProcessor(RegisteredResourceCollector):
         doc = PolicyDocument(policy, strict=False)
         doc.validate()
         output = make_valid_data(policy)
+        output["Name"] = doc.PolicyName
         policy_arn = owner.Arn + ':inlinepolicy/' + doc.PolicyName
         self.emit_component(policy_arn, 'aws.iam.policy', output)
         self.agent.relation(owner.Arn, policy_arn, 'has resource', {})
@@ -113,6 +120,7 @@ class IAMProcessor(RegisteredResourceCollector):
         user = User(user_detail, strict=False)
         user.validate()
         output = make_valid_data(user_detail)
+        output["Name"] = user.UserName
         self.emit_component(user.Arn, 'aws.iam.user', output)
         for policy in user_policies:
             self.process_policy_document(user, policy)
@@ -133,6 +141,7 @@ class IAMProcessor(RegisteredResourceCollector):
         group = Group(group_detail, strict=False)
         group.validate()
         output = make_valid_data(group_detail)
+        output["Name"] = group.GroupName
         self.emit_component(group.Arn, 'aws.iam.group', output)
         for policy in group_policies:
             self.process_policy_document(group, policy)
@@ -144,6 +153,7 @@ class IAMProcessor(RegisteredResourceCollector):
         profile = InstanceProfile(data, strict=False)
         profile.validate()
         output = make_valid_data(data)
+        output["Name"] = profile.InstanceProfileName
         self.emit_component(profile.Arn, 'aws.iam.instance_profile', output)
         for role in roles:
             self.agent.relation(profile.Arn, role['Arn'], 'uses service', {})
@@ -156,6 +166,7 @@ class IAMProcessor(RegisteredResourceCollector):
         role = Role(role_detail, strict=False)
         role.validate()
         output = make_valid_data(role_detail)
+        output["Name"] = role.RoleName
         self.emit_component(role.Arn, 'aws.iam.role', output)
         for policy in role_policies:
             self.process_policy_document(role, policy)
@@ -170,6 +181,7 @@ class IAMProcessor(RegisteredResourceCollector):
         versions = policy.pop('PolicyVersionList', [])
         pol = Policy(policy, strict=False)
         output = make_valid_data(policy)
+        output["Name"] = pol.PolicyName
         for version in versions:
             if version.get('VersionId') == pol.DefaultVersionId:
                 output['Document'] = version.get('Document')
