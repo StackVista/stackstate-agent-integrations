@@ -90,11 +90,13 @@ class EventBusDescription(Model):
 class RuleDescription(Model):
     Arn = StringType(required=True)
     State = StringType(required=True)
+    RoleArn = StringType()
 
 
 class RuleTarget(Model):
     Id = StringType(required=True)
     Arn = StringType(required=True)
+    RoleArn = StringType()
 
 
 class ApiConnection(Model):
@@ -356,9 +358,11 @@ class EventBridgeProcessor(RegisteredResourceCollector):
         target = RuleTarget(target, strict=False)
         target.validate()
         output["Name"] = target.Id
-        self.emit_component(target.Arn, "aws.events.target", output)
+        self.emit_component(target.Id, "aws.events.target", output)
         self.agent.relation(rule_arn, target.Id, "has resource", {})
-        self.agent.relation(target.Id, target.Arn, "uses service", output)
+        self.agent.relation(target.Id, target.Arn, "uses service", {})
+        if target.RoleArn:
+            self.agent.relation(target.Id, target.RoleArn, "uses service", {})
 
     def process_rule(self, bus_arn, rule):
         output = make_valid_data(rule.description)
@@ -367,6 +371,8 @@ class EventBridgeProcessor(RegisteredResourceCollector):
         rule_description.validate()
         self.emit_component(rule_description.Arn, 'aws.events.rule', output)
         self.agent.relation(rule_description.Arn, bus_arn, 'uses service', {})
+        if rule_description.RoleArn:
+            self.agent.relation(rule_description.Arn, rule_description.RoleArn, "uses service", {})
         for target in rule.targets:
             self.process_target(rule_description.Arn, target)
 
