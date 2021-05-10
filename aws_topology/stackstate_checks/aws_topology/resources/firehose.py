@@ -60,6 +60,7 @@ DeliveryStreamData = namedtuple('DeliveryStreamData', ['stream', 'tags'])
 
 class KinesisStreamSourceDescription(Model):
     KinesisStreamARN = StringType()
+    RoleARN = StringType()
 
 
 class DeliveryStreamSource(Model):
@@ -68,6 +69,7 @@ class DeliveryStreamSource(Model):
 
 class DeliveryStreamS3Destination(Model):
     BucketARN = StringType(required=True)
+    RoleARN = StringType()
 
 
 class DeliveryStreamDestinations(Model):
@@ -164,6 +166,9 @@ class FirehoseCollector(RegisteredResourceCollector):
             if source:
                 kinesis_stream_arn = source.KinesisStreamSourceDescription.KinesisStreamARN
                 self.agent.relation(kinesis_stream_arn, delivery_stream_arn, RELATION_TYPE.USES_SERVICE, {})
+                role_arn = source.KinesisStreamSourceDescription.RoleARN
+                if role_arn:
+                    self.agent.relation(delivery_stream_arn, role_arn, 'uses service', {})
 
         for destination in description.Destinations:
             if destination.S3DestinationDescription:
@@ -173,6 +178,9 @@ class FirehoseCollector(RegisteredResourceCollector):
                     "uses service",
                     {}
                 )
+                role_arn = destination.S3DestinationDescription.RoleARN
+                if role_arn:
+                    self.agent.relation(delivery_stream_arn, role_arn, 'uses service', {})
 
         # There can also be a relation with a lambda that is uses to transform the data
         # There can also be a relation with a AWS Glue (region / database / table / version) cross region!

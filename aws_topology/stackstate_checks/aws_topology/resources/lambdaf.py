@@ -56,6 +56,9 @@ class LambdaCollector(RegisteredResourceCollector):
                     pass
         function_data['Tags'] = function_tags
         self.emit_component(function_arn, self.COMPONENT_TYPE, function_data)
+        role = function_data.get('Role')
+        if role:
+            self.agent.relation(function_arn, role, 'uses service', {})
         lambda_vpc_config = function_data.get('VpcConfig')
         vpc_id = None
         if lambda_vpc_config:

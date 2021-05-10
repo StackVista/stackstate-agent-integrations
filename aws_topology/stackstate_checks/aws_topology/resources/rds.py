@@ -27,6 +27,8 @@ class RdsCollector(RegisteredResourceCollector):
             self.process_cluster(cluster_data, rds)
 
     def process_instance(self, instance_data):
+        # role relation: MonitoringRoleArn
+        # role relation: AssociatedRoles[].RoleArn
         instance_arn = instance_data['DBInstanceArn']
         instance_id = instance_data['DBInstanceIdentifier']
         tags = self.client.list_tags_for_resource(ResourceName=instance_arn).get('TagList') or []
@@ -45,6 +47,7 @@ class RdsCollector(RegisteredResourceCollector):
         return {instance_id: instance_arn}
 
     def process_cluster(self, cluster_data, db_instance_map):
+        # role relation: AssociatedRoles[].RoleArn
         cluster_id = cluster_data['DBClusterIdentifier']
         cluster_arn = cluster_data['DBClusterArn']
         cluster_data['Name'] = cluster_arn

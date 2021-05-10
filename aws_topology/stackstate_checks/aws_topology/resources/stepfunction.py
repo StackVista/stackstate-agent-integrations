@@ -17,6 +17,7 @@ StateMachineData = namedtuple('StateMachineData', ['state_machine', 'tags'])
 class StepFunction(Model):
     stateMachineArn = StringType(required=True)
     definition = StringType(default="{}")
+    roleArn = StringType()
 
 
 class StepFunctionCollector(RegisteredResourceCollector):
@@ -66,6 +67,8 @@ class StepFunctionCollector(RegisteredResourceCollector):
             output.pop('definition')
         output["tags"] = data.tags
         self.emit_component(state_machine.stateMachineArn, self.COMPONENT_TYPE, output)
+        if state_machine.roleArn:
+            self.agent.relation(state_machine.stateMachineArn, state_machine.roleArn, 'uses service', {})
         self.process_state_machine_relations(state_machine.stateMachineArn, state_machine.definition)
 
     def process_activity(self, data):
