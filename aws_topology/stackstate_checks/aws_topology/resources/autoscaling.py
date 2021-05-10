@@ -67,6 +67,7 @@ class AutoScalingGroup(Model):
     Instances = ListType(ModelType(Instance), default=[])
     LoadBalancerNames = ListType(StringType, default=[])
     TargetGroupARNs = ListType(StringType, default=[])
+    ServiceLinkedRoleARN = StringType()
 
 
 class AutoscalingCollector(RegisteredResourceCollector):
@@ -113,6 +114,14 @@ class AutoscalingCollector(RegisteredResourceCollector):
         ]
         # using name here, s unique in region, arn is not resolvable from CF-resources
         self.emit_component(auto_scaling_group.AutoScalingGroupName, self.COMPONENT_TYPE, output)
+
+        if auto_scaling_group.ServiceLinkedRoleARN:
+            self.agent.relation(
+                auto_scaling_group.AutoScalingGroupARN,
+                auto_scaling_group.ServiceLinkedRoleARN,
+                'uses service',
+                {}
+            )
 
         for instance in auto_scaling_group.Instances:
             self.agent.relation(auto_scaling_group.AutoScalingGroupARN, instance.InstanceId, 'uses service', {})

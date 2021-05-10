@@ -46,4 +46,5 @@ class SnsCollector(RegisteredResourceCollector):
                 if subscription_by_topic['Protocol'] in ['lambda', 'sqs'] and \
                         subscription_by_topic['TopicArn'] == topic_arn:
                     # TODO subscriptions can be cross region! probably also cross account
+                    # TODO get the subscription attributes to find SubscriptionRoleArn
                     self.agent.relation(topic_arn, subscription_by_topic['Endpoint'], 'uses service', {})

@@ -75,6 +75,12 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
             for security_group in instance_data['SecurityGroups']:
                 self.agent.relation(instance_id, security_group['GroupId'], 'uses service', {})
 
+        instance_profile = instance_data.get('IamInstanceProfile')
+        if isinstance(instance_profile, dict):
+            profile_arn = instance_profile.get('Arn')
+            if profile_arn:
+                self.agent.relation(instance_id, profile_arn, 'uses service', {})
+
         event = {
             'timestamp': int(time.time()),
             'event_type': 'ec2_state',
