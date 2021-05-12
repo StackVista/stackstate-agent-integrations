@@ -1243,22 +1243,32 @@ class TestTemplate(unittest.TestCase):
         # TODO this needs to be fixed in go, delete_ids need to be passed
         topology[0]["delete_ids"] = self.check.delete_ids
         self.assert_executed_ok()
-
+        # check lengths
+        components = topology[0]["components"]
+        relations = topology[0]["relations"]
         self.assertEqual(len(topology), 1)
-        self.assertEqual(len(topology[0]["components"]), 1)
-        self.assertEqual(
-            topology[0]["components"][0]["data"]["AutoScalingGroupARN"],
-            "arn:aws:autoscaling:eu-west-1:731070500579:autoScalingGroup:e1155c2b-016a-40ad-8cba-2423c349574b:"
-            + "autoScalingGroupName/awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM",
-        )
-        self.assertEqual(
-            topology[0]["components"][0]["id"],
-            "awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM",
-        )  # DIFF
-        self.assertEqual(topology[0]["components"][0]["type"], "aws.autoscaling")  # DIFF
-        self.assert_location_info(topology[0]["components"][0])
+        self.assertEqual(len(components), 1)
         self.assertEqual(len(topology[0]["delete_ids"]), 3)
-        self.assertEqual(len(topology[0]["relations"]), 4)
+        self.assertEqual(len(relations), 5)
+        # check component
+        component = self.assert_has_component(
+            components,
+            "awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM",
+            "aws.autoscaling",
+            checks={
+                "AutoScalingGroupARN": "arn:aws:autoscaling:eu-west-1:731070500579:autoScalingGroup:"
+                + "e1155c2b-016a-40ad-8cba-2423c349574b:"
+                + "autoScalingGroupName/awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM"
+            }
+        )
+        self.assert_location_info(component)
+        for relation in relations:
+            print(relation)
+        self.assertEqual(self.has_relation(
+            relations,
+            "awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM",
+            "arn:aws:iam::731070500579:role/aws-service-role/autoscaling.amazonaws.com/AWSServiceRoleForAutoScaling"
+        ), True)
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
     @set_api("ec2|security_groups")

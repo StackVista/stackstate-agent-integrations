@@ -117,7 +117,7 @@ class AutoscalingCollector(RegisteredResourceCollector):
 
         if auto_scaling_group.ServiceLinkedRoleARN:
             self.agent.relation(
-                auto_scaling_group.AutoScalingGroupARN,
+                auto_scaling_group.AutoScalingGroupName,
                 auto_scaling_group.ServiceLinkedRoleARN,
                 'uses service',
                 {}
