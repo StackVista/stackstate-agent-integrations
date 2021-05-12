@@ -218,6 +218,12 @@ class AgentCheckBase(object):
         self.cluster_name = AgentCheckBase.get_cluster_name()
 
         self.log = logging.getLogger('{}.{}'.format(__name__, self.name))
+        if using_stub_aggregator:
+            self.log.warn("Using stub aggregator api")
+        if using_stub_topology:
+            self.log.warn("Using stub topology api")
+        if using_stub_telemetry:
+            self.log.warn("Using stub telemetry api")
         self.state_manager = StateManager(self.log)
         self._deprecations = {}
         # Set proxy settings
