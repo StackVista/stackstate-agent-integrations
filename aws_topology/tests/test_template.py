@@ -15,6 +15,8 @@ import traceback
 from parameterized import parameterized
 import sys
 import pytest
+from functools import reduce
+
 
 requires_py3 = pytest.mark.skipif(
     sys.version_info.major < 3, reason="Only python3 because of type hinting"
@@ -693,27 +695,37 @@ class TestTemplate(unittest.TestCase):
         self.assert_executed_ok()
 
         self.assertEqual(len(topology), 1)
-        self.assertEqual(topology[0]["relations"], [])
-        self.assertEqual(len(topology[0]["components"]), 6)
-        self.assertEqual(
-            topology[0]["components"][0]["id"],
-            "arn:aws:lambda:eu-west-1:731070500579:function:com-stackstate-prod-sam-seed-PutHello-1LUD3ESBOR6EY",
-        )  # DIFF was externalId
-        self.assertEqual(topology[0]["components"][0]["type"], "aws.lambda")  # DIFF was ['type']['name']
-        self.assertEqual(
-            topology[0]["components"][0]["data"]["FunctionName"], "com-stackstate-prod-sam-seed-PutHello-1LUD3ESBOR6EY"
+
+        components = topology[0]["components"]
+        relations = topology[0]["relations"]
+
+        self.assertEqual(len(components), 6)
+        self.assertEqual(len(relations), 3)
+
+        function_name = "com-stackstate-prod-sam-seed-PutHello-1LUD3ESBOR6EY"
+        component = self.assert_has_component(
+            components,
+            "arn:aws:lambda:eu-west-1:731070500579:function:" + function_name,
+            "aws.lambda",
+            checks={"FunctionName": function_name}
         )
-        self.assertEqual(
-            topology[0]["components"][1]["id"],
-            "arn:aws:lambda:eu-west-1:731070500579:function:com-stackstate-prod-sam-seed-PutHello-1LUD3ESBOR6EY:old",
-        )  # DIFF was externalId
-        self.assertEqual(topology[0]["components"][1]["type"], "aws.lambda.alias")  # DIFF was ['type']['name']
-        self.assertEqual(
-            topology[0]["components"][1]["data"]["Function"]["FunctionName"],
-            "com-stackstate-prod-sam-seed-PutHello-1LUD3ESBOR6EY",
+        self.assertEqual(self.has_relation(
+            relations,
+            "arn:aws:lambda:eu-west-1:731070500579:function:" + function_name,
+            "arn:aws:iam::731070500579:role/com-stackstate-prod-sam-seed-PutHelloRole-1J2B6L49ZATLL"
+        ), True)
+        self.assert_location_info(component)
+
+        function_name = "com-stackstate-prod-sam-seed-PutHello-1LUD3ESBOR6EY"
+        component = self.assert_has_component(
+            components,
+            "arn:aws:lambda:eu-west-1:731070500579:function:" + function_name + ":old",
+            "aws.lambda.alias",
+            checks={
+                "Function.FunctionName": function_name,
+                "Name": "old"
+            }
         )
-        self.assertEqual(topology[0]["components"][1]["data"]["Name"], "old")
-        self.assert_location_info(topology[0]["components"][0])
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
     @set_api("sns|aws.sns")
@@ -1121,11 +1133,16 @@ class TestTemplate(unittest.TestCase):
                 return True
         return False
 
-    def assert_has_component(self, components, id, tp):
+    def assert_has_component(self, components, id, tp, checks={}):
+        comp = None
         for component in components:
             if component['id'] == id and component['type'] == tp:
-                return component
-        self.assertFalse(True, "Component not found " + id + " - " + tp)
+                comp = component
+                break
+        self.assertIsNotNone(comp, "Component not found " + id + " - " + tp)
+        for key in checks:
+            self.assertEqual(reduce(dict.__getitem__, ('data.' + key).split('.'), comp), checks[key])
+        return comp
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
     @set_api("route53domains|aws.route53.domain")
