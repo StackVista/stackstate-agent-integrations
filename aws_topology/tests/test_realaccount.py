@@ -4,11 +4,47 @@ from stackstate_checks.base.stubs import topology as top, aggregator
 from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
 from stackstate_checks.base import AgentCheck
 import yaml
+import json
+import mock
+from contextlib import contextmanager
+import botocore
 
+"""
+This file does not really contain a test.
+
+It can be used to run against a real account.
+
+It can snapshot API responses.
+
+It uses a 
+"""
 
 def relative_path(path):
     script_dir = os.path.dirname(__file__)
     return os.path.abspath(os.path.join(script_dir, path))
+
+
+original_method = botocore.client.BaseClient._make_api_call
+
+cnt = 1
+
+
+@contextmanager
+def mock_patch_method_original(mock_path):
+
+    def side_effect(self, *args, **kwargs):
+        global cnt
+        side_effect.self = self
+        result = original_method(self, *args, **kwargs)
+        if args[0] == 'GetAccountAuthorizationDetails':
+            with open(relative_path('json/iam/data' + str(cnt) + '.json'), 'w') as outfile:
+                json.dump(result, outfile, indent=2, default=str)
+            cnt += 1
+        return result
+
+    patcher = mock.patch(mock_path, autospec=True, side_effect=side_effect)
+    yield patcher.start()
+    patcher.stop()
 
 
 class TestEventBridge(unittest.TestCase):
@@ -31,9 +67,9 @@ class TestEventBridge(unittest.TestCase):
         })
         instance = {
             "role_arn": data_loaded["instances"][0]["role_arn"],
-            "regions": ["global"],  # "global", "eu-west-1", "us-east-1"
+            "regions": ["global", "eu-west-1", "us-east-1"],
         }
-        instance.update({"apis_to_run": ['iam']})  # apigatewayv2
+        # instance.update({"apis_to_run": ['iam']})  # apigatewayv2
 
         self.check = AwsTopologyCheck(self.CHECK_NAME, InitConfig(init_config), [instance])
 
@@ -55,15 +91,16 @@ class TestEventBridge(unittest.TestCase):
         self.assertTrue(False, "Relation expected source_id={} target_id={}".format(source_id, target_id))
 
     def xtest_process_realaccount(self):
-        self.check.run()
-        topology = [top.get_snapshot(self.check.check_id)]
-        self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
-        components = topology[0]["components"]
-        relations = topology[0]["relations"]
-        print('# components: ', len(components))
-        print('# relations: ', len(relations))
-        # for component in components:
-        #    print(json.dumps(component, indent=2, default=str))
-        # for relation in relations:
-        #    print(json.dumps(relation, indent=2, default=str))
+        with mock_patch_method_original('botocore.client.BaseClient._make_api_call') as mock:
+            self.check.run()
+            topology = [top.get_snapshot(self.check.check_id)]
+            self.assertEqual(len(topology), 1)
+            self.assert_executed_ok()
+            components = topology[0]["components"]
+            relations = topology[0]["relations"]
+            # print('# components: ', len(components))
+            # print('# relations: ', len(relations))
+            for component in components:
+                print(json.dumps(component, indent=2, default=str))
+            for relation in relations:
+                print(json.dumps(relation, indent=2, default=str))

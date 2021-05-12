@@ -1268,8 +1268,6 @@ class TestTemplate(unittest.TestCase):
             }
         )
         self.assert_location_info(component)
-        for relation in relations:
-            print(relation)
         self.assertEqual(self.has_relation(
             relations,
             "awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM",

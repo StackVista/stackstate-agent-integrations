@@ -82,7 +82,7 @@ class TestAWSTopologyCheck(unittest.TestCase):
         )
         self.check.check(instance)
         test_topology = topology.get_snapshot(self.check.check_id)
-        self.assertEqual(test_topology['instance_key'], {'type': 'aws', 'url': '123456789012'})
+        self.assertEqual(test_topology['instance_key'], {'type': 'aws-v2', 'url': '123456789012'})
         self.assertEqual(test_topology['components'], [])
         self.assertEqual(test_topology['relations'], [])
         service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_CONNECT_NAME)
@@ -156,6 +156,6 @@ class TestAWSTopologyCheck(unittest.TestCase):
         )
         self.assertEqual(
             test_topology['components'][0]['data']['tags'],
-            ['integration-type:aws', 'integration-url:123456789012']
+            ['integration-type:aws-v2', 'integration-url:123456789012']
         )
         self.assertGreater(len(service_checks), 0)
