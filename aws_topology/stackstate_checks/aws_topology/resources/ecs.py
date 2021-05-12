@@ -54,7 +54,6 @@ class EcsCollector(RegisteredResourceCollector):
 
         # key: service_name, value: list of container_name
         self.ecs_containers_per_service = self.process_cluster_tasks(cluster_arn)
-
         self.process_services(cluster_arn, cluster_name)
 
     def process_cluster_tasks(self, cluster_arn):
@@ -152,6 +151,10 @@ class EcsCollector(RegisteredResourceCollector):
 
         self.emit_component(service_arn, 'aws.ecs.service', service_data)
         self.agent.relation(cluster_arn, service_arn, 'has_cluster_node', {})
+
+        role_arn = service_data.get('roleArn')
+        if role_arn:
+            self.agent.relation(service_arn, role_arn, 'uses service', {})
 
         # TODO makes new client ? should we do that here ?
         for registry in service_data['serviceRegistries']:

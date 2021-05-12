@@ -347,23 +347,29 @@ def mock_boto_calls(self, operation_name, kwarg):
         return resource("test_ecs_list_services.json")
 
     elif operation_name == "DescribeServices":
-        document = resource("test_ecs_describe_services.json")
-        for service in document["services"]:
-            service["createdAt"] = dateutil.parser.parse(service["createdAt"])
+        if kwarg['cluster'] == 'arn:aws:ecs:eu-west-1:731070500579:cluster/default':
+            document = resource("test_ecs_describe_services.json")
+            for service in document["services"]:
+                service["createdAt"] = dateutil.parser.parse(service["createdAt"])
 
-            for deployment in service["deployments"]:
-                deployment["createdAt"] = dateutil.parser.parse(deployment["createdAt"])
-                deployment["updatedAt"] = dateutil.parser.parse(deployment["updatedAt"])
+                for deployment in service["deployments"]:
+                    deployment["createdAt"] = dateutil.parser.parse(deployment["createdAt"])
+                    deployment["updatedAt"] = dateutil.parser.parse(deployment["updatedAt"])
 
-            for event in service["events"]:
-                event["createdAt"] = dateutil.parser.parse(event["createdAt"])
-        return document
+                for event in service["events"]:
+                    event["createdAt"] = dateutil.parser.parse(event["createdAt"])
+            return document
+        else:
+            return {'services': []}
 
     elif operation_name == "ListTagsOfResource":
         return resource("test_dynamodb_list_tags_of_resource.json")
 
     elif operation_name == "ListTasks":
-        return resource("test_ecs_list_tasks.json")
+        if kwarg["cluster"] == "arn:aws:ecs:eu-west-1:731070500579:cluster/default":
+            return resource("test_ecs_list_tasks.json")
+        else:
+            return {"taskArns": []}
 
     elif operation_name == "DescribeTasks":
         document = resource("test_ecs_describe_tasks.json")
@@ -1382,7 +1388,7 @@ class TestTemplate(unittest.TestCase):
         self.check.run()
         self.assert_executed_ok()
         topology = top.get_snapshot(self.check.check_id)
-
+        # TODO this is a bad idea... (parameters were ignored better check components relations)
         diff = compute_topologies_diff(
             computed_dict=topology, expected_filepath=relative_path("expected_topology/ecs.json")
         )
