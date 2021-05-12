@@ -28,6 +28,10 @@ TOPOLOGY_API_ENDPOINTS = {
     "service": "api/v1/entity/services"
 }
 
+SYNTHETICS_API_ENDPOINTS = {
+    "monitor": "api/v1/synthetic/monitors",
+}
+
 DYNATRACE_UI_URLS = {
     "service": "%s/#newservices/serviceOverview;id=%s",
     "process-group": "%s/#processgroupdetails;id=%s",
@@ -121,6 +125,7 @@ class DynatraceCheck(AgentCheck):
                 instance_info.state = State({'last_processed_event_timestamp': empty_state_timestamp})
             self.start_snapshot()
             self._process_topology(instance_info)
+            self._process_synthetics(instance_info)
             self.stop_snapshot()
             # process events is not inside snapshot block as Vishal suggested
             self._process_events(instance_info)
@@ -150,6 +155,50 @@ class DynatraceCheck(AgentCheck):
         time_taken = end_time - start_time
         self.log.info("Collected %d topology entities.", len(dynatrace_entities_cache))
         self.log.debug("Time taken to collect the topology is: %d seconds" % time_taken.total_seconds())
+
+    def _process_synthetics(self, instance_info):
+        """
+        Collects the synthetic checks from dynatrace API
+        """
+        start_time = datetime.now()
+        self.log.debug("Starting the collection of synthetics")
+        for component_type, path in SYNTHETICS_API_ENDPOINTS.items():
+            endpoint = self._get_endpoint(instance_info.url, path)
+            params = {"relativeTime": instance_info.relative_time}
+            response = self._get_dynatrace_json_response(instance_info, endpoint, params)
+            for monitor in response["monitors"]:
+                monitor = self._get_dynatrace_json_response(instance_info, endpoint + "/" +monitor["entityId"])
+                self._collect_monitors(monitor, component_type, instance_info)
+        end_time = datetime.now()
+        time_taken = end_time - start_time 
+        self.log.debug("Time taken to collect the synthetics is: %d seconds" % time_taken.total_seconds()) 
+
+    def _collect_monitors(self, monitor, component_type, instance_info):
+        monitor = self._clean_unsupported_metadata(monitor)
+        monitor.update({"displayName": monitor["name"]})
+        dynatrace_component = DynatraceComponent(monitor, strict=False)
+        #dynatrace_component.validate()
+        data = {}
+        external_id = dynatrace_component.entityId
+        identifiers = [Identifiers.create_custom_identifier("dynatrace", external_id)]
+        if component_type == "host":
+            host_identifiers = self._get_host_identifiers(dynatrace_component)
+            identifiers.extend(host_identifiers)
+        # derive useful labels from dynatrace tags
+        tags = self._get_labels(dynatrace_component)
+        tags.extend(instance_info.instance_tags)
+        data.update(monitor)
+        self._filter_item_topology_data(data)
+        data.update({
+            "identifiers": identifiers,
+            "tags": tags,
+            "domain": instance_info.domain,
+            "environments": [instance_info.environment],
+            "instance": instance_info.url,
+        })
+        self.component(external_id, component_type, data)
+        dynatrace_entities_cache[external_id] = {"name": dynatrace_component.displayName, "type": component_type}
+        
 
     def _collect_topology(self, response, component_type, instance_info):
         """
@@ -201,6 +250,12 @@ class DynatraceCheck(AgentCheck):
                 for target_id in relation_value:
                     self.relation(external_id, target_id, relation_type, {})
         for relation_type, relation_value in dynatrace_component.toRelationships.items():
+            # Check if relationship type is monitors, since monitors has an inverted relationship
+            if relation_type == "monitors":
+                for source_id in relation_value:
+                    self.relation(external_id, source_id, relation_type, {})
+                # we need to continue to prevent processing the monitor again with the inverted relationship.
+                continue
             # Ignore `isSiteOf` relation since location components are not processed right now
             if relation_type != "isSiteOf":
                 for source_id in relation_value:
