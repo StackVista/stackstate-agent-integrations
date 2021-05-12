@@ -919,32 +919,80 @@ class TestTemplate(unittest.TestCase):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assert_executed_ok()
-
-        firehose_arn_prefix = "arn:aws:firehose:eu-west-1:731070500579:deliverystream/"
+        # check counts
         self.assertEqual(len(topology), 1)
         self.assertEqual(len(topology[0]["components"]), 2)
-        self.assertEqual(topology[0]["components"][0]["id"], firehose_arn_prefix + "firehose_1")  # DIFF
-        self.assertEqual(topology[0]["components"][0]["type"], "aws.firehose")  # DIFF
-        self.assertEqual(
-            topology[0]["components"][0]["data"]["DeliveryStreamDescription"]["DeliveryStreamARN"],
-            "arn:aws:firehose:eu-west-1:731070500579:deliverystream/firehose_1",
+        self.assertEqual(len(topology[0]["relations"]), 10)
+        components = topology[0]["components"]
+        relations = topology[0]["relations"]
+        # check 2 components
+        firehose_arn_prefix = "arn:aws:firehose:eu-west-1:731070500579:deliverystream/"
+        self.assert_has_component(
+            components,
+            firehose_arn_prefix + "firehose_1",
+            "aws.firehose",
+            checks={
+                "DeliveryStreamDescription.DeliveryStreamARN": firehose_arn_prefix + "firehose_1",
+                "Tags.SomeKey": "SomeValue",
+                "CW.Dimensions": [{"Key": "DeliveryStreamName", "Value": "dnv-sam-seed-button-clicked-firehose"}]
+            }
         )
-        self.assertEqual(topology[0]["components"][0]["data"]["Tags"]["SomeKey"], "SomeValue")
-        self.assert_stream_dimensions(
-            topology[0]["components"][0],
-            [{"Key": "DeliveryStreamName", "Value": "dnv-sam-seed-button-clicked-firehose"}],
+        self.assert_has_component(
+            components,
+            firehose_arn_prefix + "firehose_2",
+            "aws.firehose"
         )
-        self.assertEqual(topology[0]["components"][1]["id"], firehose_arn_prefix + "firehose_2")  # DIFF
-        self.assertEqual(topology[0]["components"][1]["type"], "aws.firehose")  # DIFF
-        self.assertEqual(len(topology[0]["relations"]), 3)
-        self.assertEqual(
-            topology[0]["relations"][0]["source_id"], "arn:aws:kinesis:eu-west-1:731070500579:stream/stream_1"
-        )  # DIFF
-        self.assertEqual(topology[0]["relations"][0]["target_id"], firehose_arn_prefix + "firehose_1")  # DIFF
-        self.assertEqual(topology[0]["relations"][1]["source_id"], firehose_arn_prefix + "firehose_1")  # DIFF
-        self.assertEqual(topology[0]["relations"][1]["target_id"], "arn:aws:s3:::firehose-bucket_1")  # DIFF
-        self.assertEqual(topology[0]["relations"][2]["source_id"], firehose_arn_prefix + "firehose_2")  # DIFF
-        self.assertEqual(topology[0]["relations"][2]["target_id"], "arn:aws:s3:::firehose-bucket_2")  # DIFF
+        # check 10 relations
+        self.assertEqual(self.has_relation(
+            relations,
+            firehose_arn_prefix + "firehose_1",
+            "arn:aws:s3:::firehose-bucket_1"
+        ), True)
+        self.assertEqual(self.has_relation(
+            relations,
+            firehose_arn_prefix + "firehose_2",
+            "arn:aws:s3:::firehose-bucket_2"
+        ), True)
+        self.assertEqual(self.has_relation(
+            relations,
+            "arn:aws:kinesis:eu-west-1:731070500579:stream/stream_1",
+            firehose_arn_prefix + "firehose_1"
+        ), True)
+        self.assertEqual(self.has_relation(
+            relations,
+            firehose_arn_prefix + "firehose_1",
+            "arn:aws:iam::731070500579:role/firehose-role-s3dst-1"
+        ), True)
+        self.assertEqual(self.has_relation(
+            relations,
+            firehose_arn_prefix + "firehose_2",
+            "arn:aws:iam::731070500579:role/firehose_delivery_role-s3"
+        ), True)
+        self.assertEqual(self.has_relation(
+            relations,
+            firehose_arn_prefix + "firehose_1",
+            "arn:aws:iam::731070500579:role/firehose-role-kinsrc"
+        ), True)
+        self.assertEqual(self.has_relation(
+            relations,
+            firehose_arn_prefix + "firehose_1",
+            "arn:aws:iam::731070500579:role/firehose-role_s3dst-1-ext"
+        ), True)
+        self.assertEqual(self.has_relation(
+            relations,
+            firehose_arn_prefix + "firehose_2",
+            "arn:aws:iam::731070500579:role/firehose_delivery_role-s3-ext"
+        ), True)
+        self.assertEqual(self.has_relation(
+            relations,
+            firehose_arn_prefix + "firehose_1",
+            "arn:aws:s3:::firehose-bucket_1-ext"
+        ), True)
+        self.assertEqual(self.has_relation(
+            relations,
+            firehose_arn_prefix + "firehose_2",
+            "arn:aws:s3:::firehose-bucket_2-ext"
+        ), True)
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
     @set_api("apigateway|aws.apigateway.stage")

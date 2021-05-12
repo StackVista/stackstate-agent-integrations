@@ -73,7 +73,8 @@ class DeliveryStreamS3Destination(Model):
 
 
 class DeliveryStreamDestinations(Model):
-    S3DestinationDescription = ModelType(DeliveryStreamS3Destination, default=[])
+    S3DestinationDescription = ModelType(DeliveryStreamS3Destination, default={})
+    ExtendedS3DestinationDescription = ModelType(DeliveryStreamS3Destination, default={})
 
 
 class DeliveryStreamDescription(Model):
@@ -179,6 +180,16 @@ class FirehoseCollector(RegisteredResourceCollector):
                     {}
                 )
                 role_arn = destination.S3DestinationDescription.RoleARN
+                if role_arn:
+                    self.agent.relation(delivery_stream_arn, role_arn, 'uses service', {})
+            if destination.ExtendedS3DestinationDescription:
+                self.agent.relation(
+                    delivery_stream_arn,
+                    destination.ExtendedS3DestinationDescription.BucketARN,
+                    "uses service",
+                    {}
+                )
+                role_arn = destination.ExtendedS3DestinationDescription.RoleARN
                 if role_arn:
                     self.agent.relation(delivery_stream_arn, role_arn, 'uses service', {})
 
