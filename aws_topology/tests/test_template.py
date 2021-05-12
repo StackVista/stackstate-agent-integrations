@@ -525,31 +525,40 @@ class TestTemplate(unittest.TestCase):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         events = aggregator.events
-
+        relations = topology[0]["relations"]
+        components = topology[0]["components"]
+        # count checks
         self.assertEqual(len(topology), 1)
-        self.assertEqual(len(topology[0]["relations"]), 2)
+        self.assertEqual(len(topology[0]["relations"]), 3)
         self.assertEqual(len(topology[0]["components"]), 1)
-        self.assertEqual(topology[0]["components"][0]["id"], test_instance_id)  # DIFF was externalId
-        self.assertEqual(topology[0]["components"][0]["data"]["InstanceId"], test_instance_id)
-        self.assertEqual(topology[0]["components"][0]["data"]["InstanceType"], test_instance_type)
-        self.assertIsNotNone(topology[0]['components'][0]['data']['Tags'])
-        self.assertEqual(topology[0]['components'][0]['data']['Tags']['host'], test_instance_id)
-        self.assertEqual(topology[0]['components'][0]['data']['Tags']['instance-id'], test_instance_id)
-        self.assertEqual(topology[0]['components'][0]['data']['Tags']['private-ip'], test_public_ip)
-        self.assertEqual(topology[0]['components'][0]['data']['Tags']['fqdn'], test_public_dns)
-        self.assertEqual(topology[0]['components'][0]['data']['Tags']['public-ip'], test_public_ip)
-        self.assertEqual(topology[0]["components"][0]["type"], "aws.ec2")  # DIFF was ['type']['name']
-        self.assert_location_info(topology[0]["components"][0])
-        self.assertEqual(
-            topology[0]["components"][0]["data"]["URN"],
-            [
-                "urn:host:/{}".format(test_instance_id),
-                "arn:aws:ec2:{}:731070500579:instance/{}".format(TEST_REGION, test_instance_id),
-                "urn:host:/{}".format(test_public_dns),
-                "urn:host:/{}".format(test_public_ip),
-            ],
+        # component checks
+        self.assert_has_component(
+            components,
+            test_instance_id,
+            "aws.ec2",
+            checks={
+                "InstanceId": test_instance_id,
+                "InstanceType": test_instance_type,
+                "Tags.host": test_instance_id,
+                "Tags.instance-id": test_instance_id,
+                "Tags.private-ip": test_public_ip,
+                "Tags.fqdn": test_public_dns,
+                "Tags.public-ip": test_public_ip,
+                "URN": [
+                    "urn:host:/{}".format(test_instance_id),
+                    "arn:aws:ec2:{}:731070500579:instance/{}".format(TEST_REGION, test_instance_id),
+                    "urn:host:/{}".format(test_public_dns),
+                    "urn:host:/{}".format(test_public_ip)
+                ]
+            }
         )
-
+        # relation checks
+        self.assertEqual(self.has_relation(
+            relations,
+            test_instance_id,
+            "rolearn"
+        ), True)
+        # event checks
         self.assertEqual(len(events), 1)
         self.assertEqual(events[0]["host"], test_instance_id)
         self.assertEqual(events[0]["tags"], ["state:stopped"])

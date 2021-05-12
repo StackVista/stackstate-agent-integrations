@@ -89,28 +89,21 @@ class TestIAM(unittest.TestCase):
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
 
-        sfn_id = 'arn:aws:states:eu-west-1:290794210101:stateMachine:StepFunctionsStateMachine-cLtKjmzGLpw8'
         components = topology[0]["components"]
         relations = topology[0]["relations"]
 
-        for component in components:
-            print(component['id'])
-        for relation in relations:
-            print(relation['source_id'] + ' <--> ' + relation['target_id'])
-
         prefix = 'arn:aws:iam::548105126730:'
         stackname = 'stackstate-main-account-main-region'
+        stackname_main = 'stackstate-main-account-main'
+
         def get_arn(type, resource_id):
             return prefix + type + '/' + stackname + '-' + resource_id
 
-        stackname_main = 'stackstate-main-account-main'
         def get_main_arn(type, resource_id):
             return prefix + type + '/' + stackname_main + '-' + resource_id
 
-
         user_name = get_arn('user', 'IamUser-15TGMT5HZF5DI')
         group_name = get_arn('group', 'IamGroup-4VHDGMM9UW6T')
-        policy_name = get_arn('policy', 'IamPolicy-1R3JFH57MXHCE')
         user_inline_policy_name = user_name + ':inlinepolicy/default'
         group_inline_policy_name = group_name + ':inlinepolicy/default'
         attached_policy_name = get_arn('policy', 'IamPolicy1-1AW49Q1P522SI')
