@@ -202,5 +202,10 @@ class TestStepFunctions(unittest.TestCase):
             sfn_id + ':state/Activity',
             'arn:aws:states:eu-west-1:290794210101:activity:TestActivity'
         )
+        self.assert_has_relation(
+            relations,
+            sfn_id,
+            'arn:aws:iam::290794210101:role/elvin-stackstate-tests-main-a-StepFunctionsIamRole-1MU2YYEEMBFWP'
+        )
 
-        self.assertEqual(len(topology[0]["relations"]), 25)
+        self.assertEqual(len(topology[0]["relations"]), 26)

@@ -720,7 +720,7 @@ class TestTemplate(unittest.TestCase):
         )
         self.assertEqual(self.has_relation(
             relations,
-            "arn:aws:lambda:eu-west-1:731070500579:function:" + function_name,
+            component["id"],
             "arn:aws:iam::731070500579:role/com-stackstate-prod-sam-seed-PutHelloRole-1J2B6L49ZATLL"
         ), True)
         self.assert_location_info(component)
