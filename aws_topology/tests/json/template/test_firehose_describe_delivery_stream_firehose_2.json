@@ -10,7 +10,7 @@
       {
         "DestinationId": "destinationId-000000000001",
         "S3DestinationDescription": {
-          "RoleARN": "arn:aws:iam::731070500579:role/firehose_delivery_role",
+          "RoleARN": "arn:aws:iam::731070500579:role/firehose_delivery_role-s3",
           "BucketARN": "arn:aws:s3:::firehose-bucket_2",
           "Prefix": "",
           "BufferingHints": {
@@ -28,8 +28,8 @@
           }
         },
         "ExtendedS3DestinationDescription": {
-          "RoleARN": "arn:aws:iam::731070500579:role/firehose_delivery_role",
-          "BucketARN": "arn:aws:s3:::firehose-bucket_2",
+          "RoleARN": "arn:aws:iam::731070500579:role/firehose_delivery_role-s3-ext",
+          "BucketARN": "arn:aws:s3:::firehose-bucket_2-ext",
           "Prefix": "",
           "BufferingHints": {
             "SizeInMBs": 5,

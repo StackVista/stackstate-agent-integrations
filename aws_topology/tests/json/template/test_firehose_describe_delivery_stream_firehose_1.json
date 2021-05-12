@@ -9,7 +9,7 @@
     "Source": {
       "KinesisStreamSourceDescription": {
         "KinesisStreamARN": "arn:aws:kinesis:eu-west-1:731070500579:stream/stream_1",
-        "RoleARN": "arn:aws:iam::731070500579:role/firehose-role",
+        "RoleARN": "arn:aws:iam::731070500579:role/firehose-role-kinsrc",
         "DeliveryStartTimestamp": 1526551327.49
       }
     },
@@ -17,7 +17,7 @@
       {
         "DestinationId": "destinationId-000000000001",
         "S3DestinationDescription": {
-          "RoleARN": "arn:aws:iam::731070500579:role/firehose-role",
+          "RoleARN": "arn:aws:iam::731070500579:role/firehose-role-s3dst-1",
           "BucketARN": "arn:aws:s3:::firehose-bucket_1",
           "Prefix": "",
           "BufferingHints": {
@@ -33,8 +33,8 @@
           }
         },
         "ExtendedS3DestinationDescription": {
-          "RoleARN": "arn:aws:iam::731070500579:role/firehose-role",
-          "BucketARN": "arn:aws:s3:::firehose-bucket_1",
+          "RoleARN": "arn:aws:iam::731070500579:role/firehose-role_s3dst-1-ext",
+          "BucketARN": "arn:aws:s3:::firehose-bucket_1-ext",
           "Prefix": "",
           "BufferingHints": {
             "SizeInMBs": 1,
