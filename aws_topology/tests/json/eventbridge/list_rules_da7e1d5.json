@@ -1,0 +1,26 @@
+{
+  "Rules": [
+    {
+      "Name": "Events-Archive-EventBridgeArchive-oLlo8WLrFl3H",
+      "Arn": "arn:aws:events:eu-west-1:548105126730:rule/stackstate-main-account-main-region/Events-Archive-EventBridgeArchive-oLlo8WLrFl3H",
+      "EventPattern": "{\"replay-name\":[{\"exists\":false}]}",
+      "State": "ENABLED",
+      "ManagedBy": "prod.vhs.events.aws.internal",
+      "EventBusName": "stackstate-main-account-main-region"
+    },
+    {
+      "Name": "stackstate-main-account-m-EventBridgeCustomBusRule-1LDKRBE651N2B",
+      "Arn": "arn:aws:events:eu-west-1:548105126730:rule/stackstate-main-account-main-region/stackstate-main-account-m-EventBridgeCustomBusRule-1LDKRBE651N2B",
+      "EventPattern": "{\"detail-type\":[\"Testing\"],\"source\":[\"test.test\"]}",
+      "State": "ENABLED",
+      "EventBusName": "stackstate-main-account-main-region"
+    }
+  ],
+  "ResponseMetadata": {
+    "Parameters": {
+      "EventBusName": "stackstate-main-account-main-region"
+    },
+    "OperationName": "ListRules",
+    "Generater": "2021-05-13 07:48:35.827764"
+  }
+}

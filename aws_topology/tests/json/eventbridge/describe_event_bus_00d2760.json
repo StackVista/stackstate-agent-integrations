@@ -1,0 +1,11 @@
+{
+  "Name": "stackstate-main-account-main-region",
+  "Arn": "arn:aws:events:eu-west-1:548105126730:event-bus/stackstate-main-account-main-region",
+  "ResponseMetadata": {
+    "Parameters": {
+      "Name": "arn:aws:events:eu-west-1:548105126730:event-bus/stackstate-main-account-main-region"
+    },
+    "OperationName": "DescribeEventBus",
+    "Generater": "2021-05-13 07:48:35.758808"
+  }
+}

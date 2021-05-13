@@ -1,0 +1,16 @@
+{
+  "Name": "stackstate-resources-debug-StsEc2Rule-SJBRONO1KVPN",
+  "Arn": "arn:aws:events:eu-west-1:548105126730:rule/stackstate-resources-debug-StsEc2Rule-SJBRONO1KVPN",
+  "EventPattern": "{\"detail-type\":[\"AWS API Call via CloudTrail\"],\"detail\":{\"eventSource\":[\"ec2.amazonaws.com\"],\"eventName\":[\"EC2 Instance State-change Notification\"]}}",
+  "State": "ENABLED",
+  "EventBusName": "default",
+  "CreatedBy": "548105126730",
+  "ResponseMetadata": {
+    "Parameters": {
+      "EventBusName": "default",
+      "Name": "stackstate-resources-debug-StsEc2Rule-SJBRONO1KVPN"
+    },
+    "OperationName": "DescribeRule",
+    "Generater": "2021-05-13 07:48:35.683791"
+  }
+}

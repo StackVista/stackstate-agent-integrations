@@ -1,0 +1,10 @@
+{
+  "Tags": [],
+  "ResponseMetadata": {
+    "Parameters": {
+      "ResourceARN": "arn:aws:events:eu-west-1:548105126730:rule/stackstate-main-account-main-r-EventBridgeCronRule-1ATSJ2IVLLTHS"
+    },
+    "OperationName": "ListTagsForResource",
+    "Generater": "2021-05-13 07:48:35.549182"
+  }
+}

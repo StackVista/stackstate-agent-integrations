@@ -1,0 +1,17 @@
+{
+  "Targets": [
+    {
+      "Id": "schedule",
+      "Arn": "arn:aws:states:eu-west-1:548105126730:stateMachine:StepFunctionsStateMachine-wAXvzDJDy4ja",
+      "RoleArn": "arn:aws:iam::548105126730:role/stackstate-main-account-main-re-EventBridgeIamRole-IW90IMP0QROZ"
+    }
+  ],
+  "ResponseMetadata": {
+    "Parameters": {
+      "EventBusName": "stackstate-main-account-main-region",
+      "Rule": "stackstate-main-account-m-EventBridgeCustomBusRule-1LDKRBE651N2B"
+    },
+    "OperationName": "ListTargetsByRule",
+    "Generater": "2021-05-13 07:48:36.064049"
+  }
+}

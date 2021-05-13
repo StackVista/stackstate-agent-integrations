@@ -1,0 +1,25 @@
+{
+  "Rules": [
+    {
+      "Name": "stackstate-main-account-main-r-EventBridgeCronRule-1ATSJ2IVLLTHS",
+      "Arn": "arn:aws:events:eu-west-1:548105126730:rule/stackstate-main-account-main-r-EventBridgeCronRule-1ATSJ2IVLLTHS",
+      "State": "ENABLED",
+      "ScheduleExpression": "rate(3 hours)",
+      "EventBusName": "default"
+    },
+    {
+      "Name": "stackstate-resources-debug-StsEc2Rule-SJBRONO1KVPN",
+      "Arn": "arn:aws:events:eu-west-1:548105126730:rule/stackstate-resources-debug-StsEc2Rule-SJBRONO1KVPN",
+      "EventPattern": "{\"detail-type\":[\"AWS API Call via CloudTrail\"],\"detail\":{\"eventSource\":[\"ec2.amazonaws.com\"],\"eventName\":[\"EC2 Instance State-change Notification\"]}}",
+      "State": "ENABLED",
+      "EventBusName": "default"
+    }
+  ],
+  "ResponseMetadata": {
+    "Parameters": {
+      "EventBusName": "default"
+    },
+    "OperationName": "ListRules",
+    "Generater": "2021-05-13 07:48:35.511947"
+  }
+}

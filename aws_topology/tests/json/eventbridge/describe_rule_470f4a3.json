@@ -1,0 +1,17 @@
+{
+  "Name": "Events-Archive-EventBridgeArchive-oLlo8WLrFl3H",
+  "Arn": "arn:aws:events:eu-west-1:548105126730:rule/stackstate-main-account-main-region/Events-Archive-EventBridgeArchive-oLlo8WLrFl3H",
+  "EventPattern": "{\"replay-name\":[{\"exists\":false}]}",
+  "State": "ENABLED",
+  "ManagedBy": "prod.vhs.events.aws.internal",
+  "EventBusName": "stackstate-main-account-main-region",
+  "CreatedBy": "548105126730",
+  "ResponseMetadata": {
+    "Parameters": {
+      "EventBusName": "stackstate-main-account-main-region",
+      "Name": "Events-Archive-EventBridgeArchive-oLlo8WLrFl3H"
+    },
+    "OperationName": "DescribeRule",
+    "Generater": "2021-05-13 07:48:35.894235"
+  }
+}

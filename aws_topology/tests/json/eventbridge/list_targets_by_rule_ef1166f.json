@@ -1,0 +1,20 @@
+{
+  "Targets": [
+    {
+      "Id": "Events-Archive-EventBridgeArchive-oLlo8WLrFl3H",
+      "Arn": "arn:aws:events:eu-west-1:::",
+      "InputTransformer": {
+        "InputPathsMap": {},
+        "InputTemplate": "{\"archive-arn\": \"arn:aws:events:eu-west-1:548105126730:archive/EventBridgeArchive-oLlo8WLrFl3H:e3d2e2a9-afe1-41cb-987a-501dee8d4838\",\"event\": <aws.events.event.json>,\"ingestion-time\": <aws.events.event.ingestion-time>}"
+      }
+    }
+  ],
+  "ResponseMetadata": {
+    "Parameters": {
+      "EventBusName": "stackstate-main-account-main-region",
+      "Rule": "Events-Archive-EventBridgeArchive-oLlo8WLrFl3H"
+    },
+    "OperationName": "ListTargetsByRule",
+    "Generater": "2021-05-13 07:48:35.956386"
+  }
+}

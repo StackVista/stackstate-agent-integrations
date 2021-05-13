@@ -1,0 +1,16 @@
+{
+  "Targets": [
+    {
+      "Id": "sqs",
+      "Arn": "arn:aws:sqs:eu-west-1:548105126730:stackstate-main-account-main-region-SqsQueue-1CIRWAM6D60JD"
+    }
+  ],
+  "ResponseMetadata": {
+    "Parameters": {
+      "EventBusName": "default",
+      "Rule": "stackstate-main-account-main-r-EventBridgeCronRule-1ATSJ2IVLLTHS"
+    },
+    "OperationName": "ListTargetsByRule",
+    "Generater": "2021-05-13 07:48:35.611905"
+  }
+}
