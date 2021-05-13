@@ -32,6 +32,9 @@
               "GroupId": "sg-41c3cc3b"
             }
           ],
+          "IamInstanceProfile": {
+            "Arn": "rolearn"
+          },
           "ClientToken": "",
           "SubnetId": "subnet-67d82910",
           "InstanceType": "m4.xlarge",
