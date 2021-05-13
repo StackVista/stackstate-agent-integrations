@@ -5,6 +5,7 @@ from mock import patch
 from stackstate_checks.base.stubs import topology as top, aggregator
 from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
 from stackstate_checks.base import AgentCheck
+import re
 
 
 def relative_path(path):
@@ -102,12 +103,26 @@ class TestIAM(unittest.TestCase):
         def get_main_arn(type, resource_id):
             return prefix + type + '/' + stackname_main + '-' + resource_id
 
-        user_name = get_arn('user', 'IamUser-15TGMT5HZF5DI')
-        group_name = get_arn('group', 'IamGroup-4VHDGMM9UW6T')
+        def find_id(type, name, get_arn=get_arn):
+            found = 0
+            result = None
+            rgex = re.compile('^' + get_arn(type, name)+'-[A-Z0-9]{12,14}$')
+            for component in components:
+                if rgex.match(component["id"]):
+                    result = component["id"]
+                    found += 1
+            if found > 1:
+                raise Exception('Multiple found matching {}'.format(get_arn(type, name) + '-ABCDEFGH123'))
+            if found == 0:
+                raise Exception('Not found {}'.format(get_arn(type, name) + '-ABCDEFGH123'))
+            return result
+
+        user_name = find_id('user', 'IamUser')
+        group_name = find_id('group', 'IamGroup')
         user_inline_policy_name = user_name + ':inlinepolicy/default'
         group_inline_policy_name = group_name + ':inlinepolicy/default'
-        attached_policy_name = get_arn('policy', 'IamPolicy1-1AW49Q1P522SI')
-        user_boundary_policy = get_arn('policy', 'IamPolicy2-1RRB2VKZ2W6XT')
+        attached_policy_name = find_id('policy', 'IamPolicy1')
+        user_boundary_policy = find_id('policy', 'IamPolicy2')
         self.assert_has_component(components, user_name, 'aws.iam.user')
         self.assert_has_relation(relations, user_name, group_name)
         self.assert_has_relation(relations, user_name, user_inline_policy_name)
@@ -116,8 +131,8 @@ class TestIAM(unittest.TestCase):
         self.assert_has_relation(relations, group_name, attached_policy_name)
         self.assert_has_relation(relations, user_name, user_boundary_policy)
 
-        role_name = get_main_arn('role', 'LambdaFunctionIamRole-YGZTZWG466RL')
-        role_attached_policy_name = get_arn('policy', 'LambdaFunctionIamPolicy1-S830ZCGAC77D')
+        role_name = find_id('role', 'LambdaFunctionIamRole', get_arn=get_main_arn)
+        role_attached_policy_name = find_id('policy', 'LambdaFunctionIamPolicy1')
         role_inline_policy_name = role_name + ':inlinepolicy/lambda'
         self.assert_has_component(components, role_name, 'aws.iam.role')
         self.assert_has_component(components, role_attached_policy_name, 'aws.iam.policy')
@@ -125,7 +140,7 @@ class TestIAM(unittest.TestCase):
         self.assert_has_relation(relations, role_name, role_inline_policy_name)
         self.assert_has_relation(relations, role_name, 'arn:aws:iam::aws:policy/AdministratorAccess')
 
-        instance_profile_name = get_arn('instance-profile', 'EcsEc2InstanceProfile-12GND3YV6SNCD')
-        role_name = get_arn('role', 'EcsEc2IamRole-Y7UJPJUCJWX4')
+        instance_profile_name = find_id('instance-profile', 'EcsEc2InstanceProfile')
+        role_name = find_id('role', 'EcsEc2IamRole')
         self.assert_has_component(components, instance_profile_name, 'aws.iam.instance_profile')
         self.assert_has_relation(relations, instance_profile_name, role_name)
