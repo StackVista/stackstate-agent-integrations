@@ -8,6 +8,9 @@ import json
 import mock
 from contextlib import contextmanager
 import botocore
+import hashlib
+import datetime
+
 
 """
 This file does not really contain a test.
@@ -28,6 +31,8 @@ original_method = botocore.client.BaseClient._make_api_call
 
 cnt = 1
 
+def get_params_hash(data):
+    return hashlib.md5(json.dumps(data, sort_keys=True, default=str).encode('utf-8')).hexdigest()[0:7]
 
 @contextmanager
 def mock_patch_method_original(mock_path):
@@ -36,10 +41,17 @@ def mock_patch_method_original(mock_path):
         global cnt
         side_effect.self = self
         result = original_method(self, *args, **kwargs)
-        if args[0] == 'GetAccountAuthorizationDetails':
-            with open(relative_path('json/iam/data' + str(cnt) + '.json'), 'w') as outfile:
-                json.dump(result, outfile, indent=2, default=str)
-            cnt += 1
+        if "ResponseMetadata" in result:
+            result.pop("ResponseMetadata")
+        result["ResponseMetadata"] = {
+            "Parameters": args[1],
+            "OperationName": args[0],
+            "Generater": datetime.datetime.now()
+        }
+        fn = botocore.xform_name(args[0]) + '_' + get_params_hash(args)
+        with open(relative_path('json/eventbridge/' + fn + '.json'), 'w') as outfile:
+            json.dump(result, outfile, indent=2, default=str)
+        cnt += 1
         return result
 
     patcher = mock.patch(mock_path, autospec=True, side_effect=side_effect)
@@ -67,9 +79,9 @@ class TestEventBridge(unittest.TestCase):
         })
         instance = {
             "role_arn": data_loaded["instances"][0]["role_arn"],
-            "regions": ["global", "eu-west-1", "us-east-1"],
+            "regions": ["eu-west-1"],
         }
-        # instance.update({"apis_to_run": ['iam']})  # apigatewayv2
+        instance.update({"apis_to_run": ['events']})
 
         self.check = AwsTopologyCheck(self.CHECK_NAME, InitConfig(init_config), [instance])
 
@@ -90,7 +102,7 @@ class TestEventBridge(unittest.TestCase):
                 return relation
         self.assertTrue(False, "Relation expected source_id={} target_id={}".format(source_id, target_id))
 
-    def xtest_process_realaccount(self):
+    def test_process_realaccount(self):
         with mock_patch_method_original('botocore.client.BaseClient._make_api_call') as mock:
             self.check.run()
             topology = [top.get_snapshot(self.check.check_id)]
@@ -100,7 +112,7 @@ class TestEventBridge(unittest.TestCase):
             relations = topology[0]["relations"]
             # print('# components: ', len(components))
             # print('# relations: ', len(relations))
-            for component in components:
-                print(json.dumps(component, indent=2, default=str))
-            for relation in relations:
-                print(json.dumps(relation, indent=2, default=str))
+            #for component in components:
+            #    print(json.dumps(component, indent=2, default=str))
+            #for relation in relations:
+            #    print(json.dumps(relation, indent=2, default=str))
