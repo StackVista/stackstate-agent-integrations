@@ -5,6 +5,7 @@
       "ResourceARN": "arn:aws:events:eu-west-1:548105126730:rule/stackstate-resources-debug-StsEc2Rule-SJBRONO1KVPN"
     },
     "OperationName": "ListTagsForResource",
-    "Generater": "2021-05-13 07:48:35.654260"
+    "Generater": "2021-05-13 10:29:57.539154",
+    "Region": "eu-west-1"
   }
 }

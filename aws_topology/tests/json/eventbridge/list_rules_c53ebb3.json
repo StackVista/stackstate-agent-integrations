@@ -20,6 +20,7 @@
       "EventBusName": "default"
     },
     "OperationName": "ListRules",
-    "Generater": "2021-05-13 07:48:35.511947"
+    "Generater": "2021-05-13 10:29:57.392336",
+    "Region": "eu-west-1"
   }
 }

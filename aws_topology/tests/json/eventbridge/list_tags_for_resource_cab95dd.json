@@ -5,6 +5,7 @@
       "ResourceARN": "arn:aws:events:eu-west-1:548105126730:rule/stackstate-main-account-main-region/stackstate-main-account-m-EventBridgeCustomBusRule-1LDKRBE651N2B"
     },
     "OperationName": "ListTagsForResource",
-    "Generater": "2021-05-13 07:48:35.996181"
+    "Generater": "2021-05-13 10:29:57.861643",
+    "Region": "eu-west-1"
   }
 }

@@ -5,6 +5,7 @@
       "ResourceARN": "arn:aws:events:eu-west-1:548105126730:event-bus/default"
     },
     "OperationName": "ListTagsForResource",
-    "Generater": "2021-05-13 07:48:35.481855"
+    "Generater": "2021-05-13 10:29:57.361002",
+    "Region": "eu-west-1"
   }
 }

@@ -11,6 +11,7 @@
       "Name": "stackstate-resources-debug-StsEc2Rule-SJBRONO1KVPN"
     },
     "OperationName": "DescribeRule",
-    "Generater": "2021-05-13 07:48:35.683791"
+    "Generater": "2021-05-13 10:29:57.571594",
+    "Region": "eu-west-1"
   }
 }

@@ -3,6 +3,7 @@
   "ResponseMetadata": {
     "Parameters": {},
     "OperationName": "ListConnections",
-    "Generater": "2021-05-13 07:48:35.346800"
+    "Generater": "2021-05-13 10:29:57.224477",
+    "Region": "eu-west-1"
   }
 }

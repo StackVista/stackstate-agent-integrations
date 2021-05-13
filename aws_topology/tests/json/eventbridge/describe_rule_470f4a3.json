@@ -12,6 +12,7 @@
       "Name": "Events-Archive-EventBridgeArchive-oLlo8WLrFl3H"
     },
     "OperationName": "DescribeRule",
-    "Generater": "2021-05-13 07:48:35.894235"
+    "Generater": "2021-05-13 10:29:57.786680",
+    "Region": "eu-west-1"
   }
 }

@@ -11,6 +11,7 @@
       "Name": "stackstate-main-account-m-EventBridgeCustomBusRule-1LDKRBE651N2B"
     },
     "OperationName": "DescribeRule",
-    "Generater": "2021-05-13 07:48:36.028410"
+    "Generater": "2021-05-13 10:29:57.898342",
+    "Region": "eu-west-1"
   }
 }

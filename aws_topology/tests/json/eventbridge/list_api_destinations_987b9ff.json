@@ -3,6 +3,7 @@
   "ResponseMetadata": {
     "Parameters": {},
     "OperationName": "ListApiDestinations",
-    "Generater": "2021-05-13 07:48:35.296496"
+    "Generater": "2021-05-13 10:29:57.171517",
+    "Region": "eu-west-1"
   }
 }
