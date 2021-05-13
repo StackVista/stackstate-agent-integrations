@@ -10,8 +10,8 @@ import botocore
 from functools import reduce
 
 
-def get_params_hash(data):
-    return hashlib.md5(json.dumps(data, sort_keys=True, default=str).encode('utf-8')).hexdigest()[0:7]
+def get_params_hash(region, data):
+    return hashlib.md5((region + json.dumps(data, sort_keys=True, default=str)).encode('utf-8')).hexdigest()[0:7]
 
 
 def relative_path(path):
@@ -25,35 +25,36 @@ def resource(path):
     return x
 
 
+def mock_boto_calls(self, *args, **kwargs):
+    if args[0] == "AssumeRole":
+        return {
+            "Credentials": {
+                "AccessKeyId": "KEY_ID",
+                "SecretAccessKey": "ACCESS_KEY",
+                "SessionToken": "TOKEN"
+            }
+        }
+    operation_name = botocore.xform_name(args[0])
+    file_name = "json/eventbridge/{}_{}.json".format(operation_name, get_params_hash(self.meta.region_name, args))
+    try:
+        return resource(file_name)
+    except Exception:
+        error = "API response file not found for operation: {}\n".format(operation_name)
+        error += "Parameters:\n{}\n".format(json.dumps(args[1], indent=2, default=str))
+        error += "File missing: {}".format(file_name)
+        raise Exception(error)
+
+
 class TestEvents(unittest.TestCase):
 
     CHECK_NAME = "aws_topology"
     SERVICE_CHECK_NAME = "aws_topology"
 
-    def mock_boto_calls(self, *args, **kwargs):
-        if args[0] == "AssumeRole":
-            return {
-                "Credentials": {
-                    "AccessKeyId": "KEY_ID",
-                    "SecretAccessKey": "ACCESS_KEY",
-                    "SessionToken": "TOKEN"
-                }
-            }
-        operation_name = botocore.xform_name(args[0])
-        file_name = "json/eventbridge/{}_{}.json".format(operation_name, get_params_hash(args))
-        try:
-            return resource(file_name) 
-        except Exception:
-            error = "API response file not found for operation: {}\n".format(operation_name)
-            error += "Parameters:\n{}\n".format(json.dumps(args[1], indent=2, default=str))
-            error += "File missing: {}".format(file_name)
-            raise Exception(error)
-
     def setUp(self):
         """
         Initialize and patch the check, i.e.
         """
-        self.patcher = patch("botocore.client.BaseClient._make_api_call")
+        self.patcher = patch("botocore.client.BaseClient._make_api_call", autospec=True)
         self.mock_object = self.patcher.start()
         top.reset()
         aggregator.reset()
@@ -69,7 +70,7 @@ class TestEvents(unittest.TestCase):
         instance.update({"apis_to_run": ["events"]})
 
         self.check = AwsTopologyCheck(self.CHECK_NAME, InitConfig(init_config), [instance])
-        self.mock_object.side_effect = self.mock_boto_calls
+        self.mock_object.side_effect = mock_boto_calls
 
     def assert_executed_ok(self):
         service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_EXECUTE_NAME)
@@ -108,7 +109,7 @@ class TestEvents(unittest.TestCase):
                 resource_type,
                 resource_id
             )
-            
+
         # check default bus
         bus_name = "default"
         self.assert_has_component(

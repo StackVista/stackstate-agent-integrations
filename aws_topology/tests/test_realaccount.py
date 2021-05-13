@@ -19,8 +19,9 @@ It can be used to run against a real account.
 
 It can snapshot API responses.
 
-It uses a 
+It uses a
 """
+
 
 def relative_path(path):
     script_dir = os.path.dirname(__file__)
@@ -29,10 +30,10 @@ def relative_path(path):
 
 original_method = botocore.client.BaseClient._make_api_call
 
-cnt = 1
 
-def get_params_hash(data):
-    return hashlib.md5(json.dumps(data, sort_keys=True, default=str).encode('utf-8')).hexdigest()[0:7]
+def get_params_hash(region, data):
+    return hashlib.md5((region + json.dumps(data, sort_keys=True, default=str)).encode('utf-8')).hexdigest()[0:7]
+
 
 @contextmanager
 def mock_patch_method_original(mock_path):
@@ -46,12 +47,12 @@ def mock_patch_method_original(mock_path):
         result["ResponseMetadata"] = {
             "Parameters": args[1],
             "OperationName": args[0],
-            "Generater": datetime.datetime.now()
+            "Generater": datetime.datetime.now(),
+            "Region": self.meta.region_name
         }
-        fn = botocore.xform_name(args[0]) + '_' + get_params_hash(args)
+        fn = botocore.xform_name(args[0]) + '_' + get_params_hash(self.meta.region_name, args)
         with open(relative_path('json/eventbridge/' + fn + '.json'), 'w') as outfile:
             json.dump(result, outfile, indent=2, default=str)
-        cnt += 1
         return result
 
     patcher = mock.patch(mock_path, autospec=True, side_effect=side_effect)
@@ -103,16 +104,16 @@ class TestEventBridge(unittest.TestCase):
         self.assertTrue(False, "Relation expected source_id={} target_id={}".format(source_id, target_id))
 
     def test_process_realaccount(self):
-        with mock_patch_method_original('botocore.client.BaseClient._make_api_call') as mock:
+        with mock_patch_method_original('botocore.client.BaseClient._make_api_call'):
             self.check.run()
             topology = [top.get_snapshot(self.check.check_id)]
             self.assertEqual(len(topology), 1)
             self.assert_executed_ok()
-            components = topology[0]["components"]
-            relations = topology[0]["relations"]
+            # components = topology[0]["components"]
+            # relations = topology[0]["relations"]
             # print('# components: ', len(components))
             # print('# relations: ', len(relations))
-            #for component in components:
-            #    print(json.dumps(component, indent=2, default=str))
-            #for relation in relations:
-            #    print(json.dumps(relation, indent=2, default=str))
+            # for component in components:
+            #     print(json.dumps(component, indent=2, default=str))
+            # for relation in relations:
+            #     print(json.dumps(relation, indent=2, default=str))
