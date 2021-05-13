@@ -6,6 +6,12 @@ from stackstate_checks.base.stubs import topology as top, aggregator
 from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
 from stackstate_checks.base import AgentCheck
 import re
+import botocore
+import hashlib
+
+
+def get_params_hash(region, data):
+    return hashlib.md5((region + json.dumps(data, sort_keys=True, default=str)).encode('utf-8')).hexdigest()[0:7]
 
 
 def relative_path(path):
@@ -19,12 +25,8 @@ def resource(path):
     return x
 
 
-gaadcnt = 0
-
-
-def mock_boto_calls(operation_name, kwarg=None):
-    global gaadcnt
-    if operation_name == "AssumeRole":
+def mock_boto_calls(self, *args, **kwargs):
+    if args[0] == "AssumeRole":
         return {
             "Credentials": {
                 "AccessKeyId": "KEY_ID",
@@ -32,12 +34,15 @@ def mock_boto_calls(operation_name, kwarg=None):
                 "SessionToken": "TOKEN"
             }
         }
-    elif operation_name == 'GetAccountAuthorizationDetails':
-        gaadcnt += 1
-        return resource('json/iam/data' + str(gaadcnt) + '.json')
-    elif operation_name == 'LookupEvents':
-        return {}
-    raise ValueError("Unknown operation name", operation_name)
+    operation_name = botocore.xform_name(args[0])
+    file_name = "json/iam/{}_{}.json".format(operation_name, get_params_hash(self.meta.region_name, args))
+    try:
+        return resource(file_name)
+    except Exception:
+        error = "API response file not found for operation: {}\n".format(operation_name)
+        error += "Parameters:\n{}\n".format(json.dumps(args[1], indent=2, default=str))
+        error += "File missing: {}".format(file_name)
+        raise Exception(error)
 
 
 class TestIAM(unittest.TestCase):
@@ -49,7 +54,7 @@ class TestIAM(unittest.TestCase):
         """
         Initialize and patch the check, i.e.
         """
-        self.patcher = patch("botocore.client.BaseClient._make_api_call")
+        self.patcher = patch("botocore.client.BaseClient._make_api_call", autospec=True)
         self.mock_object = self.patcher.start()
         top.reset()
         aggregator.reset()
