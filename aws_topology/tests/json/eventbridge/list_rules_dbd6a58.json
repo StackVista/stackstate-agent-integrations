@@ -21,7 +21,7 @@
       "EventBusName": "stackstate-main-account-main-region"
     },
     "OperationName": "ListRules",
-    "Generater": "2021-05-13 10:29:57.709809",
+    "Generater": "2021-05-13 10:48:57.218134",
     "Region": "eu-west-1"
   }
 }

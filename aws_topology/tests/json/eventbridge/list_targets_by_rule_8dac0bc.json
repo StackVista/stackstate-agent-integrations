@@ -12,7 +12,7 @@
       "Rule": "stackstate-resources-debug-StsEc2Rule-SJBRONO1KVPN"
     },
     "OperationName": "ListTargetsByRule",
-    "Generater": "2021-05-13 10:29:57.610030",
+    "Generater": "2021-05-13 10:48:57.111670",
     "Region": "eu-west-1"
   }
 }

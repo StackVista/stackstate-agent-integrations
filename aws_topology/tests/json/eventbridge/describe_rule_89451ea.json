@@ -1,0 +1,17 @@
+{
+  "Name": "stackstate-main-account-m-EventBridgeCustomBusRule-1LDKRBE651N2B",
+  "Arn": "arn:aws:events:eu-west-1:548105126730:rule/stackstate-main-account-main-region/stackstate-main-account-m-EventBridgeCustomBusRule-1LDKRBE651N2B",
+  "EventPattern": "{\"detail-type\":[\"Testing\"],\"source\":[\"test.test\"]}",
+  "State": "ENABLED",
+  "EventBusName": "stackstate-main-account-main-region",
+  "CreatedBy": "548105126730",
+  "ResponseMetadata": {
+    "Parameters": {
+      "EventBusName": "stackstate-main-account-main-region",
+      "Name": "stackstate-main-account-m-EventBridgeCustomBusRule-1LDKRBE651N2B"
+    },
+    "OperationName": "DescribeRule",
+    "Generater": "2021-05-13 10:48:57.393571",
+    "Region": "eu-west-1"
+  }
+}

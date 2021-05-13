@@ -6,7 +6,7 @@
       "Name": "arn:aws:events:eu-west-1:548105126730:event-bus/stackstate-main-account-main-region"
     },
     "OperationName": "DescribeEventBus",
-    "Generater": "2021-05-13 10:29:57.641500",
+    "Generater": "2021-05-13 10:48:57.145526",
     "Region": "eu-west-1"
   }
 }
