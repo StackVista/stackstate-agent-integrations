@@ -12,8 +12,8 @@ from .ecs import create_cluster_arn as ecs_cluster_arn
 from .api_gateway import create_api_arn, create_stage_arn, create_resource_arn, create_method_arn
 from .elb_classic import create_arn as create_elb_arn
 from .api_gateway_v2 import create_httpapi_arn
-from .eventbridge import create_event_bus_arn, create_rule_arn
-from .iam import create_group_arn
+from .eventbridge import create_event_bus_arn, create_rule_arn, create_archive_arn
+from .iam import create_group_arn, create_user_arn, create_role_arn, create_instance_profile_arn
 
 type_map = {
     'AWS::Lambda::Function': 'lambda_func',
@@ -43,10 +43,11 @@ type_arn = {
     'AWS::S3::Bucket': s3_arn,
     'AWS::RDS::DBInstance': create_db_arn,
     'AWS::RDS::DBCluster': create_cluster_arn,
-    'AWS::SNS::Topic': sns_arn,
+    'AWS::SNS::Topic': no_arn,  # TODO just removed
     'AWS::SQS::Queue': sqs_arn,
     'AWS::DynamoDB::Table': dynamodb_table_arn,
     'AWS::ECS::Cluster': ecs_cluster_arn,
+    'AWS::ECS::TaskDefinition': no_arn,
     'AWS::ApiGateway::RestApi': create_api_arn,
     'AWS::ApiGateway::Stage': create_stage_arn,
     'AWS::ApiGateway::Resource': create_resource_arn,
@@ -55,6 +56,7 @@ type_arn = {
     'AWS::ElasticLoadBalancing::LoadBalancer': create_elb_arn,  # TODO odd one
     'AWS::Events::EventBus': create_event_bus_arn,
     'AWS::Events::Rule': create_rule_arn,
+    'AWS::Events::Archive': create_archive_arn,
     'AWS::EC2::Instance': no_arn,
     'AWS::EC2::SecurityGroup': no_arn,
     'AWS::EC2::Vpc': no_arn,
@@ -62,7 +64,13 @@ type_arn = {
     'AWS::ElasticLoadBalancingV2::TargetGroup': no_arn,
     'AWS::ElasticLoadBalancingV2::LoadBalancer': no_arn,
     'AWS::AutoScaling::AutoScalingGroup': no_arn,
-    'AWS::IAM::Group': create_group_arn
+    'AWS::IAM::Group': create_group_arn,
+    'AWS::IAM::User': create_user_arn,
+    'AWS::IAM::ManagedPolicy': no_arn,
+    'AWS::IAM::Role': create_role_arn,
+    'AWS::IAM::InstanceProfile': create_instance_profile_arn,
+    "AWS::StepFunctions::StateMachine": no_arn,
+    "AWS::StepFunctions::Activity": no_arn
 }
 
 
