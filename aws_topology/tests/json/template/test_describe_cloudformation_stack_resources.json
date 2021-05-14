@@ -117,7 +117,7 @@
             "ResourceType": "AWS::SNS::Topic",
             "Timestamp": "2019-06-27T20:24:01.051Z",
             "StackName": "stackstate-topo-publisher",
-            "PhysicalResourceId": "my-topic-3",
+            "PhysicalResourceId": "arn:aws:sns:eu-west-1:731070500579:my-topic-3",
             "LogicalResourceId": "StackSatePublisher"
         },
         {
