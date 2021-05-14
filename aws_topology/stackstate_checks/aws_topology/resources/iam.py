@@ -36,6 +36,18 @@ def create_group_arn(region=None, account_id=None, resource_id=None, **kwargs):
     return arn(resource='iam', region='', account_id=account_id, resource_id='group/' + resource_id)
 
 
+def create_user_arn(region=None, account_id=None, resource_id=None, **kwargs):
+    return arn(resource='iam', region='', account_id=account_id, resource_id='user/' + resource_id)
+
+
+def create_role_arn(region=None, account_id=None, resource_id=None, **kwargs):
+    return arn(resource='iam', region='', account_id=account_id, resource_id='role/' + resource_id)
+
+
+def create_instance_profile_arn(region=None, account_id=None, resource_id=None, **kwargs):
+    return arn(resource='iam', region='', account_id=account_id, resource_id='instance-profile/' + resource_id)
+
+
 class User(Model):
     Arn = StringType(required=True)
     UserName = StringType(required=True)
