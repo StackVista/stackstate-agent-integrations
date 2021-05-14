@@ -10,6 +10,7 @@ from contextlib import contextmanager
 import botocore
 import hashlib
 import datetime
+import glob
 
 
 """
@@ -23,12 +24,25 @@ It uses a
 """
 
 
+target = "cloudformation"
+# target = iam
+# target = events
+# target = stepfunctions
+
+regions = ["eu-west-1"]
+if target == "cloudformation":
+    regions = ["eu-west-1", "us-east-1"]
+if target == "iam":
+    regions = ["global"]
+
+
 def relative_path(path):
     script_dir = os.path.dirname(__file__)
     return os.path.abspath(os.path.join(script_dir, path))
 
 
 original_method = botocore.client.BaseClient._make_api_call
+account_id = ""
 
 
 def get_params_hash(region, data):
@@ -39,7 +53,7 @@ def get_params_hash(region, data):
 def mock_patch_method_original(mock_path):
 
     def side_effect(self, *args, **kwargs):
-        global cnt
+        global account_id
         side_effect.self = self
         result = original_method(self, *args, **kwargs)
         if "ResponseMetadata" in result:
@@ -48,11 +62,13 @@ def mock_patch_method_original(mock_path):
             "Parameters": args[1],
             "OperationName": args[0],
             "Generater": datetime.datetime.now(),
-            "Region": self.meta.region_name
+            "Region": self.meta.region_name,
+            "Account": account_id
         }
         fn = botocore.xform_name(args[0]) + '_' + get_params_hash(self.meta.region_name, args)
-        with open(relative_path('json/eventbridge/' + fn + '.json'), 'w') as outfile:
-            json.dump(result, outfile, indent=2, default=str)
+        if args[0] != 'AssumeRole':
+            with open(relative_path('json/' + target + '/' + fn + '.json'), 'w') as outfile:
+                json.dump(result, outfile, indent=2, default=str)
         return result
 
     patcher = mock.patch(mock_path, autospec=True, side_effect=side_effect)
@@ -69,6 +85,7 @@ class TestEventBridge(unittest.TestCase):
         """
         Initialize and patch the check, i.e.
         """
+        global account_id
         with open(relative_path('../stackstate_checks/aws_topology.yaml'), 'r') as stream:
             data_loaded = yaml.safe_load(stream)
         top.reset()
@@ -78,11 +95,13 @@ class TestEventBridge(unittest.TestCase):
             "aws_secret_access_key": data_loaded["init_config"]["aws_secret_access_key"],
             "external_id": data_loaded["init_config"]["external_id"]
         })
+        role = data_loaded["instances"][0]["role_arn"]
+        account_id = role.split(':')[4]
         instance = {
-            "role_arn": data_loaded["instances"][0]["role_arn"],
-            "regions": ["eu-west-1"],
+            "role_arn": role,
+            "regions": regions,
         }
-        instance.update({"apis_to_run": ['events']})
+        instance.update({"apis_to_run": [target]})
 
         self.check = AwsTopologyCheck(self.CHECK_NAME, InitConfig(init_config), [instance])
 
@@ -109,11 +128,24 @@ class TestEventBridge(unittest.TestCase):
             topology = [top.get_snapshot(self.check.check_id)]
             self.assertEqual(len(topology), 1)
             self.assert_executed_ok()
-            # components = topology[0]["components"]
-            # relations = topology[0]["relations"]
-            # print('# components: ', len(components))
-            # print('# relations: ', len(relations))
-            # for component in components:
-            #     print(json.dumps(component, indent=2, default=str))
-            # for relation in relations:
-            #     print(json.dumps(relation, indent=2, default=str))
+
+            if target == "cloudformation":
+                names = {}
+                for file in glob.glob(relative_path('json/cloudformation/describe_stack_resources*.json')):
+                    with open(file) as f:
+                        x = json.load(f)
+                        region = x["ResponseMetadata"]["Region"]
+                        if x['StackResources']:
+                            for resource in x['StackResources']:
+                                key = "{}|{}|{}|{}".format(
+                                    account_id,
+                                    region,
+                                    resource['StackName'],
+                                    resource['LogicalResourceId']
+                                )
+                                names[key] = {
+                                    "type": resource['ResourceType'],
+                                    "id": resource['PhysicalResourceId']
+                                }
+                with open(relative_path('json/cloudformation/names.json'), 'w') as outfile:
+                    json.dump(names, outfile, indent=2, default=str)
