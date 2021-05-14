@@ -1,0 +1,23 @@
+{
+  "Items": [
+    {
+      "ConnectionType": "INTERNET",
+      "IntegrationId": "8u6r42o",
+      "IntegrationMethod": "POST",
+      "IntegrationType": "AWS_PROXY",
+      "IntegrationUri": "arn:aws:lambda:eu-west-1:548105126730:function:stackstate-main-account-main-region-LambdaFunction-1AIMOJSC4PKMM",
+      "PayloadFormatVersion": "2.0",
+      "RequestTemplates": {},
+      "TimeoutInMillis": 30000
+    }
+  ],
+  "ResponseMetadata": {
+    "Parameters": {
+      "ApiId": "tpfsxstrsh"
+    },
+    "OperationName": "GetIntegrations",
+    "Generater": "2021-05-14 08:36:12.193103",
+    "Region": "eu-west-1",
+    "Account": "548105126730"
+  }
+}

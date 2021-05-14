@@ -1,0 +1,22 @@
+{
+  "Items": [
+    {
+      "ApiKeyRequired": false,
+      "AuthorizationScopes": [],
+      "AuthorizationType": "NONE",
+      "RequestModels": {},
+      "RouteId": "6cx7j7b",
+      "RouteKey": "$default",
+      "Target": "integrations/8u6r42o"
+    }
+  ],
+  "ResponseMetadata": {
+    "Parameters": {
+      "ApiId": "tpfsxstrsh"
+    },
+    "OperationName": "GetRoutes",
+    "Generater": "2021-05-14 08:36:12.087108",
+    "Region": "eu-west-1",
+    "Account": "548105126730"
+  }
+}

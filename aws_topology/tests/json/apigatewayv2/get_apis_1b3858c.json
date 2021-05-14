@@ -1,0 +1,22 @@
+{
+  "Items": [
+    {
+      "ApiEndpoint": "https://tpfsxstrsh.execute-api.eu-west-1.amazonaws.com",
+      "ApiId": "tpfsxstrsh",
+      "ApiKeySelectionExpression": "$request.header.x-api-key",
+      "CreatedDate": "2021-05-10 10:12:53+00:00",
+      "DisableExecuteApiEndpoint": false,
+      "Name": "ApiGatewayApiTest",
+      "ProtocolType": "HTTP",
+      "RouteSelectionExpression": "$request.method $request.path",
+      "Tags": {}
+    }
+  ],
+  "ResponseMetadata": {
+    "Parameters": {},
+    "OperationName": "GetApis",
+    "Generater": "2021-05-14 08:36:11.883822",
+    "Region": "eu-west-1",
+    "Account": "548105126730"
+  }
+}

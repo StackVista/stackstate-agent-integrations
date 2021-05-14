@@ -1,0 +1,27 @@
+{
+  "Items": [
+    {
+      "AutoDeploy": true,
+      "CreatedDate": "2021-05-10 10:12:57+00:00",
+      "DefaultRouteSettings": {
+        "DetailedMetricsEnabled": false
+      },
+      "DeploymentId": "4e2j3y",
+      "LastDeploymentStatusMessage": "Successfully deployed stage with deployment ID '4e2j3y'",
+      "LastUpdatedDate": "2021-05-10 10:16:27+00:00",
+      "RouteSettings": {},
+      "StageName": "test",
+      "StageVariables": {},
+      "Tags": {}
+    }
+  ],
+  "ResponseMetadata": {
+    "Parameters": {
+      "ApiId": "tpfsxstrsh"
+    },
+    "OperationName": "GetStages",
+    "Generater": "2021-05-14 08:36:11.993518",
+    "Region": "eu-west-1",
+    "Account": "548105126730"
+  }
+}
