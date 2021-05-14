@@ -47,7 +47,7 @@ class InstanceInfo(Model):
 
 class AwsTopologyCheck(AgentCheck):
     """Collects AWS Topology and sends them to STS."""
-    INSTANCE_TYPE = 'aws'  # TODO should we add _topology?
+    INSTANCE_TYPE = 'aws-v2'  # TODO should we add _topology?
     SERVICE_CHECK_CONNECT_NAME = 'aws_topology.can_connect'
     SERVICE_CHECK_EXECUTE_NAME = 'aws_topology.can_execute'
     INSTANCE_SCHEMA = InstanceInfo
