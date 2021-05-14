@@ -227,6 +227,7 @@ class AgentProxy(object):
         self.components_seen = set()
         self.parked_relations = []
         self.role_name = role_name
+        self.warnings = {}
 
     def component(self, location, id, type, data):
         self.components_seen.add(id)
@@ -255,6 +256,8 @@ class AgentProxy(object):
     def send_parked_relations(self):
         for relation in self.parked_relations:
             self.agent.relation(relation['source_id'], relation['target_id'], relation['type'], relation['data'])
+        for warning in self.warnings:
+            self.agent.warning(warning + " was encountered {} time(s).".format(self.warnings[warning]))
 
     def event(self, event):
         self.agent.event(event)
@@ -264,8 +267,8 @@ class AgentProxy(object):
 
     def warning(self, error, **kwargs):
         # TODO here we aggregate errors smartly to report back to StackState in the end
-        print("ERROR ", error)
-        print("KWARGS", kwargs)
+        warning = self.warnings.get(error, 0) + 1
+        self.warnings[error] = warning
 
     def create_arn(self, type, location, resource_id=''):
         func = type_arn.get(type)
