@@ -6,6 +6,7 @@ from stackstate_checks.base.stubs import topology as top, aggregator
 from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
 from stackstate_checks.base import AgentCheck
 import botocore
+from botocore.exceptions import ClientError
 import hashlib
 from stackstate_checks.aws_topology.resources.cloudformation import type_arn
 
@@ -25,26 +26,42 @@ def resource(path):
     return x
 
 
-def mock_boto_calls(self, *args, **kwargs):
-    if args[0] == "AssumeRole":
-        return {
-            "Credentials": {
-                "AccessKeyId": "KEY_ID",
-                "SecretAccessKey": "ACCESS_KEY",
-                "SessionToken": "TOKEN"
+def set_not_authorized(value):
+    def inner(func):
+        func.not_authorized = value
+        return func
+
+    return inner
+
+
+def wrapper(not_authorized):
+    def mock_boto_calls(self, *args, **kwargs):
+        if args[0] == "AssumeRole":
+            return {
+                "Credentials": {
+                    "AccessKeyId": "KEY_ID",
+                    "SecretAccessKey": "ACCESS_KEY",
+                    "SessionToken": "TOKEN"
+                }
             }
-        }
-    if args[0] == "LookupEvents":
-        return {}
-    operation_name = botocore.xform_name(args[0])
-    file_name = "json/iam/{}_{}.json".format(operation_name, get_params_hash(self.meta.region_name, args))
-    try:
-        return resource(file_name)
-    except Exception:
-        error = "API response file not found for operation: {}\n".format(operation_name)
-        error += "Parameters:\n{}\n".format(json.dumps(args[1], indent=2, default=str))
-        error += "File missing: {}".format(file_name)
-        raise Exception(error)
+        if args[0] == "LookupEvents":
+            return {}
+        operation_name = botocore.xform_name(args[0])
+        if operation_name in not_authorized:
+            raise botocore.exceptions.ClientError({
+                'Error': {
+                    'Code': 'AccessDenied'
+                }
+            }, operation_name)
+        file_name = "json/iam/{}_{}.json".format(operation_name, get_params_hash(self.meta.region_name, args))
+        try:
+            return resource(file_name)
+        except Exception:
+            error = "API response file not found for operation: {}\n".format(operation_name)
+            error += "Parameters:\n{}\n".format(json.dumps(args[1], indent=2, default=str))
+            error += "File missing: {}".format(file_name)
+            raise Exception(error)
+    return mock_boto_calls
 
 
 class TestIAM(unittest.TestCase):
@@ -56,6 +73,10 @@ class TestIAM(unittest.TestCase):
         """
         Initialize and patch the check, i.e.
         """
+        method = getattr(self, self._testMethodName)
+        not_authorized = []
+        if hasattr(method, 'not_authorized'):
+            not_authorized = method.not_authorized
         self.patcher = patch("botocore.client.BaseClient._make_api_call", autospec=True)
         self.mock_object = self.patcher.start()
         top.reset()
@@ -72,7 +93,7 @@ class TestIAM(unittest.TestCase):
         instance.update({"apis_to_run": ["iam"]})
 
         self.check = AwsTopologyCheck(self.CHECK_NAME, InitConfig(init_config), [instance])
-        self.mock_object.side_effect = mock_boto_calls
+        self.mock_object.side_effect = wrapper(not_authorized)
 
     def tearDown(self):
         self.patcher.stop()
@@ -142,3 +163,12 @@ class TestIAM(unittest.TestCase):
         role_name = get_id('EcsEc2IamRole')
         self.assert_has_component(components, instance_profile_name, 'aws.iam.instance_profile')
         self.assert_has_relation(relations, instance_profile_name, role_name)
+
+    @set_not_authorized('get_account_authorization_details')
+    def test_iam_access(self):
+        self.check.run()
+        self.assertIn(
+            'Role arn:aws:iam::548105126730:role/RoleName needs iam:GetAccountAuthorizationDetails'
+                + ' was encountered 1 time(s).',
+            self.check.warnings
+        )

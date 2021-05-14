@@ -1,4 +1,4 @@
-from .utils import make_valid_data, create_arn as arn
+from .utils import make_valid_data, create_arn as arn, set_required_access_v2
 from .registry import RegisteredResourceCollector
 from schematics import Model
 from schematics.types import StringType
@@ -93,6 +93,7 @@ class IAMProcessor(RegisteredResourceCollector):
     COMPONENT_TYPE = "aws.iam.user"
     CLOUDFORMATION_TYPE = 'AWS::IAM::User'
 
+    @set_required_access_v2("iam:GetAccountAuthorizationDetails")
     def process_all(self, filter=None):
         # handle summary
         for page in self.client.get_paginator('get_account_authorization_details').paginate():
