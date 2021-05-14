@@ -8,6 +8,7 @@ from stackstate_checks.base import AgentCheck
 import hashlib
 import botocore
 from functools import reduce
+from stackstate_checks.aws_topology.resources.cloudformation import type_arn
 
 
 def get_params_hash(region, data):
@@ -35,7 +36,7 @@ def mock_boto_calls(self, *args, **kwargs):
             }
         }
     operation_name = botocore.xform_name(args[0])
-    file_name = "json/eventbridge/{}_{}.json".format(operation_name, get_params_hash(self.meta.region_name, args))
+    file_name = "json/events/{}_{}.json".format(operation_name, get_params_hash(self.meta.region_name, args))
     try:
         return resource(file_name)
     except Exception:
@@ -110,6 +111,17 @@ class TestEvents(unittest.TestCase):
                 resource_id
             )
 
+        names = resource('json/cloudformation/names.json')
+
+        def get_id(name, stack='stackstate-main-account-main-region'):
+            account = '548105126730'
+            region = 'eu-west-1'
+            res = names.get(account + '|' + region + '|' + stack + '|' + name)
+            if res:
+                arn = type_arn.get(res["type"])
+                if arn:
+                    return arn(region=region, account_id=account, resource_id=res["id"])
+
         # check default bus
         bus_name = "default"
         self.assert_has_component(
@@ -124,68 +136,72 @@ class TestEvents(unittest.TestCase):
         )
         # bus is related to 2 rules
         # rule 1
-        rule_name = "stackstate-main-account-main-r-EventBridgeCronRule-1ATSJ2IVLLTHS"
-        self.assert_has_component(components, get_arn("rule", rule_name), "aws.events.rule")
-        self.assert_has_relation(relations, get_arn("rule", rule_name), get_arn("event-bus", bus_name))
+        rule_name = get_id("EventBridgeCronRule")
+        self.assert_has_component(components, rule_name, "aws.events.rule")
+        self.assert_has_relation(relations, rule_name, get_arn("event-bus", bus_name))
         # rule 1 has a target
+        # TODO target ids are not good yet need some arn formatting!
         self.assert_has_component(components, "sqs", "aws.events.target")
-        self.assert_has_relation(relations, get_arn("rule", rule_name), "sqs")
+        self.assert_has_relation(relations, rule_name, "sqs")
         # target has relation with a resource
-        resource_id = "arn:aws:sqs:eu-west-1:548105126730:stackstate-main-account-main-region-SqsQueue-1CIRWAM6D60JD"
+        resource_id = get_id("SqsQueue")
         self.assert_has_relation(relations, "sqs", resource_id)
         # rule 2
-        rule_name = "stackstate-resources-debug-StsEc2Rule-SJBRONO1KVPN"
-        self.assert_has_component(components, get_arn("rule", rule_name), "aws.events.rule")
-        self.assert_has_relation(relations, get_arn("rule", rule_name), get_arn("event-bus", bus_name))
+        rule_name = get_id("StsEc2Rule", stack="stackstate-resources-debug")
+        self.assert_has_component(components, rule_name, "aws.events.rule")
+        self.assert_has_relation(relations, rule_name, get_arn("event-bus", bus_name))
         # rule 2 has a target
         target_id = "StsEventBridgeFirehose"
         self.assert_has_component(components, target_id, "aws.events.target")
-        self.assert_has_relation(relations, get_arn("rule", rule_name), target_id)
+        self.assert_has_relation(relations, rule_name, target_id)
         # target has relation with resource and role
-        resource_id = "arn:aws:firehose:eu-west-1:548105126730:deliverystream/stackstate-eventbridge-stream"
-        role_id = "arn:aws:iam::548105126730:role/StackStateEventBridgeRole-eu-west-1"
+        resource_id = get_id("StsEventBridgeFirehose", stack="stackstate-resources-debug")
+        role_id = get_id("StsEventBridgeRole", stack="stackstate-resources-debug")
         self.assert_has_relation(relations, target_id, resource_id)
         self.assert_has_relation(relations, target_id, role_id)
         # bus 2
-        stack_name = "stackstate-main-account-main-region"
         bus_name = "stackstate-main-account-main-region"
         self.assert_has_component(
             components,
-            get_arn("event-bus", bus_name),
+            get_id("EventBridgeCustomBus"),
             "aws.events.bus",
             checks={
                 "Name": bus_name
             }
         )
-        # bus 2 has 2 rules
-        # rule 1
-        rule_name = stack_name + "/Events-Archive-EventBridgeArchive-oLlo8WLrFl3H"
-        self.assert_has_component(components, get_arn("rule", rule_name), "aws.events.rule")
-        self.assert_has_relation(relations, get_arn("rule", rule_name), get_arn("event-bus", bus_name))
-        # rule 1 has a target
-        target_id = "Events-Archive-EventBridgeArchive-oLlo8WLrFl3H"
-        self.assert_has_component(components, target_id, "aws.events.target")
-        self.assert_has_relation(relations, get_arn("rule", rule_name), target_id)
-        # target is related to a resource
-        # TODO this is very strange target
-        self.assert_has_relation(relations, target_id, "arn:aws:events:eu-west-1:::")
-        # rule 2
-        rule_name = stack_name + "/stackstate-main-account-m-EventBridgeCustomBusRule-1LDKRBE651N2B"
-        self.assert_has_component(components, get_arn("rule", rule_name), "aws.events.rule")
-        self.assert_has_relation(relations, get_arn("rule", rule_name), get_arn("event-bus", bus_name))
-        # rule 2 has a target
-        self.assert_has_component(components, "schedule", "aws.events.target")
-        self.assert_has_relation(relations, get_arn("rule", rule_name), "schedule")
-        # target has relation with 2 resources
-        resource_id = "arn:aws:states:eu-west-1:548105126730:stateMachine:StepFunctionsStateMachine-wAXvzDJDy4ja"
-        role_id = "arn:aws:iam::548105126730:role/stackstate-main-account-main-re-EventBridgeIamRole-IW90IMP0QROZ"
-        self.assert_has_relation(relations, "schedule", resource_id)
-        self.assert_has_relation(relations, "schedule", role_id)
+
         # bus 2 has an archive
-        archive_id = "arn:aws:events:eu-west-1:548105126730:archive/EventBridgeArchive-oLlo8WLrFl3H"
-        self.assert_has_component(
+        archive_id = get_id("EventBridgeArchive")
+        archive = self.assert_has_component(
             components,
             archive_id,
             "aws.events.archive"
         )
         self.assert_has_relation(relations, archive_id, get_arn("event-bus", bus_name))
+
+        # bus 2 has 2 rules
+        # rule 1
+        rule_name = get_id("EventBridgeCustomBusRule").replace('|', '/')  # VERY ODD!!
+        self.assert_has_component(components, rule_name, "aws.events.rule")
+        self.assert_has_relation(relations, rule_name, get_arn("event-bus", bus_name))
+        # rule 2 has a target
+        self.assert_has_component(components, "schedule", "aws.events.target")
+        self.assert_has_relation(relations, rule_name, "schedule")
+        # target has relation with 2 resources
+        resource_id = get_id("StepFunctionsStateMachine")
+        role_id = get_id("EventBridgeIamRole")
+        self.assert_has_relation(relations, "schedule", resource_id)
+        self.assert_has_relation(relations, "schedule", role_id)
+
+        # rule 2 (this one is not in cloudformation so constructing rule_name and target_id)
+        archive_name = archive["data"]["ArchiveName"]
+        rule_name = bus_name + "/Events-Archive-" + archive_name
+        self.assert_has_component(components, get_arn("rule", rule_name), "aws.events.rule")
+        self.assert_has_relation(relations, get_arn("rule", rule_name), get_id("EventBridgeCustomBus"))
+        # rule 1 has a target
+        target_id = "Events-Archive-" + archive_name
+        self.assert_has_component(components, target_id, "aws.events.target")
+        self.assert_has_relation(relations, get_arn("rule", rule_name), target_id)
+        # target is related to a resource
+        # TODO this is very strange target
+        self.assert_has_relation(relations, target_id, "arn:aws:events:eu-west-1:::")
