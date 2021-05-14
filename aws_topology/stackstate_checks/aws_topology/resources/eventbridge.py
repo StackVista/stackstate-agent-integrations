@@ -69,6 +69,10 @@ def create_archive_arn(region=None, account_id=None, resource_id=None, **kwargs)
     return arn(resource='events', region=region, account_id=account_id, resource_id='archive/' + resource_id)
 
 
+def create_replay_arn(region=None, account_id=None, resource_id=None, **kwargs):
+    return arn(resource='events', region=region, account_id=account_id, resource_id='replay/' + resource_id)
+
+
 class ReplayAction(CloudTrailEventBase):
     class ResponseElements(Model):
         replayName = StringType(required=True)
@@ -117,9 +121,9 @@ class ApiDestination(Model):
 
 class Archive(Model):
     ArchiveArn = StringType(required=True)
-    ArchiveName = StringType(required=True)
-    EventSourceArn = StringType(required=True)
-    State = StringType(required=True)
+    ArchiveName = StringType(default="UNKNOWN")
+    EventSourceArn = StringType()
+    State = StringType(default="UNKNOWN")
 
 
 class ReplayDestination(Model):
@@ -127,11 +131,11 @@ class ReplayDestination(Model):
 
 
 class Replay(Model):
-    ReplayName = StringType(required=True)
     ReplayArn = StringType(required=True)
-    State = StringType(required=True)
-    EventSourceArn = StringType(required=True)
-    Destination = ModelType(ReplayDestination, required=True)
+    ReplayName = StringType(default="UNKNOWN")
+    State = StringType(default="UNKNOWN")
+    EventSourceArn = StringType()
+    Destination = ModelType(ReplayDestination)
 
 
 class EventSource(Model):
@@ -146,24 +150,20 @@ class EventBridgeProcessor(RegisteredResourceCollector):
     COMPONENT_TYPE = "aws.events.bus"
     CLOUDFORMATION_TYPE = 'AWS::Events::EventBus'
 
+    @set_required_access_v2('events:ListTagsForResource', ignore=True)
     def collect_tags(self, arn):
-        try:
-            return self.client.list_tags_for_resource(ResourceARN=arn).get('Tags') or []
-        except Exception:
-            return []
+        return self.client.list_tags_for_resource(ResourceARN=arn).get('Tags')
 
+    @set_required_access_v2('events:DescribeEventBus', ignore=True)
     def collect_event_bus_description(self, arn):
-        try:
-            return self.client.describe_event_bus(Name=arn)
-        except Exception:
-            return {}
+        return self.client.describe_event_bus(Name=arn)
 
     def collect_event_bus(self, event_bus):
         arn = event_bus.get('Arn')
         name = event_bus.get('Name')
-        description = self.collect_event_bus_description(arn) or {}
+        description = self.collect_event_bus_description(arn) or {"Arn": arn}
         tags = self.collect_tags(arn) or []
-        rules = [rule for rule in self.collect_rules(name)]
+        rules = self.collect_rules(name) or []
         return EventBusData(summary=event_bus, description=description, tags=tags, rules=rules)
 
     def collect_event_buses(self):
@@ -176,36 +176,35 @@ class EventBridgeProcessor(RegisteredResourceCollector):
         ]:
             yield event_bus
 
+    @set_required_access_v2('events:DescribeRule', ignore=True)
     def collect_rule_description(self, bus_name, rule_name):
-        try:
-            return self.client.describe_rule(EventBusName=bus_name, Name=rule_name)
-        except Exception:
-            return {}
+        return self.client.describe_rule(EventBusName=bus_name, Name=rule_name)
 
     def collect_rule(self, bus_name, rule_summary):
         arn = rule_summary.get('Arn')
         name = rule_summary.get('Name')
         tags = self.collect_tags(arn) or []
-        description = self.collect_rule_description(bus_name, name) or {}
-        targets = [target for target in self.collect_targets(bus_name, name)]
+        description = self.collect_rule_description(bus_name, name) or { "Arn": arn, "State": "UNKNOWN" }
+        targets = self.collect_targets(bus_name, name) or []
         return RuleData(summary=rule_summary, tags=tags, description=description, targets=targets)
 
+    @set_required_access_v2('events:ListRules', ignore=True)
     def collect_rules(self, bus_name):
-        for rule in [
-                self.collect_rule(bus_name, rule_summary) for rule_summary in client_array_operation(
-                    self.client,
-                    'list_rules',
-                    'Rules',
-                    EventBusName=bus_name
-                )
-        ]:
-            yield rule
+        return [
+            self.collect_rule(bus_name, rule_summary) for rule_summary in client_array_operation(
+                self.client,
+                'list_rules',
+                'Rules',
+                EventBusName=bus_name
+            )
+        ]
 
     def collect_target(self, target):
         return target
 
+    @set_required_access_v2('events:ListTargetsByRule', ignore=True)
     def collect_targets(self, bus_name, rule_name):
-        for target in [
+        return [
                 self.collect_target(target) for target in client_array_operation(
                     self.client,
                     'list_targets_by_rule',
@@ -213,8 +212,7 @@ class EventBridgeProcessor(RegisteredResourceCollector):
                     EventBusName=bus_name,
                     Rule=rule_name
                 )
-        ]:
-            yield target
+        ]
 
     def collect_api_destination_description(self, name):
         try:
@@ -258,15 +256,20 @@ class EventBridgeProcessor(RegisteredResourceCollector):
         ]:
             yield connection
 
+    @set_required_access_v2('events:DescribeArchive', ignore=True)
     def collect_archive_description(self, name):
-        try:
-            return self.client.describe_archive(ArchiveName=name)
-        except Exception:
-            return {}
+        return self.client.describe_archive(ArchiveName=name)
 
     def collect_archive(self, archive):
         name = archive.get('ArchiveName')
-        description = self.collect_archive_description(name)
+        archive.update({
+            "ArchiveArn": self.agent.create_arn(
+                "AWS::Events::Archive",
+                self.location_info,
+                name
+            )
+        })
+        description = self.collect_archive_description(name) or archive
         return ArchiveData(summary=archive, description=description)
 
     def collect_archives(self):
@@ -279,15 +282,20 @@ class EventBridgeProcessor(RegisteredResourceCollector):
         ]:
             yield archive
 
+    @set_required_access_v2('events:DescribeReplay', ignore=True)
     def collect_replay_description(self, name):
-        try:
-            return self.client.describe_replay(ReplayName=name) or {}
-        except Exception:
-            return {}
+        return self.client.describe_replay(ReplayName=name)
 
     def collect_replay(self, replay):
         name = replay.get('ReplayName')
-        description = self.collect_replay_description(name)
+        replay.update({
+            self.agent.create_arn(
+                'AWS::Events::Replay',
+                self.location_info,
+                name
+            )
+        })
+        description = self.collect_replay_description(name) or replay
         return ReplayData(summary=replay, description=description)
 
     def collect_replays(self):
@@ -301,7 +309,7 @@ class EventBridgeProcessor(RegisteredResourceCollector):
             yield replay
 
     def collect_event_source(self, summary):
-        # chekc if we get all attributes otherwise describe is necessary
+        # TODO check if we get all attributes otherwise describe is necessary
         return summary
 
     def collect_event_sources(self):
@@ -329,30 +337,33 @@ class EventBridgeProcessor(RegisteredResourceCollector):
         if not filter or "replays" in filter:
             self.process_replays()
 
-    @set_required_access_v2('events:ListEventBuses')
+    @set_required_access_v2('events:ListEventBuses', ignore=True)
     def process_event_buses(self):
         # print('Processing of EventBuses started')
         for event_bus in self.collect_event_buses():
             self.process_event_bus(event_bus)
 
-    @set_required_access_v2('events:ListEventBuses')
+    @set_required_access_v2('events:ListApiDestinations', ignore=True)
     def process_api_destinations(self):
         for destination in self.collect_api_destinations():
             self.process_api_destination(destination)
 
-    @set_required_access_v2('events:ListEventBuses')
+    @set_required_access_v2('events:ListConnections', ignore=True)
     def process_connections(self):
         for connection in self.collect_connections():
             self.process_connection(connection)
 
+    @set_required_access_v2('events:ListArchives', ignore=True)
     def process_archives(self):
         for archive in self.collect_archives():
             self.process_archive(archive)
 
+    @set_required_access_v2('events:ListReplays', ignore=True)
     def process_replays(self):
         for replay in self.collect_replays():
             self.process_replay(replay)
 
+    @set_required_access_v2('events:ListEventSources', ignore=True)
     def process_event_sources(self):
         for event_source in self.collect_event_sources():
             self.process_event_source(event_source)
@@ -415,7 +426,8 @@ class EventBridgeProcessor(RegisteredResourceCollector):
         output = make_valid_data(data.description)
         output["Name"] = archive.ArchiveName
         self.emit_component(archive.ArchiveArn, 'aws.events.archive', output)
-        self.agent.relation(archive.ArchiveArn, archive.EventSourceArn, 'uses service', {})
+        if archive.EventSourceArn:
+            self.agent.relation(archive.ArchiveArn, archive.EventSourceArn, 'uses service', {})
 
     def process_replay(self, data):
         replay = Replay(data.description, strict=False)
@@ -423,8 +435,10 @@ class EventBridgeProcessor(RegisteredResourceCollector):
         output = make_valid_data(data.description)
         output["Name"] = replay.ReplayName
         self.emit_component(replay.ReplayArn, 'aws.events.replay', output)
-        self.agent.relation(replay.ReplayArn, replay.EventSourceArn, 'uses service', {})
-        self.agent.relation(replay.ReplayArn, replay.Destination.Arn, 'uses service', {})
+        if replay.EventSourceArn:
+            self.agent.relation(replay.ReplayArn, replay.EventSourceArn, 'uses service', {})
+        if replay.Destination and replay.Destination.Arn:
+            self.agent.relation(replay.ReplayArn, replay.Destination.Arn, 'uses service', {})
 
     def process_event_source(self, data):
         source = EventSource(data, strict=False)

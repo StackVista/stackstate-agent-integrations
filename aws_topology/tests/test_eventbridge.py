@@ -9,7 +9,8 @@ import hashlib
 import botocore
 from functools import reduce
 from stackstate_checks.aws_topology.resources.cloudformation import type_arn
-
+from botocore.exceptions import ClientError
+from collections import Counter
 
 def get_params_hash(region, data):
     return hashlib.md5((region + json.dumps(data, sort_keys=True, default=str)).encode('utf-8')).hexdigest()[0:7]
@@ -26,27 +27,45 @@ def resource(path):
     return x
 
 
-def mock_boto_calls(self, *args, **kwargs):
-    if args[0] == "AssumeRole":
-        return {
-            "Credentials": {
-                "AccessKeyId": "KEY_ID",
-                "SecretAccessKey": "ACCESS_KEY",
-                "SessionToken": "TOKEN"
-            }
-        }
-    if args[0] == "LookupEvents":
-        return {}
-    operation_name = botocore.xform_name(args[0])
-    file_name = "json/events/{}_{}.json".format(operation_name, get_params_hash(self.meta.region_name, args))
-    try:
-        return resource(file_name)
-    except Exception:
-        error = "API response file not found for operation: {}\n".format(operation_name)
-        error += "Parameters:\n{}\n".format(json.dumps(args[1], indent=2, default=str))
-        error += "File missing: {}".format(file_name)
-        raise Exception(error)
+def set_not_authorized(value):
+    def inner(func):
+        func.not_authorized = value
+        return func
 
+    return inner
+
+
+def wrapper(not_authorized):
+    local_not_authorized = not_authorized
+
+    def mock_boto_calls(self, *args, **kwargs):
+        if args[0] == "AssumeRole":
+            return {
+                "Credentials": {
+                    "AccessKeyId": "KEY_ID",
+                    "SecretAccessKey": "ACCESS_KEY",
+                    "SessionToken": "TOKEN"
+                }
+            }
+        if args[0] == "LookupEvents":
+            return {}
+        operation_name = botocore.xform_name(args[0])
+        if operation_name in local_not_authorized:
+            raise botocore.exceptions.ClientError({
+                'Error': {
+                    'Code': 'AccessDenied'
+                }
+            }, operation_name)
+        file_name = "json/events/{}_{}.json".format(operation_name, get_params_hash(self.meta.region_name, args))
+        try:
+            result = resource(file_name)
+            return result
+        except Exception:
+            error = "API response file not found for operation: {}\n".format(operation_name)
+            error += "Parameters:\n{}\n".format(json.dumps(args[1], indent=2, default=str))
+            error += "File missing: {}".format(file_name)
+            raise Exception(error)
+    return mock_boto_calls
 
 class TestEvents(unittest.TestCase):
 
@@ -57,6 +76,10 @@ class TestEvents(unittest.TestCase):
         """
         Initialize and patch the check, i.e.
         """
+        method = getattr(self, self._testMethodName)
+        not_authorized = []
+        if hasattr(method, 'not_authorized'):
+            not_authorized = method.not_authorized
         self.patcher = patch("botocore.client.BaseClient._make_api_call", autospec=True)
         self.mock_object = self.patcher.start()
         top.reset()
@@ -73,7 +96,7 @@ class TestEvents(unittest.TestCase):
         instance.update({"apis_to_run": ["events"]})
 
         self.check = AwsTopologyCheck(self.CHECK_NAME, InitConfig(init_config), [instance])
-        self.mock_object.side_effect = mock_boto_calls
+        self.mock_object.side_effect = wrapper(not_authorized)
 
     def tearDown(self):
         self.patcher.stop()
@@ -210,3 +233,215 @@ class TestEvents(unittest.TestCase):
         # target is related to a resource
         # TODO this is very strange target
         self.assert_has_relation(relations, target_id, "arn:aws:events:eu-west-1:::")
+
+    """
+    Happy flow
+    {
+        'aws.events.rule': 4,
+        'aws.events.target': 4,
+        'aws.events.bus': 2,
+        'aws.events.archive': 1
+    }
+    """
+
+    @set_not_authorized('list_event_buses')
+    def test_process_events_access_list_event_buses(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+
+        components = topology[0]["components"]
+        relations = topology[0]["relations"]
+
+        self.assertIn(
+            'Role arn:aws:iam::548105126730:role/RoleName needs events:ListEventBuses'
+                + ' was encountered 1 time(s).',
+            self.check.warnings
+        )
+        counts = Counter([component["type"] for component in components])
+        self.assertEqual(dict(counts), {
+            'aws.events.archive': 1,
+        })
+
+    @set_not_authorized('list_api_destinations')
+    def test_process_events_access_list_api_destinations(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+
+        components = topology[0]["components"]
+        relations = topology[0]["relations"]
+
+        self.assertIn(
+            'Role arn:aws:iam::548105126730:role/RoleName needs events:ListApiDestinations'
+                + ' was encountered 1 time(s).',
+            self.check.warnings
+        )
+        counts = Counter([component["type"] for component in components])
+        self.assertEqual(counts, {
+            'aws.events.rule': 4,
+            'aws.events.target': 4,
+            'aws.events.bus': 2,
+            'aws.events.archive': 1
+        })
+
+    @set_not_authorized('list_tags_for_resource')
+    def test_process_events_access_list_api_destinations(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+
+        components = topology[0]["components"]
+        relations = topology[0]["relations"]
+
+        self.assertIn(
+            'Role arn:aws:iam::548105126730:role/RoleName needs events:ListTagsForResource'
+                + ' was encountered 6 time(s).',
+            self.check.warnings
+        )
+        counts = Counter([component["type"] for component in components])
+        self.assertEqual(counts, {
+            'aws.events.rule': 4,
+            'aws.events.target': 4,
+            'aws.events.bus': 2,
+            'aws.events.archive': 1
+        })
+
+    @set_not_authorized('describe_event_bus')
+    def test_process_events_access_describe_event_bus(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+
+        components = topology[0]["components"]
+        relations = topology[0]["relations"]
+
+        self.assertIn(
+            'Role arn:aws:iam::548105126730:role/RoleName needs events:DescribeEventBus'
+                + ' was encountered 2 time(s).',
+            self.check.warnings
+        )
+        counts = Counter([component["type"] for component in components])
+        self.assertEqual(counts, {
+            'aws.events.rule': 4,
+            'aws.events.target': 4,
+            'aws.events.bus': 2,
+            'aws.events.archive': 1
+        })
+
+    @set_not_authorized('list_rules')
+    def test_process_events_access_list_rules(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+
+        components = topology[0]["components"]
+        relations = topology[0]["relations"]
+
+        self.assertIn(
+            'Role arn:aws:iam::548105126730:role/RoleName needs events:ListRules'
+                + ' was encountered 2 time(s).',
+            self.check.warnings
+        )
+        counts = Counter([component["type"] for component in components])
+        self.assertEqual(counts, {
+            'aws.events.bus': 2,
+            'aws.events.archive': 1
+        })
+
+    @set_not_authorized('describe_rule')
+    def test_process_events_access_describe_rule(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+
+        components = topology[0]["components"]
+        relations = topology[0]["relations"]
+
+        self.assertIn(
+            'Role arn:aws:iam::548105126730:role/RoleName needs events:DescribeRule'
+                + ' was encountered 4 time(s).',
+            self.check.warnings
+        )
+        counts = Counter([component["type"] for component in components])
+        self.assertEqual(counts, {
+            'aws.events.rule': 4,
+            'aws.events.target': 4,
+            'aws.events.bus': 2,
+            'aws.events.archive': 1
+        })
+
+    @set_not_authorized('list_targets_by_rule')
+    def test_process_events_access_list_targets_by_rule(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+
+        components = topology[0]["components"]
+        relations = topology[0]["relations"]
+
+        self.assertIn(
+            'Role arn:aws:iam::548105126730:role/RoleName needs events:ListTargetsByRule'
+                + ' was encountered 4 time(s).',
+            self.check.warnings
+        )
+        counts = Counter([component["type"] for component in components])
+        self.assertEqual(counts, {
+            'aws.events.rule': 4,
+            'aws.events.bus': 2,
+            'aws.events.archive': 1
+        })
+
+    @set_not_authorized('list_archives')
+    def test_process_events_access_list_archives(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+
+        components = topology[0]["components"]
+        relations = topology[0]["relations"]
+
+        self.assertIn(
+            'Role arn:aws:iam::548105126730:role/RoleName needs events:ListArchives'
+                + ' was encountered 1 time(s).',
+            self.check.warnings
+        )
+        counts = Counter([component["type"] for component in components])
+        self.assertEqual(counts, {
+            'aws.events.rule': 4,
+            'aws.events.target': 4,
+            'aws.events.bus': 2
+        })
+
+    @set_not_authorized('describe_archive')
+    def test_process_events_access_describe_archive(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+
+        components = topology[0]["components"]
+        relations = topology[0]["relations"]
+
+        self.assertIn(
+            'Role arn:aws:iam::548105126730:role/RoleName needs events:DescribeArchive'
+                + ' was encountered 1 time(s).',
+            self.check.warnings
+        )
+        counts = Counter([component["type"] for component in components])
+        self.assertEqual(dict(counts), {
+            'aws.events.rule': 4,
+            'aws.events.target': 4,
+            'aws.events.bus': 2,
+            'aws.events.archive': 1
+        })
+
+    # TODO Connection
