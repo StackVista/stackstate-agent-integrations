@@ -5,7 +5,6 @@ from .lambdaf import create_arn as lambda_arn
 from .kinesis import create_arn as kinesis_arn
 from .dynamodb import create_table_arn as dynamodb_table_arn
 from .firehose import create_arn as firehose_arn
-from .sns import create_arn as sns_arn
 from .rds import create_cluster_arn, create_db_arn
 from .sqs import create_arn as sqs_arn
 from .ecs import create_cluster_arn as ecs_cluster_arn

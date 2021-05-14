@@ -69,6 +69,9 @@ class TestAWSTopologyCheck(unittest.TestCase):
 
         self.mock_object.side_effect = results
 
+    def tearDown(self):
+        self.patcher.stop()
+
     def test_collect_empty_topology(self):
         """
         Testing AWS Topology check should not produce any topology (apis_to_run set to empty array)

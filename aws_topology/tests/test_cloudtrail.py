@@ -93,6 +93,9 @@ class TestCloudtrail(unittest.TestCase):
         self.check = AwsTopologyCheck(self.CHECK_NAME, InitConfig(init_config), [instance])
         self.mock_object.side_effect = mock_event(method.event)
 
+    def tearDown(self):
+        self.patcher.stop()
+
     def assert_executed_ok(self):
         service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_EXECUTE_NAME)
         self.assertGreater(len(service_checks), 0)

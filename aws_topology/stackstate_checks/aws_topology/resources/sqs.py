@@ -95,6 +95,6 @@ class SqsCollector(RegisteredResourceCollector):
         queue_data['URN'] = [queue_url]
         queue_data['Name'] = queue_url
         queue_data['QueueUrl'] = queue_url
-        queue_data.update(with_dimensions([{'key': 'QueueName', 'value': queue_name}]))
+        queue_data.update(with_dimensions([{'key': 'QueueName', 'value': get_queue_name_from_url(queue_url)}]))
 
         self.emit_component(queue_arn, self.COMPONENT_TYPE, queue_data)

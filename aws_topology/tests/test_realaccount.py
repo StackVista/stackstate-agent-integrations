@@ -122,7 +122,7 @@ class TestEventBridge(unittest.TestCase):
                 return relation
         self.assertTrue(False, "Relation expected source_id={} target_id={}".format(source_id, target_id))
 
-    def test_process_realaccount(self):
+    def xtest_process_realaccount(self):
         with mock_patch_method_original('botocore.client.BaseClient._make_api_call'):
             self.check.run()
             topology = [top.get_snapshot(self.check.check_id)]

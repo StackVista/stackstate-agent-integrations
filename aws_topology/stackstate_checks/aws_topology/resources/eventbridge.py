@@ -368,7 +368,7 @@ class EventBridgeProcessor(RegisteredResourceCollector):
         arn = target.Arn
         if arn.startswith('arn:aws:sqs:'):
             parts = arn.split(':')
-            arn = self.agent.create_arn('AWS::SQS::Queue',self.location_info, parts[5])
+            arn = self.agent.create_arn('AWS::SQS::Queue', self.location_info, parts[5])
         self.agent.relation(target.Id, arn, "uses service", {})
         if target.RoleArn:
             self.agent.relation(target.Id, target.RoleArn, "uses service", {})

@@ -5,7 +5,6 @@ from mock import patch
 from stackstate_checks.base.stubs import topology as top, aggregator
 from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
 from stackstate_checks.base import AgentCheck
-import re
 import botocore
 import hashlib
 from stackstate_checks.aws_topology.resources.cloudformation import type_arn
@@ -35,6 +34,8 @@ def mock_boto_calls(self, *args, **kwargs):
                 "SessionToken": "TOKEN"
             }
         }
+    if args[0] == "LookupEvents":
+        return {}
     operation_name = botocore.xform_name(args[0])
     file_name = "json/iam/{}_{}.json".format(operation_name, get_params_hash(self.meta.region_name, args))
     try:
@@ -72,6 +73,9 @@ class TestIAM(unittest.TestCase):
 
         self.check = AwsTopologyCheck(self.CHECK_NAME, InitConfig(init_config), [instance])
         self.mock_object.side_effect = mock_boto_calls
+
+    def tearDown(self):
+        self.patcher.stop()
 
     def assert_executed_ok(self):
         service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_EXECUTE_NAME)

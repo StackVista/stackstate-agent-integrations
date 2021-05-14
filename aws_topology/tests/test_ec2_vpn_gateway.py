@@ -56,6 +56,9 @@ class TestVpnGateway(unittest.TestCase):
 
         self.mock_object.side_effect = results
 
+    def tearDown(self):
+        self.patcher.stop()
+
     def assert_executed_ok(self):
         service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_EXECUTE_NAME)
         self.assertGreater(len(service_checks), 0)

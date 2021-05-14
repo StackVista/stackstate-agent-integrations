@@ -1,4 +1,4 @@
-from .utils import make_valid_data, create_arn as arn, get_partition_name, set_required_access
+from .utils import make_valid_data, get_partition_name, set_required_access
 from .registry import RegisteredResourceCollector
 from collections import namedtuple
 import json
