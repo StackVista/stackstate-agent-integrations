@@ -5,6 +5,14 @@ from mock import patch
 from stackstate_checks.base.stubs import topology as top, aggregator
 from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
 from stackstate_checks.base import AgentCheck
+import re
+import botocore
+import hashlib
+from stackstate_checks.aws_topology.resources.cloudformation import type_arn
+
+
+def get_params_hash(region, data):
+    return hashlib.md5((region + json.dumps(data, sort_keys=True, default=str)).encode('utf-8')).hexdigest()[0:7]
 
 
 def relative_path(path):
@@ -18,8 +26,8 @@ def resource(path):
     return x
 
 
-def mock_boto_calls(operation_name, kwarg=None):
-    if operation_name == "AssumeRole":
+def mock_boto_calls(self, *args, **kwargs):
+    if args[0] == "AssumeRole":
         return {
             "Credentials": {
                 "AccessKeyId": "KEY_ID",
@@ -27,15 +35,15 @@ def mock_boto_calls(operation_name, kwarg=None):
                 "SessionToken": "TOKEN"
             }
         }
-    elif operation_name == 'ListStateMachines':
-        return resource('json/stepfunctions/list_state_machines.json')
-    elif operation_name == 'DescribeStateMachine':
-        return resource('json/stepfunctions/describe_state_machine.json')
-    elif operation_name == 'ListActivities':
-        return resource('json/stepfunctions/list_activities.json')
-    elif operation_name == 'LookupEvents':
-        return {}
-    raise ValueError("Unknown operation name", operation_name)
+    operation_name = botocore.xform_name(args[0])
+    file_name = "json/stepfunctions/{}_{}.json".format(operation_name, get_params_hash(self.meta.region_name, args))
+    try:
+        return resource(file_name)
+    except Exception:
+        error = "API response file not found for operation: {}\n".format(operation_name)
+        error += "Parameters:\n{}\n".format(json.dumps(args[1], indent=2, default=str))
+        error += "File missing: {}".format(file_name)
+        raise Exception(error)
 
 
 class TestStepFunctions(unittest.TestCase):
@@ -47,7 +55,7 @@ class TestStepFunctions(unittest.TestCase):
         """
         Initialize and patch the check, i.e.
         """
-        self.patcher = patch("botocore.client.BaseClient._make_api_call")
+        self.patcher = patch("botocore.client.BaseClient._make_api_call", autospec=True)
         self.mock_object = self.patcher.start()
         top.reset()
         aggregator.reset()
@@ -57,7 +65,7 @@ class TestStepFunctions(unittest.TestCase):
             "external_id": "disable_external_id_this_is_unsafe"
         })
         instance = {
-            "role_arn": "arn:aws:iam::731070500579:role/RoleName",
+            "role_arn": "arn:aws:iam::548105126730:role/RoleName",
             "regions": ["eu-west-1"],
         }
         instance.update({"apis_to_run": ["stepfunctions"]})
@@ -88,13 +96,24 @@ class TestStepFunctions(unittest.TestCase):
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
 
-        sfn_id = 'arn:aws:states:eu-west-1:290794210101:stateMachine:StepFunctionsStateMachine-cLtKjmzGLpw8'
         components = topology[0]["components"]
         relations = topology[0]["relations"]
+
+        names = resource('json/cloudformation/names.json')
+
+        def get_id(name, region='eu-west-1', stack='stackstate-main-account-main-region'):
+            account = '548105126730'
+            res = names.get(account + '|' + region + '|' + stack + '|' + name)
+            if res:
+                arn = type_arn.get(res["type"])
+                if arn:
+                    return arn(region=region, account_id=account, resource_id=res["id"])
+
+        sfn_id = get_id('StepFunctionsStateMachine')
         self.assert_has_component(components, sfn_id, 'aws.stepfunction.statemachine')
         self.assert_has_component(
             components,
-            'arn:aws:states:eu-west-1:290794210101:activity:TestActivity',
+            get_id('StepFunctionsActivity'),
             'aws.stepfunction.activity')
         state_names = [
             "Activity",
@@ -146,66 +165,21 @@ class TestStepFunctions(unittest.TestCase):
 
         # 15 states
 
-        # integrations currently 4 (should be 10 since ECS 2x!)
-        self.assert_has_relation(
-            relations,
-            sfn_id + ':state/SNS',
-            'arn:aws:sns:eu-west-1:290794210101:elvin-stackstate-tests-main-account-main-region-SnsTopic-1MQ0AIIPHC352'
-        )
-        self.assert_has_relation(
-            relations,
-            sfn_id + ':state/SQS',
-            'arn:aws:sqs::731070500579:elvin-stackstate-tests-main-account-main-region-SqsQueue-12QD0SDWO9WV1'
-        )
+        self.assert_has_relation(relations, sfn_id + ':state/SNS', get_id('SnsTopic'))
+        self.assert_has_relation(relations, sfn_id + ':state/SQS', get_id('SqsQueue'))
         self.assert_has_relation(
             relations,
             sfn_id + ':state/SQSSecondaryRegion',
-            'arn:aws:sqs::731070500579:elvin-stackstate-main-account-secondary-region-SqsQueue-142V2KSEY368Y'
+            get_id('SqsQueue', stack='stackstate-main-account-secondary-region', region='us-east-1')
         )
-        self.assert_has_relation(
-            relations,
-            sfn_id + ':state/DynamoDB',
-            'arn:aws:dynamodb:eu-west-1:731070500579:table/'
-            + 'elvin-stackstate-tests-main-account-main-region-DynamoDbTable-16SXEQ30MM5RN'
-        )
-        self.assert_has_relation(
-            relations,
-            sfn_id + ':state/ApiGateway',
-            'arn:aws:execute-api:eu-west-1:731070500579:z3scu84808/test'
-        )
-        self.assert_has_relation(
-            relations,
-            sfn_id + ':state/Lambda',
-            'arn:aws:lambda:eu-west-1:290794210101:function:'
-            + 'elvin-stackstate-tests-main-account-LambdaFunction-199Z59KY5LNOM'
-        )
-        self.assert_has_relation(
-            relations,
-            sfn_id + ':state/LambdaOldVersion',
-            'arn:aws:lambda:eu-west-1:290794210101:function:'
-            + 'elvin-stackstate-tests-main-account-LambdaFunction-199Z59KY5LNOM'
-        )
-        self.assert_has_relation(
-            relations,
-            sfn_id + ':state/ECS',
-            'arn:aws:ecs:eu-west-1:290794210101:task-definition/'
-            + 'elvin-stackstate-tests-main-account-main-region-EcsTaskDefinition-2BeEG06Qwhoq:1'
-        )
-        self.assert_has_relation(
-            relations,
-            sfn_id + ':state/ECS',
-            'arn:aws:ecs:eu-west-1:290794210101:cluster/'
-            + 'elvin-stackstate-tests-main-account-main-region-EcsCluster-QAt7B7u3rss9'
-        )
-        self.assert_has_relation(
-            relations,
-            sfn_id + ':state/Activity',
-            'arn:aws:states:eu-west-1:290794210101:activity:TestActivity'
-        )
-        self.assert_has_relation(
-            relations,
-            sfn_id,
-            'arn:aws:iam::290794210101:role/elvin-stackstate-tests-main-a-StepFunctionsIamRole-1MU2YYEEMBFWP'
-        )
+        self.assert_has_relation(relations, sfn_id + ':state/DynamoDB', get_id('DynamoDbTable'))
+        # TODO verify if this is OK, it refers to stage here?
+        self.assert_has_relation(relations, sfn_id + ':state/ApiGateway', get_id('ApiGatewayApi') + '/test')
+        self.assert_has_relation(relations, sfn_id + ':state/Lambda', get_id('LambdaFunction'))
+        self.assert_has_relation(relations, sfn_id + ':state/LambdaOldVersion', get_id('LambdaFunction'))
+        self.assert_has_relation(relations, sfn_id + ':state/ECS', get_id('EcsTaskDefinition'))
+        self.assert_has_relation(relations, sfn_id + ':state/ECS', get_id('EcsCluster'))
+        self.assert_has_relation(relations, sfn_id + ':state/Activity', get_id('StepFunctionsActivity'))
+        self.assert_has_relation(relations, sfn_id, get_id('StepFunctionsIamRole'))
 
         self.assertEqual(len(topology[0]["relations"]), 26)
