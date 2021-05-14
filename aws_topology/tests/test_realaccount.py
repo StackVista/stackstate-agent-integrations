@@ -24,10 +24,11 @@ It uses a
 """
 
 
-target = "cloudformation"
-# target = iam
-# target = events
-# target = stepfunctions
+# target = "cloudformation"
+# target = "iam"
+# target = "events"
+# target = "stepfunctions"
+target = "apigatewayv2"
 
 regions = ["eu-west-1"]
 if target == "cloudformation":
