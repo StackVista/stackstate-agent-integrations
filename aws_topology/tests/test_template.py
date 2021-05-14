@@ -1345,6 +1345,7 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(topology[0]["components"][0]["id"], "vpc-6b25d10e")  # DIFF
         self.assertEqual(topology[0]["components"][0]["type"], "aws.vpc")  # DIFF
         self.assertEqual(topology[0]["components"][0]["data"]["VpcId"], "vpc-6b25d10e")
+        self.assertEqual(topology[0]["components"][0]["data"]["Name"], "vpc-6b25d10e")
         self.assertEqual(
             topology[0]["components"][0]["data"]["URN"],
             ["arn:aws:ec2:{}:731070500579:vpc/{}".format(TEST_REGION, "vpc-6b25d10e")],
@@ -1358,6 +1359,7 @@ class TestTemplate(unittest.TestCase):
             topology[0]["components"][1]["data"]["URN"],
             ["arn:aws:ec2:{}:731070500579:subnet/{}".format(TEST_REGION, "subnet-9e4be5f9")],
         )
+        self.assertEqual(topology[0]["components"][1]["data"]["Name"], "demo-deployments-eu-west-1a")
         self.assert_location_info(topology[0]["components"][1])
         self.assertEqual(len(topology[0]["relations"]), 1)
         self.assertEqual(topology[0]["relations"][0]["source_id"], "subnet-9e4be5f9")  # DIFF
