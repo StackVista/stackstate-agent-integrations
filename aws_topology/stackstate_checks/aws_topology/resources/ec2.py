@@ -1,6 +1,26 @@
 import time
 from .utils import make_valid_data, create_host_urn, create_resource_arn, create_hash
 from .registry import RegisteredResourceCollector
+from schematics import Model
+from schematics.types import StringType, ModelType, ListType, BooleanType
+
+
+class Tag(Model):
+    Key = StringType(required=True)
+    Value = StringType(required=True)
+
+
+class Subnet(Model):
+    SubnetId = StringType(required=True)
+    Tags = ListType(ModelType(Tag), default=[])
+    AvailabilityZone = StringType(required=True)
+    VpcId = StringType(required=True)
+
+
+class Vpc(Model):
+    VpcId = StringType(required=True)
+    IsDefault = BooleanType(default=False)
+    Tags = ListType(ModelType(Tag), default=[])
 
 
 class Ec2InstanceCollector(RegisteredResourceCollector):
@@ -120,44 +140,64 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
     def process_vpcs(self):
         vpc_descriptions = self.client.describe_vpcs().get('Vpcs') or []
         vpc_ids = list(map(lambda vpc: vpc['VpcId'], vpc_descriptions))
-        subnet_descriptions = self.client.describe_subnets(
-            Filters=[{'Name': 'vpc-id', 'Values': vpc_ids}]
-        ).get('Subnets') or []
+        subnet_descriptions = self.client.describe_subnets().get('Subnets') or []
 
         # Create all vpc
         for vpc_description in vpc_descriptions:
-            self.process_vpc(vpc_description, subnet_descriptions)
+            self.process_vpc(vpc_description)
 
         # Create all subnet components
         for subnet_description_raw in subnet_descriptions:
-            subnet_description = make_valid_data(subnet_description_raw)
-            subnet_id = subnet_description['SubnetId']
-            subnet_description['URN'] = [
-                create_resource_arn(
-                    'ec2',
-                    self.location_info['Location']['AwsRegion'],
-                    self.location_info['Location']['AwsAccount'],
-                    'subnet',
-                    subnet_id
-                )
-            ]
-            self.emit_component(subnet_id, 'aws.subnet', subnet_description)
+            self.process_subnet(subnet_description_raw)
 
-    def process_vpc(self, vpc_description, subnet_descriptions):
-        vpc_id = vpc_description['VpcId']
-        vpc_description['URN'] = [
+    def process_vpc(self, vpc_description):
+        output = make_valid_data(vpc_description)
+        vpc = Vpc(vpc_description, strict=False)
+        vpc.validate()
+        # construct a name
+        vpc_name = vpc.VpcId
+        name_tag = [tag for tag in vpc.Tags if tag.Key == "Name"]
+        if vpc.IsDefault:
+            vpc_name = 'default'
+        elif len(name_tag) > 0:
+            vpc_name = name_tag[0].Value
+        output["Name"] = vpc_name
+        # add a URN
+        output['URN'] = [
             create_resource_arn(
                 'ec2',
                 self.location_info['Location']['AwsRegion'],
                 self.location_info['Location']['AwsAccount'],
                 'vpc',
-                vpc_id
+                vpc.VpcId
             )
         ]
-        self.emit_component(vpc_id, "aws.vpc", vpc_description)
-        subnets_for_vpc = list(filter(lambda subnet: subnet['VpcId'] == vpc_id, subnet_descriptions))
-        for subnet_for_vpc in subnets_for_vpc:
-            self.agent.relation(subnet_for_vpc['SubnetId'], vpc_id, 'uses service', {})
+        self.emit_component(vpc.VpcId, "aws.vpc", output)
+
+    def process_subnet(self, subnet_description):
+        output = make_valid_data(subnet_description)
+        subnet = Subnet(subnet_description, strict=False)
+        subnet.validate()
+        # construct a name
+        subnet_name = subnet.SubnetId
+        name_tag = [tag for tag in subnet.Tags if tag.Key == "Name"]
+        if len(name_tag) > 0:
+            subnet_name = name_tag[0].Value
+        if subnet.AvailabilityZone:
+            subnet_name = '{}-{}'.format(subnet_name, subnet.AvailabilityZone)
+        output['Name'] = subnet_name
+        # add a URN
+        output['URN'] = [
+            create_resource_arn(
+                'ec2',
+                self.location_info['Location']['AwsRegion'],
+                self.location_info['Location']['AwsAccount'],
+                'subnet',
+                subnet.SubnetId
+            )
+        ]
+        self.emit_component(subnet.SubnetId, 'aws.subnet', output)
+        self.agent.relation(subnet.SubnetId, subnet.VpcId, 'uses service', {})
 
     def process_vpn_gateways(self):
         for vpn_description_raw in self.client.describe_vpn_gateways().get('VpnGateways') or []:
