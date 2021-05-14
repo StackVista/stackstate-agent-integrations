@@ -65,6 +65,10 @@ def create_rule_arn(region=None, account_id=None, resource_id=None, **kwargs):
     return arn(resource='events', region=region, account_id=account_id, resource_id='rule/' + resource_id)
 
 
+def create_archive_arn(region=None, account_id=None, resource_id=None, **kwargs):
+    return arn(resource='events', region=region, account_id=account_id, resource_id='archive/' + resource_id)
+
+
 class ReplayAction(CloudTrailEventBase):
     class ResponseElements(Model):
         replayName = StringType(required=True)
@@ -360,7 +364,12 @@ class EventBridgeProcessor(RegisteredResourceCollector):
         output["Name"] = target.Id
         self.emit_component(target.Id, "aws.events.target", output)
         self.agent.relation(rule_arn, target.Id, "has resource", {})
-        self.agent.relation(target.Id, target.Arn, "uses service", {})
+        # strip region for sqs
+        arn = target.Arn
+        if arn.startswith('arn:aws:sqs:'):
+            parts = arn.split(':')
+            arn = self.agent.create_arn('AWS::SQS::Queue',self.location_info, parts[5])
+        self.agent.relation(target.Id, arn, "uses service", {})
         if target.RoleArn:
             self.agent.relation(target.Id, target.RoleArn, "uses service", {})
 
