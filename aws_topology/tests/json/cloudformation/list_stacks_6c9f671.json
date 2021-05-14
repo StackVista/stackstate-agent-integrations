@@ -1,0 +1,21 @@
+{
+  "StackSummaries": [
+    {
+      "StackId": "arn:aws:cloudformation:us-east-1:548105126730:stack/stackstate-main-account-secondary-region/79f7dd00-b171-11eb-8aac-1226a942184b",
+      "StackName": "stackstate-main-account-secondary-region",
+      "TemplateDescription": "Template for the primary account and secondary region for testing\n",
+      "CreationTime": "2021-05-10 09:24:10.164000+00:00",
+      "StackStatus": "CREATE_COMPLETE",
+      "DriftInformation": {
+        "StackDriftStatus": "NOT_CHECKED"
+      }
+    }
+  ],
+  "ResponseMetadata": {
+    "Parameters": {},
+    "OperationName": "ListStacks",
+    "Generater": "2021-05-14 06:37:05.501450",
+    "Region": "us-east-1",
+    "Account": "548105126730"
+  }
+}

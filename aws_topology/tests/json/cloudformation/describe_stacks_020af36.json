@@ -1,0 +1,33 @@
+{
+  "Stacks": [
+    {
+      "StackId": "arn:aws:cloudformation:us-east-1:548105126730:stack/stackstate-main-account-secondary-region/79f7dd00-b171-11eb-8aac-1226a942184b",
+      "StackName": "stackstate-main-account-secondary-region",
+      "Description": "Template for the primary account and secondary region for testing\n",
+      "CreationTime": "2021-05-10 09:24:10.164000+00:00",
+      "RollbackConfiguration": {
+        "RollbackTriggers": []
+      },
+      "StackStatus": "CREATE_COMPLETE",
+      "DisableRollback": false,
+      "NotificationARNs": [],
+      "Outputs": [
+        {
+          "OutputKey": "SqsQueueArn",
+          "OutputValue": "https://sqs.us-east-1.amazonaws.com/548105126730/stackstate-main-account-secondary-region-SqsQueue-TCLBC173C8R2"
+        }
+      ],
+      "Tags": [],
+      "DriftInformation": {
+        "StackDriftStatus": "NOT_CHECKED"
+      }
+    }
+  ],
+  "ResponseMetadata": {
+    "Parameters": {},
+    "OperationName": "DescribeStacks",
+    "Generater": "2021-05-14 06:37:05.217865",
+    "Region": "us-east-1",
+    "Account": "548105126730"
+  }
+}

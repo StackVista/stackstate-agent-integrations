@@ -1,0 +1,203 @@
+{
+  "Stacks": [
+    {
+      "StackId": "arn:aws:cloudformation:eu-west-1:548105126730:stack/stackstate-main-account-main-region/39160b70-b178-11eb-ac72-06cc4292e70d",
+      "StackName": "stackstate-main-account-main-region",
+      "Description": "Template for the primary account and region for testing\n",
+      "Parameters": [
+        {
+          "ParameterKey": "VpcSubnet3Id",
+          "ParameterValue": "/stackstate/test-infra/vpc/private-subnet-3-id",
+          "ResolvedValue": "subnet-0db45e253fe3a4e23"
+        },
+        {
+          "ParameterKey": "KeyPairName",
+          "ParameterValue": ""
+        },
+        {
+          "ParameterKey": "VpcId",
+          "ParameterValue": "/stackstate/test-infra/vpc/vpc-id",
+          "ResolvedValue": "vpc-08c4363ff955bd718"
+        },
+        {
+          "ParameterKey": "SecondaryRegionSqsQueue",
+          "ParameterValue": "https://sqs.us-east-1.amazonaws.com/548105126730/stackstate-main-account-secondary-region-SqsQueue-TCLBC173C8R2"
+        },
+        {
+          "ParameterKey": "VpcSubnet1Id",
+          "ParameterValue": "/stackstate/test-infra/vpc/private-subnet-1-id",
+          "ResolvedValue": "subnet-0b23cc90875bad42a"
+        },
+        {
+          "ParameterKey": "VpcSubnet2Id",
+          "ParameterValue": "/stackstate/test-infra/vpc/private-subnet-2-id",
+          "ResolvedValue": "subnet-00a58e5af77a6a1ec"
+        }
+      ],
+      "CreationTime": "2021-05-10 10:12:28.255000+00:00",
+      "LastUpdatedTime": "2021-05-12 07:56:43.114000+00:00",
+      "RollbackConfiguration": {
+        "RollbackTriggers": []
+      },
+      "StackStatus": "UPDATE_COMPLETE",
+      "DisableRollback": false,
+      "NotificationARNs": [],
+      "Capabilities": [
+        "CAPABILITY_IAM"
+      ],
+      "Tags": [],
+      "DriftInformation": {
+        "StackDriftStatus": "NOT_CHECKED"
+      }
+    },
+    {
+      "StackId": "arn:aws:cloudformation:eu-west-1:548105126730:stack/stackstate-base/33c38bd0-b177-11eb-ab80-0693ab737125",
+      "StackName": "stackstate-base",
+      "Description": "StackState VPC",
+      "Parameters": [
+        {
+          "ParameterKey": "VpcCidr",
+          "ParameterValue": "10.8.0.0/16"
+        },
+        {
+          "ParameterKey": "ResourcesStackName",
+          "ParameterValue": "stackstate-resources-debug"
+        }
+      ],
+      "CreationTime": "2021-05-10 10:05:09.657000+00:00",
+      "RollbackConfiguration": {
+        "RollbackTriggers": []
+      },
+      "StackStatus": "CREATE_COMPLETE",
+      "DisableRollback": false,
+      "NotificationARNs": [],
+      "Capabilities": [
+        "CAPABILITY_IAM"
+      ],
+      "Tags": [],
+      "DriftInformation": {
+        "StackDriftStatus": "NOT_CHECKED"
+      }
+    },
+    {
+      "StackId": "arn:aws:cloudformation:eu-west-1:548105126730:stack/stackstate-resources-debug/583ebee0-b171-11eb-b070-0641ab4c6165",
+      "StackName": "stackstate-resources-debug",
+      "Description": "Main CloudFormation template to be placed in every account where information is being captured. This template will capture information for one region, ensure it has been deployed in each region where you wish to capture events. DEBUG TEMPLATE - Service switches are for testing policies only.\n",
+      "Parameters": [
+        {
+          "ParameterKey": "EnableStepFunctions",
+          "ParameterValue": "Yes"
+        },
+        {
+          "ParameterKey": "ExternalId",
+          "ParameterValue": "pancakes"
+        },
+        {
+          "ParameterKey": "EnableFirehose",
+          "ParameterValue": "Yes"
+        },
+        {
+          "ParameterKey": "EnableDynamoDb",
+          "ParameterValue": "Yes"
+        },
+        {
+          "ParameterKey": "EnableCloudFormation",
+          "ParameterValue": "Yes"
+        },
+        {
+          "ParameterKey": "EnableMetrics",
+          "ParameterValue": "Yes"
+        },
+        {
+          "ParameterKey": "EnableEvents",
+          "ParameterValue": "Yes"
+        },
+        {
+          "ParameterKey": "EnableLambda",
+          "ParameterValue": "Yes"
+        },
+        {
+          "ParameterKey": "EnableRoute53",
+          "ParameterValue": "Yes"
+        },
+        {
+          "ParameterKey": "StsAccountId",
+          "ParameterValue": "669835386582"
+        },
+        {
+          "ParameterKey": "EnableRds",
+          "ParameterValue": "Yes"
+        },
+        {
+          "ParameterKey": "MainRegion",
+          "ParameterValue": "eu-west-1"
+        },
+        {
+          "ParameterKey": "EnableApiGateway",
+          "ParameterValue": "Yes"
+        },
+        {
+          "ParameterKey": "EnableEcs",
+          "ParameterValue": "Yes"
+        },
+        {
+          "ParameterKey": "EnableSqs",
+          "ParameterValue": "Yes"
+        },
+        {
+          "ParameterKey": "EnableEc2",
+          "ParameterValue": "Yes"
+        },
+        {
+          "ParameterKey": "EnableKinesis",
+          "ParameterValue": "Yes"
+        },
+        {
+          "ParameterKey": "EnableSns",
+          "ParameterValue": "Yes"
+        },
+        {
+          "ParameterKey": "EnableRedshift",
+          "ParameterValue": "Yes"
+        },
+        {
+          "ParameterKey": "EnableS3",
+          "ParameterValue": "Yes"
+        }
+      ],
+      "CreationTime": "2021-05-10 09:23:13.734000+00:00",
+      "RollbackConfiguration": {
+        "RollbackTriggers": []
+      },
+      "StackStatus": "CREATE_COMPLETE",
+      "DisableRollback": false,
+      "NotificationARNs": [],
+      "Capabilities": [
+        "CAPABILITY_NAMED_IAM"
+      ],
+      "Outputs": [
+        {
+          "OutputKey": "StackStateKmsKeyArn",
+          "OutputValue": "arn:aws:kms:eu-west-1:548105126730:key/330348d4-08fd-45b6-bb3e-1fc934cab724",
+          "ExportName": "stackstate-resources-debug-StackStateKmsKeyArn"
+        },
+        {
+          "OutputKey": "StackStateLogsBucketArn",
+          "OutputValue": "arn:aws:s3:::stackstate-logs-548105126730",
+          "ExportName": "stackstate-resources-debug-StackStateLogsBucketArn"
+        }
+      ],
+      "Tags": [],
+      "DriftInformation": {
+        "StackDriftStatus": "NOT_CHECKED"
+      }
+    }
+  ],
+  "ResponseMetadata": {
+    "Parameters": {},
+    "OperationName": "DescribeStacks",
+    "Generater": "2021-05-14 06:37:04.706868",
+    "Region": "eu-west-1",
+    "Account": "548105126730"
+  }
+}

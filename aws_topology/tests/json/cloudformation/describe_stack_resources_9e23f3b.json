@@ -1,0 +1,25 @@
+{
+  "StackResources": [
+    {
+      "StackName": "stackstate-main-account-secondary-region",
+      "StackId": "arn:aws:cloudformation:us-east-1:548105126730:stack/stackstate-main-account-secondary-region/79f7dd00-b171-11eb-8aac-1226a942184b",
+      "LogicalResourceId": "SqsQueue",
+      "PhysicalResourceId": "https://sqs.us-east-1.amazonaws.com/548105126730/stackstate-main-account-secondary-region-SqsQueue-TCLBC173C8R2",
+      "ResourceType": "AWS::SQS::Queue",
+      "Timestamp": "2021-05-10 09:24:16.232000+00:00",
+      "ResourceStatus": "CREATE_COMPLETE",
+      "DriftInformation": {
+        "StackResourceDriftStatus": "NOT_CHECKED"
+      }
+    }
+  ],
+  "ResponseMetadata": {
+    "Parameters": {
+      "StackName": "stackstate-main-account-secondary-region"
+    },
+    "OperationName": "DescribeStackResources",
+    "Generater": "2021-05-14 06:37:05.363300",
+    "Region": "us-east-1",
+    "Account": "548105126730"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "StackSummaries": [
+    {
+      "StackId": "arn:aws:cloudformation:eu-west-1:548105126730:stack/stackstate-main-account-main-region/39160b70-b178-11eb-ac72-06cc4292e70d",
+      "StackName": "stackstate-main-account-main-region",
+      "TemplateDescription": "Template for the primary account and region for testing\n",
+      "CreationTime": "2021-05-10 10:12:28.255000+00:00",
+      "LastUpdatedTime": "2021-05-12 07:56:43.114000+00:00",
+      "StackStatus": "UPDATE_COMPLETE",
+      "DriftInformation": {
+        "StackDriftStatus": "NOT_CHECKED"
+      }
+    },
+    {
+      "StackId": "arn:aws:cloudformation:eu-west-1:548105126730:stack/stackstate-base/33c38bd0-b177-11eb-ab80-0693ab737125",
+      "StackName": "stackstate-base",
+      "TemplateDescription": "StackState VPC",
+      "CreationTime": "2021-05-10 10:05:09.657000+00:00",
+      "StackStatus": "CREATE_COMPLETE",
+      "DriftInformation": {
+        "StackDriftStatus": "NOT_CHECKED"
+      }
+    },
+    {
+      "StackId": "arn:aws:cloudformation:eu-west-1:548105126730:stack/stackstate-resources-debug/583ebee0-b171-11eb-b070-0641ab4c6165",
+      "StackName": "stackstate-resources-debug",
+      "TemplateDescription": "Main CloudFormation template to be placed in every account where information is being captured. This template will capture information for one region, ensure it has been deployed in each region where you wish to capture events. DEBUG TEMPLATE - Service switches are for testing policies only.\n",
+      "CreationTime": "2021-05-10 09:23:13.734000+00:00",
+      "StackStatus": "CREATE_COMPLETE",
+      "DriftInformation": {
+        "StackDriftStatus": "NOT_CHECKED"
+      }
+    }
+  ],
+  "ResponseMetadata": {
+    "Parameters": {},
+    "OperationName": "ListStacks",
+    "Generater": "2021-05-14 06:37:05.341830",
+    "Region": "eu-west-1",
+    "Account": "548105126730"
+  }
+}

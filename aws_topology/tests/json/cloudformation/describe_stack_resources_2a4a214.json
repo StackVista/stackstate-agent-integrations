@@ -1,0 +1,109 @@
+{
+  "StackResources": [
+    {
+      "StackName": "stackstate-resources-debug",
+      "StackId": "arn:aws:cloudformation:eu-west-1:548105126730:stack/stackstate-resources-debug/583ebee0-b171-11eb-b070-0641ab4c6165",
+      "LogicalResourceId": "StsEc2Rule",
+      "PhysicalResourceId": "stackstate-resources-debug-StsEc2Rule-SJBRONO1KVPN",
+      "ResourceType": "AWS::Events::Rule",
+      "Timestamp": "2021-05-10 09:28:00.465000+00:00",
+      "ResourceStatus": "CREATE_COMPLETE",
+      "DriftInformation": {
+        "StackResourceDriftStatus": "NOT_CHECKED"
+      }
+    },
+    {
+      "StackName": "stackstate-resources-debug",
+      "StackId": "arn:aws:cloudformation:eu-west-1:548105126730:stack/stackstate-resources-debug/583ebee0-b171-11eb-b070-0641ab4c6165",
+      "LogicalResourceId": "StsEventBridgeFirehose",
+      "PhysicalResourceId": "stackstate-eventbridge-stream",
+      "ResourceType": "AWS::KinesisFirehose::DeliveryStream",
+      "Timestamp": "2021-05-10 09:26:31.725000+00:00",
+      "ResourceStatus": "CREATE_COMPLETE",
+      "DriftInformation": {
+        "StackResourceDriftStatus": "NOT_CHECKED"
+      }
+    },
+    {
+      "StackName": "stackstate-resources-debug",
+      "StackId": "arn:aws:cloudformation:eu-west-1:548105126730:stack/stackstate-resources-debug/583ebee0-b171-11eb-b070-0641ab4c6165",
+      "LogicalResourceId": "StsEventBridgeRole",
+      "PhysicalResourceId": "StackStateEventBridgeRole-eu-west-1",
+      "ResourceType": "AWS::IAM::Role",
+      "Timestamp": "2021-05-10 09:26:55.214000+00:00",
+      "ResourceStatus": "CREATE_COMPLETE",
+      "DriftInformation": {
+        "StackResourceDriftStatus": "NOT_CHECKED"
+      }
+    },
+    {
+      "StackName": "stackstate-resources-debug",
+      "StackId": "arn:aws:cloudformation:eu-west-1:548105126730:stack/stackstate-resources-debug/583ebee0-b171-11eb-b070-0641ab4c6165",
+      "LogicalResourceId": "StsFirehoseRole",
+      "PhysicalResourceId": "StackStateFirehoseRole-eu-west-1",
+      "ResourceType": "AWS::IAM::Role",
+      "Timestamp": "2021-05-10 09:23:39.233000+00:00",
+      "ResourceStatus": "CREATE_COMPLETE",
+      "DriftInformation": {
+        "StackResourceDriftStatus": "NOT_CHECKED"
+      }
+    },
+    {
+      "StackName": "stackstate-resources-debug",
+      "StackId": "arn:aws:cloudformation:eu-west-1:548105126730:stack/stackstate-resources-debug/583ebee0-b171-11eb-b070-0641ab4c6165",
+      "LogicalResourceId": "StsKmsKey",
+      "PhysicalResourceId": "330348d4-08fd-45b6-bb3e-1fc934cab724",
+      "ResourceType": "AWS::KMS::Key",
+      "Timestamp": "2021-05-10 09:25:24.304000+00:00",
+      "ResourceStatus": "CREATE_COMPLETE",
+      "DriftInformation": {
+        "StackResourceDriftStatus": "NOT_CHECKED"
+      }
+    },
+    {
+      "StackName": "stackstate-resources-debug",
+      "StackId": "arn:aws:cloudformation:eu-west-1:548105126730:stack/stackstate-resources-debug/583ebee0-b171-11eb-b070-0641ab4c6165",
+      "LogicalResourceId": "StsKmsKeyAlias",
+      "PhysicalResourceId": "alias/stackstate-integration",
+      "ResourceType": "AWS::KMS::Alias",
+      "Timestamp": "2021-05-10 09:26:31.095000+00:00",
+      "ResourceStatus": "CREATE_COMPLETE",
+      "DriftInformation": {
+        "StackResourceDriftStatus": "NOT_CHECKED"
+      }
+    },
+    {
+      "StackName": "stackstate-resources-debug",
+      "StackId": "arn:aws:cloudformation:eu-west-1:548105126730:stack/stackstate-resources-debug/583ebee0-b171-11eb-b070-0641ab4c6165",
+      "LogicalResourceId": "StsLogsBucket",
+      "PhysicalResourceId": "stackstate-logs-548105126730",
+      "ResourceType": "AWS::S3::Bucket",
+      "Timestamp": "2021-05-10 09:25:52.637000+00:00",
+      "ResourceStatus": "CREATE_COMPLETE",
+      "DriftInformation": {
+        "StackResourceDriftStatus": "NOT_CHECKED"
+      }
+    },
+    {
+      "StackName": "stackstate-resources-debug",
+      "StackId": "arn:aws:cloudformation:eu-west-1:548105126730:stack/stackstate-resources-debug/583ebee0-b171-11eb-b070-0641ab4c6165",
+      "LogicalResourceId": "StsRole",
+      "PhysicalResourceId": "StackStateAwsIntegrationRole",
+      "ResourceType": "AWS::IAM::Role",
+      "Timestamp": "2021-05-10 09:23:38.951000+00:00",
+      "ResourceStatus": "CREATE_COMPLETE",
+      "DriftInformation": {
+        "StackResourceDriftStatus": "NOT_CHECKED"
+      }
+    }
+  ],
+  "ResponseMetadata": {
+    "Parameters": {
+      "StackName": "stackstate-resources-debug"
+    },
+    "OperationName": "DescribeStackResources",
+    "Generater": "2021-05-14 06:37:05.270807",
+    "Region": "eu-west-1",
+    "Account": "548105126730"
+  }
+}
