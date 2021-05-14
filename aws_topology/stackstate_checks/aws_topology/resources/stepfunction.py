@@ -7,10 +7,6 @@ from schematics.types import StringType
 from .sqs import get_queue_name_from_url
 
 
-def create_arn(region=None, account_id=None, resource_id=None, **kwargs):
-    return arn(resource='kinesis', region=region, account_id=account_id, resource_id='stream/' + resource_id)
-
-
 StateMachineData = namedtuple('StateMachineData', ['state_machine', 'tags'])
 
 
