@@ -8,6 +8,7 @@ from stackstate_checks.base import AgentCheck
 import re
 import botocore
 import hashlib
+from stackstate_checks.aws_topology.resources.cloudformation import type_arn
 
 
 def get_params_hash(region, data):
@@ -98,36 +99,24 @@ class TestIAM(unittest.TestCase):
         components = topology[0]["components"]
         relations = topology[0]["relations"]
 
-        prefix = 'arn:aws:iam::548105126730:'
-        stackname = 'stackstate-main-account-main-region'
-        stackname_main = 'stackstate-main-account-main'
+        names = resource('json/cloudformation/names.json')
 
-        def get_arn(type, resource_id):
-            return prefix + type + '/' + stackname + '-' + resource_id
+        def get_id(name):
+            account = '548105126730'
+            region = 'eu-west-1'
+            stack = 'stackstate-main-account-main-region'
+            res = names.get(account + '|' + region + '|' + stack + '|' + name)
+            if res:
+                arn = type_arn.get(res["type"])
+                if arn:
+                    return arn(region=region, account_id=account, resource_id=res["id"])
 
-        def get_main_arn(type, resource_id):
-            return prefix + type + '/' + stackname_main + '-' + resource_id
-
-        def find_id(type, name, get_arn=get_arn):
-            found = 0
-            result = None
-            rgex = re.compile('^' + get_arn(type, name)+'-[A-Z0-9]{12,14}$')
-            for component in components:
-                if rgex.match(component["id"]):
-                    result = component["id"]
-                    found += 1
-            if found > 1:
-                raise Exception('Multiple found matching {}'.format(get_arn(type, name) + '-ABCDEFGH123'))
-            if found == 0:
-                raise Exception('Not found {}'.format(get_arn(type, name) + '-ABCDEFGH123'))
-            return result
-
-        user_name = find_id('user', 'IamUser')
-        group_name = find_id('group', 'IamGroup')
+        user_name = get_id('IamUser')
+        group_name = get_id('IamGroup')
         user_inline_policy_name = user_name + ':inlinepolicy/default'
         group_inline_policy_name = group_name + ':inlinepolicy/default'
-        attached_policy_name = find_id('policy', 'IamPolicy1')
-        user_boundary_policy = find_id('policy', 'IamPolicy2')
+        attached_policy_name = get_id('IamPolicy1')
+        user_boundary_policy = get_id('IamPolicy2')
         self.assert_has_component(components, user_name, 'aws.iam.user')
         self.assert_has_relation(relations, user_name, group_name)
         self.assert_has_relation(relations, user_name, user_inline_policy_name)
@@ -136,8 +125,8 @@ class TestIAM(unittest.TestCase):
         self.assert_has_relation(relations, group_name, attached_policy_name)
         self.assert_has_relation(relations, user_name, user_boundary_policy)
 
-        role_name = find_id('role', 'LambdaFunctionIamRole', get_arn=get_main_arn)
-        role_attached_policy_name = find_id('policy', 'LambdaFunctionIamPolicy1')
+        role_name = get_id('LambdaFunctionIamRole')
+        role_attached_policy_name = get_id('LambdaFunctionIamPolicy1')
         role_inline_policy_name = role_name + ':inlinepolicy/lambda'
         self.assert_has_component(components, role_name, 'aws.iam.role')
         self.assert_has_component(components, role_attached_policy_name, 'aws.iam.policy')
@@ -145,7 +134,7 @@ class TestIAM(unittest.TestCase):
         self.assert_has_relation(relations, role_name, role_inline_policy_name)
         self.assert_has_relation(relations, role_name, 'arn:aws:iam::aws:policy/AdministratorAccess')
 
-        instance_profile_name = find_id('instance-profile', 'EcsEc2InstanceProfile')
-        role_name = find_id('role', 'EcsEc2IamRole')
+        instance_profile_name = get_id('EcsEc2InstanceProfile')
+        role_name = get_id('EcsEc2IamRole')
         self.assert_has_component(components, instance_profile_name, 'aws.iam.instance_profile')
         self.assert_has_relation(relations, instance_profile_name, role_name)

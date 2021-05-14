@@ -123,7 +123,7 @@
       ],
       "Tags": [],
       "RoleLastUsed": {
-        "LastUsedDate": "2021-05-12 07:40:58+00:00",
+        "LastUsedDate": "2021-05-13 09:27:17+00:00",
         "Region": "eu-west-1"
       }
     },
@@ -184,7 +184,7 @@
       ],
       "Tags": [],
       "RoleLastUsed": {
-        "LastUsedDate": "2021-05-12 07:42:45+00:00",
+        "LastUsedDate": "2021-05-13 09:24:56+00:00",
         "Region": "eu-west-1"
       }
     },
@@ -336,7 +336,7 @@
       ],
       "Tags": [],
       "RoleLastUsed": {
-        "LastUsedDate": "2021-05-12 07:48:29+00:00",
+        "LastUsedDate": "2021-05-12 15:07:07+00:00",
         "Region": "eu-west-1"
       }
     },
@@ -627,7 +627,7 @@
       "AttachedManagedPolicies": [],
       "Tags": [],
       "RoleLastUsed": {
-        "LastUsedDate": "2021-05-12 07:50:43+00:00",
+        "LastUsedDate": "2021-05-13 09:28:03+00:00",
         "Region": "eu-west-1"
       }
     },
@@ -1056,8 +1056,8 @@
       "AttachedManagedPolicies": [],
       "Tags": [],
       "RoleLastUsed": {
-        "LastUsedDate": "2021-05-12 07:41:13+00:00",
-        "Region": "us-east-1"
+        "LastUsedDate": "2021-05-13 09:30:12+00:00",
+        "Region": "eu-west-1"
       }
     },
     {
@@ -1819,20 +1819,291 @@
           "CreateDate": "2018-01-08 23:10:55+00:00"
         }
       ]
+    },
+    {
+      "PolicyName": "AWSElasticLoadBalancingServiceRolePolicy",
+      "PolicyId": "ANPAIMHWGGSRHLOQUICJQ",
+      "Arn": "arn:aws:iam::aws:policy/aws-service-role/AWSElasticLoadBalancingServiceRolePolicy",
+      "Path": "/aws-service-role/",
+      "DefaultVersionId": "v6",
+      "AttachmentCount": 1,
+      "PermissionsBoundaryUsageCount": 0,
+      "IsAttachable": true,
+      "CreateDate": "2017-09-19 22:19:04+00:00",
+      "UpdateDate": "2020-05-19 16:40:28+00:00",
+      "PolicyVersionList": [
+        {
+          "Document": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "ec2:DescribeAddresses",
+                  "ec2:DescribeCoipPools",
+                  "ec2:DescribeInstances",
+                  "ec2:DescribeNetworkInterfaces",
+                  "ec2:DescribeSubnets",
+                  "ec2:DescribeSecurityGroups",
+                  "ec2:DescribeVpcs",
+                  "ec2:DescribeInternetGateways",
+                  "ec2:DescribeAccountAttributes",
+                  "ec2:DescribeClassicLinkInstances",
+                  "ec2:DescribeVpcClassicLink",
+                  "ec2:CreateSecurityGroup",
+                  "ec2:CreateNetworkInterface",
+                  "ec2:DeleteNetworkInterface",
+                  "ec2:GetCoipPoolUsage",
+                  "ec2:ModifyNetworkInterfaceAttribute",
+                  "ec2:AllocateAddress",
+                  "ec2:AuthorizeSecurityGroupIngress",
+                  "ec2:AssociateAddress",
+                  "ec2:DisassociateAddress",
+                  "ec2:AttachNetworkInterface",
+                  "ec2:DetachNetworkInterface",
+                  "ec2:AssignPrivateIpAddresses",
+                  "ec2:AssignIpv6Addresses",
+                  "ec2:ReleaseAddress",
+                  "ec2:UnassignIpv6Addresses",
+                  "logs:CreateLogDelivery",
+                  "logs:GetLogDelivery",
+                  "logs:UpdateLogDelivery",
+                  "logs:DeleteLogDelivery",
+                  "logs:ListLogDeliveries",
+                  "outposts:GetOutpostInstanceTypes"
+                ],
+                "Resource": "*"
+              }
+            ]
+          },
+          "VersionId": "v6",
+          "IsDefaultVersion": true,
+          "CreateDate": "2020-05-19 16:40:28+00:00"
+        },
+        {
+          "Document": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "ec2:DescribeAddresses",
+                  "ec2:DescribeCoipPools",
+                  "ec2:DescribeInstances",
+                  "ec2:DescribeNetworkInterfaces",
+                  "ec2:DescribeSubnets",
+                  "ec2:DescribeSecurityGroups",
+                  "ec2:DescribeVpcs",
+                  "ec2:DescribeInternetGateways",
+                  "ec2:DescribeAccountAttributes",
+                  "ec2:DescribeClassicLinkInstances",
+                  "ec2:DescribeVpcClassicLink",
+                  "ec2:CreateSecurityGroup",
+                  "ec2:CreateNetworkInterface",
+                  "ec2:DeleteNetworkInterface",
+                  "ec2:GetCoipPoolUsage",
+                  "ec2:ModifyNetworkInterfaceAttribute",
+                  "ec2:AllocateAddress",
+                  "ec2:AuthorizeSecurityGroupIngress",
+                  "ec2:AssociateAddress",
+                  "ec2:DisassociateAddress",
+                  "ec2:AttachNetworkInterface",
+                  "ec2:DetachNetworkInterface",
+                  "ec2:AssignPrivateIpAddresses",
+                  "ec2:AssignIpv6Addresses",
+                  "ec2:UnassignIpv6Addresses",
+                  "logs:CreateLogDelivery",
+                  "logs:GetLogDelivery",
+                  "logs:UpdateLogDelivery",
+                  "logs:DeleteLogDelivery",
+                  "logs:ListLogDeliveries",
+                  "outposts:GetOutpostInstanceTypes"
+                ],
+                "Resource": "*"
+              }
+            ]
+          },
+          "VersionId": "v5",
+          "IsDefaultVersion": false,
+          "CreateDate": "2020-05-05 19:32:02+00:00"
+        },
+        {
+          "Document": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "ec2:DescribeAddresses",
+                  "ec2:DescribeInstances",
+                  "ec2:DescribeNetworkInterfaces",
+                  "ec2:DescribeSubnets",
+                  "ec2:DescribeSecurityGroups",
+                  "ec2:DescribeVpcs",
+                  "ec2:DescribeInternetGateways",
+                  "ec2:DescribeAccountAttributes",
+                  "ec2:DescribeClassicLinkInstances",
+                  "ec2:DescribeVpcClassicLink",
+                  "ec2:CreateSecurityGroup",
+                  "ec2:CreateNetworkInterface",
+                  "ec2:DeleteNetworkInterface",
+                  "ec2:ModifyNetworkInterfaceAttribute",
+                  "ec2:AuthorizeSecurityGroupIngress",
+                  "ec2:AssociateAddress",
+                  "ec2:DisassociateAddress",
+                  "ec2:AttachNetworkInterface",
+                  "ec2:DetachNetworkInterface",
+                  "ec2:AssignPrivateIpAddresses",
+                  "ec2:AssignIpv6Addresses",
+                  "ec2:UnassignIpv6Addresses",
+                  "logs:CreateLogDelivery",
+                  "logs:GetLogDelivery",
+                  "logs:UpdateLogDelivery",
+                  "logs:DeleteLogDelivery",
+                  "logs:ListLogDeliveries"
+                ],
+                "Resource": "*"
+              }
+            ]
+          },
+          "VersionId": "v4",
+          "IsDefaultVersion": false,
+          "CreateDate": "2019-10-07 22:55:16+00:00"
+        },
+        {
+          "Document": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "ec2:DescribeAddresses",
+                  "ec2:DescribeInstances",
+                  "ec2:DescribeNetworkInterfaces",
+                  "ec2:DescribeSubnets",
+                  "ec2:DescribeSecurityGroups",
+                  "ec2:DescribeVpcs",
+                  "ec2:DescribeInternetGateways",
+                  "ec2:DescribeAccountAttributes",
+                  "ec2:DescribeClassicLinkInstances",
+                  "ec2:DescribeVpcClassicLink",
+                  "ec2:CreateSecurityGroup",
+                  "ec2:CreateNetworkInterface",
+                  "ec2:DeleteNetworkInterface",
+                  "ec2:ModifyNetworkInterface",
+                  "ec2:ModifyNetworkInterfaceAttribute",
+                  "ec2:AuthorizeSecurityGroupIngress",
+                  "ec2:AssociateAddress",
+                  "ec2:DisassociateAddress",
+                  "ec2:AttachNetworkInterface",
+                  "ec2:DetachNetworkInterface",
+                  "ec2:AssignPrivateIpAddresses",
+                  "ec2:AssignIpv6Addresses",
+                  "ec2:UnassignIpv6Addresses",
+                  "logs:CreateLogDelivery",
+                  "logs:GetLogDelivery",
+                  "logs:UpdateLogDelivery",
+                  "logs:DeleteLogDelivery",
+                  "logs:ListLogDeliveries"
+                ],
+                "Resource": "*"
+              }
+            ]
+          },
+          "VersionId": "v3",
+          "IsDefaultVersion": false,
+          "CreateDate": "2019-03-18 21:51:14+00:00"
+        },
+        {
+          "Document": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "ec2:DescribeAddresses",
+                  "ec2:DescribeInstances",
+                  "ec2:DescribeSubnets",
+                  "ec2:DescribeSecurityGroups",
+                  "ec2:DescribeVpcs",
+                  "ec2:DescribeInternetGateways",
+                  "ec2:DescribeAccountAttributes",
+                  "ec2:DescribeClassicLinkInstances",
+                  "ec2:DescribeVpcClassicLink",
+                  "ec2:CreateSecurityGroup",
+                  "ec2:CreateNetworkInterface",
+                  "ec2:DeleteNetworkInterface",
+                  "ec2:ModifyNetworkInterface",
+                  "ec2:ModifyNetworkInterfaceAttribute",
+                  "ec2:AuthorizeSecurityGroupIngress",
+                  "ec2:AssociateAddress",
+                  "ec2:DisassociateAddress",
+                  "ec2:AttachNetworkInterface",
+                  "ec2:DetachNetworkInterface",
+                  "ec2:AssignPrivateIpAddresses",
+                  "ec2:AssignIpv6Addresses",
+                  "ec2:UnassignIpv6Addresses",
+                  "logs:CreateLogDelivery",
+                  "logs:GetLogDelivery",
+                  "logs:UpdateLogDelivery",
+                  "logs:DeleteLogDelivery",
+                  "logs:ListLogDeliveries"
+                ],
+                "Resource": "*"
+              }
+            ]
+          },
+          "VersionId": "v2",
+          "IsDefaultVersion": false,
+          "CreateDate": "2018-05-14 21:18:07+00:00"
+        },
+        {
+          "Document": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "ec2:DescribeAddresses",
+                  "ec2:DescribeInstances",
+                  "ec2:DescribeSubnets",
+                  "ec2:DescribeSecurityGroups",
+                  "ec2:DescribeVpcs",
+                  "ec2:DescribeInternetGateways",
+                  "ec2:DescribeAccountAttributes",
+                  "ec2:DescribeClassicLinkInstances",
+                  "ec2:DescribeVpcClassicLink",
+                  "ec2:CreateSecurityGroup",
+                  "ec2:CreateNetworkInterface",
+                  "ec2:DeleteNetworkInterface",
+                  "ec2:ModifyNetworkInterface",
+                  "ec2:ModifyNetworkInterfaceAttribute",
+                  "ec2:AuthorizeSecurityGroupIngress",
+                  "ec2:AssociateAddress",
+                  "ec2:DisassociateAddress",
+                  "ec2:AttachNetworkInterface",
+                  "ec2:DetachNetworkInterface",
+                  "ec2:AssignPrivateIpAddresses",
+                  "ec2:AssignIpv6Addresses",
+                  "ec2:UnassignIpv6Addresses"
+                ],
+                "Resource": "*"
+              }
+            ]
+          },
+          "VersionId": "v1",
+          "IsDefaultVersion": false,
+          "CreateDate": "2017-09-19 22:19:04+00:00"
+        }
+      ]
     }
   ],
   "IsTruncated": true,
-  "Marker": "AABfwtwebYHOy+otuR5tEN3CFRDKQZngbsFyucuXdWKFQw3cwe98Y/zHlIvRelZhddqGVvBV06hccsNghaIMsx4kyppu58h7blJfrX+/AfpxMxA==",
+  "Marker": "AACrC9tS8P3GQwtdwagxzW5XiMc3CovAOqG6/bG45hQj3TMiybLJJigZwpKw1ig4Nd0Vv/YIJOB0D7tWL3EAg5TZu9GIIdYUL8qWLaa4VPBz6cw==",
   "ResponseMetadata": {
-    "RequestId": "2952cc1a-7b12-4774-bcee-407480c34938",
-    "HTTPStatusCode": 200,
-    "HTTPHeaders": {
-      "x-amzn-requestid": "2952cc1a-7b12-4774-bcee-407480c34938",
-      "content-type": "text/xml",
-      "content-length": "62094",
-      "vary": "accept-encoding",
-      "date": "Wed, 12 May 2021 08:09:12 GMT"
-    },
-    "RetryAttempts": 0
+    "Parameters": {},
+    "OperationName": "GetAccountAuthorizationDetails",
+    "Generater": "2021-05-13 11:44:39.657315",
+    "Region": "aws-global"
   }
 }
