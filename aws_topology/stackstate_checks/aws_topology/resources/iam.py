@@ -1,7 +1,8 @@
-from .utils import make_valid_data, create_arn as arn, set_required_access_v2
+from .utils import make_valid_data, create_arn as arn, set_required_access_v2, client_array_operation
 from .registry import RegisteredResourceCollector
 from schematics import Model
 from schematics.types import StringType
+from collections import namedtuple
 
 """
 Doing an API:
@@ -24,7 +25,6 @@ saml providers
 ssh public keys
 signing certificates
 service specific credentials
-server certificates
 ? policies granting service access ?
 open id connect providers
 account aliases
@@ -86,12 +86,37 @@ class InstanceProfile(Model):
     Arn = StringType(required=True)
     InstanceProfileName = StringType(required=True)
 
+class Certificate(Model):
+    ServerCertificateId = StringType(required=True)
+    ServerCertificateName = StringType(default="UNKNOWN")
+    Arn = StringType(required=True)
+
+CertificateData = namedtuple('CertificateData', ['summary', 'tags'])
 
 class IAMProcessor(RegisteredResourceCollector):
     API = "iam"
     API_TYPE = "global"
     COMPONENT_TYPE = "aws.iam.user"
     CLOUDFORMATION_TYPE = 'AWS::IAM::User'
+
+    @set_required_access_v2("iam:ListServerCertificateTags")
+    def collect_certificate_tags(self, name):
+        return self.client.list_server_certificate_tags(ServerCertificateName=name).get('Tags')
+
+    def collect_certificate(self, summary):
+        name = summary.get('ServerCertificateName')
+        tags = collect_certificate_tags(name) or []
+        return CertificateData(summary=summary, tags=tags)
+
+    def collect_certificates(self):
+        for certificate in [
+            self.collect_certificate(summary) for summary in client_array_operation(
+                self.client,
+                'list_server_certificates',
+                'ServerCertificateMetadataList',
+            )
+        ]:
+            yield certificate
 
     @set_required_access_v2("iam:GetAccountAuthorizationDetails")
     def process_all(self, filter=None):
@@ -106,6 +131,24 @@ class IAMProcessor(RegisteredResourceCollector):
                     self.process_role_details(role)
                 for policy in page.get('Policies', []):
                     self.process_policy(policy)
+        if not filter or 'certificates' in filter:
+            self.process_certificates()
+
+    @set_required_access_v2("iam:ListServerCertificates")
+    def process_certificates(self):
+        for certificate in self.collect_certificates():
+            self.process_certificate(certificate)
+
+    def process_certificate(self, data):
+        output = make_valid_data(data.summary)
+        certificate = Certificate(data.summary, strict=False)
+        certificate.validate()
+        output["Name"] = certificate.ServerCertificateName
+        output["Tags"] = data.tags
+        output["URN"] = [
+            certificate.Arn
+        ]
+        self.emit_component(certificate.Id, 'aws.iam.servercertificate', output)
 
     def process_policy_document(self, owner, policy):
         doc = PolicyDocument(policy, strict=False)
