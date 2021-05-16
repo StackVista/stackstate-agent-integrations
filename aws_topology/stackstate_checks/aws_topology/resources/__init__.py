@@ -21,6 +21,7 @@ from .stepfunction import StepFunctionCollector  # noqa: F401
 from .api_gateway_v2 import ApigatewayV2Collector  # noqa: F401
 from .eventbridge import EventBridgeProcessor  # noqa: F401
 from .iam import IAMProcessor  # noqa: F401
+from .cloudfront import CloudfrontCollector  # noqa: F401
 
 from .cloudtrail import listen_for
 
