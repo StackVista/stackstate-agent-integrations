@@ -114,6 +114,14 @@ class ApigatewayV2Collector(RegisteredResourceCollector):
         target = route.Target.split('/')
         if len(target) > 1 and integrations[target[-1]]:
             pass
+            # Lambda
+            # SQS
+            # Private resource in VPC
+            # HTTP 
+            # EventBridge
+            # Kinesis
+            # StepFunctions
+            # AppConfig
             # print(
             #    stage.get('StageName'),
             #   route.get('RouteKey'),
