@@ -1,0 +1,457 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  A sample serverless setup, emulating a real-world infrastructure sending notifications
+  Private API gateway, Step Functions, Lambda, SQS, SNS
+
+Parameters:
+  VpcId:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /stackstate/test-infra/vpc/vpc-id
+  VpcSubnet1Id:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /stackstate/test-infra/vpc/private-subnet-1-id
+  VpcSubnet2Id:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /stackstate/test-infra/vpc/private-subnet-2-id
+  VpcSubnet3Id:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /stackstate/test-infra/vpc/private-subnet-3-id
+  VpcDbSubnetGroupName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /stackstate/test-infra/vpc/db-subnet-group-name
+  KeyPairName:
+    Type: String
+    Default: ""
+
+Conditions:
+  IsKeyPair: !Not [!Equals [!Ref KeyPairName, ""]]
+
+Mappings:
+  AmazonLinux2Ami:
+    eu-west-1:
+      AmiId: ami-063d4ab14480ac177
+
+Resources:
+  NotificationStepFunctionsIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: !Sub states.${AWS::URLSuffix}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: default
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: lambda
+                Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - !GetAtt NotificationAddLambdaFunction.Arn
+                  - !GetAtt NotificationSendLambdaFunction.Arn
+              - Sid: sns
+                Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: !Ref NotificationSnsTopic
+              - Sid: sqs
+                Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                Resource:
+                  - !GetAtt NotificationSqsQueue.Arn
+
+  NotificationStepFunctionsStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      RoleArn: !GetAtt NotificationStepFunctionsIamRole.Arn
+      Definition:
+        Comment: Notifications State Machine
+        StartAt: AddOrSend
+        States:
+          AddOrSend:
+            Type: Choice
+            Choices:
+              - Variable: $.action
+                StringEquals: add
+                Next: Add
+              - Variable: $.action
+                StringEquals: send
+                Next: Send
+            Default: NoFinish
+          Add:
+            Type: Task
+            Resource: arn:aws:states:::lambda:invoke
+            Parameters:
+              FunctionName: !Sub ${NotificationAddLambdaFunction.Arn}:$LATEST
+              Payload:
+                Input:
+                  message: World
+            Next: AddMap
+          AddMap:
+            Type: Map
+            ItemsPath: $.tomap
+            Iterator:
+              StartAt: SQS
+              States:
+                SQS:
+                  Type: Task
+                  Resource: arn:aws:states:::sqs:sendMessage
+                  Parameters:
+                    QueueUrl: !Ref NotificationSqsQueue
+                    MessageBody:
+                      Input: testing
+                  End: True
+            Next: Finish
+          Send:
+            Type: Task
+            Resource: arn:aws:states:::lambda:invoke
+            Parameters:
+              FunctionName: !Sub ${NotificationSendLambdaFunction.Arn}:$LATEST
+              Payload:
+                Input:
+                  message: World
+            Next: SendMap
+          SendMap:
+            Type: Map
+            ItemsPath: $.tomap
+            Iterator:
+              StartAt: SNS
+              States:
+                SNS:
+                  Type: Task
+                  Resource: arn:aws:states:::sns:publish
+                  Parameters:
+                    Message:
+                      Input: Testing 123
+                    TopicArn: !Ref NotificationSnsTopic
+                  End: true
+            Next: Finish
+          NoFinish:
+            Type: Fail
+          Finish:
+            Type: Succeed
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - E3002 # Step Functions supports objects now
+
+  NotificationAddLambdaFunctionIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: !Sub lambda.${AWS::URLSuffix}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: default
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - ec2:CreateNetworkInterface
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DeleteNetworkInterface
+                  - ec2:AssignPrivateIpAddresses
+                  - ec2:UnassignPrivateIpAddresses
+                Resource: "*"
+              - Sid: sqs
+                Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                Resource:
+                  - !GetAtt NotificationSqsQueue.Arn
+  NotificationAddLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Role: !GetAtt NotificationAddLambdaFunctionIamRole.Arn
+      Runtime: python3.7
+      Environment:
+        Variables:
+          DATABASE: !GetAtt NotificationRdsDatabase.Endpoint.Address
+          SQS_QUEUE: !Ref NotificationSqsQueue
+      Code:
+        ZipFile: |
+          def handler(event, context):
+            return f'Hello {event.get("message")}'
+      Timeout: 5
+      VpcConfig:
+        SecurityGroupIds:
+          - !GetAtt NotificationAddLambdaFunctionSecurityGroup.GroupId
+        SubnetIds:
+          - !Ref VpcSubnet1Id
+          - !Ref VpcSubnet2Id
+          - !Ref VpcSubnet3Id
+  NotificationAddLambdaFunctionSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: LambdaFunctionSecurityGroup
+      VpcId: !Ref VpcId
+
+  NotificationSendLambdaFunctionIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: !Sub lambda.${AWS::URLSuffix}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: default
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - ec2:CreateNetworkInterface
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DeleteNetworkInterface
+                  - ec2:AssignPrivateIpAddresses
+                  - ec2:UnassignPrivateIpAddresses
+                Resource: "*"
+              - Sid: sns
+                Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: !Ref NotificationSnsTopic
+  NotificationSendLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Role: !GetAtt NotificationSendLambdaFunctionIamRole.Arn
+      Runtime: python3.7
+      Environment:
+        Variables:
+          DATABASE: !GetAtt NotificationRdsDatabase.Endpoint.Address
+          SNS_TOPIC: !Ref NotificationSnsTopic
+      Code:
+        ZipFile: |
+          def handler(event, context):
+            return f'Hello {event.get("message")}'
+      Timeout: 5
+      VpcConfig:
+        SecurityGroupIds:
+          - !GetAtt NotificationSendLambdaFunctionSecurityGroup.GroupId
+        SubnetIds:
+          - !Ref VpcSubnet1Id
+          - !Ref VpcSubnet2Id
+          - !Ref VpcSubnet3Id
+  NotificationSendLambdaFunctionSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: LambdaFunctionSecurityGroup
+      VpcId: !Ref VpcId
+
+  NotificationInsertLambdaFunctionIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: !Sub lambda.${AWS::URLSuffix}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: default
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - ec2:CreateNetworkInterface
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DeleteNetworkInterface
+                  - ec2:AssignPrivateIpAddresses
+                  - ec2:UnassignPrivateIpAddresses
+                Resource: "*"
+              - Sid: sqs
+                Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                Resource:
+                  - !GetAtt NotificationSqsQueue.Arn
+  NotificationInsertLambdaEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 1
+      EventSourceArn: !GetAtt NotificationSqsQueue.Arn
+      FunctionName: !Ref NotificationInsertLambdaFunction
+  NotificationInsertLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.handler
+      Role: !GetAtt NotificationInsertLambdaFunctionIamRole.Arn
+      Runtime: python3.7
+      ReservedConcurrentExecutions: 1
+      Environment:
+        Variables:
+          DATABASE: !GetAtt NotificationRdsDatabase.Endpoint.Address
+          SNS_TOPIC: !Ref NotificationSnsTopic
+      Code:
+        ZipFile: |
+          def handler(event, context):
+            return f'Hello {event.get("message")}'
+      Timeout: 5
+      VpcConfig:
+        SecurityGroupIds:
+          - !GetAtt NotificationInsertLambdaFunctionSecurityGroup.GroupId
+        SubnetIds:
+          - !Ref VpcSubnet1Id
+          - !Ref VpcSubnet2Id
+          - !Ref VpcSubnet3Id
+  NotificationInsertLambdaFunctionSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: LambdaFunctionSecurityGroup
+      VpcId: !Ref VpcId
+
+  NotificationSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Username/pass for RDS Database
+      GenerateSecretString:
+        SecretStringTemplate: >-
+          {"username": "postgres"}
+        GenerateStringKey: password
+        PasswordLength: 32
+        ExcludeCharacters: '"@/\'
+  NotificationPassword:
+    Type: AWS::SecretsManager::SecretTargetAttachment
+    Properties:
+      SecretId: !Ref NotificationSecret
+      TargetType: AWS::RDS::DBInstance
+      TargetId: !Ref NotificationRdsDatabase
+  NotificationRdsDatabaseSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: NotificationRdsDatabaseSecurityGroup
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !GetAtt NotificationSendLambdaFunctionSecurityGroup.GroupId
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !GetAtt NotificationInsertLambdaFunctionSecurityGroup.GroupId
+  NotificationRdsDatabase:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AllocatedStorage: "20"
+      AllowMajorVersionUpgrade: true
+      AutoMinorVersionUpgrade: true
+      DBInstanceClass: db.t3.micro
+      DBSubnetGroupName: !Ref VpcDbSubnetGroupName
+      EnableIAMDatabaseAuthentication: true
+      EnablePerformanceInsights: true
+      Engine: postgres
+      EngineVersion: "13.2"
+      MasterUsername: !Join ["", ["{{resolve:secretsmanager:", !Ref NotificationSecret, ":SecretString:username}}"]]
+      MasterUserPassword: !Join ["", ["{{resolve:secretsmanager:", !Ref NotificationSecret, ":SecretString:password}}"]]
+      PubliclyAccessible: false
+      StorageType: standard
+      VPCSecurityGroups:
+        - !GetAtt NotificationRdsDatabaseSecurityGroup.GroupId
+
+  NotificationSnsTopic:
+    Type: AWS::SNS::Topic
+  NotificationSqsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 600
+
+  NotificationEc2IamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: !Sub ec2.${AWS::URLSuffix}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ecs-service
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - execute-api:Invoke
+                  - execute-api:ManageConnections
+                Resource: "*"
+  NotificationEc2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: /
+      Roles:
+        - !Ref NotificationEc2IamRole
+  NotificationEc2LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        KeyName: !If
+          - IsKeyPair
+          - !Ref KeyPairName
+          - !Ref "AWS::NoValue"
+        BlockDeviceMappings:
+          - Ebs:
+              VolumeSize: 8
+              Throughput: 125
+              VolumeType: gp3
+              DeleteOnTermination: true
+            DeviceName: /dev/xvdcz
+        ImageId: !FindInMap [AmazonLinux2Ami, !Ref "AWS::Region", AmiId]
+        InstanceType: t3a.nano
+        IamInstanceProfile:
+          Arn: !GetAtt NotificationEc2InstanceProfile.Arn
+        SecurityGroupIds:
+          - !GetAtt NotificationEc2SecurityGroup.GroupId
+        UserData:
+          Fn::Base64: |
+            #!/bin/bash -xe
+            yum install -y postgres
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - E3002 # Throughput is used for gp3
+            - E3030 # gp3 is a new volume type
+  NotificationEc2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ECS Security Group
+      VpcId: !Ref VpcId
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          FromPort: 0
+          ToPort: 0
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: "-1"
+          FromPort: 0
+          ToPort: 0
+          CidrIpv6: ::/0
