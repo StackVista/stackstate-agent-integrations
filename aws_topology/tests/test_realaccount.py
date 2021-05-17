@@ -28,12 +28,13 @@ It uses a
 # target = "iam"
 # target = "events"
 # target = "stepfunctions"
-target = "apigatewayv2"
+# target = "apigatewayv2"
+target = "cloudfront"
 
 regions = ["eu-west-1"]
 if target == "cloudformation":
     regions = ["eu-west-1", "us-east-1"]
-if target == "iam":
+if target == "iam" or target == "cloudfront":
     regions = ["global"]
 
 
@@ -123,13 +124,21 @@ class TestEventBridge(unittest.TestCase):
                 return relation
         self.assertTrue(False, "Relation expected source_id={} target_id={}".format(source_id, target_id))
 
-    def xtest_process_realaccount(self):
+    def test_process_realaccount(self):
         with mock_patch_method_original('botocore.client.BaseClient._make_api_call'):
             self.check.run()
             topology = [top.get_snapshot(self.check.check_id)]
             self.assertEqual(len(topology), 1)
             self.assert_executed_ok()
-
+            
+            if target == "cloudfront":
+                print('results')
+                components = topology[0]["components"]
+                relations = topology[0]["relations"]
+                for component in components:
+                    print(json.dumps(component, indent=2, default=str))
+                for relation in relations:
+                    print(json.dumps(relation, indent=2, default=str))
             if target == "cloudformation":
                 names = {}
                 for file in glob.glob(relative_path('json/cloudformation/describe_stack_resources*.json')):
