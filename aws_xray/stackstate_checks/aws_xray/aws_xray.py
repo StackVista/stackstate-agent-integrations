@@ -70,8 +70,11 @@ class AwsCheck(AgentCheck):
             return
 
         try:
-            traces = self._process_xray_traces(aws_client)
+            # empty memory cache
+            self.trace_ids = {}
+            self.arns = {}
 
+            traces = self._process_xray_traces(aws_client)
             if traces:
                 self._send_payload(traces)
 
@@ -268,8 +271,6 @@ class AwsClient:
         xray_client = self._get_boto3_client('xray')
 
         start_time = self._get_last_request_end_time()
-        traces = []
-
         operation_params = {
             'StartTime': start_time,
             'EndTime': datetime.datetime.utcnow()
