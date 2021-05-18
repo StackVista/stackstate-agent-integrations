@@ -77,10 +77,10 @@ Resources:
           AddOrSend:
             Type: Choice
             Choices:
-              - Variable: $.action
+              - Variable: $.request.body.action
                 StringEquals: add
                 Next: Add
-              - Variable: $.action
+              - Variable: $.request.body.action
                 StringEquals: send
                 Next: Send
             Default: NoFinish
@@ -142,6 +142,11 @@ Resources:
           ignore_checks:
             - E3002 # Step Functions supports objects now
 
+  NotificationDeployS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${AWS::StackName}-${AWS::AccountId}
+
   NotificationAddLambdaFunctionIamRole:
     Type: AWS::IAM::Role
     Properties:
@@ -174,6 +179,13 @@ Resources:
                   - sqs:SendMessage
                 Resource:
                   - !GetAtt NotificationSqsQueue.Arn
+              - Sid: S3
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                Resource:
+                  - !Sub ${NotificationDeployS3Bucket.Arn}/notification-add.zip
   NotificationAddLambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -182,7 +194,6 @@ Resources:
       Runtime: python3.7
       Environment:
         Variables:
-          DATABASE: !GetAtt NotificationRdsDatabase.Endpoint.Address
           SQS_QUEUE: !Ref NotificationSqsQueue
       Code:
         ZipFile: |
@@ -233,6 +244,13 @@ Resources:
                 Action:
                   - sns:Publish
                 Resource: !Ref NotificationSnsTopic
+              - Sid: S3
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                Resource:
+                  - !Sub ${NotificationDeployS3Bucket.Arn}/notification-send.zip
   NotificationSendLambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -241,12 +259,11 @@ Resources:
       Runtime: python3.7
       Environment:
         Variables:
-          DATABASE: !GetAtt NotificationRdsDatabase.Endpoint.Address
+          RDS_HOST: !GetAtt NotificationRdsDatabase.Endpoint.Address
           SNS_TOPIC: !Ref NotificationSnsTopic
       Code:
-        ZipFile: |
-          def handler(event, context):
-            return f'Hello {event.get("message")}'
+        S3Bucket: !Ref NotificationDeployS3Bucket
+        S3Key: notification-send.zip
       Timeout: 5
       VpcConfig:
         SecurityGroupIds:
@@ -256,75 +273,6 @@ Resources:
           - !Ref VpcSubnet2Id
           - !Ref VpcSubnet3Id
   NotificationSendLambdaFunctionSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: LambdaFunctionSecurityGroup
-      VpcId: !Ref VpcId
-
-  NotificationInsertLambdaFunctionIamRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: !Sub lambda.${AWS::URLSuffix}
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: default
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                  - logs:CreateLogGroup
-                  - logs:CreateLogStream
-                  - logs:PutLogEvents
-                  - ec2:CreateNetworkInterface
-                  - ec2:DescribeNetworkInterfaces
-                  - ec2:DeleteNetworkInterface
-                  - ec2:AssignPrivateIpAddresses
-                  - ec2:UnassignPrivateIpAddresses
-                Resource: "*"
-              - Sid: sqs
-                Effect: Allow
-                Action:
-                  - sqs:ReceiveMessage
-                  - sqs:DeleteMessage
-                  - sqs:GetQueueAttributes
-                Resource:
-                  - !GetAtt NotificationSqsQueue.Arn
-  NotificationInsertLambdaEventSourceMapping:
-    Type: AWS::Lambda::EventSourceMapping
-    Properties:
-      BatchSize: 1
-      EventSourceArn: !GetAtt NotificationSqsQueue.Arn
-      FunctionName: !Ref NotificationInsertLambdaFunction
-  NotificationInsertLambdaFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      Handler: index.handler
-      Role: !GetAtt NotificationInsertLambdaFunctionIamRole.Arn
-      Runtime: python3.7
-      ReservedConcurrentExecutions: 1
-      Environment:
-        Variables:
-          DATABASE: !GetAtt NotificationRdsDatabase.Endpoint.Address
-          SNS_TOPIC: !Ref NotificationSnsTopic
-      Code:
-        ZipFile: |
-          def handler(event, context):
-            return f'Hello {event.get("message")}'
-      Timeout: 5
-      VpcConfig:
-        SecurityGroupIds:
-          - !GetAtt NotificationInsertLambdaFunctionSecurityGroup.GroupId
-        SubnetIds:
-          - !Ref VpcSubnet1Id
-          - !Ref VpcSubnet2Id
-          - !Ref VpcSubnet3Id
-  NotificationInsertLambdaFunctionSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: LambdaFunctionSecurityGroup
@@ -356,10 +304,6 @@ Resources:
           FromPort: 5432
           ToPort: 5432
           SourceSecurityGroupId: !GetAtt NotificationSendLambdaFunctionSecurityGroup.GroupId
-        - IpProtocol: tcp
-          FromPort: 5432
-          ToPort: 5432
-          SourceSecurityGroupId: !GetAtt NotificationInsertLambdaFunctionSecurityGroup.GroupId
   NotificationRdsDatabase:
     Type: AWS::RDS::DBInstance
     Properties:
@@ -434,7 +378,7 @@ Resources:
         UserData:
           Fn::Base64: |
             #!/bin/bash -xe
-            yum install -y postgres
+            yum install -y postgresql
     Metadata:
       cfn-lint:
         config:
@@ -446,7 +390,7 @@ Resources:
     Properties:
       GroupDescription: ECS Security Group
       VpcId: !Ref VpcId
-      SecurityGroupEgress:
+      SecurityGroupIngress:
         - IpProtocol: "-1"
           FromPort: 0
           ToPort: 0
@@ -455,3 +399,76 @@ Resources:
           FromPort: 0
           ToPort: 0
           CidrIpv6: ::/0
+  NotificationEc2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      LaunchTemplate:
+        LaunchTemplateId: !Ref NotificationEc2LaunchTemplate
+        Version: !GetAtt NotificationEc2LaunchTemplate.LatestVersionNumber
+      SubnetId: !Ref VpcSubnet1Id
+
+  NotificationApiGatewayVpcLink:
+    Type: AWS::ApiGatewayV2::VpcLink
+    Properties:
+      Name: !Ref AWS::StackName
+      SubnetIds:
+        - !Ref VpcSubnet1Id
+        - !Ref VpcSubnet2Id
+        - !Ref VpcSubnet3Id
+      SecurityGroupIds:
+        - !GetAtt NotificationApiGatewaySecurityGroup.GroupId
+  NotificationApiGatewaySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ECS Security Group
+      VpcId: !Ref VpcId
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          FromPort: 0
+          ToPort: 0
+          DestinationSecurityGroupId: !GetAtt NotificationEc2SecurityGroup.GroupId
+  NotificationApiGatewayApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub ${AWS::StackName}-NotificationApiGatewayApi
+      ProtocolType: HTTP
+  NotificationApiGatewayStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      StageName: v1
+      ApiId: !Ref NotificationApiGatewayApi
+      AutoDeploy: true
+  NotificationApiGatewayDefaultRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      RouteKey: $default
+      ApiId: !Ref NotificationApiGatewayApi
+      Target: !Sub integrations/${NotificationApiGatewayDefaultIntegration}
+  NotificationApiGatewayDefaultIntegrationIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: !Sub apigateway.${AWS::URLSuffix}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: default
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - states:StartExecution
+                Resource: !Ref NotificationStepFunctionsStateMachine
+  NotificationApiGatewayDefaultIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref NotificationApiGatewayApi
+      ConnectionType: INTERNET
+      CredentialsArn: !GetAtt NotificationApiGatewayDefaultIntegrationIamRole.Arn
+      IntegrationType: AWS_PROXY
+      IntegrationSubtype: StepFunctions-StartExecution
+      RequestParameters:
+        StateMachineArn: !Ref NotificationStepFunctionsStateMachine
+      PayloadFormatVersion: "1.0"
