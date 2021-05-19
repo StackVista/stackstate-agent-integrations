@@ -1,8 +1,4 @@
 listen_for = {
-    'redshift.amazonaws.com': {
-        'CreateCluster': True,
-        'DeleteCluster': True
-    },
     'rds.amazonaws.com': {
         'CreateDBInstance': True,
         'CreateDBCluster': True,
