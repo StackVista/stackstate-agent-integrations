@@ -53,6 +53,8 @@ def mock_event(event_name):
             return resource("json/cloudtrail/describe_table.json")
         elif operation_name == 'DescribeAutoScalingGroups':
             return resource("json/cloudtrail/describe_autoscaling_group.json")
+        elif operation_name == 'DescribeClusters':
+            return resource("json/cloudtrail/redshift_describe_clusters.json")
         elif (
             operation_name == 'ListQueueTags'
             or operation_name == 'ListTagsForDeliveryStream'
@@ -511,3 +513,24 @@ class TestCloudtrail(unittest.TestCase):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 0)
         self.assertIn('arn:aws:sns:eu-west-1:731070500579:sam-integ-stack-basic-application-sar-location-with-intrinsics-dqaojpvdfwji-MySns-NSB98RV5ST8D', self.check.delete_ids)
+
+    @set_event('redshift_create_cluster')
+    def test_process_redshift_create_cluster(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'mycluster',
+            topology[0]["components"][0]["id"]
+        )
+
+    @set_event('redshift_delete_cluster')
+    def test_process_redshift_delete_cluster(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 0)
+        self.assertIn('my-dw-instance', self.check.delete_ids)
