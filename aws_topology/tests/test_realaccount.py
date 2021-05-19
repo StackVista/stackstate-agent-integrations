@@ -11,6 +11,7 @@ import botocore
 import hashlib
 import datetime
 import glob
+import socket
 
 
 """
@@ -29,7 +30,8 @@ It uses a
 # target = "events"
 # target = "stepfunctions"
 # target = "apigatewayv2"
-target = "cloudfront"
+# target = "cloudfront"
+target = "ec2"
 
 regions = ["eu-west-1"]
 if target == "cloudformation":
@@ -78,6 +80,22 @@ def mock_patch_method_original(mock_path):
     patcher.stop()
 
 
+def get_ipv4_by_hostname(hostname):
+    # see `man getent` `/ hosts `
+    # see `man getaddrinfo`
+
+    return set(
+        i        # raw socket structure
+            [4]  # internet protocol info
+            [0]  # address
+        for i in 
+        socket.getaddrinfo(
+            hostname,
+            0  # port, required
+        )
+    )
+
+
 class TestEventBridge(unittest.TestCase):
 
     CHECK_NAME = "aws_topology"
@@ -103,7 +121,7 @@ class TestEventBridge(unittest.TestCase):
             "role_arn": role,
             "regions": regions,
         }
-        instance.update({"apis_to_run": [target]})
+        instance.update({"apis_to_run": ["ec2", "lambda", "rds"]})
 
         self.check = AwsTopologyCheck(self.CHECK_NAME, InitConfig(init_config), [instance])
 
@@ -131,14 +149,45 @@ class TestEventBridge(unittest.TestCase):
             self.assertEqual(len(topology), 1)
             self.assert_executed_ok()
             
-            if target == "cloudfront":
+            if target == "ec2":
                 print('results')
                 components = topology[0]["components"]
                 relations = topology[0]["relations"]
                 for component in components:
                     print(json.dumps(component, indent=2, default=str))
                 for relation in relations:
-                    print(json.dumps(relation, indent=2, default=str))
+                     print(json.dumps(relation, indent=2, default=str))
+                for rds in components:
+                    if rds["type"] == "aws.rds_instance":
+                        endpoint = rds["data"]["Endpoint"]["Address"]
+                        print('Looking up', endpoint)
+                        rips = get_ipv4_by_hostname(endpoint)
+                        print('IP', get_ipv4_by_hostname(endpoint))
+                        for component in components:
+                            if component["type"] == "aws.ec2.networkinterface":
+                                if rds["data"]["DBSubnetGroup"].get("VpcId") == component["data"]["VpcId"]:
+                                    ips = set([x["PrivateIpAddress"] for x in component["data"]["PrivateIpAddresses"]])
+                                    if ips & rips:
+                                        print("match", rips)
+
+
+                    
+
+                for component in components:
+                    if component["type"] == "aws.ec2.networkinterface":
+                        if component["data"]["InterfaceType"] == "lambda":
+                            for lmb in components:
+                                if lmb["type"] == "aws.lambda":
+                                    if lmb["data"].get("VpcConfig"):
+                                        if lmb["data"]["VpcConfig"].get("VpcId"):
+                                            if lmb["data"]["VpcConfig"].get("VpcId") == component["data"]["VpcId"]:
+                                                if component["data"]["SubnetId"] in lmb["data"]["VpcConfig"]["SubnetIds"]:
+                                                    if set(lmb["data"]["VpcConfig"]["SecurityGroupIds"]) == set([x["GroupId"] for x in component["data"].get("Groups")]):
+                                                        print(lmb["id"], component["id"])
+                                            else:
+                                                print("no match")
+
+
             if target == "cloudformation":
                 names = {}
                 for file in glob.glob(relative_path('json/cloudformation/describe_stack_resources*.json')):
