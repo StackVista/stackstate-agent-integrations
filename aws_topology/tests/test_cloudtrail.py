@@ -58,6 +58,8 @@ def mock_event(event_name):
             or operation_name == 'ListTagsForDeliveryStream'
             or operation_name == 'ListTagsForStream'
             or operation_name == 'ListTagsOfResource'
+            or operation_name == 'ListTagsForResource'
+            or operation_name == 'ListSubscriptionsByTopic'
         ):
             return {}
         raise ValueError("Unknown operation name", operation_name)
@@ -488,3 +490,24 @@ class TestCloudtrail(unittest.TestCase):
             'awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM',
             topology[0]["components"][0]["data"]["AutoScalingGroupName"]
         )
+
+    @set_event('sns_create_topic')
+    def test_process_sns_create_topic(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'arn:aws:sns:eu-west-1:731070500579:MyFirstSNS',
+            topology[0]["components"][0]["id"]
+        )
+
+    @set_event('sns_delete_topic')
+    def test_process_sns_delete_topic(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 0)
+        self.assertIn('arn:aws:sns:eu-west-1:731070500579:sam-integ-stack-basic-application-sar-location-with-intrinsics-dqaojpvdfwji-MySns-NSB98RV5ST8D', self.check.delete_ids)
