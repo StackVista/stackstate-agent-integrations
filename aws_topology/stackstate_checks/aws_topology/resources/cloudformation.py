@@ -12,6 +12,7 @@ from .ecs import create_cluster_arn as ecs_cluster_arn
 from .api_gateway import create_api_arn, create_stage_arn, create_resource_arn, create_method_arn
 from .elb_classic import create_arn as create_elb_arn
 
+
 type_map = {
     'AWS::Lambda::Function': 'lambda_func',
     'AWS::Kinesis::Stream': 'kinesis_stream',
@@ -49,7 +50,7 @@ type_arn = {
     'AWS::ApiGateway::Resource': create_resource_arn,
     'AWS::ApiGateway::Method': create_method_arn,
     'AWS::ElasticLoadBalancing::LoadBalancer': create_elb_arn,  # TODO odd one
-
+    'AWS::Redshift::Cluster': no_arn,
     'AWS::EC2::Instance': no_arn,
     'AWS::EC2::SecurityGroup': no_arn,
     'AWS::EC2::Vpc': no_arn,
