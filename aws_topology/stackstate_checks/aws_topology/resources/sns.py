@@ -3,6 +3,7 @@ from .registry import RegisteredResourceCollector
 from schematics import Model
 from schematics.types import StringType, ModelType
 
+
 def create_arn(region=None, account_id=None, resource_id=None, **kwargs):
     return arn(resource='sns', region=region, account_id=account_id, resource_id=resource_id)
 
@@ -24,7 +25,7 @@ class SNSEventUpdate(SNSEventBase):
     class RequestParameters(Model):
         topicArn = StringType()
 
-    requestParameters = ModelType(RequestParameters)    
+    requestParameters = ModelType(RequestParameters)
 
     def get_resource_name(self):
         part = self.requestParameters.topicArn.rsplit(':', 1)[-1]
@@ -39,7 +40,7 @@ class SNSEventCreate(SNSEventBase):
     class ResponseElements(Model):
         topicArn = StringType()
 
-    responseElements = ModelType(ResponseElements)    
+    responseElements = ModelType(ResponseElements)
 
     def get_resource_name(self):
         part = self.responseElements.topicArn.rsplit(':', 1)[-1]

@@ -1,4 +1,4 @@
-from .utils import make_valid_data, CloudTrailEventBase, create_arn as arn
+from .utils import make_valid_data, CloudTrailEventBase
 from .registry import RegisteredResourceCollector
 from schematics import Model
 from schematics.types import StringType, ModelType
@@ -21,7 +21,7 @@ class RedshiftEventUpdate(RedshiftEventBase):
     class RequestParameters(Model):
         clusterIdentifier = StringType()
 
-    requestParameters = ModelType(RequestParameters)    
+    requestParameters = ModelType(RequestParameters)
 
     def get_resource_name(self):
         return self.requestParameters.clusterIdentifier
@@ -34,7 +34,7 @@ class RedshiftEventCreate(RedshiftEventBase):
     class ResponseElements(Model):
         clusterIdentifier = StringType()
 
-    responseElements = ModelType(ResponseElements)    
+    responseElements = ModelType(ResponseElements)
 
     def get_resource_name(self):
         return self.responseElements.clusterIdentifier

@@ -512,7 +512,10 @@ class TestCloudtrail(unittest.TestCase):
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 0)
-        self.assertIn('arn:aws:sns:eu-west-1:731070500579:sam-integ-stack-basic-application-sar-location-with-intrinsics-dqaojpvdfwji-MySns-NSB98RV5ST8D', self.check.delete_ids)
+        self.assertIn(
+            'arn:aws:sns:eu-west-1:731070500579:sam-integ-stack-basic-application-' +
+            'sar-location-with-intrinsics-dqaojpvdfwji-MySns-NSB98RV5ST8D', self.check.delete_ids
+        )
 
     @set_event('redshift_create_cluster')
     def test_process_redshift_create_cluster(self):
