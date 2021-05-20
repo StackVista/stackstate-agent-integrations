@@ -108,6 +108,13 @@ def test_end_time():
     assert time1 == time2
 
 
+def test_end_time_older_than_24h():
+    client = AwsClient({}, {})
+    client.last_end_time = datetime.datetime.utcnow() - datetime.timedelta(hours=48)
+    client.write_cache_file()
+    assert client.default_start_time() > datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+
+
 def get_file(file_name):
     file_with_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'data', file_name)
     with open(file_with_path, 'r') as file:
