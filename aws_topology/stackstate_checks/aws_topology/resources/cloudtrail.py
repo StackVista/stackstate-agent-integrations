@@ -1,10 +1,4 @@
 listen_for = {
-    'rds.amazonaws.com': {
-        'CreateDBInstance': True,
-        'CreateDBCluster': True,
-        'DeleteDBInstance': True,
-        'DeleteDBCluster': True
-    },
     'elasticloadbalancing.amazonaws.com': {
         'CreateLoadBalancer': True,
         'RegisterInstancesWithLoadBalancer': True,

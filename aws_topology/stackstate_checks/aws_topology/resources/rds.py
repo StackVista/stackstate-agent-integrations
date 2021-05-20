@@ -69,6 +69,20 @@ class Rds_InstanceEvent(CloudTrailEventBase):
             collector.process_one_instance(self.get_resource_name())
 
 
+#        'AWS::RDS::DBCluster': {
+#            'C': {
+#                'events': ['CreateDBCluster'],
+#                'path': 'responseElements.dBClusterArn',
+#                'param': 'use_name'
+#            }
+#            'D': ['DeleteDBCluster']
+#            'U': ['UpdateDbCluster', 'bladieblah']
+#        },
+#        'AWS::RDS::DBInstance': {
+#            '':
+#        },
+
+
 class RdsCollector(RegisteredResourceCollector):
     API = "rds"
     API_TYPE = "regional"
