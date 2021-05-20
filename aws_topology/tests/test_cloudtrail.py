@@ -537,3 +537,45 @@ class TestCloudtrail(unittest.TestCase):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 0)
         self.assertIn('my-dw-instance', self.check.delete_ids)
+
+    @set_event('rds_create_cluster')
+    def test_process_rds_create_cluster(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'mycluster',
+            topology[0]["components"][0]["id"]
+        )
+
+    @set_event('rds_delete_cluster')
+    def test_process_rds_delete_cluster(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 0)
+        self.assertIn('my-dw-instance', self.check.delete_ids)
+
+    @set_event('rds_create_instance')
+    def test_process_rds_create_instance(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'mycluster',
+            topology[0]["components"][0]["id"]
+        )
+
+    @set_event('rds_delete_instance')
+    def test_process_rds_delete_instance(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 0)
+        self.assertIn('my-dw-instance', self.check.delete_ids)

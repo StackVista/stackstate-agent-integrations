@@ -1,0 +1,131 @@
+{
+  "account": "731070500579",
+  "region": "eu-west-1",
+  "detail": {
+    "eventVersion": "1.04",
+    "eventID": "da947ce6-d464-4c88-8f29-180db3a6dfc3",
+    "eventTime": "2018-04-25T12:59:21Z",
+    "requestParameters": {
+      "dBInstanceIdentifier": "hithere",
+      "skipFinalSnapshot": true
+    },
+    "eventType": "AwsApiCall",
+    "responseElements": {
+      "enhancedMonitoringResourceArn": "arn:aws:logs:eu-west-1:731070500579:log-group:RDSOSMetrics:log-stream:db-SEYJA7LQXOVTR42LLSVGHRES5Q",
+      "dBSecurityGroups": [],
+      "dBParameterGroups": [
+        {
+          "dBParameterGroupName": "default.aurora5.6",
+          "parameterApplyStatus": "in-sync"
+        }
+      ],
+      "dbiResourceId": "db-SEYJA7LQXOVTR42LLSVGHRES5Q",
+      "autoMinorVersionUpgrade": true,
+      "promotionTier": 1,
+      "dBSubnetGroup": {
+        "subnets": [
+          {
+            "subnetStatus": "Active",
+            "subnetIdentifier": "subnet-096c7b4f",
+            "subnetAvailabilityZone": {
+              "name": "eu-west-1b"
+            }
+          },
+          {
+            "subnetStatus": "Active",
+            "subnetIdentifier": "subnet-67d82910",
+            "subnetAvailabilityZone": {
+              "name": "eu-west-1a"
+            }
+          },
+          {
+            "subnetStatus": "Active",
+            "subnetIdentifier": "subnet-31ff3554",
+            "subnetAvailabilityZone": {
+              "name": "eu-west-1c"
+            }
+          }
+        ],
+        "dBSubnetGroupName": "default-vpc-6b25d10e",
+        "vpcId": "vpc-6b25d10e",
+        "dBSubnetGroupDescription": "Created from the RDS Management Console",
+        "subnetGroupStatus": "Complete"
+      },
+      "allocatedStorage": 1,
+      "dBInstanceArn": "arn:aws:rds:eu-west-1:731070500579:db:hithere",
+      "monitoringRoleArn": "arn:aws:iam::731070500579:role/rds-monitoring-role",
+      "dbInstancePort": 0,
+      "backupRetentionPeriod": 1,
+      "domainMemberships": [],
+      "dBInstanceStatus": "deleting",
+      "vpcSecurityGroups": [
+        {
+          "status": "active",
+          "vpcSecurityGroupId": "sg-8ea360f3"
+        }
+      ],
+      "instanceCreateTime": "Apr 25, 2018 12:32:37 PM",
+      "dBInstanceIdentifier": "hithere",
+      "monitoringInterval": 60,
+      "optionGroupMemberships": [
+        {
+          "status": "in-sync",
+          "optionGroupName": "default:aurora-5-6"
+        }
+      ],
+      "pendingModifiedValues": {},
+      "engine": "aurora",
+      "multiAZ": false,
+      "availabilityZone": "eu-west-1c",
+      "dBClusterIdentifier": "hithere",
+      "storageType": "aurora",
+      "performanceInsightsEnabled": false,
+      "cACertificateIdentifier": "rds-ca-2015",
+      "preferredBackupWindow": "03:50-04:20",
+      "iAMDatabaseAuthenticationEnabled": false,
+      "storageEncrypted": true,
+      "engineVersion": "5.6.10a",
+      "dBInstanceClass": "db.r4.large",
+      "dBName": "hithere",
+      "preferredMaintenanceWindow": "sun:22:11-sun:22:41",
+      "endpoint": {
+        "hostedZoneId": "Z29XKXDKYMONMX",
+        "port": 3323,
+        "address": "hithere.cdnm1uvvpdkc.eu-west-1.rds.amazonaws.com"
+      },
+      "publiclyAccessible": false,
+      "masterUsername": "hi",
+      "licenseModel": "general-public-license",
+      "kmsKeyId": "arn:aws:kms:eu-west-1:731070500579:key/f3e71968-889b-4e27-8d62-56da6b269b82",
+      "copyTagsToSnapshot": false,
+      "readReplicaDBInstanceIdentifiers": []
+    },
+    "awsRegion": "eu-west-1",
+    "eventName": "DeleteDBInstance",
+    "userIdentity": {
+      "userName": "martijn",
+      "principalId": "AIDAJDDXCZUJ4ZKDWZPOQ",
+      "accessKeyId": "ASIAJRSVOJUTDH4IFYKQ",
+      "invokedBy": "signin.amazonaws.com",
+      "sessionContext": {
+        "attributes": {
+          "creationDate": "2018-04-25T06:48:30Z",
+          "mfaAuthenticated": "true"
+        }
+      },
+      "type": "IAMUser",
+      "arn": "arn:aws:iam::731070500579:user/martijn",
+      "accountId": "731070500579"
+    },
+    "eventSource": "rds.amazonaws.com",
+    "requestID": "fe6c826b-93cd-4597-a9fa-3b1e8c143744",
+    "userAgent": "signin.amazonaws.com",
+    "sourceIPAddress": "81.21.139.6"
+  },
+  "detail-type": "AWS API Call via CloudTrail",
+  "source": "aws.rds",
+  "version": "0",
+  "time": "2018-04-25T12:59:21Z",
+  "id": "4524e7b1-5fab-a628-380f-b1743451454a",
+  "resources": []
+}
