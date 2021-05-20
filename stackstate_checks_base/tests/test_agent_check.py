@@ -10,10 +10,12 @@ from schematics.types import IntType, StringType, ModelType
 import pytest
 from six import PY3
 
-from stackstate_checks.checks import AgentCheck, TopologyInstance, AgentIntegrationInstance
+from stackstate_checks.checks import AgentCheck, TopologyInstance, AgentIntegrationInstance,\
+    HealthStream, HealthStreamUrn, Health
 from stackstate_checks.base.utils.agent_integration_test_util import AgentIntegrationTestUtil
 from stackstate_checks.base.stubs.topology import component, relation
 import copy
+import re
 
 
 def test_instance():
@@ -43,6 +45,11 @@ def test_log_critical_error():
 
     with pytest.raises(NotImplementedError):
         check.log.critical('test')
+
+
+# Python version agnostic checking of errors
+def checkErrorPy2Or3(e, expected):
+    assert re.sub(r'<type ', "<class ", str(e.value)) == expected
 
 
 class TestMetricNormalization:
@@ -358,6 +365,32 @@ class TopologyAutoSnapshotCheck(TopologyCheck):
 class TopologyBrokenCheck(TopologyAutoSnapshotCheck):
     def __init__(self):
         super(TopologyBrokenCheck, self).__init__()
+
+    def check(self, instance):
+        raise Exception("some error in my check")
+
+
+class HealthCheck(AgentCheck):
+    def __init__(self, stream=None, *args, **kwargs):
+        instances = [{'a': 'b'}]
+        self.stream = stream or HealthStream(HealthStreamUrn("source", "stream_id"), "sub_stream")
+        super(HealthCheck, self).__init__("test", {}, instances)
+
+    def get_health_stream(self):
+        return self.stream
+
+    def check(self, instance):
+        return
+
+
+class HealthBrokenCheck(AgentCheck):
+    def __init__(self, stream=None, *args, **kwargs):
+        instances = [{'a': 'b'}]
+        self.stream = stream or HealthStream(HealthStreamUrn("source", "stream_id"), "sub_stream")
+        super(HealthBrokenCheck, self).__init__("test", {}, instances)
+
+    def get_health_stream(self):
+        return self.stream
 
     def check(self, instance):
         raise Exception("some error in my check")
@@ -1011,3 +1044,108 @@ expected TopologyInstance, AgentIntegrationInstance or DefaultIntegrationInstanc
         component = topology.get_snapshot(check.check_id)['components'][0]
         # there should be no identifier mapped for host because field value `x.y.z.url` doesn't exist in data
         assert component["data"].get("identifiers") is None
+
+
+class TestHealthStreamUrn:
+    def test_health_stream_urn_escaping(self):
+        urn = HealthStreamUrn("source.", "stream_id:")
+        assert urn.urn_string() == "urn:health:source.:stream_id%3A"
+
+    def test_verify_types(self):
+        with pytest.raises(ValueError) as e:
+            HealthStreamUrn(None, "stream_id")
+        assert str(e.value) == "Got None value for argument source"
+
+        with pytest.raises(ValueError) as e2:
+            HealthStreamUrn("source", None)
+        assert str(e2.value) == "Got None value for argument stream_id"
+
+
+class TestHealthStream:
+    def test_throws_error_when_expiry_on_sub_stream(self):
+        with pytest.raises(ValueError) as e:
+            HealthStream(HealthStreamUrn("source.", "stream_id:"), "sub_stream", expiry_seconds=0)
+        assert str(e.value) == "Expiry cannot be disabled if a substream is specified"
+
+    def test_verify_types(self):
+        with pytest.raises(ValueError) as e:
+            HealthStream("str")
+        checkErrorPy2Or3(e, """Got unexpected <class 'str'> for argument urn,\
+ expected <class 'stackstate_checks.base.checks.base.HealthStreamUrn'>""")
+
+        with pytest.raises(ValueError) as e:
+            HealthStream(HealthStreamUrn("source", "urn"), sub_stream=1)
+        checkErrorPy2Or3(e, """Got unexpected <class 'int'> for argument sub_stream, expected string""")
+
+        with pytest.raises(ValueError) as e:
+            HealthStream(HealthStreamUrn("source", "urn"), repeat_interval_seconds="")
+        checkErrorPy2Or3(e, """Got unexpected <class 'str'> for argument repeat_interval_seconds,\
+ expected <class 'int'>""")
+
+        with pytest.raises(ValueError) as e:
+            HealthStream(HealthStreamUrn("source", "urn"), expiry_seconds="")
+        checkErrorPy2Or3(e, """Got unexpected <class 'str'> for argument expiry_seconds, expected <class 'int'>""")
+
+
+class TestHealth:
+    def test_check_state_max_values(self, health):
+        # Max values: fill in as much of the optional fields as possible
+        check = HealthCheck()
+        check.health.check_state("check_id", "name", Health.CRITICAL, "identifier", "message")
+        health.assert_snapshot(check.check_id, check.get_health_stream(), check_states=[{
+            'checkStateId': 'check_id',
+            'health': 'critical',
+            'message': 'message',
+            'name': 'name',
+            'topologyElementIdentifier': 'identifier'
+        }])
+
+    def test_check_state_min_values(self, health):
+        # Min values: fill in as few of the optional fields as possible
+        check = HealthCheck()
+        check.health.check_state("check_id", "name", Health.CRITICAL, "identifier")
+        health.assert_snapshot(check.check_id, check.get_health_stream(), check_states=[{
+            'checkStateId': 'check_id',
+            'health': 'critical',
+            'name': 'name',
+            'topologyElementIdentifier': 'identifier'
+        }])
+
+    def test_check_state_verify_types(self):
+        check = HealthCheck()
+        with pytest.raises(ValueError) as e:
+            check.health.check_state(1, "name", Health.CRITICAL, "identifier")
+        checkErrorPy2Or3(e, """Got unexpected <class 'int'> for argument check_state_id, expected string""")
+
+        with pytest.raises(ValueError) as e:
+            check.health.check_state("check_id", 1, Health.CRITICAL, "identifier")
+        checkErrorPy2Or3(e, """Got unexpected <class 'int'> for argument name, expected string""")
+
+        with pytest.raises(ValueError) as e:
+            check.health.check_state("check_id", "name", "bla", "identifier")
+        checkErrorPy2Or3(e, """Got unexpected <class 'str'> for argument health_value, expected <enum 'Health'>""")
+
+        with pytest.raises(ValueError) as e:
+            check.health.check_state("check_id", "name", Health.CRITICAL, 1)
+        checkErrorPy2Or3(e, """Got unexpected <class 'int'> for argument topology_element_identifier,\
+ expected string""")
+
+        with pytest.raises(ValueError) as e:
+            check.health.check_state("check_id", "name", Health.CRITICAL, "identifier", 1)
+        checkErrorPy2Or3(e, """Got unexpected <class 'int'> for argument message, expected string""")
+
+    def test_auto_snapshotting(self, health):
+        check = HealthCheck()
+        check.run()
+        health.assert_snapshot(check.check_id,
+                               check.get_health_stream(),
+                               start_snapshot={'expiry_interval_s': 60, 'repeat_interval_s': 15},
+                               stop_snapshot={})
+
+    def test_auto_snapshotting_with_exception(self, health):
+        check = HealthBrokenCheck()
+        check.run()
+        health.assert_snapshot(check.check_id,
+                               check.get_health_stream(),
+                               start_snapshot={'expiry_interval_s': 60, 'repeat_interval_s': 15},
+                               stop_snapshot=None)
