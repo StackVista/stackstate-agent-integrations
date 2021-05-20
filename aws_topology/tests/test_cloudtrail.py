@@ -55,6 +55,10 @@ def mock_event(event_name):
             return resource("json/cloudtrail/describe_autoscaling_group.json")
         elif operation_name == 'DescribeClusters':
             return resource("json/cloudtrail/redshift_describe_clusters.json")
+        elif operation_name == 'DescribeDBClusters':
+            return resource("json/cloudtrail/describe_rds_clusters.json")
+        elif operation_name == 'DescribeDBInstances':
+            return resource("json/cloudtrail/describe_rds_instances.json")
         elif (
             operation_name == 'ListQueueTags'
             or operation_name == 'ListTagsForDeliveryStream'
@@ -546,7 +550,7 @@ class TestCloudtrail(unittest.TestCase):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            'mycluster',
+            'arn:aws:rds:eu-west-1:731070500579:cluster:productiondatabasecluster',
             topology[0]["components"][0]["id"]
         )
 
@@ -557,7 +561,7 @@ class TestCloudtrail(unittest.TestCase):
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 0)
-        self.assertIn('my-dw-instance', self.check.delete_ids)
+        self.assertIn('arn:aws:rds:eu-west-1:731070500579:cluster:hithere', self.check.delete_ids)
 
     @set_event('rds_create_instance')
     def test_process_rds_create_instance(self):
@@ -567,7 +571,7 @@ class TestCloudtrail(unittest.TestCase):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            'mycluster',
+            'arn:aws:rds:eu-west-1:731070500579:db:productiondatabase',
             topology[0]["components"][0]["id"]
         )
 
@@ -578,4 +582,4 @@ class TestCloudtrail(unittest.TestCase):
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 0)
-        self.assertIn('my-dw-instance', self.check.delete_ids)
+        self.assertIn('arn:aws:rds:eu-west-1:731070500579:db:hithere', self.check.delete_ids)

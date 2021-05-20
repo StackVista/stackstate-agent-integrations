@@ -1,136 +1,126 @@
 {
-  "account": "731070500579",
-  "region": "eu-west-1",
-  "detail": {
-    "eventVersion": "1.04",
-    "eventID": "c136e736-20c3-494e-88f6-f22b0445a1ff",
-    "eventTime": "2018-04-26T08:49:33Z",
-    "requestParameters": {
-      "engine": "aurora",
-      "dBParameterGroupName": "default.aurora5.6",
-      "monitoringRoleArn": "arn:aws:iam::731070500579:role/rds-monitoring-role",
-      "publiclyAccessible": false,
-      "multiAZ": false,
-      "monitoringInterval": 60,
-      "licenseModel": "general-public-license",
-      "autoMinorVersionUpgrade": true,
-      "iops": 0,
-      "engineVersion": "5.6.10a",
-      "dBClusterIdentifier": "databasecluster",
-      "copyTagsToSnapshot": false,
-      "dBSubnetGroupName": "default-vpc-6b25d10e",
-      "dBInstanceClass": "db.t2.small",
-      "dBInstanceIdentifier": "StackStateDatabse"
-    },
-    "eventType": "AwsApiCall",
-    "responseElements": {
-      "dBSecurityGroups": [],
-      "dBParameterGroups": [
-        {
-          "dBParameterGroupName": "default.aurora5.6",
-          "parameterApplyStatus": "in-sync"
-        }
-      ],
-      "dbiResourceId": "db-7F33ROWUCEKDOWFNBUJU4IUJVY",
-      "autoMinorVersionUpgrade": true,
-      "promotionTier": 1,
-      "dBSubnetGroup": {
-        "subnets": [
-          {
-            "subnetStatus": "Active",
-            "subnetIdentifier": "subnet-096c7b4f",
-            "subnetAvailabilityZone": {
-              "name": "eu-west-1b"
-            }
-          },
-          {
-            "subnetStatus": "Active",
-            "subnetIdentifier": "subnet-67d82910",
-            "subnetAvailabilityZone": {
-              "name": "eu-west-1a"
-            }
-          },
-          {
-            "subnetStatus": "Active",
-            "subnetIdentifier": "subnet-31ff3554",
-            "subnetAvailabilityZone": {
-              "name": "eu-west-1c"
-            }
-          }
-        ],
-        "dBSubnetGroupName": "default-vpc-6b25d10e",
-        "vpcId": "vpc-6b25d10e",
-        "dBSubnetGroupDescription": "Created from the RDS Management Console",
-        "subnetGroupStatus": "Complete"
-      },
-      "allocatedStorage": 1,
-      "dBInstanceArn": "arn:aws:rds:eu-west-1:731070500579:db:stackstatedatabse",
-      "monitoringRoleArn": "arn:aws:iam::731070500579:role/rds-monitoring-role",
-      "dbInstancePort": 0,
-      "backupRetentionPeriod": 1,
-      "domainMemberships": [],
-      "dBInstanceStatus": "creating",
-      "vpcSecurityGroups": [
-        {
-          "status": "active",
-          "vpcSecurityGroupId": "sg-f665a88b"
-        }
-      ],
-      "dBInstanceIdentifier": "stackstatedatabse",
-      "monitoringInterval": 60,
-      "optionGroupMemberships": [
-        {
-          "status": "in-sync",
-          "optionGroupName": "default:aurora-5-6"
-        }
-      ],
-      "pendingModifiedValues": {},
-      "engine": "aurora",
-      "multiAZ": false,
-      "dBClusterIdentifier": "databasecluster",
-      "storageType": "aurora",
-      "performanceInsightsEnabled": false,
-      "cACertificateIdentifier": "rds-ca-2015",
-      "preferredBackupWindow": "02:57-03:27",
-      "iAMDatabaseAuthenticationEnabled": false,
-      "storageEncrypted": true,
-      "engineVersion": "5.6.10a",
-      "dBInstanceClass": "db.t2.small",
-      "dBName": "databasename",
-      "preferredMaintenanceWindow": "thu:02:20-thu:02:50",
-      "publiclyAccessible": false,
-      "masterUsername": "admin",
-      "licenseModel": "general-public-license",
-      "kmsKeyId": "arn:aws:kms:eu-west-1:731070500579:key/f3e71968-889b-4e27-8d62-56da6b269b82",
-      "copyTagsToSnapshot": false,
-      "readReplicaDBInstanceIdentifiers": []
-    },
-    "awsRegion": "eu-west-1",
-    "eventName": "CreateDBInstance",
-    "userIdentity": {
-      "userName": "martijn",
-      "principalId": "AIDAJDDXCZUJ4ZKDWZPOQ",
-      "accessKeyId": "ASIAIAIOP2RZDULBN35A",
-      "invokedBy": "signin.amazonaws.com",
-      "sessionContext": {
-        "attributes": {
-          "creationDate": "2018-04-26T06:22:56Z",
-          "mfaAuthenticated": "true"
-        }
-      },
-      "type": "IAMUser",
-      "arn": "arn:aws:iam::731070500579:user/martijn",
-      "accountId": "731070500579"
-    },
-    "eventSource": "rds.amazonaws.com",
-    "requestID": "46b6b234-91aa-452d-92c9-52dcc454fafd",
-    "userAgent": "signin.amazonaws.com",
-    "sourceIPAddress": "37.17.221.89"
+  "eventVersion": "1.04",
+  "eventID": "c136e736-20c3-494e-88f6-f22b0445a1ff",
+  "eventTime": "2018-04-26T08:49:33Z",
+  "requestParameters": {
+    "engine": "aurora",
+    "dBParameterGroupName": "default.aurora5.6",
+    "monitoringRoleArn": "arn:aws:iam::731070500579:role/rds-monitoring-role",
+    "publiclyAccessible": false,
+    "multiAZ": false,
+    "monitoringInterval": 60,
+    "licenseModel": "general-public-license",
+    "autoMinorVersionUpgrade": true,
+    "iops": 0,
+    "engineVersion": "5.6.10a",
+    "dBClusterIdentifier": "databasecluster",
+    "copyTagsToSnapshot": false,
+    "dBSubnetGroupName": "default-vpc-6b25d10e",
+    "dBInstanceClass": "db.t2.small",
+    "dBInstanceIdentifier": "StackStateDatabse"
   },
-  "detail-type": "AWS API Call via CloudTrail",
-  "source": "aws.rds",
-  "version": "0",
-  "time": "2018-04-26T08:49:33Z",
-  "id": "a39fc6e9-b2ea-df76-f2ed-772d5e0c562a",
-  "resources": []
+  "eventType": "AwsApiCall",
+  "responseElements": {
+    "dBSecurityGroups": [],
+    "dBParameterGroups": [
+      {
+        "dBParameterGroupName": "default.aurora5.6",
+        "parameterApplyStatus": "in-sync"
+      }
+    ],
+    "dbiResourceId": "db-7F33ROWUCEKDOWFNBUJU4IUJVY",
+    "autoMinorVersionUpgrade": true,
+    "promotionTier": 1,
+    "dBSubnetGroup": {
+      "subnets": [
+        {
+          "subnetStatus": "Active",
+          "subnetIdentifier": "subnet-096c7b4f",
+          "subnetAvailabilityZone": {
+            "name": "eu-west-1b"
+          }
+        },
+        {
+          "subnetStatus": "Active",
+          "subnetIdentifier": "subnet-67d82910",
+          "subnetAvailabilityZone": {
+            "name": "eu-west-1a"
+          }
+        },
+        {
+          "subnetStatus": "Active",
+          "subnetIdentifier": "subnet-31ff3554",
+          "subnetAvailabilityZone": {
+            "name": "eu-west-1c"
+          }
+        }
+      ],
+      "dBSubnetGroupName": "default-vpc-6b25d10e",
+      "vpcId": "vpc-6b25d10e",
+      "dBSubnetGroupDescription": "Created from the RDS Management Console",
+      "subnetGroupStatus": "Complete"
+    },
+    "allocatedStorage": 1,
+    "dBInstanceArn": "arn:aws:rds:eu-west-1:731070500579:db:stackstatedatabse",
+    "monitoringRoleArn": "arn:aws:iam::731070500579:role/rds-monitoring-role",
+    "dbInstancePort": 0,
+    "backupRetentionPeriod": 1,
+    "domainMemberships": [],
+    "dBInstanceStatus": "creating",
+    "vpcSecurityGroups": [
+      {
+        "status": "active",
+        "vpcSecurityGroupId": "sg-f665a88b"
+      }
+    ],
+    "dBInstanceIdentifier": "stackstatedatabse",
+    "monitoringInterval": 60,
+    "optionGroupMemberships": [
+      {
+        "status": "in-sync",
+        "optionGroupName": "default:aurora-5-6"
+      }
+    ],
+    "pendingModifiedValues": {},
+    "engine": "aurora",
+    "multiAZ": false,
+    "dBClusterIdentifier": "databasecluster",
+    "storageType": "aurora",
+    "performanceInsightsEnabled": false,
+    "cACertificateIdentifier": "rds-ca-2015",
+    "preferredBackupWindow": "02:57-03:27",
+    "iAMDatabaseAuthenticationEnabled": false,
+    "storageEncrypted": true,
+    "engineVersion": "5.6.10a",
+    "dBInstanceClass": "db.t2.small",
+    "dBName": "databasename",
+    "preferredMaintenanceWindow": "thu:02:20-thu:02:50",
+    "publiclyAccessible": false,
+    "masterUsername": "admin",
+    "licenseModel": "general-public-license",
+    "kmsKeyId": "arn:aws:kms:eu-west-1:731070500579:key/f3e71968-889b-4e27-8d62-56da6b269b82",
+    "copyTagsToSnapshot": false,
+    "readReplicaDBInstanceIdentifiers": []
+  },
+  "awsRegion": "eu-west-1",
+  "eventName": "CreateDBInstance",
+  "userIdentity": {
+    "userName": "martijn",
+    "principalId": "AIDAJDDXCZUJ4ZKDWZPOQ",
+    "accessKeyId": "ASIAIAIOP2RZDULBN35A",
+    "invokedBy": "signin.amazonaws.com",
+    "sessionContext": {
+      "attributes": {
+        "creationDate": "2018-04-26T06:22:56Z",
+        "mfaAuthenticated": "true"
+      }
+    },
+    "type": "IAMUser",
+    "arn": "arn:aws:iam::731070500579:user/martijn",
+    "accountId": "731070500579"
+  },
+  "eventSource": "rds.amazonaws.com",
+  "requestID": "46b6b234-91aa-452d-92c9-52dcc454fafd",
+  "userAgent": "signin.amazonaws.com",
+  "sourceIPAddress": "37.17.221.89"
 }
