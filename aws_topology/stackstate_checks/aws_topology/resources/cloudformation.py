@@ -14,6 +14,7 @@ from .api_gateway_v2 import create_httpapi_arn
 from .eventbridge import create_event_bus_arn, create_rule_arn, create_archive_arn, create_replay_arn
 from .iam import create_group_arn, create_user_arn, create_role_arn, create_instance_profile_arn
 
+
 type_map = {
     'AWS::Lambda::Function': 'lambda_func',
     'AWS::Kinesis::Stream': 'kinesis_stream',
@@ -57,6 +58,7 @@ type_arn = {
     'AWS::Events::Rule': create_rule_arn,
     'AWS::Events::Archive': create_archive_arn,
     'AWS::Events::Replay': create_replay_arn,
+    'AWS::Redshift::Cluster': no_arn,
     'AWS::EC2::Instance': no_arn,
     'AWS::EC2::SecurityGroup': no_arn,
     'AWS::EC2::Vpc': no_arn,

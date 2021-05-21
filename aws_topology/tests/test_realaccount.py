@@ -44,7 +44,6 @@ def relative_path(path):
     script_dir = os.path.dirname(__file__)
     return os.path.abspath(os.path.join(script_dir, path))
 
-
 original_method = botocore.client.BaseClient._make_api_call
 account_id = ""
 
@@ -95,7 +94,7 @@ def get_ipv4_by_hostname(hostname):
         )
     )
 
-
+  
 class TestEventBridge(unittest.TestCase):
 
     CHECK_NAME = "aws_topology"
