@@ -9,8 +9,6 @@ import logging
 import re
 import traceback
 import unicodedata
-import urllib
-from enum import Enum
 from collections import defaultdict
 from os.path import basename
 from functools import reduce
@@ -74,6 +72,7 @@ from ..utils.limiter import Limiter
 from ..utils.identifiers import Identifiers
 from ..utils.telemetry import EventStream, MetricStream, ServiceCheckStream, \
     ServiceCheckHealthChecks, Event
+from ..utils.health import Health, HealthStream, HealthStreamUrn, HealthCheckData
 from ..utils.persistent_state import StateDescriptor, StateManager
 from deprecated.sphinx import deprecated
 
@@ -168,66 +167,6 @@ class TopologyInstance(_TopologyInstanceBase):
 StackPackInstance = TopologyInstance
 
 
-class Health(Enum):
-    CLEAR = "clear"
-    DEVIATING = "deviating"
-    CRITICAL = "critical"
-
-
-class HealthStreamUrn(object):
-    """
-    Represents the urn of a health stream
-    """
-    def __init__(self, source, stream_id):
-        AgentCheckBase._check_is_string("source", source)
-        AgentCheckBase._check_is_string("stream_id", stream_id)
-        self.source = source
-        self.stream_id = stream_id
-
-    def urn_string(self):
-        if PY3:
-            encoded_source = urllib.parse.quote(self.source, safe='')
-            encoded_stream = urllib.parse.quote(self.stream_id, safe='')
-        else:
-            encoded_source = urllib.quote(self.source)
-            encoded_stream = urllib.quote(self.stream_id)
-        return "urn:health:%s:%s" % (encoded_source, encoded_stream)
-
-
-class HealthStream(object):
-    """
-    Data structure for defining a health stream, a unique identifier for a health stream source.
-
-    This is not meant to be used in checks.
-    """
-
-    def __init__(self, urn, sub_stream="", repeat_interval_seconds=None, expiry_seconds=None):
-        """
-        :param urn: the urn of the health stream. needs to take the form of "urn:health:<source>:<stream_id>"
-        :param sub_stream: (optional) an identifier for the sub stream. a sub stream can be used if an individual
-                           check instance only synchronizes part of a complete streams' data
-        :param repeat_interval_seconds: (optional) the interval in which the data will be repeated.
-                                        will default to the check instance min_collection_interval
-        :param expiry_seconds: (optional) the time after which health check states will be expired.
-                               by default will be four times the repeat_interval_seconds.
-                               Providing 0 will disable expiry.
-                               Expiry can only be disabled when no substream is specified
-        """
-        AgentCheckBase._check_is_type("urn", HealthStreamUrn, urn)
-        AgentCheckBase._check_is_string("sub_stream", sub_stream)
-        AgentCheckBase._check_none_or_type("repeat_interval_seconds", int, repeat_interval_seconds)
-        AgentCheckBase._check_none_or_type("expiry_seconds", int, expiry_seconds)
-        self.urn = urn
-        self.sub_stream = sub_stream
-        self.repeat_interval_seconds = repeat_interval_seconds
-        self.expiry_seconds = expiry_seconds
-        if sub_stream != "" and expiry_seconds == 0:
-            raise ValueError("Expiry cannot be disabled if a substream is specified")
-
-    def to_dict(self):
-        return {"urn": self.urn.urn_string(), "sub_stream": self.sub_stream}
-
-
 class HealthApi(object):
     """
     Api for health state synchronization
@@ -238,43 +177,44 @@ class HealthApi(object):
         self.expiry_seconds = expiry_seconds
         self.repeat_interval_seconds = repeat_interval_seconds
 
-    def _start_snapshot(self):
+    def start_snapshot(self):
         health.submit_health_start_snapshot(self.check,
                                             self.check.check_id,
-                                            self.stream,
+                                            self.stream.to_dict(),
                                             self.expiry_seconds,
                                             self.repeat_interval_seconds)
 
-    def _stop_snapshot(self):
-        health.submit_health_stop_snapshot(self.check, self.check.check_id, self.stream)
+    def stop_snapshot(self):
+        health.submit_health_stop_snapshot(self.check, self.check.check_id, self.stream.to_dict())
 
     def check_state(self, check_state_id, name, health_value, topology_element_identifier, message=None):
         """
         Send check data for health synchronization
 
-        :param check_state_id: unique identifier for the check within the (sub)stream
+        :param check_state_id: unique identifier for the check state within the (sub)stream
         :param name: Name of the check
-        :param health_value: health value, should be of type Health(
+        :param health_value: health value, should be of type Health()
         :param topology_element_identifier: string value, represents a component/relation the check state will bind to
         :param message: optional message with the check state
         """
-        AgentCheckBase._check_is_string("check_state_id", check_state_id)
-        AgentCheckBase._check_is_string("name", name)
-        AgentCheckBase._check_is_type("health_value", Health, health_value)
-        AgentCheckBase._check_is_string("topology_element_identifier", topology_element_identifier)
-        AgentCheckBase._check_none_or_string("message", message)
-
         check_data = {
             'checkStateId': check_state_id,
             'name': name,
-            'health': health_value.value,
             'topologyElementIdentifier': topology_element_identifier
         }
+
+        if isinstance(health_value, Health):
+            check_data['health'] = health_value.value
+        else:
+            raise ValueError("Health value is not of type Health")
 
         if message is not None:
             check_data['message'] = message
 
-        health.submit_health_check_data(self.check, self.check.check_id, self.stream, check_data)
+        # Validate the data
+        HealthCheckData(check_data)
+
+        health.submit_health_check_data(self.check, self.check.check_id, self.stream.to_dict(), check_data)
 
 
 class AgentCheckBase(object):
@@ -359,13 +299,13 @@ class AgentCheckBase(object):
         self.health = self.__init_health_api()
 
     def __init_health_api(self):
-        stream_spec = self.get_health_stream()
+        stream_spec = self.get_health_stream(self._get_instance_schema(self.instance))
         if stream_spec:
             # 15 seconds is the default interval (see defaults.DefaultCheckInterval in the core agent)
             min_collection_interval = self.instance.get('min_collection_interval', 15)
             repeat_interval_seconds = stream_spec.repeat_interval_seconds or min_collection_interval
             expiry_seconds = stream_spec.expiry_seconds or (repeat_interval_seconds * 4)
-            return HealthApi(self, stream_spec.to_dict(), expiry_seconds, repeat_interval_seconds)
+            return HealthApi(self, stream_spec, expiry_seconds, repeat_interval_seconds)
         else:
             return None
 
@@ -374,10 +314,6 @@ class AgentCheckBase(object):
             # start auto snapshot if with_snapshots is set to True
             if self._get_instance_key().with_snapshots:
                 topology.submit_start_snapshot(self, self.check_id, self._get_instance_key_dict())
-
-            # Start health snapshot if health synchronization is specified
-            if self.health:
-                self.health._start_snapshot()
 
             # create integration instance components for monitoring purposes
             self.create_integration_instance()
@@ -389,10 +325,8 @@ class AgentCheckBase(object):
             current_state = copy.deepcopy(self.state_manager.get_state(state_descriptor))
             if current_state:
                 check_instance[self.STATE_FIELD_NAME] = current_state
-            # if this check has a instance schema defined, cast it into that type and validate it
-            if self.INSTANCE_SCHEMA:
-                check_instance = self.INSTANCE_SCHEMA(check_instance, strict=False)  # strict=False ignores extra fields
-                check_instance.validate()
+
+            check_instance = self._get_instance_schema(check_instance)
             self.check(check_instance)
 
             # set the state from the check instance
@@ -401,9 +335,6 @@ class AgentCheckBase(object):
             # stop auto snapshot if with_snapshots is set to True
             if self._get_instance_key().with_snapshots:
                 topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key_dict())
-
-            if self.health:
-                self.health._stop_snapshot()
 
             result = default_result
         except Exception as e:
@@ -479,26 +410,6 @@ class AgentCheckBase(object):
             raise ValueError("Got None value for argument {}".format(argument_name))
 
     @staticmethod
-    def _check_is_type(argumentName, typ, value):
-        AgentCheckBase._check_not_none(argumentName, value)
-        if not isinstance(value, typ):
-            AgentCheckBase._raise_unexpected_type(argumentName, value, str(typ))
-
-    @staticmethod
-    def _check_none_or_type(argumentName, typ, value):
-        if value is None:
-            return
-        if not isinstance(value, typ):
-            AgentCheckBase._raise_unexpected_type(argumentName, value, str(typ))
-
-    @staticmethod
-    def _check_none_or_string(argumentName, value):
-        if value is None:
-            return
-        if not isinstance(value, string_types):
-            AgentCheckBase._raise_unexpected_type(argumentName, value, "string")
-
-    @staticmethod
     def _check_is_string(argumentName, value):
         AgentCheckBase._check_not_none(argumentName, value)
         if not isinstance(value, string_types):
@@ -529,13 +440,23 @@ class AgentCheckBase(object):
         else:
             AgentCheckBase._raise_unexpected_type(argumentName, value, "dictionary or None value")
 
-    def get_health_stream(self):
+    def get_health_stream(self, instance):
         """
-        Integration checks can override this if they want to be producing a health stream
+        Integration checks can override this if they want to be producing a health stream. Defining the will
+        enable self.health() calls
 
         :return: a class extending HealthStream
         """
         return None
+
+    def _get_instance_schema(self, instance):
+        check_instance = instance
+
+        # if this check has a instance schema defined, cast it into that type and validate it
+        if self.INSTANCE_SCHEMA:
+            check_instance = self.INSTANCE_SCHEMA(instance, strict=False)  # strict=False ignores extra fields
+            check_instance.validate()
+        return check_instance
 
     def get_instance_key(self, instance):
         """
@@ -547,11 +468,8 @@ class AgentCheckBase(object):
         return NoIntegrationInstance()
 
     def _get_instance_key(self):
-        check_instance = self.instance
-        # if this check has a instance schema defined, cast it into that type and validate it
-        if self.INSTANCE_SCHEMA:
-            check_instance = self.INSTANCE_SCHEMA(self.instance, strict=False)  # strict=False ignores extra fields
-            check_instance.validate()
+        check_instance = self._get_instance_schema(self.instance)
+
         value = self.get_instance_key(check_instance)
         if value is None:
             AgentCheckBase._raise_unexpected_type("get_instance_key()", "None", "dictionary")

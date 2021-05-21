@@ -236,6 +236,14 @@ test_static_topology:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
 
+test_static_health:
+  <<: *linux_test
+  variables:
+    CHECK: "static_health"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
 test_nagios:
   <<: *linux_test
   variables:
