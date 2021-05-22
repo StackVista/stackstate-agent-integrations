@@ -1,7 +1,7 @@
 {
   "clusterArns": [
-    "arn:aws:ecs:eu-west-1:850318095909:cluster/StackState-ECS-Cluster",
-    "arn:aws:ecs:eu-west-1:850318095909:cluster/default"
+    "arn:aws:ecs:eu-west-1:731070500579:cluster/StackState-ECS-Cluster",
+    "arn:aws:ecs:eu-west-1:731070500579:cluster/default"
   ],
   "ResponseMetadata": {
     "RetryAttempts": 0,

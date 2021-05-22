@@ -1,0 +1,35 @@
+{
+    "eventVersion": "1.08",
+    "userIdentity": {
+        "type": "Root",
+        "principalId": "123456789012",
+        "arn": "arn:aws:iam::123456789012:root",
+        "accountId": "123456789012",
+        "accessKeyId": "ASIAZZSHNGWTNYEZF4VA",
+        "sessionContext": {
+            "sessionIssuer": {},
+            "webIdFederationData": {},
+            "attributes": {
+                "mfaAuthenticated": "true",
+                "creationDate": "2021-04-20T04:11:04Z"
+            }
+        }
+    },
+    "eventTime": "2021-04-20T14:18:23Z",
+    "eventSource": "sqs.amazonaws.com",
+    "eventName": "DeleteQueue",
+    "awsRegion": "eu-west-1",
+    "sourceIPAddress": "83.163.185.52",
+    "userAgent": "aws-internal/3 aws-sdk-java/1.11.984 Linux/4.9.230-0.1.ac.224.84.332.metal1.x86_64 OpenJDK_64-Bit_Server_VM/25.282-b08 java/1.8.0_282 vendor/Oracle_Corporation cfg/retry-mode/legacy",
+    "requestParameters": {
+        "queueUrl": "https://sqs.eu-west-1.amazonaws.com/123456789012/DeletedQueue"
+    },
+    "responseElements": null,
+    "requestID": "778ff44f-5a5b-5492-bfac-acb7beb47007",
+    "eventID": "d57f9f44-4324-4146-bafa-580aba04d2d7",
+    "readOnly": false,
+    "eventType": "AwsApiCall",
+    "managementEvent": true,
+    "eventCategory": "Management",
+    "recipientAccountId": "123456789012"
+}

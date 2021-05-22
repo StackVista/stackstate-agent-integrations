@@ -1,0 +1,15 @@
+{
+    "Attributes": {
+      "ApproximateNumberOfMessagesNotVisible": "0",
+      "MessageRetentionPeriod": "345600",
+      "ApproximateNumberOfMessagesDelayed": "0",
+      "MaximumMessageSize": "262144",
+      "CreatedTimestamp": "1550588879",
+      "ApproximateNumberOfMessages": "1",
+      "ReceiveMessageWaitTimeSeconds": "0",
+      "DelaySeconds": "0",
+      "VisibilityTimeout": "30",
+      "LastModifiedTimestamp": "1550588879",
+      "QueueArn": "arn:aws:sqs:eu-west-1:508573134510:STS_stackpack_test"
+    }
+  }

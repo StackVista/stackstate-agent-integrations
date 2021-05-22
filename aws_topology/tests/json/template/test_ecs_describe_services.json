@@ -9,11 +9,11 @@
       "loadBalancers": [
         {
           "containerName": "sample-app",
-          "targetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:850318095909:targetgroup/EC2Co-Defau-7HYSTVRX07KO/a7e4eb718fda7510",
+          "targetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:731070500579:targetgroup/EC2Co-Defau-7HYSTVRX07KO/a7e4eb718fda7510",
           "containerPort": 80
         }
       ],
-      "roleArn": "arn:aws:iam::850318095909:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS",
+      "roleArn": "arn:aws:iam::731070500579:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS",
       "placementConstraints": [],
       "createdAt": "2018-06-28T14:14:51.445000+02:00",
       "desiredCount": 1,
@@ -31,9 +31,9 @@
       },
       "platformVersion": "LATEST",
       "serviceName": "sample-app-service",
-      "clusterArn": "arn:aws:ecs:eu-west-1:850318095909:cluster/default",
-      "taskDefinition": "arn:aws:ecs:eu-west-1:850318095909:task-definition/first-run-task-definition:2",
-      "serviceArn": "arn:aws:ecs:eu-west-1:850318095909:service/sample-app-service",
+      "clusterArn": "arn:aws:ecs:eu-west-1:731070500579:cluster/default",
+      "taskDefinition": "arn:aws:ecs:eu-west-1:731070500579:task-definition/first-run-task-definition:2",
+      "serviceArn": "arn:aws:ecs:eu-west-1:731070500579:service/sample-app-service",
       "deploymentConfiguration": {
         "maximumPercent": 200,
         "minimumHealthyPercent": 100
@@ -57,7 +57,7 @@
           "launchType": "FARGATE",
           "createdAt": "2018-06-28T14:14:51.445000+02:00",
           "desiredCount": 1,
-          "taskDefinition": "arn:aws:ecs:eu-west-1:850318095909:task-definition/first-run-task-definition:2",
+          "taskDefinition": "arn:aws:ecs:eu-west-1:731070500579:task-definition/first-run-task-definition:2",
           "updatedAt": "2018-06-28T14:14:51.445000+02:00",
           "platformVersion": "1.1.0",
           "id": "ecs-svc/9223370506666684362",
@@ -71,7 +71,7 @@
           "createdAt": "2018-06-28T14:15:52.284000+02:00"
         },
         {
-          "message": "(service sample-app-service) registered 1 targets in (target-group arn:aws:elasticloadbalancing:eu-west-1:850318095909:targetgroup/EC2Co-Defau-7HYSTVRX07KO/a7e4eb718fda7510)",
+          "message": "(service sample-app-service) registered 1 targets in (target-group arn:aws:elasticloadbalancing:eu-west-1:731070500579:targetgroup/EC2Co-Defau-7HYSTVRX07KO/a7e4eb718fda7510)",
           "id": "541526fd-bf30-4c30-aed5-ea1af3365ab2",
           "createdAt": "2018-06-28T14:15:40.036000+02:00"
         },

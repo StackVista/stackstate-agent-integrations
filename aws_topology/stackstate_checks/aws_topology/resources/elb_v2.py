@@ -8,10 +8,8 @@ class ElbV2Collector(RegisteredResourceCollector):
     API = "elbv2"
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.elb_v2"
-    MEMORY_KEY = "MULTIPLE"
 
-    def process_all(self):
-        result = {}
+    def process_all(self, filter=None):
         load_balancer = {}
         lb_type = {}
         for elb_data_raw in self.client.describe_load_balancers().get('LoadBalancers') or []:
@@ -40,11 +38,10 @@ class ElbV2Collector(RegisteredResourceCollector):
                 listener = make_valid_data(listener_raw)
                 elb_data['listeners'].append(listener)
 
-            self.agent.component(elb_external_id, elb_type, elb_data)
+            self.emit_component(elb_external_id, elb_type, elb_data)
             load_balancer[elb_external_id] = elb_external_id
             lb_type[elb_external_id] = elb_data['Type'].lower()
             self.agent.relation(elb_external_id, vpc_id, 'uses service', {})
-        result['load_balancer'] = load_balancer
         target_group = {}
         for target_group_data_raw in self.client.describe_target_groups().get('TargetGroups') or []:
             target_group_data = make_valid_data(target_group_data_raw)
@@ -65,7 +62,7 @@ class ElbV2Collector(RegisteredResourceCollector):
                     'Value': extract_dimension_name(loadbalancer_arn, 'loadbalancer')
                 })
 
-            self.agent.component(target_group_external_id, 'aws.elb_v2_target_group', target_group_data)
+            self.emit_component(target_group_external_id, 'aws.elb_v2_target_group', target_group_data)
             target_group[target_group_external_id] = target_group_external_id
 
             self.agent.relation(target_group_external_id, vpc_id, 'uses service', {})
@@ -91,7 +88,7 @@ class ElbV2Collector(RegisteredResourceCollector):
                 ]
 
                 # Adding urn:aws/ to make it unique from the EC2 instance id
-                self.agent.component(
+                self.emit_component(
                     "urn:aws/target-group-instance/" + target_external_id,
                     'aws.elb_v2_target_group_instance',
                     target_data
@@ -118,5 +115,3 @@ class ElbV2Collector(RegisteredResourceCollector):
                 }
 
                 self.agent.event(event)
-        result['target_group'] = target_group
-        return result

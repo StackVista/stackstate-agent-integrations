@@ -7,7 +7,7 @@ class Route53DomainCollector(RegisteredResourceCollector):
     API_TYPE = "global"
     COMPONENT_TYPE = "aws.route53.domain"
 
-    def process_all(self):
+    def process_all(self, filter=None):
         """
         Route 53 Domains define which domains are owned by the account.
         """
@@ -22,4 +22,4 @@ class Route53DomainCollector(RegisteredResourceCollector):
         domain['URN'] = [
             "arn:aws:route53::{}:domain/{}".format(self.location_info['Location']['AwsAccount'], domain_name)
         ]
-        self.agent.component(domain_name, self.COMPONENT_TYPE, domain)
+        self.emit_component(domain_name, self.COMPONENT_TYPE, domain)

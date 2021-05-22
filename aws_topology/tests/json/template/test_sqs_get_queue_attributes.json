@@ -10,7 +10,7 @@
     "DelaySeconds": "0",
     "VisibilityTimeout": "30",
     "LastModifiedTimestamp": "1550588879",
-    "QueueArn": "arn:aws:sqs:eu-west-1:508573134510:STS_stackpack_test"
+    "QueueArn": "arn:aws:sqs:eu-west-1:731070500579:STS_stackpack_test"
   },
   "ResponseMetadata": {
     "RetryAttempts": 0,
