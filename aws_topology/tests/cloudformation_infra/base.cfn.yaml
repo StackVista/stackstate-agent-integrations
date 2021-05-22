@@ -1,0 +1,773 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: StackState VPC
+Parameters:
+  VpcCidr:
+    Type: String
+    AllowedPattern: >-
+      ^(\d{1,3}\.){3}\d{1,3}\/16$
+    ConstraintDescription: Must be a valid IPv4 address with a /16 subnet mask
+  ResourcesStackName:
+    Type: String
+    Default: stackstate-resources-debug
+
+Conditions:
+  IsUSEast1: !Equals [!Ref "AWS::Region", "us-east-1"]
+
+Resources:
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      Tags:
+        - Key: Name
+          Value: stackstate-vpc
+        - Key: ApplicationName
+          Value: StackState Test Infrastructure
+      EnableDnsSupport: True
+      EnableDnsHostnames: True
+
+  Ipv6CidrBlock:
+    Type: AWS::EC2::VPCCidrBlock
+    Properties:
+      VpcId: !Ref Vpc
+      AmazonProvidedIpv6CidrBlock: True
+
+  VpcDHCPOptions:
+    Type: AWS::EC2::DHCPOptions
+    Properties:
+      DomainName: !If [IsUSEast1, ec2.internal, !Sub "${AWS::Region}.compute.internal"]
+      DomainNameServers:
+        - AmazonProvidedDNS
+      Tags:
+        - Key: Name
+          Value: stackstate-dhcp
+        - Key: ApplicationName
+          Value: StackState Test Infrastructure
+  VpcDHCPOptionsAssociation:
+    Type: AWS::EC2::VPCDHCPOptionsAssociation
+    Properties:
+      DhcpOptionsId: !Ref VpcDHCPOptions
+      VpcId: !Ref Vpc
+
+  #
+  # Public subnets
+  #
+
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    DependsOn: Ipv6CidrBlock
+    Properties:
+      MapPublicIpOnLaunch: true
+      VpcId: !Ref Vpc
+      CidrBlock: !Select [0, !Cidr [!GetAtt Vpc.CidrBlock, 24, 11]]
+      Ipv6CidrBlock: !Select [0, !Cidr [!Select [0, !GetAtt Vpc.Ipv6CidrBlocks], 16, 64]]
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      Tags:
+        - Key: Name
+          Value: stackstate-public-1
+        - Key: ApplicationName
+          Value: StackState Test Infrastructure
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    DependsOn: Ipv6CidrBlock
+    Properties:
+      MapPublicIpOnLaunch: true
+      VpcId: !Ref Vpc
+      CidrBlock: !Select [2, !Cidr [!GetAtt Vpc.CidrBlock, 24, 11]]
+      Ipv6CidrBlock: !Select [1, !Cidr [!Select [0, !GetAtt Vpc.Ipv6CidrBlocks], 16, 64]]
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      Tags:
+        - Key: Name
+          Value: stackstate-public-2
+        - Key: ApplicationName
+          Value: StackState Test Infrastructure
+  PublicSubnet3:
+    Type: AWS::EC2::Subnet
+    DependsOn: Ipv6CidrBlock
+    Properties:
+      MapPublicIpOnLaunch: true
+      VpcId: !Ref Vpc
+      CidrBlock: !Select [4, !Cidr [!GetAtt Vpc.CidrBlock, 24, 11]]
+      Ipv6CidrBlock: !Select [2, !Cidr [!Select [0, !GetAtt Vpc.Ipv6CidrBlocks], 16, 64]]
+      AvailabilityZone: !Select [2, !GetAZs ""]
+      Tags:
+        - Key: Name
+          Value: stackstate-public-3
+        - Key: ApplicationName
+          Value: StackState Test Infrastructure
+
+  #
+  # Private subnets
+  #
+
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    DependsOn: Ipv6CidrBlock
+    Properties:
+      AssignIpv6AddressOnCreation: True
+      VpcId: !Ref Vpc
+      CidrBlock: !Select [8, !Cidr [!GetAtt Vpc.CidrBlock, 24, 11]]
+      Ipv6CidrBlock: !Select [3, !Cidr [!Select [0, !GetAtt Vpc.Ipv6CidrBlocks], 16, 64]]
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      Tags:
+        - Key: Name
+          Value: stackstate-private-1
+        - Key: ApplicationName
+          Value: StackState Test Infrastructure
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    DependsOn: Ipv6CidrBlock
+    Properties:
+      AssignIpv6AddressOnCreation: True
+      VpcId: !Ref Vpc
+      CidrBlock: !Select [10, !Cidr [!GetAtt Vpc.CidrBlock, 24, 11]]
+      Ipv6CidrBlock: !Select [4, !Cidr [!Select [0, !GetAtt Vpc.Ipv6CidrBlocks], 16, 64]]
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      Tags:
+        - Key: Name
+          Value: stackstate-private-2
+        - Key: ApplicationName
+          Value: StackState Test Infrastructure
+  PrivateSubnet3:
+    Type: AWS::EC2::Subnet
+    DependsOn: Ipv6CidrBlock
+    Properties:
+      AssignIpv6AddressOnCreation: True
+      VpcId: !Ref Vpc
+      CidrBlock: !Select [12, !Cidr [!GetAtt Vpc.CidrBlock, 24, 11]]
+      Ipv6CidrBlock: !Select [5, !Cidr [!Select [0, !GetAtt Vpc.Ipv6CidrBlocks], 16, 64]]
+      AvailabilityZone: !Select [2, !GetAZs ""]
+      Tags:
+        - Key: Name
+          Value: stackstate-private-3
+        - Key: ApplicationName
+          Value: StackState Test Infrastructure
+
+  #
+  # Data subnets
+  #
+
+  DataSubnet1:
+    Type: AWS::EC2::Subnet
+    DependsOn: Ipv6CidrBlock
+    Properties:
+      AssignIpv6AddressOnCreation: True
+      VpcId: !Ref Vpc
+      CidrBlock: !Select [16, !Cidr [!GetAtt Vpc.CidrBlock, 24, 11]]
+      Ipv6CidrBlock: !Select [6, !Cidr [!Select [0, !GetAtt Vpc.Ipv6CidrBlocks], 16, 64]]
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      Tags:
+        - Key: Name
+          Value: stackstate-data-1
+        - Key: ApplicationName
+          Value: StackState Test Infrastructure
+  DataSubnet2:
+    Type: AWS::EC2::Subnet
+    DependsOn: Ipv6CidrBlock
+    Properties:
+      AssignIpv6AddressOnCreation: True
+      VpcId: !Ref Vpc
+      CidrBlock: !Select [18, !Cidr [!GetAtt Vpc.CidrBlock, 24, 11]]
+      Ipv6CidrBlock: !Select [7, !Cidr [!Select [0, !GetAtt Vpc.Ipv6CidrBlocks], 16, 64]]
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      Tags:
+        - Key: Name
+          Value: stackstate-data-2
+        - Key: ApplicationName
+          Value: StackState Test Infrastructure
+  DataSubnet3:
+    Type: AWS::EC2::Subnet
+    DependsOn: Ipv6CidrBlock
+    Properties:
+      AssignIpv6AddressOnCreation: True
+      VpcId: !Ref Vpc
+      CidrBlock: !Select [20, !Cidr [!GetAtt Vpc.CidrBlock, 24, 11]]
+      Ipv6CidrBlock: !Select [8, !Cidr [!Select [0, !GetAtt Vpc.Ipv6CidrBlocks], 16, 64]]
+      AvailabilityZone: !Select [2, !GetAZs ""]
+      Tags:
+        - Key: Name
+          Value: stackstate-data-3
+        - Key: ApplicationName
+          Value: StackState Test Infrastructure
+
+  #
+  # Internet Gateways
+  #
+
+  InternetGateway1:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: stackstate-igw-1
+        - Key: ApplicationName
+          Value: StackState Test Infrastructure
+  AttachInternetGateway1:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref Vpc
+      InternetGatewayId: !Ref InternetGateway1
+  EgressOnlyInternetGatewayForIpv6:
+    Type: AWS::EC2::EgressOnlyInternetGateway
+    Properties:
+      VpcId: !Ref Vpc
+
+  #
+  # NAT Gateways
+  #
+
+  NatGatewayEip1:
+    Type: AWS::EC2::EIP
+    DependsOn: RouteTableDataSubnet1
+    Properties:
+      Domain: vpc
+
+  NatGateway1:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGatewayEip1.AllocationId
+      SubnetId: !Ref PublicSubnet1
+      Tags:
+        - Key: Name
+          Value: stackstate-ngw-1
+        - Key: ApplicationName
+          Value: StackState Test Infrastructure
+
+  #
+  # Route tables
+  #
+
+  RouteTablePublicSubnets:
+    Type: AWS::EC2::RouteTable
+    DependsOn: AttachInternetGateway1
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: stackstate-public
+        - Key: ApplicationName
+          Value: StackState Test Infrastructure
+
+  RouteTablePrivateSubnet1:
+    Type: AWS::EC2::RouteTable
+    DependsOn: AttachInternetGateway1
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: stackstate-private-1
+        - Key: ApplicationName
+          Value: StackState Test Infrastructure
+  RouteTablePrivateSubnet2:
+    Type: AWS::EC2::RouteTable
+    DependsOn: AttachInternetGateway1
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: stackstate-private-2
+        - Key: ApplicationName
+          Value: StackState Test Infrastructure
+  RouteTablePrivateSubnet3:
+    Type: AWS::EC2::RouteTable
+    DependsOn: AttachInternetGateway1
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: stackstate-private-3
+        - Key: ApplicationName
+          Value: StackState Test Infrastructure
+  RouteTableDataSubnet1:
+    Type: AWS::EC2::RouteTable
+    DependsOn: AttachInternetGateway1
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: stackstate-data-1
+        - Key: ApplicationName
+          Value: StackState Test Infrastructure
+  RouteTableDataSubnet2:
+    Type: AWS::EC2::RouteTable
+    DependsOn: AttachInternetGateway1
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: stackstate-data-2
+        - Key: ApplicationName
+          Value: StackState Test Infrastructure
+  RouteTableDataSubnet3:
+    Type: AWS::EC2::RouteTable
+    DependsOn: AttachInternetGateway1
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: stackstate-data-3
+        - Key: ApplicationName
+          Value: StackState Test Infrastructure
+  LinkRouteTablePublicSubnet1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTablePublicSubnets
+      SubnetId: !Ref PublicSubnet1
+  LinkRouteTablePublicSubnet2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTablePublicSubnets
+      SubnetId: !Ref PublicSubnet2
+  LinkRouteTablePublicSubnet3:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTablePublicSubnets
+      SubnetId: !Ref PublicSubnet3
+
+  LinkRouteTablePrivateSubnet1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTablePrivateSubnet1
+      SubnetId: !Ref PrivateSubnet1
+  LinkRouteTablePrivateSubnet2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTablePrivateSubnet2
+      SubnetId: !Ref PrivateSubnet2
+  LinkRouteTablePrivateSubnet3:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTablePrivateSubnet3
+      SubnetId: !Ref PrivateSubnet3
+
+  LinkRouteTableDataSubnet1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTableDataSubnet1
+      SubnetId: !Ref DataSubnet1
+  LinkRouteTableDataSubnet2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTableDataSubnet2
+      SubnetId: !Ref DataSubnet2
+  LinkRouteTableDataSubnet3:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref RouteTableDataSubnet3
+      SubnetId: !Ref DataSubnet3
+
+  #
+  # Routes
+  #
+
+  InternetGatewayRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref RouteTablePublicSubnets
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway1
+  InternetGatewayRoute1IPv6:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref RouteTablePublicSubnets
+      DestinationIpv6CidrBlock: ::/0
+      GatewayId: !Ref InternetGateway1
+
+  NatGatewayRoutePrivateSubnet1:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref RouteTablePrivateSubnet1
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway1
+  EgressIpv6OnlyGatewayRoutePrivateSubnet1:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref RouteTablePrivateSubnet1
+      DestinationIpv6CidrBlock: ::/0
+      EgressOnlyInternetGatewayId: !Ref EgressOnlyInternetGatewayForIpv6
+
+  NatGatewayRoutePrivateSubnet2:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref RouteTablePrivateSubnet2
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway1
+  EgressIpv6OnlyGatewayRoutePrivateSubnet2:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationIpv6CidrBlock: ::/0
+      RouteTableId: !Ref RouteTablePrivateSubnet2
+      EgressOnlyInternetGatewayId: !Ref EgressOnlyInternetGatewayForIpv6
+
+  NatGatewayRoutePrivateSubnet3:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref RouteTablePrivateSubnet3
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway1
+  EgressIpv6OnlyGatewayRoutePrivateSubnet3:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationIpv6CidrBlock: ::/0
+      RouteTableId: !Ref RouteTablePrivateSubnet3
+      EgressOnlyInternetGatewayId: !Ref EgressOnlyInternetGatewayForIpv6
+
+  NatGatewayRouteDataSubnet1:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref RouteTableDataSubnet1
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway1
+  EgressIpv6OnlyGatewayRouteDataSubnet1:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationIpv6CidrBlock: ::/0
+      RouteTableId: !Ref RouteTableDataSubnet1
+      EgressOnlyInternetGatewayId: !Ref EgressOnlyInternetGatewayForIpv6
+
+  NatGatewayRouteDataSubnet2:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref RouteTableDataSubnet2
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway1
+  EgressIpv6OnlyGatewayRouteDataSubnet2:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationIpv6CidrBlock: ::/0
+      RouteTableId: !Ref RouteTableDataSubnet2
+      EgressOnlyInternetGatewayId: !Ref EgressOnlyInternetGatewayForIpv6
+
+  NatGatewayRouteDataSubnet3:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref RouteTableDataSubnet3
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway1
+  EgressIpv6OnlyGatewayRouteDataSubnet3:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationIpv6CidrBlock: ::/0
+      RouteTableId: !Ref RouteTableDataSubnet3
+      EgressOnlyInternetGatewayId: !Ref EgressOnlyInternetGatewayForIpv6
+
+  VirtualPrivateGateway1:
+    Type: AWS::EC2::VPNGateway
+    Properties:
+      Type: ipsec.1
+      Tags:
+        - Key: Name
+          Value: stackstate-vgw
+        - Key: ApplicationName
+          Value: StackState Test Infrastructure
+  AttachVirtualPrivateGateway1:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref Vpc
+      VpnGatewayId: !Ref VirtualPrivateGateway1
+  VirtualPrivateGateway1RoutePropagation:
+    Type: AWS::EC2::VPNGatewayRoutePropagation
+    DependsOn: AttachVirtualPrivateGateway1
+    Properties:
+      RouteTableIds:
+        - !Ref RouteTablePrivateSubnet1
+        - !Ref RouteTablePrivateSubnet2
+        - !Ref RouteTablePrivateSubnet3
+        - !Ref RouteTableDataSubnet1
+        - !Ref RouteTableDataSubnet2
+        - !Ref RouteTableDataSubnet3
+      VpnGatewayId: !Ref VirtualPrivateGateway1
+
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: StackState default DB subnet group
+      SubnetIds:
+        - !Ref DataSubnet1
+        - !Ref DataSubnet2
+        - !Ref DataSubnet3
+      Tags:
+        - Key: ApplicationName
+          Value: StackState Test Infrastructure
+
+  VpcFlowLogRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - vpc-flow-logs.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: AllowFlowLogging
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogDelivery
+                  - logs:DeleteLogDelivery
+                Resource: "*"
+  VpcFlowLog:
+    Type: AWS::EC2::FlowLog
+    Properties:
+      DeliverLogsPermissionArn: !GetAtt VpcFlowLogRole.Arn
+      LogDestinationType: s3
+      LogDestination: 
+        Fn::ImportValue:
+          !Sub ${ResourcesStackName}-StackStateLogsBucketArn
+      MaxAggregationInterval: 60
+      ResourceId: !Ref Vpc
+      ResourceType: VPC
+      TrafficType: ALL
+
+  ### OUTPUTS ###
+  VpcIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/vpc-id
+      Type: String
+      Value: !Ref Vpc
+      Description: VPC Id
+  NatGateway1IdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/nat-gateway-1-id
+      Type: String
+      Value: !Ref NatGateway1
+      Description: NAT Gateway 1 Id
+  NatGateway2IdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/nat-gateway-2-id
+      Type: String
+      Value: !Ref NatGateway1
+      Description: NAT Gateway 2 Id
+  NatGateway3IdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/nat-gateway-3-id
+      Type: String
+      Value: !Ref NatGateway1
+      Description: NAT Gateway 3 Id
+  InternetGatewayIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/internet-gateway-id
+      Type: String
+      Value: !Ref InternetGateway1
+      Description: Internet Gateway Id
+  PublicSubnet1IdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/public-subnet-1-id
+      Type: String
+      Value: !Ref PublicSubnet1
+      Description: Public Subnet 1 Id
+  PublicSubnet2IdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/public-subnet-2-id
+      Type: String
+      Value: !Ref PublicSubnet2
+      Description: Public Subnet 2 Id
+  PublicSubnet3IdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/public-subnet-3-id
+      Type: String
+      Value: !Ref PublicSubnet3
+      Description: Public Subnet 3 Id
+  PrivateSubnet1IdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/private-subnet-1-id
+      Type: String
+      Value: !Ref PrivateSubnet1
+      Description: Private Subnet 1 Id
+  PrivateSubnet2IdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/private-subnet-2-id
+      Type: String
+      Value: !Ref PrivateSubnet2
+      Description: Private Subnet 2 Id
+  PrivateSubnet3IdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/private-subnet-3-id
+      Type: String
+      Value: !Ref PrivateSubnet3
+      Description: Private Subnet 3 Id
+  DataSubnet1IdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/data-subnet-1-id
+      Type: String
+      Value: !Ref DataSubnet1
+      Description: Data Subnet 1 Id
+  DataSubnet2IdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/data-subnet-2-id
+      Type: String
+      Value: !Ref DataSubnet2
+      Description: Data Subnet 2 Id
+  DataSubnet3IdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/data-subnet-3-id
+      Type: String
+      Value: !Ref DataSubnet3
+      Description: Data Subnet 3 Id
+  RouteTablePublicSubnetsIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/route-table-public-subnets-id
+      Type: String
+      Value: !Ref RouteTablePublicSubnets
+      Description: Route Table Public Subnets Id
+  RouteTablePrivateSubnet1IdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/route-table-private-subnet-1-id
+      Type: String
+      Value: !Ref RouteTablePrivateSubnet1
+      Description: Route Table Private Subnet 1 Id
+  RouteTablePrivateSubnet2IdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/route-table-private-subnet-2-id
+      Type: String
+      Value: !Ref RouteTablePrivateSubnet2
+      Description: Route Table Private Subnet 2 Id
+  RouteTablePrivateSubnet3IdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/route-table-private-subnet-3-id
+      Type: String
+      Value: !Ref RouteTablePrivateSubnet3
+      Description: Route Table Private Subnet 3 Id
+  RouteTableDataSubnet1IdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/route-table-data-subnet-1-id
+      Type: String
+      Value: !Ref RouteTableDataSubnet1
+      Description: Route Table Data Subnet 1 Id
+  RouteTableDataSubnet2IdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/route-table-data-subnet-2-id
+      Type: String
+      Value: !Ref RouteTableDataSubnet2
+      Description: Route Table Data Subnet 2 Id
+  RouteTableDataSubnet3IdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/route-table-data-subnet-3-id
+      Type: String
+      Value: !Ref RouteTableDataSubnet3
+      Description: Route Table Data Subnet 3 Id
+  NatGatewayEip1IpParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/nat-gateway-1-eip
+      Type: String
+      Value: !Ref NatGatewayEip1
+      Description: NAT Gateway 1 EIP
+  NatGatewayEip2IpParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/nat-gateway-2-eip
+      Type: String
+      Value: !Ref NatGatewayEip1
+      Description: NAT Gateway 2 EIP
+  NatGatewayEip3IpParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/nat-gateway-3-eip
+      Type: String
+      Value: !Ref NatGatewayEip1
+      Description: NAT Gateway 3 EIP
+  VirtualPrivateGateway1IdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/virtual-private-gateway-id
+      Type: String
+      Value: !Ref VirtualPrivateGateway1
+      Description: Virtual Private Gateway 1 EIP
+  DBSubnetGroupIdParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/db-subnet-group-name
+      Type: String
+      Value: !Ref DBSubnetGroup
+      Description: Database Subnet Group Name
+  PublicSubnet1CidrParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/public-subnet-1-cidr
+      Type: String
+      Value: !Select [0, !Cidr [!GetAtt Vpc.CidrBlock, 24, 11]]
+      Description: Public Subnet 1 CIDR
+  PublicSubnet2CidrParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/public-subnet-2-cidr
+      Type: String
+      Value: !Select [2, !Cidr [!GetAtt Vpc.CidrBlock, 24, 11]]
+      Description: Public Subnet 2 CIDR
+  PublicSubnet3CidrParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/public-subnet-3-cidr
+      Type: String
+      Value: !Select [4, !Cidr [!GetAtt Vpc.CidrBlock, 24, 11]]
+      Description: Public Subnet 3 CIDR
+  PrivateSubnet1CidrParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/private-subnet-1-cidr
+      Type: String
+      Value: !Select [8, !Cidr [!GetAtt Vpc.CidrBlock, 24, 11]]
+      Description: Private Subnet 1 CIDR
+  PrivateSubnet2CidrParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/private-subnet-2-cidr
+      Type: String
+      Value: !Select [10, !Cidr [!GetAtt Vpc.CidrBlock, 24, 11]]
+      Description: Private Subnet 2 CIDR
+  PrivateSubnet3CidrParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/private-subnet-3-cidr
+      Type: String
+      Value: !Select [12, !Cidr [!GetAtt Vpc.CidrBlock, 24, 11]]
+      Description: Private Subnet 3 CIDR
+  DataSubnet1CidrParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/data-subnet-1-cidr
+      Type: String
+      Value: !Select [16, !Cidr [!GetAtt Vpc.CidrBlock, 24, 11]]
+      Description: Data Subnet 1 CIDR
+  DataSubnet2CidrParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/data-subnet-2-cidr
+      Type: String
+      Value: !Select [18, !Cidr [!GetAtt Vpc.CidrBlock, 24, 11]]
+      Description: Data Subnet 2 CIDR
+  DataSubnet3CidrParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /stackstate/test-infra/vpc/data-subnet-3-cidr
+      Type: String
+      Value: !Select [20, !Cidr [!GetAtt Vpc.CidrBlock, 24, 11]]
+      Description: Data Subnet 3 CIDR

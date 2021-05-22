@@ -13,7 +13,7 @@ psycopg2-binary==2.7.5
 pymysql==0.8.0
 pynag==1.1.2
 pytz==2021.1
-pywin32==224; sys_platform == 'win32'
+pywin32==228; sys_platform == 'win32'
 pyyaml==3.13
 requests==2.24.0
 requests-mock==1.8.0
