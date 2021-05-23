@@ -1,6 +1,6 @@
 {
   "instance": {
-    "type": "aws",
+    "type": "aws-v2",
     "url": "731070500579"
   },
   "components": [

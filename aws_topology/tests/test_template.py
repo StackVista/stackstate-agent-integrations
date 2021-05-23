@@ -1372,7 +1372,7 @@ class TestTemplate(unittest.TestCase):
         ), True)
         # assert for sqs queue relation
         self.assertEqual(self.has_relation(
-            relations, source_id, "arn:aws:sqs:eu-west-1:731070500579:STS_stackpack_test"
+            relations, source_id, "arn:aws:sqs::731070500579:STS_stackpack_test"
         ), True)
         # assert for dynamodb table relation
         self.assertEqual(self.has_relation(

@@ -1,0 +1,15 @@
+{
+  "activities": [
+    {
+      "activityArn": "arn:aws:states:eu-west-1:548105126730:activity:TestActivity",
+      "name": "TestActivity",
+      "creationDate": "2021-05-10 12:12:53.040000+02:00"
+    }
+  ],
+  "ResponseMetadata": {
+    "Parameters": {},
+    "OperationName": "ListActivities",
+    "Generater": "2021-05-13 15:46:52.197421",
+    "Region": "eu-west-1"
+  }
+}

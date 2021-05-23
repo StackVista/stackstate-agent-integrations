@@ -133,7 +133,6 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
 
     def process_vpcs(self):
         vpc_descriptions = self.client.describe_vpcs().get('Vpcs') or []
-        vpc_ids = list(map(lambda vpc: vpc['VpcId'], vpc_descriptions))
         subnet_descriptions = self.client.describe_subnets().get('Subnets') or []
 
         # Create all vpc

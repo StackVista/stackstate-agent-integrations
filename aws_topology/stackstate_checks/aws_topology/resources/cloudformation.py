@@ -45,6 +45,7 @@ type_arn = {
     'AWS::SQS::Queue': sqs_arn,
     'AWS::DynamoDB::Table': dynamodb_table_arn,
     'AWS::ECS::Cluster': ecs_cluster_arn,
+    'AWS::ECS::TaskDefinition': no_arn,
     'AWS::ApiGateway::RestApi': create_api_arn,
     'AWS::ApiGateway::Stage': create_stage_arn,
     'AWS::ApiGateway::Resource': create_resource_arn,
@@ -57,7 +58,9 @@ type_arn = {
     'AWS::EC2::Subnet': no_arn,
     'AWS::ElasticLoadBalancingV2::TargetGroup': no_arn,
     'AWS::ElasticLoadBalancingV2::LoadBalancer': no_arn,
-    'AWS::AutoScaling::AutoScalingGroup': no_arn
+    'AWS::AutoScaling::AutoScalingGroup': no_arn,
+    "AWS::StepFunctions::StateMachine": no_arn,
+    "AWS::StepFunctions::Activity": no_arn
 }
 
 
