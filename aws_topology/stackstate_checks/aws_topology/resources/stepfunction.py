@@ -4,17 +4,18 @@ from collections import namedtuple
 import json
 from schematics import Model
 from schematics.types import StringType
+from six import string_types
 from .sqs import get_queue_name_from_url
 
 
 """
 Review remarks
 ==============
-brake up process_state
-improve testing, including failures over string manipulation, smaller unit tests for process_state
-emit_relation as emit_component
+improve testing including failures over string manipulation
+smaller unit tests for process_state
 
-zandrewitte  5:58 PM
+These are for general improvement branch
+emit_relation as emit_component
 send_parked_relations -> name_xxx
 """
 
@@ -93,7 +94,6 @@ class StepFunctionCollector(RegisteredResourceCollector):
                 self.process_state(arn, arn, state_name, state, start_state == state_name)
 
     def process_state(self, sfn_arn, arn, state_name, state, is_start=False):
-        partition = get_partition_name(self.location_info['Location']['AwsRegion'])
         state_arn = sfn_arn + ':state/' + state_name
         if is_start:
             self.agent.relation(arn, state_arn, 'uses service', {})  # starts state
@@ -102,145 +102,182 @@ class StepFunctionCollector(RegisteredResourceCollector):
         if next_state:
             next_state_arn = sfn_arn + ':state/' + next_state
             self.agent.relation(state_arn, next_state_arn, 'uses service', {})  # can transition to
-        if state.get('Type') == 'Choice':
-            choices = state.get('Choices') or []
-            default_state = state.get('Default')
-            if default_state:
-                default_state_arn = sfn_arn + ':state/' + default_state
-                self.agent.relation(state_arn, default_state_arn, 'uses service', {})  # can transition to (default)
-            for choice in choices:
-                choice_next = choice.get('Next')
-                if choice_next:
-                    choice_arn = sfn_arn + ':state/' + choice_next
-                    self.agent.relation(state_arn, choice_arn, 'uses service', {})  # can transition to (choice)
-        elif state.get('Type') == 'Map':
-            iterator = state.get('Iterator')
-            if iterator:
-                start_at = iterator.get('StartAt')
-                states = iterator.get('States') or {}
-                for iterator_state_name, iterator_state in states.items():
-                    self.process_state(
-                        sfn_arn,
-                        state_arn,
-                        iterator_state_name,
-                        iterator_state,
-                        iterator_state_name == start_at
-                    )
-        elif state.get('Type') == 'Parallel':
-            branches = state.get('Branches') or []
-            for branch in branches:
-                start_at = branch.get('StartAt')
-                states = branch.get('States') or {}
-                for branch_state_name, branch_state in states.items():
-                    self.process_state(
-                        sfn_arn,
-                        state_arn,
-                        branch_state_name,
-                        branch_state,
-                        branch_state_name == start_at
-                    )
-        elif state.get('Type') == 'Task':
-            # TODO sense intrinsics used in any integration parameter -> don't mae relation
-            # TODO resource end part is invokation type put it in the state
-            resource = state.get('Resource') or ''
-            parameters = state.get('Parameters') or {}
-            parts = resource.split(":", -1)
-            if len(parts) > 6:
-                integration_type = ':'.join(parts[6:])
-                if integration_type:
-                    state["IntegrationSubType"] = integration_type
-            if resource.startswith('arn:{}:states:::lambda:'.format(partition)):
-                state["IntegrationType"] = "lambda"
-                function = parameters.get('FunctionName')
-                parts = function.split(':', -1)
-                fn_arn = ''
+        state_type = state.get('Type')
+        if state_type == 'Choice':
+            self.process_choice_state(sfn_arn, state_arn, state.get('Choices'), state.get('Default'))
+        elif state_type == 'Map':
+            self.process_map_state(sfn_arn, state_arn, state.get('Iterator'))
+        elif state_type == 'Parallel':
+            self.process_parallel_state(sfn_arn, state_arn, state.get('Branches'))
+        elif state_type == 'Task':
+            self.process_task_state(state_arn, state)
+        self.emit_component(state_arn, 'aws.stepfunction.state', state)
+
+    def process_choice_state(self, sfn_arn, state_arn, choices, default_state):
+        choices = choices or []
+        if default_state:
+            default_state_arn = sfn_arn + ':state/' + default_state
+            self.agent.relation(state_arn, default_state_arn, 'uses service', {})  # can transition to (default)
+        for choice in choices:
+            choice_next = choice.get('Next')
+            if choice_next:
+                choice_arn = sfn_arn + ':state/' + choice_next
+                self.agent.relation(state_arn, choice_arn, 'uses service', {})  # can transition to (choice)
+
+    def process_map_state(self, sfn_arn, state_arn, iterator):
+        iterator = iterator or {}
+        if iterator:
+            start_at = iterator.get('StartAt')
+            states = iterator.get('States') or {}
+            for iterator_state_name, iterator_state in states.items():
+                self.process_state(
+                    sfn_arn,
+                    state_arn,
+                    iterator_state_name,
+                    iterator_state,
+                    iterator_state_name == start_at
+                )
+
+    def process_parallel_state(self, sfn_arn, state_arn, branches):
+        branches = branches or []
+        for branch in branches:
+            start_at = branch.get('StartAt')
+            states = branch.get('States') or {}
+            for branch_state_name, branch_state in states.items():
+                self.process_state(
+                    sfn_arn,
+                    state_arn,
+                    branch_state_name,
+                    branch_state,
+                    branch_state_name == start_at
+                )
+
+    def get_function_reference(self, reference):
+        fn_arn = ''
+        if isinstance(reference, string_types):
+            parts = reference.split(':', -1)
+            if isinstance(parts, list):
                 if len(parts) == 7:
+                    # plain lambda arn
                     fn_arn = ':'.join(parts)
                 elif len(parts) == 8 and (parts[7].isdigit() or parts[7].lower() == '$latest'):
-                    fn_arn = ':'.join(parts[0:7])  # versions are not in StackState so omit
+                    # TODO lambda versions are not yet supported in StackState so omit version
+                    fn_arn = ':'.join(parts[0:7])
                 elif len(parts) == 8:
+                    # lambda alias arn
                     fn_arn = ':'.join(parts)
-                elif len(parts) >= 3:
+                elif len(parts) >= 2 and len(parts) <= 4:
+                    # partial lambda arn OR nameonly + version/alias
+                    end = len(parts)
+                    if parts[-1].isdigit() or parts[-1].lower() == '$latest':
+                        end = end - 1
+                    start = 0
+                    if end - start > 2:
+                        start = 2
                     fn_arn = self.agent.create_arn(
                         'AWS::Lambda::Function',
                         self.location_info,
-                        ':'.join(parts[2:])
+                        ':'.join(parts[start:end])
                     )
-                if fn_arn:
-                    self.agent.relation(state_arn, fn_arn, 'uses service', {})
-            elif resource.startswith('arn:aws:lambda:'):
-                state["IntegrationType"] = "lambda"
-                function = resource
-                parts = function.split(':', -1)
-                fn_arn = ''
-                if len(parts) == 8 and (parts[7].isdigit() or parts[7].lower() == '$latest'):
-                    fn_arn = ':'.join(parts[0:7])  # versions are not in StackState so omit
-                elif len(parts) == 8:
-                    fn_arn = ':'.join(parts)
-                elif len(parts) >= 3:
-                    fn_arn = self.agent.create_arn('AWS::Lambda::Function', self.location_info, ':'.join(parts[2:]))
-                if fn_arn:
-                    self.agent.relation(state_arn, fn_arn, 'uses service', {})
-            elif resource.startswith('arn:{}:states:::dynamodb:'.format(partition)):
-                state["IntegrationType"] = "dynamodb"
-                table_name = parameters.get('TableName')
-                if table_name:
-                    operation = resource[len('arn:{}:states:::dynamodb:'.format(partition)):]
-                    table_arn = self.agent.create_arn(
-                        'AWS::DynamoDB::Table',
+                if len(parts) == 1:
+                    # only lambda name
+                    fn_arn = self.agent.create_arn(
+                        'AWS::Lambda::Function',
                         self.location_info,
-                        resource_id=table_name
+                        ':'.join(parts)
                     )
-                    self.agent.relation(state_arn, table_arn, 'uses service', {'operation': operation})
-            elif resource.startswith('arn:{}:states:::states:'.format(partition)):
-                state["IntegrationType"] = "stepfunctions"
-                sfn_arn = parameters.get('StateMachineArn')
-                if sfn_arn:
-                    self.agent.relation(state_arn, sfn_arn, 'uses service', {})  # TODO get the type of action
-            elif ':activity:' in resource:
-                state["IntegrationType"] = "activity"
-                self.agent.relation(state_arn, resource, 'uses service', {})
-            elif resource.startswith('arn:{}:states:::sns:'.format(partition)):
-                state["IntegrationType"] = "sns"
-                # TopicArn (to topic) or TargetArn (to platform, no component yet)
-                topic_arn = parameters.get('TopicArn')
-                if topic_arn:
-                    self.agent.relation(state_arn, topic_arn, 'uses service', {})  # TODO get the type of action
-            elif resource.startswith('arn:{}:states:::sqs:'.format(partition)):
-                state["IntegrationType"] = "sqs"
-                queue_url = parameters.get('QueueUrl')
-                if queue_url:
-                    queue_name = get_queue_name_from_url(queue_url)
-                    queue_arn = self.agent.create_arn('AWS::SQS::Queue', self.location_info, queue_name)
-                    self.agent.relation(state_arn, queue_arn, 'uses service', {})  # TODO get the type of action
-            elif resource.startswith('arn:{}:states:::ecs:'.format(partition)):
-                state["IntegrationType"] = "ecs"
-                definition_id = parameters.get('TaskDefinition')
-                if definition_id:
-                    definition_arn = definition_id  # TODO can be full ARN or family:revision
-                    self.agent.relation(state_arn, definition_arn, 'uses service', {})  # TODO get the type of action
-                cluster_id = parameters.get('Cluster')
-                if cluster_id:
-                    cluster_arn = cluster_id
-                    if not cluster_id.startswith('arn:'):
-                        cluster_arn = self.agent.create_arn('AWS::ECS::Cluster', self.location_info, cluster_id)
-                    self.agent.relation(state_arn, cluster_arn, 'uses service', {})
-                # TODO NetworkConfiguration also has connection to securitygroups AND subnets
-            elif resource.startswith('arn:{}:states:::apigateway:'.format(partition)):
-                state["IntegrationType"] = "apigateway"
-                api_host = parameters.get('ApiEndpoint')
-                if api_host and not api_host.startswith('$.'):
-                    # api_method = parameters.get('Method')
-                    # api_path = parameters.get('Path')
-                    api_id = api_host.split('.')[0]
-                    api_stage = parameters.get('Stage')
-                    if api_stage and not api_stage.startswith('$.'):
-                        api_arn = self.agent.create_arn(
-                            'AWS::ApiGateway::RestApi',
-                            self.location_info,
-                            api_id + '/' + api_stage
-                        )
-                        self.agent.relation(state_arn, api_arn, 'uses service', {})
-            # TODO support AWS Batch / AWS Glue (DataBrew) / EMR / EMR on EKS / EKS / CodeBuild
-            # TODO decide on (Athena / SageMaker)
-        self.emit_component(state_arn, 'aws.stepfunction.state', state)
+        return fn_arn
+
+    def process_task_state(self, state_arn, state):
+        # TODO sense intrinsics used in any integration parameter -> don't make relation
+        # TODO resource end part is invokation type put it in the state
+        # TODO support AWS Batch / AWS Glue (DataBrew) / EMR / EMR on EKS / EKS / CodeBuild
+        # TODO decide on (Athena / SageMaker)
+        partition = get_partition_name(self.location_info['Location']['AwsRegion'])
+        resource = state.get('Resource') or ''
+        parameters = state.get('Parameters') or {}
+        parts = resource.split(":", -1)
+        if len(parts) > 6:
+            integration_type = ':'.join(parts[6:])
+            if integration_type:
+                state["IntegrationSubType"] = integration_type
+        if resource.startswith('arn:{}:states:::lambda:'.format(partition)):
+            state["IntegrationType"] = "lambda"
+            fn_arn = self.get_function_reference(parameters.get('FunctionName'))
+            if fn_arn:
+                self.agent.relation(state_arn, fn_arn, 'uses service', {})
+            else:
+                self.agent.warning('Could not make lambda relation of {}'.format(
+                    parameters.get('FunctionName')
+                ))
+        elif resource.startswith('arn:{}:lambda:'.format(partition)):
+            state["IntegrationType"] = "lambda"
+            fn_arn = self.get_function_reference(resource)
+            if fn_arn:
+                self.agent.relation(state_arn, fn_arn, 'uses service', {})
+            else:
+                self.agent.warning('Could not make lambda relation of {}'.format(
+                    self.get_function_reference(resource)
+                ))
+        elif resource.startswith('arn:{}:states:::dynamodb:'.format(partition)):
+            state["IntegrationType"] = "dynamodb"
+            table_name = parameters.get('TableName')
+            if table_name:
+                operation = resource[len('arn:{}:states:::dynamodb:'.format(partition)):]
+                table_arn = self.agent.create_arn(
+                    'AWS::DynamoDB::Table',
+                    self.location_info,
+                    resource_id=table_name
+                )
+                self.agent.relation(state_arn, table_arn, 'uses service', {'operation': operation})
+        elif resource.startswith('arn:{}:states:::states:'.format(partition)):
+            state["IntegrationType"] = "stepfunctions"
+            sfn_arn = parameters.get('StateMachineArn')
+            if sfn_arn:
+                self.agent.relation(state_arn, sfn_arn, 'uses service', {})  # TODO get the type of action
+        elif ':activity:' in resource:
+            state["IntegrationType"] = "activity"
+            self.agent.relation(state_arn, resource, 'uses service', {})
+        elif resource.startswith('arn:{}:states:::sns:'.format(partition)):
+            # TODO TopicArn (to topic) or TargetArn (to platform, no component yet)
+            state["IntegrationType"] = "sns"
+            topic_arn = parameters.get('TopicArn')
+            if topic_arn:
+                self.agent.relation(state_arn, topic_arn, 'uses service', {})  # TODO get the type of action
+        elif resource.startswith('arn:{}:states:::sqs:'.format(partition)):
+            state["IntegrationType"] = "sqs"
+            queue_url = parameters.get('QueueUrl')
+            if queue_url:
+                queue_name = get_queue_name_from_url(queue_url)
+                queue_arn = self.agent.create_arn('AWS::SQS::Queue', self.location_info, queue_name)
+                self.agent.relation(state_arn, queue_arn, 'uses service', {})  # TODO get the type of action
+        elif resource.startswith('arn:{}:states:::ecs:'.format(partition)):
+            # TODO can be full ARN or family:revision
+            # TODO NetworkConfiguration also has connection to securitygroups AND subnets
+            state["IntegrationType"] = "ecs"
+            definition_id = parameters.get('TaskDefinition')
+            if definition_id:
+                definition_arn = definition_id
+                self.agent.relation(state_arn, definition_arn, 'uses service', {})  # TODO get the type of action
+            cluster_id = parameters.get('Cluster')
+            if cluster_id:
+                cluster_arn = cluster_id
+                if not cluster_id.startswith('arn:'):
+                    cluster_arn = self.agent.create_arn('AWS::ECS::Cluster', self.location_info, cluster_id)
+                self.agent.relation(state_arn, cluster_arn, 'uses service', {})
+        elif resource.startswith('arn:{}:states:::apigateway:'.format(partition)):
+            state["IntegrationType"] = "apigateway"
+            api_host = parameters.get('ApiEndpoint')
+            if api_host and not api_host.startswith('$.'):
+                # TODO connection currently made to stage and not resource/method
+                # api_method = parameters.get('Method')
+                # api_path = parameters.get('Path')
+                api_id = api_host.split('.')[0]
+                api_stage = parameters.get('Stage')
+                if api_stage and not api_stage.startswith('$.'):
+                    api_arn = self.agent.create_arn(
+                        'AWS::ApiGateway::RestApi',
+                        self.location_info,
+                        api_id + '/' + api_stage
+                    )
+                    self.agent.relation(state_arn, api_arn, 'uses service', {})
