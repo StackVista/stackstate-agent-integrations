@@ -1,4 +1,4 @@
-from .utils import make_valid_data, get_partition_name, set_required_access
+from .utils import client_array_operation, make_valid_data, get_partition_name, set_required_access_v2
 from .registry import RegisteredResourceCollector
 from collections import namedtuple
 import json
@@ -9,18 +9,49 @@ from .sqs import get_queue_name_from_url
 
 
 """
-Review remarks
-==============
-improve testing including failures over string manipulation
-smaller unit tests for process_state
+This collector works on boto3 SFN (StepFunction) API Calls
 
-These are for general improvement branch
-emit_relation as emit_component
-send_parked_relations -> name_xxx
+Activity => component
+create_activity
+delete_activity
+
+StateMachine => component
+create_state_machine
+delete_state_machine
+update_state_machine
+
+Tags
+tag_resource
+untag_resource
+
+Events (also in cloudtrail)
+send_task_failure
+send_task_heartbeat
+send_task_success
+start_execution
+start_sync_execution
+stop_execution
+
+
+Reading from the API
+list_activities
+    describe_activity
+    list_tags_for_resource
+
+list_state_machines()
+    describe_state_machine
+    list_tags_for_resource
+
+Unused ReadOnly
+describe_execution
+describe_state_machine_for_execution
+get_activity_task
+get_execution_history
 """
 
 
 StateMachineData = namedtuple('StateMachineData', ['state_machine', 'tags'])
+ActivityData = namedtuple('ActivityData', ['activity', 'tags'])
 
 
 class StepFunction(Model):
@@ -29,45 +60,80 @@ class StepFunction(Model):
     roleArn = StringType()
 
 
+class Activity(Model):
+    activityArn = StringType(required=True)
+    name = StringType()
+
+
 class StepFunctionCollector(RegisteredResourceCollector):
     API = "stepfunctions"
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.stepfunction.statemachine"
 
-    @set_required_access('states:ListTagsForResource')
+    @set_required_access_v2('states:ListTagsForResource', ignore=True)
     def collect_tags(self, arn):
-        try:
-            tags = self.client.list_tags_for_resource(resourceArn=arn).get('tags') or []
-        except Exception:  # TODO catch throttle + permission exceptions
-            tags = []
-        return tags
+        return self.client.list_tags_for_resource(resourceArn=arn).get('tags')
 
-    @set_required_access('states:DescribeStateMachine')
-    def collect_state_machine(self, arn):
-        try:
-            state_machine = self.client.describe_state_machine(stateMachineArn=arn)
-        except Exception:  # TODO catch throttle + permission exceptions
-            state_machine = {}
-        tags = self.collect_tags(arn)
+    @set_required_access_v2('states:DescribeStateMachine', ignore=True)
+    def collect_state_machine_description(self, arn):
+        return self.client.describe_state_machine(stateMachineArn=arn)
+
+    def collect_state_machine(self, summary):
+        arn = summary.get('stateMachineArn')
+        state_machine = self.collect_state_machine_description(arn) or {'stateMachineArn': arn}
+        tags = self.collect_tags(arn) or []
         return StateMachineData(state_machine=state_machine, tags=tags)
 
-    @set_required_access('states:ListStateMachines')
     def collect_state_machines(self):
-        for list_sfn_page in self.client.get_paginator('list_state_machines').paginate():
-            for state_machine_summary in list_sfn_page.get('stateMachines') or []:
-                yield self.collect_state_machine(state_machine_summary.get('stateMachineArn'))
+        for state_machine in [
+            self.collect_state_machine(summary) for summary in
+            client_array_operation(
+                self.client,
+                'list_state_machines',
+                'stateMachines'
+            )
+        ]:
+            yield state_machine
+
+    def collect_activity(self, data):
+        activity_arn = data.get('activityArn')
+        tags = self.collect_tags(activity_arn)
+        return ActivityData(activity=data, tags=tags)
+
+    def collect_activities(self):
+        for activity in [
+            self.collect_activity(activity) for activity in
+            client_array_operation(
+                self.client,
+                'list_activities',
+                'activities'
+            )
+        ]:
+            yield activity
 
     def process_all(self, filter=None):
         if not filter or 'stepfunction' in filter:
-            for state_machine in self.collect_state_machines():
-                self.process_state_machine(state_machine)
+            self.process_state_machines()
         if not filter or 'activities' in filter:
-            for list_activities_page in self.client.get_paginator('list_activities').paginate():
-                for activity_raw in list_activities_page.get('activities') or []:
-                    activity = make_valid_data(activity_raw)
-                    self.process_activity(activity)
+            self.process_activities()
 
-    @set_required_access('states:DescribeStateMachine')
+    @set_required_access_v2('states:ListActivities', ignore=True)
+    def process_activities(self):
+        for activity in self.collect_activities():
+            self.process_activity(activity)
+
+    @set_required_access_v2('states:ListStateMachines', ignore=True)
+    def process_state_machines(self):
+        for state_machine in self.collect_state_machines():
+            self.process_state_machine(state_machine)
+
+    def process_activity(self, data):
+        output = make_valid_data(data.activity)
+        activity = Activity(data.activity, strict=False)
+        activity.validate()
+        output["tags"] = data.tags
+        self.emit_component(activity.activityArn, 'aws.stepfunction.activity', output)
+
     def process_state_machine(self, data):
         # generate component
         state_machine = StepFunction(data.state_machine, strict=False)
@@ -79,11 +145,6 @@ class StepFunctionCollector(RegisteredResourceCollector):
         if state_machine.roleArn:
             self.agent.relation(state_machine.stateMachineArn, state_machine.roleArn, 'uses service', {})
         self.process_state_machine_relations(state_machine.stateMachineArn, state_machine.definition)
-
-    def process_activity(self, data):
-        activity_arn = data.get('activityArn')
-        data["tags"] = self.collect_tags(activity_arn)
-        self.emit_component(activity_arn, 'aws.stepfunction.activity', data)
 
     def process_state_machine_relations(self, arn, definition):
         data = json.loads(definition)

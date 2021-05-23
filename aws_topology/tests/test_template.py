@@ -1291,7 +1291,6 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(diff, "")
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
-    # @patch("stackstate_checks.aws_topology.aws_topology.AgentProxy.send_parked_relations", dont_send_parked_relations)
     @set_api(None)
     def test_process_cloudformation(self):
         self.check.run()
@@ -1389,7 +1388,10 @@ class TestTemplate(unittest.TestCase):
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
     @set_api("cloudformation")
-    @patch("stackstate_checks.aws_topology.aws_topology.AgentProxy.send_parked_relations", dont_send_parked_relations)
+    @patch(
+        "stackstate_checks.aws_topology.aws_topology.AgentProxy.finalize_account_topology",
+        dont_send_parked_relations
+    )
     def test_process_cloudformation_stack_relation(self):
         self.check.run()
         self.assert_executed_ok()

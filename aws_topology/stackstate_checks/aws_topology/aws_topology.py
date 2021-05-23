@@ -147,7 +147,7 @@ class AwsTopologyCheck(AgentCheck):
                     self.event(event)
                     errors.append('API %s ended with exception: %s %s' % (spec['api'], str(e), traceback.format_exc()))
             # TODO this should be for tests, in production these relations should not be sent out
-            agent_proxy.send_parked_relations()
+            agent_proxy.finalize_account_topology()
             self.components_seen = agent_proxy.components_seen
             if len(errors) > 0:
                 raise Exception('get_topology gave following exceptions: %s' % ', '.join(errors))
@@ -227,6 +227,7 @@ class AgentProxy(object):
         self.components_seen = set()
         self.parked_relations = []
         self.role_name = role_name
+        self.warnings = {}
 
     def component(self, location, id, type, data):
         self.components_seen.add(id)
@@ -252,9 +253,11 @@ class AgentProxy(object):
                 'data': data
             })
 
-    def send_parked_relations(self):
+    def finalize_account_topology(self):
         for relation in self.parked_relations:
             self.agent.relation(relation['source_id'], relation['target_id'], relation['type'], relation['data'])
+        for warning in self.warnings:
+            self.agent.warning(warning + " was encountered {} time(s).".format(self.warnings[warning]))
 
     def event(self, event):
         self.agent.event(event)
@@ -263,9 +266,9 @@ class AgentProxy(object):
         self.delete_ids.append(id)
 
     def warning(self, error, **kwargs):
-        # TODO here we aggregate errors smartly to report back to StackState in the end
-        print("ERROR ", error)
-        print("KWARGS", kwargs)
+        # TODO make a list of max 5 of the resources inpamcted
+        warning = self.warnings.get(error, 0) + 1
+        self.warnings[error] = warning
 
     def create_arn(self, type, location, resource_id=''):
         func = type_arn.get(type)

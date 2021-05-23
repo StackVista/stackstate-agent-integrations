@@ -9,6 +9,25 @@ import botocore
 import hashlib
 from stackstate_checks.aws_topology.resources.cloudformation import type_arn
 from stackstate_checks.aws_topology.resources.stepfunction import StepFunctionCollector
+from collections import Counter
+import datetime
+import pytest
+
+
+def set_not_authorized(value):
+    def inner(func):
+        func.not_authorized = value
+        return func
+
+    return inner
+
+
+def set_cloudtrail_event(value):
+    def inner(func):
+        func.cloudtrail_event = value
+        return func
+
+    return inner
 
 
 def get_params_hash(region, data):
@@ -26,26 +45,46 @@ def resource(path):
     return x
 
 
-def mock_boto_calls(self, *args, **kwargs):
-    if args[0] == "AssumeRole":
-        return {
-            "Credentials": {
-                "AccessKeyId": "KEY_ID",
-                "SecretAccessKey": "ACCESS_KEY",
-                "SessionToken": "TOKEN"
+def wrapper(not_authorized, event_name=None):
+    def mock_boto_calls(self, *args, **kwargs):
+        if args[0] == "AssumeRole":
+            return {
+                "Credentials": {
+                    "AccessKeyId": "KEY_ID",
+                    "SecretAccessKey": "ACCESS_KEY",
+                    "SessionToken": "TOKEN"
+                }
             }
-        }
-    if args[0] == "LookupEvents":
-        return {}
-    operation_name = botocore.xform_name(args[0])
-    file_name = "json/stepfunctions/{}_{}.json".format(operation_name, get_params_hash(self.meta.region_name, args))
-    try:
-        return resource(file_name)
-    except Exception:
-        error = "API response file not found for operation: {}\n".format(operation_name)
-        error += "Parameters:\n{}\n".format(json.dumps(args[1], indent=2, default=str))
-        error += "File missing: {}".format(file_name)
-        raise Exception(error)
+        if args[0] == "LookupEvents":
+            if (event_name):
+                res = resource("json/stepfunctions/cloudtrail/" + event_name + ".json")
+                res['eventTime'] = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+                msg = {
+                    "Events": [
+                        {
+                            "CloudTrailEvent": json.dumps(res)
+                        }
+                    ]
+                }
+                return msg
+            else:
+                return {}
+        operation_name = botocore.xform_name(args[0])
+        if operation_name in not_authorized:
+            raise botocore.exceptions.ClientError({
+                'Error': {
+                    'Code': 'AccessDenied'
+                }
+            }, operation_name)
+        file_name = "json/stepfunctions/{}_{}.json".format(operation_name, get_params_hash(self.meta.region_name, args))
+        try:
+            return resource(file_name)
+        except Exception:
+            error = "API response file not found for operation: {}\n".format(operation_name)
+            error += "Parameters:\n{}\n".format(json.dumps(args[1], indent=2, default=str))
+            error += "File missing: {}".format(file_name)
+            raise Exception(error)
+    return mock_boto_calls
 
 
 class AgentMock(object):
@@ -85,6 +124,13 @@ class TestStepFunctions(unittest.TestCase):
         """
         Initialize and patch the check, i.e.
         """
+        method = getattr(self, self._testMethodName)
+        not_authorized = []
+        if hasattr(method, 'not_authorized'):
+            not_authorized = method.not_authorized
+        cloudtrail_event = None
+        if hasattr(method, 'cloudtrail_event'):
+            cloudtrail_event = method.cloudtrail_event
         self.patcher = patch("botocore.client.BaseClient._make_api_call", autospec=True)
         self.mock_object = self.patcher.start()
         top.reset()
@@ -98,10 +144,13 @@ class TestStepFunctions(unittest.TestCase):
             "role_arn": "arn:aws:iam::548105126730:role/RoleName",
             "regions": ["eu-west-1"],
         }
-        instance.update({"apis_to_run": ["stepfunctions"]})
+        apis = ["stepfunctions"]
+        if cloudtrail_event:
+            apis = []
+        instance.update({"apis_to_run": apis})
 
         self.check = AwsTopologyCheck(self.CHECK_NAME, InitConfig(init_config), [instance])
-        self.mock_object.side_effect = mock_boto_calls
+        self.mock_object.side_effect = wrapper(not_authorized, event_name=cloudtrail_event)
 
     def tearDown(self):
         self.patcher.stop()
@@ -348,3 +397,165 @@ class TestStepFunctions(unittest.TestCase):
             }
             collector.process_task_state('rootstate', state)
             self.assertIn("Could not make lambda relation of " + lambda_ref["ref"], agent.warnings)
+
+    @set_not_authorized('list_state_machines')
+    def test_process_stepfunction_access_list_state_machines(self):
+        self.check.run()
+        self.assertIn(
+            'Role arn:aws:iam::548105126730:role/RoleName needs states:ListStateMachines'
+            + ' was encountered 1 time(s).',
+            self.check.warnings
+        )
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        components = topology[0]["components"]
+        counts = Counter([component["type"] for component in components])
+        self.assertEqual(dict(counts), {
+            'aws.stepfunction.activity': 1
+        })
+
+    @set_not_authorized('list_activities')
+    def test_process_stepfunction_access_list_activities(self):
+        self.check.run()
+        self.assertIn(
+            'Role arn:aws:iam::548105126730:role/RoleName needs states:ListActivities'
+            + ' was encountered 1 time(s).',
+            self.check.warnings
+        )
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        components = topology[0]["components"]
+        counts = Counter([component["type"] for component in components])
+        self.assertEqual(dict(counts), {
+            'aws.stepfunction.statemachine': 1,
+            'aws.stepfunction.state': 15
+        })
+
+    @set_not_authorized('describe_state_machine')
+    def test_process_stepfunction_access_describe_state_machine(self):
+        self.check.run()
+        self.assertIn(
+            'Role arn:aws:iam::548105126730:role/RoleName needs states:DescribeStateMachine'
+            + ' was encountered 1 time(s).',
+            self.check.warnings
+        )
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        components = topology[0]["components"]
+        counts = Counter([component["type"] for component in components])
+        self.assertEqual(dict(counts), {
+            'aws.stepfunction.statemachine': 1,
+            'aws.stepfunction.activity': 1
+        })
+
+    @set_not_authorized('list_tags_for_resource')
+    def test_process_stepfunction_access_list_tags_for_resource(self):
+        self.check.run()
+        self.assertIn(
+            'Role arn:aws:iam::548105126730:role/RoleName needs states:ListTagsForResource'
+            + ' was encountered 2 time(s).',
+            self.check.warnings
+        )
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        components = topology[0]["components"]
+        counts = Counter([component["type"] for component in components])
+        self.assertEqual(dict(counts), {
+            'aws.stepfunction.statemachine': 1,
+            'aws.stepfunction.activity': 1,
+            'aws.stepfunction.state': 15
+        })
+
+    @pytest.mark.skip(reason="Depends on merge of new cloudtrail handling")
+    @set_cloudtrail_event('create_state_machine')
+    def test_process_stepfunction_create_state_machine(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        components = topology[0]["components"]
+        self.assertEqual(len(components), -1)
+
+    @pytest.mark.skip(reason="Depends on merge of new cloudtrail handling")
+    @set_cloudtrail_event('delete_state_machine')
+    def test_process_stepfunction_delete_state_machine(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        components = topology[0]["components"]
+        self.assertEqual(len(components), -1)
+
+    @pytest.mark.skip(reason="Depends on merge of new cloudtrail handling")
+    @set_cloudtrail_event('update_state_machine')
+    def test_process_stepfunction_update_state_machine(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        components = topology[0]["components"]
+        self.assertEqual(len(components), -1)
+
+    @pytest.mark.skip(reason="Depends on merge of new cloudtrail handling")
+    @set_cloudtrail_event('create_activity')
+    def test_process_stepfunction_create_activity(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        components = topology[0]["components"]
+        self.assertEqual(len(components), -1)
+
+    @pytest.mark.skip(reason="Depends on merge of new cloudtrail handling")
+    @set_cloudtrail_event('delete_activity')
+    def test_process_stepfunction_delete_activity(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        components = topology[0]["components"]
+        self.assertEqual(len(components), -1)
+
+    @pytest.mark.skip(reason="Depends on merge of new cloudtrail handling")
+    @set_cloudtrail_event('tag_activity')
+    def test_process_stepfunction_tag_activity(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        components = topology[0]["components"]
+        self.assertEqual(len(components), -1)
+
+    @pytest.mark.skip(reason="Depends on merge of new cloudtrail handling")
+    @set_cloudtrail_event('untag_activity')
+    def test_process_stepfunction_untag_activity(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        components = topology[0]["components"]
+        self.assertEqual(len(components), -1)
+
+    @pytest.mark.skip(reason="Depends on merge of new cloudtrail handling")
+    @set_cloudtrail_event('tag_state_machine')
+    def test_process_stepfunction_tag_state_machine(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        components = topology[0]["components"]
+        self.assertEqual(len(components), -1)
+
+    @pytest.mark.skip(reason="Depends on merge of new cloudtrail handling")
+    @set_cloudtrail_event('untag_state_machine')
+    def test_process_stepfunction_untag_state_machine(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        components = topology[0]["components"]
+        self.assertEqual(len(components), -1)
