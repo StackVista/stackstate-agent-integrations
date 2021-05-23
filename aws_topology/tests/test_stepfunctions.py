@@ -8,6 +8,7 @@ from stackstate_checks.base import AgentCheck
 import botocore
 import hashlib
 from stackstate_checks.aws_topology.resources.cloudformation import type_arn
+from stackstate_checks.aws_topology.resources.stepfunction import StepFunctionCollector
 
 
 def get_params_hash(region, data):
@@ -45,6 +46,34 @@ def mock_boto_calls(self, *args, **kwargs):
         error += "Parameters:\n{}\n".format(json.dumps(args[1], indent=2, default=str))
         error += "File missing: {}".format(file_name)
         raise Exception(error)
+
+
+class AgentMock(object):
+    def __init__(self):
+        self.components = []
+        self.relations = []
+        self.warnings = []
+
+    def relation(self, source, target, relation_type, data):
+        self.relations.append({
+            'source_id': source,
+            'target_id': target,
+            'type': relation_type,
+            'data': data
+        })
+
+    def component(self, loc, id, component_type, data):
+        self.components.append({
+            'id': id,
+            'type': component_type,
+            'data': data
+        })
+
+    def warning(self, txt):
+        self.warnings.append(txt)
+
+    def create_arn(self, type, loc, resource_id):
+        return 'arn:' + type + ':' + resource_id
 
 
 class TestStepFunctions(unittest.TestCase):
@@ -197,3 +226,125 @@ class TestStepFunctions(unittest.TestCase):
         # self.assert_has_relation(relations, sfn_id, get_id('StepFunctionsIamRole'))
 
         self.assertEqual(len(topology[0]["relations"]), 26)
+
+    def test_process_stepfunction_branch_state(self):
+        location_info = {
+            'Location': {
+                'AwsRegion': 'test',
+                'AwsAccount': 'acct'
+            }
+        }
+        branches = [
+            {
+                'StartAt': 'B1S1',
+                'States': {
+                    'B1S1': {
+                        'Next': 'B1S2'
+                    },
+                    'B1S2': {
+                        'Type': 'Parallel',
+                        'Branches': [
+                            {
+                                'StartAt': 'B3S1',
+                                'States': {
+                                    'B3S1': {
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                'StartAt': 'B2S1',
+                'States': {
+                    'B2S1': {
+                        'Next': 'B2S2'
+                    },
+                    'B2S2': {
+                    }
+                }
+            }
+        ]
+        expected_relations = [
+            {'source_id': 'brancharn', 'target_id': 'root:state/B1S1', 'type': 'uses service', 'data': {}},
+            {'source_id': 'brancharn', 'target_id': 'root:state/B2S1', 'type': 'uses service', 'data': {}},
+            {'source_id': 'root:state/B1S1', 'target_id': 'root:state/B1S2', 'type': 'uses service', 'data': {}},
+            {'source_id': 'root:state/B2S1', 'target_id': 'root:state/B2S2', 'type': 'uses service', 'data': {}},
+            {'source_id': 'root:state/B1S2', 'target_id': 'root:state/B3S1', 'type': 'uses service', 'data': {}},
+        ]
+        expected_components = [
+            {'id': 'root:state/B1S1', 'type': 'aws.stepfunction.state'},
+            {'id': 'root:state/B3S1', 'type': 'aws.stepfunction.state'},
+            {'id': 'root:state/B1S2', 'type': 'aws.stepfunction.state'},
+            {'id': 'root:state/B2S1', 'type': 'aws.stepfunction.state'},
+            {'id': 'root:state/B2S2', 'type': 'aws.stepfunction.state'}]
+        agent = AgentMock()
+        collector = StepFunctionCollector(location_info, None, agent)
+        collector.process_parallel_state('root', 'brancharn', branches)
+        self.assertEqual(len(agent.relations), len(expected_relations))
+        for relation in expected_relations:
+            self.assertIn(relation, agent.relations)
+        for component in agent.components:
+            del component['data']
+        self.assertEqual(len(agent.components), len(expected_components))
+        for component in expected_components:
+            self.assertIn(component, agent.components)
+
+    def test_process_stepfunction_task_state(self):
+        location_info = {
+            'Location': {
+                'AwsRegion': 'test',
+                'AwsAccount': 'acct'
+            }
+        }
+        nameonly_prefix = "arn:AWS::Lambda::Function:"
+        arn_prefix = "arn:aws:lambda:region:account:function:"
+        partial_prefix = "123456789012:function:"
+        lambda_refs = [
+            # name only
+            {'ref': 'one',         'expected': nameonly_prefix + 'one'},
+            {'ref': 'one:alias',   'expected': nameonly_prefix + 'one:alias'},
+            {'ref': 'one:1',       'expected': nameonly_prefix + 'one'},
+            {'ref': 'one:$latest', 'expected': nameonly_prefix + 'one'},
+            # arn
+            {'ref': arn_prefix + 'one',         'expected': arn_prefix + 'one'},
+            {'ref': arn_prefix + 'one:alias',   'expected': arn_prefix + 'one:alias'},
+            {'ref': arn_prefix + 'one:1',       'expected': arn_prefix + 'one'},
+            {'ref': arn_prefix + 'one:$latest', 'expected': arn_prefix + 'one'},
+            # partial
+            {'ref': partial_prefix + 'one',         'expected': nameonly_prefix + 'one'},
+            {'ref': partial_prefix + 'one:alias',   'expected': nameonly_prefix + 'one:alias'},
+            {'ref': partial_prefix + 'one:1',       'expected': nameonly_prefix + 'one'},
+            {'ref': partial_prefix + 'one:$latest', 'expected': nameonly_prefix + 'one'},
+        ]
+        for lambda_ref in lambda_refs:
+            agent = AgentMock()
+            collector = StepFunctionCollector(location_info, None, agent)
+            state = {
+                'Type': 'Task',
+                'Resource': 'arn:aws:states:::lambda:',
+                'Parameters': {
+                    'FunctionName': lambda_ref['ref']
+                }
+            }
+            collector.process_task_state('rootstate', state)
+            self.assertEqual(agent.relations[0]["target_id"], lambda_ref["expected"], lambda_ref["ref"])
+        wrong_refs = [
+            # name only
+            {'ref': '1:2:3:4:5:6:7:8:9'},
+            {'ref': '1:2:3:4:5'},
+            {'ref': '1:2:3:4:5:6'},
+        ]
+        for lambda_ref in wrong_refs:
+            agent = AgentMock()
+            collector = StepFunctionCollector(location_info, None, agent)
+            state = {
+                'Type': 'Task',
+                'Resource': 'arn:aws:states:::lambda:',
+                'Parameters': {
+                    'FunctionName': lambda_ref['ref']
+                }
+            }
+            collector.process_task_state('rootstate', state)
+            self.assertIn("Could not make lambda relation of " + lambda_ref["ref"], agent.warnings)
