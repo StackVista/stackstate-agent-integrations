@@ -13,6 +13,7 @@ from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
 from .conftest import API_RESULTS
 
 TOPIC_ARN = "arn:aws:sns:eu-west-1:731070500579:my-topic-1"
+TOPIC_NAME = "my-topic-1"
 SIMPLE_SNS = {
     'ListTopics': {
         "Topics": [
@@ -71,7 +72,7 @@ class TestSns(unittest.TestCase):
         self.assertEqual(len(test_topology['components']), 1)
         self.assertEqual(test_topology['components'][0]['type'], 'aws.sns')
         self.assertEqual(test_topology['components'][0]['id'], TOPIC_ARN)
-        self.assertEqual(test_topology['components'][0]['data']['Name'], TOPIC_ARN)
+        self.assertEqual(test_topology['components'][0]['data']['Name'], TOPIC_NAME)
         self.assert_executed_ok()
 
     def test_bucket_with_tags(self):

@@ -68,6 +68,7 @@ class KinesisCollector(RegisteredResourceCollector):
         stream_summary_raw = self.client.describe_stream_summary(StreamName=stream_name)
         stream_summary = make_valid_data(stream_summary_raw)
         stream_tags = self.client.list_tags_for_stream(StreamName=stream_name).get('Tags') or []
+        stream_summary['Name'] = stream_name
         stream_summary['Tags'] = stream_tags
         stream_arn = stream_summary['StreamDescriptionSummary']['StreamARN']
         self.emit_component(stream_arn, self.COMPONENT_TYPE, stream_summary)

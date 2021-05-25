@@ -84,8 +84,8 @@ class SnsCollector(RegisteredResourceCollector):
 
     def process_topic(self, topic_data):
         topic_arn = topic_data['TopicArn']
-        topic_data['Name'] = topic_arn
         topic_name = topic_arn.rsplit(':', 1)[-1]
+        topic_data['Name'] = topic_name
         topic_data.update(with_dimensions([{'key': 'TopicName', 'value': topic_name}]))
         topic_data["Tags"] = self.client.list_tags_for_resource(ResourceArn=topic_arn).get('Tags') or []
         self.emit_component(topic_arn, self.COMPONENT_TYPE, topic_data)
