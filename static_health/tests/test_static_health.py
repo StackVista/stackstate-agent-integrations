@@ -7,7 +7,6 @@ import mock
 import unittest
 import json
 
-from schematics.exceptions import DataError
 from stackstate_checks.base import AgentIntegrationTestUtil
 from stackstate_checks.static_health import StaticHealthCheck
 from stackstate_checks.base.stubs import health, topology
