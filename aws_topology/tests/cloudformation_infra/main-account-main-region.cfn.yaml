@@ -29,7 +29,7 @@ Parameters:
     Default: /stackstate/test-infra/vpc/public-subnet-3-id
   KeyPairName:
     Type: String
-    Default: stackstate
+    Default: ""
   SecondaryRegionSqsQueue:
     Type: String
     Description: The Ref of the SqsQueue created in main-account-secondary-region
