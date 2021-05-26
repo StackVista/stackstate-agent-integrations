@@ -11,7 +11,7 @@ stages:
 
 .windows_env: &windows_env
   tags:
-    - sts_windows
+    - agent_windows_6
   before_script:
     - call .setup-scripts/windows_setup_env.cmd
 
@@ -65,7 +65,7 @@ clear-win-caches:
   script:
     - "if exist %WIN_CI_PROJECT_DIR%\\venv rd /s/q %WIN_CI_PROJECT_DIR%\\venv"
   tags:
-    - sts_windows
+    - agent_windows_6
 
 .linux_test: &linux_test
   <<: *linux_env
@@ -261,7 +261,7 @@ test_nagios:
   script:
     - checksdev test -c %CHECK%
   tags:
-    - sts_windows
+    - agent_windows_6
 
 test_stackstate_checks_dev_win:
   <<: *windows_test
