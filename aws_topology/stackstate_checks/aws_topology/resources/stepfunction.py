@@ -189,7 +189,7 @@ class StepFunctionCollector(RegisteredResourceCollector):
         iterator = iterator or {}
         if iterator:
             start_at = iterator.get('StartAt')
-            states = iterator.get('States') or {}
+            states = iterator.get('States', {})
             for iterator_state_name, iterator_state in states.items():
                 self.process_state(
                     sfn_arn,
@@ -203,7 +203,7 @@ class StepFunctionCollector(RegisteredResourceCollector):
         branches = branches or []
         for branch in branches:
             start_at = branch.get('StartAt')
-            states = branch.get('States') or {}
+            states = branch.get('States', {})
             for branch_state_name, branch_state in states.items():
                 self.process_state(
                     sfn_arn,
@@ -218,35 +218,38 @@ class StepFunctionCollector(RegisteredResourceCollector):
         if isinstance(reference, string_types):
             parts = reference.split(':', -1)
             if isinstance(parts, list):
-                if len(parts) == 7:
-                    # plain lambda arn
+                if len(parts) >= 7 and len(parts) <= 8:
+                    # example: arn:aws:lambda:us-east-2:123456789012:function:name
+                    # example: arn:aws:lambda:us-east-2:123456789012:function:name:12
+                    # example: arn:aws:lambda:us-east-2:123456789012:function:name:$latest
+                    # example: arn:aws:lambda:us-east-2:123456789012:function:name:alias
+                    if len(parts) == 8 and parts[-1].isdigit() or parts[-1].lower() == '$latest':
+                        parts.pop(-1)
                     fn_arn = ':'.join(parts)
-                elif len(parts) == 8 and (parts[7].isdigit() or parts[7].lower() == '$latest'):
-                    # TODO lambda versions are not yet supported in StackState so omit version
-                    fn_arn = ':'.join(parts[0:7])
-                elif len(parts) == 8:
-                    # lambda alias arn
-                    fn_arn = ':'.join(parts)
-                elif len(parts) >= 2 and len(parts) <= 4:
-                    # partial lambda arn OR nameonly + version/alias
-                    end = len(parts)
+                elif len(parts) >= 1 and len(parts) <= 4:
+                    # example: name
+                    # example: name:12
+                    # example: name:$latest
+                    # example: name:alias
+                    # example: 123456789012:function:name         (partial name)
+                    # example: 123456789012:function:name:12      (partial name+version)
+                    # example: 123456789012:function:name:$latest (partial name+latest)
+                    # example: 123456789012:function:name:alias   (partial name+alias)
                     if parts[-1].isdigit() or parts[-1].lower() == '$latest':
-                        end = end - 1
+                        parts.pop(-1)
+                    # now skip accountid and 'function' (when there)
                     start = 0
-                    if end - start > 2:
+                    if len(parts) > 2:
                         start = 2
                     fn_arn = self.agent.create_arn(
                         'AWS::Lambda::Function',
                         self.location_info,
-                        ':'.join(parts[start:end])
+                        ':'.join(parts[start:])
                     )
-                if len(parts) == 1:
-                    # only lambda name
-                    fn_arn = self.agent.create_arn(
-                        'AWS::Lambda::Function',
-                        self.location_info,
-                        ':'.join(parts)
-                    )
+        if not fn_arn:
+            self.agent.warning('Could not make lambda relation of {}'.format(
+                reference
+            ))
         return fn_arn
 
     def process_task_state(self, state_arn, state):
@@ -256,7 +259,7 @@ class StepFunctionCollector(RegisteredResourceCollector):
         # TODO decide on (Athena / SageMaker)
         partition = get_partition_name(self.location_info['Location']['AwsRegion'])
         resource = state.get('Resource') or ''
-        parameters = state.get('Parameters') or {}
+        parameters = state.get('Parameters', {})
         parts = resource.split(":", -1)
         if len(parts) > 6:
             integration_type = ':'.join(parts[6:])
@@ -267,19 +270,11 @@ class StepFunctionCollector(RegisteredResourceCollector):
             fn_arn = self.get_function_reference(parameters.get('FunctionName'))
             if fn_arn:
                 self.agent.relation(state_arn, fn_arn, 'uses service', {})
-            else:
-                self.agent.warning('Could not make lambda relation of {}'.format(
-                    parameters.get('FunctionName')
-                ))
         elif resource.startswith('arn:{}:lambda:'.format(partition)):
             state["IntegrationType"] = "lambda"
             fn_arn = self.get_function_reference(resource)
             if fn_arn:
                 self.agent.relation(state_arn, fn_arn, 'uses service', {})
-            else:
-                self.agent.warning('Could not make lambda relation of {}'.format(
-                    self.get_function_reference(resource)
-                ))
         elif resource.startswith('arn:{}:states:::dynamodb:'.format(partition)):
             state["IntegrationType"] = "dynamodb"
             table_name = parameters.get('TableName')

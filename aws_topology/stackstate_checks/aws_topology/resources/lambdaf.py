@@ -63,7 +63,8 @@ class LambdaCollector(RegisteredResourceCollector):
             if vpc_id:
                 self.agent.relation(function_arn, vpc_id, 'uses service', {})
             self.agent.create_security_group_relations(function_arn, lambda_vpc_config, 'SecurityGroupIds')
-
+        # TODO also emit versions as components and relation to alias / canaries
+        # https://stackstate.atlassian.net/browse/STAC-13113
         for alias_data in self.client.list_aliases(FunctionName=function_arn).get('Aliases') or []:
             alias_data['Function'] = function_data
             alias_arn = alias_data['AliasArn']
