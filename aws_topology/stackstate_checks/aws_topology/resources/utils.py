@@ -181,7 +181,7 @@ def is_throttling_error(code):
     return code in _THROTTLED_ERROR_CODES
 
 
-def set_required_access_v2(value):
+def set_required_access_v2(value, ignore=False):
     def decorator(func):
         def inner_function(self, *args, **kwargs):
             try:
@@ -193,15 +193,19 @@ def set_required_access_v2(value):
                 if code == 'AccessDenied':
                     iam_access = value if not isinstance(value, list) else ', '.join(value)
                     self.agent.warning(
-                        '{} encountered AccessDenied role {} needs {}'.format(func.__name__, self.agent.role_name,
-                                                                              iam_access),
+                        'Role {} needs {}'.format(self.agent.role_name, iam_access),
                         **kwargs
                     )
+                    if not ignore:
+                        raise e
                 elif is_throttling_error(code):
                     self.agent.warning(
                         'throttling'
                     )
-                raise e  # to stop further processing
+                    if not ignore:
+                        raise e
+                else:
+                    raise e
         return inner_function
     return decorator
 
