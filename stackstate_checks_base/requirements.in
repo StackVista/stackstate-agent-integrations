@@ -11,10 +11,10 @@ six==1.14.0
 uptime==3.0.1
 uuid==1.30
 PyYAML==3.13
-boto3==1.10.49
+boto3==1.17.68
 flatten-dict==0.2.0
 Deprecated==1.2.10
-enum34==1.1.10
+enum34==1.1.10; python_version < '3.4'
 schematics==2.1.0
 requests-mock==1.8.0
 orjson==2.6.1; python_version > '3.0'

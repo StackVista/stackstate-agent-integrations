@@ -1,0 +1,82 @@
+{
+    "eventVersion": "1.04",
+    "eventID": "4a1c3786-664b-4e4b-8dd1-3937bfef3a12",
+    "eventTime": "2018-04-26T08:49:33Z",
+    "requestParameters": {
+      "dBClusterParameterGroupName": "default.aurora5.6",
+      "engine": "aurora",
+      "backupRetentionPeriod": 1,
+      "dBClusterIdentifier": "databasecluster",
+      "masterUsername": "admin",
+      "vpcSecurityGroupIds": [
+        "sg-f665a88b"
+      ],
+      "masterUserPassword": "****",
+      "storageEncrypted": true,
+      "databaseName": "databasename",
+      "engineVersion": "5.6.10a",
+      "dBSubnetGroupName": "default-vpc-6b25d10e",
+      "port": 3306
+    },
+    "eventType": "AwsApiCall",
+    "responseElements": {
+      "status": "creating",
+      "associatedRoles": [],
+      "dBSubnetGroup": "default-vpc-6b25d10e",
+      "allocatedStorage": 1,
+      "dBClusterParameterGroup": "default.aurora5.6",
+      "port": 3306,
+      "readReplicaIdentifiers": [],
+      "vpcSecurityGroups": [
+        {
+          "status": "active",
+          "vpcSecurityGroupId": "sg-f665a88b"
+        }
+      ],
+      "engineVersion": "5.6.10a",
+      "hostedZoneId": "Z29XKXDKYMONMX",
+      "engine": "aurora",
+      "multiAZ": false,
+      "dBClusterIdentifier": "databasecluster",
+      "dbClusterResourceId": "cluster-WZ3LMMYCU5SKVPD627P2FC5AM4",
+      "dBClusterMembers": [],
+      "preferredBackupWindow": "02:57-03:27",
+      "iAMDatabaseAuthenticationEnabled": false,
+      "storageEncrypted": true,
+      "databaseName": "databasename",
+      "backupRetentionPeriod": 1,
+      "availabilityZones": [
+        "eu-west-1b",
+        "eu-west-1c",
+        "eu-west-1a"
+      ],
+      "dBClusterArn": "arn:aws:rds:eu-west-1:731070500579:cluster:databasecluster",
+      "preferredMaintenanceWindow": "tue:23:26-tue:23:56",
+      "endpoint": "databasecluster.cluster-cdnm1uvvpdkc.eu-west-1.rds.amazonaws.com",
+      "masterUsername": "admin",
+      "readerEndpoint": "databasecluster.cluster-ro-cdnm1uvvpdkc.eu-west-1.rds.amazonaws.com",
+      "kmsKeyId": "arn:aws:kms:eu-west-1:731070500579:key/f3e71968-889b-4e27-8d62-56da6b269b82",
+      "clusterCreateTime": "Apr 26, 2018 8:49:32 AM"
+    },
+    "awsRegion": "eu-west-1",
+    "eventName": "CreateDBCluster",
+    "userIdentity": {
+      "userName": "martijn",
+      "principalId": "AIDAJDDXCZUJ4ZKDWZPOQ",
+      "accessKeyId": "ASIAIAIOP2RZDULBN35A",
+      "invokedBy": "signin.amazonaws.com",
+      "sessionContext": {
+        "attributes": {
+          "creationDate": "2018-04-26T06:22:56Z",
+          "mfaAuthenticated": "true"
+        }
+      },
+      "type": "IAMUser",
+      "arn": "arn:aws:iam::731070500579:user/martijn",
+      "accountId": "731070500579"
+    },
+    "eventSource": "rds.amazonaws.com",
+    "requestID": "01a9fb12-182a-495b-b633-3815b8c7e3fc",
+    "userAgent": "signin.amazonaws.com",
+    "sourceIPAddress": "37.17.221.89"
+}

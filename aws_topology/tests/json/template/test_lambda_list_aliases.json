@@ -1,0 +1,11 @@
+{
+  "Aliases": [
+      {
+          "AliasArn": "arn:aws:lambda:eu-west-1:731070500579:function:com-stackstate-prod-sam-seed-PutHello-1LUD3ESBOR6EY:old",
+          "Name": "old",
+          "FunctionVersion": "6",
+          "Description": "",
+          "RevisionId": "f81ebb37-5329-448f-a19e-7eace19203ff"
+      }
+  ]
+}

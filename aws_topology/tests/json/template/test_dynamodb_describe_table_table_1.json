@@ -1,0 +1,37 @@
+{
+  "Table": {
+    "AttributeDefinitions": [
+      {
+        "AttributeName": "id",
+        "AttributeType": "S"
+      }
+    ],
+    "TableName": "table_1",
+    "KeySchema": [
+      {
+        "AttributeName": "id",
+        "KeyType": "HASH"
+      }
+    ],
+    "TableStatus": "ACTIVE",
+    "CreationDateTime": 1526542926.446,
+    "ProvisionedThroughput": {
+      "NumberOfDecreasesToday": 0,
+      "ReadCapacityUnits": 1,
+      "WriteCapacityUnits": 1
+    },
+    "TableSizeBytes": 0,
+    "ItemCount": 0,
+    "TableArn": "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1",
+    "TableId": "6dfa2da7-cf30-431a-8b3d-463d475cdbdd",
+    "StreamSpecification": {
+      "StreamEnabled": true,
+      "StreamViewType": "NEW_AND_OLD_IMAGES"
+    },
+    "LatestStreamLabel": "2018-05-17T08:09:27.110",
+    "LatestStreamArn": "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1/stream/2018-05-17T08:09:27.110",
+    "SSEDescription": {
+      "Status": "ENABLED"
+    }
+  }
+}

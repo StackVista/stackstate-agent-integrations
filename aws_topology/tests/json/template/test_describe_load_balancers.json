@@ -1,0 +1,38 @@
+{
+  "LoadBalancers": [{
+    "IpAddressType": "ipv4",
+    "VpcId": "vpc-6b25d10e",
+    "LoadBalancerArn": "arn:aws:elasticloadbalancing:eu-west-1:731070500579:loadbalancer/app/myfirstloadbalancer/90dd512583d2d7e9",
+    "State": {
+      "Code": "active"
+    },
+    "DNSName": "myfirstloadbalancer-2069517472.eu-west-1.elb.amazonaws.com",
+    "SecurityGroups": ["sg-193aec7c"],
+    "LoadBalancerName": "myfirstloadbalancer",
+    "CreatedTime": "2018-04-19T09:04:24.250000+00:00",
+    "Scheme": "internet-facing",
+    "Type": "application",
+    "CanonicalHostedZoneId": "Z32O12XQLNTSW2",
+    "AvailabilityZones": [{
+      "SubnetId": "subnet-096c7b4f",
+      "ZoneName": "eu-west-1b"
+    }, {
+      "SubnetId": "subnet-31ff3554",
+      "ZoneName": "eu-west-1c"
+    }, {
+      "SubnetId": "subnet-67d82910",
+      "ZoneName": "eu-west-1a"
+    }]
+  }],
+  "ResponseMetadata": {
+    "RetryAttempts": 0,
+    "HTTPStatusCode": 200,
+    "RequestId": "599e507c-43b1-11e8-9ee6-3ddcbded4b50",
+    "HTTPHeaders": {
+      "x-amzn-requestid": "599e507c-43b1-11e8-9ee6-3ddcbded4b50",
+      "date": "Thu, 19 Apr 2018 09:09:22 GMT",
+      "content-length": "1565",
+      "content-type": "text/xml"
+    }
+  }
+}

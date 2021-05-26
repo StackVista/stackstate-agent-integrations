@@ -6,11 +6,11 @@ import json
 import logging
 import os
 import tempfile
+import uuid
 
 import boto3
 import flatten_dict
 import requests
-import uuid
 from botocore.config import Config
 
 from stackstate_checks.base import AgentCheck, TopologyInstance, is_affirmative
@@ -36,10 +36,10 @@ class AwsCheck(AgentCheck):
 
     def __init__(self, name, init_config, agentConfig, instances=None):
         AgentCheck.__init__(self, name, init_config, agentConfig, instances)
-        self.log.setLevel(logging.DEBUG)
         self.trace_ids = {}
         self.region = None
-        self.account_id = None
+        # default the account id to the role_arn, this will be replaced by the account id after a successful login
+        self.account_id = self.instance.get('role_arn', 'unknown-instance')
         self.tags = None
         self.arns = {}
 
@@ -70,8 +70,11 @@ class AwsCheck(AgentCheck):
             return
 
         try:
-            traces = self._process_xray_traces(aws_client)
+            # empty memory cache
+            self.trace_ids = {}
+            self.arns = {}
 
+            traces = self._process_xray_traces(aws_client)
             if traces:
                 self._send_payload(traces)
 
@@ -93,6 +96,8 @@ class AwsCheck(AgentCheck):
                     segment_documents = [json.loads(segment['Document'])]
                     trace.extend(self._generate_spans(segment_documents))
                 traces.append(trace)
+                self.log.debug('Converted %s x-ray segments to traces.', len(trace))
+        self.log.debug('Collected total %s traces.', len(traces))
         return traces
 
     def _generate_spans(self, segments, trace_id=None, parent_id=None):
@@ -239,8 +244,6 @@ class AwsCheck(AgentCheck):
 class AwsClient:
     def __init__(self, instance, config):
         self.log = logging.getLogger(__name__)
-        self.log.setLevel(logging.INFO)
-
         aws_access_key_id = instance.get('aws_access_key_id')
         aws_secret_access_key = instance.get('aws_secret_access_key')
         role_arn = instance.get('role_arn')
@@ -257,6 +260,9 @@ class AwsClient:
             self.aws_access_key_id = role['Credentials']['AccessKeyId']
             self.aws_secret_access_key = role['Credentials']['SecretAccessKey']
             self.aws_session_token = role['Credentials']['SessionToken']
+        else:
+            self.aws_access_key_id = aws_access_key_id
+            self.aws_secret_access_key = aws_secret_access_key
 
     def get_account_id(self):
         return self._get_boto3_client('sts').get_caller_identity().get('Account')
@@ -265,7 +271,6 @@ class AwsClient:
         xray_client = self._get_boto3_client('xray')
 
         start_time = self._get_last_request_end_time()
-
         operation_params = {
             'StartTime': start_time,
             'EndTime': datetime.datetime.utcnow()
@@ -281,7 +286,6 @@ class AwsClient:
             traces.append(xray_client.batch_get_traces(TraceIds=[trace_summary['Id']]))
 
         self.last_end_time = operation_params['EndTime']
-
         return traces
 
     def _get_boto3_client(self, service_name):
@@ -298,12 +302,19 @@ class AwsClient:
                 self.log.info(
                     'Read {}. Start time for X-Ray retrieval period is last retrieval end time: {}'.format(
                         self.cache_file, start_time))
+                if datetime.datetime.now() - datetime.timedelta(hours=24) > start_time:
+                    start_time = self.default_start_time()
+                    self.log.warning('Time range cannot be longer than 24 hours. '
+                                     'New Start time for X-Ray retrieval period is: {}'.format(start_time))
         except IOError:
-            start_time = datetime.datetime.utcnow() - datetime.timedelta(seconds=self.collection_interval)
+            start_time = self.default_start_time()
             self.log.info(
                 'Cache file {} not found. Start time for X-Ray retrieval period is: {}'.format(self.cache_file,
                                                                                                start_time))
         return start_time
+
+    def default_start_time(self):
+        return datetime.datetime.utcnow() - datetime.timedelta(seconds=self.collection_interval)
 
     def write_cache_file(self):
         with open(self.cache_file, 'w') as file:
