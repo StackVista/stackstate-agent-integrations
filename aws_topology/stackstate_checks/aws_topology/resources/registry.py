@@ -1,5 +1,13 @@
 from six import with_metaclass
 from .cloudtrail import listen_for
+import flatten_dict
+
+
+def dot_reducer(key1, key2):
+    if key1 is None:
+        return key2
+    else:
+        return '{}.{}'.format(key1, key2)
 
 
 class ResourceRegistry(type):
@@ -19,9 +27,18 @@ class ResourceRegistry(type):
         if '??' not in [new_cls.API, new_cls.API_TYPE]:
             cls.REGISTRY[new_cls.API_TYPE][new_cls.API] = new_cls
         if '??' != new_cls.EVENT_SOURCE and new_cls.CLOUDTRAIL_EVENTS is not None:
-            cls.CLOUDTRAIL.update({
-                new_cls.EVENT_SOURCE: new_cls.CLOUDTRAIL_EVENTS
-            })
+            key = new_cls.EVENT_SOURCE
+            if new_cls.API_VERSION != '??':
+                key = new_cls.API_VERSION + '-' + new_cls.EVENT_SOURCE
+            # dual implementation (we will deprecate one soon)
+            if isinstance(new_cls.CLOUDTRAIL_EVENTS, dict):
+                cls.CLOUDTRAIL.update({
+                    key: new_cls.CLOUDTRAIL_EVENTS
+                })
+            elif isinstance(new_cls.CLOUDTRAIL_EVENTS, list):
+                cls.CLOUDTRAIL.update({
+                    key: {event["event_name"]: new_cls for event in new_cls.CLOUDTRAIL_EVENTS}
+                })
         return new_cls
 
     @classmethod
@@ -39,6 +56,7 @@ class RegisteredResourceCollector(with_metaclass(ResourceRegistry, object)):
     API_TYPE = "??"
     COMPONENT_TYPE = "??"
     EVENT_SOURCE = "??"
+    API_VERSION = "??"
     CLOUDTRAIL_EVENTS = None
 
     def __init__(self, location_info, client, agent):
@@ -54,3 +72,22 @@ class RegisteredResourceCollector(with_metaclass(ResourceRegistry, object)):
 
     def process_all(self, filter=None):
         raise NotImplementedError
+
+    def process_cloudtrail_event(self, event, seen):
+        event_name = event.get('eventName')
+        # TODO once we got rid of the old wat of processing the filtering becomes unnecessary
+        handlers = list(filter(lambda rec: rec.get('event_name') == event_name, self.CLOUDTRAIL_EVENTS))
+        if len(handlers) > 0:
+            handler = handlers[0]
+            path = handler.get('path')
+            processor = handler.get('processor')
+            if path and processor:
+                flat = flatten_dict.flatten(event, dot_reducer, enumerate_types=(list,))
+                id = flat.get(handler['path'])
+                if id and id not in seen:
+                    processor(self, id)
+                return id
+            else:
+                self.agent.warning(
+                    'The API {} should handle CloudTrail event {}'.format(self.API, event_name)
+                )

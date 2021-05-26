@@ -134,6 +134,34 @@ class StepFunctionCollector(RegisteredResourceCollector):
         output["tags"] = data.tags
         self.emit_component(activity.activityArn, 'aws.stepfunction.activity', output)
 
+    def process_one_state_machine(self, arn):
+        self.process_state_machine(
+            self.collect_state_machine({
+                'stateMachineArn': arn
+            })
+        )
+
+    def process_one_activity(self, arn):
+        self.process_activity(
+            self.collect_activity(
+                {
+                    'activityArn': arn
+                }
+            )
+        )
+
+    def process_deletion(self, arn):
+        self.agent.delete(arn)
+
+    def process_one_resource(self, arn):
+        if isinstance(arn, string_types):
+            parts = arn.split(':')
+            if len(parts) >= 6:
+                if parts[5] == 'activity':
+                    self.process_one_activity(arn)
+                elif parts[5] == 'stateMachine':
+                    self.process_one_activity(arn)
+
     def process_state_machine(self, data):
         # generate component
         state_machine = StepFunction(data.state_machine, strict=False)
@@ -337,3 +365,42 @@ class StepFunctionCollector(RegisteredResourceCollector):
                         api_id + '/' + api_stage
                     )
                     self.agent.relation(state_arn, api_arn, 'uses service', {})
+
+    EVENT_SOURCE = 'states.amazonaws.com'
+    CLOUDTRAIL_EVENTS = [
+        {
+            'event_name': 'CreateActivity',
+            'path': 'responseElements.activityArn',
+            'processor': process_one_activity
+        },
+        {
+            'event_name': 'DeleteActivity',
+            'path': 'requestParameters.activityArn',
+            'processor': process_deletion
+        },
+        {
+            'event_name': 'CreateStateMachine',
+            'path': 'responseElements.stateMachineArn',
+            'processor': process_one_state_machine
+        },
+        {
+            'event_name': 'DeleteStateMachine',
+            'path': 'requestParameters.stateMachineArn',
+            'processor': process_deletion
+        },
+        {
+            'event_name': 'TagResource',
+            'path': 'requestParameters.resourceArn',
+            'processor': process_one_resource
+        },
+        {
+            'event_name': 'UntagResource',
+            'path': 'requestParameters.resourceArn',
+            'processor': process_one_resource
+        },
+        {
+            'event_name': 'UpdateStateMachine',
+            'path': 'requestParameters.stateMachineArn',
+            'processor': process_one_state_machine
+        }
+    ]

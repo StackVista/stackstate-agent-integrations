@@ -11,7 +11,6 @@ from stackstate_checks.aws_topology.resources.cloudformation import type_arn
 from stackstate_checks.aws_topology.resources.stepfunction import StepFunctionCollector
 from collections import Counter
 import datetime
-import pytest
 
 
 def set_not_authorized(value):
@@ -470,7 +469,6 @@ class TestStepFunctions(unittest.TestCase):
             'aws.stepfunction.state': 15
         })
 
-    @pytest.mark.skip(reason="Depends on merge of new cloudtrail handling")
     @set_cloudtrail_event('create_state_machine')
     def test_process_stepfunction_create_state_machine(self):
         self.check.run()
@@ -478,19 +476,18 @@ class TestStepFunctions(unittest.TestCase):
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
         components = topology[0]["components"]
-        self.assertEqual(len(components), -1)
+        self.assertEqual(len(components), 1)
+        self.assertEqual(components[0]["id"], "arn:aws:states:eu-west-1:548105126730:stateMachine:MyStateMachine")
 
-    @pytest.mark.skip(reason="Depends on merge of new cloudtrail handling")
     @set_cloudtrail_event('delete_state_machine')
     def test_process_stepfunction_delete_state_machine(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
-        components = topology[0]["components"]
-        self.assertEqual(len(components), -1)
+        self.assertEqual(len(self.check.delete_ids), 1)
+        self.assertEqual(self.check.delete_ids[0], "arn:aws:states:eu-west-1:548105126730:stateMachine:MyStateMachine")
 
-    @pytest.mark.skip(reason="Depends on merge of new cloudtrail handling")
     @set_cloudtrail_event('update_state_machine')
     def test_process_stepfunction_update_state_machine(self):
         self.check.run()
@@ -498,9 +495,9 @@ class TestStepFunctions(unittest.TestCase):
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
         components = topology[0]["components"]
-        self.assertEqual(len(components), -1)
+        self.assertEqual(len(components), 1)
+        self.assertEqual(components[0]["id"], "arn:aws:states:eu-west-1:548105126730:stateMachine:MyStateMachine")
 
-    @pytest.mark.skip(reason="Depends on merge of new cloudtrail handling")
     @set_cloudtrail_event('create_activity')
     def test_process_stepfunction_create_activity(self):
         self.check.run()
@@ -508,19 +505,18 @@ class TestStepFunctions(unittest.TestCase):
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
         components = topology[0]["components"]
-        self.assertEqual(len(components), -1)
+        self.assertEqual(len(components), 1)
+        self.assertEqual(components[0]["id"], "arn:aws:states:eu-west-1:548105126730:activity:Test")
 
-    @pytest.mark.skip(reason="Depends on merge of new cloudtrail handling")
     @set_cloudtrail_event('delete_activity')
     def test_process_stepfunction_delete_activity(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
-        components = topology[0]["components"]
-        self.assertEqual(len(components), -1)
+        self.assertEqual(len(self.check.delete_ids), 1)
+        self.assertEqual(self.check.delete_ids[0], "arn:aws:states:eu-west-1:548105126730:activity:Test")
 
-    @pytest.mark.skip(reason="Depends on merge of new cloudtrail handling")
     @set_cloudtrail_event('tag_activity')
     def test_process_stepfunction_tag_activity(self):
         self.check.run()
@@ -528,9 +524,9 @@ class TestStepFunctions(unittest.TestCase):
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
         components = topology[0]["components"]
-        self.assertEqual(len(components), -1)
+        self.assertEqual(len(components), 1)
+        self.assertEqual(components[0]["id"], "arn:aws:states:eu-west-1:548105126730:activity:TestActivity")
 
-    @pytest.mark.skip(reason="Depends on merge of new cloudtrail handling")
     @set_cloudtrail_event('untag_activity')
     def test_process_stepfunction_untag_activity(self):
         self.check.run()
@@ -538,9 +534,9 @@ class TestStepFunctions(unittest.TestCase):
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
         components = topology[0]["components"]
-        self.assertEqual(len(components), -1)
+        self.assertEqual(len(components), 1)
+        self.assertEqual(components[0]["id"], "arn:aws:states:eu-west-1:548105126730:activity:TestActivity")
 
-    @pytest.mark.skip(reason="Depends on merge of new cloudtrail handling")
     @set_cloudtrail_event('tag_state_machine')
     def test_process_stepfunction_tag_state_machine(self):
         self.check.run()
@@ -548,9 +544,9 @@ class TestStepFunctions(unittest.TestCase):
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
         components = topology[0]["components"]
-        self.assertEqual(len(components), -1)
+        self.assertEqual(len(components), 1)
+        self.assertEqual(components[0]["id"], "arn:aws:states:eu-west-1:548105126730:stateMachine:MyStateMachine")
 
-    @pytest.mark.skip(reason="Depends on merge of new cloudtrail handling")
     @set_cloudtrail_event('untag_state_machine')
     def test_process_stepfunction_untag_state_machine(self):
         self.check.run()
@@ -558,4 +554,5 @@ class TestStepFunctions(unittest.TestCase):
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
         components = topology[0]["components"]
-        self.assertEqual(len(components), -1)
+        self.assertEqual(len(components), 1)
+        self.assertEqual(components[0]["id"], "arn:aws:states:eu-west-1:548105126730:stateMachine:MyStateMachine")

@@ -28,7 +28,7 @@
     "sourceIPAddress": "83.163.185.52",
     "userAgent": "console.amazonaws.com",
     "requestParameters": {
-        "resourceArn": "arn:aws:states:eu-west-1:548105126730:stateMachine:StepFunctionsStateMachine-LxwNFNItZe4a",
+        "resourceArn": "arn:aws:states:eu-west-1:548105126730:stateMachine:MyStateMachine",
         "tagKeys": [
             "jpk"
         ]

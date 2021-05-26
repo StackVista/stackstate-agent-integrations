@@ -31,7 +31,7 @@
         "tracingConfiguration": {
             "enabled": false
         },
-        "stateMachineArn": "arn:aws:states:eu-west-1:548105126730:stateMachine:StepFunctionsStateMachine-LxwNFNItZe4a",
+        "stateMachineArn": "arn:aws:states:eu-west-1:548105126730:stateMachine:MyStateMachine",
         "definition": "HIDDEN_DUE_TO_SECURITY_REASONS",
         "loggingConfiguration": {
             "includeExecutionData": false,

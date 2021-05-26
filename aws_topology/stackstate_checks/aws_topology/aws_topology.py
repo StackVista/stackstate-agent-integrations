@@ -7,10 +7,11 @@ import time
 import traceback
 from botocore.exceptions import ClientError
 from schematics import Model
+from schematics.exceptions import ValidationError
 from schematics.types import StringType, ListType, DictType
 from botocore.config import Config
 from stackstate_checks.base import AgentCheck, TopologyInstance
-from .resources import ResourceRegistry, type_arn
+from .resources import ResourceRegistry, type_arn, RegisteredResourceCollector
 from .utils import location_info, correct_tags, capitalize_keys
 import json
 from datetime import datetime
@@ -160,10 +161,12 @@ class AwsTopologyCheck(AgentCheck):
         listen_for = ResourceRegistry.CLOUDTRAIL
         for region in instance_info.regions:
             session = aws_client.get_session(instance_info.role_arn, region)
+            registry = ResourceRegistry.get_registry()["regional" if region != "global" else "global"]
             client = session.client('cloudtrail')
             location = location_info(self.get_account_id(instance_info), session.region_name)
             resources_seen = set()
             events = []
+            collectors = {}
             stop = False
             # collect the events (ordering is most recent event first)
             for pg in client.get_paginator('lookup_events').paginate(
@@ -181,24 +184,41 @@ class AwsTopologyCheck(AgentCheck):
                     if delta.total_seconds() > 60*60*24*5:  # TODO have better stop condition!
                         stop = True
                         break
-                    if listen_for.get(rec['eventSource']):
+                    msgs = listen_for.get(rec['eventSource'])
+                    if not msgs and rec.get('apiVersion'):
+                        msgs = listen_for.get(rec['apiVersion'] + '-' + rec['eventSource'])
+                    if isinstance(msgs, dict):
                         event_name = rec.get('eventName')
                         event_class = listen_for[rec['eventSource']].get(event_name)
                         if event_class:
-                            if not isinstance(event_class, bool) and issubclass(event_class, Model):
-                                event = event_class(rec, strict=False)
-                                event.validate()
-                                resource_id = event.get_resource_arn(agent_proxy, copy.deepcopy(location))
-                                # only add the event if there was no event for the resource before
-                                if resource_id not in resources_seen:
-                                    events.append(event)
-                            else:
+                            if isinstance(event_class, bool):
                                 print('should interpret: ' + rec['eventName'] + '-' + rec['eventSource'])
                                 print(rec)
+                            elif issubclass(event_class, Model):
+                                try:
+                                    event = event_class(rec, strict=False)
+                                    event.validate()
+                                    resource_id = event.get_resource_arn(agent_proxy, copy.deepcopy(location))
+                                    # only add the event if there was no event for the resource before
+                                    if resource_id not in resources_seen:
+                                        events.append(event)
+                                except ValidationError as e:
+                                    agent_proxy.warning(
+                                        'Could not validate schema of cloudtrail messages {}: {}'.format(
+                                            event_name, e.messages
+                                        )
+                                    )
+                            elif issubclass(event_class, RegisteredResourceCollector):
+                                # the new way of event handling
+                                collector = collectors.get(event_class.API)
+                                if collector:
+                                    collector.append(rec)
+                                else:
+                                    collectors[event_class.API] = [rec]
+
                 if stop:
                     break
-            # process the events (TODO maybe reverse for chronological order)
-            # TODO group events per api and call one process
+            # old processing, will deprecate soon
             for event in events:
                 if event.process:
                     # TODO if full snapshot ran just before we can use components_seen here too
@@ -217,6 +237,15 @@ class AwsTopologyCheck(AgentCheck):
                         event.process(session, copy.deepcopy(location), agent_proxy)
                     except Exception as e:
                         print(e)
+            # new processing
+            for api in collectors:
+                client = session.client(api)
+                resources_seen = set()
+                processor = registry[api](copy.deepcopy(location), client, agent_proxy)
+                for event in collectors[api]:
+                    id = processor.process_cloudtrail_event(event, resources_seen)
+                    resources_seen.add(id)
+
         self.delete_ids += agent_proxy.delete_ids
 
 
