@@ -71,8 +71,8 @@ class TestStaticCSVHealth(unittest.TestCase):
             'instances': [instance]
         }
 
-        with self.assertRaises(DataError):
-            self.check = StaticHealthCheck(self.CHECK_NAME, config, instances=[instance])
+        self.check = StaticHealthCheck(self.CHECK_NAME, config, instances=[instance])
+        assert json.loads(self.check.run())[0]['message'] == '{"health_file": ["This field is required."]}'
 
     def test_empty_health_file(self):
         instance = {
