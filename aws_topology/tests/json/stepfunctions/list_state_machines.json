@@ -1,0 +1,20 @@
+{
+    "stateMachines": [
+      {
+        "stateMachineArn": "arn:aws:states:eu-west-1:290794210101:stateMachine:StepFunctionsStateMachine-cLtKjmzGLpw8",
+        "name": "StepFunctionsStateMachine-cLtKjmzGLpw8",
+        "type": "STANDARD",
+        "creationDate": "2021-04-29 16:48:46.349000+02:00"
+      }
+    ],
+    "ResponseMetadata": {
+      "RequestId": "df8311c7-6a92-4c3a-ab92-fd31e60d3acf",
+      "HTTPStatusCode": 200,
+      "HTTPHeaders": {
+        "x-amzn-requestid": "df8311c7-6a92-4c3a-ab92-fd31e60d3acf",
+        "content-type": "application/x-amz-json-1.0",
+        "content-length": "401"
+      },
+      "RetryAttempts": 0
+    }
+  }

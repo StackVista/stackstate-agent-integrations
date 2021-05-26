@@ -1,0 +1,13 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  Template for the primary account and secondary region for testing
+
+Resources:
+  SqsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 60
+
+Outputs:
+  SqsQueueArn:
+    Value: !Ref SqsQueue

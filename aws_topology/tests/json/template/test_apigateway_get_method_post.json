@@ -1,0 +1,14 @@
+{
+  "httpMethod": "POST",
+  "authorizationType": "NONE",
+  "apiKeyRequired": false,
+  "methodIntegration": {
+    "type": "HTTP_PROXY",
+    "httpMethod": "POST",
+    "uri": "https://84.35.236.89:9001",
+    "passthroughBehavior": "WHEN_NO_MATCH",
+    "timeoutInMillis": 29000,
+    "cacheNamespace": "j9xtx2",
+    "cacheKeyParameters": []
+  }
+}

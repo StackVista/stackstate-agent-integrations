@@ -1,0 +1,8 @@
+{
+    "TagList": [
+        {
+            "Key": "Route53DomainTagKey",
+            "Value": "Route53DomainTagValue"
+        }
+    ]
+}

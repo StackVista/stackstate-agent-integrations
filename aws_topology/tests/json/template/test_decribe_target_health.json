@@ -1,0 +1,39 @@
+{
+  "TargetHealthDescriptions": [
+    {
+      "HealthCheckPort": "80",
+      "Target": {
+        "Id": "i-0a7182087df63a90b",
+        "Port": 80
+      },
+      "TargetHealth": {
+        "State": "unhealthy",
+        "Reason": "Target.Timeout",
+        "Description": "Request timed out"
+      }
+    },
+    {
+      "HealthCheckPort": "80",
+      "Target": {
+        "Id": "i-0d857740370079c95",
+        "Port": 80
+      },
+      "TargetHealth": {
+        "State": "unhealthy",
+        "Reason": "Target.Timeout",
+        "Description": "Request timed out"
+      }
+    }
+  ],
+  "ResponseMetadata": {
+    "RetryAttempts": 0,
+    "HTTPStatusCode": 200,
+    "RequestId": "8787a1e2-43b3-11e8-9cb5-613bed002606",
+    "HTTPHeaders": {
+      "x-amzn-requestid": "8787a1e2-43b3-11e8-9cb5-613bed002606",
+      "date": "Thu, 19 Apr 2018 09:24:58 GMT",
+      "content-length": "1074",
+      "content-type": "text/xml"
+    }
+  }
+}

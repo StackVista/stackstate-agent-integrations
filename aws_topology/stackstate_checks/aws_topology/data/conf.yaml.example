@@ -1,0 +1,10 @@
+init_config:
+  aws_access_key_id: 'abc'
+  aws_secret_access_key: 'cde'
+  external_id: 'randomvalue'
+
+instances:
+  - role_arn: arn:aws:iam::0123456789:role/RoleName
+    regions: 
+      - global
+      - eu-west-1

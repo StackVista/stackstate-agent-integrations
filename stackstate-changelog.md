@@ -1,5 +1,13 @@
 # StackState Agent Integrations v2 releases
 
+## 1.13.3 / 2021-04-23
+
+* [Fixed] AWS x-ray check error when `role_arn` is not defined in `conf.yaml`
+
+## 1.13.2 / 2021-04-19
+
+* [Fixed] Fixed out-of-box AWS x-ray check instance error.
+
 ## 1.13.1 / 2021-04-14
 
 * [Fixed] Fix out-of-box VSphere check settings to support the Vsphere StackPack.

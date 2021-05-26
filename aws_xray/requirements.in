@@ -1,2 +1,2 @@
-boto3==1.10.49
+boto3==1.17.68
 flatten-dict==0.2.0

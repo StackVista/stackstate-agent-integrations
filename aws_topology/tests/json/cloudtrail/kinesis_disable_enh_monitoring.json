@@ -1,0 +1,51 @@
+{
+    "eventVersion": "1.08",
+    "userIdentity": {
+        "type": "IAMUser",
+        "principalId": "AIDAUHNFPQM2QXFIIRMZY",
+        "arn": "arn:aws:iam::123456789012:user/jacco.kulman",
+        "accountId": "123456789012",
+        "accessKeyId": "ASIAUHNFPQM2ZNIVL2FX",
+        "userName": "jacco.kulman",
+        "sessionContext": {
+            "sessionIssuer": {},
+            "webIdFederationData": {},
+            "attributes": {
+                "mfaAuthenticated": "false",
+                "creationDate": "2021-04-29T14:56:15Z"
+            }
+        }
+    },
+    "eventTime": "2021-04-29T19:26:53Z",
+    "eventSource": "kinesis.amazonaws.com",
+    "eventName": "DisableEnhancedMonitoring",
+    "awsRegion": "eu-west-1",
+    "sourceIPAddress": "83.163.185.52",
+    "userAgent": "console.amazonaws.com",
+    "requestParameters": {
+        "streamName": "TestStream",
+        "shardLevelMetrics": [
+            "ALL"
+        ]
+    },
+    "responseElements": {
+        "streamName": "TestStream",
+        "currentShardLevelMetrics": [
+            "IncomingBytes",
+            "OutgoingRecords",
+            "IteratorAgeMilliseconds",
+            "IncomingRecords",
+            "ReadProvisionedThroughputExceeded",
+            "WriteProvisionedThroughputExceeded",
+            "OutgoingBytes"
+        ],
+        "desiredShardLevelMetrics": []
+    },
+    "requestID": "e19768bd-03c2-3923-b892-6200ad3167cb",
+    "eventID": "fb5e405d-f48d-4590-9aef-93ef8f989ee7",
+    "readOnly": false,
+    "eventType": "AwsApiCall",
+    "managementEvent": true,
+    "eventCategory": "Management",
+    "recipientAccountId": "123456789012"
+}
