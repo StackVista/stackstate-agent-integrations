@@ -296,18 +296,20 @@ class AgentCheckBase(object):
 
         self.default_integration_http_timeout = float(self.agentConfig.get('default_integration_http_timeout', 9))
 
-        self.health = self.__init_health_api()
+        # Will be initialized as part of the check, to allow for proper error reporting there if initialization fails
+        self.health = None
 
-    def __init_health_api(self):
+    def _init_health_api(self):
+        if self.health is not None:
+            return
+
         stream_spec = self.get_health_stream(self._get_instance_schema(self.instance))
         if stream_spec:
             # 15 seconds is the default interval (see defaults.DefaultCheckInterval in the core agent)
             min_collection_interval = self.instance.get('min_collection_interval', 15)
             repeat_interval_seconds = stream_spec.repeat_interval_seconds or min_collection_interval
             expiry_seconds = stream_spec.expiry_seconds or (repeat_interval_seconds * 4)
-            return HealthApi(self, stream_spec, expiry_seconds, repeat_interval_seconds)
-        else:
-            return None
+            self.health = HealthApi(self, stream_spec, expiry_seconds, repeat_interval_seconds)
 
     def _check_run_base(self, default_result):
         try:
@@ -317,6 +319,10 @@ class AgentCheckBase(object):
 
             # create integration instance components for monitoring purposes
             self.create_integration_instance()
+
+            # Initialize the health api
+            self._init_health_api()
+
             # create a copy of the check instance, get state if any and add it to the instance object for the check
             instance = self.instances[0]
             check_instance = copy.deepcopy(instance)

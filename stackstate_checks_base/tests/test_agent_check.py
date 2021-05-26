@@ -1072,6 +1072,7 @@ class TestHealth:
     def test_check_state_max_values(self, health):
         # Max values: fill in as much of the optional fields as possible
         check = HealthCheck()
+        check._init_health_api()
         check.health.check_state("check_id", "name", Health.CRITICAL, "identifier", "message")
         health.assert_snapshot(check.check_id, check.get_health_stream(None), check_states=[{
             'checkStateId': 'check_id',
@@ -1084,6 +1085,7 @@ class TestHealth:
     def test_check_state_min_values(self, health):
         # Min values: fill in as few of the optional fields as possible
         check = HealthCheck()
+        check._init_health_api()
         check.health.check_state("check_id", "name", Health.CRITICAL, "identifier")
         health.assert_snapshot(check.check_id, check.get_health_stream(None), check_states=[{
             'checkStateId': 'check_id',
@@ -1094,6 +1096,7 @@ class TestHealth:
 
     def test_check_state_verify_types(self):
         check = HealthCheck()
+        check._init_health_api()
         with pytest.raises(DataError):
             check.health.check_state(1, "name", Health.CRITICAL, "identifier")
 
@@ -1111,6 +1114,7 @@ class TestHealth:
 
     def test_start_snapshot(self, health):
         check = HealthCheck()
+        check._init_health_api()
         check.health.start_snapshot()
         health.assert_snapshot(check.check_id,
                                check.get_health_stream(None),
@@ -1119,6 +1123,7 @@ class TestHealth:
 
     def test_stop_snapshot(self, health):
         check = HealthCheck()
+        check._init_health_api()
         check.health.stop_snapshot()
         health.assert_snapshot(check.check_id,
                                check.get_health_stream(None),
