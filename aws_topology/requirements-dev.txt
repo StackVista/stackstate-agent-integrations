@@ -1,3 +1,4 @@
 -e ../stackstate_checks_dev
 requests_mock
 parameterized
+pyyaml

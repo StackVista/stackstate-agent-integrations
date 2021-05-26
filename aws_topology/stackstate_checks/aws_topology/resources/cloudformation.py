@@ -1,8 +1,17 @@
 from .utils import make_valid_data
 from .registry import RegisteredResourceCollector
+from .s3 import create_arn as s3_arn
+from .lambdaf import create_arn as lambda_arn
+from .kinesis import create_arn as kinesis_arn
+from .dynamodb import create_table_arn as dynamodb_table_arn
+from .firehose import create_arn as firehose_arn
+from .sns import create_arn as sns_arn
+from .rds import create_cluster_arn, create_db_arn
+from .sqs import create_arn as sqs_arn
+from .ecs import create_cluster_arn as ecs_cluster_arn
+from .api_gateway import create_api_arn, create_stage_arn, create_resource_arn, create_method_arn
+from .elb_classic import create_arn as create_elb_arn
 
-# TODO memorydata
-memory_data = {}
 
 type_map = {
     'AWS::Lambda::Function': 'lambda_func',
@@ -21,13 +30,43 @@ type_map = {
 }
 
 
+def no_arn(region=None, account_id=None, resource_id=None, **kwargs):
+    return resource_id
+
+
+type_arn = {
+    'AWS::Lambda::Function': lambda_arn,
+    'AWS::Kinesis::Stream': kinesis_arn,
+    'AWS::KinesisFirehose::DeliveryStream': firehose_arn,
+    'AWS::S3::Bucket': s3_arn,
+    'AWS::RDS::DBInstance': create_db_arn,
+    'AWS::RDS::DBCluster': create_cluster_arn,
+    'AWS::SNS::Topic': sns_arn,
+    'AWS::SQS::Queue': sqs_arn,
+    'AWS::DynamoDB::Table': dynamodb_table_arn,
+    'AWS::ECS::Cluster': ecs_cluster_arn,
+    'AWS::ApiGateway::RestApi': create_api_arn,
+    'AWS::ApiGateway::Stage': create_stage_arn,
+    'AWS::ApiGateway::Resource': create_resource_arn,
+    'AWS::ApiGateway::Method': create_method_arn,
+    'AWS::ElasticLoadBalancing::LoadBalancer': create_elb_arn,  # TODO odd one
+    'AWS::Redshift::Cluster': no_arn,
+    'AWS::EC2::Instance': no_arn,
+    'AWS::EC2::SecurityGroup': no_arn,
+    'AWS::EC2::Vpc': no_arn,
+    'AWS::EC2::Subnet': no_arn,
+    'AWS::ElasticLoadBalancingV2::TargetGroup': no_arn,
+    'AWS::ElasticLoadBalancingV2::LoadBalancer': no_arn,
+    'AWS::AutoScaling::AutoScalingGroup': no_arn
+}
+
+
 class CloudformationCollector(RegisteredResourceCollector):
     API = "cloudformation"
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.cloudformation"
 
-    def process_all(self, memory_data=None):
-        self.memory_data = memory_data
+    def process_all(self, filter=None):
         for stack_description_raw in self.client.describe_stacks().get('Stacks') or []:
             stack_description = make_valid_data(stack_description_raw)
             stack_id = stack_description['StackId']
@@ -43,7 +82,7 @@ class CloudformationCollector(RegisteredResourceCollector):
                 self.agent.relation(stack_id, parent_id, 'child of', stack)
 
     def process_stack(self, stack_id, stack_name, stack_description):
-        self.agent.component(stack_id, self.COMPONENT_TYPE, stack_description)
+        self.emit_component(stack_id, self.COMPONENT_TYPE, stack_description)
         self.process_resources(stack_id, stack_name)
 
     def process_resources(self, stack_id, stack_name):
@@ -54,26 +93,6 @@ class CloudformationCollector(RegisteredResourceCollector):
 
     def process_resource(self, stack_id, resource):
         resource_type = resource['ResourceType']
-        mapped_type = type_map.get(resource_type)
-        if mapped_type is not None:
-            self.create_relation(stack_id, mapped_type, resource)
-        elif resource_type == 'AWS::ApiGateway::RestApi':
-            # api stage data is an array because of same api_id for multiple stages
-            for api in self.memory_data.get('api_stage') or []:
-                if api.get(resource.get('PhysicalResourceId')):
-                    self.agent.relation(stack_id, api.get(resource['PhysicalResourceId']), 'has resource', {})
-
-    def create_relation(self, stack_id, resource_type, resource_data):
-        resource_type_ids = self.memory_data.get(resource_type)
-        if resource_type_ids:
-            physical_id = resource_data.get('PhysicalResourceId')
-            if physical_id:
-                target_id = resource_type_ids.get(physical_id)
-                if target_id:
-                    self.agent.relation(stack_id, target_id, 'has resource', {})
-                # TODO else:
-                #    self.logger.warning('%s %s with physical resource id %s not found.',
-                #                        resource_type, resource_data.get('LogicalResourceId'), physical_id)
-            # TODO else:
-            #    self.logger.warning('%s %s has no physical resource id.',
-            #                        resource_type, resource_data.get('LogicalResourceId'))
+        if resource.get('PhysicalResourceId'):
+            arn = self.agent.create_arn(resource_type, self.location_info, resource.get('PhysicalResourceId'))
+            self.agent.relation(stack_id, arn, 'has resource', {})

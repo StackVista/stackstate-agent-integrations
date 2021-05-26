@@ -1,6 +1,6 @@
 import boto3
 from botocore.config import Config
-from .utils import make_valid_data, with_dimensions
+from .utils import make_valid_data, with_dimensions, create_arn as arn
 from .registry import RegisteredResourceCollector
 
 
@@ -13,22 +13,23 @@ DEFAULT_BOTO3_CONFIG = Config(
 )
 
 
+def create_cluster_arn(region=None, account_id=None, resource_id=None, **kwargs):
+    return arn(resource='ecs', region=region, account_id=account_id, resource_id='cluster/' + resource_id)
+
+
 class EcsCollector(RegisteredResourceCollector):
     API = "ecs"
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.ecs.cluster"
-    MEMORY_KEY = "ecs_cluster"
 
-    def process_all(self):
-        ecs_cluster = {}
+    def process_all(self, filter=None):
         for cluster_page in self.client.get_paginator('list_clusters').paginate():
             cluster_arns = cluster_page.get('clusterArns') or []
             for cluster_data_raw in self.client.describe_clusters(
                 clusters=cluster_arns, include=['TAGS']
             ).get('clusters') or []:
                 cluster_data = make_valid_data(cluster_data_raw)
-                result = self.process_cluster(cluster_data)
-                ecs_cluster.update(result)
+                self.process_cluster(cluster_data)
 
             for cluster_arn in cluster_arns:
                 for container_instance_page in self.client.get_paginator(
@@ -42,8 +43,6 @@ class EcsCollector(RegisteredResourceCollector):
                         for container_instance in described_container_instance['containerInstances']:
                             self.agent.relation(cluster_arn, container_instance['ec2InstanceId'], 'uses_ec2_host', {})
 
-        return ecs_cluster
-
     def process_cluster(self, cluster_data):
         cluster_arn = cluster_data['clusterArn']
         cluster_name = cluster_data['clusterName']
@@ -51,14 +50,12 @@ class EcsCollector(RegisteredResourceCollector):
         cluster_data.update(with_dimensions([
             {'key': 'ClusterName', 'value': cluster_name}
         ]))
-        self.agent.component(cluster_arn, self.COMPONENT_TYPE, cluster_data)
+        self.emit_component(cluster_arn, self.COMPONENT_TYPE, cluster_data)
 
         # key: service_name, value: list of container_name
         self.ecs_containers_per_service = self.process_cluster_tasks(cluster_arn)
 
         self.process_services(cluster_arn, cluster_name)
-
-        return {cluster_name: cluster_arn}
 
     def process_cluster_tasks(self, cluster_arn):
         task_map = {}
@@ -103,7 +100,7 @@ class EcsCollector(RegisteredResourceCollector):
         # TODO self.logger.debug('task {2}, group {0}: {1}'.
         # format(task_group, ecs_containers_per_service[task_group], task_data['Name']))
 
-        self.agent.component(task_arn, 'aws.ecs.task', task_data)
+        self.emit_component(task_arn, 'aws.ecs.task', task_data)
         if not has_group_service:
             self.agent.relation(cluster_arn, task_arn, 'has_cluster_node', {})
         return {
@@ -153,7 +150,7 @@ class EcsCollector(RegisteredResourceCollector):
         # else:
         # TODO   self.logger.warning('no containers for ecs service {0}'.format(service_name))
 
-        self.agent.component(service_arn, 'aws.ecs.service', service_data)
+        self.emit_component(service_arn, 'aws.ecs.service', service_data)
         self.agent.relation(cluster_arn, service_arn, 'has_cluster_node', {})
 
         # TODO makes new client ? should we do that here ?

@@ -4,6 +4,8 @@
 
 This check monitors [Aws_topology][1] through the StackState Agent.
 
+The Agent Check is still in BETA phase.
+
 ## Setup
 
 ### Installation
@@ -31,11 +33,46 @@ Aws_topology does not include any service checks.
 
 ### Events
 
-Aws_topology does not include any events.
+The topology scan also emits the following events types:
+
+ec2_state: reports the current state of each EC2 instance found (also classic Elastic LoadBalancer instances)
+target_instance_health: for instances of Elastic LoadBalancers V2
+aws_agent_check_error: when an error is encountered.
 
 ### Topology
 
-Aws_topology does not include any topology.
+Topology from the following AWS resources and their relations is collected by this agent:
+
+S3 Bucket
+SQS Queue
+SNS Topic
+Security Group
+Route53 Domain
+Route53 Hosted Zone
+Redshift Cluster
+RDS Instance
+Lambda
+Lambda Alias
+Kinesis Stream
+Firehose Delivery Stream
+Load Balancer V2
+Target Group
+Target Group Instance
+Load Balancer Classic
+EC2 Instance (only when not in terminated state)
+ECS Cluster
+ECS Task
+ECS Service
+VPN Gateway
+VPC
+Subnet
+DynamoDB Table
+DynamoDB Stream
+CloudFormation Stack
+AutoScaling Group
+API Gateway Stage
+API Gateway Resource
+API Getaway Method
 
 [1]: **LINK_TO_INTEGERATION_SITE**
 [2]: https://github.com/StackVista/stackstate-agent-integrations/blob/master/aws_topology/stackstate_checks/aws_topology/data/conf.yaml.example

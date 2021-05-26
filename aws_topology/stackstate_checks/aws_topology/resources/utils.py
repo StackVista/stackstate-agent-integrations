@@ -3,13 +3,16 @@ import re
 import hashlib
 import json
 from datetime import datetime, date
+from schematics import Model
+from botocore.exceptions import ClientError
+from schematics.types import StringType
 
 
-def make_valid_data(data):
+def make_valid_data_internal(data):
     if isinstance(data, list):
-        return [make_valid_data(x) for x in data]
+        return [make_valid_data_internal(x) for x in data]
     elif isinstance(data, dict):
-        return {key: make_valid_data(val) for key, val in data.items()}
+        return {key: make_valid_data_internal(val) for key, val in data.items()}
     elif data is None or isinstance(data, string_types) or isinstance(data, integer_types) or \
             isinstance(data, float) or isinstance(data, bool):
         return data
@@ -19,8 +22,16 @@ def make_valid_data(data):
         return str(data)
 
 
+def make_valid_data(data):
+    result = make_valid_data_internal(data)
+    if 'ResponseMetadata' in result:
+        result.pop('ResponseMetadata')
+    return result
+
+
 def get_partition_name(region):
     region_string = region.lower()
+    partition = 'aws'
     if region_string.startswith("cn-"):
         partition = "aws-cn"
     elif region_string.startswith("us-iso-"):
@@ -32,7 +43,7 @@ def get_partition_name(region):
     return partition
 
 
-def create_arn(resource, region, account_id, resource_id):
+def create_arn(resource='', region='', account_id='', resource_id=''):
     # TODO aws is not always partition!!
     return "arn:aws:{}:{}:{}:{}".format(resource, region, account_id, resource_id)
 
@@ -96,37 +107,116 @@ def create_security_group_relations(resource_id, resource_data, agent, security_
             agent.relation(resource_id, security_group_id, 'uses service', {})
 
 
-def capitalize_keys(in_dict):
-    if type(in_dict) is dict:
-        out_dict = {}
-        for key, item in in_dict.items():
-            if key == "Tags":
-                out_dict[key] = item
-            else:
-                out_dict[key[:1].upper() + key[1:]] = capitalize_keys(item)
-        return out_dict
-    elif type(in_dict) is list:
-        return [capitalize_keys(obj) for obj in in_dict]
-    else:
-        return in_dict
-
-
-def _tags_as_dictionary(lisf_of_tags, cap_flag=True):
-    if lisf_of_tags and cap_flag:
-        return dict((item['Key'], item['Value']) for item in lisf_of_tags)
-    elif lisf_of_tags and not cap_flag:
-        return dict((item['key'], item['value']) for item in lisf_of_tags)
-    else:
-        return {}
-
-
-def correct_tags(data):
-    if 'Tags' in data and isinstance(data['Tags'], list):
-        data['Tags'] = _tags_as_dictionary(data['Tags'])
-    if 'tags' in data and isinstance(data['tags'], list):
-        data['Tags'] = _tags_as_dictionary(data['tags'], False)
-    return data
-
-
 def create_hash(dict):
     return hashlib.sha256(str(json.dumps(dict, sort_keys=True)).encode('utf-8')).hexdigest()
+
+
+def client_array_operation(client, operation_name, array_field_name, **kwargs):
+    method = getattr(client, operation_name, None)
+    if method is None:
+        raise Exception("Method not found")
+    if client.can_paginate(operation_name):
+        for page in client.get_paginator(operation_name).paginate(**kwargs):
+            for item in page.get(array_field_name) or []:
+                yield item
+    else:
+        for item in method(**kwargs).get(array_field_name) or []:
+            yield item
+
+
+class CloudTrailEventBase(Model):
+    eventName = StringType(required=True)
+
+    def _internal_process(self, session, location, agent):
+        raise NotImplementedError
+
+    def get_resource_name(self):
+        raise NotImplementedError
+
+    def get_collector_class(self):
+        raise NotImplementedError
+
+    def get_resource_arn(self, agent, location):
+        return agent.create_arn(self.get_collector_class().CLOUDFORMATION_TYPE, location, self.get_resource_name())
+
+    def get_operation_type(self):
+        raise NotImplementedError
+
+    def event_identifier(self):
+        return self.get_operation_type() + ":" + self.get_resource_name()
+
+    def process(self, session, location, agent):
+        self._internal_process(session, location, agent)
+
+
+def set_required_access(value):
+    def inner(func):
+        cls = func.__class__
+        access = getattr(cls, 'iam_access', [])
+        access.append(value)
+        return func
+
+    return inner
+
+
+_THROTTLED_ERROR_CODES = [
+    'Throttling',
+    'ThrottlingException',
+    'ThrottledException',
+    'RequestThrottledException',
+    'TooManyRequestsException',
+    'ProvisionedThroughputExceededException',
+    'TransactionInProgressException',
+    'RequestLimitExceeded',
+    'BandwidthLimitExceeded',
+    'LimitExceededException',
+    'RequestThrottled',
+    'SlowDown',
+    'PriorRequestNotComplete',
+    'EC2ThrottledException',
+]
+
+
+def is_throttling_error(code):
+    return code in _THROTTLED_ERROR_CODES
+
+
+def set_required_access_v2(value):
+    def decorator(func):
+        def inner_function(self, *args, **kwargs):
+            try:
+                result = func(self, *args, **kwargs)
+                return result
+            except ClientError as e:
+                error = e.response.get('Error', {})
+                code = error.get('Code', 'Unknown')
+                if code == 'AccessDenied':
+                    iam_access = value if not isinstance(value, list) else ', '.join(value)
+                    self.agent.warning(
+                        '{} encountered AccessDenied role {} needs {}'.format(func.__name__, self.agent.role_name,
+                                                                              iam_access),
+                        **kwargs
+                    )
+                elif is_throttling_error(code):
+                    self.agent.warning(
+                        'throttling'
+                    )
+                raise e  # to stop further processing
+        return inner_function
+    return decorator
+
+
+def transformation():
+    def decorator(func):
+        def inner_function(self, *args, **kwargs):
+            try:
+                result = func(self, *args, **kwargs)
+                return result
+            except Exception as e:
+                self.agent.warning(
+                    'Transformation failed in {}'.format(func.__name__),
+                    **kwargs
+                )
+                raise e  # to stop further processing
+        return inner_function
+    return decorator

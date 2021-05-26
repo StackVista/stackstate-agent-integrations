@@ -1,0 +1,81 @@
+{
+    "eventVersion": "1.04",
+    "userIdentity": {
+        "type": "IAMUser",
+        "principalId": "AIDAMVNPBQA3EXAMPLE",
+        "arn": "arn:aws:iam::123456789012:user/Admin",
+        "accountId": "123456789012",
+        "accessKeyId": "AKIAIOSFODNN7EXAMPLE",
+        "userName": "Admin",
+        "sessionContext": {
+            "attributes": {
+                "mfaAuthenticated": "false",
+                "creationDate": "2017-03-03T16:51:56Z"
+            }
+        },
+        "invokedBy": "signin.amazonaws.com"
+    },
+    "eventTime": "2017-03-03T16:56:09Z",
+    "eventSource": "redshift.amazonaws.com",
+    "eventName": "CreateCluster",
+    "awsRegion": "us-east-2",
+    "sourceIPAddress": "52.95.4.13",
+    "userAgent": "signin.amazonaws.com",
+    "requestParameters": {
+        "clusterIdentifier": "my-dw-instance",
+        "allowVersionUpgrade": true,
+        "enhancedVpcRouting": false,
+        "encrypted": false,
+        "clusterVersion": "1.0",
+        "masterUsername": "awsuser",
+        "masterUserPassword": "****",
+        "automatedSnapshotRetentionPeriod": 1,
+        "port": 5439,
+        "dBName": "mydbtest",
+        "clusterType": "single-node",
+        "nodeType": "dc1.large",
+        "publiclyAccessible": true,
+        "vpcSecurityGroupIds": [
+            "sg-95f606fc"
+        ]
+    },
+    "responseElements": {
+        "nodeType": "dc1.large",
+        "preferredMaintenanceWindow": "sat:05:30-sat:06:00",
+        "clusterStatus": "creating",
+        "vpcId": "vpc-84c22aed",
+        "enhancedVpcRouting": false,
+        "masterUsername": "awsuser",
+        "clusterSecurityGroups": [],
+        "pendingModifiedValues": {
+            "masterUserPassword": "****"
+        },
+        "dBName": "mydbtest",
+        "clusterVersion": "1.0",
+        "encrypted": false,
+        "publiclyAccessible": true,
+        "tags": [],
+        "clusterParameterGroups": [
+            {
+                "parameterGroupName": "default.redshift-1.0",
+                "parameterApplyStatus": "in-sync"
+            }
+        ],
+        "allowVersionUpgrade": true,
+        "automatedSnapshotRetentionPeriod": 1,
+        "numberOfNodes": 1,
+        "vpcSecurityGroups": [
+            {
+                "status": "active",
+                "vpcSecurityGroupId": "sg-95f606fc"
+            }
+        ],
+        "iamRoles": [],
+        "clusterIdentifier": "my-dw-instance",
+        "clusterSubnetGroupName": "default"
+    },
+    "requestID": "4c506036-0032-11e7-b8bf-d7aa466e9920",
+    "eventID": "13ba5550-56ac-405b-900a-8a42b0f43c45",
+    "eventType": "AwsApiCall",
+    "recipientAccountId": "123456789012"
+}

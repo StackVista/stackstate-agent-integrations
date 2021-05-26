@@ -1,0 +1,33 @@
+{
+    "eventVersion": "1.04",
+    "userIdentity": {
+        "type": "IAMUser",
+        "principalId": "AIDAMVNPBQA3EXAMPLE",
+        "arn": "arn:aws:iam::123456789012:user/Admin",
+        "accountId": "123456789012",
+        "accessKeyId": "AKIAIOSFODNN7EXAMPLE",
+        "userName": "Admin",
+        "sessionContext": {
+            "attributes": {
+                "mfaAuthenticated": "false",
+                "creationDate": "2017-03-03T16:58:23Z"
+            }
+        },
+        "invokedBy": "signin.amazonaws.com"
+    },
+    "eventTime": "2017-03-03T17:02:34Z",
+    "eventSource": "redshift.amazonaws.com",
+    "eventName": "DeleteCluster",
+    "awsRegion": "us-east-2",
+    "sourceIPAddress": "52.95.4.13",
+    "userAgent": "signin.amazonaws.com",
+    "requestParameters": {
+        "clusterIdentifier": "my-dw-instance",
+        "skipFinalClusterSnapshot": true
+    },
+    "responseElements": null,
+    "requestID": "324cb76a-0033-11e7-809b-1bbbef7710bf",
+    "eventID": "59bcc3ce-e635-4cce-b47f-3419a36b3fa5",
+    "eventType": "AwsApiCall",
+    "recipientAccountId": "123456789012"
+}

@@ -61,7 +61,7 @@ class TestAWSTopologyCheck(unittest.TestCase):
             if operation_name == 'AssumeRole' and 'ExternalId' not in api_params:
                 raise ClientError({
                     'Error': {
-                        'Code': 'AccessDeniedException'
+                        'Code': 'AccessDenied'
                     }
                 }, operation_name)
             else:
@@ -82,7 +82,7 @@ class TestAWSTopologyCheck(unittest.TestCase):
         )
         self.check.check(instance)
         test_topology = topology.get_snapshot(self.check.check_id)
-        self.assertEqual(test_topology['instance_key'], {'type': 'aws', 'url': '123456789012'})
+        self.assertEqual(test_topology['instance_key'], {'type': 'aws-v2', 'url': '123456789012'})
         self.assertEqual(test_topology['components'], [])
         self.assertEqual(test_topology['relations'], [])
         service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_CONNECT_NAME)
@@ -114,14 +114,12 @@ class TestAWSTopologyCheck(unittest.TestCase):
             def __init__(self, location_info, client, agent):
                 pass
 
-            def process_all(self):
+            def process_all(self, filter=None):
                 raise Exception("error")
 
         registry = {
             'regional': {
-                's3': {
-                    'aws.s3': s3
-                }
+                's3':  s3
             },
             'global': {}
         }
@@ -136,73 +134,6 @@ class TestAWSTopologyCheck(unittest.TestCase):
             service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_EXECUTE_NAME)
             self.assertGreater(len(service_checks), 0)
             self.assertIn('topology collection failed', service_checks[0].message)
-
-    def test_topology_memory(self):
-        """
-        Testing memory
-        """
-        class base(object):
-            API = "??"
-            API_TYPE = "??"
-            MEMORY_KEY = None
-
-            def __init__(self, location_info, client, agent):
-                pass
-
-            def get_delete_ids(self):
-                return []
-
-        class s3(base):
-            API = "s3"
-            API_TYPE = "regional"
-            MEMORY_KEY = 'test_key'
-
-            def process_all(self):
-                return {'abc': 'def'}
-
-        class ec2_1(base):
-            API = "ec2"
-            API_TYPE = "regional"
-            COMPONENT_TYPE = "ec2_1"
-
-            def process_all(self):
-                return {'xyz': 'xyz'}
-
-        class ec2_2(base):
-            API = "ec2"
-            API_TYPE = "regional"
-            COMPONENT_TYPE = "ec2_2"
-
-            def process_all(self):
-                return {'ttt': 'ttt'}
-
-        class autoscaling(base):
-            API = "autoscaling"
-            API_TYPE = "regional"
-
-            def process_all(self):
-                pass
-
-        registry = {
-            'regional': {
-                's3': {
-                    'aws.s3': s3
-                },
-                'ec2': {
-                    'aws.1': ec2_1,
-                    'aws.2': ec2_2
-                },
-                'autoscaling': {
-                    'autoscaling': autoscaling
-                }
-            },
-            'global': {}
-        }
-        with patch('stackstate_checks.aws_topology.resources.ResourceRegistry.get_registry', return_value=registry):
-            self.check.run()
-            self.assertEqual(self.check.memory_data.get('test_key'), {'abc': 'def'})
-            self.assertEqual(self.check.memory_data.get('autoscaling'), None)
-            self.assertEqual(self.check.memory_data.get('ec2'), {'xyz': 'xyz', 'ttt': 'ttt'})
 
     def test_metadata(self):
         self.api_results.update({
@@ -225,6 +156,6 @@ class TestAWSTopologyCheck(unittest.TestCase):
         )
         self.assertEqual(
             test_topology['components'][0]['data']['tags'],
-            ['integration-type:aws', 'integration-url:123456789012']
+            ['integration-type:aws-v2', 'integration-url:123456789012']
         )
         self.assertGreater(len(service_checks), 0)

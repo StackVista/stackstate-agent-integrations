@@ -3,19 +3,19 @@ from .utils import make_valid_data, create_resource_arn
 from .registry import RegisteredResourceCollector
 
 
+def create_arn(region=None, account_id=None, resource_id=None, **kwargs):
+    return "classic_elb_" + resource_id
+
+
 class ELBClassicCollector(RegisteredResourceCollector):
     API = "elb"
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.elb_classic"
-    MEMORY_KEY = "elb_classic"
 
-    def process_all(self):
-        elb_classic = {}
+    def process_all(self, filter=None):
         for elb_data_raw in self.client.describe_load_balancers().get('LoadBalancerDescriptions') or []:
             elb_data = make_valid_data(elb_data_raw)
-            result = self.process_loadbalancer(elb_data)
-            elb_classic.update(result)
-        return elb_classic
+            self.process_loadbalancer(elb_data)
 
     def process_loadbalancer(self, elb_data):
         elb_name = elb_data['LoadBalancerName']
@@ -34,7 +34,7 @@ class ELBClassicCollector(RegisteredResourceCollector):
             tags = taginfo[0].get('Tags')
         if tags:
             elb_data['Tags'] = tags
-        self.agent.component(instance_id, self.COMPONENT_TYPE, elb_data)
+        self.emit_component(instance_id, self.COMPONENT_TYPE, elb_data)
 
         vpc_id = elb_data['VPCId']
         self.agent.relation(instance_id, vpc_id, 'uses service', {})
@@ -60,4 +60,3 @@ class ELBClassicCollector(RegisteredResourceCollector):
             self.agent.event(event)
 
         self.agent.create_security_group_relations(instance_id, elb_data)
-        return {elb_name: instance_id}

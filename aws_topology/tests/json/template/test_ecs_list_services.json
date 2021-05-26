@@ -13,6 +13,6 @@
       }
     },
     "serviceArns": [
-      "arn:aws:ecs:eu-west-1:850318095909:service/sample-app-service"
+      "arn:aws:ecs:eu-west-1:731070500579:service/sample-app-service"
     ]
   }

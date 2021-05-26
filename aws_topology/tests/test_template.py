@@ -27,7 +27,7 @@ def relative_path(path):
 
 
 def resource(path):
-    with open(relative_path(path)) as f:
+    with open(relative_path("json/template/" + path)) as f:
         x = json.load(f)
     return x
 
@@ -67,29 +67,40 @@ def get_wrapper(check_name):
     def registry_wrapper():
         # get the original registry
         registry = deepcopy(original())
-        api, comptype = check_name.split("|", 1)
-        # error class
+        parts = check_name.split("|", 1)
+        comptype = None
+        api = parts[0]
+        if len(parts) > 1:
+            comptype = parts[1]
 
+        api_type = 'global' if api.startswith('route53') else 'regional'
+
+        orig = registry[api_type][api]
+
+        # error class
         class error(object):
             API = "error"
             MEMORY_KEY = None
 
             def __init__(self, location_info, client, agent):
-                pass
+                self.original_processor = orig(location_info, client, agent)
 
             def get_delete_ids(self):
                 return []
 
-            def process_all(self):
-                raise Exception("Oops")
+            def process_all(self, filter=None):
+                if comptype is None:
+                    raise Exception("Oops")
+                else:
+                    return self.original_processor.process_all(filter=comptype)
 
-        # patch the registry
-        if api.startswith('route53'):
-            registry['global'][api][comptype] = error
-        else:
-            registry['regional'][api][comptype] = error
+        registry[api_type][api] = error
         return registry
     return registry_wrapper
+
+
+def dont_send_parked_relations(self):
+    pass
 
 
 def mock_boto_calls(self, operation_name, kwarg):
@@ -97,7 +108,7 @@ def mock_boto_calls(self, operation_name, kwarg):
     if operation_name == "AssumeRole":
         return {"Credentials": {"AccessKeyId": "KEY_ID", "SecretAccessKey": "ACCESS_KEY", "SessionToken": "TOKEN"}}
     elif operation_name == "DescribeInstances":
-        test_event = resource("json/test_describe_ec2.json")
+        test_event = resource("test_describe_ec2.json")
         for reservation in test_event["Reservations"]:
             for instance_data in reservation["Instances"]:
                 instance_data["LaunchTime"] = dateutil.parser.parse(instance_data["LaunchTime"])
@@ -112,30 +123,30 @@ def mock_boto_calls(self, operation_name, kwarg):
 
         return test_event
     elif operation_name == "DescribeSecurityGroups":
-        return resource("json/test_describe_security_groups.json")
+        return resource("test_describe_security_groups.json")
 
     elif operation_name == "DescribeInstanceTypes":
-        return resource("json/test_describe_instance_types.json")
+        return resource("test_describe_instance_types.json")
 
     elif operation_name == "GetCallerIdentity":
-        return resource("json/test_get_caller_identity.json")
+        return resource("test_get_caller_identity.json")
 
     elif operation_name == "DescribeStacks":
-        return resource("json/test_describe_cloudformation_stacks.json")
+        return resource("test_describe_cloudformation_stacks.json")
 
     elif operation_name == "DescribeStackResources":
-        return resource("json/test_describe_cloudformation_stack_resources.json")
+        return resource("test_describe_cloudformation_stack_resources.json")
 
     elif operation_name == "ListStacks":
-        return resource("json/test_cloudformation_list_stacks.json")
+        return resource("test_cloudformation_list_stacks.json")
 
     elif operation_name == "DescribeInstanceHealth":
-        return resource("json/test_describe_instance_health.json")
+        return resource("test_describe_instance_health.json")
 
     elif operation_name == "DescribeLoadBalancers":
         if self._service_model.service_name == "elb":
             if operation_name == "DescribeLoadBalancers":
-                test_event = resource("json/test_describe_load_balancers_classic.json")
+                test_event = resource("test_describe_load_balancers_classic.json")
                 for load_balancers in test_event["LoadBalancerDescriptions"]:
                     load_balancers["CreatedTime"] = dateutil.parser.parse(load_balancers["CreatedTime"])
 
@@ -145,35 +156,35 @@ def mock_boto_calls(self, operation_name, kwarg):
                 raise ValueError("Unknown operation name", operation_name)
 
         else:
-            test_event = resource("json/test_describe_load_balancers.json")
+            test_event = resource("test_describe_load_balancers.json")
             for load_balancer in test_event["LoadBalancers"]:
                 load_balancer["CreatedTime"] = dateutil.parser.parse(load_balancer["CreatedTime"])
 
             return test_event
 
     elif operation_name == "DescribeListeners":
-        return resource("json/test_describe_listeners.json")
+        return resource("test_describe_listeners.json")
 
     elif operation_name == "DescribeTargetGroups":
-        return resource("json/test_describe_target_groups.json")
+        return resource("test_describe_target_groups.json")
 
     elif operation_name == "DescribeTargetHealth":
-        return resource("json/test_decribe_target_health.json")
+        return resource("test_decribe_target_health.json")
 
     elif operation_name == "ListBuckets":
-        test_event = resource("json/test_describe_s3.json")
+        test_event = resource("test_describe_s3.json")
         for bucket in test_event["Buckets"]:
             bucket["CreationDate"] = dateutil.parser.parse(bucket["CreationDate"])
         return test_event
 
     elif operation_name == "DescribeDBInstances":
-        test_event = resource("json/test_describe_rds_instances.json")
+        test_event = resource("test_describe_rds_instances.json")
         for instance in test_event["DBInstances"]:
             instance["InstanceCreateTime"] = dateutil.parser.parse(instance["InstanceCreateTime"])
         return test_event
 
     elif operation_name == "DescribeDBClusters":
-        test_event = resource("json/test_describe_rds_clusters.json")
+        test_event = resource("test_describe_rds_clusters.json")
         for cluster in test_event["DBClusters"]:
             cluster["LatestRestorableTime"] = dateutil.parser.parse(cluster["LatestRestorableTime"])
             cluster["EarliestRestorableTime"] = dateutil.parser.parse(cluster["EarliestRestorableTime"])
@@ -181,43 +192,43 @@ def mock_boto_calls(self, operation_name, kwarg):
         return test_event
 
     elif operation_name == "ListFunctions":
-        test_event = resource("json/test_lambda_list_functions.json")
+        test_event = resource("test_lambda_list_functions.json")
         for fn in test_event["Functions"]:
             fn["LastModified"] = dateutil.parser.parse(fn["LastModified"])
         return test_event
 
     elif operation_name == "ListEventSourceMappings":
-        document = resource("json/test_lambda_list_event_source_mappings.json")
+        document = resource("test_lambda_list_event_source_mappings.json")
         for mapping in document["EventSourceMappings"]:
             mapping["LastModified"] = datetime.datetime.fromtimestamp(mapping["LastModified"])
         return document
 
     elif operation_name == "ListTopics":
-        return resource("json/test_sns_list_topics.json")
+        return resource("test_sns_list_topics.json")
 
     elif operation_name == "ListQueues":
-        return resource("json/test_sqs_list_queues.json")
+        return resource("test_sqs_list_queues.json")
 
     elif operation_name == "GetQueueAttributes":
-        return resource("json/test_sqs_get_queue_attributes.json")
+        return resource("test_sqs_get_queue_attributes.json")
 
     elif operation_name == "ListQueueTags":
-        return resource("json/test_sqs_list_queue_tags.json")
+        return resource("test_sqs_list_queue_tags.json")
 
     elif operation_name == "GetQueueUrl":
-        return resource("json/test_sqs_get_queue_url.json")
+        return resource("test_sqs_get_queue_url.json")
 
     elif operation_name == "ListMetrics":
-        return resource("json/test_cw_list_metrics.json")
+        return resource("test_cw_list_metrics.json")
 
     elif operation_name == "ListSubscriptionsByTopic":
-        return resource("json/test_sns_list_subscriptions_by_topic.json")
+        return resource("test_sns_list_subscriptions_by_topic.json")
 
     elif operation_name == "GetBucketNotificationConfiguration":
-        return resource("json/test_s3_get_bucket_notification_configuration.json")
+        return resource("test_s3_get_bucket_notification_configuration.json")
 
     elif operation_name == "ListTables":
-        return resource("json/test_dynamodb_list_tables.json")
+        return resource("test_dynamodb_list_tables.json")
 
     elif operation_name == "ListTags":
         global THROTTLING_COUNT_TAGS
@@ -226,13 +237,13 @@ def mock_boto_calls(self, operation_name, kwarg):
             error_response = {"Error": {"Code": "RequestLimitExceeded", "Message": "Maximum sending rate exceeded"}}
             raise ClientError(error_response, operation_name)
         else:
-            return resource("json/test_lambda_list_tags.json")
+            return resource("test_lambda_list_tags.json")
 
     elif operation_name == "ListAliases":
-        return resource("json/test_lambda_list_aliases.json")
+        return resource("test_lambda_list_aliases.json")
 
     elif operation_name == "DescribeTable":
-        path_name = "json/test_dynamodb_describe_table_" + kwarg["TableName"] + ".json"
+        path_name = "test_dynamodb_describe_table_" + kwarg["TableName"] + ".json"
         document = resource(path_name)
         document["Table"]["CreationDateTime"] = datetime.datetime.fromtimestamp(
             document["Table"]["CreationDateTime"]
@@ -240,10 +251,10 @@ def mock_boto_calls(self, operation_name, kwarg):
         return document
 
     elif operation_name == "ListStreams":
-        return resource("json/test_kinesis_list_streams.json")
+        return resource("test_kinesis_list_streams.json")
 
     elif operation_name == "DescribeStreamSummary":
-        path_name = "json/test_kinesis_describe_stream_summary_" + kwarg["StreamName"] + ".json"
+        path_name = "test_kinesis_describe_stream_summary_" + kwarg["StreamName"] + ".json"
         document = resource(path_name)
         document["StreamDescriptionSummary"]["StreamCreationTimestamp"] = datetime.datetime.fromtimestamp(
             document["StreamDescriptionSummary"]["StreamCreationTimestamp"]
@@ -251,10 +262,10 @@ def mock_boto_calls(self, operation_name, kwarg):
         return document
 
     elif operation_name == "ListDeliveryStreams":
-        return resource("json/test_firehose_list_delivery_streams.json")
+        return resource("test_firehose_list_delivery_streams.json")
 
     elif operation_name == "DescribeDeliveryStream":
-        path_name = "json/test_firehose_describe_delivery_stream_" + kwarg["DeliveryStreamName"] + ".json"
+        path_name = "test_firehose_describe_delivery_stream_" + kwarg["DeliveryStreamName"] + ".json"
         document = resource(path_name)
         document["DeliveryStreamDescription"]["CreateTimestamp"] = datetime.datetime.fromtimestamp(
             document["DeliveryStreamDescription"]["CreateTimestamp"]
@@ -271,70 +282,70 @@ def mock_boto_calls(self, operation_name, kwarg):
         return document
 
     elif operation_name == "GetRestApis":
-        return resource("json/test_apigateway_get_rest_apis.json")
+        return resource("test_apigateway_get_rest_apis.json")
 
     elif operation_name == "GetStages":
-        return resource("json/test_apigateway_get_stages.json")
+        return resource("test_apigateway_get_stages.json")
 
     elif operation_name == "GetResources":
-        path_name = "json/test_apigateway_get_resources_" + kwarg["restApiId"] + ".json"
+        path_name = "test_apigateway_get_resources_" + kwarg["restApiId"] + ".json"
         return resource(path_name)
 
     elif operation_name == "GetMethod":
-        path_name = "json/test_apigateway_get_method_" + kwarg["httpMethod"].lower() + ".json"
+        path_name = "test_apigateway_get_method_" + kwarg["httpMethod"].lower() + ".json"
         return resource(path_name)
 
     elif operation_name == "ListDomains":
-        document = resource("json/test_route53domains_list_domains.json")
+        document = resource("test_route53domains_list_domains.json")
         for domain in document["Domains"]:
             domain["Expiry"] = datetime.datetime.fromtimestamp(domain["Expiry"])
         return document
 
     elif operation_name == "ListHostedZones":
-        return resource("json/test_route53_list_hosted_zones.json")
+        return resource("test_route53_list_hosted_zones.json")
 
     elif operation_name == "GetHostedZone":
-        return resource("json/test_route53_get_hosted_zone.json")
+        return resource("test_route53_get_hosted_zone.json")
 
     elif operation_name == "ListResourceRecordSets":
-        return resource("json/test_route53_list_resource_record_sets.json")
+        return resource("test_route53_list_resource_record_sets.json")
 
     elif operation_name == "DescribeAutoScalingGroups":
-        document = resource("json/test_autoscaling_describe_auto_scaling_groups.json")
+        document = resource("test_autoscaling_describe_auto_scaling_groups.json")
         for auto_scaling_group in document["AutoScalingGroups"]:
             auto_scaling_group["CreatedTime"] = dateutil.parser.parse(auto_scaling_group["CreatedTime"])
         return document
 
     elif operation_name == "DescribeVpcs":
-        return resource("json/test_ec2_describe_vpcs.json")
+        return resource("test_ec2_describe_vpcs.json")
 
     elif operation_name == "DescribeSubnets":
-        return resource("json/test_ec2_describe_subnets.json")
+        return resource("test_ec2_describe_subnets.json")
 
     elif operation_name == "DescribeVpnGateways":
-        return resource("json/test_ec2_describe_vpn_gateways.json")
+        return resource("test_ec2_describe_vpn_gateways.json")
 
     elif operation_name == "GetBucketLocation":
-        return resource("json/test_s3_get_bucket_location.json")
+        return resource("test_s3_get_bucket_location.json")
 
     elif operation_name == "ListTagsForStream":
-        return resource("json/test_kinesis_list_tags_for_stream.json")
+        return resource("test_kinesis_list_tags_for_stream.json")
 
     elif operation_name == "ListClusters":
-        return resource("json/test_ecs_list_clusters.json")
+        return resource("test_ecs_list_clusters.json")
 
     elif operation_name == "DescribeClusters":
         # Unfortunately boto3 uses the same operation name for both ECS cluster and Redshift Cluster
         if self._service_model.service_name == "ecs":
-            return resource("json/test_ecs_describe_clusters.json")
+            return resource("test_ecs_describe_clusters.json")
         else:
-            return resource("json/test_redshift_describe_clusters.json")
+            return resource("test_redshift_describe_clusters.json")
 
     elif operation_name == "ListServices":
-        return resource("json/test_ecs_list_services.json")
+        return resource("test_ecs_list_services.json")
 
     elif operation_name == "DescribeServices":
-        document = resource("json/test_ecs_describe_services.json")
+        document = resource("test_ecs_describe_services.json")
         for service in document["services"]:
             service["createdAt"] = dateutil.parser.parse(service["createdAt"])
 
@@ -347,13 +358,13 @@ def mock_boto_calls(self, operation_name, kwarg):
         return document
 
     elif operation_name == "ListTagsOfResource":
-        return resource("json/test_dynamodb_list_tags_of_resource.json")
+        return resource("test_dynamodb_list_tags_of_resource.json")
 
     elif operation_name == "ListTasks":
-        return resource("json/test_ecs_list_tasks.json")
+        return resource("test_ecs_list_tasks.json")
 
     elif operation_name == "DescribeTasks":
-        document = resource("json/test_ecs_describe_tasks.json")
+        document = resource("test_ecs_describe_tasks.json")
 
         for task in document["tasks"]:
             task["createdAt"] = dateutil.parser.parse(task["createdAt"])
@@ -365,38 +376,43 @@ def mock_boto_calls(self, operation_name, kwarg):
         return document
 
     elif operation_name == "ListContainerInstances":
-        return resource("json/test_ecs_list_container_instances.json")
+        return resource("test_ecs_list_container_instances.json")
 
     elif operation_name == "DescribeContainerInstances":
-        return resource("json/test_ecs_describe_container_instances.json")
+        return resource("test_ecs_describe_container_instances.json")
 
     elif operation_name == "ListTagsForResource":
         if self._service_model.service_name == "rds":
-            return resource("json/test_rds_list_tags_for_resource.json")
+            return resource("test_rds_list_tags_for_resource.json")
         elif self._service_model.service_name == "route53":
-            return resource("json/test_route53_list_tags_for_resource.json")
+            return resource("test_route53_list_tags_for_resource.json")
         else:
-            return resource("json/test_sns_list_tags_for_resource.json")
+            return resource("test_sns_list_tags_for_resource.json")
     elif operation_name == "DescribeTags":
-        return resource("json/test_elbv2_describe_tags.json")
+        return resource("test_elbv2_describe_tags.json")
 
     elif operation_name == "GetServiceGraph":
-        return resource("json/test_xray_get_service_graph.json")
+        return resource("test_xray_get_service_graph.json")
 
     elif operation_name == "GetTraceSummaries":
-        return resource("json/test_xray_get_trace_summaries.json")
+        return resource("test_xray_get_trace_summaries.json")
 
     elif operation_name == "ListTagsForDomain":
-        return resource("json/test_route53_domain_tags.json")
+        return resource("test_route53_domain_tags.json")
 
     elif operation_name == "ListTagsForDeliveryStream":
-        return resource("json/test_firehose_deliverystream_tags.json")
+        return resource("test_firehose_deliverystream_tags.json")
+    elif operation_name == "LookupEvents":
+        return {}
+    elif operation_name == 'ListStateMachines':
+        return {}
+    elif operation_name == 'ListActivities':
+        return {}
     else:
         raise ValueError("Unknown operation name", operation_name)
 
 
 def compute_topologies_diff(computed_dict, expected_filepath):
-    # print(topology)
     with open(expected_filepath) as f:
         expected_topology = f.read()
         top = json.loads(expected_topology)
@@ -418,8 +434,6 @@ def compute_topologies_diff(computed_dict, expected_filepath):
         topology = json.dumps(computed_dict, default=str, indent=2, sort_keys=True)
         expected_topology = json.dumps(top, default=str, indent=2, sort_keys=True)
         delta = difflib.unified_diff(a=expected_topology.strip().splitlines(), b=topology.strip().splitlines())
-        # for line in delta:
-        #     print(line)
         return "".join(delta)
 
 
@@ -484,7 +498,7 @@ class TestTemplate(unittest.TestCase):
         self.mock_object.side_effect = mock_boto_calls
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
-    @set_api("ec2|aws.ec2")
+    @set_api("ec2|instances")
     def test_process_ec2(self):
         test_instance_id = "i-0aac5bab082561475"
         test_instance_type = "m4.xlarge"
@@ -552,22 +566,18 @@ class TestTemplate(unittest.TestCase):
         )  # DIFF was externalId
 
         # Load Balancer A and Target Group A relationship test
-        self.assertEqual(
-            topology[0]["relations"][4]["target_id"], "urn:aws/target-group-instance/" + instance_a
-        )  # DIFF was targetId
-        self.assertEqual(
-            topology[0]["relations"][4]["source_id"],
+        self.assertEqual(self.has_relation(
+            topology[0]["relations"],
             "arn:aws:elasticloadbalancing:eu-west-1:731070500579:targetgroup/myfirsttargetgroup/28ddec997ec55d21",
-        )  # DIFF was sourceId
+            "urn:aws/target-group-instance/" + instance_a
+        ), True)
 
         # Load Balancer B and Target Group B relationship test
-        self.assertEqual(
-            topology[0]["relations"][5]["target_id"], "urn:aws/target-group-instance/" + instance_b
-        )  # DIFF was targetId
-        self.assertEqual(
-            topology[0]["relations"][5]["source_id"],
+        self.assertEqual(self.has_relation(
+            topology[0]["relations"],
             "arn:aws:elasticloadbalancing:eu-west-1:731070500579:targetgroup/myfirsttargetgroup/28ddec997ec55d21",
-        )  # DIFF was sourceId
+            "urn:aws/target-group-instance/" + instance_b
+        ), True)
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
     @set_api("elb|aws.elb_classic")
@@ -595,7 +605,7 @@ class TestTemplate(unittest.TestCase):
         )
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
-    @set_api("s3|aws.s3_bucket")
+    @set_api("s3")
     def test_process_s3(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
@@ -660,7 +670,7 @@ class TestTemplate(unittest.TestCase):
         )
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
-    @set_api("lambda|aws.lambda")
+    @set_api("lambda|functions")
     def test_process_lambda(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
@@ -738,7 +748,7 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(len(topology), 1)
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            topology[0]["components"][0]["id"], "arn:aws:sqs:eu-west-1:508573134510:STS_stackpack_test"
+            topology[0]["components"][0]["id"], "arn:aws:sqs:eu-west-1:731070500579:STS_stackpack_test"
         )  # DIFF externalId
         self.assertEqual(topology[0]["components"][0]["type"], "aws.sqs")  # DIFF was ['type']['name']
         self.assertEqual(topology[0]["components"][0]["data"]["Tags"], {"a": "b"})
@@ -816,7 +826,7 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(topology[0]["components"][4]["type"], "aws.dynamodb")  # DIFF
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
-    @set_api("lambda|aws.lambda.event_source_mapping")
+    @set_api("lambda|mappings")
     def test_process_lambda_event_source_mappings(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
@@ -867,7 +877,7 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(topology[0]["components"][3]["type"], "aws.kinesis")  # DIFF
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
-    @set_api("firehose|aws.firehose")
+    @set_api("firehose")
     def test_process_firehose(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
@@ -906,6 +916,7 @@ class TestTemplate(unittest.TestCase):
         topology = [top.get_snapshot(self.check.check_id)]
         self.assert_executed_ok()
 
+        api_arn = "arn:aws:execute-api:eu-west-1:731070500579:api_1"
         stage_arn_prefix = "arn:aws:execute-api:eu-west-1:731070500579:api_1/stage{}"
         resource_arn_prefix = "arn:aws:execute-api:eu-west-1:731070500579:api_1/stage{}/*/hello"
         method_arn_prefix = "arn:aws:execute-api:eu-west-1:731070500579:api_1/stage{}/{}/hello"
@@ -915,165 +926,190 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(len(topology), 1)
         # we have 2 stages
         for n in range(0, 2):
-            self.assertEqual(topology[0]["components"][0 + (n * 15)]["id"], stage_arn_prefix.format(n + 1))  # DIFF
-            self.assertEqual(topology[0]["components"][0 + (n * 15)]["type"], "aws.apigateway.stage")  # DIFF
-            self.assertEqual(topology[0]["components"][0 + (n * 15)]["data"]["RestApiName"], "api_1")
+            comp = self.assert_has_component(
+                topology[0]["components"],
+                stage_arn_prefix.format(n + 1),
+                "aws.apigateway.stage"
+            )
+            self.assertEqual(comp["data"]["RestApiName"], "api_1")
             self.assertEqual(
-                topology[0]["components"][0 + (n * 15)]["data"]["Tags"]["StageTagKey" + str(n + 1)],
-                "StageTagValue" + str(n + 1),
+                comp["data"]["Tags"]["StageTagKey" + str(n + 1)], "StageTagValue" + str(n + 1)
             )
             self.assert_stream_dimensions(
-                topology[0]["components"][0 + (n * 15)],
+                comp,
                 [
                     {"Key": "Stage", "Value": "stage{}".format(n + 1)},
                     {"Key": "ApiName", "Value": topology[0]["components"][0 + (n * 15)]["data"]["RestApiName"]},
                 ],
             )
 
-            self.assertEqual(topology[0]["components"][1 + (n * 15)]["id"], resource_arn_prefix.format(n + 1))  # DIFF
-            self.assertEqual(topology[0]["components"][1 + (n * 15)]["type"], "aws.apigateway.resource")  # DIFF
-            self.assertEqual(topology[0]["components"][1 + (n * 15)]["data"]["Path"], "/hello")
+            comp = self.assert_has_component(
+                topology[0]["components"],
+                resource_arn_prefix.format(n + 1),
+                "aws.apigateway.resource"
+            )
+            self.assertEqual(comp["data"]["Path"], "/hello")
             self.assert_stream_dimensions(
-                topology[0]["components"][1 + (n * 15)],
+                comp,
                 [
                     {"Key": "Stage", "Value": "stage{}".format(n + 1)},
-                    {"Key": "ApiName", "Value": topology[0]["components"][1 + (n * 15)]["data"]["RestApiName"]},
+                    {"Key": "ApiName", "Value": comp["data"]["RestApiName"]},
                 ],
             )
 
-            self.assertEqual(
-                topology[0]["components"][2 + (n * 15)]["id"], method_arn_prefix.format(n + 1, "DELETE")
-            )  # DIFF
-            self.assertEqual(topology[0]["components"][2 + (n * 15)]["type"], "aws.apigateway.method")  # DIFF
-            self.assertEqual(topology[0]["components"][2 + (n * 15)]["data"]["HttpMethod"], "DELETE")
+            comp = self.assert_has_component(
+                topology[0]["components"],
+                method_arn_prefix.format(n + 1, "DELETE"),
+                "aws.apigateway.method"
+            )
+            self.assertEqual(comp["data"]["HttpMethod"], "DELETE")
             self.assert_stream_dimensions(
-                topology[0]["components"][2 + (n * 15)],
+                comp,
                 [
-                    {"Key": "Method", "Value": topology[0]["components"][2 + (n * 15)]["data"]["HttpMethod"]},
-                    {"Key": "Resource", "Value": topology[0]["components"][2 + (n * 15)]["data"]["Path"]},
+                    {"Key": "Method", "Value": comp["data"]["HttpMethod"]},
+                    {"Key": "Resource", "Value": comp["data"]["Path"]},
                     {"Key": "Stage", "Value": "stage{}".format(n + 1)},
-                    {"Key": "ApiName", "Value": topology[0]["components"][2 + (n * 15)]["data"]["RestApiName"]},
+                    {"Key": "ApiName", "Value": comp["data"]["RestApiName"]},
                 ],
             )
 
-            self.assertEqual(
-                topology[0]["components"][3 + (n * 15)]["id"], method_arn_prefix.format(n + 1, "GET")
-            )  # DIFF
-            self.assertEqual(topology[0]["components"][3 + (n * 15)]["type"], "aws.apigateway.method")  # DIFF
-            self.assertEqual(topology[0]["components"][3 + (n * 15)]["data"]["HttpMethod"], "GET")
+            comp = self.assert_has_component(
+                topology[0]["components"],
+                method_arn_prefix.format(n + 1, "GET"),
+                "aws.apigateway.method"
+            )
+            self.assertEqual(comp["data"]["HttpMethod"], "GET")
             self.assert_stream_dimensions(
-                topology[0]["components"][3 + (n * 15)],
+                comp,
                 [
-                    {"Key": "Method", "Value": topology[0]["components"][3 + (n * 15)]["data"]["HttpMethod"]},
-                    {"Key": "Resource", "Value": topology[0]["components"][3 + (n * 15)]["data"]["Path"]},
+                    {"Key": "Method", "Value": comp["data"]["HttpMethod"]},
+                    {"Key": "Resource", "Value": comp["data"]["Path"]},
                     {"Key": "Stage", "Value": "stage{}".format(n + 1)},
-                    {"Key": "ApiName", "Value": topology[0]["components"][3 + (n * 15)]["data"]["RestApiName"]},
+                    {"Key": "ApiName", "Value": comp["data"]["RestApiName"]},
                 ],
             )
 
-            self.assertEqual(
-                topology[0]["components"][4 + (n * 15)]["id"], method_arn_prefix.format(n + 1, "PATCH")
-            )  # DIFF
-            self.assertEqual(topology[0]["components"][4 + (n * 15)]["type"], "aws.apigateway.method")  # DIFF
-            self.assertEqual(topology[0]["components"][4 + (n * 15)]["data"]["HttpMethod"], "PATCH")
+            comp = self.assert_has_component(
+                topology[0]["components"],
+                method_arn_prefix.format(n + 1, "PATCH"),
+                "aws.apigateway.method"
+            )
+            self.assertEqual(comp["data"]["HttpMethod"], "PATCH")
             self.assert_stream_dimensions(
-                topology[0]["components"][4 + (n * 15)],
+                comp,
                 [
-                    {"Key": "Method", "Value": topology[0]["components"][4 + (n * 15)]["data"]["HttpMethod"]},
-                    {"Key": "Resource", "Value": topology[0]["components"][4 + (n * 15)]["data"]["Path"]},
+                    {"Key": "Method", "Value": comp["data"]["HttpMethod"]},
+                    {"Key": "Resource", "Value": comp["data"]["Path"]},
                     {"Key": "Stage", "Value": "stage{}".format(n + 1)},
-                    {"Key": "ApiName", "Value": topology[0]["components"][4 + (n * 15)]["data"]["RestApiName"]},
+                    {"Key": "ApiName", "Value": comp["data"]["RestApiName"]},
                 ],
             )
 
-            self.assertEqual(
-                topology[0]["components"][5 + (n * 15)]["id"], method_arn_prefix.format(n + 1, "POST")
-            )  # DIFF
-            self.assertEqual(topology[0]["components"][5 + (n * 15)]["type"], "aws.apigateway.method")  # DIFF
-            self.assertEqual(topology[0]["components"][5 + (n * 15)]["data"]["HttpMethod"], "POST")
+            comp = self.assert_has_component(
+                topology[0]["components"],
+                method_arn_prefix.format(n + 1, "POST"),
+                "aws.apigateway.method"
+            )
+            self.assertEqual(comp["data"]["HttpMethod"], "POST")
             self.assert_stream_dimensions(
-                topology[0]["components"][5 + (n * 15)],
+                comp,
                 [
-                    {"Key": "Method", "Value": topology[0]["components"][5 + (n * 15)]["data"]["HttpMethod"]},
-                    {"Key": "Resource", "Value": topology[0]["components"][5 + (n * 15)]["data"]["Path"]},
+                    {"Key": "Method", "Value": comp["data"]["HttpMethod"]},
+                    {"Key": "Resource", "Value": comp["data"]["Path"]},
                     {"Key": "Stage", "Value": "stage{}".format(n + 1)},
-                    {"Key": "ApiName", "Value": topology[0]["components"][5 + (n * 15)]["data"]["RestApiName"]},
+                    {"Key": "ApiName", "Value": comp["data"]["RestApiName"]},
                 ],
             )
 
-            self.assertEqual(topology[0]["components"][6 + (n * 15)]["id"], "urn:service:/84.35.236.89")  # DIFF
-            self.assertEqual(
-                topology[0]["components"][6 + (n * 15)]["type"], "aws.apigateway.method.http.integration"
-            )  # DIFF
+            comp = self.assert_has_component(
+                topology[0]["components"],
+                "urn:service:/84.35.236.89",
+                "aws.apigateway.method.http.integration"
+            )
 
-            self.assertEqual(
-                topology[0]["components"][7 + (n * 15)]["id"], method_arn_prefix.format(n + 1, "PUT")
-            )  # DIFF
-            self.assertEqual(topology[0]["components"][7 + (n * 15)]["type"], "aws.apigateway.method")  # DIFF
-            self.assertEqual(topology[0]["components"][7 + (n * 15)]["data"]["HttpMethod"], "PUT")
+            comp = self.assert_has_component(
+                topology[0]["components"],
+                method_arn_prefix.format(n + 1, "PUT"),
+                "aws.apigateway.method"
+            )
+            self.assertEqual(comp["data"]["HttpMethod"], "PUT")
             self.assert_stream_dimensions(
-                topology[0]["components"][7 + (n * 15)],
+                comp,
                 [
-                    {"Key": "Method", "Value": topology[0]["components"][7 + (n * 15)]["data"]["HttpMethod"]},
-                    {"Key": "Resource", "Value": topology[0]["components"][7 + (n * 15)]["data"]["Path"]},
+                    {"Key": "Method", "Value": comp["data"]["HttpMethod"]},
+                    {"Key": "Resource", "Value": comp["data"]["Path"]},
                     {"Key": "Stage", "Value": "stage{}".format(n + 1)},
-                    {"Key": "ApiName", "Value": topology[0]["components"][7 + (n * 15)]["data"]["RestApiName"]},
+                    {"Key": "ApiName", "Value": comp["data"]["RestApiName"]},
                 ],
             )
 
-        self.assertEqual(len(topology[0]["components"]), 30)
+        comp = self.assert_has_component(
+            topology[0]["components"],
+            api_arn,
+            "aws.apigateway"
+        )
+
+        self.assertEqual(len(topology[0]["components"]), 31)
 
         # we have 2 stages
-        for n in range(0, 2):
-            self.assertEqual(
-                topology[0]["relations"][0 + (n * 22)]["source_id"], stage_arn_prefix.format(n + 1)
-            )  # DIFF
-            self.assertEqual(
-                topology[0]["relations"][0 + (n * 22)]["target_id"], resource_arn_prefix.format(n + 1)
-            )  # DIFF
-            self.assert_method_relations(
-                topology,
-                method_arn_prefix.format(n + 1, "PATCH"),
-                resource_arn_prefix.format(n + 1),
-                sqs_arn,
-                5 + (n * 22),
-            )
-            self.assert_method_relations(
-                topology,
-                method_arn_prefix.format(n + 1, "PUT"),
-                resource_arn_prefix.format(n + 1),
-                lambda_arn_prefix.format("PutHello-1LUD3ESBOR6EY"),
-                9 + (n * 22),
-            )
-            self.assert_method_relations(
-                topology,
-                method_arn_prefix.format(n + 1, "POST"),
-                resource_arn_prefix.format(n + 1),
-                "urn:service:/84.35.236.89",
-                7 + (n * 22),
-            )
-            self.assert_method_relations(
-                topology,
-                method_arn_prefix.format(n + 1, "GET"),
-                resource_arn_prefix.format(n + 1),
-                lambda_arn_prefix.format("GetHello-1CZ5O92284Z69"),
-                3 + (n * 22),
-            )
-            self.assert_method_relations(
-                topology,
-                method_arn_prefix.format(n + 1, "DELETE"),
-                resource_arn_prefix.format(n + 1),
-                lambda_arn_prefix.format("DeleteHello-1LDFJCU54ZL5"),
-                1 + (n * 22),
-            )
+        relations = topology[0]["relations"]
+        for n in range(1, 3):
+            self.assertEqual(self.has_relation(
+                relations, api_arn, stage_arn_prefix.format(n)
+            ), True)
 
-        self.assertEqual(len(topology[0]["relations"]), 44)
+            self.assertEqual(self.has_relation(
+                relations, stage_arn_prefix.format(n), resource_arn_prefix.format(n)
+            ), True)
 
-    def assert_method_relations(self, topology, method_arn, resource_arn, lambda_arn, index):
-        self.assertEqual(topology[0]["relations"][index]["source_id"], resource_arn)  # DIFF
-        self.assertEqual(topology[0]["relations"][index]["target_id"], method_arn)  # DIFF
-        self.assertEqual(topology[0]["relations"][index + 1]["source_id"], method_arn)  # DIFF
-        self.assertEqual(topology[0]["relations"][index + 1]["target_id"], lambda_arn)  # DIFF
+            self.assertEqual(self.has_relation(
+                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "PATCH")
+            ), True)
+            self.assertEqual(self.has_relation(
+                relations, method_arn_prefix.format(n, "PATCH"), sqs_arn
+            ), True)
+
+            self.assertEqual(self.has_relation(
+                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "PUT")
+            ), True)
+            self.assertEqual(self.has_relation(
+                relations, method_arn_prefix.format(n, "PUT"), lambda_arn_prefix.format("PutHello-1LUD3ESBOR6EY")
+            ), True)
+
+            self.assertEqual(self.has_relation(
+                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "POST")
+            ), True)
+            self.assertEqual(self.has_relation(
+                relations, method_arn_prefix.format(n, "POST"), "urn:service:/84.35.236.89"
+            ), True)
+
+            self.assertEqual(self.has_relation(
+                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "GET")
+            ), True)
+            self.assertEqual(self.has_relation(
+                relations, method_arn_prefix.format(n, "GET"), lambda_arn_prefix.format("GetHello-1CZ5O92284Z69")
+            ), True)
+
+            self.assertEqual(self.has_relation(
+                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "DELETE")
+            ), True)
+            self.assertEqual(self.has_relation(
+                relations, method_arn_prefix.format(n, "DELETE"), lambda_arn_prefix.format("DeleteHello-1LDFJCU54ZL5")
+            ), True)
+
+        self.assertEqual(len(topology[0]["relations"]), 46)
+
+    def has_relation(self, relations, source_id, target_id):
+        for relation in relations:
+            if relation['source_id'] == source_id and relation['target_id'] == target_id:
+                return True
+        return False
+
+    def assert_has_component(self, components, id, tp):
+        for component in components:
+            if component['id'] == id and component['type'] == tp:
+                return component
+        self.assertFalse(True, "Component not found " + id + " - " + tp)
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
     @set_api("route53domains|aws.route53.domain")
@@ -1127,8 +1163,7 @@ class TestTemplate(unittest.TestCase):
         )
         self.assertEqual(
             topology[0]["components"][0]["id"],
-            "arn:aws:autoscaling:eu-west-1:731070500579:autoScalingGroup:e1155c2b-016a-40ad-8cba-2423c349574b:"
-            + "autoScalingGroupName/awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM",
+            "awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM",
         )  # DIFF
         self.assertEqual(topology[0]["components"][0]["type"], "aws.autoscaling")  # DIFF
         self.assert_location_info(topology[0]["components"][0])
@@ -1136,7 +1171,7 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(len(topology[0]["relations"]), 4)
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
-    @set_api("ec2|aws.security-group")
+    @set_api("ec2|security_groups")
     def test_process_security_group(self):
         first_sg_group_id = "sg-002abe0b505ad7002"
         self.check.run()
@@ -1163,14 +1198,16 @@ class TestTemplate(unittest.TestCase):
         if operation_name == "AssumeRole":
             return {"Credentials": {"AccessKeyId": "KEY_ID", "SecretAccessKey": "ACCESS_KEY", "SessionToken": "TOKEN"}}
         elif operation_name == "DescribeSecurityGroups":
-            return resource("json/test_describe_security_groups_2.json")
+            return resource("test_describe_security_groups_2.json")
         elif operation_name == "DescribeInstanceTypes":
-            return resource("json/test_describe_instance_types.json")
+            return resource("test_describe_instance_types.json")
         elif operation_name == "GetCallerIdentity":
-            return resource("json/test_get_caller_identity.json")
+            return resource("test_get_caller_identity.json")
+        elif operation_name == "LookupEvents":
+            return {}
 
     @patch("botocore.client.BaseClient._make_api_call", mock_security_group_2_boto_calls)
-    @set_api("ec2|aws.security-group")
+    @set_api("ec2|security_groups")
     def test_process_security_group_version_hash_is_not_affected_by_order(self):
         first_sg_group_id = "sg-002abe0b505ad7002"
         self.check.run()
@@ -1193,7 +1230,7 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(topology[0]["components"][0]["data"]["Name"], "network-ALBSecurityGroupPublic-1DNVWX102724V")
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
-    @set_api("ec2|aws.vpc")
+    @set_api("ec2|vpcs")
     def test_process_vpcs(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
@@ -1204,6 +1241,7 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(topology[0]["components"][0]["id"], "vpc-6b25d10e")  # DIFF
         self.assertEqual(topology[0]["components"][0]["type"], "aws.vpc")  # DIFF
         self.assertEqual(topology[0]["components"][0]["data"]["VpcId"], "vpc-6b25d10e")
+        self.assertEqual(topology[0]["components"][0]["data"]["Name"], "vpc-6b25d10e")
         self.assertEqual(
             topology[0]["components"][0]["data"]["URN"],
             ["arn:aws:ec2:{}:731070500579:vpc/{}".format(TEST_REGION, "vpc-6b25d10e")],
@@ -1217,13 +1255,14 @@ class TestTemplate(unittest.TestCase):
             topology[0]["components"][1]["data"]["URN"],
             ["arn:aws:ec2:{}:731070500579:subnet/{}".format(TEST_REGION, "subnet-9e4be5f9")],
         )
+        self.assertEqual(topology[0]["components"][1]["data"]["Name"], "demo-deployments-eu-west-1a")
         self.assert_location_info(topology[0]["components"][1])
         self.assertEqual(len(topology[0]["relations"]), 1)
         self.assertEqual(topology[0]["relations"][0]["source_id"], "subnet-9e4be5f9")  # DIFF
         self.assertEqual(topology[0]["relations"][0]["target_id"], "vpc-6b25d10e")  # DIFF
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
-    @set_api("ec2|aws.vpngateway")
+    @set_api("ec2|vpn_gateways")
     def test_process_vpn_gateways(self):
         self.check.run()
         self.assert_executed_ok()
@@ -1252,6 +1291,7 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(diff, "")
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
+    # @patch("stackstate_checks.aws_topology.aws_topology.AgentProxy.send_parked_relations", dont_send_parked_relations)
     @set_api(None)
     def test_process_cloudformation(self):
         self.check.run()
@@ -1285,54 +1325,71 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(relations[0]["source_id"], stacks[0]["id"])  # DIFF
         self.assertEqual(relations[0]["type"], "has resource")  # DIFF
 
+        source_id = relations[0]["source_id"]
         # assert for lambda function relation
-        self.assertEqual(
-            relations[0]["target_id"],
-            "arn:aws:lambda:eu-west-1:731070500579:function:com-stackstate-prod-sam-seed-PutHello-1LUD3ESBOR6EY",
-        )
+        self.assertEqual(self.has_relation(
+            relations, source_id,
+            "arn:aws:lambda:eu-west-1:731070500579:function:com-stackstate-prod-sam-seed-PutHello-1LUD3ESBOR6EY"
+        ), True)
         # assert for kinesis stream relation
-        self.assertEqual(relations[1]["target_id"], "arn:aws:kinesis:eu-west-1:731070500579:stream/stream_1")
+        self.assertEqual(self.has_relation(
+            relations, source_id, "arn:aws:kinesis:eu-west-1:731070500579:stream/stream_1"
+        ), True)
         # assert for s3 bucket relation
-        self.assertEqual(relations[2]["target_id"], "arn:aws:s3:::stackstate.com")
-        # assert for api_stage stage1 relation
-        self.assertEqual(relations[3]["target_id"], "arn:aws:execute-api:eu-west-1:731070500579:api_1/stage1")
-        # assert for api_stage stage2 relation
-        self.assertEqual(relations[4]["target_id"], "arn:aws:execute-api:eu-west-1:731070500579:api_1/stage2")
-        # assert for target group relation
-        self.assertEqual(
-            relations[5]["target_id"],
-            "arn:aws:elasticloadbalancing:eu-west-1:731070500579:targetgroup/myfirsttargetgroup/28ddec997ec55d21",
-        )
+        self.assertEqual(self.has_relation(
+            relations, source_id, "arn:aws:s3:::stackstate.com"
+        ), True)
+        # assert for api_stage relation
+        self.assertEqual(self.has_relation(
+            relations, source_id, "arn:aws:execute-api:eu-west-1:731070500579:api_1"
+        ), True)
         # assert for loadbalancer relation
-        self.assertEqual(
-            relations[6]["target_id"],
+        self.assertEqual(self.has_relation(
+            relations, source_id,
             "arn:aws:elasticloadbalancing:eu-west-1:731070500579:loadbalancer/app/myfirstloadbalancer/90dd512583d2d7e9",
-        )
+        ), True)
+        # assert for target group relation
+        self.assertEqual(self.has_relation(
+            relations, source_id,
+            "arn:aws:elasticloadbalancing:eu-west-1:731070500579:targetgroup/myfirsttargetgroup/28ddec997ec55d21",
+        ), True)
         # assert for autoscaling group relation
-        self.assertEqual(
-            relations[7]["target_id"],
-            "arn:aws:autoscaling:eu-west-1:731070500579:autoScalingGroup:e1155c2b-016a-40ad-8cba-2423c349574b:" +
-            "autoScalingGroupName/awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM",
-        )
+        self.assertEqual(self.has_relation(
+            relations, source_id,
+            "awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM",
+        ), True)
         # assert for elb classic loadbalancer  relation
-        self.assertEqual(relations[8]["target_id"], "classic_elb_classic-loadbalancer-1")
+        self.assertEqual(self.has_relation(
+            relations, source_id, "classic_elb_classic-loadbalancer-1"
+        ), True)
         # assert for rds relation
-        self.assertEqual(relations[9]["target_id"], "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase")
+        self.assertEqual(self.has_relation(
+            relations, source_id, "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase"
+        ), True)
         # assert for sns topic relation
-        self.assertEqual(relations[10]["target_id"], "arn:aws:sns:eu-west-1:731070500579:my-topic-3")
+        self.assertEqual(self.has_relation(
+            relations, source_id, "arn:aws:sns:eu-west-1:731070500579:my-topic-3"
+        ), True)
         # assert for sqs queue relation
-        self.assertEqual(relations[11]["target_id"], "arn:aws:sqs:eu-west-1:508573134510:STS_stackpack_test")
+        self.assertEqual(self.has_relation(
+            relations, source_id, "arn:aws:sqs:eu-west-1:731070500579:STS_stackpack_test"
+        ), True)
         # assert for dynamodb table relation
-        self.assertEqual(relations[12]["target_id"], "arn:aws:dynamodb:eu-west-1:731070500579:table/table_3")
+        self.assertEqual(self.has_relation(
+            relations, source_id, "arn:aws:dynamodb:eu-west-1:731070500579:table/table_3"
+        ), True)
         # assert for ecs cluster relation
-        self.assertEqual(
-            relations[13]["target_id"], "arn:aws:ecs:eu-west-1:850318095909:cluster/StackState-ECS-Cluster"
-        )
+        self.assertEqual(self.has_relation(
+            relations, source_id, "arn:aws:ecs:eu-west-1:731070500579:cluster/StackState-ECS-Cluster"
+        ), True)
         # assert for ec2 instance relation
-        self.assertEqual(relations[14]["target_id"], "i-0aac5bab082561475")
+        self.assertEqual(self.has_relation(
+            relations, source_id, "i-0aac5bab082561475"
+        ), True)
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
-    @set_api("cloudformation|aws.cloudformation")
+    @set_api("cloudformation")
+    @patch("stackstate_checks.aws_topology.aws_topology.AgentProxy.send_parked_relations", dont_send_parked_relations)
     def test_process_cloudformation_stack_relation(self):
         self.check.run()
         self.assert_executed_ok()
@@ -1342,11 +1399,13 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(len(topology[0]["relations"]), 1)
         self.assertEqual(
             topology[0]["relations"][0]["source_id"],
-            "arn:aws:cloudformation:eu-west-1:731070500579:stack/stackstate-topo-publisher/71ea3f80-9919",
+            "arn:aws:cloudformation:eu-west-1:731070500579:stack/stackstate-topo-publisher/" +
+            "71ea3f80-9919-11e9-a261-0a99a68566c4",
         )  # DIFF
         self.assertEqual(
             topology[0]["relations"][0]["target_id"],
-            "arn:aws:cloudformation:eu-west-1:731070500579:stack/some-parent-stack-id/71ea3a23-9919-54ad",
+            "arn:aws:cloudformation:eu-west-1:731070500579:stack/stackstate-topo-cwevents/" +
+            "077bd960-9919-11e9-adb7-02135cc8443e",
         )  # DIFF
         self.assertEqual(topology[0]["relations"][0]["type"], "child of")  # DIFF
 
@@ -1362,7 +1421,7 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(len(aws_agent_check_errors), 0)
 
         unique_types = self.unique_topology_types(topology)
-        self.assertEqual(len(unique_types), 31)
+        self.assertEqual(len(unique_types), 32)  # +1 for RestApi that is now emitted
 
     # @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
     # @set_api(None)
@@ -1399,32 +1458,32 @@ class TestTemplatePathedRegistry(unittest.TestCase):
 
     @requires_py3
     @parameterized.expand([
-        ('ec2|aws.vpngateway', 30),
-        ('ec2|aws.vpc', 29),
-        ('autoscaling|aws.autoscaling', 30),
-        ('apigateway|aws.apigateway.stage', 27),
-        ('firehose|aws.firehose', 30),
+        ('ec2|instances vpcs security_groups', 31),
+        ('ec2|instances vpn_gateways security_groups', 30),
+        ('autoscaling', 31),
+        ('apigateway', 27),  # all have +1 of CF link, this one has -1 because -2 stage relations + 1 api relation
+        ('firehose', 31),
 
-        ('kinesis|aws.kinesis', 30),
-        ('dynamodb|aws.dynamodb', 29),
-        ('lambda|aws.lambda', 29),
-        ('lambda|aws.lambda.event_source_mapping', 31),  # TODO: why not same as happy flow???
-        ('sqs|aws.sqs', 30),
+        ('kinesis', 31),
+        ('dynamodb', 30),
+        ('lambda|mappings', 30),
+        ('lambda|functions', 32),  # TODO: why not same as happy flow???
+        ('sqs', 31),
 
-        ('sns|aws.sns', 30),
-        ('redshift|aws.redshift', 31),  # TODO: why not same as happy flow???
-        ('s3|aws.s3_bucket', 30),
-        ('rds|aws.rds_cluster', 29),
-        ('elbv2|aws.elb_v2', 28),
+        ('sns', 31),
+        ('redshift', 32),  # TODO: why not same as happy flow???
+        ('s3', 31),
+        ('rds', 30),
+        ('elbv2', 29),
 
-        ('elb|aws.elb_classic', 30),
-        ('ec2|aws.ec2', 30),
-        ('ecs|aws.ecs.cluster', 28),
-        ('route53domains|aws.route53.domain', 30),
-        ('route53|aws.route53.hostedzone', 30),
-        ('cloudformation|aws.cloudformation', 30),
+        ('elb', 31),
+        ('ec2|vpcs vpn_gateways security_groups', 31),
+        ('ecs', 29),
+        ('route53domains', 31),
+        ('route53', 31),
+        ('cloudformation', 31),
         # ('process_cloudformation_stack_relation', 31),  # DIFF give only did relations move to cloudformation
-        ('ec2|aws.security-group', 30),
+        ('ec2|instances vpcs vpn_gateways', 31),
     ])
     @set_api(None)
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
@@ -1453,9 +1512,10 @@ class TestTemplatePathedRegistry(unittest.TestCase):
 
                 unique_types = self.unique_topology_types(topology)
                 self.assertEqual(len(unique_types), expected_unique_topology_types)
-
-                aws_agent_check_errors = list(filter(lambda x: x['event_type'] == 'aws_agent_check_error', events))
-                self.assertEqual(len(aws_agent_check_errors), 1)
+                # TODO I can't return an error when running an API partly (error handling is WIP)
+                if "|" not in check_name:
+                    aws_agent_check_errors = list(filter(lambda x: x['event_type'] == 'aws_agent_check_error', events))
+                    self.assertEqual(len(aws_agent_check_errors), 1)
         except Exception:
             traceback.print_exc()
             raise
