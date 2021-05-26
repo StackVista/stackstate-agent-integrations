@@ -23,11 +23,11 @@ The base template to be deployed in any AWS account where integration tests are 
 - Resources Stack Name: Set this to the name of the stack you created above. By default this is `stackstate-resources-debug`.
 - VPC CIDR: A /16 subnet used by the VPC created in this stack. Start at `10.0.0.0/16`, then `10.1.0.0/16`, `10.2.0.0/16` etc. Use a different subnet for every `stackstate-base` template deployed, so there are no IP conflicts or overlaps.
 
-## 3. stackstate-main-account-secondary-region
+## 3. `stackstate-main-account-secondary-region`
 
 Contains a few resources so that are then linked to in the main-account-main-region template, for testing cross-region relations. Typically this is deployed in region `us-east-1`.
 
-## 4. main-account-main-region
+## 4. `stackstate-main-account-main-region`
 
 This contains the majority of the resources. Set this up in the primary account, in the primary region. You'll need to copy the outputs of main-account-secondary-region into the parameters section of this template during the creation process.
 
@@ -36,7 +36,7 @@ This contains the majority of the resources. Set this up in the primary account,
 - Key Pair Name: The name of an SSH key you uploaded in the EC2 console. If you don't have a key uploaded, leave this blank; it just won't be possible to connect to the created EC2 instance.
 - Secondary Region SQS Queue: The output of the previous template, so it can create a cross-region link to the resource.
 
-## 5. helloworld-serverless
+## 5. `stackstate-helloworld-serverless`
 
 A more realistic test, designed for demo purposes. Contains a working application that transfers data across the VPC, to test VPC flowlogs.
 
