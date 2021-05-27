@@ -1,0 +1,7 @@
+{
+  "DeliveryStreamNames": [
+    "firehose_1",
+    "firehose_2"
+  ],
+  "HasMoreDeliveryStreams": false
+}

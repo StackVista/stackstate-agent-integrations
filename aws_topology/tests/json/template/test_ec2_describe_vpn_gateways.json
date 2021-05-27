@@ -1,0 +1,22 @@
+{
+    "VpnGateways": [
+        {
+            "State": "available",
+            "Type": "ipsec.1",
+            "VpcAttachments": [
+                {
+                    "State": "attached",
+                    "VpcId": "vpc-6b25d10e"
+                }
+            ],
+            "VpnGatewayId": "vgw-b8c2fccc",
+            "AmazonSideAsn": 9059,
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "my-first-vpn-gateway"
+                }
+            ]
+        }
+    ]
+}

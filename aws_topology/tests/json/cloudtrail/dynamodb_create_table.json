@@ -1,0 +1,95 @@
+{
+    "eventVersion": "1.08",
+    "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROAUHNFPQM253JKRZCRS:elvin.luff@oblcc.com",
+        "arn": "arn:aws:sts::123456789012:assumed-role/oblcc-admin/elvin.luff@oblcc.com",
+        "accountId": "123456789012",
+        "accessKeyId": "ASIAJYWOP6P2GYXJZIPQ",
+        "sessionContext": {
+            "sessionIssuer": {
+                "type": "Role",
+                "principalId": "AROAUHNFPQM253JKRZCRS",
+                "arn": "arn:aws:iam::123456789012:role/oblcc/oblcc-admin",
+                "accountId": "123456789012",
+                "userName": "oblcc-admin"
+            },
+            "attributes": {
+                "creationDate": "2021-04-29T13:08:29Z",
+                "mfaAuthenticated": "false"
+            }
+        },
+        "invokedBy": "cloudformation.amazonaws.com"
+    },
+    "eventTime": "2021-04-29T14:06:13Z",
+    "eventSource": "dynamodb.amazonaws.com",
+    "eventName": "CreateTable",
+    "awsRegion": "eu-west-1",
+    "sourceIPAddress": "cloudformation.amazonaws.com",
+    "userAgent": "cloudformation.amazonaws.com",
+    "requestParameters": {
+        "attributeDefinitions": [
+            {
+                "attributeType": "S",
+                "attributeName": "key"
+            }
+        ],
+        "tableName": "elvin-stackstate-tests-main-account-main-region-DynamoDbTable-16SXEQ30MM5RN",
+        "keySchema": [
+            {
+                "keyType": "HASH",
+                "attributeName": "key"
+            }
+        ],
+        "billingMode": "PAY_PER_REQUEST"
+    },
+    "responseElements": {
+        "tableDescription": {
+            "tableId": "1f390a45-3264-44ef-a76c-e00f05bbd7ec",
+            "attributeDefinitions": [
+                {
+                    "attributeType": "S",
+                    "attributeName": "key"
+                }
+            ],
+            "provisionedThroughput": {
+                "readCapacityUnits": 0,
+                "writeCapacityUnits": 0,
+                "numberOfDecreasesToday": 0
+            },
+            "tableName": "elvin-stackstate-tests-main-account-main-region-DynamoDbTable-16SXEQ30MM5RN",
+            "billingModeSummary": {
+                "billingMode": "PAY_PER_REQUEST"
+            },
+            "tableSizeBytes": 0,
+            "tableStatus": "CREATING",
+            "keySchema": [
+                {
+                    "keyType": "HASH",
+                    "attributeName": "key"
+                }
+            ],
+            "tableThroughputModeSummary": {
+                "tableThroughputMode": "PAY_PER_REQUEST"
+            },
+            "tableArn": "arn:aws:dynamodb:eu-west-1:123456789012:table/elvin-stackstate-tests-main-account-main-region-DynamoDbTable-16SXEQ30MM5RN",
+            "itemCount": 0,
+            "creationDateTime": "Apr 29, 2021, 2:06:13 PM"
+        }
+    },
+    "requestID": "3PR8SROE2BLCHPRSC6UOBPI617VV4KQNSO5AEMVJF66Q9ASUAAJG",
+    "eventID": "6713fb77-7dec-461c-bb67-6cd306b1e7ea",
+    "readOnly": false,
+    "resources": [
+        {
+            "accountId": "123456789012",
+            "type": "AWS::DynamoDB::Table",
+            "ARN": "arn:aws:dynamodb:eu-west-1:123456789012:table/elvin-stackstate-tests-main-account-main-region-DynamoDbTable-16SXEQ30MM5RN"
+        }
+    ],
+    "eventType": "AwsApiCall",
+    "apiVersion": "2012-08-10",
+    "managementEvent": true,
+    "recipientAccountId": "123456789012",
+    "eventCategory": "Management"
+}
