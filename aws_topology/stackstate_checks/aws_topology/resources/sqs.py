@@ -4,16 +4,12 @@ from schematics import Model
 from schematics.types import StringType, ModelType
 
 
-def get_queue_name_from_url(url):
-    return url.rsplit('/', 1)[-1]
-
-
 def create_arn(region=None, account_id=None, resource_id=None, **kwargs):
     return arn(
         resource='sqs',
-        region=region,
-        account_id=account_id,
-        resource_id=get_queue_name_from_url(resource_id),
+        region=resource_id.split('.', 2)[1],
+        account_id=resource_id.rsplit('/', 2)[-2],
+        resource_id=resource_id.rsplit('/', 1)[-1],
     )
 
 

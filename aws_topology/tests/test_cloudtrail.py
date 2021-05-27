@@ -164,7 +164,7 @@ class TestCloudtrail(unittest.TestCase):
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 0)
-        self.assertIn('arn:aws:sqs:eu-west-1:731070500579:DeletedQueue', self.check.delete_ids)
+        self.assertIn('arn:aws:sqs:eu-west-1:123456789012:DeletedQueue', self.check.delete_ids)
 
     @set_event('sqs_purge_queue')
     def test_process_sqs_purge_queue(self):

@@ -1,6 +1,6 @@
 {
   "QueueUrls": [
-    "https://eu-west-1.queue.amazonaws.com/508573134510/STS_stackpack_test"
+    "https://sqs.eu-west-1.amazonaws.com/508573134510/STS_stackpack_test"
   ],
   "ResponseMetadata": {
     "RetryAttempts": 0,

@@ -129,7 +129,7 @@
             "ResourceType": "AWS::SQS::Queue",
             "Timestamp": "2019-06-27T20:24:01.051Z",
             "StackName": "stackstate-topo-publisher",
-            "PhysicalResourceId": "STS_stackpack_test",
+            "PhysicalResourceId": "https://sqs.eu-west-1.amazonaws.com/731070500579/STS_stackpack_test",
             "LogicalResourceId": "StackSatePublisher"
         },
         {
