@@ -2,15 +2,20 @@ from .utils import make_valid_data, with_dimensions, CloudTrailEventBase, create
 from .registry import RegisteredResourceCollector
 from schematics import Model
 from schematics.types import StringType, ModelType
+import re
 
 
 def create_arn(region=None, account_id=None, resource_id=None, **kwargs):
-    return arn(
-        resource='sqs',
-        region=resource_id.split('.', 2)[1],
-        account_id=resource_id.rsplit('/', 2)[-2],
-        resource_id=resource_id.rsplit('/', 1)[-1],
-    )
+    match_string = r"^https:\/\/sqs.[a-z]{2}-([a-z]*-){1,2}\d\.amazonaws.com\/\d{12}\/.+$"
+    if re.match(match_string, resource_id):
+        return arn(
+            resource='sqs',
+            region=resource_id.split('.', 2)[1],
+            account_id=resource_id.rsplit('/', 2)[-2],
+            resource_id=resource_id.rsplit('/', 1)[-1],
+        )
+    else:
+        raise ValueError("SQS URL {} does not match expected regular expression {}".format(resource_id, match_string))
 
 
 class SqsEventBase(CloudTrailEventBase):
