@@ -97,6 +97,7 @@ def test_error_trace():
     assert len(spans) == 5
     assert spans[0]['error'] == 1
     assert spans[1]['error'] == 1
+    assert spans[0]["meta"]["span.kind"] == "client"
 
 
 def test_end_time():

@@ -336,6 +336,9 @@ def flatten_segment(segment):
                 flat_segment[key] = ', '.join([str(elem) for elem in value])
             elif not isinstance(value, str):
                 flat_segment[key] = str(value)
+    # STAC-13020: we decided to make all the spans from aws-xray as CLIENT to produce metrics
+    # otherwise receiver won't produce any metrics if the kind is INTERNAL
+    flat_segment["span.kind"] = "client"
     return flat_segment
 
 
