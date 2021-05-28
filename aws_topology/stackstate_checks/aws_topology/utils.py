@@ -1,5 +1,31 @@
+from schematics import Model
+from schematics.types import StringType, ModelType
+
+
+class Location(Model):
+    AwsRegion = StringType(required=True)
+    AwsAccount = StringType(required=True)
+
+
+class LocationInfo(Model):
+    Location = ModelType(Location)
+
+    def clone(self):
+        return location_info(
+            self.Location.AwsAccount,
+            self.Location.AwsRegion
+        )
+
+
 def location_info(account_id, region):
-    return {'Location': {'AwsAccount': account_id, 'AwsRegion': region}}
+    return LocationInfo(
+        {
+            'Location': {
+                'AwsAccount': account_id,
+                'AwsRegion': region
+            }
+        }
+    )
 
 
 def _tags_as_dictionary(lisf_of_tags, cap_flag=True):

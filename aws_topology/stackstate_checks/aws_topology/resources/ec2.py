@@ -61,8 +61,8 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
             create_host_urn(instance_id),
             create_resource_arn(
                 'ec2',
-                self.location_info['Location']['AwsRegion'],
-                self.location_info['Location']['AwsAccount'],
+                self.location_info.Location.AwsRegion,
+                self.location_info.Location.AwsAccount,
                 'instance',
                 instance_id)
         ]
@@ -87,13 +87,13 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
 
         # Map the subnet and if not available then map the VPC
         if instance_data.get('SubnetId'):
-            self.agent.relation(instance_id, instance_data['SubnetId'], 'uses service', {})
+            self.emit_relation(instance_id, instance_data['SubnetId'], 'uses service', {})
         elif instance_data.get('VpcId'):
-            self.agent.relation(instance_id, instance_data['VpcId'], 'uses service', {})
+            self.emit_relation(instance_id, instance_data['VpcId'], 'uses service', {})
 
         if instance_data.get('SecurityGroups'):
             for security_group in instance_data['SecurityGroups']:
-                self.agent.relation(instance_id, security_group['GroupId'], 'uses service', {})
+                self.emit_relation(instance_id, security_group['GroupId'], 'uses service', {})
 
         event = {
             'timestamp': int(time.time()),
@@ -120,8 +120,8 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         group_data['URN'] = [
             create_resource_arn(
                 'ec2',
-                self.location_info['Location']['AwsRegion'],
-                self.location_info['Location']['AwsAccount'],
+                self.location_info.Location.AwsRegion,
+                self.location_info.Location.AwsAccount,
                 'security-group', group_id
             )
         ]
@@ -129,7 +129,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         self.emit_component(group_id, "aws.security-group", group_data)
 
         if group_data.get('VpcId'):
-            self.agent.relation(group_data['VpcId'], group_id, 'has resource', {})
+            self.emit_relation(group_data['VpcId'], group_id, 'has resource', {})
 
     def process_vpcs(self):
         vpc_descriptions = self.client.describe_vpcs().get('Vpcs') or []
@@ -159,8 +159,8 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         output['URN'] = [
             create_resource_arn(
                 'ec2',
-                self.location_info['Location']['AwsRegion'],
-                self.location_info['Location']['AwsAccount'],
+                self.location_info.Location.AwsRegion,
+                self.location_info.Location.AwsAccount,
                 'vpc',
                 vpc.VpcId
             )
@@ -183,14 +183,14 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         output['URN'] = [
             create_resource_arn(
                 'ec2',
-                self.location_info['Location']['AwsRegion'],
-                self.location_info['Location']['AwsAccount'],
+                self.location_info.Location.AwsRegion,
+                self.location_info.Location.AwsAccount,
                 'subnet',
                 subnet.SubnetId
             )
         ]
         self.emit_component(subnet.SubnetId, 'aws.subnet', output)
-        self.agent.relation(subnet.SubnetId, subnet.VpcId, 'uses service', {})
+        self.emit_relation(subnet.SubnetId, subnet.VpcId, 'uses service', {})
 
     def process_vpn_gateways(self):
         for vpn_description_raw in self.client.describe_vpn_gateways().get('VpnGateways') or []:
@@ -203,4 +203,4 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         if vpn_description.get('VpcAttachments'):
             for vpn_attachment in vpn_description['VpcAttachments']:
                 vpc_id = vpn_attachment['VpcId']
-                self.agent.relation(vpn_id, vpc_id, 'uses service', {})
+                self.emit_relation(vpn_id, vpc_id, 'uses service', {})

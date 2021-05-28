@@ -70,4 +70,4 @@ class RedshiftCollector(RegisteredResourceCollector):
         self.emit_component(redshift_data['ClusterIdentifier'], self.COMPONENT_TYPE, redshift_data)
         vpcid = redshift_data.get('VpcId')
         if vpcid:
-            self.agent.relation(redshift_data['ClusterIdentifier'], vpcid, 'uses service', {})
+            self.emit_relation(redshift_data['ClusterIdentifier'], vpcid, 'uses service', {})

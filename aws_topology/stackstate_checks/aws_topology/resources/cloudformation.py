@@ -82,7 +82,7 @@ class CloudformationCollector(RegisteredResourceCollector):
                 if 'ParentId' not in stack:
                     continue
                 parent_id = stack['ParentId']
-                self.agent.relation(stack_id, parent_id, 'child of', stack)
+                self.emit_relation(stack_id, parent_id, 'child of', stack)
 
     def process_stack(self, stack_id, stack_name, stack_description):
         self.emit_component(stack_id, self.COMPONENT_TYPE, stack_description)
@@ -98,4 +98,4 @@ class CloudformationCollector(RegisteredResourceCollector):
         resource_type = resource['ResourceType']
         if resource.get('PhysicalResourceId'):
             arn = self.agent.create_arn(resource_type, self.location_info, resource.get('PhysicalResourceId'))
-            self.agent.relation(stack_id, arn, 'has resource', {})
+            self.emit_relation(stack_id, arn, 'has resource', {})
