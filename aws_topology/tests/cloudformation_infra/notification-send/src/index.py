@@ -1,4 +1,3 @@
-import sys
 import logging
 import os
 import json
@@ -16,11 +15,7 @@ rds_user_pwd = secret.get("password")
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
-try:
-    conn = psycopg2.connect(f"host={rds_host} user={rds_username} password={rds_user_pwd} dbname=postgres")
-except:
-    logger.error("ERROR: Could not connect to Postgres instance.")
-    sys.exit(1)
+conn = psycopg2.connect(f"host={rds_host} user={rds_username} password={rds_user_pwd} dbname=postgres")
 
 logger.info("SUCCESS: Connection to RDS Postgres instance succeeded")
 
