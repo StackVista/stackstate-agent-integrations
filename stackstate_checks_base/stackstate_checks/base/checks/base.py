@@ -55,15 +55,6 @@ except ImportError:
 
     using_stub_telemetry = True
 
-try:
-    import health
-
-    using_stub_health = False
-except ImportError:
-    from ..stubs import health
-
-    using_stub_health = True
-
 from ..config import is_affirmative
 from ..constants import ServiceCheck
 from ..utils.common import ensure_string, ensure_unicode, to_string
@@ -72,7 +63,7 @@ from ..utils.limiter import Limiter
 from ..utils.identifiers import Identifiers
 from ..utils.telemetry import EventStream, MetricStream, ServiceCheckStream, \
     ServiceCheckHealthChecks, Event
-from ..utils.health import Health, HealthStream, HealthStreamUrn, HealthCheckData
+from ..utils.health_api import Health, HealthStream, HealthStreamUrn, HealthCheckData, HealthApi
 from ..utils.persistent_state import StateDescriptor, StateManager
 from deprecated.sphinx import deprecated
 
@@ -165,56 +156,6 @@ class TopologyInstance(_TopologyInstanceBase):
 
 
 StackPackInstance = TopologyInstance
-
-
-class HealthApi(object):
-    """
-    Api for health state synchronization
-    """
-    def __init__(self, check, stream, expiry_seconds, repeat_interval_seconds):
-        self.check = check
-        self.stream = stream
-        self.expiry_seconds = expiry_seconds
-        self.repeat_interval_seconds = repeat_interval_seconds
-
-    def start_snapshot(self):
-        health.submit_health_start_snapshot(self.check,
-                                            self.check.check_id,
-                                            self.stream.to_dict(),
-                                            self.expiry_seconds,
-                                            self.repeat_interval_seconds)
-
-    def stop_snapshot(self):
-        health.submit_health_stop_snapshot(self.check, self.check.check_id, self.stream.to_dict())
-
-    def check_state(self, check_state_id, name, health_value, topology_element_identifier, message=None):
-        """
-        Send check data for health synchronization
-
-        :param check_state_id: unique identifier for the check state within the (sub)stream
-        :param name: Name of the check
-        :param health_value: health value, should be of type Health()
-        :param topology_element_identifier: string value, represents a component/relation the check state will bind to
-        :param message: optional message with the check state
-        """
-        check_data = {
-            'checkStateId': check_state_id,
-            'name': name,
-            'topologyElementIdentifier': topology_element_identifier
-        }
-
-        if isinstance(health_value, Health):
-            check_data['health'] = health_value.value
-        else:
-            raise ValueError("Health value is not of type Health")
-
-        if message is not None:
-            check_data['message'] = message
-
-        # Validate the data
-        HealthCheckData(check_data)
-
-        health.submit_health_check_data(self.check, self.check.check_id, self.stream.to_dict(), check_data)
 
 
 class AgentCheckBase(object):

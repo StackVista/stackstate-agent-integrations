@@ -1053,7 +1053,7 @@ class TestHealthStream:
     def test_verify_types(self):
         with pytest.raises(ValidationError) as e:
             HealthStream("str")
-        assert e.value[0] == "Value must be of class: <class 'stackstate_checks.base.utils.health.HealthStreamUrn'>"
+        assert e.value[0] == "Value must be of class: <class 'stackstate_checks.base.utils.health_api.HealthStreamUrn'>"
 
         with pytest.raises(ValidationError) as e:
             HealthStream(HealthStreamUrn("source", "urn"), sub_stream=1)
