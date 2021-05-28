@@ -4,8 +4,17 @@ from schematics import Model
 from schematics.types import StringType, ModelType
 
 
+def get_queue_name_from_url(url):
+    return url.rsplit('/', 1)[-1]
+
+
 def create_arn(region=None, account_id=None, resource_id=None, **kwargs):
-    return arn(resource='sqs', region=region, account_id=account_id, resource_id=resource_id)
+    return arn(
+        resource='sqs',
+        region=region,
+        account_id=account_id,
+        resource_id=get_queue_name_from_url(resource_id),
+    )
 
 
 class SqsEventBase(CloudTrailEventBase):
@@ -15,7 +24,11 @@ class SqsEventBase(CloudTrailEventBase):
     def _internal_process(self, session, location, agent):
         operation_type = self.get_operation_type()
         if operation_type == 'D':
-            agent.delete(self.get_resource_name())  # TODO Queue id has changed!
+            agent.delete(agent.create_arn(
+                'AWS::SQS::Queue',
+                location,
+                self.get_resource_name()
+            ))
         elif operation_type == 'E':
             # TODO this should probably emit some event to StackState
             pass
@@ -83,9 +96,10 @@ class SqsCollector(RegisteredResourceCollector):
         ).get('Attributes', {})
         queue_data = make_valid_data(queue_data_raw)
         queue_arn = queue_data.get('QueueArn')
+        queue_name = queue_arn.rsplit(':', 1)[-1]
         queue_data['Tags'] = self.client.list_queue_tags(QueueUrl=queue_url).get('Tags')
         queue_data['URN'] = [queue_url]
-        queue_data['Name'] = queue_url
+        queue_data['Name'] = queue_name
         queue_data['QueueUrl'] = queue_url
         queue_name = queue_url.rsplit('/', 1)[-1]
         queue_data.update(with_dimensions([{'key': 'QueueName', 'value': queue_name}]))

@@ -17,6 +17,7 @@ from .dynamodb import DynamodbTableCollector  # noqa: F401
 from .ecs import EcsCollector  # noqa: F401
 from .cloudformation import CloudformationCollector, type_arn  # noqa: F401
 from .sqs import SqsCollector  # noqa: F401
+from .stepfunction import StepFunctionCollector  # noqa: F401
 
 from .cloudtrail import listen_for
 

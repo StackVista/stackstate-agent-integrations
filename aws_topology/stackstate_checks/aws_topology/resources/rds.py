@@ -3,6 +3,7 @@ from .registry import RegisteredResourceCollector
 from schematics import Model
 from schematics.types import StringType, ModelType
 
+
 def create_cluster_arn(region=None, account_id=None, resource_id=None, **kwargs):
     return arn(resource='rds', region=region, account_id=account_id, resource_id='cluster:' + resource_id)
 

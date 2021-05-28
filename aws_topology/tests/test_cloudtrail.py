@@ -101,6 +101,9 @@ class TestCloudtrail(unittest.TestCase):
         self.check = AwsTopologyCheck(self.CHECK_NAME, InitConfig(init_config), [instance])
         self.mock_object.side_effect = mock_event(method.event)
 
+    def tearDown(self):
+        self.patcher.stop()
+
     def assert_executed_ok(self):
         service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_EXECUTE_NAME)
         self.assertGreater(len(service_checks), 0)
@@ -161,7 +164,7 @@ class TestCloudtrail(unittest.TestCase):
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 0)
-        self.assertIn('https://sqs.eu-west-1.amazonaws.com/123456789012/DeletedQueue', self.check.delete_ids)
+        self.assertIn('arn:aws:sqs:eu-west-1:731070500579:DeletedQueue', self.check.delete_ids)
 
     @set_event('sqs_purge_queue')
     def test_process_sqs_purge_queue(self):

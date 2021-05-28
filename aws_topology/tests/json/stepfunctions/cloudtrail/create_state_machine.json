@@ -1,0 +1,51 @@
+{
+    "eventVersion": "1.08",
+    "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROAX7HM4QNFPDB64TSWX:jkulman",
+        "arn": "arn:aws:sts::548105126730:assumed-role/binx/jkulman",
+        "accountId": "548105126730",
+        "accessKeyId": "ASIAX7HM4QNFMRFHS62P",
+        "sessionContext": {
+            "sessionIssuer": {
+                "type": "Role",
+                "principalId": "AROAX7HM4QNFPDB64TSWX",
+                "arn": "arn:aws:iam::548105126730:role/binx",
+                "accountId": "548105126730",
+                "userName": "binx"
+            },
+            "webIdFederationData": {},
+            "attributes": {
+                "mfaAuthenticated": "false",
+                "creationDate": "2021-05-23T10:43:39Z"
+            }
+        }
+    },
+    "eventTime": "2021-05-23T10:45:17Z",
+    "eventSource": "states.amazonaws.com",
+    "eventName": "CreateStateMachine",
+    "awsRegion": "eu-west-1",
+    "sourceIPAddress": "83.163.185.52",
+    "userAgent": "console.amazonaws.com",
+    "requestParameters": {
+        "type": "STANDARD",
+        "name": "MyStateMachine",
+        "tags": [],
+        "tracingConfiguration": {
+            "enabled": false
+        },
+        "roleArn": "arn:aws:iam::548105126730:role/service-role/StepFunctions-MyStateMachine-role-2f645f9b",
+        "definition": "HIDDEN_DUE_TO_SECURITY_REASONS"
+    },
+    "responseElements": {
+        "stateMachineArn": "arn:aws:states:eu-west-1:548105126730:stateMachine:MyStateMachine",
+        "creationDate": "May 23, 2021 10:45:17 AM"
+    },
+    "requestID": "99ab88ed-7f40-4e46-a95d-3ce820f744ac",
+    "eventID": "a8d98c2d-60d6-41d6-9a5d-cd3268bada28",
+    "readOnly": false,
+    "eventType": "AwsApiCall",
+    "managementEvent": true,
+    "eventCategory": "Management",
+    "recipientAccountId": "548105126730"
+}

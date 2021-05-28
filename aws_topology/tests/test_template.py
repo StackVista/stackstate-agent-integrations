@@ -732,7 +732,7 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(
             topology[0]["components"][0]["data"]["TopicArn"], "arn:aws:sns:eu-west-1:731070500579:my-topic-1"
         )
-        self.assertEqual(topology[0]["components"][0]["data"]["Name"], "arn:aws:sns:eu-west-1:731070500579:my-topic-1")
+        self.assertEqual(topology[0]["components"][0]["data"]["Name"], "my-topic-1")
         self.assertEqual(topology[0]["components"][0]["data"]["Tags"]["SnsTagKey"], "SnsTagValue")
         self.assert_stream_dimensions(topology[0]["components"][0], [{"Key": "TopicName", "Value": "my-topic-1"}])
 
@@ -754,7 +754,7 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(topology[0]["components"][0]["data"]["Tags"], {"a": "b"})
         self.assertEqual(
             topology[0]["components"][0]["data"]["Name"],
-            "https://eu-west-1.queue.amazonaws.com/508573134510/STS_stackpack_test",
+            "STS_stackpack_test",
         )
         self.assertEqual(
             topology[0]["components"][0]["data"]["URN"],
@@ -863,16 +863,20 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(len(topology), 1)
         self.assertEqual(len(topology[0]["relations"]), 0)
         self.assertEqual(len(topology[0]["components"]), 4)
+        self.assertEqual(topology[0]["components"][0]["Name"], "stream_1")
         self.assertEqual(topology[0]["components"][0]["id"], base_stream_arn + "stream_1")  # DIFF
         self.assertEqual(topology[0]["components"][0]["type"], "aws.kinesis")  # DIFF
         self.assertEqual(
             topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamARN"],
             "arn:aws:kinesis:eu-west-1:731070500579:stream/stream_1",
         )
+        self.assertEqual(topology[0]["components"][1]["Name"], "stream_2")
         self.assertEqual(topology[0]["components"][1]["id"], base_stream_arn + "stream_2")  # DIFF
         self.assertEqual(topology[0]["components"][1]["type"], "aws.kinesis")  # DIFF
+        self.assertEqual(topology[0]["components"][2]["Name"], "stream_3")
         self.assertEqual(topology[0]["components"][2]["id"], base_stream_arn + "stream_3")  # DIFF
         self.assertEqual(topology[0]["components"][2]["type"], "aws.kinesis")  # DIFF
+        self.assertEqual(topology[0]["components"][3]["Name"], "stream_4")
         self.assertEqual(topology[0]["components"][3]["id"], base_stream_arn + "stream_4")  # DIFF
         self.assertEqual(topology[0]["components"][3]["type"], "aws.kinesis")  # DIFF
 
@@ -1291,7 +1295,6 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(diff, "")
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
-    # @patch("stackstate_checks.aws_topology.aws_topology.AgentProxy.send_parked_relations", dont_send_parked_relations)
     @set_api(None)
     def test_process_cloudformation(self):
         self.check.run()
@@ -1372,7 +1375,7 @@ class TestTemplate(unittest.TestCase):
         ), True)
         # assert for sqs queue relation
         self.assertEqual(self.has_relation(
-            relations, source_id, "arn:aws:sqs:eu-west-1:731070500579:STS_stackpack_test"
+            relations, source_id, "arn:aws:sqs::731070500579:STS_stackpack_test"
         ), True)
         # assert for dynamodb table relation
         self.assertEqual(self.has_relation(
@@ -1389,7 +1392,10 @@ class TestTemplate(unittest.TestCase):
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
     @set_api("cloudformation")
-    @patch("stackstate_checks.aws_topology.aws_topology.AgentProxy.send_parked_relations", dont_send_parked_relations)
+    @patch(
+        "stackstate_checks.aws_topology.aws_topology.AgentProxy.finalize_account_topology",
+        dont_send_parked_relations
+    )
     def test_process_cloudformation_stack_relation(self):
         self.check.run()
         self.assert_executed_ok()
