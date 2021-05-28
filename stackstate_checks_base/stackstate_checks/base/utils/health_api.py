@@ -28,9 +28,12 @@ class HealthType(BaseType):
         super(HealthType, self).__init__(**kwargs)
 
     def convert(self, value, context=None):
+        if isinstance(value, Health):
+            return value
+
         # check if this is a string or bytes which is converted to string in super.convert()
-        if not isinstance(value, (string_types)):
-            raise ValidationError('Value must be a string')
+        if not isinstance(value, string_types):
+            raise ValidationError('Value must be a string or Health')
 
         if value.upper() in Health._member_names_:
             return Health[value.upper()]
@@ -91,7 +94,7 @@ class HealthCheckData(Model):
     name = StrictStringType(required=True)
     health = HealthType(required=True)
     topologyElementIdentifier = StrictStringType(required=True)
-    message = StrictStringType()
+    message = StrictStringType(required=False)
 
 
 class HealthApi(object):
@@ -135,10 +138,10 @@ class HealthApi(object):
         else:
             raise ValueError("Health value is not of type Health")
 
-        if message is not None:
+        if message:
             check_data['message'] = message
 
         # Validate the data
-        HealthCheckData(check_data)
+        HealthCheckData(check_data).validate()
 
         health.submit_health_check_data(self.check, self.check.check_id, self.stream.to_dict(), check_data)

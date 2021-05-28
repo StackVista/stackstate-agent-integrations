@@ -367,9 +367,9 @@ class TopologyBrokenCheck(TopologyAutoSnapshotCheck):
 
 
 class HealthCheck(AgentCheck):
-    def __init__(self, stream=None, *args, **kwargs):
+    def __init__(self, stream=HealthStream(HealthStreamUrn("source", "stream_id"), "sub_stream"), *args, **kwargs):
         instances = [{'a': 'b'}]
-        self.stream = stream or HealthStream(HealthStreamUrn("source", "stream_id"), "sub_stream")
+        self.stream = stream
         super(HealthCheck, self).__init__("test", {}, instances)
 
     def get_health_stream(self, instance):
@@ -1129,3 +1129,13 @@ class TestHealth:
                                check.get_health_stream(None),
                                start_snapshot=None,
                                stop_snapshot={})
+
+    def test_run_initializes_health_api(self, health):
+        check = HealthCheck()
+        check.run()
+        assert check.health is not None
+
+    def test_run_not_initializes_health_api(self, health):
+        check = HealthCheck(stream=None)
+        check.run()
+        assert check.health is None
