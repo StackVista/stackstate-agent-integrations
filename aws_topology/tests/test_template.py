@@ -758,7 +758,7 @@ class TestTemplate(unittest.TestCase):
         )
         self.assertEqual(
             topology[0]["components"][0]["data"]["URN"],
-            ["https://eu-west-1.queue.amazonaws.com/508573134510/STS_stackpack_test"],
+            ["https://sqs.eu-west-1.amazonaws.com/508573134510/STS_stackpack_test"],
         )
 
         self.assert_stream_dimensions(
@@ -863,20 +863,20 @@ class TestTemplate(unittest.TestCase):
         self.assertEqual(len(topology), 1)
         self.assertEqual(len(topology[0]["relations"]), 0)
         self.assertEqual(len(topology[0]["components"]), 4)
-        self.assertEqual(topology[0]["components"][0]["Name"], "stream_1")
+        self.assertEqual(topology[0]["components"][0]["data"]["Name"], "stream_1")
         self.assertEqual(topology[0]["components"][0]["id"], base_stream_arn + "stream_1")  # DIFF
         self.assertEqual(topology[0]["components"][0]["type"], "aws.kinesis")  # DIFF
         self.assertEqual(
             topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamARN"],
             "arn:aws:kinesis:eu-west-1:731070500579:stream/stream_1",
         )
-        self.assertEqual(topology[0]["components"][1]["Name"], "stream_2")
+        self.assertEqual(topology[0]["components"][1]["data"]["Name"], "stream_2")
         self.assertEqual(topology[0]["components"][1]["id"], base_stream_arn + "stream_2")  # DIFF
         self.assertEqual(topology[0]["components"][1]["type"], "aws.kinesis")  # DIFF
-        self.assertEqual(topology[0]["components"][2]["Name"], "stream_3")
+        self.assertEqual(topology[0]["components"][2]["data"]["Name"], "stream_3")
         self.assertEqual(topology[0]["components"][2]["id"], base_stream_arn + "stream_3")  # DIFF
         self.assertEqual(topology[0]["components"][2]["type"], "aws.kinesis")  # DIFF
-        self.assertEqual(topology[0]["components"][3]["Name"], "stream_4")
+        self.assertEqual(topology[0]["components"][3]["data"]["Name"], "stream_4")
         self.assertEqual(topology[0]["components"][3]["id"], base_stream_arn + "stream_4")  # DIFF
         self.assertEqual(topology[0]["components"][3]["type"], "aws.kinesis")  # DIFF
 
@@ -925,7 +925,7 @@ class TestTemplate(unittest.TestCase):
         resource_arn_prefix = "arn:aws:execute-api:eu-west-1:731070500579:api_1/stage{}/*/hello"
         method_arn_prefix = "arn:aws:execute-api:eu-west-1:731070500579:api_1/stage{}/{}/hello"
         lambda_arn_prefix = "arn:aws:lambda:eu-west-1:731070500579:function:{}"
-        sqs_arn = "arn:aws:sqs:eu-west-1:731070500579:STS_stackpack_test"
+        sqs_arn = "arn:aws:sqs:eu-west-1:508573134510:STS_stackpack_test"
 
         self.assertEqual(len(topology), 1)
         # we have 2 stages
@@ -1375,7 +1375,7 @@ class TestTemplate(unittest.TestCase):
         ), True)
         # assert for sqs queue relation
         self.assertEqual(self.has_relation(
-            relations, source_id, "arn:aws:sqs::731070500579:STS_stackpack_test"
+            relations, source_id, "arn:aws:sqs:eu-west-1:731070500579:STS_stackpack_test"
         ), True)
         # assert for dynamodb table relation
         self.assertEqual(self.has_relation(

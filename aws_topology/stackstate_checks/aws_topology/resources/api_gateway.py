@@ -133,13 +133,11 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
                                     method_integration_uri.rfind('arn'):method_integration_uri.find('/invocations')
                                 ]
                             elif re.match("arn:aws:apigateway:.+:sqs:path/.+", method_integration_uri):
-                                #  TODO cross region fails
-                                queue_name = method_integration_uri.rsplit('/', 1)[-1]
                                 queue_arn = arn(
-                                    'sqs',
-                                    self.location_info['Location']['AwsRegion'],
-                                    self.location_info['Location']['AwsAccount'],
-                                    queue_name
+                                    resource='sqs',
+                                    region=method_integration_uri.split(':', 4)[3],
+                                    account_id=method_integration_uri.split('/', 2)[1],
+                                    resource_id=method_integration_uri.rsplit('/', 1)[-1],
                                 )
                                 integration_arn = queue_arn
 

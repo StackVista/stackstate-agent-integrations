@@ -5,7 +5,6 @@ import json
 from schematics import Model
 from schematics.types import StringType
 from six import string_types
-from .sqs import get_queue_name_from_url
 
 
 """
@@ -332,8 +331,7 @@ class StepFunctionCollector(RegisteredResourceCollector):
             state["IntegrationType"] = "sqs"
             queue_url = parameters.get('QueueUrl')
             if queue_url:
-                queue_name = get_queue_name_from_url(queue_url)
-                queue_arn = self.agent.create_arn('AWS::SQS::Queue', self.location_info, queue_name)
+                queue_arn = self.agent.create_arn('AWS::SQS::Queue', self.location_info, queue_url)
                 self.agent.relation(state_arn, queue_arn, 'uses service', {})  # TODO get the type of action
         elif resource.startswith('arn:{}:states:::ecs:'.format(partition)):
             # TODO can be full ARN or family:revision
