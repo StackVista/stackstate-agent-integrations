@@ -97,7 +97,13 @@ def test_error_trace():
     assert len(spans) == 5
     assert spans[0]['error'] == 1
     assert spans[1]['error'] == 1
+    # 2 main segments should kind as client
     assert spans[0]["meta"]["span.kind"] == "client"
+    assert spans[1]["meta"]["span.kind"] == "client"
+    # 3 subsegments should have kind as internal
+    assert spans[2]["meta"]["span.kind"] == "internal"
+    assert spans[3]["meta"]["span.kind"] == "internal"
+    assert spans[4]["meta"]["span.kind"] == "internal"
 
 
 def test_end_time():

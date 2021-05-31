@@ -100,7 +100,7 @@ class AwsCheck(AgentCheck):
         self.log.debug('Collected total %s traces.', len(traces))
         return traces
 
-    def _generate_spans(self, segments, trace_id=None, parent_id=None):
+    def _generate_spans(self, segments, trace_id=None, parent_id=None, kind="client"):
         """Translates X-Ray trace to StackState trace."""
         spans = []
 
@@ -131,7 +131,7 @@ class AwsCheck(AgentCheck):
                 if arn:
                     service_name = arn
 
-            flat_segment = flatten_segment(segment)
+            flat_segment = flatten_segment(segment, kind)
 
             # times format is the unix epoch in nanoseconds
             span = {
@@ -153,7 +153,7 @@ class AwsCheck(AgentCheck):
             spans.append(span)
 
             if 'subsegments' in segment.keys():
-                spans.extend(self._generate_spans(segment['subsegments'], trace_id, span_id))
+                spans.extend(self._generate_spans(segment['subsegments'], trace_id, span_id, kind="internal"))
 
         return spans
 
@@ -323,7 +323,7 @@ class AwsClient:
             self.log.info('Writen X-Ray retrieval end time {} to {}'.format(self.last_end_time, self.cache_file))
 
 
-def flatten_segment(segment):
+def flatten_segment(segment, kind):
     flat_segment = flatten_dict.flatten(segment, dot_reducer)
     for key, value in flat_segment.items():
         if key == 'subsegments':
@@ -338,7 +338,7 @@ def flatten_segment(segment):
                 flat_segment[key] = str(value)
     # STAC-13020: we decided to make all the spans from aws-xray as CLIENT to produce metrics
     # otherwise receiver won't produce any metrics if the kind is INTERNAL
-    flat_segment["span.kind"] = "client"
+    flat_segment["span.kind"] = kind
     return flat_segment
 
 
