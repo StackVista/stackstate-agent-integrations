@@ -1,4 +1,4 @@
-from .utils import make_valid_data, with_dimensions, create_arn as arn, CloudTrailEventBase, \
+from .utils import make_valid_data, with_dimensions, create_arn as arn, \
     client_array_operation, set_required_access_v2, transformation
 from .registry import RegisteredResourceCollector
 from collections import namedtuple
@@ -12,47 +12,6 @@ class RELATION_TYPE:
 
 def create_arn(region=None, account_id=None, resource_id=None, **kwargs):
     return arn(resource='firehose', region=region, account_id=account_id, resource_id='deliverystream/' + resource_id)
-
-
-class FirehoseEventBase(CloudTrailEventBase):
-    def get_collector_class(self):
-        return FirehoseCollector
-
-    def _internal_process(self, session, location, agent):
-        if self.get_operation_type() == 'D':
-            agent.delete(self.get_resource_arn(agent, location))
-        else:
-            client = session.client('firehose')
-            collector = FirehoseCollector(location, client, agent)
-            collector.process_one_delivery_stream(self.get_resource_name())
-
-
-class Firehose_CreateStream(FirehoseEventBase):
-    class ResponseElements(Model):
-        deliveryStreamARN = StringType(required=True)
-
-    responseElements = ModelType(ResponseElements, required=True)
-
-    def get_resource_name(self):
-        part = self.responseElements.deliveryStreamARN.rsplit(':', 1)[-1]
-        name = part.rsplit('/', 1)[-1]
-        return name
-
-    def get_operation_type(self):
-        return 'C'
-
-
-class Firehose_UpdateStream(FirehoseEventBase):
-    class RequestParameters(Model):
-        deliveryStreamName = StringType(required=True)
-
-    requestParameters = ModelType(RequestParameters)
-
-    def get_resource_name(self):
-        return self.requestParameters.deliveryStreamName
-
-    def get_operation_type(self):
-        return 'U' if self.eventName != 'DeleteDeliveryStream' else 'D'
 
 
 DeliveryStreamData = namedtuple('DeliveryStreamData', ['stream', 'tags'])
@@ -90,31 +49,15 @@ class FirehoseCollector(RegisteredResourceCollector):
     API = "firehose"
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.firehose"
-    EVENT_SOURCE = 'firehose.amazonaws.com'
-    CLOUDTRAIL_EVENTS = {
-        'CreateDeliveryStream': Firehose_CreateStream,
-        'DeleteDeliveryStream': Firehose_UpdateStream,
-        'UpdateDestination': Firehose_UpdateStream,
-        'TagDeliveryStream': Firehose_UpdateStream,
-        'UntagDeliveryStream': Firehose_UpdateStream,
-        'StartDeliveryStreamEncryption': Firehose_UpdateStream,
-        'StopDeliveryStreamEncryption': Firehose_UpdateStream,
-    }
     CLOUDFORMATION_TYPE = 'AWS::KinesisFirehose::DeliveryStream'
 
     @set_required_access_v2('firehose:ListTagsForDeliveryStream')
     def collect_tags(self, stream_name):
-        try:
-            return self.client.list_tags_for_delivery_stream(DeliveryStreamName=stream_name).get("Tags") or []
-        except Exception:
-            return []
+        return self.client.list_tags_for_delivery_stream(DeliveryStreamName=stream_name).get("Tags") or []
 
     @set_required_access_v2('firehose:DescribeDeliveryStream')
     def collect_stream_description(self, stream_name):
-        try:
-            return self.client.describe_delivery_stream(DeliveryStreamName=stream_name)
-        except Exception:
-            return {}
+        return self.client.describe_delivery_stream(DeliveryStreamName=stream_name)
 
     def collect_stream(self, stream_name):
         tags = self.collect_tags(stream_name)
@@ -173,9 +116,48 @@ class FirehoseCollector(RegisteredResourceCollector):
                     "uses service",
                     {}
                 )
-
+        # HasMoreDestinations seen in API response
         # There can also be a relation with a lambda that is uses to transform the data
         # There can also be a relation with a AWS Glue (region / database / table / version) cross region!
         # There can also be a relation with another S3 bucket for source record backup
 
         # Destinations can also be S3 / Redshift / ElasticSearch / HTTP / Third Party Service Provider
+
+    EVENT_SOURCE = 'firehose.amazonaws.com'
+    CLOUDTRAIL_EVENTS = [
+        {
+            'event_name': 'CreateDeliveryStream',
+            'path': 'requestParameters.deliveryStreamName',
+            'processor': process_one_delivery_stream
+        },
+        {
+            'event_name': 'DeleteDeliveryStream',
+            'path': 'requestParameters.deliveryStreamName',
+            'processor': RegisteredResourceCollector.process_delete_by_name
+        },
+        {
+            'event_name': 'UpdateDestination',
+            'path': 'requestParameters.deliveryStreamName',
+            'processor': process_one_delivery_stream
+        },
+        {
+            'event_name': 'TagDeliveryStream',
+            'path': 'requestParameters.deliveryStreamName',
+            'processor': process_one_delivery_stream
+        },
+        {
+            'event_name': 'UntagDeliveryStream',
+            'path': 'requestParameters.deliveryStreamName',
+            'processor': process_one_delivery_stream
+        },
+        {
+            'event_name': 'StartDeliveryStreamEncryption',
+            'path': 'requestParameters.deliveryStreamName',
+            'processor': process_one_delivery_stream
+        },
+        {
+            'event_name': 'StopDeliveryStreamEncryption',
+            'path': 'requestParameters.deliveryStreamName',
+            'processor': process_one_delivery_stream
+        }
+    ]

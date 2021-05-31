@@ -1,76 +1,15 @@
-from .utils import make_valid_data, with_dimensions, create_arn as arn, CloudTrailEventBase
+from .utils import make_valid_data, with_dimensions, create_arn as arn
 from .registry import RegisteredResourceCollector
-from schematics import Model
-from schematics.types import StringType, ModelType
 
 
 def create_arn(region=None, account_id=None, resource_id=None, **kwargs):
     return arn(resource='sns', region=region, account_id=account_id, resource_id=resource_id)
 
 
-class SNSEventBase(CloudTrailEventBase):
-    def get_collector_class(self):
-        return SnsCollector
-
-    def _internal_process(self, session, location, agent):
-        if self.get_operation_type() == 'D':
-            agent.delete(self.get_resource_arn(agent, location))
-        else:
-            client = session.client('sns')
-            collector = SnsCollector(location, client, agent)
-            collector.process_one_topic(self.get_resource_arn(agent, location))
-
-
-class SNSEventUpdate(SNSEventBase):
-    class RequestParameters(Model):
-        topicArn = StringType()
-
-    requestParameters = ModelType(RequestParameters)
-
-    def get_resource_name(self):
-        part = self.requestParameters.topicArn.rsplit(':', 1)[-1]
-        name = part.rsplit('/', 1)[-1]
-        return name
-
-    def get_operation_type(self):
-        return 'U' if self.eventName != 'DeleteTopic' else 'D'
-
-
-class SNSEventCreate(SNSEventBase):
-    class ResponseElements(Model):
-        topicArn = StringType()
-
-    responseElements = ModelType(ResponseElements)
-
-    def get_resource_name(self):
-        part = self.responseElements.topicArn.rsplit(':', 1)[-1]
-        name = part.rsplit('/', 1)[-1]
-        return name
-
-    def get_operation_type(self):
-        return 'C'
-
-
 class SnsCollector(RegisteredResourceCollector):
     API = "sns"
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.sns"
-    EVENT_SOURCE = "sns.amazonaws.com"
-    CLOUDTRAIL_EVENTS = {
-        'CreateTopic': SNSEventCreate,
-        'DeleteTopic': SNSEventUpdate,
-        # SetSMSAttributes
-        # SetSubscriptionAttributes
-        # SetTopicAttributes
-        # Subscribe
-
-        # CreatePlatformEndpoint
-        # DeleteEndpoint
-        # CreatePlatformApplication
-        # DeletePlatformApplication
-        # SetEndpointAttributes
-        # SetPlatformApplicationAttributes
-    }
     CLOUDFORMATION_TYPE = 'AWS::SNS::Topic'
 
     def process_all(self, filter=None):
@@ -92,7 +31,31 @@ class SnsCollector(RegisteredResourceCollector):
         for subscriptions_by_topicpage in self.client.get_paginator('list_subscriptions_by_topic').paginate(
                 TopicArn=topic_arn):
             for subscription_by_topic in subscriptions_by_topicpage.get('Subscriptions') or []:
-                if subscription_by_topic['Protocol'] in ['lambda', 'sqs'] and \
-                        subscription_by_topic['TopicArn'] == topic_arn:
+                if subscription_by_topic['Protocol'] in ['lambda', 'sqs']:
                     # TODO subscriptions can be cross region! probably also cross account
                     self.agent.relation(topic_arn, subscription_by_topic['Endpoint'], 'uses service', {})
+
+    EVENT_SOURCE = "sns.amazonaws.com"
+    CLOUDTRAIL_EVENTS = [
+        {
+            'event_name': 'CreateTopic',
+            'path': 'responseElements.topicArn',
+            'processor': process_one_topic
+        },
+        {
+            'event_name': 'DeleteTopic',
+            'path': 'requestParameters.topicArn',
+            'processor': RegisteredResourceCollector.emit_deletion
+        }
+        # SetSMSAttributes
+        # SetSubscriptionAttributes
+        # SetTopicAttributes
+        # Subscribe
+
+        # CreatePlatformEndpoint
+        # DeleteEndpoint
+        # CreatePlatformApplication
+        # DeletePlatformApplication
+        # SetEndpointAttributes
+        # SetPlatformApplicationAttributes
+    ]

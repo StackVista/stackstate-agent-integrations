@@ -1,8 +1,8 @@
-from .utils import make_valid_data, create_arn as arn, client_array_operation, CloudTrailEventBase
+from .utils import make_valid_data, create_arn as arn, client_array_operation
 from .registry import RegisteredResourceCollector
 from collections import namedtuple
 from schematics import Model
-from schematics.types import StringType, ListType, ModelType
+from schematics.types import StringType, ListType
 
 
 def create_arn(resource_id=None, **kwargs):
@@ -21,57 +21,28 @@ class BucketNotification(Model):
     Events = ListType(StringType, required=True)
 
 
-class S3_UpdateBucket(CloudTrailEventBase):
-    class RequestParameters(Model):
-        bucketName = StringType(required=True)
-
-    requestParameters = ModelType(RequestParameters, required=True)
-
-    def get_collector_class(self):
-        return S3Collector
-
-    def get_resource_name(self):
-        return self.requestParameters.bucketName
-
-    def get_operation_type(self):
-        return 'D' if self.eventName == 'DeleteBucket' else 'U'  # outputs C as U (does not matter yet)
-
-    def _internal_process(self, session, location, agent):
-        if self.get_operation_type() == 'D':
-            agent.delete(self.get_resource_arn(agent, location))
-        else:
-            client = session.client('s3')
-            collector = S3Collector(location, client, agent)
-            collector.process_one_bucket(self.requestParameters.bucketName)
-
-
 class S3Collector(RegisteredResourceCollector):
     API = "s3"
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.s3_bucket"
-    EVENT_SOURCE = 's3.amazonaws.com'
-    CLOUDTRAIL_EVENTS = {
-        'CreateBucket': S3_UpdateBucket,
-        'DeleteBucket': S3_UpdateBucket
-    }
     CLOUDFORMATION_TYPE = 'AWS::S3::Bucket'
+
+    def collect_location(self, name):
+        return self.client.get_bucket_location(Bucket=name).get('LocationConstraint', '')
+
+    def collect_tags(self, name):
+        return self.client.get_bucket_tagging(Bucket=name).get("TagSet", [])
+
+    def collect_configuration(self, name):
+        return self.client.get_bucket_notification_configuration(Bucket=name).get(
+            "LambdaFunctionConfigurations", []
+        )
 
     def collect_bucket(self, bucket):
         name = bucket.get('Name')
-        try:
-            location = self.client.get_bucket_location(Bucket=name).get('LocationConstraint', '')
-        except Exception:  # TODO catch throttle + permission exceptions
-            location = ''
-        try:
-            tags = self.client.get_bucket_tagging(Bucket=name).get("TagSet", [])
-        except Exception:  # TODO catch throttle + permission exceptions
-            tags = []
-        try:
-            config = self.client.get_bucket_notification_configuration(Bucket=name).get(
-                "LambdaFunctionConfigurations", []
-            )
-        except Exception:  # TODO catch throttle + permission exceptions
-            config = []
+        location = self.collect_location(name) or ''
+        tags = self.collect_tags(name) or []
+        config = self.collect_configuration(name) or []
         return BucketData(bucket=bucket, location=location, tags=tags, config=config)
 
     def collect_buckets(self):
@@ -112,3 +83,17 @@ class S3Collector(RegisteredResourceCollector):
             if function_arn:
                 for event in bucket_notification.Events:
                     self.agent.relation(bucket_arn, function_arn, "uses service", {"event_type": event})
+
+    EVENT_SOURCE = 's3.amazonaws.com'
+    CLOUDTRAIL_EVENTS = [
+        {
+            'event_name': 'CreateBucket',
+            'path': 'requestParameters.bucketName',
+            'processor': process_one_bucket
+        },
+        {
+            'event_name': 'DeleteBucket',
+            'path': 'requestParameters.bucketName',
+            'processor': RegisteredResourceCollector.process_delete_by_name
+        }
+    ]

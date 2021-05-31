@@ -25,23 +25,29 @@ class EcsCollector(RegisteredResourceCollector):
     def process_all(self, filter=None):
         for cluster_page in self.client.get_paginator('list_clusters').paginate():
             cluster_arns = cluster_page.get('clusterArns') or []
-            for cluster_data_raw in self.client.describe_clusters(
-                clusters=cluster_arns, include=['TAGS']
-            ).get('clusters') or []:
-                cluster_data = make_valid_data(cluster_data_raw)
-                self.process_cluster(cluster_data)
+            self.process_clusters(cluster_arns)
 
-            for cluster_arn in cluster_arns:
-                for container_instance_page in self.client.get_paginator(
-                    'list_container_instances'
-                ).paginate(cluster=cluster_arn):
-                    if len(container_instance_page['containerInstanceArns']) > 0:
-                        described_container_instance = self.client.describe_container_instances(
-                            cluster=cluster_arn,
-                            containerInstances=container_instance_page['containerInstanceArns']
-                        )
-                        for container_instance in described_container_instance['containerInstances']:
-                            self.agent.relation(cluster_arn, container_instance['ec2InstanceId'], 'uses_ec2_host', {})
+    def process_clusters(self, cluster_arns):
+        for cluster_data_raw in self.client.describe_clusters(
+            clusters=cluster_arns, include=['TAGS']
+        ).get('clusters') or []:
+            cluster_data = make_valid_data(cluster_data_raw)
+            self.process_cluster(cluster_data)
+
+        for cluster_arn in cluster_arns:
+            for container_instance_page in self.client.get_paginator(
+                'list_container_instances'
+            ).paginate(cluster=cluster_arn):
+                if len(container_instance_page['containerInstanceArns']) > 0:
+                    described_container_instance = self.client.describe_container_instances(
+                        cluster=cluster_arn,
+                        containerInstances=container_instance_page['containerInstanceArns']
+                    )
+                    for container_instance in described_container_instance['containerInstances']:
+                        self.agent.relation(cluster_arn, container_instance['ec2InstanceId'], 'uses_ec2_host', {})
+
+    def process_one_cluster(self, cluster_arn):
+        self.process_clusters([cluster_arn])
 
     def process_cluster(self, cluster_data):
         cluster_arn = cluster_data['clusterArn']
@@ -168,3 +174,17 @@ class EcsCollector(RegisteredResourceCollector):
                 namespace_data = discovery_client.get_namespace(Id=namespace_id)
                 hosted_zone_id = namespace_data['Namespace']['Properties']['DnsProperties']['HostedZoneId']
                 self.agent.relation(service_arn, '/hostedzone/' + hosted_zone_id, 'uses service', {})
+
+    EVENT_SOURCE = 'ecs.amazonaws.com'
+    CLOUDTRAIL_EVENTS = [
+        {
+            'event_name': 'CreateCluster',
+            'path': 'responseElements.cluster.clusterArn',
+            'processor': process_one_cluster
+        },
+        {
+            'event_name': 'CreateService',
+            'path': 'responseElements.service.clusterArn',
+            'processor': process_one_cluster
+        }
+    ]

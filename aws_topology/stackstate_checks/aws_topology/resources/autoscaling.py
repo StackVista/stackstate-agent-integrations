@@ -1,4 +1,4 @@
-from .utils import make_valid_data, set_required_access_v2, client_array_operation, CloudTrailEventBase
+from .utils import make_valid_data, set_required_access_v2, client_array_operation, CloudTrailEventBase, transformation
 from .registry import RegisteredResourceCollector
 from schematics import Model
 from schematics.types import StringType, ListType, ModelType
@@ -9,53 +9,14 @@ class AutoScalingEventBase(CloudTrailEventBase):
         return AutoscalingCollector
 
 
-class AutoScalingEvent(AutoScalingEventBase):
-    class RequestParameters(Model):
-        autoScalingGroupName = StringType()
-
-    requestParameters = ModelType(RequestParameters)
-
-    def get_operation_type(self):
-        return 'D' if self.eventName == 'DeleteAutoScalingGroup' else 'U'
-
-    def get_resource_name(self):
-        return self.requestParameters.autoScalingGroupName
-
-    def _internal_process(self, session, location, agent):
-        if self.get_operation_type() == 'D':
-            agent.delete(self.get_resource_name())
-        else:
-            client = session.client('autoscaling')
-            collector = AutoscalingCollector(location, client, agent)
-            collector.process_one_auto_scaling_group(self.get_resource_name())
-
-
 class AutoScalingTagEvent(AutoScalingEventBase):
     class RequestParameters(Model):
         class AutoScalingTag(Model):
             resourceType = StringType(required=True)
             resourceId = StringType(required=True)
-        tags = ListType(ModelType(AutoScalingTag), required=True)
+        tags = ListType(ModelType(AutoScalingTag), default=[])
 
     requestParameters = ModelType(RequestParameters)
-
-    def get_operation_type(self):
-        return 'U'
-
-    def get_resource_name(self):
-        if len(self.requestParameters.tags) > 0:
-            tag = self.requestParameters.tags[0]
-            return tag.resourceId
-        return ""
-
-    def _internal_process(self, session, location, agent):
-        name = self.get_resource_name()
-        # TODO refactoring needed multiple resource type possible here
-        if name:
-            if self.requestParameters.tags[0].resourceType == 'auto-scaling-group':
-                client = session.client('autoscaling')
-                collector = AutoscalingCollector(location, client, agent)
-                collector.process_one_auto_scaling_group(name)
 
 
 class AutoScalingGroup(Model):
@@ -73,13 +34,6 @@ class AutoscalingCollector(RegisteredResourceCollector):
     API = "autoscaling"
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.autoscaling"
-    EVENT_SOURCE = "autoscaling.amazonaws.com"
-    CLOUDTRAIL_EVENTS = {
-        "CreateAutoScalingGroup": AutoScalingEvent,
-        "DeleteAutoScalingGroup": AutoScalingEvent,
-        "UpdateAutoScalingGroup": AutoScalingEvent,
-        "CreateOrUpdateTags": AutoScalingTagEvent
-    }
     CLOUDFORMATION_TYPE = "AWS::AutoScaling::AutoScalingGroup"
 
     def collect_auto_scaling_groups(self, **kwargs):
@@ -103,6 +57,17 @@ class AutoscalingCollector(RegisteredResourceCollector):
 
     def process_all(self, filter=None):
         self.process_autoscaling_groups()
+
+    @transformation()
+    def process_tag_event(self, event, seen):
+        ids = []
+        tagevent = AutoScalingTagEvent(event, strict=False)
+        for tag in tagevent.requestParameters.tags:
+            if tag.resourceType == 'auto-scaling-group':
+                if tag.resourceId not in seen:
+                    self.process_one_auto_scaling_group(tag.resourceId)
+                    ids.append(tag.resourceId)
+        return ids
 
     def process_autoscaling_group(self, data):
         output = make_valid_data(data)
@@ -137,3 +102,26 @@ class AutoscalingCollector(RegisteredResourceCollector):
                 # removing elb instances if there are any
                 relation_id = target_group_arn + '-uses service-' + instance.InstanceId
                 self.agent.delete(relation_id)
+
+    EVENT_SOURCE = "autoscaling.amazonaws.com"
+    CLOUDTRAIL_EVENTS = [
+        {
+            'event_name': "CreateAutoScalingGroup",
+            'path': "requestParameters.autoScalingGroupName",
+            'processor': process_one_auto_scaling_group
+        },
+        {
+            'event_name': "DeleteAutoScalingGroup",
+            'path': "requestParameters.autoScalingGroupName",
+            'processor': RegisteredResourceCollector.process_delete_by_name
+        },
+        {
+            'event_name': "UpdateAutoScalingGroup",
+            'path': "requestParameters.autoScalingGroupName",
+            'processor': process_one_auto_scaling_group
+        },
+        {
+            'event_name': "CreateOrUpdateTags",
+            'processor': process_tag_event
+        }
+    ]
