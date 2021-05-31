@@ -38,12 +38,12 @@ class EcsCollector(RegisteredResourceCollector):
             for container_instance_page in self.client.get_paginator(
                 'list_container_instances'
             ).paginate(cluster=cluster_arn):
-                if len(container_instance_page['containerInstanceArns']) > 0:
+                if isinstance(container_instance_page.get('containerInstanceArns'), list) and len(container_instance_page['containerInstanceArns']) > 0:
                     described_container_instance = self.client.describe_container_instances(
                         cluster=cluster_arn,
                         containerInstances=container_instance_page['containerInstanceArns']
                     )
-                    for container_instance in described_container_instance['containerInstances']:
+                    for container_instance in described_container_instance.get('containerInstances', []):
                         self.agent.relation(cluster_arn, container_instance['ec2InstanceId'], 'uses_ec2_host', {})
 
     def process_one_cluster(self, cluster_arn):
@@ -66,7 +66,7 @@ class EcsCollector(RegisteredResourceCollector):
     def process_cluster_tasks(self, cluster_arn):
         task_map = {}
         for task_page in self.client.get_paginator('list_tasks').paginate(cluster=cluster_arn):
-            if len(task_page['taskArns']) >= 1:
+            if isinstance(task_page.get('taskArns'), list) and len(task_page['taskArns']) >= 1:
                 for task_data_raw in self.client.describe_tasks(
                     cluster=cluster_arn,
                     tasks=task_page['taskArns']
@@ -118,7 +118,7 @@ class EcsCollector(RegisteredResourceCollector):
 
     def process_services(self, cluster_arn, cluster_name):
         for services_page in self.client.get_paginator('list_services').paginate(cluster=cluster_arn):
-            if len(services_page['serviceArns']) >= 1:
+            if isinstance(services_page.get('serviceArns'), list) and len(services_page['serviceArns']) >= 1:
                 for service_data_raw in self.client.describe_services(
                         cluster=cluster_arn, include=['TAGS'], services=services_page['serviceArns'])['services']:
                     service_data = make_valid_data(service_data_raw)
