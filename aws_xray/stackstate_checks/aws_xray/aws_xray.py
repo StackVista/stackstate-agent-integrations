@@ -153,6 +153,7 @@ class AwsCheck(AgentCheck):
             spans.append(span)
 
             if 'subsegments' in segment.keys():
+                # use kind as "internal" for the subsegments
                 spans.extend(self._generate_spans(segment['subsegments'], trace_id, span_id, kind="internal"))
 
         return spans
