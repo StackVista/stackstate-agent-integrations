@@ -299,6 +299,9 @@ class AwsClient:
         try:
             with open(self.cache_file, 'r') as file:
                 last_end_time = file.read()
+                # if the file was empty, put 0 to avoid the float conversion of empty string.
+                if not last_end_time:
+                    last_end_time = 0
                 start_time = datetime.datetime.utcfromtimestamp(float(last_end_time))
                 self.log.info(
                     'Read {}. Start time for X-Ray retrieval period is last retrieval end time: {}'.format(
