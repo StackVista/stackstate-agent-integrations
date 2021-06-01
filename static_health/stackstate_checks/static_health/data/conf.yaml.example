@@ -1,0 +1,10 @@
+init_config:
+
+instances:
+  - type: csv
+    health_file: /path/to/health.csv
+    delimiter: ';'
+
+    #tags:
+    #  - optional_tag1
+    #  - optional_tag2

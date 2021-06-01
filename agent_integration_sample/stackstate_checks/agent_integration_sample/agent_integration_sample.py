@@ -3,7 +3,8 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 
 # project
-from stackstate_checks.base import AgentCheck, AgentIntegrationInstance, MetricStream, MetricHealthChecks
+from stackstate_checks.base import AgentCheck, AgentIntegrationInstance, MetricStream, MetricHealthChecks,\
+    HealthStream, HealthStreamUrn, Health
 import time
 from random import seed
 from random import randint
@@ -12,6 +13,9 @@ seed(1)
 
 
 class AgentIntegrationSampleCheck(AgentCheck):
+    def get_health_stream(self, instance):
+        return HealthStream(HealthStreamUrn("integration-sample", "sample"))
+
     def get_instance_key(self, instance):
         return AgentIntegrationInstance("agent-integration", "sample")
 
@@ -173,3 +177,8 @@ class AgentIntegrationSampleCheck(AgentCheck):
         state['run_count'] = state['run_count'] + 1
         instance.update({'state': state})
         self.count("check_runs", state['run_count'], tags=["integration:agent_integration_sample"])
+
+        # produce health snapshot
+        self.health.start_snapshot()
+        self.health.check_state("id", "name", Health.CRITICAL, "identifier", "msg")
+        self.health.stop_snapshot()
