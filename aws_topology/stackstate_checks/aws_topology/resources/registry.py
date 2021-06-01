@@ -70,6 +70,9 @@ class RegisteredResourceCollector(with_metaclass(ResourceRegistry, object)):
     def emit_component(self, id, type, data):
         self.agent.component(self.location_info, id, type, data)
 
+    def emit_relation(self, source, target, type, data):
+        self.agent.relation(source, target, type, data)
+
     def process_all(self, filter=None):
         raise NotImplementedError
 

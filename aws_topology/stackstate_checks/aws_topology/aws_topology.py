@@ -17,8 +17,8 @@ import json
 from datetime import datetime
 import pytz
 import dateutil.parser
-import copy
 import concurrent.futures
+import threading
 
 
 DEFAULT_BOTO3_RETRIES_COUNT = 50
@@ -121,9 +121,9 @@ class AwsTopologyCheck(AgentCheck):
                                 filter = to_run.split('|')[1]
                     if client is None:
                         client = session.client(api)
-                    processor = registry[api](copy.deepcopy(location), client, agent_proxy)
+                    processor = registry[api](location.clone(), client, agent_proxy)
                     futures[executor.submit(processor.process_all, filter)] = {
-                        'location': copy.deepcopy(location),
+                        'location': location.clone(),
                         'api': api,
                         'processor': processor
                     }
@@ -140,8 +140,8 @@ class AwsTopologyCheck(AgentCheck):
                         'msg_title': e.__class__.__name__ + " in api " + spec['api'],
                         'msg_text': str(e),
                         'tags': [
-                            'aws_region:' + spec['location']["Location"]["AwsRegion"],
-                            'account_id:' + spec['location']["Location"]["AwsAccount"],
+                            'aws_region:' + spec['location'].Location.AwsRegion,
+                            'account_id:' + spec['location'].Location.AwsAccount,
                             'process:' + spec['api']
                         ]
                     }
@@ -198,7 +198,7 @@ class AwsTopologyCheck(AgentCheck):
                                 try:
                                     event = event_class(rec, strict=False)
                                     event.validate()
-                                    resource_id = event.get_resource_arn(agent_proxy, copy.deepcopy(location))
+                                    resource_id = event.get_resource_arn(agent_proxy, location.clone())
                                     # only add the event if there was no event for the resource before
                                     if resource_id not in resources_seen:
                                         events.append(event)
@@ -234,14 +234,14 @@ class AwsTopologyCheck(AgentCheck):
                     #  D -> skip
                     #  E -> timing, skip (!could have create before)
                     try:
-                        event.process(session, copy.deepcopy(location), agent_proxy)
+                        event.process(session, location.clone(), agent_proxy)
                     except Exception as e:
                         print(e)
             # new processing
             for api in collectors:
                 client = session.client(api)
                 resources_seen = set()
-                processor = registry[api](copy.deepcopy(location), client, agent_proxy)
+                processor = registry[api](location.clone(), client, agent_proxy)
                 for event in collectors[api]:
                     id = processor.process_cloudtrail_event(event, resources_seen)
                     resources_seen.add(id)
@@ -257,19 +257,24 @@ class AgentProxy(object):
         self.parked_relations = []
         self.role_name = role_name
         self.warnings = {}
+        self.lock = threading.Lock()
 
     def component(self, location, id, type, data):
         self.components_seen.add(id)
-        data.update(location)
+        data.update(location.to_primitive())
         self.agent.component(id, type, correct_tags(capitalize_keys(data)))
-        for i in range(len(self.parked_relations)-1, -1, -1):
-            relation = self.parked_relations[i]
-            if relation['source_id'] == id and relation['target_id'] in self.components_seen:
-                self.agent.relation(relation['source_id'], relation['target_id'], relation['type'], relation['data'])
-                self.parked_relations.remove(relation)
-            if relation['target_id'] == id and relation['source_id'] in self.components_seen:
-                self.agent.relation(relation['source_id'], relation['target_id'], relation['type'], relation['data'])
-                self.parked_relations.remove(relation)
+        relations_to_send = []
+        with self.lock:
+            for i in range(len(self.parked_relations)-1, -1, -1):
+                relation = self.parked_relations[i]
+                if relation['source_id'] == id and relation['target_id'] in self.components_seen:
+                    relations_to_send.append(relation)
+                    self.parked_relations.remove(relation)
+                if relation['target_id'] == id and relation['source_id'] in self.components_seen:
+                    self.parked_relations.remove(relation)
+                    relations_to_send.append(relation)
+        for relation in relations_to_send:
+            self.agent.relation(relation['source_id'], relation['target_id'], relation['type'], relation['data'])
 
     def relation(self, source_id, target_id, type, data):
         if source_id in self.components_seen and target_id in self.components_seen:
@@ -303,8 +308,8 @@ class AgentProxy(object):
         func = type_arn.get(type)
         if func:
             return func(
-                region=location['Location']['AwsRegion'],
-                account_id=location['Location']['AwsAccount'],
+                region=location.Location.AwsRegion,
+                account_id=location.Location.AwsAccount,
                 resource_id=resource_id
             )
         return "UNSUPPORTED_ARN-" + type + "-" + resource_id

@@ -75,8 +75,8 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
                 for stage in stages:
                     stage_name = stage['stageName']
                     stage_arn = 'arn:aws:execute-api:{}:{}:{}/{}'.format(
-                        self.location_info['Location']['AwsRegion'],
-                        self.location_info['Location']['AwsAccount'],
+                        self.location_info.Location.AwsRegion,
+                        self.location_info.Location.AwsAccount,
                         rest_api_id, stage_name
                     )
 
@@ -93,7 +93,7 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
                     ]))
 
                     self.emit_component(stage_arn, self.COMPONENT_TYPE, stage_data)
-                    self.agent.relation(rest_api_arn, stage_arn, "has resource", {})
+                    self.emit_relation(rest_api_arn, stage_arn, "has resource", {})
 
                     # send resources per stage
                     for resource in resources:
@@ -107,7 +107,7 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
 
                         resource_data.update(stage_data)
                         self.emit_component(resource_arn, 'aws.apigateway.resource', resource_data)
-                        self.agent.relation(stage_arn, resource_arn, 'uses service', {})
+                        self.emit_relation(stage_arn, resource_arn, 'uses service', {})
 
                         # send methods per resource per stage
                         for method_raw in http_methods_per_resource[resource['id']]:
@@ -142,10 +142,10 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
                                 integration_arn = queue_arn
 
                             self.emit_component(method_arn, 'aws.apigateway.method', method_data)
-                            self.agent.relation(resource_arn, method_arn, 'uses service', {})
+                            self.emit_relation(resource_arn, method_arn, 'uses service', {})
 
                             if integration_arn:
-                                self.agent.relation(method_arn, integration_arn, 'uses service', {})
+                                self.emit_relation(method_arn, integration_arn, 'uses service', {})
 
                             # Creates a dummy service component that is connected to the api gateway method
                             # this dummy service component will merge with a real trace service
@@ -158,4 +158,4 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
                                     'aws.apigateway.method.http.integration',
                                     {}
                                 )
-                                self.agent.relation(method_arn, service_integration_urn, 'uses service', {})
+                                self.emit_relation(method_arn, service_integration_urn, 'uses service', {})
