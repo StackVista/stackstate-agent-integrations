@@ -16,20 +16,20 @@
             }
         }
     },
-    "eventTime": "2021-04-29T19:25:40Z",
+    "eventTime": "2021-04-29T19:25:57Z",
     "eventSource": "kinesis.amazonaws.com",
-    "eventName": "StartStreamEncryption",
+    "eventName": "StopStreamEncryption",
     "awsRegion": "eu-west-1",
     "sourceIPAddress": "83.163.185.52",
     "userAgent": "console.amazonaws.com",
     "requestParameters": {
-        "streamName": "TestStream",
+        "streamName": "stream_1",
         "encryptionType": "KMS",
         "keyId": "alias/aws/kinesis"
     },
     "responseElements": null,
-    "requestID": "cc713cf6-6328-0787-9574-3682318c5fbb",
-    "eventID": "a8bf2b13-772c-4f5c-a34d-6adde68342c7",
+    "requestID": "cb79d35d-c4cb-b46b-927c-d9d835ee00ce",
+    "eventID": "52777714-ecb4-4c4c-9e1d-6e2be5120c0a",
     "readOnly": false,
     "eventType": "AwsApiCall",
     "managementEvent": true,

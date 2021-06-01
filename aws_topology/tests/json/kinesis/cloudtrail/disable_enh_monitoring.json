@@ -16,22 +16,21 @@
             }
         }
     },
-    "eventTime": "2021-04-29T19:26:31Z",
+    "eventTime": "2021-04-29T19:26:53Z",
     "eventSource": "kinesis.amazonaws.com",
-    "eventName": "EnableEnhancedMonitoring",
+    "eventName": "DisableEnhancedMonitoring",
     "awsRegion": "eu-west-1",
     "sourceIPAddress": "83.163.185.52",
     "userAgent": "console.amazonaws.com",
     "requestParameters": {
-        "streamName": "TestStream",
+        "streamName": "stream_1",
         "shardLevelMetrics": [
             "ALL"
         ]
     },
     "responseElements": {
-        "streamName": "TestStream",
-        "currentShardLevelMetrics": [],
-        "desiredShardLevelMetrics": [
+        "streamName": "stream_1",
+        "currentShardLevelMetrics": [
             "IncomingBytes",
             "OutgoingRecords",
             "IteratorAgeMilliseconds",
@@ -39,10 +38,11 @@
             "ReadProvisionedThroughputExceeded",
             "WriteProvisionedThroughputExceeded",
             "OutgoingBytes"
-        ]
+        ],
+        "desiredShardLevelMetrics": []
     },
-    "requestID": "e3c69625-efbd-f2b9-bac3-9c820a5bb4d8",
-    "eventID": "99c9829f-5193-498e-8b28-babd12d40b55",
+    "requestID": "e19768bd-03c2-3923-b892-6200ad3167cb",
+    "eventID": "fb5e405d-f48d-4590-9aef-93ef8f989ee7",
     "readOnly": false,
     "eventType": "AwsApiCall",
     "managementEvent": true,

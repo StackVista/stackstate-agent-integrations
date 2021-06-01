@@ -23,7 +23,7 @@
   "sourceIPAddress": "83.163.185.52",
   "userAgent": "console.amazonaws.com",
   "requestParameters": {
-      "streamName": "AnotherStream",
+      "streamName": "stream_1",
       "shardCount": 1
   },
   "responseElements": null,

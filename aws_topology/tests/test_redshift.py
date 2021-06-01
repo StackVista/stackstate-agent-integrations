@@ -35,3 +35,25 @@ class TestRedshift(BaseApiTest):
 
         self.assertEqual(len(components), self.components_checked)
         self.assertEqual(len(relations), self.relations_checked)
+
+
+    @set_cloudtrail_event('create_cluster')
+    def test_process_redshift_create_cluster(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'redshift-cluster-1',
+            topology[0]["components"][0]["id"]
+        )
+
+    @set_cloudtrail_event('delete_cluster')
+    def test_process_redshift_delete_cluster(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 0)
+        self.assertIn('redshift-cluster-1', self.check.delete_ids)

@@ -16,21 +16,19 @@
             }
         }
     },
-    "eventTime": "2021-04-29T19:23:14Z",
+    "eventTime": "2021-04-29T19:23:40Z",
     "eventSource": "kinesis.amazonaws.com",
-    "eventName": "RemoveTagsFromStream",
+    "eventName": "IncreaseStreamRetentionPeriod",
     "awsRegion": "eu-west-1",
     "sourceIPAddress": "83.163.185.52",
     "userAgent": "console.amazonaws.com",
     "requestParameters": {
-        "streamName": "TestStream",
-        "tagKeys": [
-            "TestTag"
-        ]
+        "streamName": "stream_1",
+        "retentionPeriodHours": 168
     },
     "responseElements": null,
-    "requestID": "dbbdcc7e-3bc4-6e33-82b8-c59c800bfe3d",
-    "eventID": "7e7e0ac6-a009-452d-80fa-e291e318805b",
+    "requestID": "f88ed0c8-7416-73ae-a18b-d9346fdacd49",
+    "eventID": "dd60f58d-6520-4a76-8176-945efb8096eb",
     "readOnly": false,
     "eventType": "AwsApiCall",
     "managementEvent": true,
