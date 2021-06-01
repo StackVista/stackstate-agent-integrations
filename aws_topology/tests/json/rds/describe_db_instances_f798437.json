@@ -1,0 +1,103 @@
+{
+    "DBInstances": [
+      {
+        "PubliclyAccessible": false,
+        "MasterUsername": "root",
+        "MonitoringInterval": 60,
+        "LicenseModel": "general-public-license",
+        "MonitoringRoleArn": "arn:aws:iam::548105126730:role/rds-monitoring-role",
+        "VpcSecurityGroups": [
+          {
+            "Status": "active",
+            "VpcSecurityGroupId": "sg-053ecf78"
+          }
+        ],
+        "InstanceCreateTime": "2018-04-19T12:20:53.889000+00:00",
+        "CopyTagsToSnapshot": false,
+        "OptionGroupMemberships": [
+          {
+            "Status": "in-sync",
+            "OptionGroupName": "default:aurora-5-6"
+          }
+        ],
+        "PendingModifiedValues": {},
+        "Engine": "aurora",
+        "MultiAZ": false,
+        "DBSecurityGroups": [],
+        "DBParameterGroups": [
+          {
+            "DBParameterGroupName": "default.aurora5.6",
+            "ParameterApplyStatus": "in-sync"
+          }
+        ],
+        "PerformanceInsightsEnabled": false,
+        "AutoMinorVersionUpgrade": true,
+        "PreferredBackupWindow": "23:32-00:02",
+        "PromotionTier": 1,
+        "DBSubnetGroup": {
+          "Subnets": [
+            {
+              "SubnetStatus": "Active",
+              "SubnetIdentifier": "subnet-096c7b4f",
+              "SubnetAvailabilityZone": {
+                "Name": "eu-west-1b"
+              }
+            },
+            {
+              "SubnetStatus": "Active",
+              "SubnetIdentifier": "subnet-67d82910",
+              "SubnetAvailabilityZone": {
+                "Name": "eu-west-1a"
+              }
+            },
+            {
+              "SubnetStatus": "Active",
+              "SubnetIdentifier": "subnet-31ff3554",
+              "SubnetAvailabilityZone": {
+                "Name": "eu-west-1c"
+              }
+            }
+          ],
+          "DBSubnetGroupName": "default-vpc-6b25d10e",
+          "VpcId": "vpc-6b25d10e",
+          "DBSubnetGroupDescription": "Created from the RDS Management Console",
+          "SubnetGroupStatus": "Complete"
+        },
+        "ReadReplicaDBInstanceIdentifiers": [],
+        "AllocatedStorage": 1,
+        "DBInstanceArn": "arn:aws:rds:eu-west-1:548105126730:db:productiondatabase",
+        "BackupRetentionPeriod": 1,
+        "DBName": "MyCluster",
+        "PreferredMaintenanceWindow": "sat:22:05-sat:22:35",
+        "Endpoint": {
+          "HostedZoneId": "Z29XKXDKYMONMX",
+          "Port": 3306,
+          "Address": "productiondatabase.cdnm1uvvpdkc.eu-west-1.rds.amazonaws.com"
+        },
+        "DBInstanceStatus": "available",
+        "IAMDatabaseAuthenticationEnabled": false,
+        "EngineVersion": "5.6.10a",
+        "EnhancedMonitoringResourceArn": "arn:aws:logs:eu-west-1:548105126730:log-group:RDSOSMetrics:log-stream:db-JQY53FXFALTDFP7BDO4N5NKLGM",
+        "AvailabilityZone": "eu-west-1b",
+        "DomainMemberships": [],
+        "DBClusterIdentifier": "productiondatabasecluster",
+        "StorageType": "aurora",
+        "DbiResourceId": "db-JQY53FXFALTDFP7BDO4N5NKLGM",
+        "CACertificateIdentifier": "rds-ca-2015",
+        "KmsKeyId": "arn:aws:kms:eu-west-1:548105126730:key/f3e71968-889b-4e27-8d62-56da6b269b82",
+        "StorageEncrypted": true,
+        "DBInstanceClass": "db.r4.large",
+        "DbInstancePort": 0,
+        "DBInstanceIdentifier": "productiondatabase"
+      }
+    ],
+    "ResponseMetadata": {
+        "Parameters": {
+            "DBInstanceIdentifier": "productiondatabase"
+        },
+        "OperationName": "ListTopics",
+        "Generater": "2021-05-29 07:45:36.709391",
+        "Region": "eu-west-1",
+        "Account": "508573134510"
+    }
+  }

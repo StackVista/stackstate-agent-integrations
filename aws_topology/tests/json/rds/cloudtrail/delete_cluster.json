@@ -1,0 +1,79 @@
+{
+  "eventVersion": "1.04",
+  "eventID": "37d4248f-29a5-4e7b-bca7-1c1e1436d2b4",
+  "eventTime": "2018-04-25T12:59:21Z",
+  "requestParameters": {
+    "dBClusterIdentifier": "hithere",
+    "skipFinalSnapshot": true
+  },
+  "eventType": "AwsApiCall",
+  "responseElements": {
+    "status": "available",
+    "associatedRoles": [],
+    "dBSubnetGroup": "default-vpc-6b25d10e",
+    "allocatedStorage": 1,
+    "dBClusterParameterGroup": "default.aurora5.6",
+    "port": 3323,
+    "readReplicaIdentifiers": [],
+    "vpcSecurityGroups": [
+      {
+        "status": "active",
+        "vpcSecurityGroupId": "sg-8ea360f3"
+      }
+    ],
+    "engineVersion": "5.6.10a",
+    "hostedZoneId": "Z29XKXDKYMONMX",
+    "engine": "aurora",
+    "multiAZ": false,
+    "latestRestorableTime": "Apr 25, 2018 12:49:57 PM",
+    "dBClusterIdentifier": "hithere",
+    "dbClusterResourceId": "cluster-NW4HLLNOXE45Q6BEKATP53PKFE",
+    "dBClusterMembers": [
+      {
+        "isClusterWriter": true,
+        "dBClusterParameterGroupStatus": "in-sync",
+        "promotionTier": 1,
+        "dBInstanceIdentifier": "hithere"
+      }
+    ],
+    "preferredBackupWindow": "03:50-04:20",
+    "iAMDatabaseAuthenticationEnabled": false,
+    "storageEncrypted": true,
+    "databaseName": "hithere",
+    "backupRetentionPeriod": 1,
+    "availabilityZones": [
+      "eu-west-1b",
+      "eu-west-1c",
+      "eu-west-1a"
+    ],
+    "dBClusterArn": "arn:aws:rds:eu-west-1:548105126730:cluster:productiondatabasecluster",
+    "preferredMaintenanceWindow": "sat:23:16-sat:23:46",
+    "endpoint": "hithere.cluster-cdnm1uvvpdkc.eu-west-1.rds.amazonaws.com",
+    "masterUsername": "hi",
+    "earliestRestorableTime": "Apr 25, 2018 12:28:39 PM",
+    "readerEndpoint": "hithere.cluster-ro-cdnm1uvvpdkc.eu-west-1.rds.amazonaws.com",
+    "kmsKeyId": "arn:aws:kms:eu-west-1:731070500579:key/f3e71968-889b-4e27-8d62-56da6b269b82",
+    "clusterCreateTime": "Apr 25, 2018 12:27:55 PM"
+  },
+  "awsRegion": "eu-west-1",
+  "eventName": "DeleteDBCluster",
+  "userIdentity": {
+    "userName": "martijn",
+    "principalId": "AIDAJDDXCZUJ4ZKDWZPOQ",
+    "accessKeyId": "ASIAJRSVOJUTDH4IFYKQ",
+    "invokedBy": "signin.amazonaws.com",
+    "sessionContext": {
+      "attributes": {
+        "creationDate": "2018-04-25T06:48:30Z",
+        "mfaAuthenticated": "true"
+      }
+    },
+    "type": "IAMUser",
+    "arn": "arn:aws:iam::731070500579:user/martijn",
+    "accountId": "731070500579"
+  },
+  "eventSource": "rds.amazonaws.com",
+  "requestID": "9b6c3a97-99ac-47f2-bcbe-2c01cfc14711",
+  "userAgent": "signin.amazonaws.com",
+  "sourceIPAddress": "81.21.139.6"
+}

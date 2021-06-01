@@ -1,0 +1,41 @@
+{
+    "eventVersion": "1.08",
+    "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROAX7HM4QNFPDB64TSWX:jkulman",
+        "arn": "arn:aws:sts::548105126730:assumed-role/binx/jkulman",
+        "accountId": "548105126730",
+        "accessKeyId": "ASIAX7HM4QNFGF5YDBBV",
+        "sessionContext": {
+            "sessionIssuer": {
+                "type": "Role",
+                "principalId": "AROAX7HM4QNFPDB64TSWX",
+                "arn": "arn:aws:iam::548105126730:role/binx",
+                "accountId": "548105126730",
+                "userName": "binx"
+            },
+            "webIdFederationData": {},
+            "attributes": {
+                "mfaAuthenticated": "false",
+                "creationDate": "2021-05-31T09:13:09Z"
+            }
+        }
+    },
+    "eventTime": "2021-05-31T09:52:07Z",
+    "eventSource": "lambda.amazonaws.com",
+    "eventName": "DeleteFunction20150331",
+    "awsRegion": "eu-west-1",
+    "sourceIPAddress": "83.163.185.52",
+    "userAgent": "aws-internal/3 aws-sdk-java/1.11.1009 Linux/5.4.109-57.182.amzn2int.x86_64 OpenJDK_64-Bit_Server_VM/25.292-b10 java/1.8.0_292 vendor/Oracle_Corporation cfg/retry-mode/legacy, AWSLambdaConsole/1.1",
+    "requestParameters": {
+        "functionName": "JpkTest"
+    },
+    "responseElements": null,
+    "requestID": "361af945-8793-48b1-bd27-1e25238b7832",
+    "eventID": "053b0d16-a5c6-4717-a2fc-f4e2f3a41b42",
+    "readOnly": false,
+    "eventType": "AwsApiCall",
+    "managementEvent": true,
+    "eventCategory": "Management",
+    "recipientAccountId": "548105126730"
+}

@@ -54,21 +54,41 @@ def mock_event(event_name):
         elif operation_name == 'DescribeAutoScalingGroups':
             return resource("json/cloudtrail/describe_autoscaling_group.json")
         elif operation_name == 'DescribeClusters':
-            return resource("json/cloudtrail/redshift_describe_clusters.json")
+            if event_name.startswith('ecs'):
+                return resource("json/cloudtrail/ecs_describe_clusters.json")
+            else:
+                return resource("json/cloudtrail/redshift_describe_clusters.json")
         elif operation_name == 'DescribeDBClusters':
             return resource("json/cloudtrail/describe_rds_clusters.json")
         elif operation_name == 'DescribeDBInstances':
             return resource("json/cloudtrail/describe_rds_instances.json")
+        elif operation_name == 'DescribeLoadBalancers':
+            return resource("json/cloudtrail/describe_load_balancers.json")
+        elif operation_name == 'DescribeTargetGroups':
+            return resource("json/cloudtrail/describe_target_groups.json")
+        elif operation_name == 'DescribeInstances':
+            return resource("json/cloudtrail/describe_instances.json")
+        elif operation_name == "GetFunction":
+            return resource("json/cloudtrail/get_function.json")
         elif (
             operation_name == 'ListQueueTags'
             or operation_name == 'ListTagsForDeliveryStream'
             or operation_name == 'ListTagsForStream'
+            or operation_name == 'ListTags'
+            or operation_name == 'ListAliases'
             or operation_name == 'ListTagsOfResource'
             or operation_name == 'ListTagsForResource'
             or operation_name == 'ListSubscriptionsByTopic'
             or operation_name == 'GetBucketLocation'
             or operation_name == 'GetBucketTagging'
             or operation_name == 'GetBucketNotificationConfiguration'
+            or operation_name == 'DescribeTags'
+            or operation_name == 'DescribeTargetHealth'
+            or operation_name == 'DescribeListeners'
+            or operation_name == 'DescribeInstanceTypes'
+            or operation_name == 'ListContainerInstances'
+            or operation_name == 'ListTasks'
+            or operation_name == 'ListServices'
         ):
             return {}
         raise ValueError("Unknown operation name", operation_name)
@@ -111,154 +131,6 @@ class TestCloudtrail(unittest.TestCase):
         service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_EXECUTE_NAME)
         self.assertGreater(len(service_checks), 0)
         self.assertEqual(service_checks[0].status, AgentCheck.OK, service_checks[0].message)
-
-    @set_event('sqs_create_queue')
-    def test_process_sqs_create(self):
-        self.check.run()
-        topology = [top.get_snapshot(self.check.check_id)]
-        self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
-        self.assertEqual(len(topology[0]["components"]), 1)
-        self.assertEqual(
-            'https://sqs.eu-west-1.amazonaws.com/123456789012/CreatedQueueName',
-            topology[0]["components"][0]["data"]["QueueUrl"]
-        )
-
-    @set_event('sqs_set_queue_attributes')
-    def test_process_sqs_update_attributes(self):
-        self.check.run()
-        topology = [top.get_snapshot(self.check.check_id)]
-        self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
-        self.assertEqual(len(topology[0]["components"]), 1)
-        self.assertEqual(
-            'https://sqs.eu-west-1.amazonaws.com/123456789012/UpdatedQueue',
-            topology[0]["components"][0]["data"]["QueueUrl"]
-        )
-
-    @set_event('sqs_tag_queue')
-    def test_process_sqs_tag_queue(self):
-        self.check.run()
-        topology = [top.get_snapshot(self.check.check_id)]
-        self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
-        self.assertEqual(len(topology[0]["components"]), 1)
-        self.assertEqual(
-            'https://sqs.eu-west-1.amazonaws.com/123456789012/TaggedQueue',
-            topology[0]["components"][0]["data"]["QueueUrl"]
-        )
-
-    @set_event('sqs_untag_queue')
-    def test_process_sqs_untag_queue(self):
-        self.check.run()
-        topology = [top.get_snapshot(self.check.check_id)]
-        self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
-        self.assertEqual(len(topology[0]["components"]), 1)
-        self.assertEqual(
-            'https://sqs.eu-west-1.amazonaws.com/123456789012/UntaggedQueue',
-            topology[0]["components"][0]["data"]["QueueUrl"]
-        )
-
-    @set_event('sqs_delete_queue')
-    def test_process_sqs_delete_queue(self):
-        self.check.run()
-        topology = [top.get_snapshot(self.check.check_id)]
-        self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
-        self.assertEqual(len(topology[0]["components"]), 0)
-        self.assertIn('arn:aws:sqs:eu-west-1:123456789012:DeletedQueue', self.check.delete_ids)
-
-    @set_event('sqs_purge_queue')
-    def test_process_sqs_purge_queue(self):
-        self.check.run()
-        topology = [top.get_snapshot(self.check.check_id)]
-        self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
-        self.assertEqual(len(topology[0]["components"]), 0)
-        self.assertEqual(len(self.check.delete_ids), 0)
-        # TODO test that an event is emitted
-
-    @set_event('firehose_create_stream')
-    def test_process_firehose_create_stream(self):
-        self.check.run()
-        topology = [top.get_snapshot(self.check.check_id)]
-        self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
-        self.assertEqual(len(topology[0]["components"]), 1)
-        self.assertEqual(
-            'dnv-sam-seed-button-clicked-firehose',
-            topology[0]["components"][0]["data"]["DeliveryStreamDescription"]["DeliveryStreamName"]
-        )
-
-    @set_event('firehose_delete_stream')
-    def test_process_firehose_delete_stream(self):
-        self.check.run()
-        topology = [top.get_snapshot(self.check.check_id)]
-        self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
-        self.assertEqual(len(topology[0]["components"]), 0)
-        self.assertIn('arn:aws:firehose:eu-west-1:731070500579:deliverystream/AnotherDelivery', self.check.delete_ids)
-
-    @set_event('firehose_start_encryption')
-    def test_process_firehose_start_encryption(self):
-        self.check.run()
-        topology = [top.get_snapshot(self.check.check_id)]
-        self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
-        self.assertEqual(len(topology[0]["components"]), 1)
-        self.assertEqual(
-            'arn:aws:firehose:eu-west-1:731070500579:deliverystream/firehose_1',
-            topology[0]["components"][0]["id"]
-        )
-
-    @set_event('firehose_stop_encryption')
-    def test_process_firehose_stop_encryption(self):
-        self.check.run()
-        topology = [top.get_snapshot(self.check.check_id)]
-        self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
-        self.assertEqual(len(topology[0]["components"]), 1)
-        self.assertEqual(
-            'arn:aws:firehose:eu-west-1:731070500579:deliverystream/firehose_1',
-            topology[0]["components"][0]["id"]
-        )
-
-    @set_event('firehose_tag_stream')
-    def test_process_firehose_tag_stream(self):
-        self.check.run()
-        topology = [top.get_snapshot(self.check.check_id)]
-        self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
-        self.assertEqual(len(topology[0]["components"]), 1)
-        self.assertEqual(
-            'arn:aws:firehose:eu-west-1:731070500579:deliverystream/firehose_1',
-            topology[0]["components"][0]["id"]
-        )
-
-    @set_event('firehose_untag_stream')
-    def test_process_firehose_untag_stream(self):
-        self.check.run()
-        topology = [top.get_snapshot(self.check.check_id)]
-        self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
-        self.assertEqual(len(topology[0]["components"]), 1)
-        self.assertEqual(
-            'arn:aws:firehose:eu-west-1:731070500579:deliverystream/firehose_1',
-            topology[0]["components"][0]["id"]
-        )
-
-    @set_event('firehose_update_destination')
-    def test_process_firehose_update_destination(self):
-        self.check.run()
-        topology = [top.get_snapshot(self.check.check_id)]
-        self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
-        self.assertEqual(len(topology[0]["components"]), 1)
-        self.assertEqual(
-            'arn:aws:firehose:eu-west-1:731070500579:deliverystream/firehose_1',
-            topology[0]["components"][0]["id"]
-        )
 
     @set_event('kinesis_create_stream')
     def test_process_kinesis_create_stream(self):
@@ -434,99 +306,6 @@ class TestCloudtrail(unittest.TestCase):
             topology[0]["components"][0]["data"]["Name"]
         )
 
-    @set_event('s3_create_bucket')
-    def test_process_s3_create_bucket(self):
-        self.check.run()
-        topology = [top.get_snapshot(self.check.check_id)]
-        self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
-        self.assertEqual(len(topology[0]["components"]), 1)
-        self.assertEqual(
-            'stackstate-logs-123456789012',
-            topology[0]["components"][0]["data"]["Name"]
-        )
-
-    @set_event('s3_delete_bucket')
-    def test_process_s3_delete_bucket(self):
-        self.check.run()
-        topology = [top.get_snapshot(self.check.check_id)]
-        self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
-        self.assertEqual(len(topology[0]["components"]), 0)
-        self.assertIn('arn:aws:s3:::stackstate-logs-123456789012', self.check.delete_ids)
-
-    @set_event('autoscaling_create_autoscaling_group')
-    def test_process_create_autoscaling_group(self):
-        self.check.run()
-        topology = [top.get_snapshot(self.check.check_id)]
-        self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
-        self.assertEqual(len(topology[0]["components"]), 1)
-        self.assertEqual(
-            'awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM',
-            topology[0]["components"][0]["data"]["AutoScalingGroupName"]
-        )
-
-    @set_event('autoscaling_delete_autoscaling_group')
-    def test_process_autoscaling_delete_autoscaling_group(self):
-        self.check.run()
-        topology = [top.get_snapshot(self.check.check_id)]
-        self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
-        self.assertEqual(len(topology[0]["components"]), 0)
-        self.assertIn(
-            'elvin-stackstate-tests-main-account-main-region-EcsAutoScalingGroup-VVC5WIJ3AI3K',
-            self.check.delete_ids
-        )
-
-    @set_event('autoscaling_create_or_update_tags')
-    def test_process_create_or_update_tags(self):
-        self.check.run()
-        topology = [top.get_snapshot(self.check.check_id)]
-        self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
-        self.assertEqual(len(topology[0]["components"]), 1)
-        self.assertEqual(
-            'awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM',
-            topology[0]["components"][0]["data"]["AutoScalingGroupName"]
-        )
-
-    @set_event('autoscaling_update_autoscaling_group')
-    def test_process_autoscaling_update_autoscaling_group(self):
-        self.check.run()
-        topology = [top.get_snapshot(self.check.check_id)]
-        self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
-        self.assertEqual(len(topology[0]["components"]), 1)
-        self.assertEqual(
-            'awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM',
-            topology[0]["components"][0]["data"]["AutoScalingGroupName"]
-        )
-
-    @set_event('sns_create_topic')
-    def test_process_sns_create_topic(self):
-        self.check.run()
-        topology = [top.get_snapshot(self.check.check_id)]
-        self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
-        self.assertEqual(len(topology[0]["components"]), 1)
-        self.assertEqual(
-            'arn:aws:sns:eu-west-1:123456789012:MyFirstSNS',
-            topology[0]["components"][0]["id"]
-        )
-
-    @set_event('sns_delete_topic')
-    def test_process_sns_delete_topic(self):
-        self.check.run()
-        topology = [top.get_snapshot(self.check.check_id)]
-        self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
-        self.assertEqual(len(topology[0]["components"]), 0)
-        self.assertIn(
-            'arn:aws:sns:eu-west-1:123456789012:sam-integ-stack-basic-application-' +
-            'sar-location-with-intrinsics-dqaojpvdfwji-MySns-NSB98RV5ST8D', self.check.delete_ids
-        )
-
     @set_event('redshift_create_cluster')
     def test_process_redshift_create_cluster(self):
         self.check.run()
@@ -548,44 +327,38 @@ class TestCloudtrail(unittest.TestCase):
         self.assertEqual(len(topology[0]["components"]), 0)
         self.assertIn('my-dw-instance', self.check.delete_ids)
 
-    @set_event('rds_create_cluster')
-    def test_process_rds_create_cluster(self):
+    @set_event('ecs_create_cluster')
+    def test_process_ecs_create_cluster(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            'arn:aws:rds:eu-west-1:731070500579:cluster:productiondatabasecluster',
+            'arn:aws:ecs:eu-west-1:731070500579:cluster/default',
             topology[0]["components"][0]["id"]
         )
 
-    @set_event('rds_delete_cluster')
-    def test_process_rds_delete_cluster(self):
-        self.check.run()
-        topology = [top.get_snapshot(self.check.check_id)]
-        self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
-        self.assertEqual(len(topology[0]["components"]), 0)
-        self.assertIn('arn:aws:rds:eu-west-1:731070500579:cluster:hithere', self.check.delete_ids)
-
-    @set_event('rds_create_instance')
-    def test_process_rds_create_instance(self):
+    @set_event('ecs_create_service')
+    def test_process_ecs_create_service(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            'arn:aws:rds:eu-west-1:731070500579:db:productiondatabase',
+            'arn:aws:ecs:eu-west-1:731070500579:cluster/default',
             topology[0]["components"][0]["id"]
         )
 
-    @set_event('rds_delete_instance')
-    def test_process_rds_delete_instance(self):
+    @set_event('ec2_run_instances')
+    def test_process_ec2_run_instances(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
-        self.assertEqual(len(topology[0]["components"]), 0)
-        self.assertIn('arn:aws:rds:eu-west-1:731070500579:db:hithere', self.check.delete_ids)
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'i-0aac5bab082561475',
+            topology[0]["components"][0]["id"]
+        )

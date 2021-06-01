@@ -1,0 +1,71 @@
+{
+  "eventVersion": "1.05",
+  "eventID": "7b8e446a-f282-49d4-ab7e-ea901bab98f4",
+  "eventTime": "2018-05-24T18:51:03Z",
+  "requestParameters": {
+    "tracingConfig": {
+      "mode": "Active"
+    },
+    "code": {
+      "s3Bucket": "com-github-dnvriend-dnv-sam-seed",
+      "s3Key": "codepackage.jar",
+      "s3ObjectVersion": "BCB_dxqgspb_9AtD.0JpaiTk3d1fs3r3"
+    },
+    "functionName": "com-github-dnvriend-dnv-sam-seed-GetHello-R8NVI6CUWUHL",
+    "tags": {
+      "sbt:sam:stage": "dnv",
+      "lambda:createdBy": "SAM",
+      "sbt:sam:projectName": "sam-seed",
+      "sbt:sam:projectVersion": "1.0.0-SNAPSHOT"
+    },
+    "memorySize": 1024,
+    "publish": false,
+    "environment": {},
+    "handler": "com.github.dnvriend.GetHello::handleRequest",
+    "role": "arn:aws:iam::731070500579:role/com-github-dnvriend-dnv-sam-seed-GetHelloRole-E6UVSJ7WFZ8X",
+    "timeout": 300,
+    "runtime": "java8",
+    "description": ""
+  },
+  "eventType": "AwsApiCall",
+  "responseElements": {
+    "tracingConfig": {
+      "mode": "Active"
+    },
+    "codeSha256": "OaADq6p5JUjEgLJ5e0x97J+vvUa6th2SHE2MlvdG9qM=",
+    "functionName": "com-stackstate-prod-sam-seed-PutHello-1LUD3ESBOR6EY",
+    "codeSize": 48075091,
+    "revisionId": "77890f14-7835-4170-a62c-341db6b288b2",
+    "memorySize": 1024,
+    "timeout": 300,
+    "functionArn": "arn:aws:lambda:eu-west-1:731070500579:function:com-stackstate-prod-sam-seed-PutHello-1LUD3ESBOR6EY",
+    "environment": {},
+    "handler": "com.github.dnvriend.GetHello::handleRequest",
+    "role": "arn:aws:iam::731070500579:role/com-github-dnvriend-dnv-sam-seed-GetHelloRole-E6UVSJ7WFZ8X",
+    "version": "$LATEST",
+    "lastModified": "2018-05-24T18:51:01.865+0000",
+    "runtime": "java8",
+    "description": ""
+  },
+  "awsRegion": "eu-west-1",
+  "eventName": "CreateFunction20150331",
+  "userIdentity": {
+    "userName": "martijn",
+    "principalId": "AIDAJDDXCZUJ4ZKDWZPOQ",
+    "accessKeyId": "ASIAINRIDER6CYEBKVFA",
+    "invokedBy": "cloudformation.amazonaws.com",
+    "sessionContext": {
+      "attributes": {
+        "creationDate": "2018-05-24T18:50:36Z",
+        "mfaAuthenticated": "false"
+      }
+    },
+    "type": "IAMUser",
+    "arn": "arn:aws:iam::731070500579:user/martijn",
+    "accountId": "731070500579"
+  },
+  "eventSource": "lambda.amazonaws.com",
+  "requestID": "66ae8d91-5f83-11e8-ba49-e9b5827baf2c",
+  "userAgent": "cloudformation.amazonaws.com",
+  "sourceIPAddress": "cloudformation.amazonaws.com"
+}

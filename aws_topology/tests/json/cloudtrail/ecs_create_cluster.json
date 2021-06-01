@@ -1,0 +1,42 @@
+{
+  "eventVersion": "1.04",
+  "eventID": "4fd211a6-1144-41bb-89fb-4f3e411441b5",
+  "eventTime": "2018-06-28T12:11:59Z",
+  "requestParameters": {
+    "clusterName": "default"
+  },
+  "eventType": "AwsApiCall",
+  "responseElements": {
+    "cluster": {
+      "status": "ACTIVE",
+      "statistics": [],
+      "clusterName": "default",
+      "registeredContainerInstancesCount": 0,
+      "pendingTasksCount": 0,
+      "runningTasksCount": 0,
+      "activeServicesCount": 0,
+      "clusterArn": "arn:aws:ecs:eu-west-1:850318095909:cluster/default"
+    }
+  },
+  "awsRegion": "eu-west-1",
+  "eventName": "CreateCluster",
+  "userIdentity": {
+    "userName": "Martijn",
+    "principalId": "AIDAIPJIXRNQQNRLDSBJA",
+    "accessKeyId": "ASIAIUHIVNQJCTB2VSPQ",
+    "invokedBy": "signin.amazonaws.com",
+    "sessionContext": {
+      "attributes": {
+        "creationDate": "2018-06-28T08:07:43Z",
+        "mfaAuthenticated": "true"
+      }
+    },
+    "type": "IAMUser",
+    "arn": "arn:aws:iam::850318095909:user/Martijn",
+    "accountId": "850318095909"
+  },
+  "eventSource": "ecs.amazonaws.com",
+  "requestID": "b41b6629-3811-461c-a5cd-10a3c26dffee",
+  "userAgent": "signin.amazonaws.com",
+  "sourceIPAddress": "81.21.139.6"
+}

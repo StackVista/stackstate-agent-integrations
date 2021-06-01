@@ -1,0 +1,49 @@
+{
+    "eventVersion": "1.04",
+    "eventID": "2abcce90-de7c-4699-8034-b938af3fed63",
+    "eventTime": "2018-04-30T10:05:25Z",
+    "requestParameters": {
+      "subnets": [
+        "subnet-67d82910"
+      ],
+      "listeners": [
+        {
+          "instancePort": 80,
+          "loadBalancerPort": 80,
+          "protocol": "HTTP",
+          "instanceProtocol": "HTTP"
+        }
+      ],
+      "scheme": "internet-facing",
+      "securityGroups": [
+        "sg-193aec7c"
+      ],
+      "loadBalancerName": "waegh"
+    },
+    "eventType": "AwsApiCall",
+    "responseElements": {
+      "dNSName": "waegh-2010173747.eu-west-1.elb.amazonaws.com"
+    },
+    "awsRegion": "eu-west-1",
+    "eventName": "CreateLoadBalancer",
+    "userIdentity": {
+      "userName": "martijn",
+      "principalId": "AIDAJDDXCZUJ4ZKDWZPOQ",
+      "accessKeyId": "ASIAJGFEMGGYPI6KNYSQ",
+      "invokedBy": "signin.amazonaws.com",
+      "sessionContext": {
+        "attributes": {
+          "creationDate": "2018-04-30T08:00:54Z",
+          "mfaAuthenticated": "true"
+        }
+      },
+      "type": "IAMUser",
+      "arn": "arn:aws:iam::731070500579:user/martijn",
+      "accountId": "731070500579"
+    },
+    "eventSource": "elasticloadbalancing.amazonaws.com",
+    "requestID": "0012f836-4c5e-11e8-bb55-79fa5389d880",
+    "apiVersion": "2012-06-01",
+    "userAgent": "signin.amazonaws.com",
+    "sourceIPAddress": "81.21.139.6"
+}

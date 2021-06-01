@@ -1,0 +1,14 @@
+{
+    "Tags": {
+        "a": "b"
+    },
+    "ResponseMetadata": {
+        "Parameters": {
+            "QueueUrl": "https://sqs.eu-west-1.amazonaws.com/508573134510/STS_stackpack_test"
+        },
+        "OperationName": "GetQueueAttributes",
+        "Generater": "2021-05-29 07:45:36.709391",
+        "Region": "eu-west-1",
+        "Account": "508573134510"
+    }
+}
