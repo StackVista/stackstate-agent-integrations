@@ -42,7 +42,7 @@ class LambdaCollector(RegisteredResourceCollector):
         source_id = event_source['EventSourceArn']
         target_id = event_source['FunctionArn']
         # Swapping source/target: StackState models dependencies, not data flow
-        self.agent.relation(target_id, source_id, 'uses service', event_source)
+        self.emit_relation(target_id, source_id, 'uses service', event_source)
 
     def process_lambda(self, function_data):
         function_arn = function_data['FunctionArn']
@@ -61,7 +61,7 @@ class LambdaCollector(RegisteredResourceCollector):
         if lambda_vpc_config:
             vpc_id = lambda_vpc_config['VpcId']
             if vpc_id:
-                self.agent.relation(function_arn, vpc_id, 'uses service', {})
+                self.emit_relation(function_arn, vpc_id, 'uses service', {})
             self.agent.create_security_group_relations(function_arn, lambda_vpc_config, 'SecurityGroupIds')
         # TODO also emit versions as components and relation to alias / canaries
         # https://stackstate.atlassian.net/browse/STAC-13113
@@ -70,4 +70,4 @@ class LambdaCollector(RegisteredResourceCollector):
             alias_arn = alias_data['AliasArn']
             self.emit_component(alias_arn, 'aws.lambda.alias', alias_data)
             if vpc_id:
-                self.agent.relation(alias_arn, vpc_id, 'uses service', {})
+                self.emit_relation(alias_arn, vpc_id, 'uses service', {})

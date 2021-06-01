@@ -4,6 +4,7 @@ import json
 from mock import patch
 from stackstate_checks.base.stubs import topology as top, aggregator
 from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
+from stackstate_checks.aws_topology.utils import location_info
 from stackstate_checks.base import AgentCheck
 import botocore
 import hashlib
@@ -276,12 +277,7 @@ class TestStepFunctions(unittest.TestCase):
         self.assertEqual(len(topology[0]["relations"]), 26)
 
     def test_process_stepfunction_branch_state(self):
-        location_info = {
-            'Location': {
-                'AwsRegion': 'test',
-                'AwsAccount': 'acct'
-            }
-        }
+        location = location_info('acct', 'test')
         branches = [
             {
                 'StartAt': 'B1S1',
@@ -328,7 +324,7 @@ class TestStepFunctions(unittest.TestCase):
             {'id': 'root:state/B2S1', 'type': 'aws.stepfunction.state'},
             {'id': 'root:state/B2S2', 'type': 'aws.stepfunction.state'}]
         agent = AgentMock()
-        collector = StepFunctionCollector(location_info, None, agent)
+        collector = StepFunctionCollector(location, None, agent)
         collector.process_parallel_state('root', 'brancharn', branches)
         self.assertEqual(len(agent.relations), len(expected_relations))
         for relation in expected_relations:
@@ -340,12 +336,7 @@ class TestStepFunctions(unittest.TestCase):
             self.assertIn(component, agent.components)
 
     def test_process_stepfunction_task_state(self):
-        location_info = {
-            'Location': {
-                'AwsRegion': 'test',
-                'AwsAccount': 'acct'
-            }
-        }
+        location = location_info('acct', 'test')
         nameonly_prefix = "arn:AWS::Lambda::Function:"
         arn_prefix = "arn:aws:lambda:region:account:function:"
         partial_prefix = "123456789012:function:"
@@ -368,7 +359,7 @@ class TestStepFunctions(unittest.TestCase):
         ]
         for lambda_ref in lambda_refs:
             agent = AgentMock()
-            collector = StepFunctionCollector(location_info, None, agent)
+            collector = StepFunctionCollector(location, None, agent)
             state = {
                 'Type': 'Task',
                 'Resource': 'arn:aws:states:::lambda:',
@@ -386,7 +377,7 @@ class TestStepFunctions(unittest.TestCase):
         ]
         for lambda_ref in wrong_refs:
             agent = AgentMock()
-            collector = StepFunctionCollector(location_info, None, agent)
+            collector = StepFunctionCollector(location, None, agent)
             state = {
                 'Type': 'Task',
                 'Resource': 'arn:aws:states:::lambda:',

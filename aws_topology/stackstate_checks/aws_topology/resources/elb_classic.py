@@ -23,8 +23,8 @@ class ELBClassicCollector(RegisteredResourceCollector):
         elb_data['URN'] = [
             create_resource_arn(
                 'elasticloadbalancing',
-                self.location_info['Location']['AwsRegion'],
-                self.location_info['Location']['AwsAccount'],
+                self.location_info.Location.AwsRegion,
+                self.location_info.Location.AwsAccount,
                 'loadbalancer',
                 elb_name
             )
@@ -37,11 +37,11 @@ class ELBClassicCollector(RegisteredResourceCollector):
         self.emit_component(instance_id, self.COMPONENT_TYPE, elb_data)
 
         vpc_id = elb_data['VPCId']
-        self.agent.relation(instance_id, vpc_id, 'uses service', {})
+        self.emit_relation(instance_id, vpc_id, 'uses service', {})
 
         for instance in elb_data.get('Instances') or []:
             instance_external_id = instance['InstanceId']  # ec2 instance
-            self.agent.relation(instance_id, instance_external_id, 'uses service', {})
+            self.emit_relation(instance_id, instance_external_id, 'uses service', {})
 
         for instance_health in self.client.describe_instance_health(
             LoadBalancerName=elb_name

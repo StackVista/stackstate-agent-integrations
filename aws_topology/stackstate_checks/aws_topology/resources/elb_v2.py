@@ -41,7 +41,7 @@ class ElbV2Collector(RegisteredResourceCollector):
             self.emit_component(elb_external_id, elb_type, elb_data)
             load_balancer[elb_external_id] = elb_external_id
             lb_type[elb_external_id] = elb_data['Type'].lower()
-            self.agent.relation(elb_external_id, vpc_id, 'uses service', {})
+            self.emit_relation(elb_external_id, vpc_id, 'uses service', {})
         target_group = {}
         for target_group_data_raw in self.client.describe_target_groups().get('TargetGroups') or []:
             target_group_data = make_valid_data(target_group_data_raw)
@@ -65,13 +65,13 @@ class ElbV2Collector(RegisteredResourceCollector):
             self.emit_component(target_group_external_id, 'aws.elb_v2_target_group', target_group_data)
             target_group[target_group_external_id] = target_group_external_id
 
-            self.agent.relation(target_group_external_id, vpc_id, 'uses service', {})
+            self.emit_relation(target_group_external_id, vpc_id, 'uses service', {})
 
             for elb_arn in target_group_data['LoadBalancerArns']:
                 elb_target_group_data = {}
-                elb_target_group_data.update(self.location_info)
+                elb_target_group_data.update(self.location_info.to_primitive())
 
-                self.agent.relation(elb_arn, target_group_external_id, 'uses service', elb_target_group_data)
+                self.emit_relation(elb_arn, target_group_external_id, 'uses service', elb_target_group_data)
 
             for target_raw in self.client.describe_target_health(
                 TargetGroupArn=target_group_data['TargetGroupArn']
@@ -95,7 +95,7 @@ class ElbV2Collector(RegisteredResourceCollector):
                 )
 
                 # relation between target group and target
-                self.agent.relation(
+                self.emit_relation(
                     target_group_external_id,
                     "urn:aws/target-group-instance/" + target_external_id,
                     'uses service',
