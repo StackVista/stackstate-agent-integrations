@@ -65,7 +65,7 @@ class ElbV2Collector(RegisteredResourceCollector):
             elb_data['listeners'].append(listener)
 
         self.emit_component(elb_external_id, elb_type, elb_data)
-        self.agent.relation(elb_external_id, vpc_id, 'uses service', {})
+        self.emit_relation(elb_external_id, vpc_id, 'uses service', {})
         return {elb_external_id: elb_data['Type'].lower()}
 
     def process_target_group(self, data, lb_types={}):
@@ -91,12 +91,12 @@ class ElbV2Collector(RegisteredResourceCollector):
 
         self.emit_component(target_group_external_id, 'aws.elb_v2_target_group', target_group_data)
 
-        self.agent.relation(target_group_external_id, vpc_id, 'uses service', {})
+        self.emit_relation(target_group_external_id, vpc_id, 'uses service', {})
 
         for elb_arn in target_group_data['LoadBalancerArns']:
             elb_target_group_data = {}
-            elb_target_group_data.update(self.location_info)
-            self.agent.relation(elb_arn, target_group_external_id, 'uses service', elb_target_group_data)
+            elb_target_group_data.update(self.location_info.to_primitive())
+            self.emit_relation(elb_arn, target_group_external_id, 'uses service', elb_target_group_data)
 
         # emit health events for all TargetGroups
         for target_raw in self.client.describe_target_health(
@@ -121,7 +121,7 @@ class ElbV2Collector(RegisteredResourceCollector):
             )
 
             # relation between target group and target
-            self.agent.relation(
+            self.emit_relation(
                 target_group_external_id,
                 "urn:aws/target-group-instance/" + target_external_id,
                 'uses service',

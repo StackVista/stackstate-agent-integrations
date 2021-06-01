@@ -106,11 +106,11 @@ class FirehoseCollector(RegisteredResourceCollector):
             source = description.Source
             if source:
                 kinesis_stream_arn = source.KinesisStreamSourceDescription.KinesisStreamARN
-                self.agent.relation(kinesis_stream_arn, delivery_stream_arn, RELATION_TYPE.USES_SERVICE, {})
+                self.emit_relation(kinesis_stream_arn, delivery_stream_arn, RELATION_TYPE.USES_SERVICE, {})
 
         for destination in description.Destinations:
             if destination.S3DestinationDescription:
-                self.agent.relation(
+                self.emit_relation(
                     delivery_stream_arn,
                     destination.S3DestinationDescription.BucketARN,
                     "uses service",

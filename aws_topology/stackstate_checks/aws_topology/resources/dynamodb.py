@@ -50,7 +50,7 @@ class DynamodbTableCollector(RegisteredResourceCollector):
                 {'key': 'StreamLabel', 'value': latest_stream_label}
             ]))
             self.emit_component(latest_stream_arn, 'aws.dynamodb.streams', stream_specification)
-            self.agent.relation(table_arn, latest_stream_arn, 'uses service', {})
+            self.emit_relation(table_arn, latest_stream_arn, 'uses service', {})
         return {table_name: table_arn}
 
     def process_resource(self, arn):

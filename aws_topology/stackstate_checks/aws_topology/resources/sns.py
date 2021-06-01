@@ -31,9 +31,10 @@ class SnsCollector(RegisteredResourceCollector):
         for subscriptions_by_topicpage in self.client.get_paginator('list_subscriptions_by_topic').paginate(
                 TopicArn=topic_arn):
             for subscription_by_topic in subscriptions_by_topicpage.get('Subscriptions') or []:
-                if subscription_by_topic['Protocol'] in ['lambda', 'sqs']:
+                if subscription_by_topic['Protocol'] in ['lambda', 'sqs'] and \
+                        subscription_by_topic['TopicArn'] == topic_arn:
                     # TODO subscriptions can be cross region! probably also cross account
-                    self.agent.relation(topic_arn, subscription_by_topic['Endpoint'], 'uses service', {})
+                    self.emit_relation(topic_arn, subscription_by_topic['Endpoint'], 'uses service', {})
 
     EVENT_SOURCE = "sns.amazonaws.com"
     CLOUDTRAIL_EVENTS = [

@@ -48,10 +48,10 @@ class RdsCollector(RegisteredResourceCollector):
         instance_data.update(with_dimensions([{'key': 'DBInstanceIdentifier', 'value': instance_id}]))
         self.emit_component(instance_arn, 'aws.rds_instance', instance_data)
         vpc_id = instance_data['DBSubnetGroup']['VpcId']
-        self.agent.relation(instance_arn, vpc_id, 'uses service', {})
+        self.emit_relation(instance_arn, vpc_id, 'uses service', {})
         if instance_data.get('VpcSecurityGroups'):  # TODO agent.create_security_group_relations (but needs change?)
             for security_group in instance_data['VpcSecurityGroups']:
-                self.agent.relation(instance_arn, security_group['VpcSecurityGroupId'], 'uses service', {})
+                self.emit_relation(instance_arn, security_group['VpcSecurityGroupId'], 'uses service', {})
 
     def process_cluster(self, cluster_data):
         cluster_id = cluster_data['DBClusterIdentifier']
@@ -62,7 +62,7 @@ class RdsCollector(RegisteredResourceCollector):
         for cluster_member in cluster_data['DBClusterMembers']:
             db_identifier = cluster_member['DBInstanceIdentifier']
             arn = self.agent.create_arn('AWS::RDS::DBInstance', self.location_info, db_identifier)
-            self.agent.relation(cluster_arn, arn, 'has_cluster_node', {})
+            self.emit_relation(cluster_arn, arn, 'has_cluster_node', {})
 
     EVENT_SOURCE = 'rds.amazonaws.com'
     CLOUDTRAIL_EVENTS = [

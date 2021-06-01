@@ -82,7 +82,7 @@ class S3Collector(RegisteredResourceCollector):
             function_arn = bucket_notification.LambdaFunctionArn
             if function_arn:
                 for event in bucket_notification.Events:
-                    self.agent.relation(bucket_arn, function_arn, "uses service", {"event_type": event})
+                    self.emit_relation(bucket_arn, function_arn, "uses service", {"event_type": event})
 
     EVENT_SOURCE = 's3.amazonaws.com'
     CLOUDTRAIL_EVENTS = [

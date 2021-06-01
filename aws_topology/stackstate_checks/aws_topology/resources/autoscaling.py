@@ -80,10 +80,10 @@ class AutoscalingCollector(RegisteredResourceCollector):
         self.emit_component(auto_scaling_group.AutoScalingGroupName, self.COMPONENT_TYPE, output)
 
         for instance in auto_scaling_group.Instances:
-            self.agent.relation(auto_scaling_group.AutoScalingGroupARN, instance.InstanceId, 'uses service', {})
+            self.emit_relation(auto_scaling_group.AutoScalingGroupARN, instance.InstanceId, 'uses service', {})
 
         for load_balancer_name in auto_scaling_group.LoadBalancerNames:
-            self.agent.relation(
+            self.emit_relation(
                 'classic_elb_' + load_balancer_name,
                 auto_scaling_group.AutoScalingGroupARN,
                 'uses service',
@@ -96,7 +96,7 @@ class AutoscalingCollector(RegisteredResourceCollector):
                 self.agent.delete(relation_id)
 
         for target_group_arn in auto_scaling_group.TargetGroupARNs:
-            self.agent.relation(target_group_arn, auto_scaling_group.AutoScalingGroupARN, 'uses service', {})
+            self.emit_relation(target_group_arn, auto_scaling_group.AutoScalingGroupARN, 'uses service', {})
 
             for instance in auto_scaling_group.Instances:
                 # removing elb instances if there are any

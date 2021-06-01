@@ -44,7 +44,7 @@ class EcsCollector(RegisteredResourceCollector):
                         containerInstances=container_instance_page['containerInstanceArns']
                     )
                     for container_instance in described_container_instance.get('containerInstances', []):
-                        self.agent.relation(cluster_arn, container_instance['ec2InstanceId'], 'uses_ec2_host', {})
+                        self.emit_relation(cluster_arn, container_instance['ec2InstanceId'], 'uses_ec2_host', {})
 
     def process_one_cluster(self, cluster_arn):
         self.process_clusters([cluster_arn])
@@ -108,7 +108,7 @@ class EcsCollector(RegisteredResourceCollector):
 
         self.emit_component(task_arn, 'aws.ecs.task', task_data)
         if not has_group_service:
-            self.agent.relation(cluster_arn, task_arn, 'has_cluster_node', {})
+            self.emit_relation(cluster_arn, task_arn, 'has_cluster_node', {})
         return {
             task_group: {
                 'taskArn': task_arn,
@@ -129,7 +129,7 @@ class EcsCollector(RegisteredResourceCollector):
         service_name = service_data['serviceName']
         for lb in service_data['loadBalancers']:
             if "targetGroupArn" in lb:
-                self.agent.relation(service_arn, lb['targetGroupArn'], 'uses service', {})
+                self.emit_relation(service_arn, lb['targetGroupArn'], 'uses service', {})
         service_data['Name'] = service_name
         service_data.update(with_dimensions([
             {'key': 'ClusterName', 'value': cluster_name},
@@ -152,12 +152,12 @@ class EcsCollector(RegisteredResourceCollector):
             # TODO self.logger.debug('ecs service {0} with identifiers: {1}'.format(service_name, identifiers))
 
             # create a relation with the task
-            self.agent.relation(service_arn, containers['taskArn'], 'has_cluster_node', {})
+            self.emit_relation(service_arn, containers['taskArn'], 'has_cluster_node', {})
         # else:
         # TODO   self.logger.warning('no containers for ecs service {0}'.format(service_name))
 
         self.emit_component(service_arn, 'aws.ecs.service', service_data)
-        self.agent.relation(cluster_arn, service_arn, 'has_cluster_node', {})
+        self.emit_relation(cluster_arn, service_arn, 'has_cluster_node', {})
 
         # TODO makes new client ? should we do that here ?
         for registry in service_data['serviceRegistries']:
@@ -173,7 +173,7 @@ class EcsCollector(RegisteredResourceCollector):
                 namespace_id = service['DnsConfig']['NamespaceId']
                 namespace_data = discovery_client.get_namespace(Id=namespace_id)
                 hosted_zone_id = namespace_data['Namespace']['Properties']['DnsProperties']['HostedZoneId']
-                self.agent.relation(service_arn, '/hostedzone/' + hosted_zone_id, 'uses service', {})
+                self.emit_relation(service_arn, '/hostedzone/' + hosted_zone_id, 'uses service', {})
 
     EVENT_SOURCE = 'ecs.amazonaws.com'
     CLOUDTRAIL_EVENTS = [

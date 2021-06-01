@@ -72,6 +72,9 @@ class RegisteredResourceCollector(with_metaclass(ResourceRegistry, object)):
     def emit_deletion(self, id):
         self.agent.delete(id)
 
+    def emit_relation(self, source, target, type, data):
+        self.agent.relation(source, target, type, data)
+
     def process_all(self, filter=None):
         raise NotImplementedError
 
