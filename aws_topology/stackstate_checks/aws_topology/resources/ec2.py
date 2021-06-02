@@ -23,6 +23,18 @@ class Vpc(Model):
     Tags = ListType(ModelType(Tag), default=[])
 
 
+class Instance(Model):
+    instanceId = StringType(required=True)
+
+
+class RunInstances(Model):
+    class ResponseElements(Model):
+        class InstancesSet(Model):
+            items = ListType(ModelType(Instance), required=True)
+        instancesSet = ModelType(InstancesSet, required=True)
+    responseElements = ModelType(ResponseElements, required=True)
+
+
 class Ec2InstanceCollector(RegisteredResourceCollector):
     API = "ec2"
     API_TYPE = "regional"
@@ -49,9 +61,18 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
                 if instance_data['State']['Name'] != "terminated":
                     self.process_instance(instance_data)
 
+    def process_some_instances(self, ids):
+        for reservation in self.client.describe_instances(
+            InstanceIds=ids
+        ).get('Reservations') or []:
+            for instance_data_raw in reservation.get('Instances') or []:
+                instance_data = make_valid_data(instance_data_raw)
+                if instance_data['State']['Name'] != "terminated":
+                    self.process_instance(instance_data)
+
     def process_instance(self, instance_data):
         if self.nitroInstances is None:
-            instance_types = self.client.describe_instance_types()['InstanceTypes']
+            instance_types = self.client.describe_instance_types().get('InstanceTypes') or []
             self.nitroInstances = list(filter(
                 lambda instance_type: 'Hypervisor' not in instance_type or instance_type['Hypervisor'] == "nitro",
                 instance_types
@@ -204,3 +225,20 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
             for vpn_attachment in vpn_description['VpcAttachments']:
                 vpc_id = vpn_attachment['VpcId']
                 self.emit_relation(vpn_id, vpc_id, 'uses service', {})
+
+    def process_run_instances(self, event, seen):
+        ids = []
+        data = RunInstances(event, strict=False)
+        data.validate()
+        for instance in data.responseElements.instancesSet.items:
+            ids.append(instance.instanceId)
+        self.process_some_instances(ids)
+        return ids
+
+    EVENT_SOURCE = 'ec2.amazonaws.com'
+    CLOUDTRAIL_EVENTS = [
+        {
+            'event_name': 'RunInstances',
+            'processor': process_run_instances
+        }
+    ]

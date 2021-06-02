@@ -1,5 +1,4 @@
 from six import with_metaclass
-from .cloudtrail import listen_for
 import flatten_dict
 
 
@@ -16,7 +15,7 @@ class ResourceRegistry(type):
         'global': {},
         'regional': {}
     }
-    CLOUDTRAIL = listen_for
+    CLOUDTRAIL = {}
 
     def __new__(cls, name, bases, attrs):
         new_cls = type.__new__(cls, name, bases, attrs)
@@ -70,11 +69,23 @@ class RegisteredResourceCollector(with_metaclass(ResourceRegistry, object)):
     def emit_component(self, id, type, data):
         self.agent.component(self.location_info, id, type, data)
 
+    def emit_deletion(self, id):
+        self.agent.delete(id)
+
     def emit_relation(self, source, target, type, data):
         self.agent.relation(source, target, type, data)
 
     def process_all(self, filter=None):
         raise NotImplementedError
+
+    def process_delete_by_name(self, name):
+        id = self.agent.create_arn(
+            self.CLOUDFORMATION_TYPE,
+            self.location_info,
+            name
+        )
+        self.emit_deletion(id)
+        return id
 
     def process_cloudtrail_event(self, event, seen):
         event_name = event.get('eventName')
@@ -88,8 +99,10 @@ class RegisteredResourceCollector(with_metaclass(ResourceRegistry, object)):
                 flat = flatten_dict.flatten(event, dot_reducer, enumerate_types=(list,))
                 id = flat.get(handler['path'])
                 if id and id not in seen:
-                    processor(self, id)
+                    processor(self, id)  # TODO update seen!
                 return id
+            elif processor:
+                processor(self, event, seen)
             else:
                 self.agent.warning(
                     'The API {} should handle CloudTrail event {}'.format(self.API, event_name)

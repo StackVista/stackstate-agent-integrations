@@ -189,7 +189,7 @@ class AwsTopologyCheck(AgentCheck):
                         msgs = listen_for.get(rec['apiVersion'] + '-' + rec['eventSource'])
                     if isinstance(msgs, dict):
                         event_name = rec.get('eventName')
-                        event_class = listen_for[rec['eventSource']].get(event_name)
+                        event_class = msgs.get(event_name)
                         if event_class:
                             if isinstance(event_class, bool):
                                 print('should interpret: ' + rec['eventName'] + '-' + rec['eventSource'])

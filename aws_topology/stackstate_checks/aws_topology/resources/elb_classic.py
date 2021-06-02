@@ -11,9 +11,17 @@ class ELBClassicCollector(RegisteredResourceCollector):
     API = "elb"
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.elb_classic"
+    CLOUDFORMATION_TYPE = "AWS::ElasticLoadBalancing::LoadBalancer"
 
     def process_all(self, filter=None):
         for elb_data_raw in self.client.describe_load_balancers().get('LoadBalancerDescriptions') or []:
+            elb_data = make_valid_data(elb_data_raw)
+            self.process_loadbalancer(elb_data)
+
+    def process_one_loadbalancer(self, name):
+        for elb_data_raw in self.client.describe_load_balancers(
+            LoadBalancerNames=[name]
+        ).get('LoadBalancerDescriptions') or []:
             elb_data = make_valid_data(elb_data_raw)
             self.process_loadbalancer(elb_data)
 
@@ -60,3 +68,23 @@ class ELBClassicCollector(RegisteredResourceCollector):
             self.agent.event(event)
 
         self.agent.create_security_group_relations(instance_id, elb_data)
+
+    EVENT_SOURCE = 'elasticloadbalancing.amazonaws.com'
+    API_VERSION = '2012-06-01'
+    CLOUDTRAIL_EVENTS = [
+        {
+            'event_name': 'CreateLoadBalancer',
+            'path': 'requestParameters.loadBalancerName',
+            'processor': process_one_loadbalancer
+        },
+        {
+            'event_name': 'DeleteLoadBalancer',
+            'path': 'requestParameters.loadBalancerName',
+            'processor': RegisteredResourceCollector.process_delete_by_name
+        },
+        {
+            'event_name': 'RegisterInstancesWithLoadBalancer',
+            'path': 'requestParameters.loadBalancerName',
+            'processor': process_one_loadbalancer
+        }
+    ]
