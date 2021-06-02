@@ -21,7 +21,7 @@
             "ResourceType": "AWS::Kinesis::Stream",
             "Timestamp": "2019-06-27T20:24:10.797Z",
             "StackName": "stackstate-topo-publisher",
-            "PhysicalResourceId": "stream_1",
+            "PhysicalResourceId": "stream_5",
             "LogicalResourceId": "StackSatePublisherLambdaKinesisEventSource"
         },
         {

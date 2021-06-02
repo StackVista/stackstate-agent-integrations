@@ -1338,7 +1338,7 @@ class TestTemplate(unittest.TestCase):
         ), True)
         # assert for kinesis stream relation
         self.assertEqual(self.has_relation(
-            relations, source_id, "arn:aws:kinesis:eu-west-1:731070500579:stream/stream_1"
+            relations, source_id, "arn:aws:kinesis:eu-west-1:731070500579:stream/stream_5"
         ), True)
         # assert for s3 bucket relation
         self.assertEqual(self.has_relation(
