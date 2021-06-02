@@ -2,7 +2,6 @@ from .utils import (
     make_valid_data,
     with_dimensions,
     create_arn as arn,
-    CloudTrailEventBase,
     client_array_operation,
     set_required_access_v2,
     transformation,
@@ -125,31 +124,19 @@ class DynamodbTableCollector(RegisteredResourceCollector):
         return {table_name: table_arn}
 
     def process_resource(self, arn):
-        name = arn.split(':')[-1]
+        name = arn.split(":")[-1]
         self.process_one_table(name)
 
     EVENT_SOURCE = "dynamodb.amazonaws.com"
     CLOUDTRAIL_EVENTS = [
+        {"event_name": "CreateTable", "path": "requestParameters.tableName", "processor": process_one_table},
         {
-            'event_name': 'CreateTable',
-            'path': 'requestParameters.tableName',
-            'processor': process_one_table
+            "event_name": "DeleteTable",
+            "path": "requestParameters.tableName",
+            "processor": RegisteredResourceCollector.process_delete_by_name,
         },
-        {
-            'event_name': 'DeleteTable',
-            'path': 'requestParameters.tableName',
-            'processor': RegisteredResourceCollector.process_delete_by_name
-        },
-        {
-            'event_name': 'TagResource',
-            'path': 'requestParameters.resourceArn',
-            'processor': process_resource
-        },
-        {
-            'event_name': 'UntagResource',
-            'path': 'requestParameters.resourceArn',
-            'processor': process_resource
-        }
+        {"event_name": "TagResource", "path": "requestParameters.resourceArn", "processor": process_resource},
+        {"event_name": "UntagResource", "path": "requestParameters.resourceArn", "processor": process_resource}
         # UpdateTable
         # UpdateTimeToLive
         #
@@ -157,7 +144,6 @@ class DynamodbTableCollector(RegisteredResourceCollector):
         #
         # UpdateGlobalTable
         # CreateGlobalTable
-
         # events
         # RestoreTableFromBackup
         # RestoreTableToPointInTime
