@@ -72,16 +72,12 @@ class TableStreamSpecification(Model):
     StreamViewType = StringType()
 
 
-class TableDescription(Model):
+class Table(Model):
     TableArn = StringType()
     TableName = StringType(required=True)
     StreamSpecification = ModelType(TableStreamSpecification)
     LatestStreamLabel = StringType()
     LatestStreamArn = StringType()
-
-
-class Table(Model):
-    Table = ModelType(TableDescription, required=True)
 
 
 class DynamodbTableCollector(RegisteredResourceCollector):
@@ -114,7 +110,7 @@ class DynamodbTableCollector(RegisteredResourceCollector):
 
     @set_required_access_v2("dynamodb:DescribeTable")
     def collect_table_description(self, table_name):
-        return self.client.describe_table(TableName=table_name)
+        return self.client.describe_table(TableName=table_name).get("Table", {})
 
     def construct_table_description(self, table_name):
         return {
@@ -157,30 +153,30 @@ class DynamodbTableCollector(RegisteredResourceCollector):
     def process_table(self, data):
         table = Table(data.table, strict=False)
         table.validate()
-        description = table.Table
-        output = make_valid_data(description.to_primitive())
-        table_arn = description.TableArn
-        table_name = description.TableName
+        output = make_valid_data(data.table)
+        table_arn = table.TableArn
+        table_name = table.TableName
         output["Name"] = table_arn
         output["Tags"] = data.tags
         output.update(with_dimensions([{"key": "TableName", "value": table_name}]))
         self.emit_component(table_arn, self.COMPONENT_TYPE, output)
 
-        latest_stream_arn = description.LatestStreamArn
-        stream_specification = description.StreamSpecification.to_primitive()
+        latest_stream_arn = table.LatestStreamArn
+        stream_specification = table.StreamSpecification
         # TODO also streaming to kinesis also possible (relation)
         # TODO global tables possible (regions specified)
         # TODO has default alarms
         if latest_stream_arn and stream_specification:
-            latest_stream_label = description.LatestStreamLabel
-            stream_specification["LatestStreamArn"] = latest_stream_arn
-            stream_specification["LatestStreamLabel"] = latest_stream_label
-            stream_specification["Name"] = latest_stream_arn
-            stream_specification.update(
+            stream = make_valid_data(data.table.get("StreamSpecification", {}))
+            latest_stream_label = table.LatestStreamLabel
+            stream["LatestStreamArn"] = latest_stream_arn
+            stream["LatestStreamLabel"] = latest_stream_label
+            stream["Name"] = latest_stream_arn
+            stream.update(
                 with_dimensions(
                     [{"key": "TableName", "value": table_name}, {"key": "StreamLabel", "value": latest_stream_label}]
                 )
             )
-            self.emit_component(latest_stream_arn, "aws.dynamodb.streams", stream_specification)
+            self.emit_component(latest_stream_arn, "aws.dynamodb.streams", stream)
             self.emit_relation(table_arn, latest_stream_arn, "uses service", {})
         return {table_name: table_arn}
