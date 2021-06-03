@@ -43,6 +43,8 @@ def mock_event(event_name):
                 ]
             }
             return msg
+        elif operation_name == 'GetTopicAttributes':
+            return resource("json/cloudtrail/sns_get_topic_attributes.json")
         elif operation_name == 'GetQueueAttributes':
             return resource("json/cloudtrail/get_queue_attributes.json")
         elif operation_name == 'DescribeDeliveryStream':

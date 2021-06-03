@@ -206,6 +206,10 @@ def mock_boto_calls(self, operation_name, kwarg):
     elif operation_name == "ListTopics":
         return resource("test_sns_list_topics.json")
 
+    elif operation_name == "GetTopicAttributes":
+        path_name = "test_sns_get_topic_attributes_" + kwarg["TopicArn"].rsplit(":", 1)[-1] + ".json"
+        return resource(path_name)
+
     elif operation_name == "ListQueues":
         return resource("test_sqs_list_queues.json")
 
