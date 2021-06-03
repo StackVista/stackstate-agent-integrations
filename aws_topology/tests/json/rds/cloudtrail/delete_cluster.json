@@ -46,7 +46,7 @@
       "eu-west-1c",
       "eu-west-1a"
     ],
-    "dBClusterArn": "arn:aws:rds:eu-west-1:548105126730:cluster:productiondatabasecluster",
+    "dBClusterArn": "arn:aws:rds:eu-west-1:731070500579:cluster:productiondatabasecluster",
     "preferredMaintenanceWindow": "sat:23:16-sat:23:46",
     "endpoint": "hithere.cluster-cdnm1uvvpdkc.eu-west-1.rds.amazonaws.com",
     "masterUsername": "hi",

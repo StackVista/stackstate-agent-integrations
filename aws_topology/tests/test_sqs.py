@@ -7,6 +7,9 @@ class TestSqs(BaseApiTest):
     def get_api(self):
         return "sqs"
 
+    def get_account_id(self):
+        return "731070500579"
+
     def test_process_sqs(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
@@ -18,13 +21,13 @@ class TestSqs(BaseApiTest):
 
         component = self.assert_has_component(
             components,
-            "arn:aws:sqs:eu-west-1:508573134510:STS_stackpack_test",
+            "arn:aws:sqs:eu-west-1:731070500579:STS_stackpack_test",
             "aws.sqs",
             checks={
                 "Tags.a": "b",
                 "Name": "STS_stackpack_test",
                 "URN": [
-                    "https://sqs.eu-west-1.amazonaws.com/508573134510/STS_stackpack_test"
+                    "https://sqs.eu-west-1.amazonaws.com/731070500579/STS_stackpack_test"
                 ],
                 "CW.Dimensions": [
                     {"Key": "QueueName", "Value": "STS_stackpack_test"}
@@ -44,7 +47,7 @@ class TestSqs(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            'https://sqs.eu-west-1.amazonaws.com/508573134510/STS_stackpack_test',
+            'https://sqs.eu-west-1.amazonaws.com/731070500579/STS_stackpack_test',
             topology[0]["components"][0]["data"]["QueueUrl"]
         )
 
@@ -56,7 +59,7 @@ class TestSqs(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            'https://sqs.eu-west-1.amazonaws.com/508573134510/STS_stackpack_test',
+            'https://sqs.eu-west-1.amazonaws.com/731070500579/STS_stackpack_test',
             topology[0]["components"][0]["data"]["QueueUrl"]
         )
 
@@ -68,7 +71,7 @@ class TestSqs(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            'https://sqs.eu-west-1.amazonaws.com/508573134510/STS_stackpack_test',
+            'https://sqs.eu-west-1.amazonaws.com/731070500579/STS_stackpack_test',
             topology[0]["components"][0]["data"]["QueueUrl"]
         )
 
@@ -80,7 +83,7 @@ class TestSqs(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            'https://sqs.eu-west-1.amazonaws.com/508573134510/STS_stackpack_test',
+            'https://sqs.eu-west-1.amazonaws.com/731070500579/STS_stackpack_test',
             topology[0]["components"][0]["data"]["QueueUrl"]
         )
 
@@ -91,7 +94,7 @@ class TestSqs(BaseApiTest):
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 0)
-        self.assertIn('arn:aws:sqs:eu-west-1:123456789012:DeletedQueue', self.check.delete_ids)
+        self.assertIn('arn:aws:sqs:eu-west-1:731070500579:DeletedQueue', self.check.delete_ids)
 
     @set_cloudtrail_event('sqs_purge_queue')
     def test_process_sqs_purge_queue(self):

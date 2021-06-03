@@ -42,8 +42,8 @@
                     "DBInstanceIdentifier": "productiondatabase-eu-west-1c"
                 }
             ],
-            "DBClusterArn": "arn:aws:rds:eu-west-1:548105126730:cluster:productiondatabasecluster",
-            "KmsKeyId": "arn:aws:kms:eu-west-1:548105126730:key/f3e71968-889b-4e27-8d62-56da6b269b82",
+            "DBClusterArn": "arn:aws:rds:eu-west-1:731070500579:cluster:productiondatabasecluster",
+            "KmsKeyId": "arn:aws:kms:eu-west-1:731070500579:key/f3e71968-889b-4e27-8d62-56da6b269b82",
             "StorageEncrypted": true,
             "DatabaseName": "MyCluster",
             "DBClusterParameterGroup": "default.aurora5.6",

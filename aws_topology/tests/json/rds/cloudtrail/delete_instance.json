@@ -49,7 +49,7 @@
       "subnetGroupStatus": "Complete"
     },
     "allocatedStorage": 1,
-    "dBInstanceArn": "arn:aws:rds:eu-west-1:548105126730:db:productiondatabase",
+    "dBInstanceArn": "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase",
     "monitoringRoleArn": "arn:aws:iam::731070500579:role/rds-monitoring-role",
     "dbInstancePort": 0,
     "backupRetentionPeriod": 1,

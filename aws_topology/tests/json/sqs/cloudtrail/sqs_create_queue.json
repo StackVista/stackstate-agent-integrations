@@ -2,9 +2,9 @@
     "eventVersion": "1.08",
     "userIdentity": {
         "type": "Root",
-        "principalId": "123456789012",
-        "arn": "arn:aws:iam::123456789012:root",
-        "accountId": "123456789012",
+        "principalId": "731070500579",
+        "arn": "arn:aws:iam::731070500579:root",
+        "accountId": "731070500579",
         "accessKeyId": "ASIABCDEFGHIJK",
         "sessionContext": {
             "sessionIssuer": {},
@@ -24,7 +24,7 @@
     "requestParameters": {
         "queueName": "STS_stackpack_test",
         "attribute": {
-            "Policy": "{\"Version\":\"2008-10-17\",\"Id\":\"__default_policy_ID\",\"Statement\":[{\"Sid\":\"__owner_statement\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"123456789012\"},\"Action\":[\"SQS:*\"],\"Resource\":\"arn:aws:sqs:eu-west-1:123456789012:CreatedQueueName\"}]}",
+            "Policy": "{\"Version\":\"2008-10-17\",\"Id\":\"__default_policy_ID\",\"Statement\":[{\"Sid\":\"__owner_statement\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"731070500579\"},\"Action\":[\"SQS:*\"],\"Resource\":\"arn:aws:sqs:eu-west-1:731070500579:CreatedQueueName\"}]}",
             "ReceiveMessageWaitTimeSeconds": "0",
             "DelaySeconds": "0",
             "KmsMasterKeyId": "",
@@ -35,7 +35,7 @@
         }
     },
     "responseElements": {
-        "queueUrl": "https://sqs.eu-west-1.amazonaws.com/508573134510/STS_stackpack_test"
+        "queueUrl": "https://sqs.eu-west-1.amazonaws.com/731070500579/STS_stackpack_test"
     },
     "requestID": "4bb06b8e-5532-5039-872c-328ee8c71124",
     "eventID": "9af6b06b-c0c8-4f8d-864a-ba441f5c606f",
@@ -43,5 +43,5 @@
     "eventType": "AwsApiCall",
     "managementEvent": true,
     "eventCategory": "Management",
-    "recipientAccountId": "123456789012"
+    "recipientAccountId": "731070500579"
 }

@@ -155,7 +155,10 @@ def wrapper(api, not_authorized, subdirectory, event_name=None):
                     'Code': 'AccessDenied'
                 }
             }, operation_name)
-        directory = os.path.join("json", api, subdirectory)
+        apidir = api
+        if apidir is None:
+            apidir = self._service_model.service_name
+        directory = os.path.join("json", apidir, subdirectory)
         file_name = "{}/{}_{}.json".format(directory, operation_name, get_params_hash(self.meta.region_name, args))
         try:
             result = resource(file_name)
@@ -214,11 +217,15 @@ class BaseApiTest(unittest.TestCase):
             "aws_secret_access_key": "some_secret",
             "external_id": "disable_external_id_this_is_unsafe"
         })
+        regions = self.get_region()
+        if not isinstance(regions, list):
+            regions = [regions]
         instance = {
             "role_arn": "arn:aws:iam::{}:role/RoleName".format(self.get_account_id()),
-            "regions": [self.get_region()],
+            "regions": regions,
         }
         api = self.get_api()
+        apis = None
         if api:
             if filter:
                 apis = [api + '|' + filter]

@@ -8,7 +8,7 @@ class TestRds(BaseApiTest):
         return "rds"
 
     def get_account_id(self):
-        return "548105126730"
+        return "731070500579"
 
     def test_process_rds(self):
         self.check.run()
@@ -21,11 +21,11 @@ class TestRds(BaseApiTest):
         # cluster
         self.assert_has_component(
             components,
-            "arn:aws:rds:eu-west-1:548105126730:cluster:productiondatabasecluster",
+            "arn:aws:rds:eu-west-1:731070500579:cluster:productiondatabasecluster",
             "aws.rds_cluster",
             checks={
-                "DBClusterArn": "arn:aws:rds:eu-west-1:548105126730:cluster:productiondatabasecluster",
-                "Name": "arn:aws:rds:eu-west-1:548105126730:cluster:productiondatabasecluster",
+                "DBClusterArn": "arn:aws:rds:eu-west-1:731070500579:cluster:productiondatabasecluster",
+                "Name": "arn:aws:rds:eu-west-1:731070500579:cluster:productiondatabasecluster",
                 "CW.Dimensions": [
                     {"Key": "DBClusterIdentifier", "Value": "productiondatabasecluster"}
                 ]
@@ -34,13 +34,13 @@ class TestRds(BaseApiTest):
         # instance 1
         self.assert_has_component(
             components,
-            "arn:aws:rds:eu-west-1:548105126730:db:productiondatabase",
+            "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase",
             "aws.rds_instance",
         )
         # instance 2
         self.assert_has_component(
             components,
-            "arn:aws:rds:eu-west-1:548105126730:db:productiondatabase-eu-west-1c",
+            "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase-eu-west-1c",
             "aws.rds_instance",
             checks={
                 "DBInstanceIdentifier": "productiondatabase-eu-west-1c",
@@ -56,37 +56,37 @@ class TestRds(BaseApiTest):
         # cluster <-> instance-1
         self.assert_has_relation(
             relations,
-            "arn:aws:rds:eu-west-1:548105126730:cluster:productiondatabasecluster",
-            "arn:aws:rds:eu-west-1:548105126730:db:productiondatabase"
+            "arn:aws:rds:eu-west-1:731070500579:cluster:productiondatabasecluster",
+            "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase"
         )
         # cluster <-> instance-2
         self.assert_has_relation(
             relations,
-            "arn:aws:rds:eu-west-1:548105126730:cluster:productiondatabasecluster",
-            "arn:aws:rds:eu-west-1:548105126730:db:productiondatabase-eu-west-1c"
+            "arn:aws:rds:eu-west-1:731070500579:cluster:productiondatabasecluster",
+            "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase-eu-west-1c"
         )
         # instance-1 <-> vpc
         self.assert_has_relation(
             relations,
-            "arn:aws:rds:eu-west-1:548105126730:db:productiondatabase",
+            "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase",
             "vpc-6b25d10e"
         )
         # instance-1 <-> security group
         self.assert_has_relation(
             relations,
-            "arn:aws:rds:eu-west-1:548105126730:db:productiondatabase",
+            "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase",
             "sg-053ecf78"
         )
         # instance-1 <-> vpc
         self.assert_has_relation(
             relations,
-            "arn:aws:rds:eu-west-1:548105126730:db:productiondatabase-eu-west-1c",
+            "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase-eu-west-1c",
             "vpc-6b25d10e"
         )
         # instance-1 <-> security group
         self.assert_has_relation(
             relations,
-            "arn:aws:rds:eu-west-1:548105126730:db:productiondatabase-eu-west-1c",
+            "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase-eu-west-1c",
             "sg-053ecf78"
         )
         self.assertEqual(len(components), self.components_checked)
@@ -100,7 +100,7 @@ class TestRds(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            'arn:aws:rds:eu-west-1:548105126730:cluster:productiondatabasecluster',
+            'arn:aws:rds:eu-west-1:731070500579:cluster:productiondatabasecluster',
             topology[0]["components"][0]["id"]
         )
 
@@ -112,7 +112,7 @@ class TestRds(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 0)
         self.assertIn(
-            'arn:aws:rds:eu-west-1:548105126730:cluster:productiondatabasecluster', self.check.delete_ids)
+            'arn:aws:rds:eu-west-1:731070500579:cluster:productiondatabasecluster', self.check.delete_ids)
 
     @set_cloudtrail_event('create_instance')
     def test_process_rds_create_instance(self):
@@ -122,7 +122,7 @@ class TestRds(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            'arn:aws:rds:eu-west-1:548105126730:db:productiondatabase',
+            'arn:aws:rds:eu-west-1:731070500579:db:productiondatabase',
             topology[0]["components"][0]["id"]
         )
 
@@ -134,4 +134,4 @@ class TestRds(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 0)
         self.assertIn(
-            'arn:aws:rds:eu-west-1:548105126730:db:productiondatabase', self.check.delete_ids)
+            'arn:aws:rds:eu-west-1:731070500579:db:productiondatabase', self.check.delete_ids)

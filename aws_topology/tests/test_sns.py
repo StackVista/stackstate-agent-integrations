@@ -16,40 +16,40 @@ class TestSns(BaseApiTest):
         components = topology[0]["components"]
         relations = topology[0]["relations"]
 
-        base_target_id = "arn:aws:lambda:eu-west-1:508573134510:function:com-stackstate-prod-sam-seed-"
+        base_target_id = "arn:aws:lambda:eu-west-1:731070500579:function:com-stackstate-prod-sam-seed-"
 
         self.assert_has_relation(
             relations,
-            "arn:aws:sns:eu-west-1:508573134510:my-topic-1",
+            "arn:aws:sns:eu-west-1:731070500579:my-topic-1",
             base_target_id + "TopicHandler-11EWA2GN9YNLL"
         )
         self.assert_has_relation(
             relations,
-            "arn:aws:sns:eu-west-1:508573134510:my-topic-2",
+            "arn:aws:sns:eu-west-1:731070500579:my-topic-2",
             base_target_id + "TopicHandler-21EWA2GN9YNLL"
         )
         self.assert_has_relation(
             relations,
-            "arn:aws:sns:eu-west-1:508573134510:my-topic-3",
+            "arn:aws:sns:eu-west-1:731070500579:my-topic-3",
             base_target_id + "TopicHandler-31EWA2GN9YNLL"
         )
         self.assert_has_relation(
             relations,
-            "arn:aws:sns:eu-west-1:508573134510:my-topic-3",
+            "arn:aws:sns:eu-west-1:731070500579:my-topic-3",
             base_target_id + "TopicHandler-41EWA2GN9YNLL"
         )
         self.assert_has_relation(
             relations,
-            "arn:aws:sns:eu-west-1:508573134510:my-topic-3",
-            "arn:aws:sqs:eu-west-1:508573134510:STS_stackpack_test"
+            "arn:aws:sns:eu-west-1:731070500579:my-topic-3",
+            "arn:aws:sqs:eu-west-1:731070500579:STS_stackpack_test"
         )
 
         self.assert_has_component(
             components,
-            "arn:aws:sns:eu-west-1:508573134510:my-topic-1",
+            "arn:aws:sns:eu-west-1:731070500579:my-topic-1",
             "aws.sns",
             checks={
-                "TopicArn": "arn:aws:sns:eu-west-1:508573134510:my-topic-1",
+                "TopicArn": "arn:aws:sns:eu-west-1:731070500579:my-topic-1",
                 "Name": "my-topic-1",
                 "Tags.SnsTagKey": "SnsTagValue",
                 "CW.Dimensions": [
@@ -60,17 +60,17 @@ class TestSns(BaseApiTest):
         self.assert_location_info(topology[0]["components"][0])
         self.assert_has_component(
             components,
-            "arn:aws:sns:eu-west-1:508573134510:my-topic-2",
+            "arn:aws:sns:eu-west-1:731070500579:my-topic-2",
             "aws.sns"
         )
         self.assert_has_component(
             components,
-            "arn:aws:sns:eu-west-1:508573134510:my-topic-3",
+            "arn:aws:sns:eu-west-1:731070500579:my-topic-3",
             "aws.sns"
         )
         self.assert_has_component(
             components,
-            "arn:aws:sns:eu-west-1:508573134510:my-topic-4",
+            "arn:aws:sns:eu-west-1:731070500579:my-topic-4",
             "aws.sns"
         )
         self.assertEqual(len(components), self.components_checked)
@@ -84,7 +84,7 @@ class TestSns(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            'arn:aws:sns:eu-west-1:508573134510:my-topic-1',
+            'arn:aws:sns:eu-west-1:731070500579:my-topic-1',
             topology[0]["components"][0]["id"]
         )
 

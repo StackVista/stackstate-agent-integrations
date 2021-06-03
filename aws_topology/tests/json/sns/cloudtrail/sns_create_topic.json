@@ -34,7 +34,7 @@
         ]
     },
     "responseElements": {
-        "topicArn": "arn:aws:sns:eu-west-1:508573134510:my-topic-1"
+        "topicArn": "arn:aws:sns:eu-west-1:731070500579:my-topic-1"
     },
     "requestID": "3a3bd8d5-7c2a-5ef7-b71f-800bd04982d0",
     "eventID": "d9fa1d81-0ea1-484f-8727-bfd490dd8058",

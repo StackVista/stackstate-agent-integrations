@@ -2,9 +2,9 @@
     "eventVersion": "1.08",
     "userIdentity": {
         "type": "Root",
-        "principalId": "123456789012",
-        "arn": "arn:aws:iam::123456789012:root",
-        "accountId": "123456789012",
+        "principalId": "731070500579",
+        "arn": "arn:aws:iam::731070500579:root",
+        "accountId": "731070500579",
         "accessKeyId": "ASIAZZSHNGWTNYEZF4VA",
         "sessionContext": {
             "sessionIssuer": {},
@@ -25,7 +25,7 @@
         "tagKeys": [
             "JpkWasHere"
         ],
-        "queueUrl": "https://sqs.eu-west-1.amazonaws.com/508573134510/STS_stackpack_test"
+        "queueUrl": "https://sqs.eu-west-1.amazonaws.com/731070500579/STS_stackpack_test"
     },
     "responseElements": null,
     "requestID": "db63a594-3cf9-5b70-abc2-fd6cdc9a8e95",
@@ -34,5 +34,5 @@
     "eventType": "AwsApiCall",
     "managementEvent": true,
     "eventCategory": "Management",
-    "recipientAccountId": "123456789012"
+    "recipientAccountId": "731070500579"
 }
