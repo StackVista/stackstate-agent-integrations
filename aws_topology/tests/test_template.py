@@ -741,7 +741,7 @@ class TestTemplate(unittest.TestCase):
         self.assert_location_info(topology[0]["components"][0])
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
-    @set_api("sqs|aws.sqs")
+    @set_api("sqs")
     def test_process_sqs(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
