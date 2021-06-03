@@ -93,6 +93,21 @@ def set_cloudtrail_event(value):
     return inner
 
 
+def set_filter(value):
+    def inner(func):
+        func.filter = value
+        return func
+
+    return inner
+
+
+def use_subdirectory(value):
+    def inner(func):
+        func.subdirectory = value
+        return func
+
+    return inner
+
 def get_params_hash(region, data):
     return hashlib.md5((region + json.dumps(data, sort_keys=True, default=str)).encode('utf-8')).hexdigest()[0:7]
 
@@ -108,7 +123,7 @@ def resource(path):
     return x
 
 
-def wrapper(api, not_authorized, event_name=None):
+def wrapper(api, not_authorized, subdirectory, event_name=None):
     def mock_boto_calls(self, *args, **kwargs):
         if args[0] == "AssumeRole":
             return {
@@ -139,9 +154,14 @@ def wrapper(api, not_authorized, event_name=None):
                     'Code': 'AccessDenied'
                 }
             }, operation_name)
-        file_name = "json/{}/{}_{}.json".format(api, operation_name, get_params_hash(self.meta.region_name, args))
+        directory = os.path.join("json", api, subdirectory)
+        file_name = "{}/{}_{}.json".format(directory, operation_name, get_params_hash(self.meta.region_name, args))
         try:
-            return resource(file_name)
+            result = resource(file_name)
+            # print('file: ', file_name)
+            # print('args: ', json.dumps(args, indent=2, default=str))
+            # print('meta: ', json.dumps(result["ResponseMetadata"]["Parameters"], indent=2, default=str))
+            return result
         except Exception:
             error = "API response file not found for operation: {}\n".format(operation_name)
             error += "Parameters:\n{}\n".format(json.dumps(args[1], indent=2, default=str))
@@ -164,6 +184,9 @@ class BaseApiTest(unittest.TestCase):
     def get_region(self):
         return "eu-west-1"
 
+    def get_filter(self):
+        return ""
+
     def setUp(self):
         """
         Initialize and patch the check, i.e.
@@ -175,6 +198,12 @@ class BaseApiTest(unittest.TestCase):
         cloudtrail_event = None
         if hasattr(method, 'cloudtrail_event'):
             cloudtrail_event = method.cloudtrail_event
+        filter = ''
+        if hasattr(method, 'filter'):
+            filter = method.filter
+        subdirectory = ''
+        if hasattr(method, 'subdirectory'):
+            subdirectory = method.subdirectory
         self.patcher = patch("botocore.client.BaseClient._make_api_call", autospec=True)
         self.mock_object = self.patcher.start()
         top.reset()
@@ -190,13 +219,16 @@ class BaseApiTest(unittest.TestCase):
         }
         api = self.get_api()
         if api:
-            apis = [api]
+            if filter:
+                apis = [api + '|' + filter]
+            else:
+                apis = [api]
         if cloudtrail_event:
             apis = []
         instance.update({"apis_to_run": apis})
 
         self.check = AwsTopologyCheck(self.CHECK_NAME, InitConfig(init_config), [instance])
-        self.mock_object.side_effect = wrapper(api, not_authorized, event_name=cloudtrail_event)
+        self.mock_object.side_effect = wrapper(api, not_authorized, subdirectory, event_name=cloudtrail_event)
         self.components_checked = 0
         self.relations_checked = 0
 
