@@ -19,8 +19,8 @@ StreamData = namedtuple("StreamData", ["stream", "tags"])
 
 
 class Stream(Model):
-    StreamName = StringType()
-    StreamARN = StringType()
+    StreamName = StringType(default="UNKNOWN")
+    StreamARN = StringType(required=True)
 
 
 class StreamDescriptionSummary(Model):
@@ -41,12 +41,19 @@ class KinesisCollector(RegisteredResourceCollector):
     def collect_stream_description(self, stream_name):
         return self.client.describe_stream_summary(StreamName=stream_name)
 
+    def construct_stream_description(self, stream_name):
+        return {
+            "StreamDescriptionSummary": {
+                "StreamName": stream_name,
+                "StreamARN": self.agent.create_arn("AWS::SNS::Topic", self.location_info, resource_id=stream_name),
+            }
+        }
+
     def collect_stream(self, stream_name):
-        data = self.collect_stream_description(stream_name)
-        tags = self.collect_tags(stream_name)
+        data = self.collect_stream_description(stream_name) or self.construct_stream_description(stream_name)
+        tags = self.collect_tags(stream_name) or []
         return StreamData(stream=data, tags=tags)
 
-    @set_required_access_v2("kinesis:ListStreams")
     def collect_streams(self):
         for stream in [
             self.collect_stream(stream_name)
@@ -56,11 +63,12 @@ class KinesisCollector(RegisteredResourceCollector):
 
     def process_all(self, filter=None):
         if not filter or "kinesis" in filter:
-            for stream_data in self.collect_streams():
-                try:
-                    self.process_stream(stream_data)
-                except Exception:
-                    pass
+            self.process_streams()
+
+    @set_required_access_v2("kinesis:ListStreams")
+    def process_streams(self):
+        for stream_data in self.collect_streams():
+            self.process_stream(stream_data)
 
     def process_one_stream(self, stream_name):
         self.process_stream(self.collect_stream(stream_name))
