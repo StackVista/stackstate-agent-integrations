@@ -408,6 +408,8 @@ def mock_boto_calls(self, operation_name, kwarg):
         return {}
     elif operation_name == 'ListActivities':
         return {}
+    elif operation_name == 'GetBucketTagging':
+        return {}
     else:
         raise ValueError("Unknown operation name", operation_name)
 

@@ -31,6 +31,11 @@ class LambdaCollector(RegisteredResourceCollector):
                 function_data = make_valid_data(function_data_raw)
                 self.process_lambda(function_data)
 
+    def process_one_function(self, name):
+        function_data_raw = self.client.get_function(FunctionName=name).get('Configuration')
+        function_data = make_valid_data(function_data_raw)
+        self.process_lambda(function_data)
+
     def process_event_source_mappings(self):
         for page in self.client.get_paginator('list_event_source_mappings').paginate():
             for event_source_raw in page.get('EventSourceMappings') or []:
@@ -71,3 +76,50 @@ class LambdaCollector(RegisteredResourceCollector):
             self.emit_component(alias_arn, 'aws.lambda.alias', alias_data)
             if vpc_id:
                 self.emit_relation(alias_arn, vpc_id, 'uses service', {})
+
+    CLOUDFORMATION_TYPE = "AWS::Lambda::Function"
+    EVENT_SOURCE = 'lambda.amazonaws.com'
+    CLOUDTRAIL_EVENTS = [
+        {
+            'event_name': 'CreateFunction20150331',
+            'path': 'responseElements.functionArn',
+            'processor': process_one_function
+        },
+        {
+            'event_name': 'UpdateFunctionConfiguration20150331v2',
+            'path': 'responseElements.functionArn',
+            'processor': process_one_function
+        },
+        {
+            'event_name': 'PublishVersion20150331',
+            'path': 'responseElements.functionArn',
+            'processor': process_one_function
+        },
+        {
+            'event_name': 'AddPermission20150331v2',
+            'path': 'requestParameters.functionName',
+            'processor': process_one_function  # TODO check responseElements not null!
+        },
+        {
+            'event_name': 'TagResource20170331v2',
+            'path': 'requestParameters.resource',
+            'processor': process_one_function
+        },
+        {
+            'event_name': 'CreateEventSourceMapping20150331',
+            'path': 'responseElements.functionArn',
+            'processor': process_one_function
+        },
+        {
+            'event_name': 'DeleteFunction20150331',
+            'path': 'requestParameters.functionName',
+            'processor': RegisteredResourceCollector.process_delete_by_name
+        }
+        # AddLayerVersionPermission
+        # RemovePermission
+        # CreateEventSourceMapping
+        # DeleteEventSourceMapping
+        # UpdateEventSourceMapping
+        # UpdateFunctionCode
+        # UpdateFunctionConfiguration
+    ]
