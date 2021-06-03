@@ -220,10 +220,10 @@ test_zabbix:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
 
-test_splunk_client:
+test_splunk_base:
   <<: *linux_test
   variables:
-    CHECK: "splunk_client"
+    CHECK: "splunk_base"
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2

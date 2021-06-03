@@ -21,12 +21,12 @@ with open(path.join(HERE, 'README.md'), encoding='utf-8') as f:
 CHECKS_BASE_REQ = 'stackstate-checks-base'
 
 setup(
-    name='stackstate-splunk-client',
+    name='stackstate-splunk-base',
     version=ABOUT['__version__'],
-    description='The Splunk Client library',
+    description='The Splunk Base library',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    keywords='stackstate agent splunk http client',
+    keywords='stackstate agent splunk http base',
 
     # The project's main homepage.
     url='https://github.com/StackVista/stackstate-agent-integrations',
@@ -51,7 +51,7 @@ setup(
     ],
 
     # The package we're going to ship
-    packages=['stackstate_checks.splunk.utils'],
+    packages=['stackstate_checks.splunk.client', 'stackstate_checks.splunk.config'],
 
     # Run-time dependencies
     install_requires=[CHECKS_BASE_REQ],
