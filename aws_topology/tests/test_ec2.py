@@ -1,5 +1,6 @@
 from stackstate_checks.base.stubs import topology as top, aggregator
 from .conftest import BaseApiTest, set_cloudtrail_event, set_filter, use_subdirectory
+import sys
 
 
 class TestEC2(BaseApiTest):
@@ -72,7 +73,8 @@ class TestEC2(BaseApiTest):
         self.assertEqual(len(components), self.components_checked)
         self.assertEqual(len(relations), self.relations_checked)
 
-    first_security_group_version = "56b81fa0a7cb32a2d5be815f1fb4130764f19e8ab734cec3824854d7a5a9fa84"
+    first_security_group_version_py3 = "56b81fa0a7cb32a2d5be815f1fb4130764f19e8ab734cec3824854d7a5a9fa84"
+    first_security_group_version_py2 = "e3a3e4764fd7fd4a51fcd5812ce9a4803a412c28c6830678462301d33ce6ce75"
     first_sg_group_id = "sg-002abe0b505ad7002"
 
     @set_filter('security_groups')
@@ -89,6 +91,11 @@ class TestEC2(BaseApiTest):
         self.assertEqual(len(components), 49)
         self.assertEqual(len(relations), 49)
 
+        if sys.version_info.major == 3:
+            version_to_check = self.first_security_group_version_py3
+        else:
+            version_to_check = self.first_security_group_version_py2
+
         self.assert_has_component(
             components,
             self.first_sg_group_id,
@@ -97,7 +104,7 @@ class TestEC2(BaseApiTest):
                 "URN": [
                     "arn:aws:ec2:{}:731070500579:security-group/{}".format('eu-west-1', self.first_sg_group_id)
                 ],
-                "Version": self.first_security_group_version,
+                "Version": version_to_check,
                 "Name": "network-ALBSecurityGroupPublic-1DNVWX102724V"
             }
         )
@@ -113,6 +120,11 @@ class TestEC2(BaseApiTest):
 
         components = topology[0]["components"]
 
+        if sys.version_info.major == 3:
+            version_to_check = self.first_security_group_version_py3
+        else:
+            version_to_check = self.first_security_group_version_py2
+
         self.assert_has_component(
             components,
             self.first_sg_group_id,
@@ -121,7 +133,7 @@ class TestEC2(BaseApiTest):
                 "URN": [
                     "arn:aws:ec2:{}:731070500579:security-group/{}".format('eu-west-1', self.first_sg_group_id)
                 ],
-                "Version": self.first_security_group_version,
+                "Version": version_to_check,
                 "Name": "network-ALBSecurityGroupPublic-1DNVWX102724V"
             }
         )
