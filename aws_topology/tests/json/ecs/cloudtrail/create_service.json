@@ -19,7 +19,7 @@
     "loadBalancers": [
       {
         "containerName": "sample-app",
-        "targetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:850318095909:targetgroup/EC2Co-Defau-7HYSTVRX07KO/a7e4eb718fda7510",
+        "targetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:731070500579:targetgroup/EC2Co-Defau-7HYSTVRX07KO/a7e4eb718fda7510",
         "containerPort": 80
       }
     ],
@@ -43,8 +43,8 @@
         }
       ],
       "desiredCount": 1,
-      "clusterArn": "arn:aws:ecs:eu-west-1:850318095909:cluster/default",
-      "serviceArn": "arn:aws:ecs:eu-west-1:850318095909:service/sample-app-service",
+      "clusterArn": "arn:aws:ecs:eu-west-1:731070500579:cluster/default",
+      "serviceArn": "arn:aws:ecs:eu-west-1:731070500579:service/sample-app-service",
       "deploymentConfiguration": {
         "maximumPercent": 200,
         "minimumHealthyPercent": 100
@@ -76,7 +76,7 @@
           "updatedAt": "Jun 28, 2018 12:14:51 PM",
           "platformVersion": "1.1.0",
           "id": "ecs-svc/9223370506666684362",
-          "taskDefinition": "arn:aws:ecs:eu-west-1:850318095909:task-definition/first-run-task-definition:2"
+          "taskDefinition": "arn:aws:ecs:eu-west-1:731070500579:task-definition/first-run-task-definition:2"
         }
       ],
       "serviceName": "sample-app-service",
@@ -98,8 +98,8 @@
       "pendingCount": 0,
       "platformVersion": "LATEST",
       "placementStrategy": [],
-      "roleArn": "arn:aws:iam::850318095909:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS",
-      "taskDefinition": "arn:aws:ecs:eu-west-1:850318095909:task-definition/first-run-task-definition:2"
+      "roleArn": "arn:aws:iam::731070500579:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS",
+      "taskDefinition": "arn:aws:ecs:eu-west-1:731070500579:task-definition/first-run-task-definition:2"
     }
   },
   "awsRegion": "eu-west-1",

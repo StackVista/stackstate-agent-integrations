@@ -21,7 +21,7 @@
     "sourceIPAddress": "83.163.185.52",
     "userAgent": "console.amazonaws.com",
     "requestParameters": {
-        "tableName": "JpkTest"
+        "tableName": "table_2"
     },
     "responseElements": {
         "tableDescription": {
@@ -31,10 +31,10 @@
                 "writeCapacityUnits": 5,
                 "numberOfDecreasesToday": 0
             },
-            "tableName": "JpkTest",
+            "tableName": "table_2",
             "tableSizeBytes": 0,
             "tableStatus": "DELETING",
-            "tableArn": "arn:aws:dynamodb:eu-west-1:123456789012:table/JpkTest",
+            "tableArn": "arn:aws:dynamodb:eu-west-1:123456789012:table/table_2",
             "itemCount": 0
         }
     },

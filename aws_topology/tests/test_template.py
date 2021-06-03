@@ -502,64 +502,6 @@ class TestTemplate(unittest.TestCase):
         self.mock_object.side_effect = mock_boto_calls
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
-    @set_api("dynamodb|aws.dynamodb")
-    def test_process_dynamodb(self):
-        self.check.run()
-        topology = [top.get_snapshot(self.check.check_id)]
-        self.assert_executed_ok()
-
-        self.assertEqual(len(topology), 1)
-        self.assertEqual(len(topology[0]["relations"]), 1)
-        self.assertEqual(
-            topology[0]["relations"][0]["source_id"], "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1"
-        )  # DIFF
-        self.assertEqual(
-            topology[0]["relations"][0]["target_id"],
-            "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1/stream/2018-05-17T08:09:27.110",
-        )  # DIFF
-        self.assertEqual(len(topology[0]["components"]), 5)
-        self.assertEqual(
-            topology[0]["components"][0]["id"], "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1"
-        )  # DIFF
-        self.assertEqual(
-            topology[0]["components"][0]["data"]["TableArn"], "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1"
-        )
-        self.assertEqual(topology[0]["components"][0]["type"], "aws.dynamodb")  # DIFF
-        self.assertEqual(
-            topology[0]["components"][0]["data"]["Name"], "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1"
-        )
-        self.assert_stream_dimensions(topology[0]["components"][0], [{"Key": "TableName", "Value": "table_1"}])
-        self.assertEqual(
-            topology[0]["components"][1]["id"],
-            "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1/stream/2018-05-17T08:09:27.110",
-        )  # DIFF
-        self.assertEqual(topology[0]["components"][1]["type"], "aws.dynamodb.streams")  # DIFF
-        self.assertEqual(
-            topology[0]["components"][1]["data"]["LatestStreamArn"],
-            "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1/stream/2018-05-17T08:09:27.110",
-        )
-        self.assertEqual(
-            topology[0]["components"][1]["data"]["Name"],
-            "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1/stream/2018-05-17T08:09:27.110",
-        )
-        self.assert_stream_dimensions(
-            topology[0]["components"][1],
-            [{"Key": "TableName", "Value": "table_1"}, {"Key": "StreamLabel", "Value": "2018-05-17T08:09:27.110"}],
-        )
-        self.assertEqual(
-            topology[0]["components"][2]["id"], "arn:aws:dynamodb:eu-west-1:731070500579:table/table_2"
-        )  # DIFF
-        self.assertEqual(topology[0]["components"][2]["type"], "aws.dynamodb")  # DIFF
-        self.assertEqual(
-            topology[0]["components"][3]["id"], "arn:aws:dynamodb:eu-west-1:731070500579:table/table_3"
-        )  # DIFF
-        self.assertEqual(topology[0]["components"][3]["type"], "aws.dynamodb")  # DIFF
-        self.assertEqual(
-            topology[0]["components"][4]["id"], "arn:aws:dynamodb:eu-west-1:731070500579:table/table_4"
-        )  # DIFF
-        self.assertEqual(topology[0]["components"][4]["type"], "aws.dynamodb")  # DIFF
-
-    @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
     @set_api("apigateway|aws.apigateway.stage")
     def test_process_api_gateway(self):
         self.check.run()
@@ -760,18 +702,6 @@ class TestTemplate(unittest.TestCase):
             if component['id'] == id and component['type'] == tp:
                 return component
         self.assertFalse(True, "Component not found " + id + " - " + tp)
-
-    @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
-    @set_api("ecs|aws.ecs.cluster")
-    def test_process_ecs(self):
-        self.check.run()
-        self.assert_executed_ok()
-        topology = top.get_snapshot(self.check.check_id)
-
-        diff = compute_topologies_diff(
-            computed_dict=topology, expected_filepath=relative_path("expected_topology/ecs.json")
-        )
-        self.assertEqual(diff, "")
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
     @set_api(None)

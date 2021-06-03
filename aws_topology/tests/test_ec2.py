@@ -1,7 +1,6 @@
 from stackstate_checks.aws_topology.resources.utils import deep_sort_lists
 from stackstate_checks.base.stubs import topology as top, aggregator
 from .conftest import BaseApiTest, set_cloudtrail_event, set_filter, use_subdirectory
-import json
 
 
 class TestEC2(BaseApiTest):
@@ -183,3 +182,16 @@ class TestEC2(BaseApiTest):
         self.assertEqual(len(topology[0]["relations"]), 1)
         self.assertEqual(topology[0]["relations"][0]["source_id"], "vgw-b8c2fccc")  # DIFF
         self.assertEqual(topology[0]["relations"][0]["target_id"], "vpc-6b25d10e")  # DIFF
+
+
+    @set_cloudtrail_event('run_instances')
+    def test_process_ec2_run_instances(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'i-0f70dba7ea83d6dec',
+            topology[0]["components"][0]["id"]
+        )

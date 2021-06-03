@@ -14,30 +14,27 @@
             }
         }
     },
-    "eventTime": "2021-05-01T13:34:17Z",
+    "eventTime": "2021-05-01T13:34:24Z",
     "eventSource": "dynamodb.amazonaws.com",
-    "eventName": "TagResource",
+    "eventName": "UntagResource",
     "awsRegion": "eu-west-1",
     "sourceIPAddress": "83.163.185.52",
     "userAgent": "console.amazonaws.com",
     "requestParameters": {
-        "resourceArn": "arn:aws:dynamodb:eu-west-1:123456789012:table/JpkTest",
-        "tags": [
-            {
-                "key": "JpkTag",
-                "value": "TagValue"
-            }
+        "resourceArn": "arn:aws:dynamodb:eu-west-1:123456789012:table/table_2",
+        "tagKeys": [
+            "JpkTag"
         ]
     },
     "responseElements": null,
-    "requestID": "QPVKV2PGRLLH2QJ29PQS2B4743VV4KQNSO5AEMVJF66Q9ASUAAJG",
-    "eventID": "f0ae0761-1d06-40e5-a051-e5c7a73df5e7",
+    "requestID": "OGEIOQBOS1MCJT1161T0EKNMNFVV4KQNSO5AEMVJF66Q9ASUAAJG",
+    "eventID": "37de47fc-5aff-498e-b6a3-a98f6f77202f",
     "readOnly": false,
     "resources": [
         {
             "accountId": "123456789012",
             "type": "AWS::DynamoDB::Table",
-            "ARN": "arn:aws:dynamodb:eu-west-1:123456789012:table/JpkTest"
+            "ARN": "arn:aws:dynamodb:eu-west-1:123456789012:table/table_2"
         }
     ],
     "eventType": "AwsApiCall",

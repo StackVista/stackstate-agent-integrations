@@ -34,7 +34,7 @@
                 "attributeName": "key"
             }
         ],
-        "tableName": "elvin-stackstate-tests-main-account-main-region-DynamoDbTable-16SXEQ30MM5RN",
+        "tableName": "table_2",
         "keySchema": [
             {
                 "keyType": "HASH",
@@ -57,7 +57,7 @@
                 "writeCapacityUnits": 0,
                 "numberOfDecreasesToday": 0
             },
-            "tableName": "elvin-stackstate-tests-main-account-main-region-DynamoDbTable-16SXEQ30MM5RN",
+            "tableName": "table_2",
             "billingModeSummary": {
                 "billingMode": "PAY_PER_REQUEST"
             },
@@ -72,7 +72,7 @@
             "tableThroughputModeSummary": {
                 "tableThroughputMode": "PAY_PER_REQUEST"
             },
-            "tableArn": "arn:aws:dynamodb:eu-west-1:123456789012:table/elvin-stackstate-tests-main-account-main-region-DynamoDbTable-16SXEQ30MM5RN",
+            "tableArn": "arn:aws:dynamodb:eu-west-1:123456789012:table/table_2",
             "itemCount": 0,
             "creationDateTime": "Apr 29, 2021, 2:06:13 PM"
         }
@@ -84,7 +84,7 @@
         {
             "accountId": "123456789012",
             "type": "AWS::DynamoDB::Table",
-            "ARN": "arn:aws:dynamodb:eu-west-1:123456789012:table/elvin-stackstate-tests-main-account-main-region-DynamoDbTable-16SXEQ30MM5RN"
+            "ARN": "arn:aws:dynamodb:eu-west-1:123456789012:table/table_2"
         }
     ],
     "eventType": "AwsApiCall",
