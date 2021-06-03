@@ -1,4 +1,4 @@
-from stackstate_checks.base.stubs import topology as top, aggregator
+from stackstate_checks.base.stubs import topology as top
 from .conftest import BaseApiTest, set_cloudtrail_event
 
 
@@ -99,7 +99,6 @@ class TestEcs(BaseApiTest):
 
         self.assertEqual(len(components), self.components_checked)
         self.assertEqual(len(relations), self.relations_checked)
-
 
     @set_cloudtrail_event('create_cluster')
     def test_process_ecs_create_cluster(self):

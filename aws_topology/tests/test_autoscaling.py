@@ -9,7 +9,7 @@ class TestAutoScaling(BaseApiTest):
 
     def get_account_id(self):
         return "731070500579"
-    
+
     def get_region(self):
         return 'eu-west-1'
 
@@ -26,8 +26,8 @@ class TestAutoScaling(BaseApiTest):
         relations = topology[0]["relations"]
 
         group_arn = "arn:aws:autoscaling:eu-west-1:731070500579:" \
-                + "autoScalingGroup:e1155c2b-016a-40ad-8cba-2423c349574b:" \
-                + "autoScalingGroupName/awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM"
+            + "autoScalingGroup:e1155c2b-016a-40ad-8cba-2423c349574b:" \
+            + "autoScalingGroupName/awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM"
 
         comp = self.assert_has_component(
             components,
@@ -64,7 +64,6 @@ class TestAutoScaling(BaseApiTest):
 
         self.assertEqual(len(components), self.components_checked)
         self.assertEqual(len(relations), self.relations_checked)
-
 
     @set_cloudtrail_event('create_autoscaling_group')
     def test_process_autoscaling_create_autoscaling_group(self):

@@ -108,6 +108,7 @@ def use_subdirectory(value):
 
     return inner
 
+
 def get_params_hash(region, data):
     return hashlib.md5((region + json.dumps(data, sort_keys=True, default=str)).encode('utf-8')).hexdigest()[0:7]
 

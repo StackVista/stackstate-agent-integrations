@@ -1,5 +1,5 @@
 from stackstate_checks.base.stubs import topology as top
-from .conftest import BaseApiTest, set_cloudtrail_event
+from .conftest import BaseApiTest
 
 
 class TestRoute53Domain(BaseApiTest):
@@ -9,7 +9,7 @@ class TestRoute53Domain(BaseApiTest):
 
     def get_account_id(self):
         return "731070500579"
-    
+
     def get_region(self):
         return 'global'
 

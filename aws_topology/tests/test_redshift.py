@@ -9,7 +9,7 @@ class TestRedshift(BaseApiTest):
 
     def get_account_id(self):
         return "731070500579"
-    
+
     def get_region(self):
         return 'eu-west-1'
 
@@ -35,7 +35,6 @@ class TestRedshift(BaseApiTest):
 
         self.assertEqual(len(components), self.components_checked)
         self.assertEqual(len(relations), self.relations_checked)
-
 
     @set_cloudtrail_event('create_cluster')
     def test_process_redshift_create_cluster(self):

@@ -23,12 +23,12 @@
     "sourceIPAddress": "83.163.185.52",
     "userAgent": "console.amazonaws.com",
     "requestParameters": {
-        "streamName": "TestStream",
+        "streamName": "stream_1",
         "targetShardCount": 2,
         "scalingType": "UNIFORM_SCALING"
     },
     "responseElements": {
-        "streamName": "TestStream",
+        "streamName": "stream_1",
         "currentShardCount": 1,
         "targetShardCount": 2
     },

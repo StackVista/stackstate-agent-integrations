@@ -9,7 +9,7 @@ class TestLambda(BaseApiTest):
 
     def get_account_id(self):
         return "731070500579"
-    
+
     def get_region(self):
         return 'eu-west-1'
 
@@ -66,7 +66,6 @@ class TestLambda(BaseApiTest):
 
         self.assertEqual(len(components), self.components_checked)
         self.assertEqual(len(relations), self.relations_checked)
-
 
     @set_cloudtrail_event('create_function')
     def test_process_lambda_create_function(self):

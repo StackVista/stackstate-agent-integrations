@@ -9,7 +9,7 @@ class TestKinesis(BaseApiTest):
 
     def get_account_id(self):
         return "731070500579"
-    
+
     def get_region(self):
         return 'eu-west-1'
 
@@ -61,7 +61,6 @@ class TestKinesis(BaseApiTest):
 
         self.assertEqual(len(components), self.components_checked)
         self.assertEqual(len(relations), self.relations_checked)
-
 
     @set_cloudtrail_event('create_stream')
     def test_process_kinesis_create_stream(self):
@@ -181,7 +180,7 @@ class TestKinesis(BaseApiTest):
         )
 
     @set_cloudtrail_event('update_shard_count')
-    def test_process_update_shard_count(self):
+    def test_process_kinesis_update_shard_count(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)

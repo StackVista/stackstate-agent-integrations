@@ -1,4 +1,3 @@
-from stackstate_checks.aws_topology.resources.utils import deep_sort_lists
 from stackstate_checks.base.stubs import topology as top, aggregator
 from .conftest import BaseApiTest, set_cloudtrail_event, set_filter, use_subdirectory
 
@@ -10,7 +9,7 @@ class TestEC2(BaseApiTest):
 
     def get_account_id(self):
         return "731070500579"
-    
+
     def get_region(self):
         return 'eu-west-1'
 
@@ -87,9 +86,8 @@ class TestEC2(BaseApiTest):
         components = topology[0]["components"]
         relations = topology[0]["relations"]
 
-        self.assertEqual(len(topology), 1)
-        self.assertEqual(len(topology[0]["components"]), 49)
-        self.assertEqual(len(topology[0]["relations"]), 49)
+        self.assertEqual(len(components), 49)
+        self.assertEqual(len(relations), 49)
 
         self.assert_has_component(
             components,
@@ -104,7 +102,6 @@ class TestEC2(BaseApiTest):
             }
         )
 
-
     @set_filter('security_groups')
     @use_subdirectory('alternate')
     def test_process_ec2_security_groups_order_has_no_influence_on_hash(self):
@@ -115,7 +112,6 @@ class TestEC2(BaseApiTest):
         self.assert_executed_ok()
 
         components = topology[0]["components"]
-        relations = topology[0]["relations"]
 
         self.assert_has_component(
             components,
@@ -141,28 +137,43 @@ class TestEC2(BaseApiTest):
         components = topology[0]["components"]
         relations = topology[0]["relations"]
 
-        self.assertEqual(topology[0]["components"][0]["id"], "vpc-6b25d10e")  # DIFF
-        self.assertEqual(topology[0]["components"][0]["type"], "aws.vpc")  # DIFF
-        self.assertEqual(topology[0]["components"][0]["data"]["VpcId"], "vpc-6b25d10e")
-        self.assertEqual(topology[0]["components"][0]["data"]["Name"], "vpc-6b25d10e")
-        self.assertEqual(
-            topology[0]["components"][0]["data"]["URN"],
-            ["arn:aws:ec2:{}:731070500579:vpc/{}".format('eu-west-1', "vpc-6b25d10e")],
+        comp = self.assert_has_component(
+            components,
+            "vpc-6b25d10e",
+            "aws.vpc",
+            checks={
+                "VpcId": "vpc-6b25d10e",
+                "Name": "vpc-6b25d10e",
+                "URN": [
+                    "arn:aws:ec2:{}:731070500579:vpc/{}".format('eu-west-1', "vpc-6b25d10e")
+                ]
+            }
         )
-        self.assert_location_info(topology[0]["components"][0])
-        self.assertEqual(topology[0]["components"][1]["id"], "subnet-9e4be5f9")  # DIFF
-        self.assertEqual(topology[0]["components"][1]["type"], "aws.subnet")  # DIFF
-        self.assertEqual(topology[0]["components"][1]["data"]["SubnetId"], "subnet-9e4be5f9")
-        self.assertEqual(topology[0]["components"][1]["data"]["Tags"], {"Name": "demo-deployments"})
-        self.assertEqual(
-            topology[0]["components"][1]["data"]["URN"],
-            ["arn:aws:ec2:{}:731070500579:subnet/{}".format('eu-west-1', "subnet-9e4be5f9")],
+        self.assert_location_info(comp)
+
+        comp = self.assert_has_component(
+            components,
+            "subnet-9e4be5f9",
+            "aws.subnet",
+            checks={
+                "SubnetId": "subnet-9e4be5f9",
+                "Tags.Name": "demo-deployments",
+                "URN": [
+                    "arn:aws:ec2:{}:731070500579:subnet/{}".format('eu-west-1', "subnet-9e4be5f9")
+                ],
+                "Name": "demo-deployments-eu-west-1a"
+            }
         )
-        self.assertEqual(topology[0]["components"][1]["data"]["Name"], "demo-deployments-eu-west-1a")
-        self.assert_location_info(topology[0]["components"][1])
-        self.assertEqual(len(topology[0]["relations"]), 1)
-        self.assertEqual(topology[0]["relations"][0]["source_id"], "subnet-9e4be5f9")  # DIFF
-        self.assertEqual(topology[0]["relations"][0]["target_id"], "vpc-6b25d10e")  # DIFF
+        self.assert_location_info(comp)
+
+        self.assert_has_relation(
+            relations,
+            "subnet-9e4be5f9",
+            "vpc-6b25d10e"
+        )
+
+        self.assertEqual(len(components), self.components_checked)
+        self.assertEqual(len(relations), self.relations_checked)
 
     @set_filter('vpn_gateways')
     def test_process_ec2_vpn_gateways(self):
@@ -175,14 +186,24 @@ class TestEC2(BaseApiTest):
         components = topology[0]["components"]
         relations = topology[0]["relations"]
 
-        self.assertEqual(topology[0]["components"][0]["id"], "vgw-b8c2fccc")  # DIFF
-        self.assertEqual(topology[0]["components"][0]["data"]["VpnGatewayId"], "vgw-b8c2fccc")
-        self.assertEqual(topology[0]["components"][0]["type"], "aws.vpngateway")  # DIFF
-        self.assert_location_info(topology[0]["components"][0])
-        self.assertEqual(len(topology[0]["relations"]), 1)
-        self.assertEqual(topology[0]["relations"][0]["source_id"], "vgw-b8c2fccc")  # DIFF
-        self.assertEqual(topology[0]["relations"][0]["target_id"], "vpc-6b25d10e")  # DIFF
+        comp = self.assert_has_component(
+            components,
+            "vgw-b8c2fccc",
+            "aws.vpngateway",
+            checks={
+                "VpnGatewayId": "vgw-b8c2fccc",
 
+            }
+        )
+        self.assert_location_info(comp)
+        self.assert_has_relation(
+            relations,
+            "vgw-b8c2fccc",
+            "vpc-6b25d10e"
+        )
+
+        self.assertEqual(len(components), self.components_checked)
+        self.assertEqual(len(relations), self.relations_checked)
 
     @set_cloudtrail_event('run_instances')
     def test_process_ec2_run_instances(self):

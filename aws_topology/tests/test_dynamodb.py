@@ -1,5 +1,4 @@
-from stackstate_checks.aws_topology.resources.utils import deep_sort_lists
-from stackstate_checks.base.stubs import topology as top, aggregator
+from stackstate_checks.base.stubs import topology as top
 from .conftest import BaseApiTest, set_cloudtrail_event
 
 
@@ -10,7 +9,7 @@ class TestDynamoDB(BaseApiTest):
 
     def get_account_id(self):
         return "731070500579"
-    
+
     def get_region(self):
         return 'eu-west-1'
 
@@ -40,7 +39,8 @@ class TestDynamoDB(BaseApiTest):
             "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1/stream/2018-05-17T08:09:27.110",
             "aws.dynamodb.streams",
             checks={
-                "LatestStreamArn": "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1/stream/2018-05-17T08:09:27.110",
+                "LatestStreamArn": "arn:aws:dynamodb:eu-west-1:731070500579:"
+                + "table/table_1/stream/2018-05-17T08:09:27.110",
                 "Name": "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1/stream/2018-05-17T08:09:27.110",
                 "CW.Dimensions": [
                     {"Key": "TableName", "Value": "table_1"},
@@ -70,10 +70,9 @@ class TestDynamoDB(BaseApiTest):
             "arn:aws:dynamodb:eu-west-1:731070500579:table/table_4",
             "aws.dynamodb"
         )
-     
+
         self.assertEqual(len(components), self.components_checked)
         self.assertEqual(len(relations), self.relations_checked)
-
 
     @set_cloudtrail_event('create_table')
     def test_process_dynamodb_create_table(self):
