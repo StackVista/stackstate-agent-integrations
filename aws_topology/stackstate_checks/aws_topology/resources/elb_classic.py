@@ -46,10 +46,8 @@ class ELBClassicCollector(RegisteredResourceCollector):
 
     @set_required_access_v2("elasticloadbalancing:DescribeTags")
     def collect_tag_page(self, elb_names):
-        if len(elb_names) <= self.MAX_TAG_CALLS:
-            return self.client.describe_tags(LoadBalancerNames=elb_names).get("TagDescriptions", [])
-        else:
-            return []
+        max_items = self.MAX_TAG_CALLS  # Limit max items that we fetch to ensure call doesn't fail completely
+        return self.client.describe_tags(LoadBalancerNames=elb_names[:max_items]).get("TagDescriptions", [])
 
     @set_required_access_v2("elasticloadbalancing:DescribeLoadBalancers")
     def collect_elbs(self, **kwargs):
