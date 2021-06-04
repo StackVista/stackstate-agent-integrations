@@ -582,7 +582,7 @@ class TestTemplate(unittest.TestCase):
         ), True)
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
-    @set_api("elb|aws.elb_classic")
+    @set_api("elb")
     def test_process_elb_classic(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
@@ -590,21 +590,16 @@ class TestTemplate(unittest.TestCase):
         events = aggregator.events
 
         # todo: add test which asserts that the relation corresponds with the component info.
-
+        elb_arn = "arn:aws:elasticloadbalancing:{}:731070500579:loadbalancer/{}".format(
+            TEST_REGION, "classic-loadbalancer-1"
+        )
         self.assertEqual(len(topology), 1)
         self.assertEqual(len(events), 2)
         self.assertEqual(len(topology[0]["relations"]), 4)
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(topology[0]["components"][0]["data"]["LoadBalancerName"], "classic-loadbalancer-1")
         self.assertEqual(topology[0]["components"][0]["data"]["Tags"]["stackstate-environment"], "Production")
-        self.assertEqual(
-            topology[0]["components"][0]["data"]["URN"],
-            [
-                "arn:aws:elasticloadbalancing:{}:731070500579:loadbalancer/{}".format(
-                    TEST_REGION, "classic-loadbalancer-1"
-                )
-            ],
-        )
+        self.assertEqual(topology[0]["components"][0]["data"]["URN"], [elb_arn])
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
     @set_api("s3")
@@ -1365,7 +1360,7 @@ class TestTemplate(unittest.TestCase):
         ), True)
         # assert for elb classic loadbalancer  relation
         self.assertEqual(self.has_relation(
-            relations, source_id, "classic_elb_classic-loadbalancer-1"
+            relations, source_id, "arn:aws:elasticloadbalancing:eu-west-1:731070500579:loadbalancer/classic-loadbalancer-1"
         ), True)
         # assert for rds relation
         self.assertEqual(self.has_relation(
