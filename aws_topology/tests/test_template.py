@@ -400,6 +400,9 @@ def mock_boto_calls(self, operation_name, kwarg):
     elif operation_name == "ListTagsForDomain":
         return resource("test_route53_domain_tags.json")
 
+    elif operation_name == "GetDomainDetail":
+        return resource("test_route53domains_get_domain_detail.json")
+
     elif operation_name == "ListTagsForDeliveryStream":
         return resource("test_firehose_deliverystream_tags.json")
     elif operation_name == "LookupEvents":
@@ -1118,7 +1121,7 @@ class TestTemplate(unittest.TestCase):
         self.assertFalse(True, "Component not found " + id + " - " + tp)
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
-    @set_api("route53domains|aws.route53.domain")
+    @set_api("route53domains")
     def test_process_route53_domains(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
@@ -1136,7 +1139,7 @@ class TestTemplate(unittest.TestCase):
         self.assert_location_info(topology[0]["components"][0])
 
     @patch("botocore.client.BaseClient._make_api_call", mock_boto_calls)
-    @set_api("route53|aws.route53.hostedzone")
+    @set_api("route53")
     def test_process_route_53_hosted_zones(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
@@ -1144,8 +1147,9 @@ class TestTemplate(unittest.TestCase):
 
         self.assertEqual(len(topology), 1)
         self.assertEqual(len(topology[0]["components"]), 1)
-        self.assertEqual(topology[0]["components"][0]["id"], "/hostedzone/Z4OKCQBA0VS63")  # DIFF
+        self.assertEqual(topology[0]["components"][0]["id"], "Z4OKCQBA0VS63")  # DIFF
         self.assertEqual(topology[0]["components"][0]["type"], "aws.route53.hostedzone")  # DIFF
+        self.assertEqual(topology[0]["components"][0]["data"]["Name"], "serverless.nl")
         self.assertEqual(topology[0]["components"][0]["data"]["URN"], ["arn:aws:route53:::hostedzone/Z4OKCQBA0VS63"])
         self.assertEqual(topology[0]["components"][0]["data"]["Tags"]["ResourceTagKey"], "ResourceTagValue")
         self.assertEqual(topology[0]["components"][0]["data"]["HostedZone"]["Name"], "serverless.nl.")
