@@ -388,8 +388,12 @@ def mock_boto_calls(self, operation_name, kwarg):
             return resource("test_route53_list_tags_for_resource.json")
         else:
             return resource("test_sns_list_tags_for_resource.json")
+
     elif operation_name == "DescribeTags":
-        return resource("test_elbv2_describe_tags.json")
+        if self._service_model.service_name == "elbv2":
+            return resource("test_elbv2_describe_tags.json")
+        elif self._service_model.service_name == "elb":
+            return resource("test_elb_describe_tags.json")
 
     elif operation_name == "GetServiceGraph":
         return resource("test_xray_get_service_graph.json")
