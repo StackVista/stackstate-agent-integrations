@@ -71,6 +71,7 @@ class AggregatorStub(object):
         """
         Return the service checks received under the given name
         """
+        print(self._service_checks)
         return [
             ServiceCheckStub(
                 ensure_unicode(stub.check_id),

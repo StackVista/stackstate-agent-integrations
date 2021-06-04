@@ -20,8 +20,23 @@ with open(path.join(HERE, 'README.md'), encoding='utf-8') as f:
 
 CHECKS_BASE_REQ = 'stackstate-checks-base'
 
+
+def get_requirements(fpath, exclude=[], only=[]):
+    with open(path.join(HERE, fpath), encoding='utf-8') as f:
+        requirements = []
+        for line in f:
+            name = line.split("==")[0]
+            if only:
+                if name in only:
+                    requirements.append(line.rstrip())
+            else:
+                if name not in exclude:
+                    requirements.append(line.rstrip())
+        return requirements
+
+
 setup(
-    name='stackstate-splunk-base',
+    name='splunk_base',
     version=ABOUT['__version__'],
     description='The Splunk Base library',
     long_description=long_description,
@@ -58,4 +73,10 @@ setup(
 
     # Extra files to ship with the wheel package
     include_package_data=True,
+
+    extras_require={
+        'deps': get_requirements(
+            'requirements.in'
+        )
+    },
 )
