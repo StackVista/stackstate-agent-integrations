@@ -1,7 +1,7 @@
 binary==1.0.0
 ddtrace==0.32.2
 kubernetes==8.0.1
-pyyaml==3.13
+pyyaml==5.4.1
 prometheus-client==0.3.0
 protobuf==3.7.0
 pywin32==228; sys_platform == 'win32'
@@ -10,7 +10,6 @@ simplejson==3.6.5
 six==1.14.0
 uptime==3.0.1
 uuid==1.30
-PyYAML==3.13
 boto3==1.17.68
 flatten-dict==0.2.0
 Deprecated==1.2.10
