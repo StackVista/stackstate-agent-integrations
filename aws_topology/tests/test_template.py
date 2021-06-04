@@ -1364,7 +1364,8 @@ class TestTemplate(unittest.TestCase):
         ), True)
         # assert for elb classic loadbalancer  relation
         self.assertEqual(self.has_relation(
-            relations, source_id, "arn:aws:elasticloadbalancing:eu-west-1:731070500579:loadbalancer/classic-loadbalancer-1"
+            relations, source_id,
+            "arn:aws:elasticloadbalancing:eu-west-1:731070500579:loadbalancer/classic-loadbalancer-1"
         ), True)
         # assert for rds relation
         self.assertEqual(self.has_relation(
