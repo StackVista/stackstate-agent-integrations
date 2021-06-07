@@ -33,7 +33,7 @@ class LoadBalancer(Model):
 
 class InstanceHealth(Model):
     InstanceId = StringType(required=True)
-    State = StringType()
+    State = StringType(default="UNKNOWN")
     Description = StringType()
 
 
