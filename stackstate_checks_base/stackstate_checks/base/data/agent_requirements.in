@@ -7,6 +7,7 @@ ddtrace==0.32.2
 deprecated==1.2.10
 enum34==1.1.10; python_version < "3.4"
 flatten-dict==0.2.0
+iso8601==0.1.14
 jaydebeapi==1.1.1
 jpype1==0.7.0
 kubernetes==8.0.1
@@ -17,6 +18,7 @@ pg8000==1.10.1
 pynag==1.1.2
 prometheus-client==0.3.0
 protobuf==3.7.0
+PyJWT==1.7.1
 pymysql==0.9.3
 pytz==2021.1
 pywin32==228; sys_platform == 'win32'
