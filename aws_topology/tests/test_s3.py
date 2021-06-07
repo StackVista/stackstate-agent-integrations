@@ -1,5 +1,5 @@
 from stackstate_checks.base.stubs import topology as top
-from .conftest import BaseApiTest, set_cloudtrail_event
+from .conftest import BaseApiTest, set_cloudtrail_event, set_filter
 
 
 class TestS3(BaseApiTest):
@@ -24,7 +24,7 @@ class TestS3(BaseApiTest):
             + "function:com-stackstate-prod-s-NotifyBucketEventsHandle-1W0B5NSZYJ3G1"
         )
 
-        self.assert_has_component(
+        top.assert_component(
             components,
             "arn:aws:s3:::stackstate.com",
             "aws.s3_bucket",
@@ -36,7 +36,7 @@ class TestS3(BaseApiTest):
         )
         self.assert_location_info(topology[0]["components"][0])
 
-        self.assert_has_component(
+        top.assert_component(
             components,
             "arn:aws:s3:::binx.io",
             "aws.s3_bucket",
@@ -45,27 +45,34 @@ class TestS3(BaseApiTest):
             }
         )
 
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             "arn:aws:s3:::stackstate.com",
             target_id,
-            type="uses service",
+            "uses service",
             checks={
                 "event_type": "s3:ObjectCreated:*"
             }
         )
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             "arn:aws:s3:::binx.io",
             target_id,
-            type="uses service",
+            "uses service",
             checks={
                 "event_type": "s3:ObjectRemoved:*"
             }
         )
+        top.assert_all_checked(components, relations)
 
-        self.assertEqual(len(components), self.components_checked)
-        self.assertEqual(len(relations), self.relations_checked)
+    @set_filter('xxx')
+    def test_process_s3_filter_all(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        components = topology[0]["components"]
+        self.assertEqual(len(components), 0)
 
     @set_cloudtrail_event('create_bucket')
     def test_process_s3_create_bucket(self):

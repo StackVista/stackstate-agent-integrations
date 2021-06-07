@@ -37,7 +37,7 @@ class TestCloudFormation(BaseApiTest):
         stack2 = "arn:aws:cloudformation:eu-west-1:731070500579:stack/stackstate-topo-cwevents/" + \
             "077bd960-9919-11e9-adb7-02135cc8443e"
 
-        self.assert_has_component(
+        top.assert_component(
             components,
             stack1,
             "aws.cloudformation",
@@ -46,7 +46,7 @@ class TestCloudFormation(BaseApiTest):
                 "StackName": "stackstate-topo-publisher"
             }
         )
-        self.assert_has_component(
+        top.assert_component(
             components,
             stack2,
             "aws.cloudformation",
@@ -56,12 +56,11 @@ class TestCloudFormation(BaseApiTest):
             }
         )
 
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             stack1,
             stack2,
-            type="child of"
+            "child of"
         )
 
-        self.assertEqual(len(components), self.components_checked)
-        self.assertEqual(len(relations), self.relations_checked)
+        top.assert_all_checked(components, relations)

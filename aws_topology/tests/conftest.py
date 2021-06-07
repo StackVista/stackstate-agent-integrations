@@ -248,45 +248,9 @@ class BaseApiTest(unittest.TestCase):
         self.assertGreater(len(service_checks), 0)
         self.assertEqual(service_checks[0].status, AgentCheck.OK, service_checks[0].message)
 
-    def assert_has_component(self, components, id, type, checks={}):
-        self.components_checked += 1
-        comp = None
-        for component in components:
-            if component["id"] == id and component["type"] == type:
-                comp = component
-                break
-        if comp is None:
-            print("Components found:")
-            for component in components:
-                print("{} ({})".format(component.get("id"), component.get("type")))
-        self.assertIsNotNone(comp, "Component expected id={} type={}".format(id, type))
-        for key in checks:
-            self.assertEqual(reduce(dict.__getitem__, ('data.' + key).split('.'), comp), checks[key])
-        return comp
-
-    def assert_has_relation(self, relations, source_id, target_id, type=None, checks={}):
-        self.relations_checked += 1
-        rel = None
-        for relation in relations:
-            if relation["source_id"] == source_id and relation["target_id"] == target_id:
-                rel = relation
-                break
-        if rel is None:
-            print("Relations found:")
-            for relation in relations:
-                print("{} <-> {}".format(relation.get("source_id"), relation.get("target_id")))
-        self.assertIsNotNone(rel, "Relation expected source_id={} target_id={}".format(source_id, target_id))
-        if type:
-            self.assertEqual(rel["type"], type)
-        for key in checks:
-            self.assertEqual(reduce(dict.__getitem__, ('data.' + key).split('.'), rel), checks[key])
-        return rel
-
     def assert_location_info(self, component):
         self.assertEqual(component["data"]["Location"]["AwsAccount"], self.get_account_id())
-        if component["type"] == "aws.route53.domain":
-            self.assertEqual(component["data"]["Location"]["AwsRegion"], "us-east-1")
-        elif component["type"] == "aws.route53.hostedzone":
-            self.assertEqual(component["data"]["Location"]["AwsRegion"], "us-east-1")
-        else:
-            self.assertEqual(component["data"]["Location"]["AwsRegion"], self.get_region())
+        region = self.get_region()
+        if component["type"] == "aws.route53.domain" or component["type"] == "aws.route53.hostedzone":
+            region = 'us-east-1'
+        self.assertEqual(component["data"]["Location"]["AwsRegion"], region)

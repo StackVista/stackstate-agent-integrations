@@ -24,7 +24,7 @@ class TestKinesis(BaseApiTest):
 
         base_stream_arn = "arn:aws:kinesis:eu-west-1:731070500579:stream/"
 
-        self.assert_has_component(
+        top.assert_component(
             components,
             base_stream_arn + "stream_1",
             "aws.kinesis",
@@ -34,7 +34,7 @@ class TestKinesis(BaseApiTest):
                 "Tags.TestKey": "TestValue"
             }
         )
-        self.assert_has_component(
+        top.assert_component(
             components,
             base_stream_arn + "stream_2",
             "aws.kinesis",
@@ -42,7 +42,7 @@ class TestKinesis(BaseApiTest):
                 "Name": "stream_2"
             }
         )
-        self.assert_has_component(
+        top.assert_component(
             components,
             base_stream_arn + "stream_3",
             "aws.kinesis",
@@ -50,7 +50,7 @@ class TestKinesis(BaseApiTest):
                 "Name": "stream_3"
             }
         )
-        self.assert_has_component(
+        top.assert_component(
             components,
             base_stream_arn + "stream_4",
             "aws.kinesis",
@@ -59,8 +59,7 @@ class TestKinesis(BaseApiTest):
             }
         )
 
-        self.assertEqual(len(components), self.components_checked)
-        self.assertEqual(len(relations), self.relations_checked)
+        top.assert_all_checked(components, relations)
 
     @set_cloudtrail_event('create_stream')
     def test_process_kinesis_create_stream(self):

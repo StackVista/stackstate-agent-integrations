@@ -4,9 +4,7 @@ import hashlib
 import sys
 import json
 from datetime import datetime, date
-from schematics import Model
 from botocore.exceptions import ClientError
-from schematics.types import StringType
 from functools import cmp_to_key
 
 
@@ -177,41 +175,6 @@ def client_array_operation(client, operation_name, array_field_name, **kwargs):
     else:
         for item in method(**kwargs).get(array_field_name) or []:
             yield item
-
-
-class CloudTrailEventBase(Model):
-    eventName = StringType(required=True)
-
-    def _internal_process(self, session, location, agent):
-        raise NotImplementedError
-
-    def get_resource_name(self):
-        raise NotImplementedError
-
-    def get_collector_class(self):
-        raise NotImplementedError
-
-    def get_resource_arn(self, agent, location):
-        return agent.create_arn(self.get_collector_class().CLOUDFORMATION_TYPE, location, self.get_resource_name())
-
-    def get_operation_type(self):
-        raise NotImplementedError
-
-    def event_identifier(self):
-        return self.get_operation_type() + ":" + self.get_resource_name()
-
-    def process(self, session, location, agent):
-        self._internal_process(session, location, agent)
-
-
-def set_required_access(value):
-    def inner(func):
-        cls = func.__class__
-        access = getattr(cls, 'iam_access', [])
-        access.append(value)
-        return func
-
-    return inner
 
 
 _THROTTLED_ERROR_CODES = [

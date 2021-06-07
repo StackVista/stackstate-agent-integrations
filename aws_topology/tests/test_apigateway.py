@@ -1,5 +1,7 @@
 from stackstate_checks.base.stubs import topology as top
 from .conftest import BaseApiTest
+from stackstate_checks.aws_topology.resources.api_gateway import create_stage_arn, create_resource_arn, \
+    create_method_arn
 
 
 class TestApiGateway(BaseApiTest):
@@ -30,21 +32,22 @@ class TestApiGateway(BaseApiTest):
         for n in range(0, 2):
             # each state has 1 stage + 5 methods + 1 resource + 1 integration = 8*2 = 16 components
             # stage
-            self.assert_has_component(
+            comp = top.assert_component(
                 components,
                 stage_arn_prefix.format(n + 1),
                 "aws.apigateway.stage",
                 checks={
                     "RestApiName": "api_1",
-                    "Tags.StageTagKey"+str(n+1): "StageTagValue"+str(n+1),
                     "CW.Dimensions": [
                         {"Key": "Stage", "Value": "stage{}".format(n + 1)},
                         {"Key": "ApiName", "Value": "api_1"}
                     ]
                 }
             )
+            if n == 0:
+                self.assertEqual(comp["data"]["Tags"]["StageTagKey1"], "StageTagValue1")
             # resource
-            self.assert_has_component(
+            top.assert_component(
                 components,
                 resource_arn_prefix.format(n + 1),
                 "aws.apigateway.resource",
@@ -57,7 +60,7 @@ class TestApiGateway(BaseApiTest):
                 }
             )
 
-            self.assert_has_component(
+            top.assert_component(
                 components,
                 method_arn_prefix.format(n + 1, "DELETE"),
                 "aws.apigateway.method",
@@ -72,7 +75,7 @@ class TestApiGateway(BaseApiTest):
                 }
             )
 
-            self.assert_has_component(
+            top.assert_component(
                 components,
                 method_arn_prefix.format(n + 1, "GET"),
                 "aws.apigateway.method",
@@ -87,7 +90,7 @@ class TestApiGateway(BaseApiTest):
                 }
             )
 
-            self.assert_has_component(
+            top.assert_component(
                 components,
                 method_arn_prefix.format(n + 1, "PATCH"),
                 "aws.apigateway.method",
@@ -102,7 +105,7 @@ class TestApiGateway(BaseApiTest):
                 }
             )
 
-            self.assert_has_component(
+            top.assert_component(
                 components,
                 method_arn_prefix.format(n + 1, "POST"),
                 "aws.apigateway.method",
@@ -117,13 +120,13 @@ class TestApiGateway(BaseApiTest):
                 }
             )
 
-            self.assert_has_component(
+            top.assert_component(
                 components,
                 "urn:service:/84.35.236.89",
                 "aws.apigateway.method.http.integration"
             )
 
-            self.assert_has_component(
+            top.assert_component(
                 components,
                 method_arn_prefix.format(n + 1, "PUT"),
                 "aws.apigateway.method",
@@ -138,7 +141,7 @@ class TestApiGateway(BaseApiTest):
                 }
             )
 
-        self.assert_has_component(
+        top.assert_component(
             components,
             api_arn,
             "aws.apigateway"
@@ -147,48 +150,72 @@ class TestApiGateway(BaseApiTest):
         # we have 2 stages
         relations = topology[0]["relations"]
         for n in range(1, 3):
-            self.assert_has_relation(
-                relations, api_arn, stage_arn_prefix.format(n)
+            top.assert_relation(
+                relations, api_arn, stage_arn_prefix.format(n), "has resource"
             )
 
-            self.assert_has_relation(
-                relations, stage_arn_prefix.format(n), resource_arn_prefix.format(n)
+            top.assert_relation(
+                relations, stage_arn_prefix.format(n), resource_arn_prefix.format(n), "uses service"
             )
 
-            self.assert_has_relation(
-                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "PATCH")
+            top.assert_relation(
+                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "PATCH"), "uses service"
             )
-            self.assert_has_relation(
-                relations, method_arn_prefix.format(n, "PATCH"), sqs_arn
-            )
-
-            self.assert_has_relation(
-                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "PUT")
-            )
-            self.assert_has_relation(
-                relations, method_arn_prefix.format(n, "PUT"), lambda_arn_prefix.format("PutHello-1LUD3ESBOR6EY")
+            top.assert_relation(
+                relations, method_arn_prefix.format(n, "PATCH"), sqs_arn, "uses service"
             )
 
-            self.assert_has_relation(
-                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "POST")
+            top.assert_relation(
+                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "PUT"), "uses service"
             )
-            self.assert_has_relation(
-                relations, method_arn_prefix.format(n, "POST"), "urn:service:/84.35.236.89"
-            )
-
-            self.assert_has_relation(
-                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "GET")
-            )
-            self.assert_has_relation(
-                relations, method_arn_prefix.format(n, "GET"), lambda_arn_prefix.format("GetHello-1CZ5O92284Z69")
+            top.assert_relation(
+                relations,
+                method_arn_prefix.format(n, "PUT"),
+                lambda_arn_prefix.format("PutHello-1LUD3ESBOR6EY"),
+                "uses service"
             )
 
-            self.assert_has_relation(
-                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "DELETE")
+            top.assert_relation(
+                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "POST"), "uses service"
             )
-            self.assert_has_relation(
-                relations, method_arn_prefix.format(n, "DELETE"), lambda_arn_prefix.format("DeleteHello-1LDFJCU54ZL5")
+            top.assert_relation(
+                relations, method_arn_prefix.format(n, "POST"), "urn:service:/84.35.236.89", "uses service"
             )
 
-        self.assertEqual(len(components), self.components_checked)
-        self.assertEqual(len(relations), self.relations_checked)
+            top.assert_relation(
+                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "GET"), "uses service"
+            )
+            top.assert_relation(
+                relations,
+                method_arn_prefix.format(n, "GET"),
+                lambda_arn_prefix.format("GetHello-1CZ5O92284Z69"),
+                "uses service"
+            )
+
+            top.assert_relation(
+                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "DELETE"), "uses service"
+            )
+            top.assert_relation(
+                relations,
+                method_arn_prefix.format(n, "DELETE"),
+                lambda_arn_prefix.format("DeleteHello-1LDFJCU54ZL5"),
+                "uses service"
+            )
+
+        top.assert_all_checked(components, relations, unchecked_components=1)
+        # TODO urn:service:/84.35.236.89 is emited twice
+
+    def test_process_apigateway_arn_generators(self):
+        # TODO this is very odd they all produce the same arns
+        self.assertEqual(
+            create_stage_arn(region='reg', account_id='123456789012', resource_id='test'),
+            'arn:aws:execute-api:reg:123456789012:test'
+        )
+        self.assertEqual(
+            create_resource_arn(region='reg', account_id='123456789012', resource_id='test'),
+            'arn:aws:execute-api:reg:123456789012:test'
+        )
+        self.assertEqual(
+            create_method_arn(region='reg', account_id='123456789012', resource_id='test'),
+            'arn:aws:execute-api:reg:123456789012:test'
+        )

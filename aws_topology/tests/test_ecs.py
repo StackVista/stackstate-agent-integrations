@@ -16,7 +16,7 @@ class TestEcs(BaseApiTest):
         components = topology[0]["components"]
         relations = topology[0]["relations"]
         # default cluster
-        comp = self.assert_has_component(
+        comp = top.assert_component(
             components,
             "arn:aws:ecs:eu-west-1:731070500579:cluster/default",
             "aws.ecs.cluster",
@@ -28,7 +28,7 @@ class TestEcs(BaseApiTest):
         )
         self.assert_location_info(comp)
         # ECS Cluster
-        self.assert_has_component(
+        top.assert_component(
             components,
             "arn:aws:ecs:eu-west-1:731070500579:cluster/StackState-ECS-Cluster",
             "aws.ecs.cluster",
@@ -39,7 +39,7 @@ class TestEcs(BaseApiTest):
             }
         )
         # service
-        self.assert_has_component(
+        top.assert_component(
             components,
             "arn:aws:ecs:eu-west-1:731070500579:service/sample-app-service",
             "aws.ecs.service",
@@ -56,7 +56,7 @@ class TestEcs(BaseApiTest):
             }
         )
         # task
-        self.assert_has_component(
+        top.assert_component(
             components,
             "arn:aws:ecs:eu-west-1:731070500579:task/f89e69d0-0829-48b8-a503-c7b02a62fe9f",
             "aws.ecs.task",
@@ -69,36 +69,34 @@ class TestEcs(BaseApiTest):
             }
         )
         # default cluster has a service
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             "arn:aws:ecs:eu-west-1:731070500579:cluster/default",
             "arn:aws:ecs:eu-west-1:731070500579:service/sample-app-service",
-            type="has_cluster_node"
+            "has_cluster_node"
         )
         # service has a task
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             "arn:aws:ecs:eu-west-1:731070500579:service/sample-app-service",
             "arn:aws:ecs:eu-west-1:731070500579:task/f89e69d0-0829-48b8-a503-c7b02a62fe9f",
-            type="has_cluster_node"
+            "has_cluster_node"
         )
         # service has a lb targetgroup
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             "arn:aws:ecs:eu-west-1:731070500579:service/sample-app-service",
             "arn:aws:elasticloadbalancing:eu-west-1:731070500579:targetgroup/EC2Co-Defau-7HYSTVRX07KO/a7e4eb718fda7510",
-            type="uses service"
+            "uses service"
         )
         # ECS cluster has an instance
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             "arn:aws:ecs:eu-west-1:731070500579:cluster/StackState-ECS-Cluster",
             "string",
-            type="uses_ec2_host"
+            "uses_ec2_host"
         )
-
-        self.assertEqual(len(components), self.components_checked)
-        self.assertEqual(len(relations), self.relations_checked)
+        top.assert_all_checked(components, relations)
 
     @set_cloudtrail_event('create_cluster')
     def test_process_ecs_create_cluster(self):
@@ -107,7 +105,7 @@ class TestEcs(BaseApiTest):
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
         self.assertGreater(len(topology[0]["components"]), 0)
-        self.assert_has_component(
+        top.assert_component(
             topology[0]["components"],
             'arn:aws:ecs:eu-west-1:731070500579:cluster/default',
             'aws.ecs.cluster'
@@ -120,7 +118,7 @@ class TestEcs(BaseApiTest):
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
         self.assertGreater(len(topology[0]["components"]), 0)
-        self.assert_has_component(
+        top.assert_component(
             topology[0]["components"],
             'arn:aws:ecs:eu-west-1:731070500579:cluster/default',
             'aws.ecs.cluster'

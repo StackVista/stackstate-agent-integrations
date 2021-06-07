@@ -29,13 +29,7 @@
                 "variable1": "value2"
             },
             "createdDate": 1483996743,
-            "lastUpdatedDate": 1502091409,
-            "tags": [
-              {
-                  "key": "StageTagKey2",
-                  "value": "StageTagValue2"
-              }
-          ]          
+            "lastUpdatedDate": 1502091409      
         }
     ],
     "ResponseMetadata": {

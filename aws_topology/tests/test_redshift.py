@@ -22,19 +22,19 @@ class TestRedshift(BaseApiTest):
         components = topology[0]["components"]
         relations = topology[0]["relations"]
 
-        self.assert_has_component(
+        top.assert_component(
             components,
             "redshift-cluster-1",
             "aws.redshift"
         )
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             "redshift-cluster-1",
-            "vpc-c6d073bf"
+            "vpc-c6d073bf",
+            "uses service"
         )
 
-        self.assertEqual(len(components), self.components_checked)
-        self.assertEqual(len(relations), self.relations_checked)
+        top.assert_all_checked(components, relations)
 
     @set_cloudtrail_event('create_cluster')
     def test_process_redshift_create_cluster(self):

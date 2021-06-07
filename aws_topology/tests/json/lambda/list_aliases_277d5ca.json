@@ -1,5 +1,12 @@
 {
     "Aliases": [
+        {
+            "AliasArn": "arn:aws:lambda:eu-west-1:731070500579:function:sts-xray-test-02:altnm",
+            "Name": "altnm",
+            "FunctionVersion": "6",
+            "Description": "",
+            "RevisionId": "f81ebb37-5329-448f-a19e-7eace19203ff"
+        }
     ],
     "ResponseMetadata": {
         "Parameters": {

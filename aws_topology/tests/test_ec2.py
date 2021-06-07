@@ -31,13 +31,14 @@ class TestEC2(BaseApiTest):
 
         events = aggregator.events
 
-        self.assert_has_component(
+        top.assert_component(
             components,
             test_instance_id,
             "aws.ec2",
             checks={
                 'InstanceId': test_instance_id,
                 'InstanceType': test_instance_type,
+                "IsNitro": False,
                 'Tags': {
                     'Name': "Martijn's Stackstate",
                     'host': test_instance_id,
@@ -55,23 +56,50 @@ class TestEC2(BaseApiTest):
             }
         )
 
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             test_instance_id,
-            "subnet-67d82910"
+            "subnet-67d82910",
+            "uses service"
         )
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             test_instance_id,
-            "sg-41c3cc3b"
+            "sg-41c3cc3b",
+            "uses service"
         )
 
-        self.assertEqual(len(events), 1)
+        # nitro instances
+        top.assert_component(
+            components,
+            "i-1234567890123456",
+            "aws.ec2",
+            checks={
+                'InstanceId': "i-1234567890123456",
+                'InstanceType': "M6gd",
+                "IsNitro": True
+            }
+        )
+        top.assert_relation(
+            relations,
+            "i-1234567890123456",
+            "vpc-6b25d10e",
+            "uses service"
+        )
+        top.assert_relation(
+            relations,
+            "i-1234567890123456",
+            "sg-41c3cc3b",
+            "uses service"
+        )
+
+        self.assertEqual(len(events), 2)
         self.assertEqual(events[0]["host"], test_instance_id)
         self.assertEqual(events[0]["tags"], ["state:stopped"])
+        self.assertEqual(events[1]["host"], "i-1234567890123456")
+        self.assertEqual(events[1]["tags"], ["state:stopped"])
 
-        self.assertEqual(len(components), self.components_checked)
-        self.assertEqual(len(relations), self.relations_checked)
+        top.assert_all_checked(components, relations)
 
     first_security_group_version_py3 = "56b81fa0a7cb32a2d5be815f1fb4130764f19e8ab734cec3824854d7a5a9fa84"
     first_security_group_version_py2 = "e3a3e4764fd7fd4a51fcd5812ce9a4803a412c28c6830678462301d33ce6ce75"
@@ -96,7 +124,7 @@ class TestEC2(BaseApiTest):
         else:
             version_to_check = self.first_security_group_version_py2
 
-        self.assert_has_component(
+        top.assert_component(
             components,
             self.first_sg_group_id,
             "aws.security-group",
@@ -108,6 +136,8 @@ class TestEC2(BaseApiTest):
                 "Name": "network-ALBSecurityGroupPublic-1DNVWX102724V"
             }
         )
+
+        top.assert_all_checked(components, relations, unchecked_components=48, unchecked_relations=49)
 
     @set_filter('security_groups')
     @use_subdirectory('alternate')
@@ -119,13 +149,14 @@ class TestEC2(BaseApiTest):
         self.assert_executed_ok()
 
         components = topology[0]["components"]
+        relations = topology[0]["relations"]
 
         if sys.version_info.major == 3:
             version_to_check = self.first_security_group_version_py3
         else:
             version_to_check = self.first_security_group_version_py2
 
-        self.assert_has_component(
+        top.assert_component(
             components,
             self.first_sg_group_id,
             "aws.security-group",
@@ -137,6 +168,8 @@ class TestEC2(BaseApiTest):
                 "Name": "network-ALBSecurityGroupPublic-1DNVWX102724V"
             }
         )
+
+        top.assert_all_checked(components, relations, unchecked_components=48, unchecked_relations=49)
 
     @set_filter('vpcs')
     def test_process_ec2_vpcs(self):
@@ -149,7 +182,7 @@ class TestEC2(BaseApiTest):
         components = topology[0]["components"]
         relations = topology[0]["relations"]
 
-        comp = self.assert_has_component(
+        comp = top.assert_component(
             components,
             "vpc-6b25d10e",
             "aws.vpc",
@@ -162,8 +195,26 @@ class TestEC2(BaseApiTest):
             }
         )
         self.assert_location_info(comp)
+        comp = top.assert_component(
+            components,
+            "vpc-12345678",
+            "aws.vpc",
+            checks={
+                "VpcId": "vpc-12345678",
+                "Name": "default",
+            }
+        )
+        comp = top.assert_component(
+            components,
+            "vpc-87654321",
+            "aws.vpc",
+            checks={
+                "VpcId": "vpc-87654321",
+                "Name": "MyVpc",
+            }
+        )
 
-        comp = self.assert_has_component(
+        comp = top.assert_component(
             components,
             "subnet-9e4be5f9",
             "aws.subnet",
@@ -177,15 +228,30 @@ class TestEC2(BaseApiTest):
             }
         )
         self.assert_location_info(comp)
-
-        self.assert_has_relation(
-            relations,
-            "subnet-9e4be5f9",
-            "vpc-6b25d10e"
+        comp = top.assert_component(
+            components,
+            "subnet-12345678",
+            "aws.subnet",
+            checks={
+                "SubnetId": "subnet-12345678",
+                "Name": "subnet-12345678-eu-west-1a"
+            }
         )
 
-        self.assertEqual(len(components), self.components_checked)
-        self.assertEqual(len(relations), self.relations_checked)
+        top.assert_relation(
+            relations,
+            "subnet-9e4be5f9",
+            "vpc-6b25d10e",
+            "uses service"
+        )
+        top.assert_relation(
+            relations,
+            "subnet-12345678",
+            "vpc-6b25d10e",
+            "uses service"
+        )
+
+        top.assert_all_checked(components, relations)
 
     @set_filter('vpn_gateways')
     def test_process_ec2_vpn_gateways(self):
@@ -198,7 +264,7 @@ class TestEC2(BaseApiTest):
         components = topology[0]["components"]
         relations = topology[0]["relations"]
 
-        comp = self.assert_has_component(
+        comp = top.assert_component(
             components,
             "vgw-b8c2fccc",
             "aws.vpngateway",
@@ -208,14 +274,14 @@ class TestEC2(BaseApiTest):
             }
         )
         self.assert_location_info(comp)
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             "vgw-b8c2fccc",
-            "vpc-6b25d10e"
+            "vpc-6b25d10e",
+            "uses service"
         )
 
-        self.assertEqual(len(components), self.components_checked)
-        self.assertEqual(len(relations), self.relations_checked)
+        top.assert_all_checked(components, relations)
 
     @set_cloudtrail_event('run_instances')
     def test_process_ec2_run_instances(self):

@@ -1,5 +1,6 @@
 from stackstate_checks.base.stubs import topology as top
 from .conftest import BaseApiTest, set_cloudtrail_event
+from stackstate_checks.aws_topology.resources.sqs import create_arn
 
 
 class TestSqs(BaseApiTest):
@@ -19,7 +20,7 @@ class TestSqs(BaseApiTest):
         components = topology[0]["components"]
         relations = topology[0]["relations"]
 
-        component = self.assert_has_component(
+        component = top.assert_component(
             components,
             "arn:aws:sqs:eu-west-1:731070500579:STS_stackpack_test",
             "aws.sqs",
@@ -36,8 +37,15 @@ class TestSqs(BaseApiTest):
         )
         self.assert_location_info(component)
 
-        self.assertEqual(len(components), self.components_checked)
-        self.assertEqual(len(relations), self.relations_checked)
+        top.assert_all_checked(components, relations)
+
+    def test_process_sqs_create_arn(self):
+        with self.assertRaises(ValueError):
+            create_arn(resource_id="test")
+        self.assertEqual(
+            create_arn(resource_id='https://sqs.eu-west-1.amazonaws.com/123456789012/myfirstqueue'),
+            "arn:aws:sqs:eu-west-1:123456789012:myfirstqueue"
+        )
 
     @set_cloudtrail_event('sqs_create_queue')
     def test_process_sqs_create(self):

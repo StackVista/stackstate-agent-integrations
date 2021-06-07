@@ -18,33 +18,38 @@ class TestSns(BaseApiTest):
 
         base_target_id = "arn:aws:lambda:eu-west-1:731070500579:function:com-stackstate-prod-sam-seed-"
 
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             "arn:aws:sns:eu-west-1:731070500579:my-topic-1",
-            base_target_id + "TopicHandler-11EWA2GN9YNLL"
+            base_target_id + "TopicHandler-11EWA2GN9YNLL",
+            "uses service"
         )
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             "arn:aws:sns:eu-west-1:731070500579:my-topic-2",
-            base_target_id + "TopicHandler-21EWA2GN9YNLL"
+            base_target_id + "TopicHandler-21EWA2GN9YNLL",
+            "uses service"
         )
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             "arn:aws:sns:eu-west-1:731070500579:my-topic-3",
-            base_target_id + "TopicHandler-31EWA2GN9YNLL"
+            base_target_id + "TopicHandler-31EWA2GN9YNLL",
+            "uses service"
         )
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             "arn:aws:sns:eu-west-1:731070500579:my-topic-3",
-            base_target_id + "TopicHandler-41EWA2GN9YNLL"
+            base_target_id + "TopicHandler-41EWA2GN9YNLL",
+            "uses service"
         )
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             "arn:aws:sns:eu-west-1:731070500579:my-topic-3",
-            "arn:aws:sqs:eu-west-1:731070500579:STS_stackpack_test"
+            "arn:aws:sqs:eu-west-1:731070500579:STS_stackpack_test",
+            "uses service"
         )
 
-        self.assert_has_component(
+        top.assert_component(
             components,
             "arn:aws:sns:eu-west-1:731070500579:my-topic-1",
             "aws.sns",
@@ -58,23 +63,23 @@ class TestSns(BaseApiTest):
             }
         )
         self.assert_location_info(topology[0]["components"][0])
-        self.assert_has_component(
+        top.assert_component(
             components,
             "arn:aws:sns:eu-west-1:731070500579:my-topic-2",
             "aws.sns"
         )
-        self.assert_has_component(
+        top.assert_component(
             components,
             "arn:aws:sns:eu-west-1:731070500579:my-topic-3",
             "aws.sns"
         )
-        self.assert_has_component(
+        top.assert_component(
             components,
             "arn:aws:sns:eu-west-1:731070500579:my-topic-4",
             "aws.sns"
         )
-        self.assertEqual(len(components), self.components_checked)
-        self.assertEqual(len(relations), self.relations_checked)
+
+        top.assert_all_checked(components, relations)
 
     @set_cloudtrail_event('sns_create_topic')
     def test_process_sns_create_topic(self):

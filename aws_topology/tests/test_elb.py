@@ -19,7 +19,7 @@ class TestElasticLoadbalancingV2(BaseApiTest):
         events = aggregator.events
 
         self.assertEqual(len(events), 2)  # TODO nothing is checked on the events
-        self.assert_has_component(
+        top.assert_component(
             components,
             "classic_elb_classic-loadbalancer-1",
             "aws.elb_classic",
@@ -31,28 +31,32 @@ class TestElasticLoadbalancingV2(BaseApiTest):
                 )]
             }
         )
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             "classic_elb_classic-loadbalancer-1",
-            "vpc-6b25d10e"
+            "vpc-6b25d10e",
+            "uses service"
         )
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             "classic_elb_classic-loadbalancer-1",
-            "sg-193aec7c"
+            "sg-193aec7c",
+            "uses service"
         )
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             "classic_elb_classic-loadbalancer-1",
-            "i-09388d5bfc0ab9e78"
+            "i-09388d5bfc0ab9e78",
+            "uses service"
         )
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             "classic_elb_classic-loadbalancer-1",
-            "i-05b20853cc72c23c4"
+            "i-05b20853cc72c23c4",
+            "uses service"
         )
-        self.assertEqual(len(components), self.components_checked)
-        self.assertEqual(len(relations), self.relations_checked)
+
+        top.assert_all_checked(components, relations)
 
     @set_cloudtrail_event('create_loadbalancer')
     def test_process_elb_create_loadbalancer(self):

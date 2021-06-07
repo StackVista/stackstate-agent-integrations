@@ -23,7 +23,7 @@ class TestDynamoDB(BaseApiTest):
         relations = topology[0]["relations"]
 
         # table_1
-        self.assert_has_component(
+        top.assert_component(
             components,
             "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1",
             "aws.dynamodb",
@@ -34,7 +34,7 @@ class TestDynamoDB(BaseApiTest):
             }
         )
         # table_1.stream
-        self.assert_has_component(
+        top.assert_component(
             components,
             "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1/stream/2018-05-17T08:09:27.110",
             "aws.dynamodb.streams",
@@ -49,30 +49,30 @@ class TestDynamoDB(BaseApiTest):
             }
         )
         # table_1 <-> stream
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1",
-            "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1/stream/2018-05-17T08:09:27.110"
+            "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1/stream/2018-05-17T08:09:27.110",
+            "uses service"
         )
 
-        self.assert_has_component(
+        top.assert_component(
             components,
             "arn:aws:dynamodb:eu-west-1:731070500579:table/table_2",
             "aws.dynamodb"
         )
-        self.assert_has_component(
+        top.assert_component(
             components,
             "arn:aws:dynamodb:eu-west-1:731070500579:table/table_3",
             "aws.dynamodb"
         )
-        self.assert_has_component(
+        top.assert_component(
             components,
             "arn:aws:dynamodb:eu-west-1:731070500579:table/table_4",
             "aws.dynamodb"
         )
 
-        self.assertEqual(len(components), self.components_checked)
-        self.assertEqual(len(relations), self.relations_checked)
+        top.assert_all_checked(components, relations)
 
     @set_cloudtrail_event('create_table')
     def test_process_dynamodb_create_table(self):

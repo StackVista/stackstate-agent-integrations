@@ -22,69 +22,74 @@ class TestElasticLoadbalancingV2(BaseApiTest):
         prefix = "arn:aws:elasticloadbalancing:eu-west-1:731070500579:"
 
         # LoadBalancer
-        self.assert_has_component(
+        top.assert_component(
             components,
             prefix + "loadbalancer/app/myfirstloadbalancer/90dd512583d2d7e9",
             "aws.elb_v2_application"
         )
         # TargetGroup
-        self.assert_has_component(
+        top.assert_component(
             components,
             prefix + "targetgroup/myfirsttargetgroup/28ddec997ec55d21",
             "aws.elb_v2_target_group"
         )
         # ELB Target Group Instance A
-        self.assert_has_component(
+        top.assert_component(
             components,
             "urn:aws/target-group-instance/" + instance_a,
             "aws.elb_v2_target_group_instance"
         )
         # ELB Target Group Instance B
-        self.assert_has_component(
+        top.assert_component(
             components,
             "urn:aws/target-group-instance/" + instance_b,
             "aws.elb_v2_target_group_instance"
         )
 
         # LoadBalancer <-> TargetGroup
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             prefix + "loadbalancer/app/myfirstloadbalancer/90dd512583d2d7e9",
-            prefix + "targetgroup/myfirsttargetgroup/28ddec997ec55d21"
+            prefix + "targetgroup/myfirsttargetgroup/28ddec997ec55d21",
+            "uses service"
         )
         # Load Balancer A and Target Group A relationship test
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             prefix + "targetgroup/myfirsttargetgroup/28ddec997ec55d21",
-            "urn:aws/target-group-instance/" + instance_a
+            "urn:aws/target-group-instance/" + instance_a,
+            "uses service"
         )
         # Load Balancer B and Target Group B relationship test
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             prefix + "targetgroup/myfirsttargetgroup/28ddec997ec55d21",
-            "urn:aws/target-group-instance/" + instance_b
+            "urn:aws/target-group-instance/" + instance_b,
+            "uses service"
         )
         # LoadBalancer <-> SecurityGroup
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             prefix + "loadbalancer/app/myfirstloadbalancer/90dd512583d2d7e9",
-            "sg-193aec7c"
+            "sg-193aec7c",
+            "uses service"
         )
         # LoadBalancer <-> Vpc
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             prefix + "loadbalancer/app/myfirstloadbalancer/90dd512583d2d7e9",
-            "vpc-6b25d10e"
+            "vpc-6b25d10e",
+            "uses service"
         )
         # TargetGroup <-> Vpc
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             prefix + "targetgroup/myfirsttargetgroup/28ddec997ec55d21",
-            "vpc-6b25d10e"
+            "vpc-6b25d10e",
+            "uses service"
         )
 
-        self.assertEqual(len(components), self.components_checked)
-        self.assertEqual(len(relations), self.relations_checked)
+        top.assert_all_checked(components, relations)
 
     @set_cloudtrail_event('create_loadbalancer')
     def test_process_elbv2_create_loadbalancer(self):
@@ -121,7 +126,7 @@ class TestElasticLoadbalancingV2(BaseApiTest):
         self.assertEqual(len(topology[0]["components"]), 3)
 
         components = topology[0]["components"]
-        self.assert_has_component(
+        top.assert_component(
             components,
             'arn:aws:elasticloadbalancing:eu-west-1:123456789012:targetgroup/'
             + 'elvin-AlbEc-PYQ8ZCZDRD5E/6e2b19e842496efb',

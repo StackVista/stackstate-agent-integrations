@@ -1,5 +1,5 @@
 from stackstate_checks.base.stubs import topology as top
-from .conftest import BaseApiTest, set_cloudtrail_event
+from .conftest import BaseApiTest, set_cloudtrail_event, set_filter
 
 
 class TestFirehose(BaseApiTest):
@@ -21,7 +21,7 @@ class TestFirehose(BaseApiTest):
 
         firehose_arn_prefix = "arn:aws:firehose:eu-west-1:548105126730:deliverystream/"
 
-        self.assert_has_component(
+        top.assert_component(
             components,
             firehose_arn_prefix + "firehose_1",
             "aws.firehose",
@@ -33,7 +33,7 @@ class TestFirehose(BaseApiTest):
                 ]
             }
         )
-        self.assert_has_component(
+        top.assert_component(
             components,
             firehose_arn_prefix + "firehose_2",
             "aws.firehose",
@@ -45,24 +45,35 @@ class TestFirehose(BaseApiTest):
             }
         )
 
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             "arn:aws:kinesis:eu-west-1:548105126730:stream/stream_1",
-            firehose_arn_prefix + "firehose_1"
+            firehose_arn_prefix + "firehose_1",
+            "uses service"
         )
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             firehose_arn_prefix + "firehose_1",
-            "arn:aws:s3:::firehose-bucket_1"
+            "arn:aws:s3:::firehose-bucket_1",
+            "uses service"
         )
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             firehose_arn_prefix + "firehose_2",
-            "arn:aws:s3:::firehose-bucket_2"
+            "arn:aws:s3:::firehose-bucket_2",
+            "uses service"
         )
 
-        self.assertEqual(len(components), self.components_checked)
-        self.assertEqual(len(relations), self.relations_checked)
+        top.assert_all_checked(components, relations)
+
+    @set_filter('xxx')
+    def test_process_firehosel_filter_all(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        components = topology[0]["components"]
+        self.assertEqual(len(components), 0)
 
     @set_cloudtrail_event('create_stream')
     def test_process_firehose_create_stream(self):

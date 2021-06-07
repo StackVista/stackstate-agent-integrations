@@ -42,7 +42,7 @@
         "VpcConfig": {
           "SubnetIds": [],
           "SecurityGroupIds": [],
-          "VpcId": ""
+          "VpcId": "vpc-c6d073bf"
         },
         "TracingConfig": {
           "Mode": "Active"

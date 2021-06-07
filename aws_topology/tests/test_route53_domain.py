@@ -22,7 +22,7 @@ class TestRoute53Domain(BaseApiTest):
         components = topology[0]["components"]
         relations = topology[0]["relations"]
 
-        self.assert_has_component(
+        top.assert_component(
             components,
             'stackstate.com',
             'aws.route53.domain',
@@ -36,5 +36,4 @@ class TestRoute53Domain(BaseApiTest):
         )
         self.assert_location_info(topology[0]["components"][0])
 
-        self.assertEqual(len(components), self.components_checked)
-        self.assertEqual(len(relations), self.relations_checked)
+        top.assert_all_checked(components, relations)

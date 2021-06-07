@@ -19,7 +19,7 @@ class TestRds(BaseApiTest):
         components = topology[0]["components"]
         relations = topology[0]["relations"]
         # cluster
-        self.assert_has_component(
+        top.assert_component(
             components,
             "arn:aws:rds:eu-west-1:731070500579:cluster:productiondatabasecluster",
             "aws.rds_cluster",
@@ -32,13 +32,13 @@ class TestRds(BaseApiTest):
             }
         )
         # instance 1
-        self.assert_has_component(
+        top.assert_component(
             components,
             "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase",
             "aws.rds_instance",
         )
         # instance 2
-        self.assert_has_component(
+        top.assert_component(
             components,
             "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase-eu-west-1c",
             "aws.rds_instance",
@@ -54,43 +54,49 @@ class TestRds(BaseApiTest):
             }
         )
         # cluster <-> instance-1
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             "arn:aws:rds:eu-west-1:731070500579:cluster:productiondatabasecluster",
-            "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase"
+            "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase",
+            "has_cluster_node"
         )
         # cluster <-> instance-2
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             "arn:aws:rds:eu-west-1:731070500579:cluster:productiondatabasecluster",
-            "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase-eu-west-1c"
+            "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase-eu-west-1c",
+            "has_cluster_node"
         )
         # instance-1 <-> vpc
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase",
-            "vpc-6b25d10e"
+            "vpc-6b25d10e",
+            "uses service"
         )
         # instance-1 <-> security group
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase",
-            "sg-053ecf78"
+            "sg-053ecf78",
+            "uses service"
         )
         # instance-1 <-> vpc
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase-eu-west-1c",
-            "vpc-6b25d10e"
+            "vpc-6b25d10e",
+            "uses service"
         )
         # instance-1 <-> security group
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase-eu-west-1c",
-            "sg-053ecf78"
+            "sg-053ecf78",
+            "uses service"
         )
-        self.assertEqual(len(components), self.components_checked)
-        self.assertEqual(len(relations), self.relations_checked)
+
+        top.assert_all_checked(components, relations)
 
     @set_cloudtrail_event('create_cluster')
     def test_process_rds_create_cluster(self):

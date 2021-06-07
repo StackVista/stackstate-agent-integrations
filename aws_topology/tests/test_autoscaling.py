@@ -29,7 +29,7 @@ class TestAutoScaling(BaseApiTest):
             + "autoScalingGroup:e1155c2b-016a-40ad-8cba-2423c349574b:" \
             + "autoScalingGroupName/awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM"
 
-        comp = self.assert_has_component(
+        comp = top.assert_component(
             components,
             "awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM",
             "aws.autoscaling",
@@ -39,31 +39,34 @@ class TestAutoScaling(BaseApiTest):
         )
         self.assert_location_info(comp)
 
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             "classic_elb_awseb-e-g-AWSEBLoa-1WTFTHM4EDGUX",
-            group_arn
+            group_arn,
+            "uses service"
         )
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             group_arn,
-            "i-063c119ff97e71b82"
+            "i-063c119ff97e71b82",
+            "uses service"
         )
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             group_arn,
-            "i-0928b13f776ba8e76"
+            "i-0928b13f776ba8e76",
+            "uses service"
         )
-        self.assert_has_relation(
+        top.assert_relation(
             relations,
             group_arn,
-            "i-0ed02eb3eab5399fb"
+            "i-0ed02eb3eab5399fb",
+            "uses service"
         )
 
         self.assertEqual(len(topology[0]["delete_ids"]), 3)
 
-        self.assertEqual(len(components), self.components_checked)
-        self.assertEqual(len(relations), self.relations_checked)
+        top.assert_all_checked(components, relations)
 
     @set_cloudtrail_event('create_autoscaling_group')
     def test_process_autoscaling_create_autoscaling_group(self):

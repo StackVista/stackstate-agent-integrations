@@ -20,6 +20,21 @@
         "OwnerId": "508573134510",
         "CidrBlock": "172.42.0.0/20",
         "AssignIpv6AddressOnCreation": false
+      },
+      {
+        "MapPublicIpOnLaunch": false,
+        "AvailabilityZoneId": "euw1-az1",
+        "AvailableIpAddressCount": 4089,
+        "DefaultForAz": false,
+        "SubnetArn": "arn:aws:ec2:eu-west-1:508573134510:subnet/subnet-12345678",
+        "Ipv6CidrBlockAssociationSet": [],
+        "VpcId": "vpc-6b25d10e",
+        "State": "available",
+        "AvailabilityZone": "eu-west-1a",
+        "SubnetId": "subnet-12345678",
+        "OwnerId": "508573134510",
+        "CidrBlock": "172.42.0.0/20",
+        "AssignIpv6AddressOnCreation": false
       }
     ],
     "ResponseMetadata": {
