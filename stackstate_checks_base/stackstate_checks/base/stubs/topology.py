@@ -9,6 +9,8 @@ from six import binary_type, iteritems
 
 from ..utils.common import ensure_unicode, to_string
 
+from functools import reduce
+
 
 def component(id, type, data):
     return {"id": id, "type": type, "data": data}
@@ -23,6 +25,11 @@ def snapshot(instance_key):
             "instance_key": instance_key, "components": [], "relations": []}
 
 
+def get_relation_id(relation):
+    return relation.get('source_id', '') + ' <- (' + relation.get('type', '') + \
+        ') -> ' + relation.get('target_id', '')
+
+
 class TopologyStub(object):
     """
     Mainly used for unit testing checks, this stub makes possible to execute
@@ -31,6 +38,8 @@ class TopologyStub(object):
 
     def __init__(self):
         self._snapshots = {}
+        self._components_checked = {}
+        self._relations_checked = {}
 
     def _ensure_instance(self, check_id, instance_key):
         if check_id not in self._snapshots:
@@ -64,7 +73,87 @@ class TopologyStub(object):
 
     def reset(self):
         self._snapshots = {}
+        self._components_checked = {}
+        self._relations_checked = {}
 
+    def assert_component(self, components, id, type, checks={}):
+        msg = []
+        comp = None
+        for component in components:
+            if component["id"] == id and component["type"] == type:
+                comp = component
+                break
+        if comp is None:
+            msg.append("Component not found id={} type={}".format(id, type))
+            msg.append("Components the were found:")
+            for component in components:
+                msg.append("- {} ({})".format(component.get("id"), component.get("type")))
+            assert False, '\n'.join(msg)
+        self._components_checked[id] = True
+        for key in checks:
+            try:
+                value = reduce(dict.__getitem__, ('data.' + key).split('.'), comp)
+                if value != checks[key]:
+                    msg.append('data {}: {} != {}'.format(key, value, checks[key]))  
+            except Exception as e:
+                msg.append('data {}: error {}'.format(key, e))
+        if msg:
+            assert False, '\n'.join(msg)
+        return comp
+
+    def assert_relation(self, relations, source_id, target_id, type, checks={}):
+        msg = []
+        rel = None
+        for relation in relations:
+            if relation["source_id"] == source_id and relation["target_id"] == target_id and \
+                relation["type"] == type:
+                rel = relation
+                break
+        if rel is None:
+            msg.append("Relation not found source_id={} type={} target_id".format(source_id, type, target_id))
+            msg.append("Relations the were found:")
+            for relation in relations:
+                msg.append("- {} <- ({}) -> {}".format(relation.get("source_id"), relation.get("type"), relation.get("target_id")))
+            assert False, '\n'.join(msg)
+        self._relations_checked[get_relation_id(rel)] = True
+        for key in checks:
+            try:
+                value = reduce(dict.__getitem__, ('data.' + key).split('.'), rel)
+                if value != checks[key]:
+                    msg.append('data {}: {} != {}'.format(key, value, checks[key]))  
+            except Exception as e:
+                msg.append('data {}: error {}'.format(key, e))
+        if msg:
+            assert False, '\n'.join(msg)
+        return rel
+
+    def assert_all_checked(self, components, relations, unchecked_relations=0, unchecked_components=0):
+        msg = []
+        if len(self._components_checked.keys()) + unchecked_components < len(components):
+            msg.append("The following {} components were left unchecked:".format(
+                len(components) - len(self._components_checked.keys()) 
+            ))
+            for component in components:
+                if component["id"] not in self._components_checked:
+                    msg.append("- {} ({})".format(component.get("id"), component.get("type")))
+            for component in components:
+                print(component["id"])
+        elif len(self._components_checked.keys()) + unchecked_components > len(components):
+            msg.append("More components are checked than there were there.")
+        if len(self._relations_checked.keys()) + unchecked_relations < len(relations):
+            msg.append("The following {} relations were left unchecked:".format(
+                len(relations) - len(self._relations_checked.keys())
+            ))
+            for relation in relations:
+                rid = get_relation_id(relation)
+                if rid not in self._relations_checked:
+                    msg.append("- {} <- ({}) -> {}".format(
+                        relation.get("source_id"), relation.get("type"), relation.get("target_id"))
+                    )
+        elif len(self._relations_checked.keys()) + unchecked_relations > len(relations):
+            msg.append("More relations are checked than there were there.")
+        if msg:
+            assert False, '\n'.join(msg)
 
 # Use the stub as a singleton
 topology = TopologyStub()
