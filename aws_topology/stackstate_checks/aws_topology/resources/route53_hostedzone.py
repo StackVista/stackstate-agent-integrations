@@ -21,11 +21,11 @@ class HostedZoneInfo(Model):
 
 
 class DelegationSet(Model):
-    Id = StringType()
+    Id = StringType(required=True)
 
 
 class VPCs(Model):
-    VPCId = StringType()
+    VPCId = StringType(required=True)
 
 
 class HostedZone(Model):
