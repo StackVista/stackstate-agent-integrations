@@ -7,6 +7,7 @@ from .dynamodb import create_table_arn as dynamodb_table_arn
 from .firehose import create_arn as firehose_arn
 from .sns import create_arn as sns_arn
 from .rds import create_cluster_arn, create_db_arn
+from .redshift import create_cluster_arn as create_redshift_cluster_arn
 from .sqs import create_arn as sqs_arn
 from .ecs import create_cluster_arn as ecs_cluster_arn
 from .api_gateway import create_api_arn, create_stage_arn, create_resource_arn, create_method_arn
@@ -51,7 +52,7 @@ type_arn = {
     'AWS::ApiGateway::Resource': create_resource_arn,
     'AWS::ApiGateway::Method': create_method_arn,
     'AWS::ElasticLoadBalancing::LoadBalancer': create_elb_arn,  # TODO odd one
-    'AWS::Redshift::Cluster': no_arn,
+    'AWS::Redshift::Cluster': create_redshift_cluster_arn,
     'AWS::EC2::Instance': no_arn,
     'AWS::EC2::SecurityGroup': no_arn,
     'AWS::EC2::Vpc': no_arn,
