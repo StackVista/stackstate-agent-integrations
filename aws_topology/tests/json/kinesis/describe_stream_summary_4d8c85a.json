@@ -1,6 +1,6 @@
 {
     "StreamDescriptionSummary": {
-        "StreamName": "dnv-sam-seed-stream_2",
+        "StreamName": "stream_2",
         "StreamARN": "arn:aws:kinesis:eu-west-1:731070500579:stream/stream_2",
         "StreamStatus": "ACTIVE",
         "RetentionPeriodHours": 24,

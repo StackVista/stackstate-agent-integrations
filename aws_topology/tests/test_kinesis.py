@@ -69,7 +69,7 @@ class TestKinesis(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            'dnv-sam-seed-stream_1',
+            'stream_1',
             topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"]
         )
 
@@ -90,7 +90,7 @@ class TestKinesis(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            'dnv-sam-seed-stream_1',
+            'stream_1',
             topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"]
         )
 
@@ -102,7 +102,7 @@ class TestKinesis(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            'dnv-sam-seed-stream_1',
+            'stream_1',
             topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"]
         )
 
@@ -114,7 +114,7 @@ class TestKinesis(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            'dnv-sam-seed-stream_1',
+            'stream_1',
             topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"]
         )
 
@@ -126,7 +126,7 @@ class TestKinesis(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            'dnv-sam-seed-stream_1',
+            'stream_1',
             topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"]
         )
 
@@ -138,7 +138,7 @@ class TestKinesis(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            'dnv-sam-seed-stream_1',
+            'stream_1',
             topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"]
         )
 
@@ -150,7 +150,7 @@ class TestKinesis(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            'dnv-sam-seed-stream_1',
+            'stream_1',
             topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"]
         )
 
@@ -162,7 +162,7 @@ class TestKinesis(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            'dnv-sam-seed-stream_1',
+            'stream_1',
             topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"]
         )
 
@@ -174,7 +174,7 @@ class TestKinesis(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            'dnv-sam-seed-stream_1',
+            'stream_1',
             topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"]
         )
 
@@ -186,6 +186,6 @@ class TestKinesis(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            'dnv-sam-seed-stream_1',
+            'stream_1',
             topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"]
         )
