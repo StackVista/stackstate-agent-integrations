@@ -1,11 +1,40 @@
-import time
-from botocore.exceptions import ClientError
-from .utils import make_valid_data, create_arn as arn
+from .utils import (
+    make_valid_data,
+    create_arn as arn,
+    client_array_operation,
+    set_required_access_v2,
+    transformation,
+)
 from .registry import RegisteredResourceCollector
+from collections import namedtuple
+from schematics import Model
+from schematics.types import StringType, ModelType
 
 
 def create_arn(resource_id, region, account_id, **kwargs):
     return arn(resource="lambda", region=region, account_id=account_id, resource_id="function:" + resource_id)
+
+
+FunctionData = namedtuple("FunctionData", ["function", "tags", "aliases"])
+
+
+class EventSource(Model):
+    FunctionArn = StringType(required=True)
+    EventSourceArn = StringType(required=True)
+    State = StringType(default="Enabled")
+
+
+class FunctionAlias(Model):
+    AliasArn = StringType(required=True)
+
+
+class Function(Model):
+    class FunctionVpcConfig(Model):
+        VpcId = StringType(required=True)
+
+    FunctionName = StringType(required=True)
+    FunctionArn = StringType(required=True)
+    VpcConfig = ModelType(FunctionVpcConfig)
 
 
 class LambdaCollector(RegisteredResourceCollector):
@@ -13,63 +42,86 @@ class LambdaCollector(RegisteredResourceCollector):
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.lambda"
 
+    @set_required_access_v2("lambda:ListTags")
+    def collect_tags(self, function_arn):
+        return self.client.list_tags(Resource=function_arn).get("Tags", [])
+
+    @set_required_access_v2("lambda:ListAliases")
+    def collect_aliases(self, function_name):
+        return [
+            aliases
+            for aliases in client_array_operation(self.client, "list_aliases", "Aliases", FunctionName=function_name)
+        ]
+
+    def collect_function(self, function_data):
+        function_name = function_data.get("FunctionName", "")
+        tags = self.collect_tags(function_name) or []
+        aliases = self.collect_aliases(function_name) or []
+        return FunctionData(data=function_data, tags=tags, aliases=aliases)
+
+    def collect_functions(self, **kwargs):
+        for function in [
+            self.collect_function(function_data)
+            for function_data in client_array_operation(self.client, "list_functions", "Functions", **kwargs)
+        ]:
+            yield function
+
+    def collect_event_sources(self):
+        for event_source in client_array_operation(self, "list_event_source_mappings", "EventSourceMappings"):
+            yield event_source
+
+    @set_required_access_v2("lambda:ListFunctions")
+    def process_functions(self):
+        for function_data in self.collect_functions():
+            self.process_function(function_data)
+
+    @set_required_access_v2("lambda:ListEventSourceMappings")
+    def process_event_sources(self):
+        for event_source_data in self.collect_event_sources():
+            self.process_event_source(event_source_data)
+
     def process_all(self, filter=None):
         if not filter or "functions" in filter:
             self.process_functions()
         if not filter or "mappings" in filter:
-            self.process_event_source_mappings()
+            self.process_event_sources()
 
-    def process_functions(self):
-        for page in self.client.get_paginator("list_functions").paginate():
-            for function_data_raw in page.get("Functions") or []:
-                function_data = make_valid_data(function_data_raw)
-                self.process_lambda(function_data)
+    def process_one_function(self, function_name):
+        for function_data in self.collect_functions(FunctionName=function_name):
+            self.process_function(function_data)
 
-    def process_one_function(self, name):
-        function_data_raw = self.client.get_function(FunctionName=name).get("Configuration")
-        function_data = make_valid_data(function_data_raw)
-        self.process_lambda(function_data)
+    @transformation()
+    def process_event_source(self, data):
+        event_source = EventSource(data, strict=False)
+        event_source.validate()
+        if event_source.State == "Enabled":
+            output = make_valid_data(data)
+            # Swapping source/target: StackState models dependencies, not data flow
+            self.emit_relation(event_source.FunctionArn, event_source.EventSourceArn, "uses service", output)
 
-    def process_event_source_mappings(self):
-        for page in self.client.get_paginator("list_event_source_mappings").paginate():
-            for event_source_raw in page.get("EventSourceMappings") or []:
-                event_source = make_valid_data(event_source_raw)
-                if event_source["State"] == "Enabled":
-                    self.process_event_source(event_source)
+    @transformation()
+    def process_function(self, data):
+        function = Function(data.function, strict=False)
+        function.validate()
+        output = make_valid_data(data.function)
+        function_arn = function.FunctionArn
+        output["Name"] = function.FunctionName
+        output["Tags"] = data.tags
+        self.emit_component(function_arn, self.COMPONENT_TYPE, output)
 
-    def process_event_source(self, event_source):
-        source_id = event_source["EventSourceArn"]
-        target_id = event_source["FunctionArn"]
-        # Swapping source/target: StackState models dependencies, not data flow
-        self.emit_relation(target_id, source_id, "uses service", event_source)
-
-    def process_lambda(self, function_data):
-        function_arn = function_data["FunctionArn"]
-        function_tags = None
-        while function_tags is None:
-            try:
-                function_tags = self.client.list_tags(Resource=function_arn).get("Tags") or []
-            except ClientError as exception_obj:
-                if exception_obj.response["Error"]["Code"] == "ThrottlingException":
-                    time.sleep(4)
-                    pass
-        function_data["Tags"] = function_tags
-        self.emit_component(function_arn, self.COMPONENT_TYPE, function_data)
-        lambda_vpc_config = function_data.get("VpcConfig")
-        vpc_id = None
-        if lambda_vpc_config:
-            vpc_id = lambda_vpc_config["VpcId"]
-            if vpc_id:
-                self.emit_relation(function_arn, vpc_id, "uses service", {})
-            self.agent.create_security_group_relations(function_arn, lambda_vpc_config, "SecurityGroupIds")
+        if function.VpcConfig.VpcId:
+            self.emit_relation(function_arn, function.VpcConfig.VpcId, "uses service", {})
+            self.agent.create_security_group_relations(function_arn, output.get("VpcConfig"), "SecurityGroupIds")
         # TODO also emit versions as components and relation to alias / canaries
         # https://stackstate.atlassian.net/browse/STAC-13113
-        for alias_data in self.client.list_aliases(FunctionName=function_arn).get("Aliases") or []:
-            alias_data["Function"] = function_data
-            alias_arn = alias_data["AliasArn"]
-            self.emit_component(alias_arn, "aws.lambda.alias", alias_data)
-            if vpc_id:
-                self.emit_relation(alias_arn, vpc_id, "uses service", {})
+        for alias_data in data.aliases:
+            alias = FunctionAlias(alias_data, strict=False)
+            alias.validate()
+            alias_output = make_valid_data(alias_data)
+            alias_output["Function"] = output
+            self.emit_component(alias.AliasArn, "aws.lambda.alias", alias_output)
+            if function.VpcConfig.VpcId:
+                self.emit_relation(alias.AliasArn, function.VpcConfig.VpcId, "uses service", {})
 
     CLOUDFORMATION_TYPE = "AWS::Lambda::Function"
     EVENT_SOURCE = "lambda.amazonaws.com"
