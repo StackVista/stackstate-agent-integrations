@@ -98,7 +98,7 @@ class DynamodbTableCollector(RegisteredResourceCollector):
         output = make_valid_data(data.table)
         table_arn = table.TableArn
         table_name = table.TableName
-        output["Name"] = table_arn
+        output["Name"] = table_name
         output["Tags"] = data.tags
         output.update(with_dimensions([{"key": "TableName", "value": table_name}]))
         self.emit_component(table_arn, self.COMPONENT_TYPE, output)
