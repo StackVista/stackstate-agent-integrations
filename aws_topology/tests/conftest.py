@@ -9,7 +9,6 @@ from mock import patch
 from stackstate_checks.base.stubs import topology as top, aggregator
 from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
 from stackstate_checks.base import AgentCheck
-from functools import reduce
 import botocore
 import hashlib
 import datetime

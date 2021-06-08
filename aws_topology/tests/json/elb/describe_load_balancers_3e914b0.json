@@ -44,7 +44,7 @@
                 "AppCookieStickinessPolicies": [],
                 "OtherPolicies": []
             },
-            "LoadBalancerName": "classic-loadbalancer-1",
+            "LoadBalancerName": "waegh",
             "CreatedTime": "2018-04-19T10:25:33.380000+00:00",
             "AvailabilityZones": [
                 "eu-west-1b",

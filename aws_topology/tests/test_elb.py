@@ -66,7 +66,7 @@ class TestElasticLoadbalancingV2(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            'classic_elb_classic-loadbalancer-1',
+            'classic_elb_waegh',
             topology[0]["components"][0]["id"]
         )
 
@@ -87,6 +87,6 @@ class TestElasticLoadbalancingV2(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            'classic_elb_classic-loadbalancer-1',
+            'classic_elb_waegh',
             topology[0]["components"][0]["id"]
         )

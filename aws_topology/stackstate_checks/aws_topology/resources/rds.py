@@ -49,7 +49,8 @@ class RdsCollector(RegisteredResourceCollector):
         self.emit_component(instance_arn, 'aws.rds_instance', instance_data)
         vpc_id = instance_data['DBSubnetGroup']['VpcId']
         self.emit_relation(instance_arn, vpc_id, 'uses service', {})
-        if instance_data.get('VpcSecurityGroups'):  # TODO agent.create_security_group_relations (but needs change?)
+        # TODO agent.create_security_group_relations (but needs change?)
+        if instance_data.get('VpcSecurityGroups'):  # pragma: no cover
             for security_group in instance_data['VpcSecurityGroups']:
                 self.emit_relation(instance_arn, security_group['VpcSecurityGroupId'], 'uses service', {})
 

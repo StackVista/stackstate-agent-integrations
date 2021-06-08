@@ -1,5 +1,6 @@
 from stackstate_checks.base.stubs import topology as top
 from .conftest import BaseApiTest, set_cloudtrail_event
+from stackstate_checks.aws_topology.resources.rds import create_cluster_arn
 
 
 class TestRds(BaseApiTest):
@@ -97,6 +98,15 @@ class TestRds(BaseApiTest):
         )
 
         top.assert_all_checked(components, relations)
+
+    def test_process_rds_test_arn_constuctor(self):
+        self.assertEqual(
+            create_cluster_arn(
+                region='region',
+                account_id='1234567789012',
+                resource_id='mycluster'),
+            'arn:aws:rds:region:1234567789012:cluster:mycluster'
+        )
 
     @set_cloudtrail_event('create_cluster')
     def test_process_rds_create_cluster(self):
