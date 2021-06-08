@@ -94,7 +94,7 @@ class TopologyStub(object):
             try:
                 value = reduce(dict.__getitem__, ('data.' + key).split('.'), comp)
                 if value != checks[key]:
-                    msg.append('data {}: {} != {}'.format(key, value, checks[key]))  
+                    msg.append('data {}: {} != {}'.format(key, value, checks[key]))
             except Exception as e:
                 msg.append('data {}: error {}'.format(key, e))
         if msg:
@@ -106,21 +106,25 @@ class TopologyStub(object):
         rel = None
         for relation in relations:
             if relation["source_id"] == source_id and relation["target_id"] == target_id and \
-                relation["type"] == type:
+                    relation["type"] == type:
                 rel = relation
                 break
         if rel is None:
-            msg.append("Relation not found source_id={} type={} target_id".format(source_id, type, target_id))
+            msg.append("Relation not found source_id={} type={} target_id={}".format(source_id, type, target_id))
             msg.append("Relations the were found:")
             for relation in relations:
-                msg.append("- {} <- ({}) -> {}".format(relation.get("source_id"), relation.get("type"), relation.get("target_id")))
+                msg.append("- {} <- ({}) -> {}".format(
+                    relation.get("source_id"),
+                    relation.get("type"),
+                    relation.get("target_id"))
+                )
             assert False, '\n'.join(msg)
         self._relations_checked[get_relation_id(rel)] = True
         for key in checks:
             try:
                 value = reduce(dict.__getitem__, ('data.' + key).split('.'), rel)
                 if value != checks[key]:
-                    msg.append('data {}: {} != {}'.format(key, value, checks[key]))  
+                    msg.append('data {}: {} != {}'.format(key, value, checks[key]))
             except Exception as e:
                 msg.append('data {}: error {}'.format(key, e))
         if msg:
@@ -131,7 +135,7 @@ class TopologyStub(object):
         msg = []
         if len(self._components_checked.keys()) + unchecked_components < len(components):
             msg.append("The following {} components were left unchecked:".format(
-                len(components) - len(self._components_checked.keys()) 
+                len(components) - len(self._components_checked.keys())
             ))
             for component in components:
                 if component["id"] not in self._components_checked:
@@ -154,6 +158,7 @@ class TopologyStub(object):
             msg.append("More relations are checked than there were there.")
         if msg:
             assert False, '\n'.join(msg)
+
 
 # Use the stub as a singleton
 topology = TopologyStub()
