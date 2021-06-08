@@ -15,15 +15,9 @@ class LambdaCollector(RegisteredResourceCollector):
 
     def process_all(self, filter=None):
         if not filter or "functions" in filter:
-            try:
-                self.process_functions()
-            except Exception:
-                pass
+            self.process_functions()
         if not filter or "mappings" in filter:
-            try:
-                self.process_event_source_mappings()
-            except Exception:
-                pass
+            self.process_event_source_mappings()
 
     def process_functions(self):
         for page in self.client.get_paginator('list_functions').paginate():
@@ -92,7 +86,7 @@ class LambdaCollector(RegisteredResourceCollector):
         },
         {
             'event_name': 'PublishVersion20150331',
-            'path': 'responseElements.functionArn',
+            'path': 'responseElements.functionName',
             'processor': process_one_function
         },
         {

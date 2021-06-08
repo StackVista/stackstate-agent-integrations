@@ -1,0 +1,20 @@
+{
+    "Aliases": [
+        {
+            "AliasArn": "arn:aws:lambda:eu-west-1:731070500579:function:sts-xray-test-02:altnm",
+            "Name": "altnm",
+            "FunctionVersion": "6",
+            "Description": "",
+            "RevisionId": "f81ebb37-5329-448f-a19e-7eace19203ff"
+        }
+    ],
+    "ResponseMetadata": {
+        "Parameters": {
+            "FunctionName": "arn:aws:lambda:eu-west-1:731070500579:function:sts-xray-test-02"
+        },
+        "OperationName": "ListAliases",
+        "Generater": "2021-05-29 07:45:36.709391",
+        "Region": "eu-west-1",
+        "Account": "508573134510"
+    }
+  }

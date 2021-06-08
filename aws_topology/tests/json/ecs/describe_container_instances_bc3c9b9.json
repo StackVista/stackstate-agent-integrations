@@ -1,0 +1,82 @@
+{
+    "containerInstances": [
+        {
+            "containerInstanceArn": "string",
+            "ec2InstanceId": "string",
+            "version": 123,
+            "versionInfo": {
+                "agentVersion": "string",
+                "agentHash": "string",
+                "dockerVersion": "string"
+            },
+            "remainingResources": [
+                {
+                    "name": "string",
+                    "type": "string",
+                    "doubleValue": 123.0,
+                    "longValue": 123,
+                    "integerValue": 123,
+                    "stringSetValue": [
+                        "string"
+                    ]
+                }
+            ],
+            "registeredResources": [
+                {
+                    "name": "string",
+                    "type": "string",
+                    "doubleValue": 123.0,
+                    "longValue": 123,
+                    "integerValue": 123,
+                    "stringSetValue": [
+                        "string"
+                    ]
+                }
+            ],
+            "status": "string",
+            "agentConnected": true,
+            "runningTasksCount": 123,
+            "pendingTasksCount": 123,
+            "agentUpdateStatus": "PENDING",
+            "attributes": [
+                {
+                    "name": "string",
+                    "value": "string",
+                    "targetType": "container-instance",
+                    "targetId": "string"
+                }
+            ],
+            "attachments": [
+                {
+                    "id": "string",
+                    "type": "string",
+                    "status": "string",
+                    "details": [
+                        {
+                            "name": "string",
+                            "value": "string"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "failures": [
+        {
+            "arn": "string",
+            "reason": "string"
+        }
+    ],
+    "ResponseMetadata": {
+        "Parameters": {
+            "cluster": "arn:aws:ecs:eu-west-1:731070500579:cluster/StackState-ECS-Cluster",
+            "containerInstances": [
+              "myarn"
+            ]
+        },
+        "OperationName": "DescribeContainerInstances",
+        "Generater": "2021-05-29 07:45:36.570257",
+        "Region": "eu-west-1",
+        "Account": "548105126730"
+    }
+}

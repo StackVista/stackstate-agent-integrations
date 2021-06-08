@@ -96,7 +96,7 @@ class SnsCollector(RegisteredResourceCollector):
         for subscription_by_topic in data.subscriptions:
             subscription = Subscription(subscription_by_topic, strict=False)
             subscription.validate()
-            if subscription.Protocol in ["lambda", "sqs"] and subscription.TopicArn == topic_arn:
+            if subscription.Protocol in ["lambda", "sqs"]:
                 # TODO subscriptions can be cross region! probably also cross account
                 self.emit_relation(topic_arn, subscription.Endpoint, "uses service", {})
 

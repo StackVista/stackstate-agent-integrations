@@ -1,0 +1,28 @@
+{
+    "HostedZone": {
+        "Id": "/hostedzone/Z4OKCQBA0VS63",
+        "Name": "serverless.nl.",
+        "CallerReference": "FBCD2F62-A6CE-DFF0-86D0-FFB0608C3106",
+        "Config": {
+          "PrivateZone": false
+        },
+        "ResourceRecordSetCount": 9
+      },
+      "DelegationSet": {
+        "NameServers": [
+          "ns-474.awsdns-59.com",
+          "ns-1800.awsdns-33.co.uk",
+          "ns-702.awsdns-23.net",
+          "ns-1209.awsdns-23.org"
+        ]
+      },
+      "ResponseMetadata": {
+        "Parameters": {
+            "Id": "/hostedzone/Z4OKCQBA0VS63"
+        },
+        "OperationName": "GetHostedZone",
+        "Generater": "2021-05-29 07:45:36.709391",
+        "Region": "eu-west-1",
+        "Account": "508573134510"
+    }
+}

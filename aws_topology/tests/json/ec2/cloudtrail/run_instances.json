@@ -1,0 +1,172 @@
+{
+    "eventVersion": "1.05",
+    "eventID": "007a1b8d-0644-4d1e-a051-0b403269a28e",
+    "eventTime": "2018-04-30T08:59:01Z",
+    "requestParameters": {
+        "blockDeviceMapping": {
+            "items": [
+                {
+                    "deviceName": "/dev/xvda",
+                    "ebs": {
+                        "deleteOnTermination": true,
+                        "volumeSize": 8,
+                        "volumeType": "gp2"
+                    }
+                }
+            ]
+        },
+        "monitoring": {
+            "enabled": false
+        },
+        "networkInterfaceSet": {
+            "items": [
+                {
+                    "deviceIndex": 0,
+                    "groupSet": {
+                        "items": [
+                            {
+                                "groupId": "sg-529e4f2f"
+                            }
+                        ]
+                    },
+                    "description": "Primary network interface",
+                    "ipv6AddressCount": 0,
+                    "deleteOnTermination": true,
+                    "subnetId": "subnet-67d82910"
+                }
+            ]
+        },
+        "ebsOptimized": false,
+        "creditSpecification": {
+            "cpuCredits": "standard"
+        },
+        "instancesSet": {
+            "items": [
+                {
+                    "minCount": 1,
+                    "maxCount": 1,
+                    "keyName": "MartijnThijsDevKP",
+                    "imageId": "ami-38c09341"
+                }
+            ]
+        },
+        "disableApiTermination": false,
+        "instanceType": "t2.micro"
+    },
+    "eventType": "AwsApiCall",
+    "responseElements": {
+        "ownerId": "731070500579",
+        "groupSet": {},
+        "reservationId": "r-0851dca64d655d1c3",
+        "requestId": "206376db-ebfe-443f-a62a-1798034d338c",
+        "instancesSet": {
+            "items": [
+                {
+                    "productCodes": {},
+                    "vpcId": "vpc-6b25d10e",
+                    "instanceId": "i-0f70dba7ea83d6dec",
+                    "imageId": "ami-38c09341",
+                    "keyName": "MartijnThijsDevKP",
+                    "subnetId": "subnet-67d82910",
+                    "amiLaunchIndex": 0,
+                    "instanceType": "t2.micro",
+                    "groupSet": {
+                        "items": [
+                            {
+                                "groupName": "launch-wizard-32",
+                                "groupId": "sg-529e4f2f"
+                            }
+                        ]
+                    },
+                    "monitoring": {
+                        "state": "disabled"
+                    },
+                    "stateReason": {
+                        "message": "pending",
+                        "code": "pending"
+                    },
+                    "privateIpAddress": "172.30.0.157",
+                    "virtualizationType": "hvm",
+                    "privateDnsName": "ip-172-30-0-157.eu-west-1.compute.internal",
+                    "sourceDestCheck": true,
+                    "blockDeviceMapping": {},
+                    "placement": {
+                        "tenancy": "default",
+                        "availabilityZone": "eu-west-1a"
+                    },
+                    "hypervisor": "xen",
+                    "networkInterfaceSet": {
+                        "items": [
+                            {
+                                "status": "in-use",
+                                "macAddress": "06:7c:e7:d6:0a:66",
+                                "sourceDestCheck": true,
+                                "vpcId": "vpc-6b25d10e",
+                                "description": "Primary network interface",
+                                "ipv6AddressesSet": {},
+                                "networkInterfaceId": "eni-33564a01",
+                                "groupSet": {
+                                    "items": [
+                                        {
+                                            "groupName": "launch-wizard-32",
+                                            "groupId": "sg-529e4f2f"
+                                        }
+                                    ]
+                                },
+                                "attachment": {
+                                    "status": "attaching",
+                                    "deviceIndex": 0,
+                                    "deleteOnTermination": true,
+                                    "attachmentId": "eni-attach-4d6922ae",
+                                    "attachTime": 1525078741000
+                                },
+                                "tagSet": {},
+                                "subnetId": "subnet-67d82910",
+                                "ownerId": "731070500579",
+                                "privateIpAddressesSet": {
+                                    "item": [
+                                        {
+                                            "primary": true,
+                                            "privateIpAddress": "172.30.0.157"
+                                        }
+                                    ]
+                                },
+                                "privateIpAddress": "172.30.0.157"
+                            }
+                        ]
+                    },
+                    "ebsOptimized": false,
+                    "launchTime": 1525078741000,
+                    "architecture": "x86_64",
+                    "instanceState": {
+                        "code": 0,
+                        "name": "pending"
+                    },
+                    "rootDeviceType": "ebs",
+                    "rootDeviceName": "/dev/xvda"
+                }
+            ]
+        }
+    },
+    "awsRegion": "eu-west-1",
+    "eventName": "RunInstances",
+    "userIdentity": {
+        "userName": "martijn",
+        "principalId": "AIDAJDDXCZUJ4ZKDWZPOQ",
+        "accessKeyId": "ASIAJGFEMGGYPI6KNYSQ",
+        "invokedBy": "signin.amazonaws.com",
+        "sessionContext": {
+            "attributes": {
+                "creationDate": "2018-04-30T08:00:54Z",
+                "mfaAuthenticated": "true"
+            }
+        },
+        "type": "IAMUser",
+        "arn": "arn:aws:iam::731070500579:user/martijn",
+        "accountId": "731070500579"
+    },
+    "eventSource": "ec2.amazonaws.com",
+    "requestID": "206376db-ebfe-443f-a62a-1798034d338c",
+    "userAgent": "signin.amazonaws.com",
+    "sourceIPAddress": "81.21.139.6"
+}

@@ -1,0 +1,39 @@
+{
+    "eventVersion": "1.08",
+    "userIdentity": {
+        "type": "IAMUser",
+        "principalId": "AIDAUHNFPQM2QXFIIRMZY",
+        "arn": "arn:aws:iam::123456789012:user/jacco.kulman",
+        "accountId": "123456789012",
+        "accessKeyId": "ASIAUHNFPQM25M3BDD5N",
+        "userName": "jacco.kulman",
+        "sessionContext": {
+            "sessionIssuer": {},
+            "webIdFederationData": {},
+            "attributes": {
+                "mfaAuthenticated": "false",
+                "creationDate": "2021-04-29T14:56:15Z"
+            }
+        }
+    },
+    "eventTime": "2021-04-29T19:43:11Z",
+    "eventSource": "firehose.amazonaws.com",
+    "eventName": "UntagDeliveryStream",
+    "awsRegion": "eu-west-1",
+    "sourceIPAddress": "83.163.185.52",
+    "userAgent": "console.amazonaws.com",
+    "requestParameters": {
+        "deliveryStreamName": "firehose_1",
+        "tagKeys": [
+            "TestTag"
+        ]
+    },
+    "responseElements": null,
+    "requestID": "c3addcfc-74d5-dcad-9aa8-d2736e5317c4",
+    "eventID": "089a4cbd-b8e0-426e-a9dd-fb7330fbb25c",
+    "readOnly": false,
+    "eventType": "AwsApiCall",
+    "managementEvent": true,
+    "eventCategory": "Management",
+    "recipientAccountId": "123456789012"
+}
