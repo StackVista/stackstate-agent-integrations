@@ -1,10 +1,12 @@
 {
-    "LocationConstraint": "eu-west-1",
     "ResponseMetadata": {
+        "HTTPHeaders": {
+            "x-amz-bucket-region": "eu-west-1"
+        },
         "Parameters": {
             "Bucket": "stackstate.com"
         },
-        "OperationName": "GetBucketLocation",
+        "OperationName": "HeadBucket",
         "Generater": "2021-05-29 07:45:36.709391",
         "Region": "eu-west-1",
         "Account": "508573134510"
