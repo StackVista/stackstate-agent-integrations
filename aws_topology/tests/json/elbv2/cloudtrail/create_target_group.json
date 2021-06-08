@@ -1,0 +1,69 @@
+{
+    "eventVersion": "1.08",
+    "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROAUHNFPQM253JKRZCRS:elvin.luff@oblcc.com",
+        "arn": "arn:aws:sts::123456789012:assumed-role/oblcc-admin/elvin.luff@oblcc.com",
+        "accountId": "123456789012",
+        "accessKeyId": "ASIAJYWOP6P2GYXJZIPQ",
+        "sessionContext": {
+            "sessionIssuer": {
+                "type": "Role",
+                "principalId": "AROAUHNFPQM253JKRZCRS",
+                "arn": "arn:aws:iam::123456789012:role/oblcc/oblcc-admin",
+                "accountId": "123456789012",
+                "userName": "oblcc-admin"
+            },
+            "webIdFederationData": {},
+            "attributes": {
+                "mfaAuthenticated": "false",
+                "creationDate": "2021-04-29T13:08:29Z"
+            }
+        },
+        "invokedBy": "cloudformation.amazonaws.com"
+    },
+    "eventTime": "2021-04-29T14:06:13Z",
+    "eventSource": "elasticloadbalancing.amazonaws.com",
+    "eventName": "CreateTargetGroup",
+    "awsRegion": "eu-west-1",
+    "sourceIPAddress": "cloudformation.amazonaws.com",
+    "userAgent": "cloudformation.amazonaws.com",
+    "requestParameters": {
+        "protocol": "HTTP",
+        "vpcId": "vpc-0b2efd20708d0e477",
+        "port": 80,
+        "name": "elvin-AlbEc-PYQ8ZCZDRD5E"
+    },
+    "responseElements": {
+        "targetGroups": [
+            {
+                "targetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:123456789012:targetgroup/elvin-AlbEc-PYQ8ZCZDRD5E/6e2b19e842496efb",
+                "healthCheckPort": "traffic-port",
+                "healthCheckPath": "/",
+                "healthCheckEnabled": true,
+                "healthCheckTimeoutSeconds": 5,
+                "protocol": "HTTP",
+                "healthCheckProtocol": "HTTP",
+                "unhealthyThresholdCount": 2,
+                "healthCheckIntervalSeconds": 30,
+                "port": 80,
+                "matcher": {
+                    "httpCode": "200"
+                },
+                "targetGroupName": "elvin-AlbEc-PYQ8ZCZDRD5E",
+                "vpcId": "vpc-0b2efd20708d0e477",
+                "protocolVersion": "HTTP1",
+                "targetType": "instance",
+                "healthyThresholdCount": 5
+            }
+        ]
+    },
+    "requestID": "c5da241c-d879-47c2-b633-b06ab275d4c1",
+    "eventID": "3df9f455-f248-4771-b64e-d58aea09061a",
+    "readOnly": false,
+    "eventType": "AwsApiCall",
+    "apiVersion": "2015-12-01",
+    "managementEvent": true,
+    "eventCategory": "Management",
+    "recipientAccountId": "123456789012"
+}

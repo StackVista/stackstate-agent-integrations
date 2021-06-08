@@ -111,7 +111,7 @@ class StepFunctionCollector(RegisteredResourceCollector):
             yield activity
 
     def process_all(self, filter=None):
-        if not filter or 'stepfunction' in filter:
+        if not filter or 'stepfunctions' in filter:
             self.process_state_machines()
         if not filter or 'activities' in filter:
             self.process_activities()

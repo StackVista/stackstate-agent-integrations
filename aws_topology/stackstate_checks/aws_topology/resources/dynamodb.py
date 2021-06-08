@@ -124,7 +124,7 @@ class DynamodbTableCollector(RegisteredResourceCollector):
         return {table_name: table_arn}
 
     def process_resource(self, arn):
-        name = arn.split(":")[-1]
+        name = arn.rsplit("/", 1)[-1]
         self.process_one_table(name)
 
     EVENT_SOURCE = "dynamodb.amazonaws.com"
