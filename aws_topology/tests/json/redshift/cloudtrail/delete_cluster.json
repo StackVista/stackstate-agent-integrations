@@ -1,0 +1,90 @@
+{
+    "eventVersion": "1.08",
+    "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROAX7HM4QNFPDB64TSWX:jkulman",
+        "arn": "arn:aws:sts::548105126730:assumed-role/binx/jkulman",
+        "accountId": "548105126730",
+        "accessKeyId": "ASIAX7HM4QNFNEBAEXEH",
+        "sessionContext": {
+            "sessionIssuer": {
+                "type": "Role",
+                "principalId": "AROAX7HM4QNFPDB64TSWX",
+                "arn": "arn:aws:iam::548105126730:role/binx",
+                "accountId": "548105126730",
+                "userName": "binx"
+            },
+            "webIdFederationData": {},
+            "attributes": {
+                "mfaAuthenticated": "false",
+                "creationDate": "2021-05-31T17:52:23Z"
+            }
+        }
+    },
+    "eventTime": "2021-05-31T18:07:51Z",
+    "eventSource": "redshift.amazonaws.com",
+    "eventName": "DeleteCluster",
+    "awsRegion": "eu-west-1",
+    "sourceIPAddress": "83.163.185.52",
+    "userAgent": "aws-internal/3 aws-sdk-java/1.11.965 Linux/4.9.230-0.1.ac.224.84.332.metal1.x86_64 OpenJDK_64-Bit_Server_VM/25.282-b08 java/1.8.0_282 vendor/Oracle_Corporation",
+    "requestParameters": {
+        "clusterIdentifier": "redshift-cluster-1",
+        "skipFinalClusterSnapshot": true
+    },
+    "responseElements": {
+        "clusterIdentifier": "redshift-cluster-1",
+        "nodeType": "dc2.large",
+        "clusterStatus": "deleting",
+        "clusterAvailabilityStatus": "Modifying",
+        "masterUsername": "awsuser",
+        "dBName": "dev",
+        "endpoint": {
+            "address": "redshift-cluster-1.caclfcjwzuh5.eu-west-1.redshift.amazonaws.com",
+            "port": 5439
+        },
+        "clusterCreateTime": "May 31, 2021 6:00:12 PM",
+        "automatedSnapshotRetentionPeriod": 1,
+        "manualSnapshotRetentionPeriod": -1,
+        "clusterSecurityGroups": [],
+        "vpcSecurityGroups": [
+            {
+                "vpcSecurityGroupId": "sg-e103f2b0",
+                "status": "active"
+            }
+        ],
+        "clusterParameterGroups": [
+            {
+                "parameterGroupName": "default.redshift-1.0",
+                "parameterApplyStatus": "in-sync"
+            }
+        ],
+        "clusterSubnetGroupName": "default",
+        "vpcId": "vpc-c6d073bf",
+        "availabilityZone": "eu-west-1a",
+        "preferredMaintenanceWindow": "sun:00:00-sun:00:30",
+        "pendingModifiedValues": {},
+        "clusterVersion": "1.0",
+        "allowVersionUpgrade": true,
+        "numberOfNodes": 1,
+        "publiclyAccessible": true,
+        "encrypted": false,
+        "tags": [],
+        "enhancedVpcRouting": false,
+        "iamRoles": [],
+        "maintenanceTrackName": "current",
+        "deferredMaintenanceWindows": [],
+        "nextMaintenanceWindowStartTime": "Jun 6, 2021 12:00:00 AM",
+        "aquaConfiguration": {
+            "aquaStatus": "disabled",
+            "aquaConfigurationStatus": "auto"
+        },
+        "totalStorageCapacityInMegaBytes": 400000
+    },
+    "requestID": "3e6fd91b-34fd-42cc-9a5c-41389ab41d9e",
+    "eventID": "42aef52f-a793-4fee-94cf-231a8b8281ea",
+    "readOnly": false,
+    "eventType": "AwsApiCall",
+    "managementEvent": true,
+    "eventCategory": "Management",
+    "recipientAccountId": "548105126730"
+}

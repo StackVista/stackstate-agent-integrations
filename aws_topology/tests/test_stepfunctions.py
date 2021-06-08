@@ -1,37 +1,11 @@
-import unittest
 import os
 import json
-from mock import patch
-from stackstate_checks.base.stubs import topology as top, aggregator
-from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
-from stackstate_checks.aws_topology.utils import location_info
-from stackstate_checks.base import AgentCheck
-import botocore
-import hashlib
+from stackstate_checks.base.stubs import topology as top
 from stackstate_checks.aws_topology.resources.cloudformation import type_arn
 from stackstate_checks.aws_topology.resources.stepfunction import StepFunctionCollector
+from stackstate_checks.aws_topology.utils import location_info
 from collections import Counter
-import datetime
-
-
-def set_not_authorized(value):
-    def inner(func):
-        func.not_authorized = value
-        return func
-
-    return inner
-
-
-def set_cloudtrail_event(value):
-    def inner(func):
-        func.cloudtrail_event = value
-        return func
-
-    return inner
-
-
-def get_params_hash(region, data):
-    return hashlib.md5((region + json.dumps(data, sort_keys=True, default=str)).encode('utf-8')).hexdigest()[0:7]
+from .conftest import BaseApiTest, set_not_authorized, set_cloudtrail_event
 
 
 def relative_path(path):
@@ -43,48 +17,6 @@ def resource(path):
     with open(relative_path(path)) as f:
         x = json.load(f)
     return x
-
-
-def wrapper(not_authorized, event_name=None):
-    def mock_boto_calls(self, *args, **kwargs):
-        if args[0] == "AssumeRole":
-            return {
-                "Credentials": {
-                    "AccessKeyId": "KEY_ID",
-                    "SecretAccessKey": "ACCESS_KEY",
-                    "SessionToken": "TOKEN"
-                }
-            }
-        if args[0] == "LookupEvents":
-            if (event_name):
-                res = resource("json/stepfunctions/cloudtrail/" + event_name + ".json")
-                res['eventTime'] = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
-                msg = {
-                    "Events": [
-                        {
-                            "CloudTrailEvent": json.dumps(res)
-                        }
-                    ]
-                }
-                return msg
-            else:
-                return {}
-        operation_name = botocore.xform_name(args[0])
-        if operation_name in not_authorized:
-            raise botocore.exceptions.ClientError({
-                'Error': {
-                    'Code': 'AccessDenied'
-                }
-            }, operation_name)
-        file_name = "json/stepfunctions/{}_{}.json".format(operation_name, get_params_hash(self.meta.region_name, args))
-        try:
-            return resource(file_name)
-        except Exception:
-            error = "API response file not found for operation: {}\n".format(operation_name)
-            error += "Parameters:\n{}\n".format(json.dumps(args[1], indent=2, default=str))
-            error += "File missing: {}".format(file_name)
-            raise Exception(error)
-    return mock_boto_calls
 
 
 class AgentMock(object):
@@ -115,62 +47,16 @@ class AgentMock(object):
         return 'arn:' + type + ':' + resource_id
 
 
-class TestStepFunctions(unittest.TestCase):
+class TestStepFunctions(BaseApiTest):
 
     CHECK_NAME = "aws_topology"
     SERVICE_CHECK_NAME = "aws_topology"
 
-    def setUp(self):
-        """
-        Initialize and patch the check, i.e.
-        """
-        method = getattr(self, self._testMethodName)
-        not_authorized = []
-        if hasattr(method, 'not_authorized'):
-            not_authorized = method.not_authorized
-        cloudtrail_event = None
-        if hasattr(method, 'cloudtrail_event'):
-            cloudtrail_event = method.cloudtrail_event
-        self.patcher = patch("botocore.client.BaseClient._make_api_call", autospec=True)
-        self.mock_object = self.patcher.start()
-        top.reset()
-        aggregator.reset()
-        init_config = InitConfig({
-            "aws_access_key_id": "some_key",
-            "aws_secret_access_key": "some_secret",
-            "external_id": "disable_external_id_this_is_unsafe"
-        })
-        instance = {
-            "role_arn": "arn:aws:iam::548105126730:role/RoleName",
-            "regions": ["eu-west-1"],
-        }
-        apis = ["stepfunctions"]
-        if cloudtrail_event:
-            apis = []
-        instance.update({"apis_to_run": apis})
+    def get_api(self):
+        return "stepfunctions"
 
-        self.check = AwsTopologyCheck(self.CHECK_NAME, InitConfig(init_config), [instance])
-        self.mock_object.side_effect = wrapper(not_authorized, event_name=cloudtrail_event)
-
-    def tearDown(self):
-        self.patcher.stop()
-
-    def assert_executed_ok(self):
-        service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_EXECUTE_NAME)
-        self.assertGreater(len(service_checks), 0)
-        self.assertEqual(service_checks[0].status, AgentCheck.OK, service_checks[0].message)
-
-    def assert_has_component(self, components, id, type):
-        for component in components:
-            if component["id"] == id and component["type"] == type:
-                return component
-        self.assertTrue(False, "Component expected id={} type={}".format(id, type))
-
-    def assert_has_relation(self, relations, source_id, target_id):
-        for relation in relations:
-            if relation["source_id"] == source_id and relation["target_id"] == target_id:
-                return relation
-        self.assertTrue(False, "Relation expected source_id={} target_id={}".format(source_id, target_id))
+    def get_account_id(self):
+        return "548105126730"
 
     def test_process_stepfunctions(self):
         self.check.run()
@@ -197,8 +83,8 @@ class TestStepFunctions(unittest.TestCase):
                     return res["id"]
 
         sfn_id = get_id('StepFunctionsStateMachine')
-        self.assert_has_component(components, sfn_id, 'aws.stepfunction.statemachine')
-        self.assert_has_component(
+        top.assert_component(components, sfn_id, 'aws.stepfunction.statemachine')
+        top.assert_component(
             components,
             get_id('StepFunctionsActivity'),
             'aws.stepfunction.activity')
@@ -220,61 +106,66 @@ class TestStepFunctions(unittest.TestCase):
             "LambdaOldVersion"
         ]
         for state_name in state_names:
-            self.assert_has_component(components, sfn_id + ':state/' + state_name, 'aws.stepfunction.state')
-        self.assertEqual(len(components), len(state_names) + 2)
+            top.assert_component(components, sfn_id + ':state/' + state_name, 'aws.stepfunction.state')
         # starting state
-        self.assert_has_relation(relations, sfn_id, sfn_id + ':state/ParallelRun')
+        top.assert_relation(relations, sfn_id, sfn_id + ':state/ParallelRun', "uses service")
         # parallel branch 1
-        self.assert_has_relation(relations, sfn_id + ':state/ParallelRun', sfn_id + ':state/ECS')
+        top.assert_relation(relations, sfn_id + ':state/ParallelRun', sfn_id + ':state/ECS', "uses service")
         # parallel branch 2
-        self.assert_has_relation(relations, sfn_id + ':state/ParallelRun', sfn_id + ':state/SNS')
+        top.assert_relation(relations, sfn_id + ':state/ParallelRun', sfn_id + ':state/SNS', "uses service")
         if True:
-            self.assert_has_relation(relations, sfn_id + ':state/SNS', sfn_id + ':state/SQS')
-            self.assert_has_relation(relations, sfn_id + ':state/SQS', sfn_id + ':state/SQSSecondaryRegion')
+            top.assert_relation(relations, sfn_id + ':state/SNS', sfn_id + ':state/SQS', "uses service")
+            top.assert_relation(relations, sfn_id + ':state/SQS', sfn_id + ':state/SQSSecondaryRegion', "uses service")
         # parallel branch 3
-        self.assert_has_relation(relations, sfn_id + ':state/ParallelRun', sfn_id + ':state/Lambda')
+        top.assert_relation(relations, sfn_id + ':state/ParallelRun', sfn_id + ':state/Lambda', "uses service")
         if True:
-            self.assert_has_relation(relations, sfn_id + ':state/Lambda', sfn_id + ':state/LambdaOldVersion')
-            self.assert_has_relation(relations, sfn_id + ':state/LambdaOldVersion', sfn_id + ':state/DynamoDB')
+            top.assert_relation(
+                relations, sfn_id + ':state/Lambda', sfn_id + ':state/LambdaOldVersion', "uses service"
+            )
+            top.assert_relation(
+                relations, sfn_id + ':state/LambdaOldVersion', sfn_id + ':state/DynamoDB', "uses service"
+            )
 
-        self.assert_has_relation(relations, sfn_id + ':state/ParallelRun', sfn_id + ':state/FakeInput')
+        top.assert_relation(relations, sfn_id + ':state/ParallelRun', sfn_id + ':state/FakeInput', "uses service")
         # iterator
-        self.assert_has_relation(relations, sfn_id + ':state/FakeInput', sfn_id + ':state/ApiMap')
+        top.assert_relation(relations, sfn_id + ':state/FakeInput', sfn_id + ':state/ApiMap', "uses service")
         if True:
-            self.assert_has_relation(relations, sfn_id + ':state/ApiMap', sfn_id + ':state/ApiGateway')
+            top.assert_relation(relations, sfn_id + ':state/ApiMap', sfn_id + ':state/ApiGateway', "uses service")
         # choice
-        self.assert_has_relation(relations, sfn_id + ':state/ApiMap', sfn_id + ':state/FakeChoice')
+        top.assert_relation(relations, sfn_id + ':state/ApiMap', sfn_id + ':state/FakeChoice', "uses service")
         if True:
-            self.assert_has_relation(relations, sfn_id + ':state/FakeChoice', sfn_id + ':state/Finish')
-            self.assert_has_relation(relations, sfn_id + ':state/FakeChoice', sfn_id + ':state/Activity')
+            top.assert_relation(relations, sfn_id + ':state/FakeChoice', sfn_id + ':state/Finish', "uses service")
+            top.assert_relation(relations, sfn_id + ':state/FakeChoice', sfn_id + ':state/Activity', "uses service")
         # last
-        self.assert_has_relation(relations, sfn_id + ':state/Activity', sfn_id + ':state/NoFinish')
+        top.assert_relation(relations, sfn_id + ':state/Activity', sfn_id + ':state/NoFinish', "uses service")
 
         # 15 states
 
-        self.assert_has_relation(relations, sfn_id + ':state/SNS', get_id('SnsTopic'))
-        self.assert_has_relation(relations, sfn_id + ':state/SQS', get_id('SqsQueue'))
-        self.assert_has_relation(
+        top.assert_relation(relations, sfn_id + ':state/SNS', get_id('SnsTopic'), "uses service")
+        top.assert_relation(relations, sfn_id + ':state/SQS', get_id('SqsQueue'), "uses service")
+        top.assert_relation(
             relations,
             sfn_id + ':state/SQSSecondaryRegion',
-            get_id('SqsQueue', stack='stackstate-main-account-secondary-region', region='us-east-1')
+            get_id('SqsQueue', stack='stackstate-main-account-secondary-region', region='us-east-1'),
+            "uses service"
         )
-        self.assert_has_relation(relations, sfn_id + ':state/DynamoDB', get_id('DynamoDbTable'))
+        top.assert_relation(relations, sfn_id + ':state/DynamoDB', get_id('DynamoDbTable'), "uses service")
         # TODO ApiGatewayV2 not yet supported (SO RELATION LEFT ALERTER)
         # TODO also verify if this is OK to refer to the API stage here?
         self.assertIn('UNSUPPORTED_ARN-AWS::ApiGatewayV2::', get_id('ApiGatewayApi') + '/test')
-        # self.assert_has_relation(relations, sfn_id + ':state/ApiGateway', get_id('ApiGatewayApi') + '/test')
+        # top.assert_relation(relations, sfn_id + ':state/ApiGateway', get_id('ApiGatewayApi') + '/test')
 
-        self.assert_has_relation(relations, sfn_id + ':state/Lambda', get_id('LambdaFunction'))
-        self.assert_has_relation(relations, sfn_id + ':state/LambdaOldVersion', get_id('LambdaFunction'))
-        self.assert_has_relation(relations, sfn_id + ':state/ECS', get_id('EcsTaskDefinition'))
-        self.assert_has_relation(relations, sfn_id + ':state/ECS', get_id('EcsCluster'))
-        self.assert_has_relation(relations, sfn_id + ':state/Activity', get_id('StepFunctionsActivity'))
+        top.assert_relation(relations, sfn_id + ':state/Lambda', get_id('LambdaFunction'), "uses service")
+        top.assert_relation(relations, sfn_id + ':state/LambdaOldVersion', get_id('LambdaFunction'), "uses service")
+        top.assert_relation(relations, sfn_id + ':state/ECS', get_id('EcsTaskDefinition'), "uses service")
+        top.assert_relation(relations, sfn_id + ':state/ECS', get_id('EcsCluster'), "uses service")
+        top.assert_relation(relations, sfn_id + ':state/Activity', get_id('StepFunctionsActivity'), "uses service")
         # TODO IAM not yet supported (SO RELATION LEFT ALERTER)
         self.assertIn('UNSUPPORTED_ARN-AWS::IAM::', get_id('StepFunctionsIamRole'))
-        # self.assert_has_relation(relations, sfn_id, get_id('StepFunctionsIamRole'))
+        # top.assert_relation(relations, sfn_id, get_id('StepFunctionsIamRole'))
 
         self.assertEqual(len(topology[0]["relations"]), 26)
+        top.assert_all_checked(components, relations, unchecked_relations=2)
 
     def test_process_stepfunction_branch_state(self):
         location = location_info('acct', 'test')
@@ -387,6 +278,41 @@ class TestStepFunctions(unittest.TestCase):
             }
             collector.process_task_state('rootstate', state)
             self.assertIn("Could not make lambda relation of " + lambda_ref["ref"], agent.warnings)
+        direct_refs = [
+            {'ref': arn_prefix + 'one',         'expected': arn_prefix + 'one'},
+            {'ref': arn_prefix + 'one:alias',   'expected': arn_prefix + 'one:alias'},
+            {'ref': arn_prefix + 'one:1',       'expected': arn_prefix + 'one'},
+            {'ref': arn_prefix + 'one:$latest', 'expected': arn_prefix + 'one'}
+        ]
+        for direct_ref in direct_refs:
+            agent = AgentMock()
+            collector = StepFunctionCollector(location, None, agent)
+            state = {
+                'Type': 'Task',
+                'Resource': direct_ref["ref"]
+            }
+            collector.process_task_state('rootstate', state)
+            self.assertEqual(agent.relations[0]["target_id"], direct_ref["expected"], direct_ref["ref"])
+        res_prefix = 'arn:aws:states:::states:startExecution'
+        stepf_arn = 'arn:aws:states:region:account:stateMachine:one'
+        stepf_refs = [
+            {'res': res_prefix,                       'expected': stepf_arn},
+            {'res': res_prefix + '.sync',             'expected': stepf_arn},
+            {'res': res_prefix + '.sync:2',           'expected': stepf_arn},
+            {'res': res_prefix + '.waitForTaskToken', 'expected': stepf_arn},
+        ]
+        for stepf_ref in stepf_refs:
+            agent = AgentMock()
+            collector = StepFunctionCollector(location, None, agent)
+            state = {
+                'Type': 'Task',
+                'Resource': stepf_ref['res'],
+                'Parameters': {
+                    'StateMachineArn': stepf_arn
+                }
+            }
+            collector.process_task_state('rootstate', state)
+            self.assertEqual(agent.relations[0]["target_id"], stepf_ref["expected"], stepf_ref["res"])
 
     @set_not_authorized('list_state_machines')
     def test_process_stepfunction_access_list_state_machines(self):

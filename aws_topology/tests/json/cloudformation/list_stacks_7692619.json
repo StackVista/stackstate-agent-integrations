@@ -1,0 +1,41 @@
+{
+    "StackSummaries": [
+        {
+            "StackId": "arn:aws:cloudformation:eu-west-1:731070500579:stack/stackstate-topo-publisher/71ea3f80-9919-11e9-a261-0a99a68566c4",
+            "StackName": "stackstate-topo-publisher",
+            "TemplateDescription": "Topo publisher stack",
+            "CreationTime": "2019-06-27T20:23:37.622Z",
+            "LastUpdatedTime": "2019-06-27T20:23:37.622Z",
+            "DeletionTime": "2019-06-27T20:23:37.622Z",
+            "StackStatus": "CREATE_COMPLETE",
+            "StackStatusReason": "success",
+            "ParentId": "arn:aws:cloudformation:eu-west-1:731070500579:stack/stackstate-topo-cwevents/077bd960-9919-11e9-adb7-02135cc8443e",
+            "RootId": "arn:aws:cloudformation:eu-west-1:731070500579:stack/some-parent-stack-id/71ea3a23-9919-54ad",
+            "DriftInformation": {
+                "StackDriftStatus": "NOT_CHECKED",
+                "LastCheckTimestamp": "2019-06-27T20:23:43.548Z"
+            }
+        },
+        {
+            "StackId": "arn:aws:cloudformation:eu-west-1:731070500579:stack/stackstate-topo-cwevents/077bd960-9919-11e9-adb7-02135cc8443e",
+            "StackName": "stackstate-test-stack",
+            "TemplateDescription": "A test stack",
+            "CreationTime": "2019-06-27T20:23:37.622Z",
+            "LastUpdatedTime": "2019-06-27T20:23:37.622Z",
+            "DeletionTime": "2019-06-27T20:23:37.622Z",
+            "StackStatus": "CREATE_COMPLETE",
+            "StackStatusReason": "success",
+            "DriftInformation": {
+                "StackDriftStatus": "NOT_CHECKED",
+                "LastCheckTimestamp": "2019-06-27T20:23:43.548Z"
+            }
+        }
+    ],
+    "ResponseMetadata": {
+        "Parameters": {},
+        "OperationName": "ListStacks",
+        "Generater": "2021-05-29 07:45:36.570257",
+        "Region": "eu-west-1",
+        "Account": "548105126730"
+    }
+}
