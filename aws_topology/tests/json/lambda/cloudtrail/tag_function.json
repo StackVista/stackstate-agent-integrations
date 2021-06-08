@@ -1,0 +1,44 @@
+{
+    "eventVersion": "1.08",
+    "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROAX7HM4QNFPDB64TSWX:jkulman",
+        "arn": "arn:aws:sts::548105126730:assumed-role/binx/jkulman",
+        "accountId": "548105126730",
+        "accessKeyId": "ASIAX7HM4QNFGF5YDBBV",
+        "sessionContext": {
+            "sessionIssuer": {
+                "type": "Role",
+                "principalId": "AROAX7HM4QNFPDB64TSWX",
+                "arn": "arn:aws:iam::548105126730:role/binx",
+                "accountId": "548105126730",
+                "userName": "binx"
+            },
+            "webIdFederationData": {},
+            "attributes": {
+                "mfaAuthenticated": "false",
+                "creationDate": "2021-05-31T09:13:09Z"
+            }
+        }
+    },
+    "eventTime": "2021-05-31T09:38:05Z",
+    "eventSource": "lambda.amazonaws.com",
+    "eventName": "TagResource20170331v2",
+    "awsRegion": "eu-west-1",
+    "sourceIPAddress": "83.163.185.52",
+    "userAgent": "aws-internal/3 aws-sdk-java/1.11.1009 Linux/5.4.109-57.183.amzn2int.x86_64 OpenJDK_64-Bit_Server_VM/25.292-b10 java/1.8.0_292 vendor/Oracle_Corporation cfg/retry-mode/legacy, AWSLambdaConsole/1.1",
+    "requestParameters": {
+        "resource": "arn:aws:lambda:eu-west-1:731070500579:function:com-stackstate-prod-sam-seed-PutHello-1LUD3ESBOR6EY",
+        "tags": {
+            "JPK": "JPK"
+        }
+    },
+    "responseElements": null,
+    "requestID": "076b8876-e6dd-4e75-b050-2d7af0b86eb5",
+    "eventID": "fc2cc2ad-a012-4109-8575-d992902b8d71",
+    "readOnly": false,
+    "eventType": "AwsApiCall",
+    "managementEvent": true,
+    "eventCategory": "Management",
+    "recipientAccountId": "548105126730"
+}

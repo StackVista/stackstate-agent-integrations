@@ -1,0 +1,47 @@
+{
+    "eventVersion": "1.08",
+    "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROAX7HM4QNFPDB64TSWX:jkulman",
+        "arn": "arn:aws:sts::548105126730:assumed-role/binx/jkulman",
+        "accountId": "548105126730",
+        "accessKeyId": "ASIAX7HM4QNFO4X3KAC3",
+        "sessionContext": {
+            "sessionIssuer": {
+                "type": "Role",
+                "principalId": "AROAX7HM4QNFPDB64TSWX",
+                "arn": "arn:aws:iam::548105126730:role/binx",
+                "accountId": "548105126730",
+                "userName": "binx"
+            },
+            "webIdFederationData": {},
+            "attributes": {
+                "mfaAuthenticated": "false",
+                "creationDate": "2021-05-31T09:13:09Z"
+            }
+        }
+    },
+    "eventTime": "2021-05-31T09:26:57Z",
+    "eventSource": "lambda.amazonaws.com",
+    "eventName": "AddPermission20150331v2",
+    "awsRegion": "eu-west-1",
+    "sourceIPAddress": "83.163.185.52",
+    "userAgent": "aws-internal/3 aws-sdk-java/1.11.1014 Linux/5.4.102-52.177.amzn2int.x86_64 OpenJDK_64-Bit_Server_VM/25.292-b10 java/1.8.0_292 vendor/Oracle_Corporation cfg/retry-mode/legacy",
+    "requestParameters": {
+        "functionName": "arn:aws:lambda:eu-west-1:731070500579:function:com-stackstate-prod-sam-seed-PutHello-1LUD3ESBOR6EY",
+        "statementId": "98afd491-ba00-531b-9427-37eb5ec6159d",
+        "action": "lambda:InvokeFunction",
+        "principal": "apigateway.amazonaws.com",
+        "sourceArn": "arn:aws:execute-api:eu-west-1:548105126730:jqs256kx90/*/*/test"
+    },
+    "responseElements": {
+        "statement": "{\"Sid\":\"98afd491-ba00-531b-9427-37eb5ec6159d\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"apigateway.amazonaws.com\"},\"Action\":\"lambda:InvokeFunction\",\"Resource\":\"arn:aws:lambda:eu-west-1:548105126730:function:JpkTest\",\"Condition\":{\"ArnLike\":{\"AWS:SourceArn\":\"arn:aws:execute-api:eu-west-1:548105126730:jqs256kx90/*/*/test\"}}}"
+    },
+    "requestID": "4eb1ab34-6f05-4428-9728-6bf071cde897",
+    "eventID": "8439e9a0-061b-45af-84a9-cf2a3c3d68d9",
+    "readOnly": false,
+    "eventType": "AwsApiCall",
+    "managementEvent": true,
+    "eventCategory": "Management",
+    "recipientAccountId": "548105126730"
+}

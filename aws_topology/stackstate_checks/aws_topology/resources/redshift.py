@@ -23,7 +23,7 @@ class RedshiftCollector(RegisteredResourceCollector):
     def process_redshift(self, redshift_data):
         self.emit_component(redshift_data['ClusterIdentifier'], self.COMPONENT_TYPE, redshift_data)
         vpcid = redshift_data.get('VpcId')
-        if vpcid:
+        if vpcid:  # pragma: no cover
             self.emit_relation(redshift_data['ClusterIdentifier'], vpcid, 'uses service', {})
 
     EVENT_SOURCE = "redshift.amazonaws.com"

@@ -100,7 +100,7 @@ class AwsCheck(AgentCheck):
         self.log.debug('Collected total %s traces.', len(traces))
         return traces
 
-    def _generate_spans(self, segments, trace_id=None, parent_id=None):
+    def _generate_spans(self, segments, trace_id=None, parent_id=None, kind="client"):
         """Translates X-Ray trace to StackState trace."""
         spans = []
 
@@ -131,7 +131,7 @@ class AwsCheck(AgentCheck):
                 if arn:
                     service_name = arn
 
-            flat_segment = flatten_segment(segment)
+            flat_segment = flatten_segment(segment, kind)
 
             # times format is the unix epoch in nanoseconds
             span = {
@@ -153,7 +153,8 @@ class AwsCheck(AgentCheck):
             spans.append(span)
 
             if 'subsegments' in segment.keys():
-                spans.extend(self._generate_spans(segment['subsegments'], trace_id, span_id))
+                # use kind as "internal" for the subsegments
+                spans.extend(self._generate_spans(segment['subsegments'], trace_id, span_id, kind="internal"))
 
         return spans
 
@@ -298,6 +299,9 @@ class AwsClient:
         try:
             with open(self.cache_file, 'r') as file:
                 last_end_time = file.read()
+                # if the file was empty, put 0 to avoid the float conversion of empty string.
+                if not last_end_time:
+                    last_end_time = 0
                 start_time = datetime.datetime.utcfromtimestamp(float(last_end_time))
                 self.log.info(
                     'Read {}. Start time for X-Ray retrieval period is last retrieval end time: {}'.format(
@@ -323,7 +327,7 @@ class AwsClient:
             self.log.info('Writen X-Ray retrieval end time {} to {}'.format(self.last_end_time, self.cache_file))
 
 
-def flatten_segment(segment):
+def flatten_segment(segment, kind):
     flat_segment = flatten_dict.flatten(segment, dot_reducer)
     for key, value in flat_segment.items():
         if key == 'subsegments':
@@ -336,6 +340,9 @@ def flatten_segment(segment):
                 flat_segment[key] = ', '.join([str(elem) for elem in value])
             elif not isinstance(value, str):
                 flat_segment[key] = str(value)
+    # STAC-13020: we decided to make all the spans from aws-xray as CLIENT to produce metrics
+    # otherwise receiver won't produce any metrics if the kind is INTERNAL
+    flat_segment["span.kind"] = kind
     return flat_segment
 
 

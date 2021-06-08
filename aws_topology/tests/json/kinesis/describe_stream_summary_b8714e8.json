@@ -1,0 +1,26 @@
+{
+    "StreamDescriptionSummary": {
+        "StreamName": "stream_3",
+        "StreamARN": "arn:aws:kinesis:eu-west-1:731070500579:stream/stream_3",
+        "StreamStatus": "ACTIVE",
+        "RetentionPeriodHours": 24,
+        "StreamCreationTimestamp": 1526547877.0,
+        "EnhancedMonitoring": [
+            {
+                "ShardLevelMetrics": []
+            }
+        ],
+        "EncryptionType": "KMS",
+        "KeyId": "alias/aws/kinesis",
+        "OpenShardCount": 1
+    },
+    "ResponseMetadata": {
+        "Parameters": {
+            "StreamName": "stream_3"
+        },
+        "OperationName": "DescribeStreamSummary",
+        "Generater": "2021-05-29 07:45:36.709391",
+        "Region": "eu-west-1",
+        "Account": "508573134510"
+    }
+}

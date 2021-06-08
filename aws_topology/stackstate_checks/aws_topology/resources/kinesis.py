@@ -35,7 +35,7 @@ class KinesisCollector(RegisteredResourceCollector):
 
     @set_required_access_v2("kinesis:ListTagsForStream")
     def collect_tags(self, stream_name):
-        self.client.list_tags_for_stream(StreamName=stream_name).get("Tags", [])
+        return self.client.list_tags_for_stream(StreamName=stream_name).get("Tags", [])
 
     @set_required_access_v2("kinesis:DescribeStreamSummary")
     def collect_stream_description(self, stream_name):

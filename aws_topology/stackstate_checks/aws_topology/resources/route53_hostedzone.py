@@ -23,13 +23,13 @@ class Route53HostedzoneCollector(RegisteredResourceCollector):
             ResourceType='hostedzone',
             ResourceId=resource_id
         ).get('ResourceTagSet')
-        if tags:
+        if tags:  # pragma: no cover
             hosted_zone_data['Tags'] = tags.get('Tags') or []
         hosted_zone_data['Id'] = hosted_zone_id
         hosted_zone_detail_raw = self.client.get_hosted_zone(Id=hosted_zone_id)
         hosted_zone_detail = make_valid_data(hosted_zone_detail_raw)
         hosted_zone_data['HostedZone'] = hosted_zone_detail['HostedZone']
-        if 'DelegationSet' in hosted_zone_detail:
+        if 'DelegationSet' in hosted_zone_detail:  # pragma: no cover
             hosted_zone_data['DelegationSet'] = hosted_zone_detail['DelegationSet']
 
         resource_record_sets = self.client.list_resource_record_sets(HostedZoneId=hosted_zone_id)
