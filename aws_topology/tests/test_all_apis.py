@@ -129,7 +129,8 @@ class TestAllApis(BaseApiTest):
         )
         # assert for elb classic loadbalancer  relation
         top.assert_relation(
-            relations, source_id, "classic_elb_classic-loadbalancer-1",
+            relations, source_id,
+            "arn:aws:elasticloadbalancing:eu-west-1:731070500579:loadbalancer/classic-loadbalancer-1",
             "has resource"
         )
         # assert for rds relation

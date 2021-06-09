@@ -41,7 +41,7 @@ class TestAutoScaling(BaseApiTest):
 
         top.assert_relation(
             relations,
-            "classic_elb_awseb-e-g-AWSEBLoa-1WTFTHM4EDGUX",
+            "arn:aws:elasticloadbalancing:eu-west-1:731070500579:loadbalancer/awseb-e-g-AWSEBLoa-1WTFTHM4EDGUX",
             group_arn,
             "uses service"
         )
