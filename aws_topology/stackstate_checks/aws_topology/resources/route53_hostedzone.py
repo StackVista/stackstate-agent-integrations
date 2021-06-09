@@ -20,18 +20,17 @@ class HostedZoneInfo(Model):
     Name = StringType(default="UNKNOWN")
 
 
-class DelegationSet(Model):
-    Id = StringType(required=True)
-
-
-class VPCs(Model):
-    VPCId = StringType(required=True)
-
-
 class HostedZone(Model):
+    class HostedZoneDelegationSet(Model):
+        Id = StringType()
+        NameServers = ListType(StringType(), required=True)
+
+    class HostedZoneVPCs(Model):
+        VPCId = StringType(required=True)
+
     HostedZone = ModelType(HostedZoneInfo, required=True)
-    DelegationSet = ModelType(DelegationSet)
-    VPCs = ListType(ModelType(VPCs))
+    DelegationSet = ModelType(HostedZoneDelegationSet)
+    VPCs = ListType(ModelType(HostedZoneVPCs))
 
 
 HostedZoneData = namedtuple("HostedZoneData", ["hosted_zone", "tags", "resource_record_sets"])

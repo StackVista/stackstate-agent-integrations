@@ -1,0 +1,34 @@
+{
+    "Subscriptions": [
+        {
+            "SubscriptionArn": "arn:aws:sns:eu-west-1:731070500579:dnv-sam-seed-my-topic:eabf865b-ec47-44e8-b6cf-a24e4fa05da8",
+            "Owner": "731070500579",
+            "Protocol": "lambda",
+            "Endpoint": "arn:aws:lambda:eu-west-1:731070500579:function:com-stackstate-prod-sam-seed-TopicHandler-31EWA2GN9YNLL",
+            "TopicArn": "arn:aws:sns:eu-west-1:731070500579:my-topic-3"
+        },
+        {
+            "SubscriptionArn": "arn:aws:sns:eu-west-1:731070500579:dnv-sam-seed-my-topic:eabf865b-ec47-44e8-b6cf-a24e4fa05da8",
+            "Owner": "731070500579",
+            "Protocol": "lambda",
+            "Endpoint": "arn:aws:lambda:eu-west-1:731070500579:function:com-stackstate-prod-sam-seed-TopicHandler-41EWA2GN9YNLL",
+            "TopicArn": "arn:aws:sns:eu-west-1:731070500579:my-topic-3"
+        },
+        {
+            "Owner": "731070500579",
+            "Endpoint": "arn:aws:sqs:eu-west-1:731070500579:STS_stackpack_test",
+            "Protocol": "sqs",
+            "TopicArn": "arn:aws:sns:eu-west-1:731070500579:my-topic-3",
+            "SubscriptionArn": "arn:aws:sns:eu-west-1:731070500579:dnv-sam-seed-my-topic:eabf865b-ec47-44e8-b6cf-a24e4fa05da8"
+        }
+    ],
+    "ResponseMetadata": {
+        "Parameters": {
+            "TopicArn": "arn:aws:sns:eu-west-1:731070500579:my-topic-3"
+        },
+        "OperationName": "ListSubscriptionsByTopic",
+        "Generater": "2021-05-29 07:45:36.709391",
+        "Region": "eu-west-1",
+        "Account": "731070500579"
+    }
+}

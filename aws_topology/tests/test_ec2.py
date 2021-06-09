@@ -1,0 +1,296 @@
+from stackstate_checks.base.stubs import topology as top, aggregator
+from .conftest import BaseApiTest, set_cloudtrail_event, set_filter, use_subdirectory
+import sys
+
+
+class TestEC2(BaseApiTest):
+
+    def get_api(self):
+        return "ec2"
+
+    def get_account_id(self):
+        return "731070500579"
+
+    def get_region(self):
+        return 'eu-west-1'
+
+    @set_filter('instances')
+    def test_process_ec2_instances(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+
+        components = topology[0]["components"]
+        relations = topology[0]["relations"]
+
+        test_instance_id = "i-0aac5bab082561475"
+        test_instance_type = "m4.xlarge"
+        test_public_ip = "172.30.0.96"
+        test_public_dns = "ec2-172-30-0-96.eu-west-1.compute.amazonaws.com"
+
+        events = aggregator.events
+
+        top.assert_component(
+            components,
+            test_instance_id,
+            "aws.ec2",
+            checks={
+                'InstanceId': test_instance_id,
+                'InstanceType': test_instance_type,
+                "IsNitro": False,
+                'Tags': {
+                    'Name': "Martijn's Stackstate",
+                    'host': test_instance_id,
+                    'instance-id': test_instance_id,
+                    'private-ip': test_public_ip,
+                    'fqdn': test_public_dns,
+                    'public-ip': test_public_ip
+                },
+                'URN': [
+                    "urn:host:/{}".format(test_instance_id),
+                    "arn:aws:ec2:{}:731070500579:instance/{}".format('eu-west-1', test_instance_id),
+                    "urn:host:/{}".format(test_public_dns),
+                    "urn:host:/{}".format(test_public_ip)
+                ]
+            }
+        )
+
+        top.assert_relation(
+            relations,
+            test_instance_id,
+            "subnet-67d82910",
+            "uses service"
+        )
+        top.assert_relation(
+            relations,
+            test_instance_id,
+            "sg-41c3cc3b",
+            "uses service"
+        )
+
+        # nitro instances
+        top.assert_component(
+            components,
+            "i-1234567890123456",
+            "aws.ec2",
+            checks={
+                'InstanceId': "i-1234567890123456",
+                'InstanceType': "M6gd",
+                "IsNitro": True
+            }
+        )
+        top.assert_relation(
+            relations,
+            "i-1234567890123456",
+            "vpc-6b25d10e",
+            "uses service"
+        )
+        top.assert_relation(
+            relations,
+            "i-1234567890123456",
+            "sg-41c3cc3b",
+            "uses service"
+        )
+
+        self.assertEqual(len(events), 2)
+        self.assertEqual(events[0]["host"], test_instance_id)
+        self.assertEqual(events[0]["tags"], ["state:stopped"])
+        self.assertEqual(events[1]["host"], "i-1234567890123456")
+        self.assertEqual(events[1]["tags"], ["state:stopped"])
+
+        top.assert_all_checked(components, relations)
+
+    first_security_group_version_py3 = "56b81fa0a7cb32a2d5be815f1fb4130764f19e8ab734cec3824854d7a5a9fa84"
+    first_security_group_version_py2 = "e3a3e4764fd7fd4a51fcd5812ce9a4803a412c28c6830678462301d33ce6ce75"
+    first_sg_group_id = "sg-002abe0b505ad7002"
+
+    @set_filter('security_groups')
+    def test_process_ec2_security_groups(self):
+        self.check.run()
+        self.assert_executed_ok()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+
+        components = topology[0]["components"]
+        relations = topology[0]["relations"]
+
+        self.assertEqual(len(components), 49)
+        self.assertEqual(len(relations), 49)
+
+        if sys.version_info.major == 3:
+            version_to_check = self.first_security_group_version_py3
+        else:
+            version_to_check = self.first_security_group_version_py2
+
+        top.assert_component(
+            components,
+            self.first_sg_group_id,
+            "aws.security-group",
+            checks={
+                "URN": [
+                    "arn:aws:ec2:{}:731070500579:security-group/{}".format('eu-west-1', self.first_sg_group_id)
+                ],
+                "Version": version_to_check,
+                "Name": "network-ALBSecurityGroupPublic-1DNVWX102724V"
+            }
+        )
+
+        top.assert_all_checked(components, relations, unchecked_components=48, unchecked_relations=49)
+
+    @set_filter('security_groups')
+    @use_subdirectory('alternate')
+    def test_process_ec2_security_groups_order_has_no_influence_on_hash(self):
+        self.check.run()
+        self.assert_executed_ok()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+
+        components = topology[0]["components"]
+        relations = topology[0]["relations"]
+
+        if sys.version_info.major == 3:
+            version_to_check = self.first_security_group_version_py3
+        else:
+            version_to_check = self.first_security_group_version_py2
+
+        top.assert_component(
+            components,
+            self.first_sg_group_id,
+            "aws.security-group",
+            checks={
+                "URN": [
+                    "arn:aws:ec2:{}:731070500579:security-group/{}".format('eu-west-1', self.first_sg_group_id)
+                ],
+                "Version": version_to_check,
+                "Name": "network-ALBSecurityGroupPublic-1DNVWX102724V"
+            }
+        )
+
+        top.assert_all_checked(components, relations, unchecked_components=48, unchecked_relations=49)
+
+    @set_filter('vpcs')
+    def test_process_ec2_vpcs(self):
+        self.check.run()
+        self.assert_executed_ok()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+
+        components = topology[0]["components"]
+        relations = topology[0]["relations"]
+
+        comp = top.assert_component(
+            components,
+            "vpc-6b25d10e",
+            "aws.vpc",
+            checks={
+                "VpcId": "vpc-6b25d10e",
+                "Name": "vpc-6b25d10e",
+                "URN": [
+                    "arn:aws:ec2:{}:731070500579:vpc/{}".format('eu-west-1', "vpc-6b25d10e")
+                ]
+            }
+        )
+        self.assert_location_info(comp)
+        comp = top.assert_component(
+            components,
+            "vpc-12345678",
+            "aws.vpc",
+            checks={
+                "VpcId": "vpc-12345678",
+                "Name": "default",
+            }
+        )
+        comp = top.assert_component(
+            components,
+            "vpc-87654321",
+            "aws.vpc",
+            checks={
+                "VpcId": "vpc-87654321",
+                "Name": "MyVpc",
+            }
+        )
+
+        comp = top.assert_component(
+            components,
+            "subnet-9e4be5f9",
+            "aws.subnet",
+            checks={
+                "SubnetId": "subnet-9e4be5f9",
+                "Tags.Name": "demo-deployments",
+                "URN": [
+                    "arn:aws:ec2:{}:731070500579:subnet/{}".format('eu-west-1', "subnet-9e4be5f9")
+                ],
+                "Name": "demo-deployments-eu-west-1a"
+            }
+        )
+        self.assert_location_info(comp)
+        comp = top.assert_component(
+            components,
+            "subnet-12345678",
+            "aws.subnet",
+            checks={
+                "SubnetId": "subnet-12345678",
+                "Name": "subnet-12345678-eu-west-1a"
+            }
+        )
+
+        top.assert_relation(
+            relations,
+            "subnet-9e4be5f9",
+            "vpc-6b25d10e",
+            "uses service"
+        )
+        top.assert_relation(
+            relations,
+            "subnet-12345678",
+            "vpc-6b25d10e",
+            "uses service"
+        )
+
+        top.assert_all_checked(components, relations)
+
+    @set_filter('vpn_gateways')
+    def test_process_ec2_vpn_gateways(self):
+        self.check.run()
+        self.assert_executed_ok()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+
+        components = topology[0]["components"]
+        relations = topology[0]["relations"]
+
+        comp = top.assert_component(
+            components,
+            "vgw-b8c2fccc",
+            "aws.vpngateway",
+            checks={
+                "VpnGatewayId": "vgw-b8c2fccc",
+
+            }
+        )
+        self.assert_location_info(comp)
+        top.assert_relation(
+            relations,
+            "vgw-b8c2fccc",
+            "vpc-6b25d10e",
+            "uses service"
+        )
+
+        top.assert_all_checked(components, relations)
+
+    @set_cloudtrail_event('run_instances')
+    def test_process_ec2_run_instances(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual(
+            'i-0f70dba7ea83d6dec',
+            topology[0]["components"][0]["id"]
+        )

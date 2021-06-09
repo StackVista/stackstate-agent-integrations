@@ -1,0 +1,35 @@
+{
+    "clusters": [
+        {
+            "status": "ACTIVE",
+            "statistics": [],
+            "clusterName": "default",
+            "registeredContainerInstancesCount": 0,
+            "pendingTasksCount": 0,
+            "runningTasksCount": 1,
+            "activeServicesCount": 1,
+            "clusterArn": "arn:aws:ecs:eu-west-1:731070500579:cluster/default",
+            "tags": [
+                {
+                    "key": "stackstate-identifier",
+                    "value": "sts-ecs-test"
+                }
+            ]
+        }
+    ],
+    "failures": [],
+    "ResponseMetadata": {
+        "Parameters": {
+            "clusters": [
+                "arn:aws:ecs:eu-west-1:731070500579:cluster/default"
+            ],
+            "include": [
+                "TAGS"
+            ]
+        },
+        "OperationName": "DescribeClusters",
+        "Generater": "2021-05-29 07:45:36.570257",
+        "Region": "eu-west-1",
+        "Account": "548105126730"
+    }
+}

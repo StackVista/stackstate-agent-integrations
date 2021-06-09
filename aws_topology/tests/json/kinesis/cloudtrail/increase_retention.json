@@ -1,0 +1,37 @@
+{
+    "eventVersion": "1.08",
+    "userIdentity": {
+        "type": "IAMUser",
+        "principalId": "AIDAUHNFPQM2QXFIIRMZY",
+        "arn": "arn:aws:iam::123456789012:user/jacco.kulman",
+        "accountId": "123456789012",
+        "accessKeyId": "ASIAUHNFPQM2ZNIVL2FX",
+        "userName": "jacco.kulman",
+        "sessionContext": {
+            "sessionIssuer": {},
+            "webIdFederationData": {},
+            "attributes": {
+                "mfaAuthenticated": "false",
+                "creationDate": "2021-04-29T14:56:15Z"
+            }
+        }
+    },
+    "eventTime": "2021-04-29T19:23:40Z",
+    "eventSource": "kinesis.amazonaws.com",
+    "eventName": "IncreaseStreamRetentionPeriod",
+    "awsRegion": "eu-west-1",
+    "sourceIPAddress": "83.163.185.52",
+    "userAgent": "console.amazonaws.com",
+    "requestParameters": {
+        "streamName": "stream_1",
+        "retentionPeriodHours": 168
+    },
+    "responseElements": null,
+    "requestID": "f88ed0c8-7416-73ae-a18b-d9346fdacd49",
+    "eventID": "dd60f58d-6520-4a76-8176-945efb8096eb",
+    "readOnly": false,
+    "eventType": "AwsApiCall",
+    "managementEvent": true,
+    "eventCategory": "Management",
+    "recipientAccountId": "123456789012"
+}

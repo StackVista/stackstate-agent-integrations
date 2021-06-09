@@ -1,15 +1,10 @@
-from .utils import make_valid_data, set_required_access_v2, client_array_operation, CloudTrailEventBase, transformation
+from .utils import make_valid_data, set_required_access_v2, client_array_operation, transformation
 from .registry import RegisteredResourceCollector
 from schematics import Model
 from schematics.types import StringType, ListType, ModelType
 
 
-class AutoScalingEventBase(CloudTrailEventBase):
-    def get_collector_class(self):
-        return AutoscalingCollector
-
-
-class AutoScalingTagEvent(AutoScalingEventBase):
+class AutoScalingTagEvent(Model):
     class RequestParameters(Model):
         class AutoScalingTag(Model):
             resourceType = StringType(required=True)
@@ -83,8 +78,11 @@ class AutoscalingCollector(RegisteredResourceCollector):
             self.emit_relation(auto_scaling_group.AutoScalingGroupARN, instance.InstanceId, 'uses service', {})
 
         for load_balancer_name in auto_scaling_group.LoadBalancerNames:
+            elb_arn = self.agent.create_arn(
+                "AWS::ElasticLoadBalancing::LoadBalancer", self.location_info, resource_id=load_balancer_name
+            )
             self.emit_relation(
-                'classic_elb_' + load_balancer_name,
+                elb_arn,
                 auto_scaling_group.AutoScalingGroupARN,
                 'uses service',
                 {}
@@ -92,7 +90,7 @@ class AutoscalingCollector(RegisteredResourceCollector):
 
             for instance in auto_scaling_group.Instances:
                 # removing elb instances if there are any
-                relation_id = 'classic_elb_' + load_balancer_name + '-uses service-' + instance.InstanceId
+                relation_id = elb_arn + '-uses service-' + instance.InstanceId
                 self.agent.delete(relation_id)
 
         for target_group_arn in auto_scaling_group.TargetGroupARNs:
