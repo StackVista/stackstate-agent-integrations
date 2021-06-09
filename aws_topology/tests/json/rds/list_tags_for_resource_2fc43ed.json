@@ -1,0 +1,13 @@
+{
+    "TagList": [
+    ],
+    "ResponseMetadata": {
+        "Parameters": {
+            "ResourceArn": "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase-eu-west-1c"
+        },
+        "OperationName": "ListTagsForResource",
+        "Generater": "2021-05-29 07:45:36.709391",
+        "Region": "eu-west-1",
+        "Account": "508573134510"
+    }
+}

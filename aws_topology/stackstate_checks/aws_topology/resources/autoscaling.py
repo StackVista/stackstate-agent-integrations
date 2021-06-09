@@ -1,15 +1,10 @@
-from .utils import make_valid_data, set_required_access_v2, client_array_operation, CloudTrailEventBase, transformation
+from .utils import make_valid_data, set_required_access_v2, client_array_operation, transformation
 from .registry import RegisteredResourceCollector
 from schematics import Model
 from schematics.types import StringType, ListType, ModelType
 
 
-class AutoScalingEventBase(CloudTrailEventBase):
-    def get_collector_class(self):
-        return AutoscalingCollector
-
-
-class AutoScalingTagEvent(AutoScalingEventBase):
+class AutoScalingTagEvent(Model):
     class RequestParameters(Model):
         class AutoScalingTag(Model):
             resourceType = StringType(required=True)

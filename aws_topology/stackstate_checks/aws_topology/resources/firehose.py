@@ -104,12 +104,12 @@ class FirehoseCollector(RegisteredResourceCollector):
 
         if description.DeliveryStreamType == "KinesisStreamAsSource":
             source = description.Source
-            if source:
+            if source:  # pragma: no cover
                 kinesis_stream_arn = source.KinesisStreamSourceDescription.KinesisStreamARN
                 self.emit_relation(kinesis_stream_arn, delivery_stream_arn, RELATION_TYPE.USES_SERVICE, {})
 
         for destination in description.Destinations:
-            if destination.S3DestinationDescription:
+            if destination.S3DestinationDescription:  # pragma: no cover
                 self.emit_relation(
                     delivery_stream_arn,
                     destination.S3DestinationDescription.BucketARN,

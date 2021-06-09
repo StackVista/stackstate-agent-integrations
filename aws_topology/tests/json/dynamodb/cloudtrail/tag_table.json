@@ -1,0 +1,48 @@
+{
+    "eventVersion": "1.08",
+    "userIdentity": {
+        "type": "IAMUser",
+        "principalId": "AIDAUHNFPQM2QXFIIRMZY",
+        "arn": "arn:aws:iam::123456789012:user/jacco.kulman",
+        "accountId": "123456789012",
+        "accessKeyId": "ASIAUHNFPQM2RESU3672",
+        "userName": "jacco.kulman",
+        "sessionContext": {
+            "attributes": {
+                "creationDate": "2021-05-01T06:23:06Z",
+                "mfaAuthenticated": "false"
+            }
+        }
+    },
+    "eventTime": "2021-05-01T13:34:17Z",
+    "eventSource": "dynamodb.amazonaws.com",
+    "eventName": "TagResource",
+    "awsRegion": "eu-west-1",
+    "sourceIPAddress": "83.163.185.52",
+    "userAgent": "console.amazonaws.com",
+    "requestParameters": {
+        "resourceArn": "arn:aws:dynamodb:eu-west-1:123456789012:table/table_2",
+        "tags": [
+            {
+                "key": "JpkTag",
+                "value": "TagValue"
+            }
+        ]
+    },
+    "responseElements": null,
+    "requestID": "QPVKV2PGRLLH2QJ29PQS2B4743VV4KQNSO5AEMVJF66Q9ASUAAJG",
+    "eventID": "f0ae0761-1d06-40e5-a051-e5c7a73df5e7",
+    "readOnly": false,
+    "resources": [
+        {
+            "accountId": "123456789012",
+            "type": "AWS::DynamoDB::Table",
+            "ARN": "arn:aws:dynamodb:eu-west-1:123456789012:table/table_2"
+        }
+    ],
+    "eventType": "AwsApiCall",
+    "apiVersion": "2012-08-10",
+    "managementEvent": true,
+    "recipientAccountId": "123456789012",
+    "eventCategory": "Management"
+}

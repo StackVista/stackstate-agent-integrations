@@ -56,7 +56,7 @@ class S3Collector(RegisteredResourceCollector):
             yield bucket
 
     def process_all(self, filter=None):
-        # buckets should only be fetched for global OR filtered by LocationConstraint
+        # TODO buckets should only be fetched for global OR filtered by LocationConstraint
         if not filter or 'buckets' in filter:
             for bucket_data in self.collect_buckets():
                 self.process_bucket(bucket_data)
@@ -80,7 +80,7 @@ class S3Collector(RegisteredResourceCollector):
         self.emit_component(bucket_arn, self.COMPONENT_TYPE, output)
         for bucket_notification in config:
             function_arn = bucket_notification.LambdaFunctionArn
-            if function_arn:
+            if function_arn:  # pragma: no cover
                 for event in bucket_notification.Events:
                     self.emit_relation(bucket_arn, function_arn, "uses service", {"event_type": event})
 
