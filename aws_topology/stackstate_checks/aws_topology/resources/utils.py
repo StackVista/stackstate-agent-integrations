@@ -199,7 +199,7 @@ def is_throttling_error(code):
     return code in _THROTTLED_ERROR_CODES
 
 
-def set_required_access_v2(value, ignore=False):
+def set_required_access_v2(value, ignore=False, ignore_codes=[]):
     def decorator(func):
         def inner_function(self, *args, **kwargs):
             try:
@@ -222,6 +222,10 @@ def set_required_access_v2(value, ignore=False):
                     )
                     if not ignore:
                         raise e
+                elif code in ignore_codes:
+                    self.agent.warning(
+                        'Error code {} returned but is explicitly ignored'.format(code)
+                    )
                 else:
                     raise e
         return inner_function

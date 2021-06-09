@@ -45,6 +45,17 @@ class TestS3(BaseApiTest):
             }
         )
 
+        top.assert_component(
+            components,
+            "arn:aws:s3:::notags",
+            "aws.s3_bucket",
+            checks={
+                "Name": "notags",
+                "Tags": {},
+                "BucketLocation": "eu-west-1"
+            }
+        )
+
         top.assert_relation(
             relations,
             "arn:aws:s3:::stackstate.com",
@@ -61,6 +72,15 @@ class TestS3(BaseApiTest):
             "uses service",
             checks={
                 "event_type": "s3:ObjectRemoved:*"
+            }
+        )
+        top.assert_relation(
+            relations,
+            "arn:aws:s3:::notags",
+            target_id,
+            "uses service",
+            checks={
+                "event_type": "s3:ObjectCreated:*"
             }
         )
         top.assert_all_checked(components, relations)

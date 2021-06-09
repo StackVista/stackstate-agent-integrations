@@ -164,12 +164,18 @@ def wrapper(api, not_authorized, subdirectory, event_name=None):
             # print('file: ', file_name)
             # print('args: ', json.dumps(args, indent=2, default=str))
             # print('meta: ', json.dumps(result["ResponseMetadata"]["Parameters"], indent=2, default=str))
-            return result
         except Exception:
             error = "API response file not found for operation: {}\n".format(operation_name)
             error += "Parameters:\n{}\n".format(json.dumps(args[1], indent=2, default=str))
             error += "File missing: {}".format(file_name)
             raise Exception(error)
+        # If an error code is included in the response metadata, raise this instead
+        if "Error" in result.get("ResponseMetadata", {}):
+            raise botocore.exceptions.ClientError({
+                "Error": result["ResponseMetadata"]["Error"]
+            }, operation_name)
+        else:
+            return result
     return mock_boto_calls
 
 

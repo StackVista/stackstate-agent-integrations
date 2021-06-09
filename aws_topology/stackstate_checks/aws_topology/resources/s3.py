@@ -37,7 +37,7 @@ class S3Collector(RegisteredResourceCollector):
             .get("x-amz-bucket-region", "")
         )
 
-    @set_required_access_v2("s3:GetBucketTagging")
+    @set_required_access_v2("s3:GetBucketTagging", ignore_codes=["NoSuchTagSet"])
     def collect_tags(self, name):
         return self.client.get_bucket_tagging(Bucket=name).get("TagSet", [])
 

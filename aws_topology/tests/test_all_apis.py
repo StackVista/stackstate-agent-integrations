@@ -164,7 +164,7 @@ class TestAllApis(BaseApiTest):
             "has resource"
         )
 
-        top.assert_all_checked(components, relations, unchecked_components=132)
+        top.assert_all_checked(components, relations, unchecked_components=133)
 
     def unique_topology_types(self, topology):
         return set([c["type"] for ti in topology for c in ti["components"]])
