@@ -6,10 +6,10 @@ from schematics.types import StringType, ListType
 
 
 def create_arn(resource_id=None, **kwargs):
-    return arn(resource='s3', region='', account_id='', resource_id=resource_id)
+    return arn(resource="s3", region="", account_id="", resource_id=resource_id)
 
 
-BucketData = namedtuple('BucketData', ['bucket', 'location', 'tags', 'config'])
+BucketData = namedtuple("BucketData", ["bucket", "location", "tags", "config"])
 
 
 class Bucket(Model):
@@ -25,7 +25,7 @@ class S3Collector(RegisteredResourceCollector):
     API = "s3"
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.s3_bucket"
-    CLOUDFORMATION_TYPE = 'AWS::S3::Bucket'
+    CLOUDFORMATION_TYPE = "AWS::S3::Bucket"
 
     @set_required_access_v2("s3:ListBucket")
     def collect_location(self, name):
@@ -43,13 +43,11 @@ class S3Collector(RegisteredResourceCollector):
 
     @set_required_access_v2("s3:GetBucketNotification")
     def collect_configuration(self, name):
-        return self.client.get_bucket_notification_configuration(Bucket=name).get(
-            "LambdaFunctionConfigurations", []
-        )
+        return self.client.get_bucket_notification_configuration(Bucket=name).get("LambdaFunctionConfigurations", [])
 
     def collect_bucket(self, bucket):
         region = self.location_info.Location.AwsRegion
-        name = bucket.get('Name')
+        name = bucket.get("Name")
         # If the location can't be found, then process it anyway
         location = self.collect_location(name) or region
         # Only return data if the bucket is in the same region as the check
@@ -60,11 +58,7 @@ class S3Collector(RegisteredResourceCollector):
 
     def collect_buckets(self):
         for bucket in [
-                self.collect_bucket(bucket) for bucket in client_array_operation(
-                    self.client,
-                    'list_buckets',
-                    'Buckets'
-                )
+            self.collect_bucket(bucket) for bucket in client_array_operation(self.client, "list_buckets", "Buckets")
         ]:
             yield bucket
 
@@ -75,11 +69,11 @@ class S3Collector(RegisteredResourceCollector):
                 self.process_bucket(bucket_data)
 
     def process_all(self, filter=None):
-        if not filter or 'buckets' in filter:
+        if not filter or "buckets" in filter:
             self.process_buckets()
 
     def process_one_bucket(self, bucket_name):
-        self.process_bucket(self.collect_bucket({'Name': bucket_name}))
+        self.process_bucket(self.collect_bucket({"Name": bucket_name}))
 
     def process_bucket(self, data):
         bucket = Bucket(data.bucket, strict=False)
@@ -101,16 +95,12 @@ class S3Collector(RegisteredResourceCollector):
                 for event in bucket_notification.Events:
                     self.emit_relation(bucket_arn, function_arn, "uses service", {"event_type": event})
 
-    EVENT_SOURCE = 's3.amazonaws.com'
+    EVENT_SOURCE = "s3.amazonaws.com"
     CLOUDTRAIL_EVENTS = [
+        {"event_name": "CreateBucket", "path": "requestParameters.bucketName", "processor": process_one_bucket},
         {
-            'event_name': 'CreateBucket',
-            'path': 'requestParameters.bucketName',
-            'processor': process_one_bucket
+            "event_name": "DeleteBucket",
+            "path": "requestParameters.bucketName",
+            "processor": RegisteredResourceCollector.process_delete_by_name,
         },
-        {
-            'event_name': 'DeleteBucket',
-            'path': 'requestParameters.bucketName',
-            'processor': RegisteredResourceCollector.process_delete_by_name
-        }
     ]
