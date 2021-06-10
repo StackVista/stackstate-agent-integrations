@@ -1,0 +1,67 @@
+{
+    "DBClusters": [
+        {
+            "MasterUsername": "root",
+            "ReaderEndpoint": "productiondatabasecluster.cluster-ro-cdnm1uvvpdkc.eu-west-1.rds.amazonaws.com",
+            "ReadReplicaIdentifiers": [],
+            "VpcSecurityGroups": [
+                {
+                    "Status": "active",
+                    "VpcSecurityGroupId": "sg-053ecf78"
+                }
+            ],
+            "HostedZoneId": "Z29XKXDKYMONMX",
+            "Status": "available",
+            "MultiAZ": true,
+            "LatestRestorableTime": "2018-04-20T06:26:25.045000+00:00",
+            "PreferredBackupWindow": "23:32-00:02",
+            "DBSubnetGroup": "default-vpc-6b25d10e",
+            "AllocatedStorage": 1,
+            "BackupRetentionPeriod": 1,
+            "PreferredMaintenanceWindow": "sat:03:25-sat:03:55",
+            "Engine": "aurora",
+            "Endpoint": "productiondatabasecluster.cluster-cdnm1uvvpdkc.eu-west-1.rds.amazonaws.com",
+            "AssociatedRoles": [],
+            "EarliestRestorableTime": "2018-04-19T12:16:16.224000+00:00",
+            "IAMDatabaseAuthenticationEnabled": false,
+            "ClusterCreateTime": "2018-04-19T12:15:06.088000+00:00",
+            "EngineVersion": "5.6.10a",
+            "DBClusterIdentifier": "productiondatabasecluster",
+            "DbClusterResourceId": "cluster-BW3V73OIFVYI33USXBBOCFJM4I",
+            "DBClusterMembers": [
+                {
+                    "IsClusterWriter": true,
+                    "DBClusterParameterGroupStatus": "in-sync",
+                    "PromotionTier": 1,
+                    "DBInstanceIdentifier": "productiondatabase"
+                },
+                {
+                    "IsClusterWriter": false,
+                    "DBClusterParameterGroupStatus": "in-sync",
+                    "PromotionTier": 1,
+                    "DBInstanceIdentifier": "productiondatabase-eu-west-1c"
+                }
+            ],
+            "DBClusterArn": "arn:aws:rds:eu-west-1:731070500579:cluster:productiondatabasecluster",
+            "KmsKeyId": "arn:aws:kms:eu-west-1:731070500579:key/f3e71968-889b-4e27-8d62-56da6b269b82",
+            "StorageEncrypted": true,
+            "DatabaseName": "MyCluster",
+            "DBClusterParameterGroup": "default.aurora5.6",
+            "AvailabilityZones": [
+                "eu-west-1b",
+                "eu-west-1c",
+                "eu-west-1a"
+            ],
+            "Port": 3306
+        }
+    ],
+    "ResponseMetadata": {
+        "Parameters": {
+            "DBClusterIdentifier": "databasecluster"
+        },
+        "OperationName": "ListTagsForResource",
+        "Generater": "2021-05-29 07:45:36.709391",
+        "Region": "eu-west-1",
+        "Account": "508573134510"
+    }
+}

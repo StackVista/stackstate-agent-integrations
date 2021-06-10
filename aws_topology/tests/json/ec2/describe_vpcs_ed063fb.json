@@ -1,0 +1,68 @@
+{
+    "Vpcs": [
+        {
+            "CidrBlock": "172.30.0.0/16",
+            "DhcpOptionsId": "dopt-5de0f63f",
+            "State": "available",
+            "VpcId": "vpc-12345678",
+            "InstanceTenancy": "default",
+            "CidrBlockAssociationSet": [
+                {
+                    "AssociationId": "vpc-cidr-assoc-f288679b",
+                    "CidrBlock": "172.30.0.0/16",
+                    "CidrBlockState": {
+                        "State": "associated"
+                    }
+                }
+            ],
+            "IsDefault": true
+        },
+        {
+            "CidrBlock": "172.30.0.0/16",
+            "DhcpOptionsId": "dopt-5de0f63f",
+            "State": "available",
+            "VpcId": "vpc-6b25d10e",
+            "InstanceTenancy": "default",
+            "CidrBlockAssociationSet": [
+                {
+                    "AssociationId": "vpc-cidr-assoc-f288679b",
+                    "CidrBlock": "172.30.0.0/16",
+                    "CidrBlockState": {
+                        "State": "associated"
+                    }
+                }
+            ],
+            "IsDefault": false
+        },
+        {
+            "CidrBlock": "172.30.0.0/16",
+            "DhcpOptionsId": "dopt-5de0f63f",
+            "State": "available",
+            "VpcId": "vpc-87654321",
+            "InstanceTenancy": "default",
+            "CidrBlockAssociationSet": [
+                {
+                    "AssociationId": "vpc-cidr-assoc-f288679b",
+                    "CidrBlock": "172.30.0.0/16",
+                    "CidrBlockState": {
+                        "State": "associated"
+                    }
+                }
+            ],
+            "IsDefault": false,
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "MyVpc"
+                }
+            ]
+        }
+    ],
+    "ResponseMetadata": {
+        "Parameters": {},
+        "OperationName": "DescribeVpcs",
+        "Generater": "2021-05-29 07:45:36.570257",
+        "Region": "eu-west-1",
+        "Account": "548105126730"
+    }
+}

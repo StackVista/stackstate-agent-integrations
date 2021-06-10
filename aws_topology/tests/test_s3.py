@@ -1,154 +1,93 @@
-# (C) StackState 2021
-# All rights reserved
-# Licensed under a 3-clause BSD style license (see LICENSE)
-import pytest
-import unittest
-from mock import patch
-from copy import deepcopy
-
-from stackstate_checks.base.stubs import topology, aggregator
-from stackstate_checks.base import AgentCheck
-from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
-
-from .conftest import API_RESULTS
-
-BUCKET_NAME = "testname"
-SIMPLE_BUCKET = {
-    'ListBuckets': {
-        'Buckets': [{
-            'Name': BUCKET_NAME
-        }]
-    }
-}
-LAMBDA_ARN = "arn:aws:lambda:eu-west-1:731070500579:function:" + \
-    "com-stackstate-prod-s-NotifyBucketEventsHandle-1W0B5NSZYJ3G1"
-
-# TODO also test extra data
+from stackstate_checks.base.stubs import topology as top
+from .conftest import BaseApiTest, set_cloudtrail_event, set_filter
 
 
-@pytest.mark.usefixtures("instance")
-class TestS3(unittest.TestCase):
-    """Basic Test for AWS Topology integration."""
+class TestS3(BaseApiTest):
+    def get_api(self):
+        return "s3"
 
-    CHECK_NAME = 'aws_topology'
-    SERVICE_CHECK_NAME = "aws_topology"
+    def get_account_id(self):
+        return "548105126730"
 
-    def setUp(self):
-        """
-        Initialize and patch the check, i.e.
-        """
-        config = InitConfig(
-            {
-                "aws_access_key_id": "some_key",
-                "aws_secret_access_key": "some_secret",
-                "external_id": "disable_external_id_this_is_unsafe"
+    def test_process_s3(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+
+        components = topology[0]["components"]
+        relations = topology[0]["relations"]
+
+        target_id = (
+            "arn:aws:lambda:eu-west-1:731070500579:"
+            + "function:com-stackstate-prod-s-NotifyBucketEventsHandle-1W0B5NSZYJ3G1"
+        )
+
+        top.assert_component(
+            components,
+            "arn:aws:s3:::stackstate.com",
+            "aws.s3_bucket",
+            checks={"Name": "stackstate.com", "Tags.BucketTag": "TagValue", "BucketLocation": "eu-west-1"},
+        )
+        self.assert_location_info(topology[0]["components"][0])
+
+        top.assert_component(components, "arn:aws:s3:::binx.io", "aws.s3_bucket", checks={"Name": "binx.io"})
+
+        top.assert_component(
+            components,
+            "arn:aws:s3:::notags",
+            "aws.s3_bucket",
+            checks={
+                "Name": "notags",
+                "Tags": {},
+                "BucketLocation": "eu-west-1"
             }
         )
-        self.patcher = patch('botocore.client.BaseClient._make_api_call')
-        self.mock_object = self.patcher.start()
-        self.api_results = deepcopy(API_RESULTS)
-        topology.reset()
-        aggregator.reset()
-        self.check = AwsTopologyCheck(self.CHECK_NAME, config, [self.instance])
 
-        def results(operation_name, kwarg):
-            return self.api_results.get(operation_name) or {}
-
-        self.mock_object.side_effect = results
-
-    def tearDown(self):
-        self.patcher.stop()
-
-    def assert_executed_ok(self):
-        service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_EXECUTE_NAME)
-        self.assertGreater(len(service_checks), 0)
-        self.assertEqual(service_checks[0].status, AgentCheck.OK)
-
-    def test_simple_bucket(self):
-        self.api_results.update(SIMPLE_BUCKET)
-        self.check.run()
-        test_topology = topology.get_snapshot(self.check.check_id)
-        self.assertEqual(len(test_topology['components']), 1)
-        self.assertEqual(test_topology['components'][0]['type'], 'aws.s3_bucket')
-        self.assertEqual(test_topology['components'][0]['id'], 'arn:aws:s3:::testname')
-        self.assert_executed_ok()
-
-    def test_bucket_with_location(self):
-        self.api_results.update(SIMPLE_BUCKET)
-        self.api_results.update({
-            'GetBucketLocation': {
-                "LocationConstraint": "eu-west-1"
-            }
-        })
-        self.check.run()
-        test_topology = topology.get_snapshot(self.check.check_id)
-        self.assertEqual(len(test_topology['components']), 1)
-        self.assertIsNotNone(test_topology['components'][0]['data'])
-        self.assertEqual(test_topology['components'][0]['data']['BucketLocation'], 'eu-west-1')
-        self.assert_executed_ok()
-
-    def test_bucket_with_tags(self):
-        self.api_results.update(SIMPLE_BUCKET)
-        self.api_results.update({
-            'GetBucketTagging': {
-                "TagSet": [
-                    {
-                        "Key": "tagkey",
-                        "Value": "tagvalue"
-                    }
-                ]
-            }
-        })
-        self.check.run()
-        test_topology = topology.get_snapshot(self.check.check_id)
-        self.assertEqual(len(test_topology['components']), 1)
-        self.assertIsNotNone(test_topology['components'][0]['data'])
-        self.assertEqual(test_topology['components'][0]['data']['Tags'], {'tagkey': 'tagvalue'})
-        self.assert_executed_ok()
-
-    def test_bucket_with_notifications(self):
-        self.api_results.update(SIMPLE_BUCKET)
-        EVENT1 = "s3:ObjectRemoved:*"
-        EVENT2 = "s3:ObjectCreated:*"
-        self.api_results.update({
-            'GetBucketNotificationConfiguration': {
-                "LambdaFunctionConfigurations": [
-                    {
-                        "Id": "4650b182-c9c3-4c3f-8d2f-a2d78a8b9ad4",
-                        "LambdaFunctionArn": LAMBDA_ARN,
-                        "Events": [
-                            EVENT1
-                        ]
-                    },
-                    {
-                        "Id": "2bd6fed8-6a74-47c7-96e5-d0a02c136997",
-                        "LambdaFunctionArn": LAMBDA_ARN,
-                        "Events": [
-                            EVENT2
-                        ]
-                    }
-                ]
-            }
-        })
-        self.check.run()
-        test_topology = topology.get_snapshot(self.check.check_id)
-        self.assertEqual(len(test_topology['relations']), 2)
-        self.assertEqual(
-            test_topology['relations'][0],
-            {
-                'source_id': 'arn:aws:s3:::testname',
-                'target_id': LAMBDA_ARN,
-                'type': 'uses service',
-                'data': {'event_type': EVENT1}
+        top.assert_relation(
+            relations,
+            "arn:aws:s3:::stackstate.com",
+            target_id,
+            "uses service",
+            checks={"event_type": "s3:ObjectCreated:*"},
+        )
+        top.assert_relation(
+            relations, "arn:aws:s3:::binx.io", target_id, "uses service", checks={"event_type": "s3:ObjectRemoved:*"}
+        )
+        top.assert_relation(
+            relations,
+            "arn:aws:s3:::notags",
+            target_id,
+            "uses service",
+            checks={
+                "event_type": "s3:ObjectCreated:*"
             }
         )
-        self.assertEqual(
-            test_topology['relations'][1],
-            {
-                'source_id': 'arn:aws:s3:::testname',
-                'target_id': LAMBDA_ARN,
-                'type': 'uses service',
-                'data': {'event_type': EVENT2}
-            }
-        )
+        top.assert_all_checked(components, relations)
+
+    @set_filter("xxx")
+    def test_process_s3_filter_all(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
+        components = topology[0]["components"]
+        self.assertEqual(len(components), 0)
+
+    @set_cloudtrail_event("create_bucket")
+    def test_process_s3_create_bucket(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual("stackstate.com", topology[0]["components"][0]["data"]["Name"])
+
+    @set_cloudtrail_event("delete_bucket")
+    def test_process_s3_delete_bucket(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 0)
+        self.assertIn("arn:aws:s3:::binx.io", self.check.delete_ids)

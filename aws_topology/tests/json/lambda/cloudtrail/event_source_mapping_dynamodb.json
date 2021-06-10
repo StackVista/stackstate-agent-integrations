@@ -1,0 +1,44 @@
+{
+  "eventVersion": "1.05",
+  "eventID": "a4ceeaf9-3248-4d48-91c3-8eae22a59d0b",
+  "eventTime": "2018-05-24T19:29:40Z",
+  "requestParameters": {
+    "eventSourceArn": "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1/stream/2018-05-24T18:50:39.803",
+    "batchSize": 100,
+    "enabled": true,
+    "functionName": "DynamoDBHandler",
+    "startingPosition": "LATEST"
+  },
+  "eventType": "AwsApiCall",
+  "responseElements": {
+    "uUID": "9b3a7281-7771-463c-9b17-32268cd91c17",
+    "stateTransitionReason": "User action",
+    "lastModified": "May 24, 2018 7:29:40 PM",
+    "batchSize": 100,
+    "state": "Creating",
+    "functionArn": "arn:aws:lambda:eu-west-1:731070500579:function:DynamoDBHandler",
+    "eventSourceArn": "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1/stream/2018-05-24T18:50:39.803",
+    "lastProcessingResult": "No records processed"
+  },
+  "awsRegion": "eu-west-1",
+  "eventName": "CreateEventSourceMapping20150331",
+  "userIdentity": {
+    "userName": "martijn",
+    "principalId": "AIDAJDDXCZUJ4ZKDWZPOQ",
+    "accessKeyId": "ASIAJ7QME35A5U7ESINA",
+    "invokedBy": "cloudformation.amazonaws.com",
+    "sessionContext": {
+      "attributes": {
+        "creationDate": "2018-05-24T19:29:17Z",
+        "mfaAuthenticated": "false"
+      }
+    },
+    "type": "IAMUser",
+    "arn": "arn:aws:iam::731070500579:user/martijn",
+    "accountId": "731070500579"
+  },
+  "eventSource": "lambda.amazonaws.com",
+  "requestID": "cdc216e0-5f88-11e8-bec2-33ba1393311b",
+  "userAgent": "cloudformation.amazonaws.com",
+  "sourceIPAddress": "cloudformation.amazonaws.com"
+}

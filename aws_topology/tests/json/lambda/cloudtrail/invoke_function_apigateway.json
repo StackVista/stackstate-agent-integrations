@@ -1,0 +1,37 @@
+{
+  "eventVersion": "1.05",
+  "eventID": "868ee4ba-c079-4e6c-ba3f-3a1fc5b48a5e",
+  "eventTime": "2018-05-24T18:51:08Z",
+  "requestParameters": {
+    "action": "lambda:invokeFunction",
+    "sourceArn": "arn:aws:execute-api:eu-west-1:731070500579:ne3qzm51we/Prod/GET/hello",
+    "statementId": "com-github-dnvriend-dnv-sam-seed-GetHelloApiGatewayEventSourcePermissionProd-1J2DTANU0SFCW",
+    "functionName": "com-github-dnvriend-dnv-sam-seed-GetHello-R8NVI6CUWUHL",
+    "principal": "apigateway.amazonaws.com"
+  },
+  "eventType": "AwsApiCall",
+  "responseElements": {
+    "statement": "{\"Sid\":\"com-github-dnvriend-dnv-sam-seed-GetHelloApiGatewayEventSourcePermissionProd-1J2DTANU0SFCW\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"apigateway.amazonaws.com\"},\"Action\":\"lambda:invokeFunction\",\"Resource\":\"arn:aws:lambda:eu-west-1:731070500579:function:com-github-dnvriend-dnv-sam-seed-GetHello-R8NVI6CUWUHL\",\"Condition\":{\"ArnLike\":{\"AWS:SourceArn\":\"arn:aws:execute-api:eu-west-1:731070500579:ne3qzm51we/Prod/GET/hello\"}}}"
+  },
+  "awsRegion": "eu-west-1",
+  "eventName": "AddPermission20150331v2",
+  "userIdentity": {
+    "userName": "martijn",
+    "principalId": "AIDAJDDXCZUJ4ZKDWZPOQ",
+    "accessKeyId": "ASIAINRIDER6CYEBKVFA",
+    "invokedBy": "cloudformation.amazonaws.com",
+    "sessionContext": {
+      "attributes": {
+        "creationDate": "2018-05-24T18:50:36Z",
+        "mfaAuthenticated": "false"
+      }
+    },
+    "type": "IAMUser",
+    "arn": "arn:aws:iam::731070500579:user/martijn",
+    "accountId": "731070500579"
+  },
+  "eventSource": "lambda.amazonaws.com",
+  "requestID": "6bc77c47-5f83-11e8-8be6-1fd7fa425cb1",
+  "userAgent": "cloudformation.amazonaws.com",
+  "sourceIPAddress": "cloudformation.amazonaws.com"
+}

@@ -1,0 +1,37 @@
+{
+  "eventVersion": "1.05",
+  "eventID": "22f37e7f-cbda-432b-b533-d8e2ddc32d01",
+  "eventTime": "2018-05-24T19:30:44Z",
+  "requestParameters": {
+    "action": "lambda:invokeFunction",
+    "sourceArn": "arn:aws:events:eu-west-1:731070500579:rule/com-github-dnvriend-dnv-s-ScheduledHandlerSchedule-PU3BRZU600ZX",
+    "statementId": "com-github-dnvriend-dnv-sam-seed-ScheduledHandlerScheduledEventSourcePermission-QQYHR5ELDK42",
+    "functionName": "com-github-dnvriend-dnv-sam-seed-ScheduledHandler-NUSQHIINBDTV",
+    "principal": "events.amazonaws.com"
+  },
+  "eventType": "AwsApiCall",
+  "responseElements": {
+    "statement": "{\"Sid\":\"com-github-dnvriend-dnv-sam-seed-ScheduledHandlerScheduledEventSourcePermission-QQYHR5ELDK42\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"events.amazonaws.com\"},\"Action\":\"lambda:invokeFunction\",\"Resource\":\"arn:aws:lambda:eu-west-1:731070500579:function:com-github-dnvriend-dnv-sam-seed-ScheduledHandler-NUSQHIINBDTV\",\"Condition\":{\"ArnLike\":{\"AWS:SourceArn\":\"arn:aws:events:eu-west-1:731070500579:rule/com-github-dnvriend-dnv-s-ScheduledHandlerSchedule-PU3BRZU600ZX\"}}}"
+  },
+  "awsRegion": "eu-west-1",
+  "eventName": "AddPermission20150331v2",
+  "userIdentity": {
+    "userName": "martijn",
+    "principalId": "AIDAJDDXCZUJ4ZKDWZPOQ",
+    "accessKeyId": "ASIAJ7QME35A5U7ESINA",
+    "invokedBy": "cloudformation.amazonaws.com",
+    "sessionContext": {
+      "attributes": {
+        "creationDate": "2018-05-24T19:29:17Z",
+        "mfaAuthenticated": "false"
+      }
+    },
+    "type": "IAMUser",
+    "arn": "arn:aws:iam::731070500579:user/martijn",
+    "accountId": "731070500579"
+  },
+  "eventSource": "lambda.amazonaws.com",
+  "requestID": "f3f26548-5f88-11e8-9ffe-87b63a888a04",
+  "userAgent": "cloudformation.amazonaws.com",
+  "sourceIPAddress": "cloudformation.amazonaws.com"
+}
