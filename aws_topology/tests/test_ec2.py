@@ -4,7 +4,6 @@ import sys
 
 
 class TestEC2(BaseApiTest):
-
     def get_api(self):
         return "ec2"
 
@@ -12,9 +11,9 @@ class TestEC2(BaseApiTest):
         return "731070500579"
 
     def get_region(self):
-        return 'eu-west-1'
+        return "eu-west-1"
 
-    @set_filter('instances')
+    @set_filter("instances")
     def test_process_ec2_instances(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
@@ -36,62 +35,38 @@ class TestEC2(BaseApiTest):
             test_instance_id,
             "aws.ec2",
             checks={
-                'InstanceId': test_instance_id,
-                'InstanceType': test_instance_type,
+                "InstanceId": test_instance_id,
+                "InstanceType": test_instance_type,
                 "IsNitro": False,
-                'Tags': {
-                    'Name': "Martijn's Stackstate",
-                    'host': test_instance_id,
-                    'instance-id': test_instance_id,
-                    'private-ip': test_public_ip,
-                    'fqdn': test_public_dns,
-                    'public-ip': test_public_ip
+                "Tags": {
+                    "Name": "Martijn's Stackstate",
+                    "host": test_instance_id,
+                    "instance-id": test_instance_id,
+                    "private-ip": test_public_ip,
+                    "fqdn": test_public_dns,
+                    "public-ip": test_public_ip,
                 },
-                'URN': [
+                "URN": [
                     "urn:host:/{}".format(test_instance_id),
-                    "arn:aws:ec2:{}:731070500579:instance/{}".format('eu-west-1', test_instance_id),
+                    "arn:aws:ec2:{}:731070500579:instance/{}".format("eu-west-1", test_instance_id),
                     "urn:host:/{}".format(test_public_dns),
-                    "urn:host:/{}".format(test_public_ip)
-                ]
-            }
+                    "urn:host:/{}".format(test_public_ip),
+                ],
+            },
         )
 
-        top.assert_relation(
-            relations,
-            test_instance_id,
-            "subnet-67d82910",
-            "uses service"
-        )
-        top.assert_relation(
-            relations,
-            test_instance_id,
-            "sg-41c3cc3b",
-            "uses service"
-        )
+        top.assert_relation(relations, test_instance_id, "subnet-67d82910", "uses service")
+        top.assert_relation(relations, test_instance_id, "sg-41c3cc3b", "uses service")
 
         # nitro instances
         top.assert_component(
             components,
             "i-1234567890123456",
             "aws.ec2",
-            checks={
-                'InstanceId': "i-1234567890123456",
-                'InstanceType': "M6gd",
-                "IsNitro": True
-            }
+            checks={"InstanceId": "i-1234567890123456", "InstanceType": "M6gd", "IsNitro": True},
         )
-        top.assert_relation(
-            relations,
-            "i-1234567890123456",
-            "vpc-6b25d10e",
-            "uses service"
-        )
-        top.assert_relation(
-            relations,
-            "i-1234567890123456",
-            "sg-41c3cc3b",
-            "uses service"
-        )
+        top.assert_relation(relations, "i-1234567890123456", "vpc-6b25d10e", "uses service")
+        top.assert_relation(relations, "i-1234567890123456", "sg-41c3cc3b", "uses service")
 
         self.assertEqual(len(events), 2)
         self.assertEqual(events[0]["host"], test_instance_id)
@@ -105,7 +80,7 @@ class TestEC2(BaseApiTest):
     first_security_group_version_py2 = "e3a3e4764fd7fd4a51fcd5812ce9a4803a412c28c6830678462301d33ce6ce75"
     first_sg_group_id = "sg-002abe0b505ad7002"
 
-    @set_filter('security_groups')
+    @set_filter("security_groups")
     def test_process_ec2_security_groups(self):
         self.check.run()
         self.assert_executed_ok()
@@ -129,18 +104,16 @@ class TestEC2(BaseApiTest):
             self.first_sg_group_id,
             "aws.security-group",
             checks={
-                "URN": [
-                    "arn:aws:ec2:{}:731070500579:security-group/{}".format('eu-west-1', self.first_sg_group_id)
-                ],
+                "URN": ["arn:aws:ec2:{}:731070500579:security-group/{}".format("eu-west-1", self.first_sg_group_id)],
                 "Version": version_to_check,
-                "Name": "network-ALBSecurityGroupPublic-1DNVWX102724V"
-            }
+                "Name": "network-ALBSecurityGroupPublic-1DNVWX102724V",
+            },
         )
 
         top.assert_all_checked(components, relations, unchecked_components=48, unchecked_relations=49)
 
-    @set_filter('security_groups')
-    @use_subdirectory('alternate')
+    @set_filter("security_groups")
+    @use_subdirectory("alternate")
     def test_process_ec2_security_groups_order_has_no_influence_on_hash(self):
         self.check.run()
         self.assert_executed_ok()
@@ -161,17 +134,15 @@ class TestEC2(BaseApiTest):
             self.first_sg_group_id,
             "aws.security-group",
             checks={
-                "URN": [
-                    "arn:aws:ec2:{}:731070500579:security-group/{}".format('eu-west-1', self.first_sg_group_id)
-                ],
+                "URN": ["arn:aws:ec2:{}:731070500579:security-group/{}".format("eu-west-1", self.first_sg_group_id)],
                 "Version": version_to_check,
-                "Name": "network-ALBSecurityGroupPublic-1DNVWX102724V"
-            }
+                "Name": "network-ALBSecurityGroupPublic-1DNVWX102724V",
+            },
         )
 
         top.assert_all_checked(components, relations, unchecked_components=48, unchecked_relations=49)
 
-    @set_filter('vpcs')
+    @set_filter("vpcs")
     def test_process_ec2_vpcs(self):
         self.check.run()
         self.assert_executed_ok()
@@ -189,10 +160,8 @@ class TestEC2(BaseApiTest):
             checks={
                 "VpcId": "vpc-6b25d10e",
                 "Name": "vpc-6b25d10e",
-                "URN": [
-                    "arn:aws:ec2:{}:731070500579:vpc/{}".format('eu-west-1', "vpc-6b25d10e")
-                ]
-            }
+                "URN": ["arn:aws:ec2:{}:731070500579:vpc/{}".format("eu-west-1", "vpc-6b25d10e")],
+            },
         )
         self.assert_location_info(comp)
         comp = top.assert_component(
@@ -202,7 +171,7 @@ class TestEC2(BaseApiTest):
             checks={
                 "VpcId": "vpc-12345678",
                 "Name": "default",
-            }
+            },
         )
         comp = top.assert_component(
             components,
@@ -211,7 +180,7 @@ class TestEC2(BaseApiTest):
             checks={
                 "VpcId": "vpc-87654321",
                 "Name": "MyVpc",
-            }
+            },
         )
 
         comp = top.assert_component(
@@ -221,39 +190,24 @@ class TestEC2(BaseApiTest):
             checks={
                 "SubnetId": "subnet-9e4be5f9",
                 "Tags.Name": "demo-deployments",
-                "URN": [
-                    "arn:aws:ec2:{}:731070500579:subnet/{}".format('eu-west-1', "subnet-9e4be5f9")
-                ],
-                "Name": "demo-deployments-eu-west-1a"
-            }
+                "URN": ["arn:aws:ec2:{}:731070500579:subnet/{}".format("eu-west-1", "subnet-9e4be5f9")],
+                "Name": "demo-deployments-eu-west-1a",
+            },
         )
         self.assert_location_info(comp)
         comp = top.assert_component(
             components,
             "subnet-12345678",
             "aws.subnet",
-            checks={
-                "SubnetId": "subnet-12345678",
-                "Name": "subnet-12345678-eu-west-1a"
-            }
+            checks={"SubnetId": "subnet-12345678", "Name": "subnet-12345678-eu-west-1a"},
         )
 
-        top.assert_relation(
-            relations,
-            "subnet-9e4be5f9",
-            "vpc-6b25d10e",
-            "uses service"
-        )
-        top.assert_relation(
-            relations,
-            "subnet-12345678",
-            "vpc-6b25d10e",
-            "uses service"
-        )
+        top.assert_relation(relations, "subnet-9e4be5f9", "vpc-6b25d10e", "uses service")
+        top.assert_relation(relations, "subnet-12345678", "vpc-6b25d10e", "uses service")
 
         top.assert_all_checked(components, relations)
 
-    @set_filter('vpn_gateways')
+    @set_filter("vpn_gateways")
     def test_process_ec2_vpn_gateways(self):
         self.check.run()
         self.assert_executed_ok()
@@ -270,27 +224,18 @@ class TestEC2(BaseApiTest):
             "aws.vpngateway",
             checks={
                 "VpnGatewayId": "vgw-b8c2fccc",
-
-            }
+            },
         )
         self.assert_location_info(comp)
-        top.assert_relation(
-            relations,
-            "vgw-b8c2fccc",
-            "vpc-6b25d10e",
-            "uses service"
-        )
+        top.assert_relation(relations, "vgw-b8c2fccc", "vpc-6b25d10e", "uses service")
 
         top.assert_all_checked(components, relations)
 
-    @set_cloudtrail_event('run_instances')
+    @set_cloudtrail_event("run_instances")
     def test_process_ec2_run_instances(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
-        self.assertEqual(
-            'i-0f70dba7ea83d6dec',
-            topology[0]["components"][0]["id"]
-        )
+        self.assertEqual("i-0f70dba7ea83d6dec", topology[0]["components"][0]["id"])

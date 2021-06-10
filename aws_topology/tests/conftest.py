@@ -23,20 +23,14 @@ ROLE = "some_role_with_many_characters"
 TOKEN = "ABCDE"
 
 API_RESULTS = {
-    'AssumeRole': {
-        "Credentials": {
-            "AccessKeyId": KEY_ID,
-            "SecretAccessKey": ACCESS_KEY,
-            "SessionToken": TOKEN
-        }
-    },
-    'GetCallerIdentity': {
+    "AssumeRole": {"Credentials": {"AccessKeyId": KEY_ID, "SecretAccessKey": ACCESS_KEY, "SessionToken": TOKEN}},
+    "GetCallerIdentity": {
         "Account": ACCOUNT_ID,
     },
 }
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def sts_environment():
     #  This conf instance is used when running `checksdev env start mycheck myenv`.
     #  The start command places this as a `conf.yaml` in the `conf.d/mycheck/` directory.
@@ -50,19 +44,15 @@ def sts_environment():
 @pytest.fixture(scope="class")
 def instance(request):
     cfg = {
-            "role_arn": "arn:aws:iam::123456789012:role/RoleName",
-            "regions": ["eu-west-1"],
+        "role_arn": "arn:aws:iam::123456789012:role/RoleName",
+        "regions": ["eu-west-1"],
     }
     request.cls.instance = cfg
 
 
 @pytest.fixture(scope="class")
 def init_config(request):
-    cfg = {
-        "aws_access_key_id": "abc",
-        "aws_secret_access_key": "cde",
-        "external_id": "randomvalue"
-    }
+    cfg = {"aws_access_key_id": "abc", "aws_secret_access_key": "cde", "external_id": "randomvalue"}
     request.cls.config = cfg
 
 
@@ -109,7 +99,7 @@ def use_subdirectory(value):
 
 
 def get_params_hash(region, data):
-    return hashlib.md5((region + json.dumps(data, sort_keys=True, default=str)).encode('utf-8')).hexdigest()[0:7]
+    return hashlib.md5((region + json.dumps(data, sort_keys=True, default=str)).encode("utf-8")).hexdigest()[0:7]
 
 
 def relative_path(path):
@@ -126,34 +116,18 @@ def resource(path):
 def wrapper(api, not_authorized, subdirectory, event_name=None):
     def mock_boto_calls(self, *args, **kwargs):
         if args[0] == "AssumeRole":
-            return {
-                "Credentials": {
-                    "AccessKeyId": "KEY_ID",
-                    "SecretAccessKey": "ACCESS_KEY",
-                    "SessionToken": "TOKEN"
-                }
-            }
+            return {"Credentials": {"AccessKeyId": "KEY_ID", "SecretAccessKey": "ACCESS_KEY", "SessionToken": "TOKEN"}}
         if args[0] == "LookupEvents":
-            if (event_name):
+            if event_name:
                 res = resource("json/" + api + "/cloudtrail/" + event_name + ".json")
-                res['eventTime'] = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
-                msg = {
-                    "Events": [
-                        {
-                            "CloudTrailEvent": json.dumps(res)
-                        }
-                    ]
-                }
+                res["eventTime"] = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+                msg = {"Events": [{"CloudTrailEvent": json.dumps(res)}]}
                 return msg
             else:
                 return {}
         operation_name = botocore.xform_name(args[0])
         if operation_name in not_authorized:
-            raise botocore.exceptions.ClientError({
-                'Error': {
-                    'Code': 'AccessDenied'
-                }
-            }, operation_name)
+            raise botocore.exceptions.ClientError({"Error": {"Code": "AccessDenied"}}, operation_name)
         apidir = api
         if apidir is None:
             apidir = self._service_model.service_name
@@ -170,6 +144,7 @@ def wrapper(api, not_authorized, subdirectory, event_name=None):
             error += "Parameters:\n{}\n".format(json.dumps(args[1], indent=2, default=str))
             error += "File missing: {}".format(file_name)
             raise Exception(error)
+
     return mock_boto_calls
 
 
@@ -196,26 +171,28 @@ class BaseApiTest(unittest.TestCase):
         """
         method = getattr(self, self._testMethodName)
         not_authorized = []
-        if hasattr(method, 'not_authorized'):
+        if hasattr(method, "not_authorized"):
             not_authorized = method.not_authorized
         cloudtrail_event = None
-        if hasattr(method, 'cloudtrail_event'):
+        if hasattr(method, "cloudtrail_event"):
             cloudtrail_event = method.cloudtrail_event
-        filter = ''
-        if hasattr(method, 'filter'):
+        filter = ""
+        if hasattr(method, "filter"):
             filter = method.filter
-        subdirectory = ''
-        if hasattr(method, 'subdirectory'):
+        subdirectory = ""
+        if hasattr(method, "subdirectory"):
             subdirectory = method.subdirectory
         self.patcher = patch("botocore.client.BaseClient._make_api_call", autospec=True)
         self.mock_object = self.patcher.start()
         top.reset()
         aggregator.reset()
-        init_config = InitConfig({
-            "aws_access_key_id": "some_key",
-            "aws_secret_access_key": "some_secret",
-            "external_id": "disable_external_id_this_is_unsafe"
-        })
+        init_config = InitConfig(
+            {
+                "aws_access_key_id": "some_key",
+                "aws_secret_access_key": "some_secret",
+                "external_id": "disable_external_id_this_is_unsafe",
+            }
+        )
         regions = self.get_region()
         if not isinstance(regions, list):
             regions = [regions]
@@ -227,7 +204,7 @@ class BaseApiTest(unittest.TestCase):
         apis = None
         if api:
             if filter:
-                apis = [api + '|' + filter]
+                apis = [api + "|" + filter]
             else:
                 apis = [api]
         if cloudtrail_event:
@@ -251,5 +228,5 @@ class BaseApiTest(unittest.TestCase):
         self.assertEqual(component["data"]["Location"]["AwsAccount"], self.get_account_id())
         region = self.get_region()
         if component["type"] == "aws.route53.domain" or component["type"] == "aws.route53.hostedzone":
-            region = 'us-east-1'
+            region = "us-east-1"
         self.assertEqual(component["data"]["Location"]["AwsRegion"], region)

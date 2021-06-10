@@ -6,15 +6,12 @@ def dot_reducer(key1, key2):
     if key1 is None:
         return key2
     else:
-        return '{}.{}'.format(key1, key2)
+        return "{}.{}".format(key1, key2)
 
 
 class ResourceRegistry(type):
 
-    REGISTRY = {
-        'global': {},
-        'regional': {}
-    }
+    REGISTRY = {"global": {}, "regional": {}}
     CLOUDTRAIL = {}
 
     def __new__(cls, name, bases, attrs):
@@ -23,21 +20,17 @@ class ResourceRegistry(type):
             Here the name of the class is used as key but it could be any class
             parameter.
         """
-        if '??' not in [new_cls.API, new_cls.API_TYPE]:
+        if "??" not in [new_cls.API, new_cls.API_TYPE]:
             cls.REGISTRY[new_cls.API_TYPE][new_cls.API] = new_cls
-        if '??' != new_cls.EVENT_SOURCE and new_cls.CLOUDTRAIL_EVENTS is not None:
+        if "??" != new_cls.EVENT_SOURCE and new_cls.CLOUDTRAIL_EVENTS is not None:
             key = new_cls.EVENT_SOURCE
-            if new_cls.API_VERSION != '??':
-                key = new_cls.API_VERSION + '-' + new_cls.EVENT_SOURCE
+            if new_cls.API_VERSION != "??":
+                key = new_cls.API_VERSION + "-" + new_cls.EVENT_SOURCE
             # dual implementation (we will deprecate one soon)
             if isinstance(new_cls.CLOUDTRAIL_EVENTS, dict):
-                cls.CLOUDTRAIL.update({
-                    key: new_cls.CLOUDTRAIL_EVENTS
-                })
+                cls.CLOUDTRAIL.update({key: new_cls.CLOUDTRAIL_EVENTS})
             elif isinstance(new_cls.CLOUDTRAIL_EVENTS, list):
-                cls.CLOUDTRAIL.update({
-                    key: {event["event_name"]: new_cls for event in new_cls.CLOUDTRAIL_EVENTS}
-                })
+                cls.CLOUDTRAIL.update({key: {event["event_name"]: new_cls for event in new_cls.CLOUDTRAIL_EVENTS}})
         return new_cls
 
     @classmethod
@@ -51,6 +44,7 @@ class RegisteredResourceCollector(with_metaclass(ResourceRegistry, object)):
     inside the dict RegistryHolder.REGISTRY, the key being the name of the
     class and the associated value, the class itself.
     """
+
     API = "??"
     API_TYPE = "??"
     COMPONENT_TYPE = "??"
@@ -79,31 +73,25 @@ class RegisteredResourceCollector(with_metaclass(ResourceRegistry, object)):
         raise NotImplementedError
 
     def process_delete_by_name(self, name):
-        id = self.agent.create_arn(
-            self.CLOUDFORMATION_TYPE,
-            self.location_info,
-            name
-        )
+        id = self.agent.create_arn(self.CLOUDFORMATION_TYPE, self.location_info, name)
         self.emit_deletion(id)
         return id
 
     def process_cloudtrail_event(self, event, seen):
-        event_name = event.get('eventName')
+        event_name = event.get("eventName")
         # TODO once we got rid of the old wat of processing the filtering becomes unnecessary
-        handlers = list(filter(lambda rec: rec.get('event_name') == event_name, self.CLOUDTRAIL_EVENTS))
+        handlers = list(filter(lambda rec: rec.get("event_name") == event_name, self.CLOUDTRAIL_EVENTS))
         if len(handlers) > 0:
             handler = handlers[0]
-            path = handler.get('path')
-            processor = handler.get('processor')
+            path = handler.get("path")
+            processor = handler.get("processor")
             if path and processor:
                 flat = flatten_dict.flatten(event, dot_reducer, enumerate_types=(list,))
-                id = flat.get(handler['path'])
+                id = flat.get(handler["path"])
                 if id and id not in seen:
                     processor(self, id)  # TODO update seen!
                 return id
             elif processor:
                 processor(self, event, seen)
             else:
-                self.agent.warning(
-                    'The API {} should handle CloudTrail event {}'.format(self.API, event_name)
-                )
+                self.agent.warning("The API {} should handle CloudTrail event {}".format(self.API, event_name))
