@@ -92,6 +92,9 @@ class TestUtils(unittest.TestCase):
         def get_throttled():
             raise botocore.exceptions.ClientError({"Error": {"Code": "Throttling"}}, "get_throttled")
 
+        def get_ignore_codes():
+            raise botocore.exceptions.ClientError({"Error": {"Code": "NoSuchTagSet"}}, "get_ignored_code")
+
         def get_other():
             raise botocore.exceptions.ClientError({"Error": {"Code": "RandomErrorCode"}}, "get_other")
 
@@ -110,56 +113,37 @@ class TestUtils(unittest.TestCase):
             def test(self):
                 get_access_denied()
 
-            @set_required_access_v2("test", ignore=True)
-            def test_ignore(self):
-                get_access_denied()
-
             @set_required_access_v2("test")
             def test_throttle(self):
                 get_throttled()
 
-            @set_required_access_v2("test", ignore=True)
-            def test_throttle_ignore(self):
-                get_throttled()
+            @set_required_access_v2("test", ignore_codes=["NoSuchTagSet"])
+            def test_ignore_codes(self):
+                get_ignore_codes()
 
             @set_required_access_v2("test")
             def test_other(self):
                 get_other()
 
-            @set_required_access_v2("test", ignore=True)
-            def test_other_ignore(self):
-                get_other()
-
         warnings = []
-        with self.assertRaises(Exception):
-            c = Collector()
-            c.test()
+        c = Collector()
+        c.test()
         self.assertEqual(warnings, ["Role testrole needs test"])
 
         warnings = []
-        c.test_ignore()
-        self.assertEqual(warnings, ["Role testrole needs test"])
-
-        warnings = []
-        with self.assertRaises(Exception):
-            c = Collector()
-            c.test_throttle()
+        c = Collector()
+        c.test_throttle()
         self.assertEqual(warnings, ["throttling"])
 
         warnings = []
-        c.test_throttle_ignore()
-        self.assertEqual(warnings, ["throttling"])
+        c = Collector()
+        c.test_ignore_codes()
+        self.assertEqual(warnings, ["Error code NoSuchTagSet returned but is explicitly ignored"])
 
         warnings = []
         with self.assertRaises(Exception):
             c = Collector()
             c.test_other()
-        self.assertEqual(warnings, [])
-
-        warnings = []
-        with self.assertRaises(Exception):
-            c = Collector()
-            c.test_other_ignore()
         self.assertEqual(warnings, [])
 
     def test_utils_create_security_group_relations(self):

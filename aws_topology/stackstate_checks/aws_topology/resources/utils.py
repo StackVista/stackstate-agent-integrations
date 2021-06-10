@@ -204,7 +204,7 @@ def is_throttling_error(code):
     return code in _THROTTLED_ERROR_CODES
 
 
-def set_required_access_v2(value, ignore=False, ignore_codes=[]):
+def set_required_access_v2(value, ignore_codes=[]):
     def decorator(func):
         def inner_function(self, *args, **kwargs):
             try:
@@ -216,12 +216,8 @@ def set_required_access_v2(value, ignore=False, ignore_codes=[]):
                 if code == "AccessDenied":
                     iam_access = value if not isinstance(value, list) else ", ".join(value)
                     self.agent.warning("Role {} needs {}".format(self.agent.role_name, iam_access), **kwargs)
-                    if not ignore:
-                        raise e
                 elif is_throttling_error(code):
                     self.agent.warning("throttling")
-                    if not ignore:
-                        raise e
                 elif code in ignore_codes:
                     self.agent.warning(
                         'Error code {} returned but is explicitly ignored'.format(code)
