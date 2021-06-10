@@ -50,12 +50,11 @@ account_id = ""
 
 
 def get_params_hash(region, data):
-    return hashlib.md5((region + json.dumps(data, sort_keys=True, default=str)).encode('utf-8')).hexdigest()[0:7]
+    return hashlib.md5((region + json.dumps(data, sort_keys=True, default=str)).encode("utf-8")).hexdigest()[0:7]
 
 
 @contextmanager
 def mock_patch_method_original(mock_path):
-
     def side_effect(self, *args, **kwargs):
         global account_id
         side_effect.self = self
@@ -67,11 +66,11 @@ def mock_patch_method_original(mock_path):
             "OperationName": args[0],
             "Generater": datetime.datetime.now(),
             "Region": self.meta.region_name,
-            "Account": account_id
+            "Account": account_id,
         }
-        fn = botocore.xform_name(args[0]) + '_' + get_params_hash(self.meta.region_name, args)
-        if args[0] != 'AssumeRole':
-            with open(relative_path('json/' + target + '/' + fn + '.json'), 'w') as outfile:
+        fn = botocore.xform_name(args[0]) + "_" + get_params_hash(self.meta.region_name, args)
+        if args[0] != "AssumeRole":
+            with open(relative_path("json/" + target + "/" + fn + ".json"), "w") as outfile:
                 json.dump(result, outfile, indent=2, default=str)
         return result
 
@@ -85,14 +84,8 @@ def get_ipv4_by_hostname(hostname):
     # see `man getaddrinfo`
 
     return set(
-        i        # raw socket structure
-        [4]  # internet protocol info
-        [0]  # address
-        for i in
-        socket.getaddrinfo(
-            hostname,
-            0  # port, required
-        )
+        i[4][0]  # raw socket structure  # internet protocol info  # address
+        for i in socket.getaddrinfo(hostname, 0)  # port, required
     )
 
 
@@ -106,17 +99,19 @@ class TestEventBridge(unittest.TestCase):
         Initialize and patch the check, i.e.
         """
         global account_id
-        with open(relative_path('../stackstate_checks/aws_topology.yaml'), 'r') as stream:
+        with open(relative_path("../stackstate_checks/aws_topology.yaml"), "r") as stream:
             data_loaded = yaml.safe_load(stream)
         top.reset()
         aggregator.reset()
-        init_config = InitConfig({
-            "aws_access_key_id": data_loaded["init_config"]["aws_access_key_id"],
-            "aws_secret_access_key": data_loaded["init_config"]["aws_secret_access_key"],
-            "external_id": data_loaded["init_config"]["external_id"]
-        })
+        init_config = InitConfig(
+            {
+                "aws_access_key_id": data_loaded["init_config"]["aws_access_key_id"],
+                "aws_secret_access_key": data_loaded["init_config"]["aws_secret_access_key"],
+                "external_id": data_loaded["init_config"]["external_id"],
+            }
+        )
         role = data_loaded["instances"][0]["role_arn"]
-        account_id = role.split(':')[4]
+        account_id = role.split(":")[4]
         instance = {
             "role_arn": role,
             "regions": regions,
@@ -143,14 +138,14 @@ class TestEventBridge(unittest.TestCase):
         self.assertTrue(False, "Relation expected source_id={} target_id={}".format(source_id, target_id))
 
     def xtest_process_realaccount(self):
-        with mock_patch_method_original('botocore.client.BaseClient._make_api_call'):
+        with mock_patch_method_original("botocore.client.BaseClient._make_api_call"):
             self.check.run()
             topology = [top.get_snapshot(self.check.check_id)]
             self.assertEqual(len(topology), 1)
             self.assert_executed_ok()
 
             if target == "ec2":
-                print('results')
+                print("results")
                 components = topology[0]["components"]
                 relations = topology[0]["relations"]
                 for component in components:
@@ -160,9 +155,9 @@ class TestEventBridge(unittest.TestCase):
                 for rds in components:
                     if rds["type"] == "aws.rds_instance":
                         endpoint = rds["data"]["Endpoint"]["Address"]
-                        print('Looking up', endpoint)
+                        print("Looking up", endpoint)
                         rips = get_ipv4_by_hostname(endpoint)
-                        print('IP', get_ipv4_by_hostname(endpoint))
+                        print("IP", get_ipv4_by_hostname(endpoint))
                         for component in components:
                             if component["type"] == "aws.ec2.networkinterface":
                                 if rds["data"]["DBSubnetGroup"].get("VpcId") == component["data"]["VpcId"]:
@@ -178,32 +173,28 @@ class TestEventBridge(unittest.TestCase):
                                     if lmb["data"].get("VpcConfig"):
                                         if lmb["data"]["VpcConfig"].get("VpcId"):
                                             if lmb["data"]["VpcConfig"].get("VpcId") == component["data"]["VpcId"]:
-                                                if (component["data"]["SubnetId"]
-                                                        in lmb["data"]["VpcConfig"]["SubnetIds"]):
-                                                    if (set(lmb["data"]["VpcConfig"]["SecurityGroupIds"]) ==
-                                                            set([x["GroupId"]
-                                                                for x in component["data"].get("Groups")])):
+                                                if (
+                                                    component["data"]["SubnetId"]
+                                                    in lmb["data"]["VpcConfig"]["SubnetIds"]
+                                                ):
+                                                    if set(lmb["data"]["VpcConfig"]["SecurityGroupIds"]) == set(
+                                                        [x["GroupId"] for x in component["data"].get("Groups")]
+                                                    ):
                                                         print(lmb["id"], component["id"])
                                             else:
                                                 print("no match")
 
             if target == "cloudformation":
                 names = {}
-                for file in glob.glob(relative_path('json/cloudformation/describe_stack_resources*.json')):
+                for file in glob.glob(relative_path("json/cloudformation/describe_stack_resources*.json")):
                     with open(file) as f:
                         x = json.load(f)
                         region = x["ResponseMetadata"]["Region"]
-                        if x['StackResources']:
-                            for resource in x['StackResources']:
+                        if x["StackResources"]:
+                            for resource in x["StackResources"]:
                                 key = "{}|{}|{}|{}".format(
-                                    account_id,
-                                    region,
-                                    resource['StackName'],
-                                    resource['LogicalResourceId']
+                                    account_id, region, resource["StackName"], resource["LogicalResourceId"]
                                 )
-                                names[key] = {
-                                    "type": resource['ResourceType'],
-                                    "id": resource['PhysicalResourceId']
-                                }
-                with open(relative_path('json/cloudformation/names.json'), 'w') as outfile:
+                                names[key] = {"type": resource["ResourceType"], "id": resource["PhysicalResourceId"]}
+                with open(relative_path("json/cloudformation/names.json"), "w") as outfile:
                     json.dump(names, outfile, indent=2, default=str)

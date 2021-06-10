@@ -1,6 +1,14 @@
-from stackstate_checks.aws_topology.resources.utils import make_valid_data, get_partition_name, \
-    extract_dimension_name, replace_stage_variables, custom_list_data_comparator, \
-    client_array_operation, transformation, set_required_access_v2, create_security_group_relations
+from stackstate_checks.aws_topology.resources.utils import (
+    make_valid_data,
+    get_partition_name,
+    extract_dimension_name,
+    replace_stage_variables,
+    custom_list_data_comparator,
+    client_array_operation,
+    transformation,
+    set_required_access_v2,
+    create_security_group_relations,
+)
 from stackstate_checks.aws_topology.utils import correct_tags
 
 from datetime import datetime
@@ -19,13 +27,13 @@ class TestUtils(unittest.TestCase):
         self.assertIsInstance(make_valid_data(self), string_types)
 
     def test_utils_partition_name(self):
-        self.assertEqual(get_partition_name('eu-west-1'), 'aws')
-        self.assertEqual(get_partition_name('us-gov-east-1'), 'aws-us-gov')
-        self.assertEqual(get_partition_name('us-gov-west-1'), 'aws-us-gov')
-        self.assertEqual(get_partition_name('cn-north-1'), 'aws-cn')
-        self.assertEqual(get_partition_name('cn-northwest-1'), 'aws-cn')
-        self.assertEqual(get_partition_name('us-iso-east-1'), 'aws-iso')
-        self.assertEqual(get_partition_name('us-isob-east-1'), 'aws-iso-b')
+        self.assertEqual(get_partition_name("eu-west-1"), "aws")
+        self.assertEqual(get_partition_name("us-gov-east-1"), "aws-us-gov")
+        self.assertEqual(get_partition_name("us-gov-west-1"), "aws-us-gov")
+        self.assertEqual(get_partition_name("cn-north-1"), "aws-cn")
+        self.assertEqual(get_partition_name("cn-northwest-1"), "aws-cn")
+        self.assertEqual(get_partition_name("us-iso-east-1"), "aws-iso")
+        self.assertEqual(get_partition_name("us-isob-east-1"), "aws-iso-b")
 
     def test_utils_extract_dimension_name_no_match_returns_empty_string(self):
         self.assertEqual(extract_dimension_name("test", "fake"), "")
@@ -42,7 +50,7 @@ class TestUtils(unittest.TestCase):
 
     def test_utils_client_array_operation(self):
         with self.assertRaises(Exception):
-            for x in client_array_operation(self, 'nottobefound', 'Any'):
+            for x in client_array_operation(self, "nottobefound", "Any"):
                 pass
 
         class TestClient(object):
@@ -50,10 +58,10 @@ class TestUtils(unittest.TestCase):
                 return False
 
             def get_array(self):
-                return {'arr': [1, 2, 3]}
+                return {"arr": [1, 2, 3]}
 
         c = TestClient()
-        for x in client_array_operation(c, 'get_array', 'arr'):
+        for x in client_array_operation(c, "get_array", "arr"):
             pass
 
     def test_utils_transformation(self):
@@ -79,29 +87,17 @@ class TestUtils(unittest.TestCase):
 
     def test_utils_set_not_authorized(self):
         def get_access_denied():
-            raise botocore.exceptions.ClientError({
-                'Error': {
-                    'Code': 'AccessDenied'
-                }
-            }, 'get_access_denied')
+            raise botocore.exceptions.ClientError({"Error": {"Code": "AccessDenied"}}, "get_access_denied")
 
         def get_throttled():
-            raise botocore.exceptions.ClientError({
-                'Error': {
-                    'Code': 'Throttling'
-                }
-            }, 'get_throttled')
+            raise botocore.exceptions.ClientError({"Error": {"Code": "Throttling"}}, "get_throttled")
 
         def get_other():
-            raise botocore.exceptions.ClientError({
-                'Error': {
-                    'Code': 'RandomErrorCode'
-                }
-            }, 'get_other')
+            raise botocore.exceptions.ClientError({"Error": {"Code": "RandomErrorCode"}}, "get_other")
 
         class Agent(object):
             def __init__(self):
-                self.role_name = 'testrole'
+                self.role_name = "testrole"
 
             def warning(self, txt):
                 warnings.append(txt)
@@ -110,27 +106,27 @@ class TestUtils(unittest.TestCase):
             def __init__(self):
                 self.agent = Agent()
 
-            @set_required_access_v2('test')
+            @set_required_access_v2("test")
             def test(self):
                 get_access_denied()
 
-            @set_required_access_v2('test', ignore=True)
+            @set_required_access_v2("test", ignore=True)
             def test_ignore(self):
                 get_access_denied()
 
-            @set_required_access_v2('test')
+            @set_required_access_v2("test")
             def test_throttle(self):
                 get_throttled()
 
-            @set_required_access_v2('test', ignore=True)
+            @set_required_access_v2("test", ignore=True)
             def test_throttle_ignore(self):
                 get_throttled()
 
-            @set_required_access_v2('test')
+            @set_required_access_v2("test")
             def test_other(self):
                 get_other()
 
-            @set_required_access_v2('test', ignore=True)
+            @set_required_access_v2("test", ignore=True)
             def test_other_ignore(self):
                 get_other()
 
@@ -138,21 +134,21 @@ class TestUtils(unittest.TestCase):
         with self.assertRaises(Exception):
             c = Collector()
             c.test()
-        self.assertEqual(warnings, ['Role testrole needs test'])
+        self.assertEqual(warnings, ["Role testrole needs test"])
 
         warnings = []
         c.test_ignore()
-        self.assertEqual(warnings, ['Role testrole needs test'])
+        self.assertEqual(warnings, ["Role testrole needs test"])
 
         warnings = []
         with self.assertRaises(Exception):
             c = Collector()
             c.test_throttle()
-        self.assertEqual(warnings, ['throttling'])
+        self.assertEqual(warnings, ["throttling"])
 
         warnings = []
         c.test_throttle_ignore()
-        self.assertEqual(warnings, ['throttling'])
+        self.assertEqual(warnings, ["throttling"])
 
         warnings = []
         with self.assertRaises(Exception):
@@ -168,11 +164,11 @@ class TestUtils(unittest.TestCase):
 
     def test_utils_create_security_group_relations(self):
         data = {}
-        self.assertIsNone(create_security_group_relations('id', data, None))
+        self.assertIsNone(create_security_group_relations("id", data, None))
 
     def test_utils_correct_tags(self):
-        tags = [{'key': 'test', 'value': 'test'}]
-        data = {'tags': tags}
-        self.assertEqual(correct_tags(data), {'tags': tags, 'Tags': {'test': 'test'}})
-        data = {'Tags': [{'Key': 'test', 'Value': 'test'}]}
-        self.assertEqual(correct_tags(data), {'Tags': {'test': 'test'}})
+        tags = [{"key": "test", "value": "test"}]
+        data = {"tags": tags}
+        self.assertEqual(correct_tags(data), {"tags": tags, "Tags": {"test": "test"}})
+        data = {"Tags": [{"Key": "test", "Value": "test"}]}
+        self.assertEqual(correct_tags(data), {"Tags": {"test": "test"}})
