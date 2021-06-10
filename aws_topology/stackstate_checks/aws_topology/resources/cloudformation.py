@@ -11,6 +11,8 @@ from .sqs import create_arn as sqs_arn
 from .ecs import create_cluster_arn as ecs_cluster_arn
 from .api_gateway import create_api_arn, create_stage_arn, create_resource_arn, create_method_arn
 from .elb_classic import create_arn as create_elb_arn
+from .route53_domain import create_arn as route53_domain_arn
+from .route53_hostedzone import create_arn as route53_hosted_zone_arn
 
 
 type_map = {
@@ -60,7 +62,9 @@ type_arn = {
     'AWS::ElasticLoadBalancingV2::LoadBalancer': no_arn,
     'AWS::AutoScaling::AutoScalingGroup': no_arn,
     "AWS::StepFunctions::StateMachine": no_arn,
-    "AWS::StepFunctions::Activity": no_arn
+    "AWS::StepFunctions::Activity": no_arn,
+    'AWS::Route53Domains::Domain': route53_domain_arn,
+    'AWS::Route53::HostedZone': route53_hosted_zone_arn
 }
 
 

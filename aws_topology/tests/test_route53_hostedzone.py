@@ -24,9 +24,10 @@ class TestRoute53HostedZone(BaseApiTest):
 
         top.assert_component(
             components,
-            "/hostedzone/Z4OKCQBA0VS63",
+            "Z4OKCQBA0VS63",
             "aws.route53.hostedzone",
             checks={
+                "Name": "serverless.nl",
                 "URN": [
                     "arn:aws:route53:::hostedzone/Z4OKCQBA0VS63"
                 ],
