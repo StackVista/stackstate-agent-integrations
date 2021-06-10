@@ -7,7 +7,7 @@
     "error": true,
     "http": {
       "response": {
-        "status": 200
+        "status": 400
       }
     },
     "id": "7f23cd3d4cee1712",
@@ -29,6 +29,11 @@
     "error": true,
     "id": "2195e9b43d2beb0c",
     "name": "test-get",
+    "http": {
+      "response": {
+        "status": 501
+      }
+    },
     "origin": "AWS::Lambda::Function",
     "parent_id": "7f23cd3d4cee1712",
     "start_time": 1580131860.5939624,

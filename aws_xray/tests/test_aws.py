@@ -95,8 +95,6 @@ def test_error_trace():
     segments = get_file('segments_error.json')
     spans = check._generate_spans(segments)
     assert len(spans) == 5
-    assert spans[0]['error'] == 1
-    assert spans[1]['error'] == 1
     # 2 main segments should kind as client
     assert spans[0]["meta"]["span.kind"] == "client"
     assert spans[1]["meta"]["span.kind"] == "client"
@@ -104,6 +102,9 @@ def test_error_trace():
     assert spans[2]["meta"]["span.kind"] == "internal"
     assert spans[3]["meta"]["span.kind"] == "internal"
     assert spans[4]["meta"]["span.kind"] == "internal"
+    # should produce errorClass
+    assert spans[0]["meta"]["span.errorClass"] == '4xx'
+    assert spans[1]["meta"]["span.errorClass"] == '5xx'
 
 
 def test_end_time():

@@ -146,9 +146,8 @@ class AwsCheck(AgentCheck):
                 'meta': flat_segment
             }
 
-            # Check if there is error in X-Ray Trace
-            if is_affirmative(segment.get('error')):
-                span['error'] = 1
+            # Check if there is error in X-Ray Trace and split error on response code for trace metrics
+            span = process_http_error(span, segment)
 
             spans.append(span)
 
@@ -343,7 +342,29 @@ def flatten_segment(segment, kind):
     # STAC-13020: we decided to make all the spans from aws-xray as CLIENT to produce metrics
     # otherwise receiver won't produce any metrics if the kind is INTERNAL
     flat_segment["span.kind"] = kind
+    flat_segment["span.serviceType"] = "xray"
     return flat_segment
+
+
+def process_http_error(span, segment):
+    """
+    Process the span on different error code
+    :param span: The span in which error code has to be sent
+    :param segment: The segment from which error code has to be processed
+    :return: span processed with error codes
+    """
+    error = segment.get('fault') or segment.get('throttle') or segment.get('error')
+    if is_affirmative(error):
+        flat_meta = span.get('meta')
+        if flat_meta:
+            error_code = flat_meta.get("http.response.status")
+            if error_code:
+                if 400 <= int(error_code) < 500:
+                    flat_meta["span.errorClass"] = "4xx"
+                elif int(error_code) >= 500:
+                    flat_meta["span.errorClass"] = "5xx"
+                span['meta'] = flat_meta
+    return span
 
 
 def dot_reducer(key1, key2):
