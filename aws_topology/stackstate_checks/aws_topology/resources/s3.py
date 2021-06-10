@@ -70,7 +70,6 @@ class S3Collector(RegisteredResourceCollector):
 
     @set_required_access_v2("s3:ListAllMyBuckets")
     def process_buckets(self):
-        # TODO buckets should only be fetched for global OR filtered by LocationConstraint
         for bucket_data in self.collect_buckets():
             if bucket_data:
                 self.process_bucket(bucket_data)
