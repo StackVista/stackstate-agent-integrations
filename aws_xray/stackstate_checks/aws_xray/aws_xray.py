@@ -355,15 +355,15 @@ def process_http_error(span, segment):
     """
     error = segment.get('fault') or segment.get('throttle') or segment.get('error')
     if is_affirmative(error):
-        flat_meta = span.get('meta')
-        if flat_meta:
-            error_code = flat_meta.get("http.response.status")
-            if error_code:
-                if 400 <= int(error_code) < 500:
-                    flat_meta["span.errorClass"] = "4xx"
-                elif int(error_code) >= 500:
-                    flat_meta["span.errorClass"] = "5xx"
-                span['meta'] = flat_meta
+        meta = span.get('meta')
+        if meta:
+            status_code = meta.get("http.response.status")
+            if status_code:
+                if 400 <= int(status_code) < 500:
+                    meta["span.errorClass"] = "4xx"
+                elif int(status_code) >= 500:
+                    meta["span.errorClass"] = "5xx"
+                span['meta'] = meta
     return span
 
 
