@@ -11,13 +11,13 @@ from schematics import Model
 from schematics.types import StringType, ModelType, ListType
 
 
-def create_arn(region=None, account_id=None, resource_id=None, **kwargs):
+def create_arn(resource_id=None, **kwargs):
     return arn(resource="route53", region="", account_id="", resource_id="hostedzone/" + resource_id)
 
 
 class HostedZoneInfo(Model):
     Id = StringType(required=True)
-    Name = StringType(default="UNKNOWN")
+    Name = StringType(default="")
 
 
 class HostedZone(Model):
@@ -94,7 +94,8 @@ class Route53HostedzoneCollector(RegisteredResourceCollector):
         hosted_zone.validate()
         output = make_valid_data(data.hosted_zone)
         hosted_zone_id = hosted_zone.HostedZone.Id.rsplit("/", 1)[-1]
-        output["Name"] = hosted_zone.HostedZone.Name.strip(".")
+        # If no name is found, fallback to hosted zone ID
+        output["Name"] = hosted_zone.HostedZone.Name.strip(".") or hosted_zone_id
         output["Tags"] = data.tags
         output["ResourceRecordSets"] = data.resource_record_sets
         output["URN"] = [
