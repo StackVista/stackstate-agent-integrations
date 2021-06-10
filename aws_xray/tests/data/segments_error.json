@@ -26,7 +26,7 @@
       ]
     },
     "end_time": 1580131860.6093533,
-    "error": true,
+    "fault": true,
     "id": "2195e9b43d2beb0c",
     "name": "test-get",
     "http": {
@@ -52,7 +52,12 @@
           "function_arn": "arn:aws:lambda:eu-west-1:672574731473:function:test-get"
         },
         "end_time": 1580131860.5959554,
-        "error": true,
+        "throttle": true,
+        "http": {
+          "response": {
+            "status": 429
+          }
+        },
         "id": "02f933c3f2572f2d",
         "name": "Invocation",
         "start_time": 1580131860.5943346
