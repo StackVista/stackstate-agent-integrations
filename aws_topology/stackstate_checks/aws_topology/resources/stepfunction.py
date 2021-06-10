@@ -69,11 +69,11 @@ class StepFunctionCollector(RegisteredResourceCollector):
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.stepfunction.statemachine"
 
-    @set_required_access_v2("states:ListTagsForResource", ignore=True)
+    @set_required_access_v2("states:ListTagsForResource")
     def collect_tags(self, arn):
         return self.client.list_tags_for_resource(resourceArn=arn).get("tags")
 
-    @set_required_access_v2("states:DescribeStateMachine", ignore=True)
+    @set_required_access_v2("states:DescribeStateMachine")
     def collect_state_machine_description(self, arn):
         return self.client.describe_state_machine(stateMachineArn=arn)
 
@@ -108,12 +108,12 @@ class StepFunctionCollector(RegisteredResourceCollector):
         if not filter or "activities" in filter:
             self.process_activities()
 
-    @set_required_access_v2("states:ListActivities", ignore=True)
+    @set_required_access_v2("states:ListActivities")
     def process_activities(self):
         for activity in self.collect_activities():
             self.process_activity(activity)
 
-    @set_required_access_v2("states:ListStateMachines", ignore=True)
+    @set_required_access_v2("states:ListStateMachines")
     def process_state_machines(self):
         for state_machine in self.collect_state_machines():
             self.process_state_machine(state_machine)
