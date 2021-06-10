@@ -9,7 +9,6 @@ from .registry import RegisteredResourceCollector
 from collections import namedtuple
 from schematics import Model
 from schematics.types import StringType
-from copy import deepcopy
 
 
 def create_arn(region=None, account_id=None, resource_id=None, **kwargs):
@@ -38,11 +37,10 @@ class Route53DomainCollector(RegisteredResourceCollector):
 
     def collect_domain(self, domain_data):
         domain_name = domain_data.get("DomainName", "")
-        data = deepcopy(domain_data)
         # ListDomains has some attributes that GetDomainDetail doesn't have, so add to original object
-        data.update(self.collect_domain_description(domain_name))
-        tags = self.collect_tags(data) or []
-        return DomainData(domain=data, tags=tags)
+        domain_data.update(self.collect_domain_description(domain_name))
+        tags = self.collect_tags(domain_name) or []
+        return DomainData(domain=domain_data, tags=tags)
 
     def collect_domains(self):
         for domain in [
