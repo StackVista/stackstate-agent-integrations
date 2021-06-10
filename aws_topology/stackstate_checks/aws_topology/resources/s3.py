@@ -27,7 +27,7 @@ class S3Collector(RegisteredResourceCollector):
     COMPONENT_TYPE = "aws.s3_bucket"
     CLOUDFORMATION_TYPE = 'AWS::S3::Bucket'
 
-    @set_required_access_v2("s3:GetBucketLocation")
+    @set_required_access_v2("s3:ListBucket")
     def collect_location(self, name):
         # The get_bucket_location call can return None for very old buckets in US regions, this is more reliable
         return (
