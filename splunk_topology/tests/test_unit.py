@@ -640,7 +640,6 @@ class TestSplunkCheck(unittest.TestCase):
         init_config = {'default_polling_interval_seconds': 15}
 
         self.check = MockedSplunkTopology(self.CHECK_NAME, init_config, {}, [instance])
-        print(self.check.init_config)
         assert "deprecated config `init_config.default_polling_interval_seconds` found." in self.check.run()
 
     def test_upgrade_error_polling_interval(self):
