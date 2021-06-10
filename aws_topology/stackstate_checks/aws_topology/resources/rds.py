@@ -80,7 +80,7 @@ class RdsCollector(RegisteredResourceCollector):
 
     def collect_instances(self, **kwargs):
         for instance in [
-            self.collect_cluster(instance_data)
+            self.collect_instance(instance_data)
             for instance_data in client_array_operation(self.client, "describe_db_instances", "DBInstances", **kwargs)
         ]:
             yield instance
@@ -101,11 +101,13 @@ class RdsCollector(RegisteredResourceCollector):
         if not filter or "instances" in filter:
             self.process_instances()
 
+    @set_required_access_v2("rds:DescribeDBClusters")
     def process_one_cluster(self, cluster_arn):
         cluster_id = cluster_arn.rsplit(":", 1)[-1]
         for cluster_data in self.collect_clusters(DBClusterIdentifier=cluster_id):
             self.process_cluster(cluster_data)
 
+    @set_required_access_v2("rds:DescribeDBInstances")
     def process_one_instance(self, instance_arn):
         instance_id = instance_arn.rsplit(":", 1)[-1]
         for instance_data in self.collect_instances(DBInstanceIdentifier=instance_id):
