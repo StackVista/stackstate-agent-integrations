@@ -73,7 +73,7 @@ class EcsCollector(RegisteredResourceCollector):
 
     def process_cluster_task(self, cluster_arn, task_data):
         task_definition_arn = task_data["taskDefinitionArn"]
-        task_data["Name"] = task_definition_arn[task_definition_arn.rfind("/") + 1:]
+        task_data["Name"] = task_definition_arn[task_definition_arn.rfind("/") + 1 :]
 
         # add a service instance identifier so it can merge with trace instance services
         identifiers = []
