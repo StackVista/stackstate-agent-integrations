@@ -13,8 +13,13 @@ def make_valid_data_internal(data):
         return [make_valid_data_internal(x) for x in data]
     elif isinstance(data, dict):
         return {key: make_valid_data_internal(val) for key, val in data.items()}
-    elif data is None or isinstance(data, string_types) or isinstance(data, integer_types) or \
-            isinstance(data, float) or isinstance(data, bool):
+    elif (
+        data is None
+        or isinstance(data, string_types)
+        or isinstance(data, integer_types)
+        or isinstance(data, float)
+        or isinstance(data, bool)
+    ):
         return data
     elif isinstance(data, (datetime, date)):
         return data.isoformat()
@@ -24,14 +29,14 @@ def make_valid_data_internal(data):
 
 def make_valid_data(data):
     result = make_valid_data_internal(data)
-    if 'ResponseMetadata' in result:
-        result.pop('ResponseMetadata')
+    if "ResponseMetadata" in result:
+        result.pop("ResponseMetadata")
     return result
 
 
 def get_partition_name(region):
     region_string = region.lower()
-    partition = 'aws'
+    partition = "aws"
     if region_string.startswith("cn-"):
         partition = "aws-cn"
     elif region_string.startswith("us-iso-"):
@@ -43,7 +48,7 @@ def get_partition_name(region):
     return partition
 
 
-def create_arn(resource='', region='', account_id='', resource_id=''):
+def create_arn(resource="", region="", account_id="", resource_id=""):
     # TODO aws is not always partition!!
     return "arn:aws:{}:{}:{}:{}".format(resource, region, account_id, resource_id)
 
@@ -58,7 +63,7 @@ def create_host_urn(instance_id):
 
 
 def with_dimensions(dimensions):
-    return {'CW': {'Dimensions': dimensions}}
+    return {"CW": {"Dimensions": dimensions}}
 
 
 def extract_dimension_name(arn, resource_type):
@@ -72,7 +77,7 @@ def extract_dimension_name(arn, resource_type):
 
 
 def update_dimensions(data, dimensions):
-    return data['CW'].get('Dimensions').append(dimensions)
+    return data["CW"].get("Dimensions").append(dimensions)
 
 
 # Based on StackOverflow: https://stackoverflow.com/questions/6116978/how-to-replace-multiple-substrings-of-a-string
@@ -88,23 +93,23 @@ def replace_stage_variables(string, variables):
     if len(variables) == 0:
         return string
 
-    replacements = {'${stageVariables.' + name + '}': value for (name, value) in variables.items()}
+    replacements = {"${stageVariables." + name + "}": value for (name, value) in variables.items()}
     # Place longer ones first to keep shorter substrings from matching where the longer ones should take place
     # For instance given the replacements {'ab': 'AB', 'abc': 'ABC'} against the string 'hey abc', it should produce
     # 'hey ABC' and not 'hey ABc'
     substrs = sorted(replacements, key=len, reverse=True)
 
     # Create a big OR regex that matches any of the substrings to replace
-    regexp = re.compile('|'.join(map(re.escape, substrs)))
+    regexp = re.compile("|".join(map(re.escape, substrs)))
 
     # For each match, look up the new string in the replacements
     return regexp.sub(lambda match: replacements[match.group(0)], string)
 
 
-def create_security_group_relations(resource_id, resource_data, agent, security_group_field='SecurityGroups'):
+def create_security_group_relations(resource_id, resource_data, agent, security_group_field="SecurityGroups"):
     if resource_data.get(security_group_field):
         for security_group_id in resource_data[security_group_field]:
-            agent.relation(resource_id, security_group_id, 'uses service', {})  # TODO
+            agent.relation(resource_id, security_group_id, "uses service", {})  # TODO
 
 
 def deep_sort_lists(value):
@@ -161,7 +166,7 @@ def custom_list_data_comparator(obj1, obj2):
 
 
 def create_hash(dict):
-    return hashlib.sha256(str(json.dumps(deep_sort_lists(dict), sort_keys=True)).encode('utf-8')).hexdigest()
+    return hashlib.sha256(str(json.dumps(deep_sort_lists(dict), sort_keys=True)).encode("utf-8")).hexdigest()
 
 
 def client_array_operation(client, operation_name, array_field_name, **kwargs):
@@ -178,20 +183,20 @@ def client_array_operation(client, operation_name, array_field_name, **kwargs):
 
 
 _THROTTLED_ERROR_CODES = [
-    'Throttling',
-    'ThrottlingException',
-    'ThrottledException',
-    'RequestThrottledException',
-    'TooManyRequestsException',
-    'ProvisionedThroughputExceededException',
-    'TransactionInProgressException',
-    'RequestLimitExceeded',
-    'BandwidthLimitExceeded',
-    'LimitExceededException',
-    'RequestThrottled',
-    'SlowDown',
-    'PriorRequestNotComplete',
-    'EC2ThrottledException',
+    "Throttling",
+    "ThrottlingException",
+    "ThrottledException",
+    "RequestThrottledException",
+    "TooManyRequestsException",
+    "ProvisionedThroughputExceededException",
+    "TransactionInProgressException",
+    "RequestLimitExceeded",
+    "BandwidthLimitExceeded",
+    "LimitExceededException",
+    "RequestThrottled",
+    "SlowDown",
+    "PriorRequestNotComplete",
+    "EC2ThrottledException",
 ]
 
 
@@ -206,25 +211,22 @@ def set_required_access_v2(value, ignore=False):
                 result = func(self, *args, **kwargs)
                 return result
             except ClientError as e:
-                error = e.response.get('Error', {})
-                code = error.get('Code', 'Unknown')
-                if code == 'AccessDenied':
-                    iam_access = value if not isinstance(value, list) else ', '.join(value)
-                    self.agent.warning(
-                        'Role {} needs {}'.format(self.agent.role_name, iam_access),
-                        **kwargs
-                    )
+                error = e.response.get("Error", {})
+                code = error.get("Code", "Unknown")
+                if code == "AccessDenied":
+                    iam_access = value if not isinstance(value, list) else ", ".join(value)
+                    self.agent.warning("Role {} needs {}".format(self.agent.role_name, iam_access), **kwargs)
                     if not ignore:
                         raise e
                 elif is_throttling_error(code):
-                    self.agent.warning(
-                        'throttling'
-                    )
+                    self.agent.warning("throttling")
                     if not ignore:
                         raise e
                 else:
                     raise e
+
         return inner_function
+
     return decorator
 
 
@@ -235,10 +237,9 @@ def transformation():
                 result = func(self, *args, **kwargs)
                 return result
             except Exception as e:
-                self.agent.warning(
-                    'Transformation failed in {}'.format(func.__name__),
-                    **kwargs
-                )
+                self.agent.warning("Transformation failed in {}".format(func.__name__), **kwargs)
                 raise e  # to stop further processing
+
         return inner_function
+
     return decorator

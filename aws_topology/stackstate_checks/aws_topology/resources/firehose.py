@@ -1,5 +1,11 @@
-from .utils import make_valid_data, with_dimensions, create_arn as arn, \
-    client_array_operation, set_required_access_v2, transformation
+from .utils import (
+    make_valid_data,
+    with_dimensions,
+    create_arn as arn,
+    client_array_operation,
+    set_required_access_v2,
+    transformation,
+)
 from .registry import RegisteredResourceCollector
 from collections import namedtuple
 from schematics import Model
@@ -11,10 +17,10 @@ class RELATION_TYPE:
 
 
 def create_arn(region=None, account_id=None, resource_id=None, **kwargs):
-    return arn(resource='firehose', region=region, account_id=account_id, resource_id='deliverystream/' + resource_id)
+    return arn(resource="firehose", region=region, account_id=account_id, resource_id="deliverystream/" + resource_id)
 
 
-DeliveryStreamData = namedtuple('DeliveryStreamData', ['stream', 'tags'])
+DeliveryStreamData = namedtuple("DeliveryStreamData", ["stream", "tags"])
 
 
 class KinesisStreamSourceDescription(Model):
@@ -49,13 +55,13 @@ class FirehoseCollector(RegisteredResourceCollector):
     API = "firehose"
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.firehose"
-    CLOUDFORMATION_TYPE = 'AWS::KinesisFirehose::DeliveryStream'
+    CLOUDFORMATION_TYPE = "AWS::KinesisFirehose::DeliveryStream"
 
-    @set_required_access_v2('firehose:ListTagsForDeliveryStream')
+    @set_required_access_v2("firehose:ListTagsForDeliveryStream")
     def collect_tags(self, stream_name):
         return self.client.list_tags_for_delivery_stream(DeliveryStreamName=stream_name).get("Tags") or []
 
-    @set_required_access_v2('firehose:DescribeDeliveryStream')
+    @set_required_access_v2("firehose:DescribeDeliveryStream")
     def collect_stream_description(self, stream_name):
         return self.client.describe_delivery_stream(DeliveryStreamName=stream_name)
 
@@ -66,17 +72,14 @@ class FirehoseCollector(RegisteredResourceCollector):
 
     def collect_streams(self):
         for stream in [
-                self.collect_stream(stream_name) for stream_name in client_array_operation(
-                    self.client,
-                    'list_delivery_streams',
-                    'DeliveryStreamNames'
-                )
+            self.collect_stream(stream_name)
+            for stream_name in client_array_operation(self.client, "list_delivery_streams", "DeliveryStreamNames")
         ]:
             yield stream
 
-    @set_required_access_v2('firehose:ListDeliveryStreams')
+    @set_required_access_v2("firehose:ListDeliveryStreams")
     def process_all(self, filter=None):
-        if not filter or 'streams' in filter:
+        if not filter or "streams" in filter:
             for stream_data in self.collect_streams():
                 try:
                     self.process_delivery_stream(stream_data)
@@ -94,12 +97,7 @@ class FirehoseCollector(RegisteredResourceCollector):
         output["Tags"] = data.tags
         description = stream.DeliveryStreamDescription
         delivery_stream_arn = description.DeliveryStreamARN
-        output.update(
-            with_dimensions([{
-                "key": "DeliveryStreamName",
-                "value": description.DeliveryStreamName
-            }])
-        )
+        output.update(with_dimensions([{"key": "DeliveryStreamName", "value": description.DeliveryStreamName}]))
         self.emit_component(delivery_stream_arn, self.COMPONENT_TYPE, output)
 
         if description.DeliveryStreamType == "KinesisStreamAsSource":
@@ -111,10 +109,7 @@ class FirehoseCollector(RegisteredResourceCollector):
         for destination in description.Destinations:
             if destination.S3DestinationDescription:  # pragma: no cover
                 self.emit_relation(
-                    delivery_stream_arn,
-                    destination.S3DestinationDescription.BucketARN,
-                    "uses service",
-                    {}
+                    delivery_stream_arn, destination.S3DestinationDescription.BucketARN, "uses service", {}
                 )
         # HasMoreDestinations seen in API response
         # There can also be a relation with a lambda that is uses to transform the data
@@ -123,41 +118,41 @@ class FirehoseCollector(RegisteredResourceCollector):
 
         # Destinations can also be S3 / Redshift / ElasticSearch / HTTP / Third Party Service Provider
 
-    EVENT_SOURCE = 'firehose.amazonaws.com'
+    EVENT_SOURCE = "firehose.amazonaws.com"
     CLOUDTRAIL_EVENTS = [
         {
-            'event_name': 'CreateDeliveryStream',
-            'path': 'requestParameters.deliveryStreamName',
-            'processor': process_one_delivery_stream
+            "event_name": "CreateDeliveryStream",
+            "path": "requestParameters.deliveryStreamName",
+            "processor": process_one_delivery_stream,
         },
         {
-            'event_name': 'DeleteDeliveryStream',
-            'path': 'requestParameters.deliveryStreamName',
-            'processor': RegisteredResourceCollector.process_delete_by_name
+            "event_name": "DeleteDeliveryStream",
+            "path": "requestParameters.deliveryStreamName",
+            "processor": RegisteredResourceCollector.process_delete_by_name,
         },
         {
-            'event_name': 'UpdateDestination',
-            'path': 'requestParameters.deliveryStreamName',
-            'processor': process_one_delivery_stream
+            "event_name": "UpdateDestination",
+            "path": "requestParameters.deliveryStreamName",
+            "processor": process_one_delivery_stream,
         },
         {
-            'event_name': 'TagDeliveryStream',
-            'path': 'requestParameters.deliveryStreamName',
-            'processor': process_one_delivery_stream
+            "event_name": "TagDeliveryStream",
+            "path": "requestParameters.deliveryStreamName",
+            "processor": process_one_delivery_stream,
         },
         {
-            'event_name': 'UntagDeliveryStream',
-            'path': 'requestParameters.deliveryStreamName',
-            'processor': process_one_delivery_stream
+            "event_name": "UntagDeliveryStream",
+            "path": "requestParameters.deliveryStreamName",
+            "processor": process_one_delivery_stream,
         },
         {
-            'event_name': 'StartDeliveryStreamEncryption',
-            'path': 'requestParameters.deliveryStreamName',
-            'processor': process_one_delivery_stream
+            "event_name": "StartDeliveryStreamEncryption",
+            "path": "requestParameters.deliveryStreamName",
+            "processor": process_one_delivery_stream,
         },
         {
-            'event_name': 'StopDeliveryStreamEncryption',
-            'path': 'requestParameters.deliveryStreamName',
-            'processor': process_one_delivery_stream
-        }
+            "event_name": "StopDeliveryStreamEncryption",
+            "path": "requestParameters.deliveryStreamName",
+            "processor": process_one_delivery_stream,
+        },
     ]

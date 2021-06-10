@@ -1,1 +1,3 @@
 run_aws_topology.py
+stackstate_checks/conf.yaml
+stackstate_checks/Dockerfile
