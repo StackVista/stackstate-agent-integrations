@@ -1,5 +1,7 @@
 from schematics import Model
 from schematics.types import StringType, ModelType
+from datetime import datetime
+import pytz
 
 
 class Location(Model):
@@ -48,3 +50,7 @@ def capitalize_keys(in_dict):
         return [capitalize_keys(obj) for obj in in_dict]
     else:
         return in_dict
+
+
+def seconds_ago(dt):
+    return (datetime.utcnow().replace(tzinfo=pytz.utc) - dt).total_seconds()
