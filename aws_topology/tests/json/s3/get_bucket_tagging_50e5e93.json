@@ -1,0 +1,14 @@
+{
+    "ResponseMetadata": {
+        "Error": {
+            "Code": "NoSuchTagSet"
+        },
+        "Parameters": {
+            "Bucket": "stackstate.com"
+        },
+        "OperationName": "GetBucketTagging",
+        "Generater": "2021-05-29 07:45:36.709391",
+        "Region": "eu-west-1",
+        "Account": "508573134510"
+    }
+}

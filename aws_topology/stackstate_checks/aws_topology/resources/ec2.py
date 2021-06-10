@@ -31,7 +31,9 @@ class RunInstances(Model):
     class ResponseElements(Model):
         class InstancesSet(Model):
             items = ListType(ModelType(Instance), required=True)
+
         instancesSet = ModelType(InstancesSet, required=True)
+
     responseElements = ModelType(ResponseElements, required=True)
 
 
@@ -54,107 +56,103 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         if not filter or "vpn_gateways" in filter:
             self.process_vpn_gateways()
 
-    def process_instances(self):
-        for reservation in self.client.describe_instances().get('Reservations') or []:
-            for instance_data_raw in reservation.get('Instances') or []:
+    def process_instances(self, **kwargs):
+        for reservation in self.client.describe_instances(**kwargs).get("Reservations") or []:
+            for instance_data_raw in reservation.get("Instances") or []:
                 instance_data = make_valid_data(instance_data_raw)
-                if instance_data['State']['Name'] != "terminated":
+                if instance_data["State"]["Name"] != "terminated":
                     self.process_instance(instance_data)
 
     def process_some_instances(self, ids):
-        for reservation in self.client.describe_instances(
-            InstanceIds=ids
-        ).get('Reservations') or []:
-            for instance_data_raw in reservation.get('Instances') or []:
-                instance_data = make_valid_data(instance_data_raw)
-                if instance_data['State']['Name'] != "terminated":
-                    self.process_instance(instance_data)
+        self.process_instances(InstanceIds=ids)
 
     def process_instance(self, instance_data):
-        if self.nitroInstances is None:
-            instance_types = self.client.describe_instance_types().get('InstanceTypes') or []
-            self.nitroInstances = list(filter(
-                lambda instance_type: 'Hypervisor' not in instance_type or instance_type['Hypervisor'] == "nitro",
-                instance_types
-            ))
-        instance_id = instance_data['InstanceId']
-        instance_data['URN'] = [
+        if self.nitroInstances is None:  # pragma: no cover
+            instance_types = self.client.describe_instance_types().get("InstanceTypes") or []
+            self.nitroInstances = list(
+                filter(
+                    lambda instance_type: "Hypervisor" not in instance_type or instance_type["Hypervisor"] == "nitro",
+                    instance_types,
+                )
+            )
+        instance_id = instance_data["InstanceId"]
+        instance_data["URN"] = [
             create_host_urn(instance_id),
             create_resource_arn(
-                'ec2',
+                "ec2",
                 self.location_info.Location.AwsRegion,
                 self.location_info.Location.AwsAccount,
-                'instance',
-                instance_id)
+                "instance",
+                instance_id,
+            ),
         ]
 
-        if 'Tags' not in instance_data:
-            instance_data['Tags'] = []
-        instance_data['Tags'].append({'Key': 'host', 'Value': instance_id})
-        instance_data['Tags'].append({'Key': 'instance-id', 'Value': instance_id})
-        if instance_data.get('PrivateIpAddress') and instance_data.get('PrivateIpAddress') != "":
-            instance_data['Tags'].append({'Key': 'private-ip', 'Value': instance_data['PrivateIpAddress']})
-        if instance_data.get('PublicDnsName') and instance_data.get('PublicDnsName') != "":
-            instance_data['Tags'].append({'Key': 'fqdn', 'Value': instance_data['PublicDnsName']})
-            instance_data['URN'].append(create_host_urn(instance_data['PublicDnsName']))
-        if instance_data.get('PublicIpAddress') and instance_data.get('PublicIpAddress') != "":
-            instance_data['Tags'].append({'Key': 'public-ip', 'Value': instance_data['PublicIpAddress']})
-            instance_data['URN'].append(create_host_urn(instance_data['PublicIpAddress']))
+        if "Tags" not in instance_data:
+            instance_data["Tags"] = []
+        instance_data["Tags"].append({"Key": "host", "Value": instance_id})
+        instance_data["Tags"].append({"Key": "instance-id", "Value": instance_id})
+        if instance_data.get("PrivateIpAddress") and instance_data.get("PrivateIpAddress") != "":  # pragma: no cover
+            instance_data["Tags"].append({"Key": "private-ip", "Value": instance_data["PrivateIpAddress"]})
+        if instance_data.get("PublicDnsName") and instance_data.get("PublicDnsName") != "":  # pragma: no cover
+            instance_data["Tags"].append({"Key": "fqdn", "Value": instance_data["PublicDnsName"]})
+            instance_data["URN"].append(create_host_urn(instance_data["PublicDnsName"]))
+        if instance_data.get("PublicIpAddress") and instance_data.get("PublicIpAddress") != "":  # pragma: no cover
+            instance_data["Tags"].append({"Key": "public-ip", "Value": instance_data["PublicIpAddress"]})
+            instance_data["URN"].append(create_host_urn(instance_data["PublicIpAddress"]))
 
-        instance_data['isNitro'] = False
-        if instance_data['InstanceType'] in map(lambda x: x['InstanceType'], self.nitroInstances):
-            instance_data['isNitro'] = True
+        instance_data["isNitro"] = False
+        if instance_data["InstanceType"] in map(lambda x: x["InstanceType"], self.nitroInstances):
+            instance_data["isNitro"] = True
         self.emit_component(instance_id, self.COMPONENT_TYPE, instance_data)
 
         # Map the subnet and if not available then map the VPC
-        if instance_data.get('SubnetId'):
-            self.emit_relation(instance_id, instance_data['SubnetId'], 'uses service', {})
-        elif instance_data.get('VpcId'):
-            self.emit_relation(instance_id, instance_data['VpcId'], 'uses service', {})
+        if instance_data.get("SubnetId"):
+            self.emit_relation(instance_id, instance_data["SubnetId"], "uses service", {})
+        elif instance_data.get("VpcId"):  # pragma: no cover
+            self.emit_relation(instance_id, instance_data["VpcId"], "uses service", {})
 
-        if instance_data.get('SecurityGroups'):
-            for security_group in instance_data['SecurityGroups']:
-                self.emit_relation(instance_id, security_group['GroupId'], 'uses service', {})
+        if instance_data.get("SecurityGroups"):  # pragma: no cover
+            for security_group in instance_data["SecurityGroups"]:
+                self.emit_relation(instance_id, security_group["GroupId"], "uses service", {})
 
         event = {
-            'timestamp': int(time.time()),
-            'event_type': 'ec2_state',
-            'msg_title': 'EC2 instance state',
-            'msg_text': instance_data['State']['Name'],
-            'host': instance_id,
-            'tags': [
-                "state:" + instance_data['State']['Name']
-            ]
+            "timestamp": int(time.time()),
+            "event_type": "ec2_state",
+            "msg_title": "EC2 instance state",
+            "msg_text": instance_data["State"]["Name"],
+            "host": instance_id,
+            "tags": ["state:" + instance_data["State"]["Name"]],
         }
         self.agent.event(event)
         return {instance_id: instance_id}
 
     def process_security_groups(self):
-        for group_data_raw in self.client.describe_security_groups().get('SecurityGroups') or []:
+        for group_data_raw in self.client.describe_security_groups().get("SecurityGroups") or []:
             group_data = make_valid_data(group_data_raw)
             self.process_security_group(group_data)
 
     def process_security_group(self, group_data):
-        group_id = group_data['GroupId']
-        group_data['Version'] = create_hash(group_data)
-        group_data['Name'] = group_data['GroupName']
-        group_data['URN'] = [
+        group_id = group_data["GroupId"]
+        group_data["Version"] = create_hash(group_data)
+        group_data["Name"] = group_data["GroupName"]
+        group_data["URN"] = [
             create_resource_arn(
-                'ec2',
+                "ec2",
                 self.location_info.Location.AwsRegion,
                 self.location_info.Location.AwsAccount,
-                'security-group', group_id
+                "security-group",
+                group_id,
             )
         ]
 
         self.emit_component(group_id, "aws.security-group", group_data)
 
-        if group_data.get('VpcId'):
-            self.emit_relation(group_data['VpcId'], group_id, 'has resource', {})
+        if group_data.get("VpcId"):  # pragma: no cover
+            self.emit_relation(group_data["VpcId"], group_id, "has resource", {})
 
     def process_vpcs(self):
-        vpc_descriptions = self.client.describe_vpcs().get('Vpcs') or []
-        subnet_descriptions = self.client.describe_subnets().get('Subnets') or []
+        vpc_descriptions = self.client.describe_vpcs().get("Vpcs") or []
+        subnet_descriptions = self.client.describe_subnets().get("Subnets") or []
 
         # Create all vpc
         for vpc_description in vpc_descriptions:
@@ -172,18 +170,14 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         vpc_name = vpc.VpcId
         name_tag = [tag for tag in vpc.Tags if tag.Key == "Name"]
         if vpc.IsDefault:
-            vpc_name = 'default'
+            vpc_name = "default"
         elif len(name_tag) > 0:
             vpc_name = name_tag[0].Value
         output["Name"] = vpc_name
         # add a URN
-        output['URN'] = [
+        output["URN"] = [
             create_resource_arn(
-                'ec2',
-                self.location_info.Location.AwsRegion,
-                self.location_info.Location.AwsAccount,
-                'vpc',
-                vpc.VpcId
+                "ec2", self.location_info.Location.AwsRegion, self.location_info.Location.AwsAccount, "vpc", vpc.VpcId
             )
         ]
         self.emit_component(vpc.VpcId, "aws.vpc", output)
@@ -197,34 +191,34 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         name_tag = [tag for tag in subnet.Tags if tag.Key == "Name"]
         if len(name_tag) > 0:
             subnet_name = name_tag[0].Value
-        if subnet.AvailabilityZone:
-            subnet_name = '{}-{}'.format(subnet_name, subnet.AvailabilityZone)
-        output['Name'] = subnet_name
+        if subnet.AvailabilityZone:  # pragma: no cover
+            subnet_name = "{}-{}".format(subnet_name, subnet.AvailabilityZone)
+        output["Name"] = subnet_name
         # add a URN
-        output['URN'] = [
+        output["URN"] = [
             create_resource_arn(
-                'ec2',
+                "ec2",
                 self.location_info.Location.AwsRegion,
                 self.location_info.Location.AwsAccount,
-                'subnet',
-                subnet.SubnetId
+                "subnet",
+                subnet.SubnetId,
             )
         ]
-        self.emit_component(subnet.SubnetId, 'aws.subnet', output)
-        self.emit_relation(subnet.SubnetId, subnet.VpcId, 'uses service', {})
+        self.emit_component(subnet.SubnetId, "aws.subnet", output)
+        self.emit_relation(subnet.SubnetId, subnet.VpcId, "uses service", {})
 
     def process_vpn_gateways(self):
-        for vpn_description_raw in self.client.describe_vpn_gateways().get('VpnGateways') or []:
+        for vpn_description_raw in self.client.describe_vpn_gateways().get("VpnGateways") or []:
             vpn_description = make_valid_data(vpn_description_raw)
             self.process_vpn_gateway(vpn_description)
 
     def process_vpn_gateway(self, vpn_description):
-        vpn_id = vpn_description['VpnGatewayId']
+        vpn_id = vpn_description["VpnGatewayId"]
         self.emit_component(vpn_id, "aws.vpngateway", vpn_description)
-        if vpn_description.get('VpcAttachments'):
-            for vpn_attachment in vpn_description['VpcAttachments']:
-                vpc_id = vpn_attachment['VpcId']
-                self.emit_relation(vpn_id, vpc_id, 'uses service', {})
+        if vpn_description.get("VpcAttachments"):
+            for vpn_attachment in vpn_description["VpcAttachments"]:
+                vpc_id = vpn_attachment["VpcId"]
+                self.emit_relation(vpn_id, vpc_id, "uses service", {})
 
     def process_run_instances(self, event, seen):
         ids = []
@@ -235,10 +229,5 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         self.process_some_instances(ids)
         return ids
 
-    EVENT_SOURCE = 'ec2.amazonaws.com'
-    CLOUDTRAIL_EVENTS = [
-        {
-            'event_name': 'RunInstances',
-            'processor': process_run_instances
-        }
-    ]
+    EVENT_SOURCE = "ec2.amazonaws.com"
+    CLOUDTRAIL_EVENTS = [{"event_name": "RunInstances", "processor": process_run_instances}]

@@ -1,0 +1,27 @@
+{
+    "Attributes": {
+        "ApproximateNumberOfMessagesNotVisible": "0",
+        "MessageRetentionPeriod": "345600",
+        "ApproximateNumberOfMessagesDelayed": "0",
+        "MaximumMessageSize": "262144",
+        "CreatedTimestamp": "1550588879",
+        "ApproximateNumberOfMessages": "1",
+        "ReceiveMessageWaitTimeSeconds": "0",
+        "DelaySeconds": "0",
+        "VisibilityTimeout": "30",
+        "LastModifiedTimestamp": "1550588879",
+        "QueueArn": "arn:aws:sqs:eu-west-1:731070500579:STS_stackpack_test"
+      },
+    "ResponseMetadata": {
+        "Parameters": {
+            "QueueUrl": "https://sqs.eu-west-1.amazonaws.com/731070500579/STS_stackpack_test",
+            "AttributeNames": [
+                "All"
+            ]
+        },
+        "OperationName": "GetQueueAttributes",
+        "Generater": "2021-05-29 07:45:36.709391",
+        "Region": "eu-west-1",
+        "Account": "731070500579"
+    }
+}

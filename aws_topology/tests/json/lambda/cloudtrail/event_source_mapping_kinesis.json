@@ -1,0 +1,44 @@
+{
+  "eventVersion": "1.05",
+  "eventID": "7db7a2e3-0382-4adf-8d9b-5b823474aef2",
+  "eventTime": "2018-05-24T19:29:44Z",
+  "requestParameters": {
+    "eventSourceArn": "arn:aws:kinesis:eu-west-1:731070500579:stream/stream_1",
+    "batchSize": 100,
+    "enabled": true,
+    "functionName": "KinesisHandler",
+    "startingPosition": "LATEST"
+  },
+  "eventType": "AwsApiCall",
+  "responseElements": {
+    "uUID": "299940b6-77b0-40cd-b402-201f021dba2c",
+    "stateTransitionReason": "User action",
+    "lastModified": "May 24, 2018 7:29:44 PM",
+    "batchSize": 100,
+    "state": "Creating",
+    "functionArn": "arn:aws:lambda:eu-west-1:731070500579:function:KinesisHandler",
+    "eventSourceArn": "arn:aws:kinesis:eu-west-1:731070500579:stream/stream_1",
+    "lastProcessingResult": "No records processed"
+  },
+  "awsRegion": "eu-west-1",
+  "eventName": "CreateEventSourceMapping20150331",
+  "userIdentity": {
+    "userName": "martijn",
+    "principalId": "AIDAJDDXCZUJ4ZKDWZPOQ",
+    "accessKeyId": "ASIAJ7QME35A5U7ESINA",
+    "invokedBy": "cloudformation.amazonaws.com",
+    "sessionContext": {
+      "attributes": {
+        "creationDate": "2018-05-24T19:29:17Z",
+        "mfaAuthenticated": "false"
+      }
+    },
+    "type": "IAMUser",
+    "arn": "arn:aws:iam::731070500579:user/martijn",
+    "accountId": "731070500579"
+  },
+  "eventSource": "lambda.amazonaws.com",
+  "requestID": "d0233801-5f88-11e8-bf45-3dc7398dc643",
+  "userAgent": "cloudformation.amazonaws.com",
+  "sourceIPAddress": "cloudformation.amazonaws.com"
+}

@@ -1,0 +1,27 @@
+{
+    "Owner": {
+      "DisplayName": "thijsdev",
+      "ID": "1e39449287252b3733ba5aa7a242bb7259964519e96927a58ab38c0d11c2b6a1"
+    },
+    "Buckets": [
+      {
+        "CreationDate": "2015-09-20T20:17:47+00:00",
+        "Name": "stackstate.com"
+      },
+      {
+        "CreationDate": "2016-09-17T21:52:02+00:00",
+        "Name": "binx.io"
+      },
+      {
+        "CreationDate": "2020-06-09T13:52:02+00:00",
+        "Name": "notags"
+      }
+    ],
+    "ResponseMetadata": {
+        "Parameters": {},
+        "OperationName": "ListBuckets",
+        "Generater": "2021-05-29 07:45:36.709391",
+        "Region": "eu-west-1",
+        "Account": "508573134510"
+    }
+}

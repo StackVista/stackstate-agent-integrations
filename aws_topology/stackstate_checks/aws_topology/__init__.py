@@ -4,10 +4,4 @@
 from .__about__ import __version__
 from .aws_topology import AwsTopologyCheck, AwsClient, InstanceInfo, InitConfig
 
-__all__ = [
-    '__version__',
-    'AwsTopologyCheck',
-    'AwsClient',
-    'InstanceInfo',
-    'InitConfig'
-]
+__all__ = ["__version__", "AwsTopologyCheck", "AwsClient", "InstanceInfo", "InitConfig"]
