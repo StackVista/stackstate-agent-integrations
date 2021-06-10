@@ -34,7 +34,7 @@ def connect_to_splunk():
 @pytest.fixture(scope='session')
 def test_environment():
     """
-    Start a standalone postgres server requiring authentication.
+    Start a standalone splunk server requiring authentication.
     """
     with docker_run(
             os.path.join(HERE, 'compose', 'docker-compose.yaml'),
@@ -47,7 +47,7 @@ def test_environment():
 @pytest.fixture(scope='session')
 def sts_environment(test_environment):
     """
-    Start a standalone postgres server requiring authentication.
+    Start a standalone splunk server requiring authentication.
     """
     url = 'http://%s:%s' % (HOST, PORT)
     yield {

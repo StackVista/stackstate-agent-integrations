@@ -1,4 +1,4 @@
-# PostgreSQL Integration
+# Splunk Topology Integration
 
 ## Overview
 
