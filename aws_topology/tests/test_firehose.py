@@ -3,7 +3,6 @@ from .conftest import BaseApiTest, set_cloudtrail_event, set_filter
 
 
 class TestFirehose(BaseApiTest):
-
     def get_api(self):
         return "firehose"
 
@@ -28,10 +27,8 @@ class TestFirehose(BaseApiTest):
             checks={
                 "DeliveryStreamDescription.DeliveryStreamARN": firehose_arn_prefix + "firehose_1",
                 "Tags.SomeKey": "SomeValue",
-                "CW.Dimensions": [
-                    {"Key": "DeliveryStreamName", "Value": "dnv-sam-seed-button-clicked-firehose"}
-                ]
-            }
+                "CW.Dimensions": [{"Key": "DeliveryStreamName", "Value": "dnv-sam-seed-button-clicked-firehose"}],
+            },
         )
         top.assert_component(
             components,
@@ -39,34 +36,26 @@ class TestFirehose(BaseApiTest):
             "aws.firehose",
             checks={
                 "DeliveryStreamDescription.DeliveryStreamARN": firehose_arn_prefix + "firehose_2",
-                "CW.Dimensions": [
-                    {"Key": "DeliveryStreamName", "Value": "firehose_2"}
-                ]
-            }
+                "CW.Dimensions": [{"Key": "DeliveryStreamName", "Value": "firehose_2"}],
+            },
         )
 
         top.assert_relation(
             relations,
             "arn:aws:kinesis:eu-west-1:548105126730:stream/stream_1",
             firehose_arn_prefix + "firehose_1",
-            "uses service"
+            "uses service",
         )
         top.assert_relation(
-            relations,
-            firehose_arn_prefix + "firehose_1",
-            "arn:aws:s3:::firehose-bucket_1",
-            "uses service"
+            relations, firehose_arn_prefix + "firehose_1", "arn:aws:s3:::firehose-bucket_1", "uses service"
         )
         top.assert_relation(
-            relations,
-            firehose_arn_prefix + "firehose_2",
-            "arn:aws:s3:::firehose-bucket_2",
-            "uses service"
+            relations, firehose_arn_prefix + "firehose_2", "arn:aws:s3:::firehose-bucket_2", "uses service"
         )
 
         top.assert_all_checked(components, relations)
 
-    @set_filter('xxx')
+    @set_filter("xxx")
     def test_process_firehosel_filter_all(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
@@ -75,7 +64,7 @@ class TestFirehose(BaseApiTest):
         components = topology[0]["components"]
         self.assertEqual(len(components), 0)
 
-    @set_cloudtrail_event('create_stream')
+    @set_cloudtrail_event("create_stream")
     def test_process_firehose_create_stream(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
@@ -83,20 +72,20 @@ class TestFirehose(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            'dnv-sam-seed-button-clicked-firehose',
-            topology[0]["components"][0]["data"]["DeliveryStreamDescription"]["DeliveryStreamName"]
+            "dnv-sam-seed-button-clicked-firehose",
+            topology[0]["components"][0]["data"]["DeliveryStreamDescription"]["DeliveryStreamName"],
         )
 
-    @set_cloudtrail_event('delete_stream')
+    @set_cloudtrail_event("delete_stream")
     def test_process_firehose_delete_stream(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 0)
-        self.assertIn('arn:aws:firehose:eu-west-1:548105126730:deliverystream/firehose_1', self.check.delete_ids)
+        self.assertIn("arn:aws:firehose:eu-west-1:548105126730:deliverystream/firehose_1", self.check.delete_ids)
 
-    @set_cloudtrail_event('start_encryption')
+    @set_cloudtrail_event("start_encryption")
     def test_process_firehose_start_encryption(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
@@ -104,11 +93,10 @@ class TestFirehose(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            'arn:aws:firehose:eu-west-1:548105126730:deliverystream/firehose_1',
-            topology[0]["components"][0]["id"]
+            "arn:aws:firehose:eu-west-1:548105126730:deliverystream/firehose_1", topology[0]["components"][0]["id"]
         )
 
-    @set_cloudtrail_event('stop_encryption')
+    @set_cloudtrail_event("stop_encryption")
     def test_process_firehose_stop_encryption(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
@@ -116,11 +104,10 @@ class TestFirehose(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            'arn:aws:firehose:eu-west-1:548105126730:deliverystream/firehose_1',
-            topology[0]["components"][0]["id"]
+            "arn:aws:firehose:eu-west-1:548105126730:deliverystream/firehose_1", topology[0]["components"][0]["id"]
         )
 
-    @set_cloudtrail_event('tag_stream')
+    @set_cloudtrail_event("tag_stream")
     def test_process_firehose_tag_stream(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
@@ -128,11 +115,10 @@ class TestFirehose(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            'arn:aws:firehose:eu-west-1:548105126730:deliverystream/firehose_1',
-            topology[0]["components"][0]["id"]
+            "arn:aws:firehose:eu-west-1:548105126730:deliverystream/firehose_1", topology[0]["components"][0]["id"]
         )
 
-    @set_cloudtrail_event('untag_stream')
+    @set_cloudtrail_event("untag_stream")
     def test_process_firehose_untag_stream(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
@@ -140,11 +126,10 @@ class TestFirehose(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            'arn:aws:firehose:eu-west-1:548105126730:deliverystream/firehose_1',
-            topology[0]["components"][0]["id"]
+            "arn:aws:firehose:eu-west-1:548105126730:deliverystream/firehose_1", topology[0]["components"][0]["id"]
         )
 
-    @set_cloudtrail_event('update_destination')
+    @set_cloudtrail_event("update_destination")
     def test_process_firehose_update_destination(self):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
@@ -152,6 +137,5 @@ class TestFirehose(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            'arn:aws:firehose:eu-west-1:548105126730:deliverystream/firehose_1',
-            topology[0]["components"][0]["id"]
+            "arn:aws:firehose:eu-west-1:548105126730:deliverystream/firehose_1", topology[0]["components"][0]["id"]
         )

@@ -20,9 +20,4 @@ from .sqs import SqsCollector  # noqa: F401
 from .stepfunction import StepFunctionCollector  # noqa: F401
 
 
-__all__ = [
-    'ResourceRegistry',
-    'RegisteredResourceCollector',
-    'listen_for',
-    'type_arn'
-]
+__all__ = ["ResourceRegistry", "RegisteredResourceCollector", "listen_for", "type_arn"]
