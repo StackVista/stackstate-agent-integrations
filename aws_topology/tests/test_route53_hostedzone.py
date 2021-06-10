@@ -3,7 +3,6 @@ from .conftest import BaseApiTest
 
 
 class TestRoute53HostedZone(BaseApiTest):
-
     def get_api(self):
         return "route53"
 
@@ -11,7 +10,7 @@ class TestRoute53HostedZone(BaseApiTest):
         return "731070500579"
 
     def get_region(self):
-        return 'global'
+        return "global"
 
     def test_process_route53_hostedzone(self):
         self.check.run()
@@ -24,15 +23,14 @@ class TestRoute53HostedZone(BaseApiTest):
 
         top.assert_component(
             components,
-            "/hostedzone/Z4OKCQBA0VS63",
+            "Z4OKCQBA0VS63",
             "aws.route53.hostedzone",
             checks={
-                "URN": [
-                    "arn:aws:route53:::hostedzone/Z4OKCQBA0VS63"
-                ],
+                "Name": "serverless.nl",
+                "URN": ["arn:aws:route53:::hostedzone/Z4OKCQBA0VS63"],
                 "Tags.ResourceTagKey": "ResourceTagValue",
-                "HostedZone.Name": "serverless.nl."
-            }
+                "HostedZone.Name": "serverless.nl.",
+            },
         )
         self.assert_location_info(topology[0]["components"][0])
 

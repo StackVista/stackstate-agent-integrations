@@ -48,9 +48,7 @@ class SqsCollector(RegisteredResourceCollector):
         return self.client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"]).get("Attributes", {})
 
     def construct_queue_description(self, queue_url):
-        return {
-            "QueueArn": self.agent.create_arn("AWS::SQS::Queue", self.location_info, resource_id=queue_url)
-        }
+        return {"QueueArn": self.agent.create_arn("AWS::SQS::Queue", self.location_info, resource_id=queue_url)}
 
     def collect_queue(self, queue_url):
         data = self.collect_queue_description(queue_url) or self.construct_queue_description(queue_url)
