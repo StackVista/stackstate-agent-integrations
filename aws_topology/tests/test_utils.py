@@ -86,18 +86,6 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(warnings, ["test"])
 
     def test_utils_set_not_authorized(self):
-        def get_access_denied():
-            raise botocore.exceptions.ClientError({"Error": {"Code": "AccessDenied"}}, "get_access_denied")
-
-        def get_throttled():
-            raise botocore.exceptions.ClientError({"Error": {"Code": "Throttling"}}, "get_throttled")
-
-        def get_ignore_codes():
-            raise botocore.exceptions.ClientError({"Error": {"Code": "NoSuchTagSet"}}, "get_ignored_code")
-
-        def get_other():
-            raise botocore.exceptions.ClientError({"Error": {"Code": "RandomErrorCode"}}, "get_other")
-
         class Agent(object):
             def __init__(self):
                 self.role_name = "testrole"
@@ -111,19 +99,19 @@ class TestUtils(unittest.TestCase):
 
             @set_required_access_v2("test")
             def test(self):
-                get_access_denied()
+                raise botocore.exceptions.ClientError({"Error": {"Code": "AccessDenied"}}, "get_access_denied")
 
             @set_required_access_v2("test")
             def test_throttle(self):
-                get_throttled()
+                raise botocore.exceptions.ClientError({"Error": {"Code": "Throttling"}}, "get_throttled")
 
             @set_required_access_v2("test", ignore_codes=["NoSuchTagSet"])
             def test_ignore_codes(self):
-                get_ignore_codes()
+                raise botocore.exceptions.ClientError({"Error": {"Code": "NoSuchTagSet"}}, "get_ignore_code")
 
             @set_required_access_v2("test")
             def test_other(self):
-                get_other()
+                raise botocore.exceptions.ClientError({"Error": {"Code": "RandomErrorCode"}}, "get_other")
 
         warnings = []
         c = Collector()
