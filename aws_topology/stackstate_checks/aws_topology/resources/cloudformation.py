@@ -54,7 +54,7 @@ type_arn = {
     "AWS::ApiGateway::Resource": create_resource_arn,
     "AWS::ApiGateway::Method": create_method_arn,
     "AWS::ElasticLoadBalancing::LoadBalancer": create_elb_arn,  # TODO odd one
-    "AWS::Redshift::Cluster": no_arn,
+    "AWS::Redshift::Cluster": create_redshift_cluster_arn,
     "AWS::EC2::Instance": no_arn,
     "AWS::EC2::SecurityGroup": no_arn,
     "AWS::EC2::Vpc": no_arn,

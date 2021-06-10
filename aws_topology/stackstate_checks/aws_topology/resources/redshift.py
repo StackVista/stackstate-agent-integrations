@@ -19,7 +19,7 @@ ClusterData = namedtuple("ClusterData", ["cluster", "tags", "arn"])
 
 
 class Cluster(Model):
-    ClusterIdentifer = StringType(required=True)
+    ClusterIdentifier = StringType(required=True)
     VpcId = StringType()
 
 
@@ -32,8 +32,8 @@ class RedshiftCollector(RegisteredResourceCollector):
     @set_required_access_v2("redshift:DescribeTags")
     def collect_tags(self, cluster_arn):
         return [
-            tags
-            for tags in client_array_operation(
+            tag.get("Tag", {})
+            for tag in client_array_operation(
                 self.client, "describe_tags", "TaggedResources", ResourceName=cluster_arn, ResourceType="Cluster"
             )
         ]
@@ -70,7 +70,7 @@ class RedshiftCollector(RegisteredResourceCollector):
         cluster = Cluster(data.cluster, strict=False)
         cluster.validate()
         output = make_valid_data(data.cluster)
-        output["Name"] = cluster.ClusterIdentifer
+        output["Name"] = cluster.ClusterIdentifier
         output["Tags"] = data.tags
         output["URN"] = [data.arn]
         self.emit_component(data.arn, self.COMPONENT_TYPE, output)
