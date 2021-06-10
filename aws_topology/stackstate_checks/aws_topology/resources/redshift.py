@@ -61,6 +61,7 @@ class RedshiftCollector(RegisteredResourceCollector):
         if not filter or "clusters" in filter:
             self.process_clusters()
 
+    @set_required_access_v2("redshift:DescribeClusters")
     def process_one_cluster(self, cluster_id):
         for cluster_data in self.collect_clusters(ClusterIdentifier=cluster_id):
             self.process_cluster(cluster_data)
