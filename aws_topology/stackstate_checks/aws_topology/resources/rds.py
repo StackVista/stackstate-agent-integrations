@@ -50,8 +50,8 @@ class Instance(Model):
     DBInstanceArn = StringType(required=True)
     DBInstanceIdentifier = StringType(default="UNKNOWN")
     DBSubnetGroup = ModelType(InstanceSubnetGroup)
-    Endpoint = ModelType(InstanceEndpoint)
-    VpcSecurityGroups = ListType(ModelType(InstanceVpcSecurityGroup))
+    Endpoint = ModelType(InstanceEndpoint, required=True)
+    VpcSecurityGroups = ListType(ModelType(InstanceVpcSecurityGroup), default=[])
 
 
 class RdsCollector(RegisteredResourceCollector):
@@ -103,14 +103,12 @@ class RdsCollector(RegisteredResourceCollector):
 
     @set_required_access_v2("rds:DescribeDBClusters")
     def process_one_cluster(self, cluster_arn):
-        cluster_id = cluster_arn.rsplit(":", 1)[-1]
-        for cluster_data in self.collect_clusters(DBClusterIdentifier=cluster_id):
+        for cluster_data in self.collect_clusters(DBClusterIdentifier=cluster_arn):
             self.process_cluster(cluster_data)
 
     @set_required_access_v2("rds:DescribeDBInstances")
     def process_one_instance(self, instance_arn):
-        instance_id = instance_arn.rsplit(":", 1)[-1]
-        for instance_data in self.collect_instances(DBInstanceIdentifier=instance_id):
+        for instance_data in self.collect_instances(DBInstanceIdentifier=instance_arn):
             self.process_instance(instance_data)
 
     @transformation()
@@ -127,8 +125,8 @@ class RdsCollector(RegisteredResourceCollector):
         self.emit_component(instance_arn, "aws.rds_instance", output)
         self.emit_relation(instance_arn, instance.DBSubnetGroup.VpcId, "uses service", {})
         # TODO agent.create_security_group_relations (but needs change?)
-        for security_group in output.get("VpcSecurityGroups", []):
-            self.emit_relation(instance_arn, security_group.get("VpcSecurityGroupId", "UNKNOWN"), "uses service", {})
+        for security_group in instance.VpcSecurityGroups:
+            self.emit_relation(instance_arn, security_group.VpcSecurityGroupId, "uses service", {})
 
     @transformation()
     def process_cluster(self, data):
