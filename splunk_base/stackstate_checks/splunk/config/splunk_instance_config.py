@@ -5,7 +5,7 @@ import copy
 from six import PY3
 from iso8601 import iso8601
 from pytz import timezone
-from checks import CheckException
+from stackstate_checks.base.errors import CheckException
 
 
 class SplunkSavedSearch(object):
@@ -119,15 +119,15 @@ class SplunkTelemetryInstanceConfig(SplunkInstanceConfig):
 
 class SavedSearches(object):
     def __init__(self, saved_searches):
-        self.searches = filter(lambda ss: ss.name is not None, saved_searches)
-        self.matches = filter(lambda ss: ss.match is not None, saved_searches)
+        self.searches = list(filter(lambda ss: ss.name is not None, saved_searches))
+        self.matches = list(filter(lambda ss: ss.match is not None, saved_searches))
 
     def update_searches(self, log, saved_searches):
         """
         :param saved_searches: List of strings with names of observed saved searches
         """
         # Drop missing matches
-        self.searches = filter(lambda s: s.match is None or s.name in saved_searches, self.searches)
+        self.searches = list(filter(lambda s: s.match is None or s.name in saved_searches, self.searches))
 
         # Filter already instantiated searches
         new_searches = set(saved_searches).difference([s.name for s in self.searches])
