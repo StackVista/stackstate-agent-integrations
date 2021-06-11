@@ -30,11 +30,11 @@ class FunctionAlias(Model):
 
 class Function(Model):
     class FunctionVpcConfig(Model):
-        VpcId = StringType(required=True)
+        VpcId = StringType()
 
     FunctionName = StringType(required=True)
     FunctionArn = StringType(required=True)
-    VpcConfig = ModelType(FunctionVpcConfig)
+    VpcConfig = ModelType(FunctionVpcConfig, default={})
 
 
 class LambdaCollector(RegisteredResourceCollector):
@@ -42,32 +42,42 @@ class LambdaCollector(RegisteredResourceCollector):
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.lambda"
 
+    # All Lambda API calls can accept the function ARN, Name, or Partial ARN as input
     @set_required_access_v2("lambda:ListTags")
-    def collect_tags(self, function_arn):
-        return self.client.list_tags(Resource=function_arn).get("Tags", [])
+    def collect_tags(self, function_id):
+        return self.client.list_tags(Resource=function_id).get("Tags", [])
 
     @set_required_access_v2("lambda:ListAliases")
-    def collect_aliases(self, function_name):
+    def collect_aliases(self, function_id):
         return [
             aliases
-            for aliases in client_array_operation(self.client, "list_aliases", "Aliases", FunctionName=function_name)
+            for aliases in client_array_operation(self.client, "list_aliases", "Aliases", FunctionName=function_id)
         ]
 
-    def collect_function(self, function_data):
-        function_name = function_data.get("FunctionName", "")
-        tags = self.collect_tags(function_name) or []
-        aliases = self.collect_aliases(function_name) or []
-        return FunctionData(data=function_data, tags=tags, aliases=aliases)
+    # list_functions gives the same detail as get_function, but we need this to process one
+    @set_required_access_v2("lambda:GetFunction")
+    def collect_function_description(self, function_id):
+        return self.client.get_function(FunctionName=function_id).get("Configuration", {})
 
-    def collect_functions(self, **kwargs):
+    def collect_function(self, function_data):
+        function_arn = function_data.get("FunctionArn", "")
+        if not function_data.get("VpcConfig"):
+            data = self.collect_function_description(function_arn) or function_data
+        else:
+            data = function_data
+        tags = self.collect_tags(function_arn) or []
+        aliases = self.collect_aliases(function_arn) or []
+        return FunctionData(function=data, tags=tags, aliases=aliases)
+
+    def collect_functions(self):
         for function in [
             self.collect_function(function_data)
-            for function_data in client_array_operation(self.client, "list_functions", "Functions", **kwargs)
+            for function_data in client_array_operation(self.client, "list_functions", "Functions")
         ]:
             yield function
 
     def collect_event_sources(self):
-        for event_source in client_array_operation(self, "list_event_source_mappings", "EventSourceMappings"):
+        for event_source in client_array_operation(self.client, "list_event_source_mappings", "EventSourceMappings"):
             yield event_source
 
     @set_required_access_v2("lambda:ListFunctions")
@@ -86,9 +96,18 @@ class LambdaCollector(RegisteredResourceCollector):
         if not filter or "mappings" in filter:
             self.process_event_sources()
 
-    def process_one_function(self, function_name):
-        for function_data in self.collect_functions(FunctionName=function_name):
-            self.process_function(function_data)
+    # The inputted value could be either an ARN (with/without version) or a name, we can tell by the number of :
+    def process_one_function(self, function_id):
+        if len(function_id.split(":")) > 6:
+            request = {"FunctionName": function_id.split(":")[6], "FunctionArn": function_id}
+        else:
+            request = {
+                "FunctionName": function_id,
+                "FunctionArn": self.agent.create_arn(
+                    "AWS::Lambda::Function", self.location_info, resource_id=function_id
+                ),
+            }
+        self.process_function(self.collect_function(request))
 
     @transformation()
     def process_event_source(self, data):
