@@ -21,7 +21,7 @@ FunctionData = namedtuple("FunctionData", ["function", "tags", "aliases"])
 class EventSource(Model):
     FunctionArn = StringType(required=True)
     EventSourceArn = StringType(required=True)
-    State = StringType(default="Enabled")
+    State = StringType(default="UNKNOWN")
 
 
 class FunctionAlias(Model):
