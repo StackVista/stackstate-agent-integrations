@@ -52,6 +52,7 @@ class TestCloudFormation(BaseApiTest):
             checks={"LastUpdatedTime": "2019-06-27T20:20:45.336Z", "StackName": "stackstate-topo-cwevents"},
         )
 
-        top.assert_relation(relations, stack1, stack2, "child of")
+        print(relations)
+        top.assert_relation(relations, stack2, stack1, "has resource")
 
         top.assert_all_checked(components, relations)
