@@ -113,7 +113,7 @@ class DynamodbTableCollector(RegisteredResourceCollector):
             latest_stream_label = table.LatestStreamLabel
             stream["LatestStreamArn"] = latest_stream_arn
             stream["LatestStreamLabel"] = latest_stream_label
-            stream["Name"] = latest_stream_arn
+            stream["Name"] = latest_stream_arn.split("/", 1)[1]
             stream.update(
                 with_dimensions(
                     [{"key": "TableName", "value": table_name}, {"key": "StreamLabel", "value": latest_stream_label}]
