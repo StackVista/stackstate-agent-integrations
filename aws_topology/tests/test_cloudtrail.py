@@ -111,7 +111,7 @@ def wrapper(testinstance, not_authorized, subdirectory, use_gz, events_file=None
 
 
 class CollectorMock(RegisteredResourceCollector):
-    API = "s3"
+    API = "noclient"
     API_TYPE = "regional"
 
     def process_event(self, event, seen):
@@ -123,6 +123,9 @@ class CollectorMock(RegisteredResourceCollector):
         if id not in seen:
             self.emit_component(id, "aws.test", {})
             seen.add(id)
+
+    def process_all(self, filter=None):
+        pass
 
     CLOUDTRAIL_EVENTS = [
         {

@@ -133,7 +133,7 @@ class AwsTopologyCheck(AgentCheck):
                             if (api + "|") in to_run:
                                 filter = to_run.split("|")[1]
                     if client is None:
-                        client = session.client(api)
+                        client = session.client(api) if api != "noclient" else None
                     processor = registry[api](location.clone(), client, agent_proxy)
                     futures[executor.submit(processor.process_all, filter)] = {
                         "location": location.clone(),
@@ -216,7 +216,7 @@ class AwsTopologyCheck(AgentCheck):
             location = location_info(self.get_account_id(instance_info), session.region_name)
             registry = ResourceRegistry.get_registry()["regional" if region != "global" else "global"]
             for api in events_per_api:
-                client = session.client(api)
+                client = session.client(api) if api != "noclient" else None
                 resources_seen = set()
                 processor = registry[api](location.clone(), client, agent_proxy)
                 for event in events_per_api[api]:
