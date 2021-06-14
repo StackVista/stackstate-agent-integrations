@@ -1,13 +1,12 @@
 from collections import namedtuple
 from .utils import (
     make_valid_data,
-    create_arn as arn,
     client_array_operation,
     set_required_access_v2,
     transformation,
 )
 from schematics import Model
-from schematics.types import StringType, ModelType
+from schematics.types import StringType
 from .registry import RegisteredResourceCollector
 from .s3 import create_arn as s3_arn
 from .lambdaf import create_arn as lambda_arn
@@ -41,7 +40,7 @@ type_map = {
 }
 
 
-def no_arn(region=None, account_id=None, resource_id=None, **kwargs):
+def no_arn(resource_id=None, **kwargs):
     return resource_id
 
 
