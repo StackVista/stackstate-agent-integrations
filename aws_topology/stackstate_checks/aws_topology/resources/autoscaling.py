@@ -66,6 +66,7 @@ class AutoscalingCollector(RegisteredResourceCollector):
         output = make_valid_data(data)
         auto_scaling_group = AutoScalingGroup(data, strict=False)
         auto_scaling_group.validate()
+        output["Name"] = auto_scaling_group.AutoScalingGroupName
         output["URN"] = [auto_scaling_group.AutoScalingGroupARN]
         # using name here, s unique in region, arn is not resolvable from CF-resources
         self.emit_component(auto_scaling_group.AutoScalingGroupName, self.COMPONENT_TYPE, output)
