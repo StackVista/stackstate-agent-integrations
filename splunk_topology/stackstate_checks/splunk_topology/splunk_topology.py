@@ -82,19 +82,19 @@ class SplunkTopology(AgentCheck):
 
     def __init__(self, name, init_config, agentConfig, instances=None):
         super(SplunkTopology, self).__init__(name, init_config, agentConfig, instances)
-        # Data to keep over check runs, keyed by instance url
-        self.instance_data = dict()
+        # Data to keep over check runs
+        self.instance_data = None
 
     def get_instance_key(self, instance):
         return TopologyInstance(Instance.INSTANCE_TYPE, instance["url"])
 
     def check(self, instance):
-        if instance["url"] not in self.instance_data:
-            self.instance_data[instance["url"]] = Instance(instance, self.init_config)
+        if self.instance_data is None:
+            self.instance_data = Instance(instance, self.init_config)
 
         state = self.load_state(instance)
 
-        instance = self.instance_data[instance["url"]]
+        instance = self.instance_data
 
         if instance.snapshot:
             self.start_snapshot()
@@ -130,12 +130,11 @@ class SplunkTopology(AgentCheck):
         # don't dispatch if sids present
         for saved_search in saved_searches:
             try:
-                persist_status_key = instance.instance_config.base_url + saved_search.name
+                persist_status_key = saved_search.name
                 if state.get(persist_status_key) is not None:
                     sid = state[persist_status_key]
                     self._finalize_sid(instance, sid, saved_search)
-                    self.update_persistent_state(state, instance.instance_config.base_url, saved_search.name, sid,
-                                                 'remove')
+                    self.update_persistent_state(state, saved_search.name, sid, 'remove')
             except FinalizeException as e:
                 self.log.exception(
                     "Got an error %s while finalizing the saved search %s" % (e.message, saved_search.name))
@@ -238,7 +237,7 @@ class SplunkTopology(AgentCheck):
         self.log.debug("Dispatching saved search: %s." % saved_search.name)
         sid = self._dispatch(instance, saved_search, splunk_app, splunk_ignore_saved_search_errors,
                              parameters)
-        self.update_persistent_state(state, instance.instance_config.base_url, saved_search.name, sid, 'add')
+        self.update_persistent_state(state, saved_search.name, sid, 'add')
         return sid
 
     def _extract_components(self, instance, result):
@@ -316,21 +315,19 @@ class SplunkTopology(AgentCheck):
             state = {}
         return state
 
-    def update_persistent_state(self, state, base_url, qualifier, data, action):
+    def update_persistent_state(self, state, qualifier, data, action):
         """
-        :param dictionary with the current persisted state
-        :param base_url: base_url of the instance
+        :param state: dictionary with the current persisted state
         :param qualifier: a string used for making a unique key
         :param data: value of key
         :param action: action like add, remove or clear to perform
 
         This method persists the storage for the key when it is modified
         """
-        key = base_url + qualifier if qualifier else base_url
         if action == 'remove':
-            state.pop(key, None)
+            state.pop(qualifier, None)
         elif action == 'clear':
             state.clear()
         else:
-            state[key] = data
+            state[qualifier] = data
         self.commit_state(state)
