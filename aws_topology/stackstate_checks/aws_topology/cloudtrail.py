@@ -5,7 +5,7 @@ from datetime import datetime
 import gzip
 import io
 import botocore
-from six import string_types
+from six import string_types, PY2
 
 
 try:
@@ -95,7 +95,10 @@ class CloudtrailCollector(object):
     def _get_stream(self, body):
         if isinstance(body, string_types):
             # this case is only for test purposes
-            body = bytes(body)  # TODO py3 supports "ascii" as 2nd param
+            if PY2:
+                body = bytes(body)
+            else:
+                body = bytes(body, "ascii")
         elif isinstance(body, botocore.response.StreamingBody):
             body = body.read()
         if self._is_gz_file(body):
