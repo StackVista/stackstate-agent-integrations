@@ -8,6 +8,12 @@ import botocore
 from six import string_types
 
 
+try:
+    JSONParseException = json.decoder.JSONDecodeError
+except AttributeError:  # Python 2
+    JSONParseException = ValueError
+
+
 class CloudtrailCollector(object):
     def __init__(self, bucket_name, account_id, session, agent):
         self.bucket_name = bucket_name
@@ -89,7 +95,7 @@ class CloudtrailCollector(object):
     def _get_stream(self, body):
         if isinstance(body, string_types):
             # this case is only for test purposes
-            body = bytes(body, "ascii")
+            body = bytes(body)  # TODO py3 supports "ascii" as 2nd param
         elif isinstance(body, botocore.response.StreamingBody):
             body = body.read()
         if self._is_gz_file(body):
@@ -110,7 +116,7 @@ class CloudtrailCollector(object):
                         txt = txt[index:]
                         if "detail" in obj:
                             objects.append(obj["detail"])
-                    except json.decoder.JSONDecodeError:
+                    except JSONParseException:
                         txt = ""
                 for event in reversed(objects):
                     yield event
