@@ -14,6 +14,7 @@ import datetime
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from requests.exceptions import HTTPError, ConnectionError, Timeout
 from stackstate_checks.base.errors import CheckException
+from stackstate_checks.splunk.config import AuthType
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
@@ -44,7 +45,15 @@ class SplunkClient(object):
         self.log = logging.getLogger('%s' % __name__)
         self.requests_session = requests.session()
 
-    def auth_session(self):
+    def auth_session(self, status):
+        if self.instance_config.auth_type == AuthType.BasicAuth:
+            self.log.debug("Using user/password based authentication mechanism")
+            self._basic_auth()
+        elif self.instance_config.auth_type == AuthType.TokenAuth:
+            self.log.debug("Using token based authentication mechanism")
+            self._token_auth_session(status)
+
+    def _basic_auth(self):
         """
         retrieves a session token from Splunk to be used in subsequent requests
         session key expires after default 1 hour, configurable
@@ -66,7 +75,26 @@ class SplunkClient(object):
         session_key = response_json["sessionKey"]
         self.requests_session.headers.update({'Authentication': "Splunk %s" % session_key})
 
-    def create_auth_token(self, token):
+    def _token_auth_session(self, status):
+        persist_token_key = "auth_token"
+        is_initial_token = False
+        token = status.get(persist_token_key)
+        if token is None:
+            # Since this is first time run, pick the token from conf.yaml
+            token = self.instance_config.initial_token
+            is_initial_token = True
+        if self._is_token_expired(token, is_initial_token):
+            self.log.debug("Current in use authentication token is expired")
+            msg = "Current in use authentication token is expired. Please provide a valid token in the YAML " \
+                  "and restart the Agent"
+            raise TokenExpiredException(msg)
+        if self._need_renewal(token, is_initial_token):
+            self.log.debug("The token needs renewal as token is about to expire or this is initial token")
+            token = self._create_auth_token(token)
+            status[persist_token_key] = token
+        self.requests_session.headers.update({'Authorization': "Bearer %s" % token})
+
+    def _create_auth_token(self, token):
         self.log.debug("Creating a new authentication token")
         token_path = '/services/authorization/tokens?output_mode=json'
         name = self.instance_config.name
@@ -98,7 +126,7 @@ class SplunkClient(object):
         days = (expiry_date.date() - current_time.date()).days
         return days
 
-    def is_token_expired(self, token, is_initial_token=False):
+    def _is_token_expired(self, token, is_initial_token=False):
         """
         Method to check if the token is expired or not
         :param token: the token used for validation
@@ -108,7 +136,7 @@ class SplunkClient(object):
         days = self._decode_token_util(token, is_initial_token)
         return True if days < 0 else False
 
-    def need_renewal(self, token, is_initial_token=False):
+    def _need_renewal(self, token, is_initial_token=False):
         """
         Method to check if token needs renewal
         :param token: the previous in memory or initial valid token
@@ -125,29 +153,6 @@ class SplunkClient(object):
     def _current_time(self):
         """ This method is mocked for testing. Do not change its behavior """
         return datetime.datetime.utcnow()
-
-    def token_auth_session(self, auth, base_url, status):
-        persist_token_key = base_url + "token"
-        is_initial_token = False
-        token = status.get(persist_token_key)
-        if token is None:
-            # Since this is first time run, pick the token from conf.yaml
-            token = auth["token_auth"].get('initial_token')
-            is_initial_token = True
-        if self.is_token_expired(token, is_initial_token):
-            self.log.debug("Current in use authentication token is expired")
-            msg = "Current in use authentication token is expired. Please provide a valid token in the YAML " \
-                  "and restart the Agent"
-            raise TokenExpiredException(msg)
-        if self.need_renewal(token, is_initial_token):
-            self.log.debug("The token needs renewal as token is about to expire or this is initial token")
-            token = self.create_auth_token(token)
-            self.update_token_state(base_url, token, status)
-        self.requests_session.headers.update({'Authorization': "Bearer %s" % token})
-
-    def update_token_state(self, base_url, token, status_data):
-        key = base_url + "token"
-        status_data[key] = token
 
     def saved_searches(self):
         """
@@ -212,7 +217,14 @@ class SplunkClient(object):
             offset += nr_of_results
         return results
 
-    def dispatch(self, saved_search, splunk_user, splunk_app, splunk_ignore_saved_search_errors, parameters):
+    def _get_dispatch_user(self):
+        if self.instance_config.auth_type == AuthType.BasicAuth:
+            return self.instance_config.username
+        elif self.instance_config.auth_type == AuthType.TokenAuth:
+            # in case of token based mechanism, username won't exist and need to use `name` from token config
+            return self.instance_config.name
+
+    def dispatch(self, saved_search, splunk_app, splunk_ignore_saved_search_errors, parameters):
         """
         :param saved_search: The saved search to dispatch
         :param splunk_user: Splunk user that dispatches the saved search
@@ -220,9 +232,7 @@ class SplunkClient(object):
         :param parameters: Parameters of the saved search
         :return: the sid of the saved search
         """
-        if splunk_user is None:
-            # in case of token based mechanism, username won't exist and need to use `user` from token config
-            splunk_user = self.instance_config.name
+        splunk_user = self._get_dispatch_user()
         dispatch_path = '/servicesNS/%s/%s/saved/searches/%s/dispatch' %\
                         (splunk_user, splunk_app, quote(saved_search.name))
         response_body = self._do_post(dispatch_path,
