@@ -34,7 +34,11 @@ class TestAutoScaling(BaseApiTest):
             components,
             "awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM",
             "aws.autoscaling",
-            checks={"AutoScalingGroupARN": group_arn},
+            checks={
+                "AutoScalingGroupARN": group_arn,
+                "Name": "awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM",
+                "URN": [group_arn]
+            },
         )
         self.assert_location_info(comp)
 
