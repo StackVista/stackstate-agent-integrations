@@ -61,7 +61,8 @@ class LambdaCollector(RegisteredResourceCollector):
 
     def collect_function(self, function_data):
         function_arn = function_data.get("FunctionArn", "")
-        if not function_data.get("VpcConfig"):
+        # Test to see if the function_data has minimal data, or more
+        if len(function_data.keys()) <= 2:
             data = self.collect_function_description(function_arn) or function_data
         else:
             data = function_data
