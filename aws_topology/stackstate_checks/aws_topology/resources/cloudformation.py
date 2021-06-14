@@ -121,6 +121,16 @@ class CloudformationCollector(RegisteredResourceCollector):
             self.process_stacks()
 
     @transformation()
+    def process_stack_resource(self, stack_id, data):
+        resource = StackResource(data, strict=False)
+        resource.validate()
+        if resource.PhysicalResourceId and resource.ResourceType in type_arn.keys():
+            resource_arn = self.agent.create_arn(
+                resource.ResourceType, self.location_info, resource.PhysicalResourceId
+            )
+            self.emit_relation(stack_id, resource_arn, "has resource", {})
+
+    @transformation()
     def process_stack(self, data):
         stack = Stack(data.stack, strict=False)
         stack.validate()
@@ -128,11 +138,5 @@ class CloudformationCollector(RegisteredResourceCollector):
         output["Name"] = stack.StackName
         self.emit_component(stack.StackId, self.COMPONENT_TYPE, output)
 
-        resources = [StackResource(resource, strict=False) for resource in data.resources]
-        for resource in resources:
-            resource.validate()
-            if resource.PhysicalResourceId and resource.ResourceType in type_arn.keys():
-                resource_arn = self.agent.create_arn(
-                    resource.ResourceType, self.location_info, resource.PhysicalResourceId
-                )
-                self.emit_relation(stack.StackId, resource_arn, "has resource", {})
+        for resource in data.resources:
+            self.process_stack_resource(stack.StackId, resource)
