@@ -27,6 +27,7 @@ class TestRds(BaseApiTest):
                 "DBClusterArn": "arn:aws:rds:eu-west-1:731070500579:cluster:productiondatabasecluster",
                 "Name": "arn:aws:rds:eu-west-1:731070500579:cluster:productiondatabasecluster",
                 "CW.Dimensions": [{"Key": "DBClusterIdentifier", "Value": "productiondatabasecluster"}],
+                "Tags.testing": "test",
             },
         )
         # instance 1
