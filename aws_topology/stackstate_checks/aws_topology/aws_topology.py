@@ -8,16 +8,13 @@ import time
 import traceback
 from botocore.exceptions import ClientError
 from schematics import Model
-from schematics.exceptions import ValidationError
 from schematics.types import StringType, ListType, DictType, DateTimeType, ModelType
 from botocore.config import Config
 from stackstate_checks.base import AgentCheck, TopologyInstance
 from .resources import ResourceRegistry, type_arn, RegisteredResourceCollector
 from .utils import location_info, correct_tags, capitalize_keys, seconds_ago
-import json
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
-import dateutil.parser
 import concurrent.futures
 import threading
 
@@ -37,10 +34,10 @@ class InitConfig(Model):
     aws_access_key_id = StringType(required=True)
     aws_secret_access_key = StringType(required=True)
     external_id = StringType(required=True)
-    log_bucket_name = StringType()
+
 
 class State(Model):
-    last_full_topology = DateTimeType(required=True)
+    last_full_topology = DateTimeType(required=True, tzd='utc')
 
 
 class InstanceInfo(Model):
@@ -49,6 +46,7 @@ class InstanceInfo(Model):
     tags = ListType(StringType, default=[])
     arns = DictType(StringType, default={})
     apis_to_run = ListType(StringType)
+    log_bucket_name = StringType()
     state = ModelType(State)
 
 
@@ -65,6 +63,9 @@ class AwsTopologyCheck(AgentCheck):
 
     def get_instance_key(self, instance_info):
         return TopologyInstance(self.INSTANCE_TYPE, str(self.get_account_id(instance_info)))
+
+    def must_run_full(self, instance_info):
+        return seconds_ago(instance_info.state.last_full_topology) > 60*60
 
     def check(self, instance_info):
         try:
@@ -85,14 +86,14 @@ class AwsTopologyCheck(AgentCheck):
                 # Create empty state
                 instance_info.state = State(
                     {
-                        'last_full_topology': datetime.utcnow().replace(tzinfo=pytz.utc) - datetime.timedelta(
+                        'last_full_topology': datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(
                             minutes=61
                         )
                     }
                 )
             self.delete_ids = []
             self.components_seen = set()
-            if seconds_ago(instance_info.state.last_full_topology) > 60*60:
+            if self.must_run_full(instance_info):
                 instance_info.state.last_full_topology = datetime.utcnow().replace(tzinfo=pytz.utc)
                 self.get_topology(instance_info, aws_client)
             self.get_topology_update(instance_info, aws_client)
@@ -174,9 +175,13 @@ class AwsTopologyCheck(AgentCheck):
         listen_for = ResourceRegistry.CLOUDTRAIL
         for region in instance_info.regions:
             session = aws_client.get_session(instance_info.role_arn, region)
-            client = session.client("cloudtrail")
             events_per_api = {}
-            collector = CloudtrailCollector(aws_client.log_bucket_name, self.get_account_id(instance_info), session, agent_proxy)
+            collector = CloudtrailCollector(
+                instance_info.log_bucket_name,
+                self.get_account_id(instance_info),
+                session,
+                agent_proxy
+            )
             # collect the events (ordering is most recent event first)
             for event in collector.get_messages(not_before):
                 msgs = listen_for.get(event["eventSource"])
@@ -215,8 +220,7 @@ class AwsTopologyCheck(AgentCheck):
                 resources_seen = set()
                 processor = registry[api](location.clone(), client, agent_proxy)
                 for event in events_per_api[api]:
-                    id = processor.process_cloudtrail_event(event, resources_seen)
-                    resources_seen.add(id)
+                    processor.process_cloudtrail_event(event, resources_seen)
 
         self.delete_ids += agent_proxy.delete_ids
 
@@ -292,7 +296,6 @@ class AwsClient:
         self.external_id = config.external_id
         self.aws_access_key_id = config.aws_access_key_id
         self.aws_secret_access_key = config.aws_secret_access_key
-        self.log_bucket_name = config.log_bucket_name
 
         if self.aws_secret_access_key and self.aws_access_key_id:
             self.sts_client = boto3.client(
