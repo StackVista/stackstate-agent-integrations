@@ -75,19 +75,16 @@ class ELBClassicCollector(RegisteredResourceCollector):
         else:
             paginator = self.collect_elbs()
         elbs = []
-        while True:
-            try:
-                elb = next(paginator)
-                # Batch up elbs into groups, then process them in pages of 20
-                if len(elbs) >= self.MAX_TAG_CALLS:
-                    self.process_elb_page(elbs)
-                    elbs = []
-                else:
-                    elbs.append(elb)
-            except StopIteration:
-                # If we run out of elbs to process, process the last ones then break
+        for elb in paginator:
+            # Batch up elbs into groups, then process them in pages of 20
+            if len(elbs) >= self.MAX_TAG_CALLS:
                 self.process_elb_page(elbs)
-                break
+                elbs = []
+            else:
+                elbs.append(elb)
+        # If we run out of elbs to process, process the last ones
+        if len(elbs):
+            self.process_elb_page(elbs)
 
     def process_all(self, filter=None):
         if not filter or "loadbalancers" in filter:
