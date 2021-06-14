@@ -142,14 +142,14 @@ class AwsTopologyCheck(AgentCheck):
                     }
                     self.event(event)
                     errors.append("API %s ended with exception: %s %s" % (spec["api"], str(e), traceback.format_exc()))
-            # TODO this should be for tests, in production these relations should not be sent out
-            agent_proxy.finalize_account_topology()
-            self.components_seen = agent_proxy.components_seen
-            if len(errors) > 0:
-                raise Exception("get_topology gave following exceptions: %s" % ", ".join(errors))
-        self.delete_ids += agent_proxy.delete_ids
+        # TODO this should be for tests, in production these relations should not be sent out
+        agent_proxy.finalize_account_topology()
+        self.components_seen = agent_proxy.components_seen
 
         self.stop_snapshot()
+        if len(errors) > 0:
+            raise Exception("get_topology gave following exceptions: %s" % ", ".join(errors))
+        self.delete_ids += agent_proxy.delete_ids
 
     def get_topology_update(self, instance_info, aws_client):
         agent_proxy = AgentProxy(self, instance_info.role_arn)
