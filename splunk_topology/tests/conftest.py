@@ -28,7 +28,7 @@ _empty_instance = {
 
 
 def connect_to_splunk():
-    SplunkClient(InstanceConfig(_empty_instance, {})).auth_session()
+    SplunkClient(InstanceConfig(_empty_instance, {})).auth_session({})
 
 
 @pytest.fixture(scope='session')
