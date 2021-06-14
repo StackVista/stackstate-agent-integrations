@@ -64,7 +64,7 @@ class RdsCollector(RegisteredResourceCollector):
         return self.client.list_tags_for_resource(ResourceName=resource_arn).get("TagList", "")
 
     def collect_cluster(self, cluster_data):
-        tags = self.collect_tags(cluster_data.get("DBInstanceArn", "")) or []
+        tags = self.collect_tags(cluster_data.get("DBClusterArn", "")) or []
         return ClusterData(cluster=cluster_data, tags=tags)
 
     def collect_clusters(self, **kwargs):
@@ -75,7 +75,7 @@ class RdsCollector(RegisteredResourceCollector):
             yield cluster
 
     def collect_instance(self, instance_data):
-        tags = tags = self.collect_tags(instance_data.get("DBClusterArn", "")) or []
+        tags = tags = self.collect_tags(instance_data.get("DBInstanceArn", "")) or []
         return InstanceData(instance=instance_data, tags=tags)
 
     def collect_instances(self, **kwargs):
