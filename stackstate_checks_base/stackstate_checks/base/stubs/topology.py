@@ -111,7 +111,7 @@ class TopologyStub(object):
                 break
         if rel is None:
             msg.append("Relation not found source_id={} type={} target_id={}".format(source_id, type, target_id))
-            msg.append("Relations the were found:")
+            msg.append("Relations that were found:")
             for relation in relations:
                 msg.append("- {} <- ({}) -> {}".format(
                     relation.get("source_id"),
