@@ -1,75 +1,47 @@
 import datetime
-import re
-import copy
 import logging
 
 from enum import Enum
-from six import PY3
 from iso8601 import iso8601
 from pytz import timezone
 from stackstate_checks.base.errors import CheckException
 
+AUTH_TOKEN_KEY = "auth_token"
+SID_KEY_BASE = "sid"
 
-class SplunkSavedSearch(object):
-    def __init__(self, instance_config, saved_search_instance):
-        if "name" in saved_search_instance:
-            self.name = saved_search_instance['name']
-            self.match = None
-        elif "match" in saved_search_instance:
-            self.match = saved_search_instance['match']
-            self.name = None
-        else:
-            raise Exception("Neither 'name' or 'match' should be defined for saved search.")
 
-        # maps from fields (as they go to output) to corresponding column names in results we get from Splunk
-        self.critical_fields = None  # if absent, then fail the search
-        self.required_fields = None  # if absent, then drop the item and continue with other items in this search
-        self.optional_fields = None  # allowed to be absent
-        self.fixed_fields = None  # fields that are filled in by the check
+class CommittableState(object):
+    """
+    Helper class to abstract away state that can be committed. Exposes data an a commit function
+    """
 
-        self.parameters = dict(saved_search_instance.get("parameters", instance_config.default_parameters))
-        self.request_timeout_seconds =\
-            int(saved_search_instance.get('request_timeout_seconds', instance_config.default_request_timeout_seconds))
-        self.search_max_retry_count =\
-            int(saved_search_instance.get('search_max_retry_count', instance_config.default_search_max_retry_count))
-        self.search_seconds_between_retries =\
-            int(saved_search_instance.get('search_seconds_between_retries',
-                                          instance_config.default_search_seconds_between_retries))
-        self.batch_size = int(saved_search_instance.get('batch_size', instance_config.default_batch_size))
-        self.app = saved_search_instance.get("app", instance_config.default_app)
+    def __init__(self, commit_function, state):
+        self.state = state
+        self.commit_function = commit_function
 
-    def retrieve_fields(self, data):
-        telemetry = {}
+    def get_auth_token(self):
+        return self.state.get(AUTH_TOKEN_KEY)
 
-        # Critical fields - escalate any exceptions if missing a field
-        if self.critical_fields:
-            telemetry.update({
-                field: take_required_field(field_column, data)
-                for field, field_column in self.critical_fields.iteritems()
-            })
+    def set_auth_token(self, token):
+        self.state[AUTH_TOKEN_KEY] = token
+        self.commit()
 
-        # Required fields - catch exceptions if missing a field
-        try:
-            if self.required_fields:
-                telemetry.update({
-                    field: take_required_field(field_column, data)
-                    for field, field_column in self.required_fields.iteritems()
-                })
-        except CheckException as e:
-            raise LookupError(e)  # drop this item, but continue with next
+    def _search_key(self, search_name):
+        return "%s_%s" % (SID_KEY_BASE, search_name)
 
-        # Optional fields
-        if self.optional_fields:
-            telemetry.update({
-                field: take_optional_field(field_column, data)
-                for field, field_column in self.optional_fields.iteritems()
-            })
+    def get_sid(self, search_name):
+        return self.state.get(self._search_key(search_name))
 
-        # Fixed fields
-        if self.fixed_fields:
-            telemetry.update(self.fixed_fields)
+    def set_sid(self, search_name, sid):
+        self.state[self._search_key(search_name)] = sid
+        self.commit()
 
-        return telemetry
+    def remove_sid(self, search_name):
+        self.state.pop(self._search_key(search_name), None)
+        self.commit()
+
+    def commit(self):
+        self.commit_function(self.state)
 
 
 class AuthType(Enum):
@@ -139,6 +111,9 @@ class SplunkInstanceConfig(object):
                 raise CheckException("Instance missing 'authentication'.")
 
         self.ignore_saved_search_errors = instance.get('ignore_saved_search_errors', False)
+        self.saved_searches_parallel = int(
+            instance.get('saved_searches_parallel', self.default_saved_searches_parallel))
+        self.tags = instance.get('tags', [])
 
     def get_or_default(self, field):
         return self.init_config.get(field, self.defaults[field])
@@ -147,37 +122,74 @@ class SplunkInstanceConfig(object):
         return self.username, self.password
 
 
+class SplunkSavedSearch(object):
+    def __init__(self, instance_config, saved_search_instance):
+        if "name" in saved_search_instance:
+            self.name = saved_search_instance['name']
+            self.match = None
+        elif "match" in saved_search_instance:
+            self.match = saved_search_instance['match']
+            self.name = None
+        else:
+            raise Exception("Neither 'name' or 'match' should be defined for saved search.")
+
+        # maps from fields (as they go to output) to corresponding column names in results we get from Splunk
+        self.critical_fields = None  # if absent, then fail the search
+        self.required_fields = None  # if absent, then drop the item and continue with other items in this search
+        self.optional_fields = None  # allowed to be absent
+        self.fixed_fields = None  # fields that are filled in by the check
+
+        self.parameters = dict(saved_search_instance.get("parameters", instance_config.default_parameters))
+        self.request_timeout_seconds = \
+            int(saved_search_instance.get('request_timeout_seconds', instance_config.default_request_timeout_seconds))
+        self.search_max_retry_count = \
+            int(saved_search_instance.get('search_max_retry_count', instance_config.default_search_max_retry_count))
+        self.search_seconds_between_retries = \
+            int(saved_search_instance.get('search_seconds_between_retries',
+                                          instance_config.default_search_seconds_between_retries))
+        self.batch_size = int(saved_search_instance.get('batch_size', instance_config.default_batch_size))
+        self.app = saved_search_instance.get("app", instance_config.default_app)
+
+    def retrieve_fields(self, data):
+        retrieved_data = {}
+
+        # Critical fields - escalate any exceptions if missing a field
+        if self.critical_fields:
+            retrieved_data.update({
+                field: take_required_field(field_column, data)
+                for field, field_column in self.critical_fields.iteritems()
+            })
+
+        # Required fields - catch exceptions if missing a field
+        try:
+            if self.required_fields:
+                retrieved_data.update({
+                    field: take_required_field(field_column, data)
+                    for field, field_column in self.required_fields.iteritems()
+                })
+        except CheckException as e:
+            raise LookupError(e)  # drop this item, but continue with next
+
+        # Optional fields
+        if self.optional_fields:
+            retrieved_data.update({
+                field: take_optional_field(field_column, data)
+                for field, field_column in self.optional_fields.iteritems()
+            })
+
+        # Fixed fields
+        if self.fixed_fields:
+            retrieved_data.update(self.fixed_fields)
+
+        return retrieved_data
+
+
+# TODO: Move this code once we move the telemetry splunk plugins
 class SplunkTelemetryInstanceConfig(SplunkInstanceConfig):
     def __init__(self, instance, init_config, defaults):
         super(SplunkTelemetryInstanceConfig, self).__init__(instance, init_config, defaults)
 
         self.default_unique_key_fields = self.get_or_default('default_unique_key_fields')
-
-
-class SavedSearches(object):
-    def __init__(self, saved_searches):
-        self.searches = list(filter(lambda ss: ss.name is not None, saved_searches))
-        self.matches = list(filter(lambda ss: ss.match is not None, saved_searches))
-
-    def update_searches(self, log, saved_searches):
-        """
-        :param saved_searches: List of strings with names of observed saved searches
-        """
-        # Drop missing matches
-        self.searches = list(filter(lambda s: s.match is None or s.name in saved_searches, self.searches))
-
-        # Filter already instantiated searches
-        new_searches = set(saved_searches).difference([s.name for s in self.searches])
-
-        # Match new searches
-        for new_search in new_searches:
-            for match in self.matches:
-                if re.match(match.match, new_search) is not None:
-                    search = copy.deepcopy(match)
-                    search.name = new_search
-                    log.debug("Added saved search '%s'" % new_search)
-                    self.searches.append(search)
-                    break
 
 
 def take_required_field(field, obj):
@@ -218,13 +230,3 @@ def time_to_seconds(str_datetime_utc):
     """
     parsed_datetime = iso8601.parse_date(str_datetime_utc)
     return get_time_since_epoch(parsed_datetime)
-
-
-def chunks(list, n):
-    """Yield successive n-sized chunks from l."""
-    if PY3:
-        for i in range(0, len(list), n):
-            yield list[i:i + n]
-    else:
-        for i in xrange(0, len(list), n):  # noqa: F821
-            yield list[i:i + n]

@@ -10,7 +10,8 @@ import datetime
 
 # project
 from stackstate_checks.splunk.client import SplunkClient, FinalizeException, TokenExpiredException
-from stackstate_checks.splunk.config import AuthType, SplunkInstanceConfig
+from stackstate_checks.splunk.config import AuthType
+from test_splunk_instance_config import MockedCommittableState
 
 
 class FakeInstanceConfig(object):
@@ -296,8 +297,8 @@ class TestSplunkClient(unittest.TestCase):
         Test token_auth_session when memory token is valid and doesn't need renewal
         """
         # load a token in memory for validation
-        status = {}
-        status['auth_token'] = 'memorytokenpresent'
+        status = MockedCommittableState({})
+        status.set_auth_token('memorytokenpresent')
         config = FakeInstanceConfig()
         config.auth_type = AuthType.TokenAuth
 
@@ -322,7 +323,7 @@ class TestSplunkClient(unittest.TestCase):
         """
         new_token = json.loads(mocked_token_create_response()).get('entry')[0].get('content').get('token')
 
-        status = {}
+        status = MockedCommittableState({})
         config = FakeInstanceConfig()
         config.auth_type = AuthType.TokenAuth
 
@@ -336,8 +337,8 @@ class TestSplunkClient(unittest.TestCase):
         expected_header = helper.requests_session.headers.get("Authorization")
         self.assertEqual(expected_header, "Bearer {}".format(new_token))
         # persistence data will have new updated token
-        self.assertEqual(status.get('auth_token'), new_token)
-        status.clear()
+        self.assertEqual(status.get_auth_token(), new_token)
+        self.assertEqual(status.committed, status.state)
 
     @mock.patch('stackstate_checks.splunk.client.splunk_client.jwt.decode',
                 return_value={"exp": 1591797915, "iat": 1584021915, "aud": "stackstate"})
@@ -349,9 +350,9 @@ class TestSplunkClient(unittest.TestCase):
         """
         new_token = json.loads(mocked_token_create_response()).get('entry')[0].get('content').get('token')
 
-        status = {}
+        status = MockedCommittableState({})
         # load a token in memory for validation
-        status['auth_token'] = 'memorytokenpresent'
+        status.set_auth_token('memorytokenpresent')
         config = FakeInstanceConfig()
         config.auth_type = AuthType.TokenAuth
 
@@ -365,8 +366,8 @@ class TestSplunkClient(unittest.TestCase):
         expected_header = helper.requests_session.headers.get("Authorization")
         self.assertEqual(expected_header, "Bearer {}".format(new_token))
         # persistence data will have new token as well
-        self.assertEqual(status.get('auth_token'), new_token)
-        status.clear()
+        self.assertEqual(status.get_auth_token(), new_token)
+        self.assertEqual(status.committed, status.state)
 
     @mock.patch('stackstate_checks.splunk.client.splunk_client.jwt.decode',
                 return_value={"exp": 1591797915, "iat": 1584021915, "aud": "stackstate"})
@@ -374,7 +375,7 @@ class TestSplunkClient(unittest.TestCase):
         """
         Test token_auth_session to throw TokenExpiredException when initial token is expired
         """
-        status = {}
+        status = MockedCommittableState({})
         config = FakeInstanceConfig()
         config.auth_type = AuthType.TokenAuth
 
@@ -397,9 +398,9 @@ class TestSplunkClient(unittest.TestCase):
         """
         Test token_auth_session to throw TokenExpiredException when memory token is expired
         """
-        status = {}
+        status = MockedCommittableState({})
         # load a token in memory for validation
-        status['auth_token'] = 'memorytokenpresent'
+        status.set_auth_token('memorytokenpresent')
         config = FakeInstanceConfig()
         config.auth_type = AuthType.TokenAuth
 
@@ -415,99 +416,3 @@ class TestSplunkClient(unittest.TestCase):
         msg = "Current in use authentication token is expired. Please provide a valid token in the YAML " \
               "and restart the Agent"
         self.assertTrue(check, msg)
-
-
-mock_defaults = {
-    'default_request_timeout_seconds': 5,
-    'default_search_max_retry_count': 3,
-    'default_search_seconds_between_retries': 1,
-    'default_verify_ssl_certificate': False,
-    'default_batch_size': 1000,
-    'default_saved_searches_parallel': 3,
-    'default_app': "search",
-    'default_parameters': {
-        "force_dispatch": True,
-        "dispatch.now": True
-    }
-}
-
-
-class TestSplunkInstanceConfig(unittest.TestCase):
-    def test_check_token_auth_preferred_over_basic_auth(self):
-        """
-        Splunk topology check should prefer Token based authentication over Basic auth mechanism
-        """
-        instance = {
-            'url': 'http://localhost:8089',
-            'authentication': {
-                'basic_auth': {
-                    'username': "admin",
-                    'password': "admin"
-                },
-                'token_auth': {
-                    'name': "api-admin",
-                    'initial_token': "dsfdgfhgjhkjuyr567uhfe345ythu7y6tre456sdx",
-                    'audience': "admin",
-                    'renewal_days': 10
-                }
-            },
-            'component_saved_searches': [{
-                "name": "components",
-                "parameters": {}
-            }],
-            'relation_saved_searches': [],
-            'tags': ['mytag', 'mytag2']
-        }
-
-        instance_config = SplunkInstanceConfig(instance, {}, mock_defaults)
-        assert instance_config.auth_type == AuthType.TokenAuth
-
-    def test_checks_backward_compatibility(self):
-        """
-        Test whether username/password without the authentication block is still accepted
-        """
-
-        instance = {
-            'url': 'http://localhost:8089',
-            'username': 'admin',
-            'password': 'admin',
-            'component_saved_searches': [{
-                "name": "components",
-                "parameters": {}
-            }],
-            'relation_saved_searches': [{
-                "name": "relations",
-                "parameters": {}
-            }],
-            'tags': ['mytag', 'mytag2']
-        }
-
-        instance_config = SplunkInstanceConfig(instance, {}, mock_defaults)
-        assert instance_config.auth_type == AuthType.BasicAuth
-
-    def test_combine_old_and_new_conf(self):
-        instance = {
-            'url': 'http://localhost:8089',
-            'username': 'admin',
-            'password': 'admin',
-            'authentication': {
-                'basic_auth': {
-                    'username': "adminNew",
-                    'password': "adminNew"
-                }
-            },
-            'component_saved_searches': [{
-                "name": "components",
-                "parameters": {}
-            }],
-            'relation_saved_searches': [{
-                "name": "relations",
-                "parameters": {}
-            }],
-            'tags': ['mytag', 'mytag2']
-        }
-
-        instance_config = SplunkInstanceConfig(instance, {}, mock_defaults)
-        assert instance_config.auth_type == AuthType.BasicAuth
-        assert instance_config.username == "adminNew"
-        assert instance_config.password == "adminNew"

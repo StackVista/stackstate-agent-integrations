@@ -4,11 +4,10 @@ import pytest
 import json
 import os
 import unittest
-import copy
 
 from stackstate_checks.base.errors import CheckException
 from stackstate_checks.splunk.client import TokenExpiredException
-from stackstate_checks.splunk_topology.splunk_topology import SplunkTopology
+from stackstate_checks.splunk_topology.splunk_topology import SplunkTopology, Instance
 from stackstate_checks.base.stubs import topology, aggregator
 from stackstate_checks.base import TopologyInstance
 
@@ -23,94 +22,50 @@ def load_fixture(fixture_file):
         return json.loads(f.read())
 
 
-class MockedSplunkTopology(SplunkTopology):
-    def __init__(self, *args, **kwargs):
-        super(MockedSplunkTopology, self).__init__(*args, **kwargs)
-        self.finalized = []
-        self.saved_searches = []
+class MockSplunkClient(object):
+    def __init__(self):
         self._dispatch_parameters = None
+        self.invalid_token = False
 
-    def _search(self, search_id, saved_search, instance):
+    def auth_session(self, committable_state):
+        if self.invalid_token:
+            raise TokenExpiredException("Current in use authentication token is expired. Please provide a valid "
+                                        "token in the YAML and restart the Agent")
+        return
+
+    def saved_searches(self):
+        return []
+
+    def saved_search_results(self, search_id, saved_search):
         if search_id == "exception":
             raise CheckException("maximum retries reached for saved search " + str(search_id))
         # sid is set to saved search name
         return [load_fixture("%s.json" % search_id)]
 
-    def _saved_searches(self, instance):
-        return self.saved_searches
-
-    def _auth_session(self, instance, status):
-        return
-
-    def _dispatch(self, instance, saved_search, splunk_app, _ignore_saved_search, parameters):
+    def dispatch(self, saved_search, splunk_app, ignore_saved_search_errors, parameters):
+        if saved_search.name == "dispatch_exception":
+            raise Exception("BOOM")
         self._dispatch_parameters = parameters
         return saved_search.name
 
-    def _finalize_sid(self, instance, sid, saved_search):
-        self.finalized.append(sid)
-        return None
+    def finalize_sid(self, search_id, saved_search):
+        return
 
 
-class MockedSplunkTopologyFinalizeException(MockedSplunkTopology):
+class MockedInstance(Instance):
     def __init__(self, *args, **kwargs):
-        super(MockedSplunkTopologyFinalizeException, self).__init__(*args, **kwargs)
-        self.finalized = []
+        super(MockedInstance, self).__init__(*args, **kwargs)
 
-    def _finalize_sid(self, instance, sid, saved_search):
-        self.finalized.append(sid)
-        raise Exception("Finalize exception")
+    def _build_splunk_client(self):
+        return MockSplunkClient()
 
 
-class MockedSplunkTopologyIncompleteAndPartialResult(MockedSplunkTopology):
+class MockedSplunkTopology(SplunkTopology):
     def __init__(self, *args, **kwargs):
-        super(MockedSplunkTopologyIncompleteAndPartialResult, self).__init__(*args, **kwargs)
+        super(MockedSplunkTopology, self).__init__(*args, **kwargs)
 
-    def _search(self, search_id, saved_search, instance):
-        # sid is set to saved search name
-        return [load_fixture("partially_incomplete_%s.json" % search_id),
-                load_fixture("incomplete_%s.json" % search_id)]
-
-
-class MockedSplunkTopologyDispatchError(MockedSplunkTopology):
-    def __init__(self, *args, **kwargs):
-        super(MockedSplunkTopologyDispatchError, self).__init__(*args, **kwargs)
-
-    def _dispatch(self, instance, saved_search, splunk_app, _ignore_saved_search, parameters):
-        raise Exception("BOOM")
-
-
-class MockedSplunkTopologySavedSearchesError(MockedSplunkTopology):
-    def __init__(self, *args, **kwargs):
-        super(MockedSplunkTopologySavedSearchesError, self).__init__(*args, **kwargs)
-
-    def _saved_searches(self, instance):
-        raise Exception("BOOM")
-
-
-class MockedSplunkTopologyCheckParallel(MockedSplunkTopology):
-    def __init__(self, *args, **kwargs):
-        super(MockedSplunkTopologyCheckParallel, self).__init__(*args, **kwargs)
-        self.expected_sid_increment = 1
-
-    def _dispatch_and_await_search(self, instance, state, saved_searches):
-        assert len(saved_searches) <= 2
-
-        for saved_search in saved_searches:
-            result = saved_search.name
-            expected = "savedsearch%i" % self.expected_sid_increment
-            assert result == expected
-            self.expected_sid_increment += 1
-
-        return True
-
-
-class MockedSplunkTopologyInvalidToken(SplunkTopology):
-    def __init__(self, *args, **kwargs):
-        super(MockedSplunkTopologyInvalidToken, self).__init__(*args, **kwargs)
-
-    def _auth_session(self, instance, state):
-        raise TokenExpiredException("Current in use authentication token is expired. Please provide a valid "
-                                    "token in the YAML and restart the Agent")
+    def _build_instance(self, instance):
+        return MockedInstance(instance, self.init_config)
 
 
 class TestSplunkCheck(unittest.TestCase):
@@ -140,7 +95,7 @@ class TestSplunkCheck(unittest.TestCase):
         self.check.commit_state(None)
 
     def test_no_topology_defined(self):
-        self.check.run()
+        assert self.check.run() == ''
         topology.assert_snapshot(self.check.check_id, self.instance_key, True, True)
 
     def test_components_and_relation_data(self):
@@ -202,74 +157,6 @@ class TestSplunkCheck(unittest.TestCase):
 
         service_checks = aggregator.service_checks(SplunkTopology.SERVICE_CHECK_NAME)
         self.assertEqual(service_checks[0].status, 0)
-
-    def test_store_and_finalize_sids(self):
-        instance = {
-            'url': 'http://localhost:8089',
-            'authentication': {
-                'basic_auth': {
-                    'username': "admin",
-                    'password': "admin"
-                }
-            },
-            'component_saved_searches': [{
-                "name": "broken_search_result",
-                "parameters": {}
-            }],
-            'relation_saved_searches': [],
-            'tags': ['mytag', 'mytag2']
-        }
-
-        self.check = MockedSplunkTopology(self.CHECK_NAME, {}, {}, [instance])
-        # Run the check but break the search result using the 'broken_result', thiis will persist the sid
-        assert self.check.run() != ''
-
-        first_persistent_data = copy.deepcopy(self.check.state_manager.get_state(self.check._get_state_descriptor()))
-        assert first_persistent_data is not None
-
-        # Run the check 2nd time and get the persistent status data
-        assert self.check.run() != ''
-
-        second_persistent_data = copy.deepcopy(self.check.state_manager.get_state(self.check._get_state_descriptor()))
-
-        # The second run_check will finalize the previous saved search id and create a new one,
-        # so we make sure this is the case
-        assert self.check.finalized == ["broken_search_result"]
-        self.assertEqual(first_persistent_data, second_persistent_data)
-
-    def test_keep_sid_when_finalize_fails(self):
-        instance = {
-            'url': 'http://localhost:8089',
-            'authentication': {
-                'basic_auth': {
-                    'username': "admin",
-                    'password': "admin"
-                }
-            },
-            'component_saved_searches': [{
-                "name": "broken_search_result",
-                "parameters": {}
-            }],
-            'relation_saved_searches': [],
-            'tags': ['mytag', 'mytag2']
-        }
-
-        self.check = MockedSplunkTopologyFinalizeException(self.CHECK_NAME, {}, {}, [instance])
-        # Run the check but break the search result using the 'broken_result', thiis will persist the sid
-        assert self.check.run() != ''
-
-        first_persistent_data = copy.deepcopy(self.check.state_manager.get_state(self.check._get_state_descriptor()))
-        assert first_persistent_data is not None
-
-        # Run the check 2nd time and get the persistent status data, we break on the finalizer
-        assert 'Finalize exception' in self.check.run()
-
-        second_persistent_data = copy.deepcopy(self.check.state_manager.get_state(self.check._get_state_descriptor()))
-
-        # The second run_check will finalize the previous saved search id and create a new one,
-        # so we make sure this is the case
-        assert self.check.finalized == ["broken_search_result"]
-        self.assertEqual(first_persistent_data, second_persistent_data)
 
     def test_no_snapshot(self):
         instance = {
@@ -440,58 +327,10 @@ class TestSplunkCheck(unittest.TestCase):
 
         self.assertEqual(service_checks[0].status, 1)
         self.assertEqual(service_checks[0].message,
-                         "The saved search 'partially_incomplete_components' contained 1 incomplete component records")
+                         "The saved search 'partially_incomplete_components' contained 1 incomplete records")
         self.assertEqual(service_checks[1].status, 1)
         self.assertEqual(service_checks[1].message,
-                         "The saved search 'partially_incomplete_relations' contained 1 incomplete relation records")
-
-    def test_partially_incomplete_and_incomplete(self):
-        instance = {
-            'url': 'http://localhost:8089',
-            'authentication': {
-                'basic_auth': {
-                    'username': "admin",
-                    'password': "admin"
-                }
-            },
-            'snapshot': True,
-            'component_saved_searches': [{
-                "name": "components",
-                "parameters": {}
-            }],
-            'relation_saved_searches': [{
-                "name": "relations",
-                "parameters": {}
-            }],
-            'tags': ['mytag', 'mytag2']
-        }
-
-        self.check = MockedSplunkTopologyIncompleteAndPartialResult(self.CHECK_NAME, {}, {}, [instance])
-        assert self.check.run() == ''
-        topology.assert_snapshot(self.check.check_id, self.instance_key, True, True,
-                                 [{"id": u"vm_2_1",
-                                   "type": u"vm",
-                                   "data": {
-                                       u"tags": ['integration-type:splunk',
-                                                 'integration-url:http://localhost:8089',
-                                                 'mytag', 'mytag2']
-                                   }
-                                   }],
-                                 [{"type": u"HOSTED_ON",
-                                   "source_id": u"vm_2_1",
-                                   "target_id": u"server_2",
-                                   "data": {
-                                       "tags": ['mytag', 'mytag2']
-                                   }}])
-
-        service_checks = aggregator.service_checks(SplunkTopology.SERVICE_CHECK_NAME)
-
-        self.assertEqual(service_checks[0].status, 1)
-        self.assertEqual(service_checks[0].message,
-                         "The saved search 'components' contained 3 incomplete component records")
-        self.assertEqual(service_checks[1].status, 1)
-        self.assertEqual(service_checks[1].message,
-                         "The saved search 'relations' contained 2 incomplete relation records")
+                         "The saved search 'partially_incomplete_relations' contained 1 incomplete records")
 
     def test_upgrade_error_default_polling_interval(self):
         instance = {
@@ -544,7 +383,7 @@ class TestSplunkCheck(unittest.TestCase):
         self.check = MockedSplunkTopology(self.CHECK_NAME, {}, {}, [instance])
         assert "deprecated config `polling_interval_seconds` found." in self.check.run()
 
-    def test_handle_dispatch_error(self):
+    def test_handle_saved_search_run_error(self):
         instance = {
             'url': 'http://localhost:8089',
             'authentication': {
@@ -554,112 +393,20 @@ class TestSplunkCheck(unittest.TestCase):
                 }
             },
             'component_saved_searches': [{
-                "name": "components",
+                "name": "dispatch_exception",
                 "parameters": {}
             }],
-            'relation_saved_searches': [{
-                "name": "relations",
-                "parameters": {}
-            }],
-            'tags': ['mytag', 'mytag2']
-        }
-
-        self.check = MockedSplunkTopologyDispatchError(self.CHECK_NAME, {}, {}, [instance])
-        assert "BOOM" in self.check.run()
-
-        service_checks = aggregator.service_checks(SplunkTopology.SERVICE_CHECK_NAME)
-        self.assertEqual(service_checks[0].status, 2)
-
-    def test_handle_saved_searches_error(self):
-        instance = {
-            'url': 'http://localhost:8089',
-            'authentication': {
-                'basic_auth': {
-                    'username': "admin",
-                    'password': "admin"
-                }
-            },
-            'component_saved_searches': [{
-                "name": "components",
-                "parameters": {}
-            }],
-            'relation_saved_searches': [{
-                "name": "relations",
-                "parameters": {}
-            }],
-            'tags': ['mytag', 'mytag2']
-        }
-
-        self.check = MockedSplunkTopologySavedSearchesError(self.CHECK_NAME, {}, {}, [instance])
-        assert "BOOM" in self.check.run()
-
-        service_checks = aggregator.service_checks(SplunkTopology.SERVICE_CHECK_NAME)
-        self.assertEqual(service_checks[0].status, 2)
-
-    def test_ignore_saved_searches_error(self):
-        instance = {
-            'url': 'http://localhost:8089',
-            'authentication': {
-                'basic_auth': {
-                    'username': "admin",
-                    'password': "admin"
-                }
-            },
-            'ignore_saved_search_errors': True,
-            'component_saved_searches': [{
-                "name": "components",
-                "parameters": {}
-            }],
-            'relation_saved_searches': [{
-                "name": "relations",
-                "parameters": {}
-            }],
-            'tags': ['mytag', 'mytag2']
-        }
-
-        self.check = MockedSplunkTopologySavedSearchesError(self.CHECK_NAME, {}, {}, [instance])
-        assert self.check.run() == ''
-
-        service_checks = aggregator.service_checks(SplunkTopology.SERVICE_CHECK_NAME)
-        self.assertEqual(service_checks[0].status, 2)
-
-    def test_wildcard_topology(self):
-        instance = {
-            'url': 'http://localhost:8089',
-            'authentication': {
-                'basic_auth': {
-                    'username': "admin",
-                    'password': "admin"
-                }
-            },
-            'component_saved_searches': [{
-                "match": "comp.*",
-                "parameters": {}
-            }],
-            'relation_saved_searches': [{
-                "match": "rela.*",
-                "parameters": {}
-            }],
+            'relation_saved_searches': [],
             'tags': ['mytag', 'mytag2']
         }
 
         self.check = MockedSplunkTopology(self.CHECK_NAME, {}, {}, [instance])
-        self.check.saved_searches = ["components", "relations"]
-        assert self.check.run() == ''
+        assert "BOOM" in self.check.run()
 
-        self.assertEqual(len(topology.get_snapshot(self.check.check_id)['components']), 2)
-        self.assertEquals(len(topology.get_snapshot(self.check.check_id)['relations']), 1)
+        service_checks = aggregator.service_checks(SplunkTopology.SERVICE_CHECK_NAME)
+        self.assertEqual(service_checks[0].status, 2)
 
-        topology.reset()
-        self.check.saved_searches = []
-        assert self.check.run() == ''
-
-        self.assertEqual(len(topology.get_snapshot(self.check.check_id)['components']), 0)
-        self.assertEquals(len(topology.get_snapshot(self.check.check_id)['relations']), 0)
-
-    def test_does_not_exceed_parallel_dispatches(self):
-        saved_searches_parallel = 2
-
+    def test_ignore_saved_search_run_error(self):
         instance = {
             'url': 'http://localhost:8089',
             'authentication': {
@@ -668,20 +415,20 @@ class TestSplunkCheck(unittest.TestCase):
                     'password': "admin"
                 }
             },
-            'saved_searches_parallel': saved_searches_parallel,
-            'component_saved_searches': [
-                {"name": "savedsearch1", "element_type": "component", "parameters": {}},
-                {"name": "savedsearch2", "element_type": "component", "parameters": {}},
-                {"name": "savedsearch3", "element_type": "component", "parameters": {}}
-            ],
-            'relation_saved_searches': [
-                {"name": "savedsearch4", "element_type": "relation", "parameters": {}},
-                {"name": "savedsearch5", "element_type": "relation", "parameters": {}}
-            ]
+            'component_saved_searches': [{
+                "name": "dispatch_exception",
+                "parameters": {}
+            }],
+            'relation_saved_searches': [],
+            'ignore_saved_search_errors': True,
+            'tags': ['mytag', 'mytag2']
         }
 
-        self.check = MockedSplunkTopologyCheckParallel(self.CHECK_NAME, {}, {}, [instance])
+        self.check = MockedSplunkTopology(self.CHECK_NAME, {}, {}, [instance])
         assert self.check.run() == ''
+
+        service_checks = aggregator.service_checks(SplunkTopology.SERVICE_CHECK_NAME)
+        self.assertEqual(service_checks[0].status, 2)
 
     def test_default_parameters(self):
         instance = {
@@ -703,7 +450,9 @@ class TestSplunkCheck(unittest.TestCase):
         self.check = MockedSplunkTopology(self.CHECK_NAME, {}, {}, [instance])
         assert self.check.run() == ''
 
-        assert self.check._dispatch_parameters == {'dispatch.now': True, 'force_dispatch': True, 'output_mode': 'json'}
+        assert self.check.instance_data.splunk_client._dispatch_parameters == {'dispatch.now': True,
+                                                                               'force_dispatch': True,
+                                                                               'output_mode': 'json'}
 
     def test_non_default_parameters(self):
         instance = {
@@ -730,7 +479,7 @@ class TestSplunkCheck(unittest.TestCase):
         self.check = MockedSplunkTopology(self.CHECK_NAME, init_config, {}, [instance])
         assert self.check.run() == ''
 
-        assert self.check._dispatch_parameters == {'respect': 'me', 'output_mode': 'json'}
+        assert self.check.instance_data.splunk_client._dispatch_parameters == {'respect': 'me', 'output_mode': 'json'}
 
     def test_non_default_parameters_override(self):
         instance = {
@@ -763,94 +512,7 @@ class TestSplunkCheck(unittest.TestCase):
         self.check = MockedSplunkTopology(self.CHECK_NAME, init_config, {}, [instance])
         assert self.check.run() == ''
 
-        assert self.check._dispatch_parameters == {'respect': 'me', 'output_mode': 'json'}
-
-    def test_check_exception_continue(self):
-        """
-        When 1 saved search fails with Check Exception, the code should continue and send topology.
-        """
-        instance = {
-            'url': 'http://localhost:8089',
-            'authentication': {
-                'basic_auth': {
-                    'username': "admin",
-                    'password': "admin"
-                }
-            },
-            'ignore_saved_search_errors': True,
-            'component_saved_searches': [
-                {"name": "components", "search_max_retry_count": 0, "parameters": {}},
-                {"name": "exception", "search_max_retry_count": 0, "parameters": {}}
-            ],
-            'relation_saved_searches': []
-        }
-
-        self.check = MockedSplunkTopology(self.CHECK_NAME, {}, {}, [instance])
-        assert self.check.run() == ''
-
-        self.assertEqual(len(topology.get_snapshot(self.check.check_id)['components']), 2)
-        self.assertEquals(len(topology.get_snapshot(self.check.check_id)['relations']), 0)
-
-        service_checks = aggregator.service_checks(SplunkTopology.SERVICE_CHECK_NAME)
-        self.assertEqual(service_checks[0].status, 1)
-
-    def test_check_exception_false_no_continue(self):
-        """
-        When 1 saved search fails with Check Exception, the code should break and clear the whole topology.
-        """
-        instance = {
-            'url': 'http://localhost:8089',
-            'authentication': {
-                'basic_auth': {
-                    'username': "admin",
-                    'password': "admin"
-                }
-            },
-            'ignore_saved_search_errors': False,
-            'component_saved_searches': [
-                {"name": "components", "search_max_retry_count": 0, "parameters": {}},
-                {"name": "exception", "search_max_retry_count": 0, "parameters": {}}
-            ],
-            'relation_saved_searches': []
-        }
-
-        self.check = MockedSplunkTopology(self.CHECK_NAME, {}, {}, [instance])
-        assert self.check.run() != ''
-
-        service_checks = aggregator.service_checks(SplunkTopology.SERVICE_CHECK_NAME)
-        self.assertEqual(service_checks[0].status, 2)
-
-    def test_check_exception_fail_count_continue(self):
-        """
-        When both saved search fails with Check Exception, the code should continue and send topology.
-        """
-        instance = {
-            'url': 'http://localhost:8089',
-            'authentication': {
-                'basic_auth': {
-                    'username': "admin",
-                    'password': "admin"
-                }
-            },
-            'ignore_saved_search_errors': True,
-            'component_saved_searches': [
-                {"name": "incomplete_components", "search_max_retry_count": 0, "parameters": {}},
-                {"name": "exception", "search_max_retry_count": 0, "parameters": {}}
-            ],
-            'relation_saved_searches': []
-        }
-
-        self.check = MockedSplunkTopology(self.CHECK_NAME, {}, {}, [instance])
-        assert self.check.run() == ''
-
-        topology.assert_snapshot(self.check.check_id, self.instance_key, True, True, [], [])
-
-        service_checks = aggregator.service_checks(SplunkTopology.SERVICE_CHECK_NAME)
-        self.assertEqual(service_checks[0].status, 1)
-        self.assertEqual(service_checks[0].message,
-                         "All result of saved search 'incomplete_components' contained incomplete data")
-        self.assertEqual(service_checks[1].status, 1)
-        self.assertEqual(service_checks[1].message, "maximum retries reached for saved search exception")
+        assert self.check.instance_data.splunk_client._dispatch_parameters == {'respect': 'me', 'output_mode': 'json'}
 
     def test_check_valid_initial_token(self):
         """
@@ -900,7 +562,12 @@ class TestSplunkCheck(unittest.TestCase):
             'tags': ['mytag', 'mytag2']
         }
 
-        self.check = MockedSplunkTopologyInvalidToken(self.CHECK_NAME, {}, {}, [instance])
+        self.check = MockedSplunkTopology(self.CHECK_NAME, {}, {}, [instance])
+        # Run once to initialize
+        assert self.check.run() == ''
+        aggregator.reset()
+
+        self.check.instance_data.splunk_client.invalid_token = True
         assert self.check.run() == ''
 
         msg = "Current in use authentication token is expired. Please provide a valid token in the YAML and restart " \
@@ -932,7 +599,7 @@ class TestSplunkCheck(unittest.TestCase):
             'tags': ['mytag', 'mytag2']
         }
 
-        self.check = MockedSplunkTopologyInvalidToken(self.CHECK_NAME, {}, {}, [instance])
+        self.check = MockedSplunkTopology(self.CHECK_NAME, {}, {}, [instance])
         assert self.check.run() != ''
 
     def test_check_name_param_not_set(self):

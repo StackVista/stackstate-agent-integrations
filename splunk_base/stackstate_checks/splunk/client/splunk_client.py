@@ -45,13 +45,13 @@ class SplunkClient(object):
         self.log = logging.getLogger('%s' % __name__)
         self.requests_session = requests.session()
 
-    def auth_session(self, status):
+    def auth_session(self, committable_state):
         if self.instance_config.auth_type == AuthType.BasicAuth:
             self.log.debug("Using user/password based authentication mechanism")
             self._basic_auth()
         elif self.instance_config.auth_type == AuthType.TokenAuth:
             self.log.debug("Using token based authentication mechanism")
-            self._token_auth_session(status)
+            self._token_auth_session(committable_state)
 
     def _basic_auth(self):
         """
@@ -75,10 +75,9 @@ class SplunkClient(object):
         session_key = response_json["sessionKey"]
         self.requests_session.headers.update({'Authentication': "Splunk %s" % session_key})
 
-    def _token_auth_session(self, status):
-        persist_token_key = "auth_token"
+    def _token_auth_session(self, committable_state):
         is_initial_token = False
-        token = status.get(persist_token_key)
+        token = committable_state.get_auth_token()
         if token is None:
             # Since this is first time run, pick the token from conf.yaml
             token = self.instance_config.initial_token
@@ -91,7 +90,7 @@ class SplunkClient(object):
         if self._need_renewal(token, is_initial_token):
             self.log.debug("The token needs renewal as token is about to expire or this is initial token")
             token = self._create_auth_token(token)
-            status[persist_token_key] = token
+            committable_state.set_auth_token(token)
         self.requests_session.headers.update({'Authorization': "Bearer %s" % token})
 
     def _create_auth_token(self, token):
@@ -224,7 +223,7 @@ class SplunkClient(object):
             # in case of token based mechanism, username won't exist and need to use `name` from token config
             return self.instance_config.name
 
-    def dispatch(self, saved_search, splunk_app, splunk_ignore_saved_search_errors, parameters):
+    def dispatch(self, saved_search, splunk_app, ignore_saved_search_errors, parameters):
         """
         :param saved_search: The saved search to dispatch
         :param splunk_user: Splunk user that dispatches the saved search
@@ -238,7 +237,7 @@ class SplunkClient(object):
         response_body = self._do_post(dispatch_path,
                                       parameters,
                                       saved_search.request_timeout_seconds,
-                                      splunk_ignore_saved_search_errors).json()
+                                      ignore_saved_search_errors).json()
         return response_body.get("sid")
 
     def finalize_sid(self, search_id, saved_search):
