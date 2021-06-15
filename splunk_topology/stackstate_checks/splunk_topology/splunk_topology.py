@@ -82,58 +82,25 @@ class SplunkTopology(AgentCheck):
 
     def __init__(self, name, init_config, agentConfig, instances=None):
         super(SplunkTopology, self).__init__(name, init_config, agentConfig, instances)
-        # Data to keep over check runs, keyed by instance url
-        self.instance_data = dict()
+        # Data to keep over check runs
+        self.instance_data = None
 
     def get_instance_key(self, instance):
         return TopologyInstance(Instance.INSTANCE_TYPE, instance["url"])
 
     def check(self, instance):
-        authentication = None
-        if 'url' not in instance:
-            raise CheckException('Splunk topology instance missing "url" value.')
-        if 'username' in instance and 'password' in instance and 'authentication' not in instance:
-            self.log.warning("This username and password configuration will be deprecated soon. Please use the new "
-                             "updated configuration from the conf")
-        if 'authentication' in instance:
-            authentication = instance["authentication"]
-            if 'basic_auth' not in authentication and 'token_auth' not in authentication:
-                raise CheckException('Splunk topology instance missing "authentication.basic_auth" or '
-                                     '"authentication.token_auth" value')
-            if 'basic_auth' in authentication:
-                basic_auth = authentication["basic_auth"]
-                if 'username' not in basic_auth:
-                    raise CheckException('Splunk topology instance missing "authentication.basic_auth.username" value')
-                if 'password' not in basic_auth:
-                    raise CheckException('Splunk topology instance missing "authentication.basic_auth.password" value')
-            if 'token_auth' in authentication:
-                token_auth = authentication["token_auth"]
-                if 'name' not in token_auth:
-                    raise CheckException('Splunk topology instance missing "authentication.token_auth.name" value')
-                if 'initial_token' not in token_auth:
-                    raise CheckException('Splunk topology instance missing "authentication.token_auth.initial_token" '
-                                         'value')
-                if 'audience' not in token_auth:
-                    raise CheckException('Splunk topology instance missing "authentication.token_auth.audience" value')
-
-        if instance["url"] not in self.instance_data:
-            self.instance_data[instance["url"]] = Instance(instance, self.init_config)
+        if self.instance_data is None:
+            self.instance_data = Instance(instance, self.init_config)
 
         state = self.load_state(instance)
 
-        instance = self.instance_data[instance["url"]]
+        instance = self.instance_data
 
         if instance.snapshot:
             self.start_snapshot()
 
         try:
-            if authentication and 'token_auth' in authentication:
-                self.log.debug("Using token based authentication mechanism")
-                base_url = instance.instance_config.base_url
-                self._token_auth_session(instance, authentication, base_url, state)
-            else:
-                self.log.debug("Using basic authentication mechanism")
-                self._auth_session(instance)
+            self._auth_session(instance, state)
 
             saved_searches = self._saved_searches(instance)
             instance.saved_searches.update_searches(self.log, saved_searches)
@@ -163,12 +130,11 @@ class SplunkTopology(AgentCheck):
         # don't dispatch if sids present
         for saved_search in saved_searches:
             try:
-                persist_status_key = instance.instance_config.base_url + saved_search.name
+                persist_status_key = saved_search.name
                 if state.get(persist_status_key) is not None:
                     sid = state[persist_status_key]
                     self._finalize_sid(instance, sid, saved_search)
-                    self.update_persistent_state(state, instance.instance_config.base_url, saved_search.name, sid,
-                                                 'remove')
+                    self.update_persistent_state(state, saved_search.name, sid, 'remove')
             except FinalizeException as e:
                 self.log.exception(
                     "Got an error %s while finalizing the saved search %s" % (e.message, saved_search.name))
@@ -265,14 +231,13 @@ class SplunkTopology(AgentCheck):
         # json output_mode is mandatory for response parsing
         parameters["output_mode"] = "json"
 
-        splunk_user = instance.instance_config.username
         splunk_app = saved_search.app
         splunk_ignore_saved_search_errors = instance.splunk_ignore_saved_search_errors
 
         self.log.debug("Dispatching saved search: %s." % saved_search.name)
-        sid = self._dispatch(instance, saved_search, splunk_user, splunk_app, splunk_ignore_saved_search_errors,
+        sid = self._dispatch(instance, saved_search, splunk_app, splunk_ignore_saved_search_errors,
                              parameters)
-        self.update_persistent_state(state, instance.instance_config.base_url, saved_search.name, sid, 'add')
+        self.update_persistent_state(state, saved_search.name, sid, 'add')
         return sid
 
     def _extract_components(self, instance, result):
@@ -331,19 +296,14 @@ class SplunkTopology(AgentCheck):
                 result[key] = value
         return result
 
-    def _auth_session(self, instance):
+    def _auth_session(self, instance, status):
         """ This method is mocked for testing. Do not change its behavior """
-        instance.splunkClient.auth_session()
+        instance.splunkClient.auth_session(status)
+        self.commit_state(status)
 
-    def _token_auth_session(self, instance, authentication, base_url, state):
+    def _dispatch(self, instance, saved_search, splunk_app, _ignore_saved_search, parameters):
         """ This method is mocked for testing. Do not change its behavior """
-        result = instance.splunkClient.token_auth_session(authentication, base_url, state)
-        self.commit_state(state)
-        return result
-
-    def _dispatch(self, instance, saved_search, splunk_user, splunk_app, _ignore_saved_search, parameters):
-        """ This method is mocked for testing. Do not change its behavior """
-        return instance.splunkClient.dispatch(saved_search, splunk_user, splunk_app, _ignore_saved_search, parameters)
+        return instance.splunkClient.dispatch(saved_search, splunk_app, _ignore_saved_search, parameters)
 
     def _finalize_sid(self, instance, sid, saved_search):
         """ This method is mocked for testing. Do not change its behavior """
@@ -355,21 +315,19 @@ class SplunkTopology(AgentCheck):
             state = {}
         return state
 
-    def update_persistent_state(self, state, base_url, qualifier, data, action):
+    def update_persistent_state(self, state, qualifier, data, action):
         """
-        :param dictionary with the current persisted state
-        :param base_url: base_url of the instance
+        :param state: dictionary with the current persisted state
         :param qualifier: a string used for making a unique key
         :param data: value of key
         :param action: action like add, remove or clear to perform
 
         This method persists the storage for the key when it is modified
         """
-        key = base_url + qualifier if qualifier else base_url
         if action == 'remove':
-            state.pop(key, None)
+            state.pop(qualifier, None)
         elif action == 'clear':
             state.clear()
         else:
-            state[key] = data
+            state[qualifier] = data
         self.commit_state(state)

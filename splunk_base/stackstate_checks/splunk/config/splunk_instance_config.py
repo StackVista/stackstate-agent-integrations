@@ -1,7 +1,9 @@
 import datetime
 import re
 import copy
+import logging
 
+from enum import Enum
 from six import PY3
 from iso8601 import iso8601
 from pytz import timezone
@@ -70,8 +72,15 @@ class SplunkSavedSearch(object):
         return telemetry
 
 
+class AuthType(Enum):
+    BasicAuth = "BasicAuth"
+    TokenAuth = "TokenAuth"
+
+
 class SplunkInstanceConfig(object):
     def __init__(self, instance, init_config, defaults):
+        self.log = logging.getLogger('%s' % __name__)
+
         self.defaults = defaults
         self.init_config = init_config
 
@@ -85,21 +94,49 @@ class SplunkInstanceConfig(object):
         self.default_parameters = self.get_or_default('default_parameters')
 
         self.verify_ssl_certificate = bool(instance.get('verify_ssl_certificate', self.default_verify_ssl_certificate))
+
+        if 'url' not in instance:
+            raise CheckException('Instance is missing "url" value.')
         self.base_url = instance['url']
-        # username and password to support backward compatibility
-        self.username = instance.get('username')
-        self.password = instance.get('password')
-        authentication = instance.get("authentication")
-        if authentication is not None:
-            if 'basic_auth' in authentication:
-                # this will override the credentials if someone using latest config section
-                self.username = authentication.get("basic_auth").get("username")
-                self.password = authentication.get("basic_auth").get("password")
+
+        if 'authentication' in instance:
+            authentication = instance["authentication"]
             if 'token_auth' in authentication:
-                self.audience = authentication.get("token_auth").get("audience")
-                self.name = authentication.get("token_auth").get("name")
-                self.token_expiration_days = authentication.get("token_auth").get("token_expiration_days", 90)
-                self.renewal_days = authentication.get("token_auth").get("renewal_days", 10)
+                token_auth = authentication["token_auth"]
+                if 'name' not in token_auth:
+                    raise CheckException('Instance missing "authentication.token_auth.name" value')
+                if 'initial_token' not in token_auth:
+                    raise CheckException('Instance missing "authentication.token_auth.initial_token" '
+                                         'value')
+                if 'audience' not in token_auth:
+                    raise CheckException('Instance missing "authentication.token_auth.audience" value')
+                self.auth_type = AuthType.TokenAuth
+                self.audience = token_auth.get("audience")
+                self.initial_token = token_auth.get("initial_token")
+                self.name = token_auth.get("name")
+                self.token_expiration_days = token_auth.get("token_expiration_days", 90)
+                self.renewal_days = token_auth.get("renewal_days", 10)
+            elif 'basic_auth' in authentication:
+                basic_auth = authentication["basic_auth"]
+                if 'username' not in basic_auth:
+                    raise CheckException('Instance missing "authentication.basic_auth.username" value')
+                if 'password' not in basic_auth:
+                    raise CheckException('Instance missing "authentication.basic_auth.password" value')
+                self.auth_type = AuthType.BasicAuth
+                self.username = basic_auth.get("username")
+                self.password = basic_auth.get("password")
+            else:
+                raise CheckException('Instance missing "authentication.basic_auth" or '
+                                     '"authentication.token_auth" value')
+        else:
+            if instance.get('username') is not None and instance.get('password') is not None:
+                self.log.warning("This username and password configuration will be deprecated soon. Please use the new "
+                                 "updated configuration from the conf")
+                self.username = instance.get('username')
+                self.password = instance.get('password')
+                self.auth_type = AuthType.BasicAuth
+            else:
+                raise CheckException("Instance missing 'authentication'.")
 
         self.ignore_saved_search_errors = instance.get('ignore_saved_search_errors', False)
 

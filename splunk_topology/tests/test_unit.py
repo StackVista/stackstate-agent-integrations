@@ -29,7 +29,6 @@ class MockedSplunkTopology(SplunkTopology):
         self.finalized = []
         self.saved_searches = []
         self._dispatch_parameters = None
-        self._token_auth_session_authentication = None
 
     def _search(self, search_id, saved_search, instance):
         if search_id == "exception":
@@ -40,14 +39,10 @@ class MockedSplunkTopology(SplunkTopology):
     def _saved_searches(self, instance):
         return self.saved_searches
 
-    def _auth_session(self, instance_key):
-        return "sessionKey1"
+    def _auth_session(self, instance, status):
+        return
 
-    def _token_auth_session(self, instance, authentication, base_url, state):
-        self._token_auth_session_authentication = authentication
-        return False
-
-    def _dispatch(self, instance, saved_search, splunk_user, splunk_app, _ignore_saved_search, parameters):
+    def _dispatch(self, instance, saved_search, splunk_app, _ignore_saved_search, parameters):
         self._dispatch_parameters = parameters
         return saved_search.name
 
@@ -80,7 +75,7 @@ class MockedSplunkTopologyDispatchError(MockedSplunkTopology):
     def __init__(self, *args, **kwargs):
         super(MockedSplunkTopologyDispatchError, self).__init__(*args, **kwargs)
 
-    def _dispatch(self, instance, saved_search, splunk_user, splunk_app, _ignore_saved_search, parameters):
+    def _dispatch(self, instance, saved_search, splunk_app, _ignore_saved_search, parameters):
         raise Exception("BOOM")
 
 
@@ -113,7 +108,7 @@ class MockedSplunkTopologyInvalidToken(SplunkTopology):
     def __init__(self, *args, **kwargs):
         super(MockedSplunkTopologyInvalidToken, self).__init__(*args, **kwargs)
 
-    def _token_auth_session(self, instance, authentication, base_url, state):
+    def _auth_session(self, instance, state):
         raise TokenExpiredException("Current in use authentication token is expired. Please provide a valid "
                                     "token in the YAML and restart the Agent")
 
@@ -151,124 +146,6 @@ class TestSplunkCheck(unittest.TestCase):
     def test_components_and_relation_data(self):
         instance = {
             'url': 'http://localhost:8089',
-            'authentication': {
-                'basic_auth': {
-                    'username': "admin",
-                    'password': "admin"
-                }
-            },
-            'component_saved_searches': [{
-                "name": "components",
-                "parameters": {}
-            }],
-            'relation_saved_searches': [{
-                "name": "relations",
-                "parameters": {}
-            }],
-            'tags': ['mytag', 'mytag2']
-        }
-
-        self.check = MockedSplunkTopology(self.CHECK_NAME, {}, {}, [instance])
-        assert self.check.run() == ''
-        topology.assert_snapshot(self.check.check_id, self.instance_key, True, True,
-                                 [{
-                                     'id': u'vm_2_1',
-                                     'type': u'vm',
-                                     'data': {
-                                         u"running": True,
-                                         u"_time": "2017-03-06T14:55:54.000+00:00",
-                                         u"label.label1Key": "label1Value",
-                                         u"tags": ['integration-type:splunk',
-                                                   'integration-url:http://localhost:8089',
-                                                   'mytag', 'mytag2', 'result_tag1']
-                                     }
-                                 }, {
-                                     "id": u"server_2",
-                                     "type": u"server",
-                                     "data": {
-                                         u"description": "My important server 2",
-                                         u"_time": "2017-03-06T14:55:54.000+00:00",
-                                         u"label.label2Key": "label2Value",
-                                         u"tags": ['integration-type:splunk',
-                                                   'integration-url:http://localhost:8089',
-                                                   'mytag', 'mytag2', 'result_tag2']
-                                     }
-                                 }],
-                                 [{
-                                     "type": u"HOSTED_ON",
-                                     "source_id": u"vm_2_1",
-                                     "target_id": u"server_2",
-                                     "data": {
-                                         u"description": "Some relation",
-                                         u"_time": "2017-03-06T15:10:57.000+00:00",
-                                         "tags": ['mytag', 'mytag2']
-                                     }
-                                 }])
-
-        service_checks = aggregator.service_checks(SplunkTopology.SERVICE_CHECK_NAME)
-        self.assertEqual(service_checks[0].status, 0)
-
-    def test_checks_backward_compatibility(self):
-        instance = {
-            'url': 'http://localhost:8089',
-            'username': 'admin',
-            'password': 'admin',
-            'component_saved_searches': [{
-                "name": "components",
-                "parameters": {}
-            }],
-            'relation_saved_searches': [{
-                "name": "relations",
-                "parameters": {}
-            }],
-            'tags': ['mytag', 'mytag2']
-        }
-
-        self.check = MockedSplunkTopology(self.CHECK_NAME, {}, {}, [instance])
-        assert self.check.run() == ''
-        topology.assert_snapshot(self.check.check_id, self.instance_key, True, True,
-                                 [{
-                                     'id': u'vm_2_1',
-                                     'type': u'vm',
-                                     'data': {
-                                         u"running": True,
-                                         u"_time": "2017-03-06T14:55:54.000+00:00",
-                                         u"label.label1Key": "label1Value",
-                                         u"tags": ['integration-type:splunk',
-                                                   'integration-url:http://localhost:8089',
-                                                   'mytag', 'mytag2', 'result_tag1']
-                                     }
-                                 }, {
-                                     "id": u"server_2",
-                                     "type": u"server",
-                                     "data": {
-                                         u"description": "My important server 2",
-                                         u"_time": "2017-03-06T14:55:54.000+00:00",
-                                         u"label.label2Key": "label2Value",
-                                         u"tags": ['integration-type:splunk',
-                                                   'integration-url:http://localhost:8089',
-                                                   'mytag', 'mytag2', 'result_tag2']
-                                     }
-                                 }],
-                                 [{
-                                     "type": u"HOSTED_ON",
-                                     "source_id": u"vm_2_1",
-                                     "target_id": u"server_2",
-                                     "data": {
-                                         u"description": "Some relation",
-                                         u"_time": "2017-03-06T15:10:57.000+00:00",
-                                         "tags": ['mytag', 'mytag2']
-                                     }
-                                 }])
-
-        service_checks = aggregator.service_checks(SplunkTopology.SERVICE_CHECK_NAME)
-        self.assertEqual(service_checks[0].status, 0)
-
-    def test_checks_backward_compatibility_with_new_conf(self):
-        instance = {
-            'url': 'http://localhost:8089',
-            'username': 'admin',
-            'password': 'admin',
             'authentication': {
                 'basic_auth': {
                     'username': "admin",
@@ -1082,35 +959,3 @@ class TestSplunkCheck(unittest.TestCase):
 
         self.check = MockedSplunkTopology(self.CHECK_NAME, {}, {}, [instance])
         assert self.check.run() != ''
-
-    def test_check_token_auth_preferred_over_basic_auth(self):
-        """
-            Splunk topology check should prefer Token based authentication over Basic auth mechanism
-        """
-
-        instance = {
-            'url': 'http://localhost:8089',
-            'authentication': {
-                'basic_auth': {
-                    'username': "admin",
-                    'password': "admin"
-                },
-                'token_auth': {
-                    'name': "api-admin",
-                    'initial_token': "dsfdgfhgjhkjuyr567uhfe345ythu7y6tre456sdx",
-                    'audience': "admin",
-                    'renewal_days': 10
-                }
-            },
-            'component_saved_searches': [{
-                "name": "components",
-                "parameters": {}
-            }],
-            'relation_saved_searches': [],
-            'tags': ['mytag', 'mytag2']
-        }
-
-        self.check = MockedSplunkTopology(self.CHECK_NAME, {}, {}, [instance])
-        assert self.check.run() == ''
-        # Witness that the token auth was picked
-        assert self.check._token_auth_session_authentication is not None
