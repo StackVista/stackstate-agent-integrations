@@ -76,6 +76,8 @@ def wrapper(testinstance, not_authorized, subdirectory, use_gz, events_file=None
                 return msg
             else:
                 return {}
+        if operation_name == 'delete_objects':
+            return {}
         if operation_name in not_authorized:
             raise botocore.exceptions.ClientError({"Error": {"Code": "AccessDenied"}}, operation_name)
         apidir = api
@@ -103,7 +105,10 @@ def wrapper(testinstance, not_authorized, subdirectory, use_gz, events_file=None
             raise Exception(error)
         # If an error code is included in the response metadata, raise this instead
         if "Error" in result.get("ResponseMetadata", {}):
-            raise botocore.exceptions.ClientError({"Error": result["ResponseMetadata"]["Error"]}, operation_name)
+            raise botocore.exceptions.ClientError(
+                {"Error": {"Code": result["ResponseMetadata"]["Error"]}},
+                operation_name
+            )
         else:
             return result
 
@@ -238,9 +243,9 @@ class TestCloudtrail(unittest.TestCase):
 
     def test_process_cloudtrail(self):
         self.check.run()
+        self.assert_executed_ok()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
 
         components = topology[0]["components"]
 

@@ -8,7 +8,7 @@ import time
 import traceback
 from botocore.exceptions import ClientError
 from schematics import Model
-from schematics.types import StringType, ListType, DictType, DateTimeType, ModelType
+from schematics.types import StringType, ListType, DictType, DateTimeType, ModelType, IntType
 from botocore.config import Config
 from stackstate_checks.base import AgentCheck, TopologyInstance
 from .resources import ResourceRegistry, type_arn, RegisteredResourceCollector
@@ -34,6 +34,7 @@ class InitConfig(Model):
     aws_access_key_id = StringType(required=True)
     aws_secret_access_key = StringType(required=True)
     external_id = StringType(required=True)
+    full_run_interval = IntType(default=3600)
 
 
 class State(Model):
@@ -64,8 +65,8 @@ class AwsTopologyCheck(AgentCheck):
     def get_instance_key(self, instance_info):
         return TopologyInstance(self.INSTANCE_TYPE, str(self.get_account_id(instance_info)))
 
-    def must_run_full(self, instance_info):
-        return seconds_ago(instance_info.state.last_full_topology) > 60*60
+    def must_run_full(self, instance_info, interval):
+        return seconds_ago(instance_info.state.last_full_topology) > interval
 
     def check(self, instance_info):
         try:
@@ -87,13 +88,13 @@ class AwsTopologyCheck(AgentCheck):
                 instance_info.state = State(
                     {
                         'last_full_topology': datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(
-                            minutes=61
+                            seconds=init_config.full_run_interval + 60
                         )
                     }
                 )
             self.delete_ids = []
             self.components_seen = set()
-            if self.must_run_full(instance_info):
+            if self.must_run_full(instance_info, init_config.full_run_interval):
                 instance_info.state.last_full_topology = datetime.utcnow().replace(tzinfo=pytz.utc)
                 self.get_topology(instance_info, aws_client)
             self.get_topology_update(instance_info, aws_client)
@@ -180,7 +181,8 @@ class AwsTopologyCheck(AgentCheck):
                 instance_info.log_bucket_name,
                 self.get_account_id(instance_info),
                 session,
-                agent_proxy
+                agent_proxy,
+                self.log
             )
             # collect the events (ordering is most recent event first)
             for event in collector.get_messages(not_before):

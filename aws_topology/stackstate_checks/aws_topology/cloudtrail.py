@@ -6,6 +6,7 @@ import gzip
 import io
 import botocore
 from six import string_types, PY2
+import re
 
 
 try:
@@ -15,17 +16,22 @@ except AttributeError:  # Python 2
 
 
 class CloudtrailCollector(object):
-    def __init__(self, bucket_name, account_id, session, agent):
+    MAX_S3_DELETES = 999
+
+    def __init__(self, bucket_name, account_id, session, agent, log):
         self.bucket_name = bucket_name
         self.session = session
         self.agent = agent
         self.account_id = account_id
+        self.log = log
 
     def get_messages(self, not_before):
         try:
             # try s3
             return self._get_messages_from_s3(not_before)
-        except Exception:
+        except Exception as e:
+            self.log.exception(e)
+            self.log.info("Collecting EventBridge events from S3 failed, falling back to CloudTrail history")
             # try loopup_events
             self.agent.warning("Falling back to slower Cloudtrail lookup_events")
             return self._get_messages_from_cloudtrail(not_before)
@@ -40,24 +46,26 @@ class CloudtrailCollector(object):
         client = self.session.client("s3")
         region = client.meta.region_name
         bucket_name = self._get_bucket_name()
+        self.log.info("Start collecting EventBridge events from S3 bucket {} for region {}".format(bucket_name, region))
         to_delete = []
         files_to_handle = []
-        # s3:ListBucket
-        # NoSuchBucket
         for pg in client.get_paginator("list_objects_v2").paginate(
             Bucket=bucket_name, Prefix="AWSLogs/{act}/EventBridge/{rgn}/".format(act=self.account_id, rgn=region)
         ):
-            for itm in pg.get("Contents") or []:
-                pts = []
-                try:
-                    pts = [int(i) for i in itm["Key"][-59 : -59 + 19].split("-")]
-                except ValueError:
-                    pass
-                if len(pts) == 6:
-                    dt = datetime(pts[0], pts[1], pts[2], pts[3], pts[4], pts[5]).replace(tzinfo=pytz.utc)
+            contents = pg.get("Contents") or []
+            self.log.info("Found {} objects in the S3 bucket".format(len(contents)))
+            for itm in contents:
+                # get the datetime from the objects key
+                key_regex = r"(?P<y>\d{4})-(?P<m>\d{2})-(?P<d>\d{2})-(?P<h>\d{2})-(?P<mm>\d{2})-(?P<s>\d{2})"
+                pts = re.search(key_regex, itm.get("Key", ""))
+                if pts:
+                    pts = pts.groupdict()
+                    dt = datetime(
+                        int(pts["y"]), int(pts["m"]), int(pts["d"]), int(pts["h"]), int(pts["mm"]), int(pts["s"])
+                    ).replace(tzinfo=pytz.utc)
                     if dt < not_before:
                         to_delete.append({"Key": itm["Key"]})
-                        if len(to_delete) > 999:
+                        if len(to_delete) > self.MAX_S3_DELETES:
                             self._delete_files(client, bucket_name, to_delete)
                             to_delete = []
                     else:
@@ -69,6 +77,7 @@ class CloudtrailCollector(object):
     def _get_messages_from_cloudtrail(self, not_before):
         client = self.session.client("cloudtrail")
         # collect the events (ordering is most recent event first)
+        self.log.info("Start collecting EventBridge events from CloudTrail history (can have 15 minutes delay)")
         for pg in client.get_paginator("lookup_events").paginate(
             LookupAttributes=[{"AttributeKey": "ReadOnly", "AttributeValue": "false"}],
         ):
@@ -79,14 +88,18 @@ class CloudtrailCollector(object):
                     yield rec
 
     def _delete_files(self, client, bucket_name, files):
-        try:
-            for i in range(0, len(files), 999):
+        for i in range(0, len(files), self.MAX_S3_DELETES):
+            try:
+                self.log.info(
+                    "Deleting {} files from S3 bucket {}".format(len(files[i : i + self.MAX_S3_DELETES]), bucket_name)
+                )
                 client.delete_objects(
                     Bucket=bucket_name,
-                    Delete={"Objects": files[i : i + 999], "Quiet": True},
+                    Delete={"Objects": files[i : i + self.MAX_S3_DELETES], "Quiet": True},
                 )
-        except Exception:
-            self.agent.warning("CloudtrailCollector: Deleting s3 files failed")
+            except Exception as e:
+                self.log.exception(e)
+                self.agent.warning("CloudtrailCollector: Deleting s3 files failed")
 
     def _is_gz_file(self, body):
         with io.BytesIO(body) as test_f:
@@ -107,7 +120,9 @@ class CloudtrailCollector(object):
             return io.BytesIO(body)
 
     def _process_files(self, client, bucket_name, files):
+        self.log.info("Starting processing of {} S3 objects".format(len(files)))
         for file in reversed(files):
+            self.log.info("Starting processing of object {}".format(file))
             objects = []
             s3_body = client.get_object(Bucket=bucket_name, Key=file).get("Body")
             with self._get_stream(s3_body) as data:
@@ -117,10 +132,16 @@ class CloudtrailCollector(object):
                     try:
                         obj, index = decoder.raw_decode(txt)
                         txt = txt[index:]
-                        if "detail" in obj:
+                        msg_type = obj.get("detail-type", "")
+                        detail = obj.get("detail", {})
+                        if msg_type == "EC2 Instance State-change Notification":
+                            detail["eventSource"] = "ec2.amazonaws.com"
+                            detail["eventName"] = "InstanceStateChangeNotification"
+                        if detail:
                             objects.append(obj["detail"])
                     except JSONParseException:
                         txt = ""
-                for event in reversed(objects):
-                    yield event
+            self.log.info("Object {} contained {} events".format(file, len(objects)))
+            for event in reversed(objects):
+                yield event
             self._delete_files(client, bucket_name, [{"Key": file}])
