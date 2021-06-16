@@ -82,6 +82,14 @@ def set_cloudtrail_event(value):
     return inner
 
 
+def set_eventbridge_event(value):
+    def inner(func):
+        func.eventbridge_event = value
+        return func
+
+    return inner
+
+
 def set_filter(value):
     def inner(func):
         func.filter = value
@@ -113,7 +121,7 @@ def resource(path):
     return x
 
 
-def wrapper(api, not_authorized, subdirectory, event_name=None):
+def wrapper(api, not_authorized, subdirectory, event_name=None, eventbridge_event_name=None):
     def mock_boto_calls(self, *args, **kwargs):
         if args[0] == "AssumeRole":
             return {"Credentials": {"AccessKeyId": "KEY_ID", "SecretAccessKey": "ACCESS_KEY", "SessionToken": "TOKEN"}}
@@ -127,6 +135,19 @@ def wrapper(api, not_authorized, subdirectory, event_name=None):
             else:
                 return {}
         operation_name = botocore.xform_name(args[0])
+        if operation_name == "list_objects_v2" and eventbridge_event_name:
+            return {
+                "Contents": [
+                    {
+                        "Key": "AWSLogs/123456789012/EventBridge/eu-west-1"
+                        + "/2021/06/11/05/stackstate-eventbridge-stream-2-2021-06-11-05-18-05-"
+                        + "b7d5fff3-928a-4e63-939b-1a32662b6a63.gz"
+                    }
+                ]
+            }
+        if operation_name == "get_object" and eventbridge_event_name:
+            res = resource("json/" + api + "/cloudtrail/" + eventbridge_event_name + ".json")
+            return {"Body": json.dumps(res)}
         if operation_name in not_authorized:
             raise botocore.exceptions.ClientError({"Error": {"Code": "AccessDenied"}}, operation_name)
         apidir = api
@@ -182,6 +203,9 @@ class BaseApiTest(unittest.TestCase):
         cloudtrail_event = None
         if hasattr(method, "cloudtrail_event"):
             cloudtrail_event = method.cloudtrail_event
+        eventbridge_event = None
+        if hasattr(method, "eventbridge_event"):
+            eventbridge_event = method.eventbridge_event
         filter = ""
         if hasattr(method, "filter"):
             filter = method.filter
@@ -205,6 +229,7 @@ class BaseApiTest(unittest.TestCase):
         instance = {
             "role_arn": "arn:aws:iam::{}:role/RoleName".format(self.get_account_id()),
             "regions": regions,
+            "state": {"last_full_topology": "2021-05-01T00:00:00"},
         }
         api = self.get_api()
         apis = None
@@ -221,7 +246,13 @@ class BaseApiTest(unittest.TestCase):
         state_descriptor = self.check._get_state_descriptor()
         # clear the state
         self.check.state_manager.clear(state_descriptor)
-        self.mock_object.side_effect = wrapper(api, not_authorized, subdirectory, event_name=cloudtrail_event)
+        self.mock_object.side_effect = wrapper(
+            api,
+            not_authorized,
+            subdirectory,
+            event_name=cloudtrail_event,
+            eventbridge_event_name=eventbridge_event
+        )
         self.components_checked = 0
         self.relations_checked = 0
 
