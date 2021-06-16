@@ -1,0 +1,22 @@
+{
+  "TaggedResources": [
+    {
+      "Tag": {
+        "Key": "OrganizationalUnit",
+        "Value": "Testing"
+      },
+      "ResourceName": "arn:aws:redshift:us-east-2:123456789:cluster:redshift-cluster-1",
+      "ResourceType": "Cluster"
+    }
+  ],
+  "ResponseMetadata": {
+    "Parameters": {
+      "ResourceName": "arn:aws:redshift:us-east-2:123456789:cluster:redshift-cluster-1",
+      "ResourceType": "Cluster"
+    },
+    "OperationName": "DescribeTags",
+    "Generater": "2021-06-10 13:04:36.004090",
+    "Region": "eu-west-1",
+    "Account": "548105126730"
+  }
+}
