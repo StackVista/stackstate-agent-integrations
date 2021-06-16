@@ -249,7 +249,9 @@ class AgentCheckBase(object):
             # 15 seconds is the default interval (see defaults.DefaultCheckInterval in the core agent)
             min_collection_interval = self.instance.get('min_collection_interval', 15)
             repeat_interval_seconds = stream_spec.repeat_interval_seconds or min_collection_interval
-            expiry_seconds = stream_spec.expiry_seconds or (repeat_interval_seconds * 4)
+            expiry_seconds = stream_spec.expiry_seconds
+            if expiry_seconds is None:
+                expiry_seconds = repeat_interval_seconds * 4
             self.health = HealthApi(self, stream_spec, expiry_seconds, repeat_interval_seconds)
 
     def _check_run_base(self, default_result):
