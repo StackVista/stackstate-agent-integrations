@@ -89,8 +89,8 @@ class RegisteredResourceCollector(with_metaclass(ResourceRegistry, object)):
                 flat = flatten_dict.flatten(event, dot_reducer, enumerate_types=(list,))
                 id = flat.get(handler["path"])
                 if id and id not in seen:
-                    processor(self, id)  # TODO update seen!
-                return id
+                    processor(self, id)
+                    seen.add(id)
             elif processor:
                 processor(self, event, seen)
             else:
