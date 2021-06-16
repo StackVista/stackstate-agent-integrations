@@ -202,30 +202,6 @@ class DynatraceCheck(AgentCheck):
                 self._process_topology(item, component_type, instance_info)
         else :
             self._process_topology(response, component_type, instance_info)
-            item = self._clean_unsupported_metadata(item)
-            dynatrace_component = DynatraceComponent(item, strict=False)
-            dynatrace_component.validate()
-            data = {}
-            external_id = dynatrace_component.entityId
-            identifiers = [Identifiers.create_custom_identifier("dynatrace", external_id)]
-            if component_type == "host":
-                host_identifiers = self._get_host_identifiers(dynatrace_component)
-                identifiers.extend(host_identifiers)
-            # derive useful labels from dynatrace tags
-            tags = self._get_labels(dynatrace_component)
-            tags.extend(instance_info.instance_tags)
-            data.update(item)
-            self._filter_item_topology_data(data)
-            data.update({
-                "identifiers": identifiers,
-                "tags": tags,
-                "domain": instance_info.domain,
-                "environments": [instance_info.environment],
-                "instance": instance_info.url,
-            })
-            self.component(external_id, component_type, data)
-            self._collect_relations(dynatrace_component, external_id)
-            dynatrace_entities_cache[external_id] = {"name": dynatrace_component.displayName, "type": component_type}
 
     def _collect_relations(self, dynatrace_component, external_id):
         """
