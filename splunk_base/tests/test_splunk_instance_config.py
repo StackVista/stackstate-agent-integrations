@@ -4,6 +4,7 @@ import copy
 
 # project
 from stackstate_checks.splunk.config import AuthType, SplunkInstanceConfig, CommittableState
+from stackstate_checks.base.errors import CheckException
 
 
 class MockedCommittableState(CommittableState):
@@ -109,3 +110,59 @@ class TestSplunkInstanceConfig(unittest.TestCase):
         assert instance_config.auth_type == AuthType.BasicAuth
         assert instance_config.username == "adminNew"
         assert instance_config.password == "adminNew"
+
+    def test_check_audience_param_not_set(self):
+        """
+            Splunk topology check should fail and raise exception when audience param is not set
+        """
+
+        instance = {
+            'url': 'http://localhost:8089',
+            'authentication': {
+                'token_auth': {
+                    'name': "admin",
+                    'initial_token': "dsfdgfhgjhkjuyr567uhfe345ythu7y6tre456sdx",
+                    'renewal_days': 10
+                }
+            },
+            'component_saved_searches': [{
+                "name": "components",
+                "parameters": {}
+            }],
+            'relation_saved_searches': [],
+            'tags': ['mytag', 'mytag2']
+        }
+
+        try:
+            SplunkInstanceConfig(instance, {}, mock_defaults)
+            assert False
+        except CheckException as e:
+            assert str(e) == 'Instance missing "authentication.token_auth.audience" value'
+
+    def test_check_name_param_not_set(self):
+        """
+            Splunk topology check should fail and raise exception when name param is not set
+        """
+
+        instance = {
+            'url': 'http://localhost:8089',
+            'authentication': {
+                'token_auth': {
+                    'initial_token': "dsfdgfhgjhkjuyr567uhfe345ythu7y6tre456sdx",
+                    'audience': "search",
+                    'renewal_days': 10
+                }
+            },
+            'component_saved_searches': [{
+                "name": "components",
+                "parameters": {}
+            }],
+            'relation_saved_searches': [],
+            'tags': ['mytag', 'mytag2']
+        }
+
+        try:
+            SplunkInstanceConfig(instance, {}, mock_defaults)
+            assert False
+        except CheckException as e:
+            assert str(e) == 'Instance missing "authentication.token_auth.name" value'
