@@ -25,11 +25,8 @@ TOPOLOGY_API_ENDPOINTS = {
     "host": "api/v1/entity/infrastructure/hosts",
     "application": "api/v1/entity/applications",
     "process-group": "api/v1/entity/infrastructure/process-groups",
-    "service": "api/v1/entity/services"
-}
-
-SYNTHETICS_API_ENDPOINTS = {
     "monitor": "api/v1/synthetic/monitors",
+    "service": "api/v1/entity/services"
 }
 
 DYNATRACE_UI_URLS = {
@@ -150,34 +147,24 @@ class DynatraceCheck(AgentCheck):
             endpoint = self._get_endpoint(instance_info.url, path)
             params = {"relativeTime": instance_info.relative_time}
             response = self._get_dynatrace_json_response(instance_info, endpoint, params)
-            self._collect_topology(response, component_type, instance_info)
+            if component_type != "monitor":
+                self._collect_topology(response, component_type, instance_info)
+            else:
+                for monitor in response["monitors"]:
+                    monitor = self._get_dynatrace_json_response(instance_info, endpoint + "/" +monitor["entityId"])
+                    self._collect_monitors(monitor, component_type, instance_info)
         end_time = datetime.now()
         time_taken = end_time - start_time
         self.log.info("Collected %d topology entities.", len(dynatrace_entities_cache))
         self.log.debug("Time taken to collect the topology is: %d seconds" % time_taken.total_seconds())
 
-    def _process_synthetics(self, instance_info):
-        """
-        Collects the synthetic checks from dynatrace API
-        """
-        start_time = datetime.now()
-        self.log.debug("Starting the collection of synthetics")
-        for component_type, path in SYNTHETICS_API_ENDPOINTS.items():
-            endpoint = self._get_endpoint(instance_info.url, path)
-            params = {"relativeTime": instance_info.relative_time}
-            response = self._get_dynatrace_json_response(instance_info, endpoint, params)
-            for monitor in response["monitors"]:
-                monitor = self._get_dynatrace_json_response(instance_info, endpoint + "/" +monitor["entityId"])
-                self._collect_monitors(monitor, component_type, instance_info)
-        end_time = datetime.now()
-        time_taken = end_time - start_time 
-        self.log.debug("Time taken to collect the synthetics is: %d seconds" % time_taken.total_seconds()) 
-
-    def _collect_monitors(self, monitor, component_type, instance_info):
-        monitor = self._clean_unsupported_metadata(monitor)
-        monitor.update({"displayName": monitor["name"]})
-        dynatrace_component = DynatraceComponent(monitor, strict=False)
-        #dynatrace_component.validate()
+    def _process_topology(self, item, component_type, instance_info):
+        item = self._clean_unsupported_metadata(item)
+        if component_type == "monitor":
+            item.update({"displayName": item["name"]})
+        dynatrace_component = DynatraceComponent(item, strict=False)
+        if component_type != "monitor":
+            dynatrace_component.validate()
         data = {}
         external_id = dynatrace_component.entityId
         identifiers = [Identifiers.create_custom_identifier("dynatrace", external_id)]
@@ -187,7 +174,7 @@ class DynatraceCheck(AgentCheck):
         # derive useful labels from dynatrace tags
         tags = self._get_labels(dynatrace_component)
         tags.extend(instance_info.instance_tags)
-        data.update(monitor)
+        data.update(item)
         self._filter_item_topology_data(data)
         data.update({
             "identifiers": identifiers,
@@ -197,6 +184,8 @@ class DynatraceCheck(AgentCheck):
             "instance": instance_info.url,
         })
         self.component(external_id, component_type, data)
+        if component_type != "monitor":
+            self._collect_relations(dynatrace_component, external_id)
         dynatrace_entities_cache[external_id] = {"name": dynatrace_component.displayName, "type": component_type}
         
 
@@ -208,7 +197,11 @@ class DynatraceCheck(AgentCheck):
         :param instance_info: instance configuration
         :return: create the component on stackstate API
         """
-        for item in response:
+        if component_type != "monitor":
+            for item in response:
+                self._process_topology(item, component_type, instance_info)
+        else :
+            self._process_topology(response, component_type, instance_info)
             item = self._clean_unsupported_metadata(item)
             dynatrace_component = DynatraceComponent(item, strict=False)
             dynatrace_component.validate()
