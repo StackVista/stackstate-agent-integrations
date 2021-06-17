@@ -9,10 +9,12 @@ import subprocess
 import os.path
 import traceback
 import chardet
-class SCOM(AgentCheck):
 
+
+class SCOM(AgentCheck):
     INSTANCE_TYPE = 'scom'
     requests_counter = 0
+
     def get_instance_key(self, instance):
         if 'hostip' not in instance:
             raise ConfigurationError('Missing url in topology instance configuration.')
@@ -20,15 +22,17 @@ class SCOM(AgentCheck):
         instance_url = instance['hostip']
         return TopologyInstance(self.INSTANCE_TYPE, instance_url)
 
-    def init_session(self,session, auth_method, domain, username, password, scom_ip):
+    def init_session(self, session, auth_method, domain, username, password, scom_ip):
         request_credentials = base64.b64encode(auth_method + ':' + domain + '\\' + username + ':' + password)
-        response = session.post( scom_ip + '/OperationsManager/authenticate',auth=HttpNtlmAuth(domain + '\\' + username, password), verify=False, json=request_credentials)
+        response = session.post(scom_ip + '/OperationsManager/authenticate',
+                                auth=HttpNtlmAuth(domain + '\\' + username, password), verify=False,
+                                json=request_credentials)
         return str(response.status_code)
 
-    def send_alerts(self, session,component_id, domain, username, password, scom_ip):
+    def send_alerts(self, session, component_id, domain, username, password, scom_ip):
         if self.requests_counter > self.requests_threshold:
-           session.close()
-           return
+            session.close()
+            return
         data = {
             "criteria": "(MonitoringObjectId = '" + component_id + "')",
             "displayColumns":
@@ -37,9 +41,10 @@ class SCOM(AgentCheck):
                     "monitoringobjectpath"
                 ]
         }
-        response = (session.post(scom_ip + '/OperationsManager/data/alert',auth=HttpNtlmAuth(domain + '\\' + username, password), verify=False,json=data)).json()
+        response = (session.post(scom_ip + '/OperationsManager/data/alert',
+                                 auth=HttpNtlmAuth(domain + '\\' + username, password), verify=False, json=data)).json()
         self.requests_counter += 1
-        self.log.debug("Number of requets: "+str(self.requests_counter))
+        self.log.debug("Number of requets: " + str(self.requests_counter))
         events_data_tree = response.get("rows", [])
         for event in events_data_tree:
             self.event({
@@ -55,82 +60,102 @@ class SCOM(AgentCheck):
                     "time_added:%s" % event.get("timeadded")
                 ]
             })
-    def get_health_state(self,healthIconUrl):
-        if re.search('StatusOkComplete', healthIconUrl, flags=re.IGNORECASE) or re.search('healthy_ex', healthIconUrl,flags=re.IGNORECASE):
-           return 'Healthy'
-        elif re.search('StatusWarning', healthIconUrl, flags=re.IGNORECASE) or re.search('warning_ex', healthIconUrl,flags=re.IGNORECASE):
-           return 'Deviating'
-        elif re.search('StatusError', healthIconUrl, flags=re.IGNORECASE) or re.search('critical_ex', healthIconUrl,flags=re.IGNORECASE):
-           return 'Error'
-        elif re.search('StatusUnknownGreen', healthIconUrl, flags=re.IGNORECASE) or re.search('maintenance_ex',healthIconUrl,flags=re.IGNORECASE):
-           return 'Not Monitored'
-        else:
-           return str(healthIconUrl.split("/")[-1])
 
-    def get_component_data_and_relations(self,session,component_id, domain, username, password, scom_ip,types_dict):
+    def get_health_state(self, healthIconUrl):
+        if re.search('StatusOkComplete', healthIconUrl, flags=re.IGNORECASE) or re.search('healthy_ex', healthIconUrl,
+                                                                                          flags=re.IGNORECASE):
+            return 'Healthy'
+        elif re.search('StatusWarning', healthIconUrl, flags=re.IGNORECASE) or re.search('warning_ex', healthIconUrl,
+                                                                                         flags=re.IGNORECASE):
+            return 'Deviating'
+        elif re.search('StatusError', healthIconUrl, flags=re.IGNORECASE) or re.search('critical_ex', healthIconUrl,
+                                                                                       flags=re.IGNORECASE):
+            return 'Error'
+        elif re.search('StatusUnknownGreen', healthIconUrl, flags=re.IGNORECASE) or re.search('maintenance_ex',
+                                                                                              healthIconUrl,
+                                                                                              flags=re.IGNORECASE):
+            return 'Not Monitored'
+        else:
+            return str(healthIconUrl.split("/")[-1])
+
+    def get_component_data_and_relations(self, session, component_id, domain, username, password, scom_ip, types_dict):
         if self.requests_counter > self.requests_threshold:
-           session.close()
-           return
-        response = (session.get(scom_ip + '/OperationsManager/data/objectInformation/' + component_id, verify=False,auth=HttpNtlmAuth(domain + '\\' + username, password))).json()
-        self.requests_counter +=1
-        self.log.debug("Number of requets: "+str(self.requests_counter))
+            session.close()
+            return
+        response = (session.get(scom_ip + '/OperationsManager/data/objectInformation/' + component_id, verify=False,
+                                auth=HttpNtlmAuth(domain + '\\' + username, password))).json()
+        self.requests_counter += 1
+        self.log.debug("Number of requets: " + str(self.requests_counter))
         properties = response.get("monitoringObjectProperties", [])
         relations = response.get("relatedObjects", [])
         properties_list = dict()
         relations_list = []
         for detail in properties:
-            properties_list.update({"%s" % detail.get("name"):"%s" % detail.get("value")})
+            properties_list.update({"%s" % detail.get("name"): "%s" % detail.get("value")})
         name = response["displayName"]
-        properties_list.update({"id":"%s" % component_id,"name":"%s" % name})
+        properties_list.update({"id": "%s" % component_id, "name": "%s" % name})
         health = self.get_health_state(response["healthIconUrl"])
         type = "%s" % types_dict.get(component_id)
-        self.component("%s" % component_id,  type.encode('utf-8'), properties_list)
+        self.component("%s" % component_id, type.encode('utf-8'), properties_list)
         self.event({
-                "timestamp": int(time.time()),
-                "msg_title": "Health Status",
-                "msg_text": "Change in health status",
-                "source_type_name": "Health",
-                "host": "%s" % name,
-                "tags": [
-                    "status:%s" % health,
-                    "id:%s" % component_id
-                ]
-            })
-        self.send_alerts(session,component_id, domain, username, password, scom_ip)
+            "timestamp": int(time.time()),
+            "msg_title": "Health Status",
+            "msg_text": "Change in health status",
+            "source_type_name": "Health",
+            "host": "%s" % name,
+            "tags": [
+                "status:%s" % health,
+                "id:%s" % component_id
+            ]
+        })
+        self.send_alerts(session, component_id, domain, username, password, scom_ip)
         if relations:
-           for relation in relations:
-               self.relation("%s" % component_id,"%s" % relation.get("id"),"is_connected_to",{})
-               self.get_component_data_and_relations(session,relation.get("id"), domain, username, password, scom_ip,types_dict)
+            for relation in relations:
+                self.relation("%s" % component_id, "%s" % relation.get("id"), "is_connected_to", {})
+                self.get_component_data_and_relations(session, relation.get("id"), domain, username, password, scom_ip,
+                                                      types_dict)
 
-    def scom_api_check(self,criteria,auth_method, domain, username, password, scom_ip):
+    def scom_api_check(self, criteria, auth_method, domain, username, password, scom_ip):
         session = Session()
-        self.log.info('Connection Status Code ' + self.init_session(session, auth_method, domain, username, password, scom_ip))
+        self.log.info(
+            'Connection Status Code ' + self.init_session(session, auth_method, domain, username, password, scom_ip))
         types_dict = dict()
-        type_response = (session.post(scom_ip + '/OperationsManager/data/scomObjects',auth=HttpNtlmAuth(domain + '\\' + username, password), verify=False,json="(Id LIKE '%')")).json()
+        type_response = (session.post(scom_ip + '/OperationsManager/data/scomObjects',
+                                      auth=HttpNtlmAuth(domain + '\\' + username, password), verify=False,
+                                      json="(Id LIKE '%')")).json()
         types = type_response.get("scopeDatas", [])
         for item in types:
-            types_dict.update({"%s" % item.get("id"): "%s" %item.get("className") or "none"})
-        component_ids_response = (session.post( scom_ip + '/OperationsManager/data/scomObjects',auth=HttpNtlmAuth(domain + '\\' + username, password), verify=False,json=criteria)).json()
+            types_dict.update({"%s" % item.get("id"): "%s" % item.get("className") or "none"})
+        component_ids_response = (session.post(scom_ip + '/OperationsManager/data/scomObjects',
+                                               auth=HttpNtlmAuth(domain + '\\' + username, password), verify=False,
+                                               json=criteria)).json()
         if component_ids_response.get("errorMessage"):
-           self.log.error("Invalid criteria :" + str(component_ids_response.get("errorMessage")))
+            self.log.error("Invalid criteria :" + str(component_ids_response.get("errorMessage")))
         else:
-           component_ids = component_ids_response.get("scopeDatas", [])
-           for component in component_ids:
-               self.get_component_data_and_relations(session,component.get("id"), domain, username, password, scom_ip,types_dict)
+            component_ids = component_ids_response.get("scopeDatas", [])
+            for component in component_ids:
+                self.get_component_data_and_relations(session, component.get("id"), domain, username, password, scom_ip,
+                                                      types_dict)
         session.close()
 
-    def excute_powershell_cmd(self,scom_server,cmd, ps1):
+    def excute_powershell_cmd(self, scom_server, cmd, ps1):
         if ps1:
-           dir_path = os.path.dirname(os.path.abspath(__file__))
-           cmd = os.path.join(dir_path, cmd)
-           excute_command = subprocess.Popen(["powershell.exe","Start-OperationsManagerClientShell -managementServerName "+scom_server.split("//")[1]+" \n","powershell.exe -file \""+cmd+"\""],stdout=subprocess.PIPE)
+            dir_path = os.path.dirname(os.path.abspath(__file__))
+            cmd = os.path.join(dir_path, cmd)
+            excute_command = subprocess.Popen(["powershell.exe",
+                                               "Start-OperationsManagerClientShell -managementServerName " +
+                                               scom_server.split("//")[1] + " \n",
+                                               "powershell.exe -file \"" + cmd + "\""], stdout=subprocess.PIPE)
         else:
-           excute_command = subprocess.Popen(["powershell.exe","Start-OperationsManagerClientShell -managementServerName "+scom_server.split("//")[1]+" \n",cmd],stdout=subprocess.PIPE)
+            excute_command = subprocess.Popen(["powershell.exe",
+                                               "Start-OperationsManagerClientShell -managementServerName " +
+                                               scom_server.split("//")[1] + " \n", cmd], stdout=subprocess.PIPE)
         output = excute_command.communicate()[0]
         excute_command.terminate()
         result = json.loads(output)
         return result
-    def get_health_powershell(self,health):
+
+    def get_health_powershell(self, health):
         if health == 0:
             return 'Not Monitored'
         elif health == 1:
@@ -141,8 +166,11 @@ class SCOM(AgentCheck):
             return 'Error'
         else:
             return str(health)
-    def send_alerts_powershell(self,scom_server):
-        events = self.excute_powershell_cmd(scom_server,"Get-SCOMAlert | select \"monitoringobjectid\", \"name\", \"monitoringobjectdisplayname\", \"description\", \"resolutionstate\", \"monitoringobjectpath\" -ExpandProperty  timeadded| ConvertTo-Json \n", False)
+
+    def send_alerts_powershell(self, scom_server):
+        events = self.excute_powershell_cmd(scom_server,
+                                            "Get-SCOMAlert | select \"monitoringobjectid\", \"name\", \"monitoringobjectdisplayname\", \"description\", \"resolutionstate\", \"monitoringobjectpath\" -ExpandProperty  timeadded| ConvertTo-Json \n",
+                                            False)
         for event in events:
             self.event({
                 "timestamp": int(time.time()),
@@ -157,18 +185,19 @@ class SCOM(AgentCheck):
                     "time_added:%s" % event.get("DateTime")
                 ]
             })
-    def scom_powershell_check(self,scom_server):
-        components = self.excute_powershell_cmd(scom_server,"components.ps1",True)
+
+    def scom_powershell_check(self, scom_server):
+        components = self.excute_powershell_cmd(scom_server, "components.ps1", True)
         for cmp in components:
             properties_list = dict()
-            for key,value in cmp.items():
+            for key, value in cmp.items():
                 properties_list.update({"%s" % key: "%s" % value})
             name = cmp["DisplayName"]
-            component_id =  cmp["Id"]
+            component_id = cmp["Id"]
             health = self.get_health_powershell(cmp["HealthState"])
             component_type = cmp["FullName"].lower().split(":")[0]
-            properties_list.update({"id":"%s" %component_id,"name":"%s" %name})
-            self.component(component_id,component_type,properties_list)
+            properties_list.update({"id": "%s" % component_id, "name": "%s" % name})
+            self.component(component_id, component_type, properties_list)
             self.event({
                 "timestamp": int(time.time()),
                 "msg_title": "Health Status",
@@ -180,12 +209,12 @@ class SCOM(AgentCheck):
                     "id:%s" % component_id
                 ]
             })
-        relations = self.excute_powershell_cmd(scom_server,"relations.ps1",True)
+        relations = self.excute_powershell_cmd(scom_server, "relations.ps1", True)
         for rel in relations:
             if rel["source"] and rel["target"]:
                 source_id = rel["source"]["Id"]
                 target_id = rel["target"]["Id"]
-                self.relation(source_id,target_id,"Is_connected_to",{})
+                self.relation(source_id, target_id, "Is_connected_to", {})
         self.send_alerts_powershell(scom_server)
 
     def check(self, instance):
@@ -201,18 +230,18 @@ class SCOM(AgentCheck):
         try:
             self.start_snapshot()
             if integration_mode == 'api':
-                self.scom_api_check(criteria,auth_method, domain, username, password, scom_ip)
+                self.scom_api_check(criteria, auth_method, domain, username, password, scom_ip)
             else:
                 self.scom_powershell_check(scom_ip)
             if self.requests_counter > self.requests_threshold:
-                self.log.info("maximum number of requests reached! "+str(self.requests_counter))
+                self.log.info("maximum number of requests reached! " + str(self.requests_counter))
             else:
-                self.log.info("Total number of requests: "+str(self.requests_counter))
+                self.log.info("Total number of requests: " + str(self.requests_counter))
             self.requests_counter = 0
             self.stop_snapshot()
             self.service_check("scom", AgentCheck.OK, message="SCOM synchronized successfully")
         except Exception as e:
-          # print(traceback.format_exc())
-           self.log.exception("SCOM Error: %s" % str(traceback.format_exc()))
-           self.service_check("scom", AgentCheck.CRITICAL, message=str(traceback.format_exc()))
-           raise e
+            # print(traceback.format_exc())
+            self.log.exception("SCOM Error: %s" % str(traceback.format_exc()))
+            self.service_check("scom", AgentCheck.CRITICAL, message=str(traceback.format_exc()))
+            raise e
