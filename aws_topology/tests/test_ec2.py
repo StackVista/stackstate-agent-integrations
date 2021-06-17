@@ -1,6 +1,7 @@
 from stackstate_checks.base.stubs import topology as top, aggregator
-from .conftest import BaseApiTest, set_cloudtrail_event, set_filter, use_subdirectory
+from .conftest import BaseApiTest, set_cloudtrail_event, set_eventbridge_event, set_filter, use_subdirectory
 import sys
+from mock import patch
 
 
 class TestEC2(BaseApiTest):
@@ -239,3 +240,71 @@ class TestEC2(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual("i-0f70dba7ea83d6dec", topology[0]["components"][0]["id"])
+
+    @set_filter('xxx')
+    @set_eventbridge_event("state_stopping")
+    def test_process_ec2_state_stopping(self):
+        with patch("stackstate_checks.aws_topology.AwsTopologyCheck.must_run_full", return_value=False):
+            self.check.run()
+            self.assert_executed_ok()
+            events = aggregator.events
+            self.assertEqual(len(events), 1)
+            self.assertEqual(events[0]["event_type"], "ec2_state")
+            self.assertEqual(events[0]["host"], "i-0e5ef5c511849a4be")
+            self.assertEqual(events[0]["msg_text"], "stopping")
+            self.assertEqual(events[0]["msg_title"], "EC2 Instance State-change Notification")
+            self.assertEqual(events[0]["msg_text"], "stopping")
+            self.assertEqual(events[0]["tags"], ['state:stopping'])
+
+    @set_filter('xxx')
+    @set_eventbridge_event("state_stopped")
+    def test_process_ec2_state_stopped(self):
+        with patch("stackstate_checks.aws_topology.AwsTopologyCheck.must_run_full", return_value=False):
+            self.check.run()
+            self.assert_executed_ok()
+            events = aggregator.events
+            self.assertEqual(len(events), 1)
+            self.assertEqual(events[0]["event_type"], "ec2_state")
+            self.assertEqual(events[0]["host"], "i-0e5ef5c511849a4be")
+            self.assertEqual(events[0]["msg_text"], "stopped")
+            self.assertEqual(events[0]["msg_title"], "EC2 Instance State-change Notification")
+            self.assertEqual(events[0]["msg_text"], "stopped")
+            self.assertEqual(events[0]["tags"], ['state:stopped'])
+
+    @set_filter('xxx')
+    @set_eventbridge_event("state_pending")
+    def test_process_ec2_state_pending(self):
+        with patch("stackstate_checks.aws_topology.AwsTopologyCheck.must_run_full", return_value=False):
+            self.check.run()
+            self.assert_executed_ok()
+            events = aggregator.events
+            self.assertEqual(len(events), 1)
+            self.assertEqual(events[0]["event_type"], "ec2_state")
+            self.assertEqual(events[0]["host"], "i-0e5ef5c511849a4be")
+            self.assertEqual(events[0]["msg_text"], "pending")
+            self.assertEqual(events[0]["msg_title"], "EC2 Instance State-change Notification")
+            self.assertEqual(events[0]["msg_text"], "pending")
+            self.assertEqual(events[0]["tags"], ['state:pending'])
+
+    @set_filter('xxx')
+    @set_eventbridge_event("state_running")
+    def test_process_ec2_state_running(self):
+        with patch("stackstate_checks.aws_topology.AwsTopologyCheck.must_run_full", return_value=False):
+            self.check.run()
+            self.assert_executed_ok()
+            events = aggregator.events
+            self.assertEqual(len(events), 1)
+            self.assertEqual(events[0]["event_type"], "ec2_state")
+            self.assertEqual(events[0]["host"], "i-0e5ef5c511849a4be")
+            self.assertEqual(events[0]["msg_text"], "running")
+            self.assertEqual(events[0]["msg_title"], "EC2 Instance State-change Notification")
+            self.assertEqual(events[0]["msg_text"], "running")
+            self.assertEqual(events[0]["tags"], ['state:running'])
+
+    @set_filter('xxx')
+    @set_eventbridge_event("state_terminated")
+    def test_process_ec2_state_terminated(self):
+        with patch("stackstate_checks.aws_topology.AwsTopologyCheck.must_run_full", return_value=False):
+            self.check.run()
+            self.assert_executed_ok()
+            self.assertEqual(self.check.delete_ids, ['i-0e5ef5c511849a4be'])

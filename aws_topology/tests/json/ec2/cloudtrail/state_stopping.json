@@ -1,0 +1,16 @@
+{
+    "version":"0",
+    "id":"c4ef01c4-dfdc-530e-f9ed-fe74ec53bf3c",
+    "detail-type":"EC2 Instance State-change Notification",
+    "source":"aws.ec2",
+    "account":"120431062118",
+    "time":"2021-06-15T06:36:29Z",
+    "region":"eu-west-1",
+    "resources":[
+       "arn:aws:ec2:eu-west-1:120431062118:instance/i-0e5ef5c511849a4be"
+    ],
+    "detail":{
+       "instance-id":"i-0e5ef5c511849a4be",
+       "state":"stopping"
+    }
+}
