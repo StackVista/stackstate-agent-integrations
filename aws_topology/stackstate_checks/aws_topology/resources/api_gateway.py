@@ -72,9 +72,21 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
     COMPONENT_TYPE = "aws.apigateway.stage"
 
     @set_required_access_v2("apigateway:GET")
+    def collect_methods(self, resource_data, rest_api_id):
+        for method in resource_data.get("resourceMethods", {}).keys():
+            # The boto3 docs suggest that methods are returned in the get_resources call; this is a lie.
+            if not resource_data["resourceMethods"][method]:
+                resource_data["resourceMethods"][method] = (
+                    self.client.get_method(restApiId=rest_api_id, resourceId=resource_data.get("id"), httpMethod=method)
+                    or {}
+                )
+        print(resource_data)
+        return resource_data
+
+    @set_required_access_v2("apigateway:GET")
     def collect_resources(self, rest_api_id):
         return [
-            resource
+            self.collect_methods(resource, rest_api_id)
             for resource in client_array_operation(self.client, "get_resources", "items", restApiId=rest_api_id)
         ] or []
 
