@@ -149,7 +149,13 @@ def wrapper(api, not_authorized, subdirectory, event_name=None, eventbridge_even
             res = resource("json/" + api + "/cloudtrail/" + eventbridge_event_name + ".json")
             return {"Body": json.dumps(res)}
         if operation_name in not_authorized:
-            raise botocore.exceptions.ClientError({"Error": {"Code": "AccessDenied"}}, operation_name)
+            # Some APIs return a different error code when there is no permission
+            # But there are no docs on which ones do. Here is an array of some known APIs
+            if api in ["stepfunctions", "firehose"]:
+                error_code = "AccessDeniedException"
+            else:
+                error_code = "AccessDenied"
+            raise botocore.exceptions.ClientError({"Error": {"Code": error_code}}, operation_name)
         apidir = api
         if apidir is None:
             apidir = self._service_model.service_name
@@ -167,11 +173,10 @@ def wrapper(api, not_authorized, subdirectory, event_name=None, eventbridge_even
             raise Exception(error)
         # If an error code is included in the response metadata, raise this instead
         if "Error" in result.get("ResponseMetadata", {}):
-            raise botocore.exceptions.ClientError({
-                "Error": result["ResponseMetadata"]["Error"]
-            }, operation_name)
+            raise botocore.exceptions.ClientError({"Error": result["ResponseMetadata"]["Error"]}, operation_name)
         else:
             return result
+
     return mock_boto_calls
 
 
