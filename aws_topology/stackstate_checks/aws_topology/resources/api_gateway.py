@@ -80,7 +80,6 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
                     self.client.get_method(restApiId=rest_api_id, resourceId=resource_data.get("id"), httpMethod=method)
                     or {}
                 )
-        print(resource_data)
         return resource_data
 
     @set_required_access_v2("apigateway:GET")
