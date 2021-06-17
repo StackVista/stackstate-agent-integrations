@@ -1,95 +1,85 @@
-# (C) StackState 2021
-# All rights reserved
-# Licensed under a 3-clause BSD style license (see LICENSE)
-import pytest
-import unittest
-from mock import patch
-from copy import deepcopy
-
-from stackstate_checks.base.stubs import topology, aggregator
-from stackstate_checks.base import AgentCheck
-from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
-
-from .conftest import API_RESULTS
-
-TOPIC_ARN = "arn:aws:sns:eu-west-1:731070500579:my-topic-1"
-TOPIC_NAME = "my-topic-1"
-SIMPLE_SNS = {
-    'ListTopics': {
-        "Topics": [
-            {
-                "TopicArn": TOPIC_ARN
-            }
-        ]
-    }
-}
-
-# TODO also test extra data
+from stackstate_checks.base.stubs import topology as top
+from .conftest import BaseApiTest, set_cloudtrail_event
 
 
-@pytest.mark.usefixtures("instance")
-class TestSns(unittest.TestCase):
-    """Basic Test for AWS Topology integration."""
+class TestSns(BaseApiTest):
+    def get_api(self):
+        return "sns"
 
-    CHECK_NAME = 'aws_topology'
-    SERVICE_CHECK_NAME = "aws_topology"
+    def test_process_sns(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
 
-    def setUp(self):
-        """
-        Initialize and patch the check, i.e.
-        """
-        config = InitConfig(
-            {
-                "aws_access_key_id": "some_key",
-                "aws_secret_access_key": "some_secret",
-                "external_id": "disable_external_id_this_is_unsafe"
-            }
+        components = topology[0]["components"]
+        relations = topology[0]["relations"]
+
+        base_target_id = "arn:aws:lambda:eu-west-1:731070500579:function:com-stackstate-prod-sam-seed-"
+
+        top.assert_relation(
+            relations,
+            "arn:aws:sns:eu-west-1:731070500579:my-topic-1",
+            base_target_id + "TopicHandler-11EWA2GN9YNLL",
+            "uses service",
         )
-        self.patcher = patch('botocore.client.BaseClient._make_api_call')
-        self.mock_object = self.patcher.start()
-        self.api_results = deepcopy(API_RESULTS)
-        topology.reset()
-        aggregator.reset()
-        self.check = AwsTopologyCheck(self.CHECK_NAME, config, [self.instance])
+        top.assert_relation(
+            relations,
+            "arn:aws:sns:eu-west-1:731070500579:my-topic-2",
+            base_target_id + "TopicHandler-21EWA2GN9YNLL",
+            "uses service",
+        )
+        top.assert_relation(
+            relations,
+            "arn:aws:sns:eu-west-1:731070500579:my-topic-3",
+            base_target_id + "TopicHandler-31EWA2GN9YNLL",
+            "uses service",
+        )
+        top.assert_relation(
+            relations,
+            "arn:aws:sns:eu-west-1:731070500579:my-topic-3",
+            base_target_id + "TopicHandler-41EWA2GN9YNLL",
+            "uses service",
+        )
+        top.assert_relation(
+            relations,
+            "arn:aws:sns:eu-west-1:731070500579:my-topic-3",
+            "arn:aws:sqs:eu-west-1:731070500579:STS_stackpack_test",
+            "uses service",
+        )
 
-        def results(operation_name, kwarg):
-            return self.api_results.get(operation_name) or {}
+        top.assert_component(
+            components,
+            "arn:aws:sns:eu-west-1:731070500579:my-topic-1",
+            "aws.sns",
+            checks={
+                "TopicArn": "arn:aws:sns:eu-west-1:731070500579:my-topic-1",
+                "Name": "my-topic-1",
+                "Tags.SnsTagKey": "SnsTagValue",
+                "CW.Dimensions": [{"Key": "TopicName", "Value": "my-topic-1"}],
+            },
+        )
+        self.assert_location_info(topology[0]["components"][0])
+        top.assert_component(components, "arn:aws:sns:eu-west-1:731070500579:my-topic-2", "aws.sns")
+        top.assert_component(components, "arn:aws:sns:eu-west-1:731070500579:my-topic-3", "aws.sns")
+        top.assert_component(components, "arn:aws:sns:eu-west-1:731070500579:my-topic-4", "aws.sns")
 
-        self.mock_object.side_effect = results
+        top.assert_all_checked(components, relations)
 
-    def tearDown(self):
-        self.patcher.stop()
-
-    def assert_executed_ok(self):
-        service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_EXECUTE_NAME)
-        self.assertGreater(len(service_checks), 0)
-        self.assertEqual(service_checks[0].status, AgentCheck.OK)
-
-    def test_simple_bucket(self):
-        self.api_results.update(SIMPLE_SNS)
+    @set_cloudtrail_event("sns_create_topic")
+    def test_process_sns_create_topic(self):
         self.check.run()
-        test_topology = topology.get_snapshot(self.check.check_id)
-        self.assertEqual(len(test_topology['components']), 1)
-        self.assertEqual(test_topology['components'][0]['type'], 'aws.sns')
-        self.assertEqual(test_topology['components'][0]['id'], TOPIC_ARN)
-        self.assertEqual(test_topology['components'][0]['data']['Name'], TOPIC_NAME)
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 1)
+        self.assertEqual("arn:aws:sns:eu-west-1:731070500579:my-topic-1", topology[0]["components"][0]["id"])
 
-    def test_bucket_with_tags(self):
-        self.api_results.update(SIMPLE_SNS)
-        self.api_results.update({
-            'ListTagsForResource': {
-                "Tags": [
-                    {
-                        "Key": "tagkey",
-                        "Value": "tagvalue"
-                    }
-                ]
-            }
-        })
+    @set_cloudtrail_event("sns_delete_topic")
+    def test_process_sns_delete_topic(self):
         self.check.run()
-        test_topology = topology.get_snapshot(self.check.check_id)
-        self.assertEqual(len(test_topology['components']), 1)
-        self.assertIsNotNone(test_topology['components'][0]['data'])
-        self.assertEqual(test_topology['components'][0]['data']['Tags'], {'tagkey': 'tagvalue'})
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
+        self.assertEqual(len(topology[0]["components"]), 0)
+        self.assertIn("arn:aws:sns:eu-west-1::my-topic-1", self.check.delete_ids)

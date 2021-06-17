@@ -1,0 +1,44 @@
+{
+    "item": [
+        {
+            "deploymentId": "0scs64",
+            "stageName": "stage1",
+            "cacheClusterEnabled": false,
+            "cacheClusterStatus": "NOT_AVAILABLE",
+            "methodSettings": {},
+            "variables": {
+                "variable1": "value1",
+                "value1": "value2"
+            },
+            "createdDate": 1483996738,
+            "lastUpdatedDate": 1502091405,
+            "tags": [
+                {
+                    "key": "StageTagKey1",
+                    "value": "StageTagValue1"
+                }
+            ]
+        },
+        {
+            "deploymentId": "0scs64",
+            "stageName": "stage2",
+            "cacheClusterEnabled": false,
+            "cacheClusterStatus": "NOT_AVAILABLE",
+            "methodSettings": {},
+            "variables": {
+                "variable1": "value2"
+            },
+            "createdDate": 1483996743,
+            "lastUpdatedDate": 1502091409      
+        }
+    ],
+    "ResponseMetadata": {
+        "Parameters": {
+            "restApiId": "api_1"
+        },
+        "OperationName": "GetStages",
+        "Generater": "2021-05-29 07:45:36.709391",
+        "Region": "eu-west-1",
+        "Account": "508573134510"
+    }
+  }

@@ -13,7 +13,7 @@ from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
 from .conftest import API_RESULTS
 
 SIMPLE_VPN_GATEWAY = {
-    'DescribeVpnGateways': {
+    "DescribeVpnGateways": {
         "VpnGateways": [
             {
                 "State": "available",
@@ -30,7 +30,7 @@ SIMPLE_VPN_GATEWAY = {
 class TestVpnGateway(unittest.TestCase):
     """Basic Test for AWS Topology integration."""
 
-    CHECK_NAME = 'aws_topology'
+    CHECK_NAME = "aws_topology"
     SERVICE_CHECK_NAME = "aws_topology"
 
     def setUp(self):
@@ -41,15 +41,18 @@ class TestVpnGateway(unittest.TestCase):
             {
                 "aws_access_key_id": "some_key",
                 "aws_secret_access_key": "some_secret",
-                "external_id": "disable_external_id_this_is_unsafe"
+                "external_id": "disable_external_id_this_is_unsafe",
             }
         )
-        self.patcher = patch('botocore.client.BaseClient._make_api_call')
+        self.patcher = patch("botocore.client.BaseClient._make_api_call")
         self.mock_object = self.patcher.start()
         self.api_results = deepcopy(API_RESULTS)
         topology.reset()
         aggregator.reset()
         self.check = AwsTopologyCheck(self.CHECK_NAME, config, [self.instance])
+        state_descriptor = self.check._get_state_descriptor()
+        # clear the state
+        self.check.state_manager.clear(state_descriptor)
 
         def results(operation_name, kwarg):
             return self.api_results.get(operation_name) or {}
@@ -68,43 +71,33 @@ class TestVpnGateway(unittest.TestCase):
         self.api_results.update(SIMPLE_VPN_GATEWAY)
         self.check.run()
         test_topology = topology.get_snapshot(self.check.check_id)
-        self.assertEqual(len(test_topology['components']), 1)
-        self.assertEqual(test_topology['components'][0]['type'], 'aws.vpngateway')
-        self.assertEqual(test_topology['components'][0]['id'], 'vgw-b8c2fccc')
+        self.assertEqual(len(test_topology["components"]), 1)
+        self.assertEqual(test_topology["components"][0]["type"], "aws.vpngateway")
+        self.assertEqual(test_topology["components"][0]["id"], "vgw-b8c2fccc")
         self.assert_executed_ok()
 
     def test_vpn_gateway_with_attachments(self):
         self.api_results.update(SIMPLE_VPN_GATEWAY)
-        self.api_results['DescribeVpnGateways']['VpnGateways'][0].update({
-            "VpcAttachments": [
-                {
-                    "State": "attached",
-                    "VpcId": "vpc-6b25d10e"
-                }
-            ]
-        })
+        self.api_results["DescribeVpnGateways"]["VpnGateways"][0].update(
+            {"VpcAttachments": [{"State": "attached", "VpcId": "vpc-6b25d10e"}]}
+        )
         self.check.run()
         test_topology = topology.get_snapshot(self.check.check_id)
-        self.assertEqual(len(test_topology['relations']), 1)
+        self.assertEqual(len(test_topology["relations"]), 1)
         self.assertEqual(
-            test_topology['relations'][0],
-            {'source_id': 'vgw-b8c2fccc', 'target_id': 'vpc-6b25d10e', 'type': 'uses service', 'data': {}}
+            test_topology["relations"][0],
+            {"source_id": "vgw-b8c2fccc", "target_id": "vpc-6b25d10e", "type": "uses service", "data": {}},
         )
         self.assert_executed_ok()
 
     def test_vpm_gateway_with_tags(self):
         self.api_results.update(SIMPLE_VPN_GATEWAY)
-        self.api_results['DescribeVpnGateways']['VpnGateways'][0].update({
-            "Tags": [
-                {
-                    "Key": "Name",
-                    "Value": "my-first-vpn-gateway"
-                }
-            ]
-        })
+        self.api_results["DescribeVpnGateways"]["VpnGateways"][0].update(
+            {"Tags": [{"Key": "Name", "Value": "my-first-vpn-gateway"}]}
+        )
         self.check.run()
         test_topology = topology.get_snapshot(self.check.check_id)
-        self.assertEqual(len(test_topology['components']), 1)
-        self.assertIsNotNone(test_topology['components'][0]['data'])
-        self.assertEqual(test_topology['components'][0]['data']['Tags'], {'Name': 'my-first-vpn-gateway'})
+        self.assertEqual(len(test_topology["components"]), 1)
+        self.assertIsNotNone(test_topology["components"][0]["data"])
+        self.assertEqual(test_topology["components"][0]["data"]["Tags"], {"Name": "my-first-vpn-gateway"})
         self.assert_executed_ok()

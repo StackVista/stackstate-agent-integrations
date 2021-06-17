@@ -1,0 +1,48 @@
+{
+    "StackResources": [
+        {
+            "StackId": "arn:aws:cloudformation:eu-west-1:672574731473:stack/testing-stack/55087a60-8fab-11ea-9d0f-0a2e85db59c6",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+                "StackResourceDriftStatus": "NOT_CHECKED"
+            },
+            "ResourceType": "AWS::EC2::Instance",
+            "Timestamp": "2020-05-14T13:07:00.051Z",
+            "StackName": "testing-stack-with-no-PhysicalResourceId",
+            "LogicalResourceId": "EC2_test_with_missing_data"
+        },
+        {
+            "StackId": "arn:aws:cloudformation:eu-west-1:672574731473:stack/testing-stack/55087a60-8fab-11ea-9d0f-0a2e85db59c6",
+            "ResourceStatus": "CREATE_IN_PROGRESS",
+            "DriftInformation": {
+                "StackResourceDriftStatus": "NOT_CHECKED"
+            },
+            "ResourceType": "AWS::Lambda::Function",
+            "Timestamp": "2020-05-14T13:07:00.051Z",
+            "StackName": "testing-stack",
+            "PhysicalResourceId": "lambda-not-processed-before-processing-cloudformation-123456789",
+            "LogicalResourceId": "StackSatePublisherLambda"
+        },
+        {
+            "StackId": "arn:aws:cloudformation:eu-west-1:672574731473:stack/testing-stack/55087a60-8fab-11ea-9d0f-0a2e85db59c6",
+            "ResourceStatus": "CREATE_COMPLETE",
+            "DriftInformation": {
+                "StackResourceDriftStatus": "NOT_CHECKED"
+            },
+            "ResourceType": "AWS::CloudFormation::Stack",
+            "Timestamp": "2020-05-14T13:07:00.051Z",
+            "StackName": "testing-stack",
+            "PhysicalResourceId": "arn:aws:cloudformation:eu-west-1:731070500579:stack/stackstate-topo-publisher/71ea3f80-9919-11e9-a261-0a99a68566c4",
+            "LogicalResourceId": "NestedStack"
+        }
+    ],
+    "ResponseMetadata": {
+        "Parameters": {
+            "StackName": "arn:aws:cloudformation:eu-west-1:731070500579:stack/stackstate-topo-cwevents/077bd960-9919-11e9-adb7-02135cc8443e"
+        },
+        "OperationName": "DescribeStackResources",
+        "Generater": "2021-05-29 07:45:36.570257",
+        "Region": "eu-west-1",
+        "Account": "548105126730"
+    }
+}

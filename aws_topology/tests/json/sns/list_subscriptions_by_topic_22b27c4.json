@@ -1,0 +1,13 @@
+{
+    "Subscriptions": [
+    ],
+    "ResponseMetadata": {
+        "Parameters": {
+            "TopicArn": "arn:aws:sns:eu-west-1:731070500579:my-topic-4"
+        },
+        "OperationName": "ListSubscriptionsByTopic",
+        "Generater": "2021-05-29 07:45:36.709391",
+        "Region": "eu-west-1",
+        "Account": "731070500579"
+    }
+}

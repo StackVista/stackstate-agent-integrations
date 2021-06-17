@@ -1,0 +1,34 @@
+{
+  "TargetGroups": [
+    {
+      "HealthCheckPath": "/",
+      "HealthCheckIntervalSeconds": 30,
+      "VpcId": "vpc-6b25d10e",
+      "Protocol": "HTTP",
+      "HealthCheckTimeoutSeconds": 5,
+      "TargetType": "instance",
+      "HealthCheckProtocol": "HTTP",
+      "LoadBalancerArns": [
+        "arn:aws:elasticloadbalancing:eu-west-1:731070500579:loadbalancer/app/myfirstloadbalancer/90dd512583d2d7e9"
+      ],
+      "UnhealthyThresholdCount": 2,
+      "HealthyThresholdCount": 5,
+      "TargetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:123456789012:targetgroup/elvin-AlbEc-PYQ8ZCZDRD5E/6e2b19e842496efb",
+      "Matcher": {
+        "HttpCode": "200"
+      },
+      "HealthCheckPort": "traffic-port",
+      "Port": 80,
+      "TargetGroupName": "myfirsttargetgroup"
+    }
+  ],
+  "ResponseMetadata": {
+    "Parameters": {
+      "TargetGroupArns": "arn:aws:elasticloadbalancing:eu-west-1:123456789012:targetgroup/elvin-AlbEc-PYQ8ZCZDRD5E/6e2b19e842496efb"
+    },
+    "OperationName": "DescribeTargetGroups",
+    "Generater": "2021-05-29 07:45:36.709391",
+    "Region": "eu-west-1",
+    "Account": "731070500579"
+  }
+}

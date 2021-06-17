@@ -19,14 +19,8 @@ ROLE = "some_role_with_many_characters"
 TOKEN = "ABCDE"
 
 API_RESULTS = {
-    'AssumeRole': {
-        "Credentials": {
-            "AccessKeyId": KEY_ID,
-            "SecretAccessKey": ACCESS_KEY,
-            "SessionToken": TOKEN
-        }
-    },
-    'GetCallerIdentity': {
+    "AssumeRole": {"Credentials": {"AccessKeyId": KEY_ID, "SecretAccessKey": ACCESS_KEY, "SessionToken": TOKEN}},
+    "GetCallerIdentity": {
         "Account": ACCOUNT_ID,
     },
 }
@@ -36,7 +30,7 @@ API_RESULTS = {
 class TestAWSTopologyCheck(unittest.TestCase):
     """Basic Test for AWS Topology integration."""
 
-    CHECK_NAME = 'aws_topology'
+    CHECK_NAME = "aws_topology"
     SERVICE_CHECK_NAME = "aws_topology"
 
     def setUp(self):
@@ -44,26 +38,21 @@ class TestAWSTopologyCheck(unittest.TestCase):
         Initialize and patch the check, i.e.
         """
         config = InitConfig(
-            {
-                "aws_access_key_id": "some_key",
-                "aws_secret_access_key": "some_secret",
-                "external_id": "secret_string"
-            }
+            {"aws_access_key_id": "some_key", "aws_secret_access_key": "some_secret", "external_id": "secret_string"}
         )
-        self.patcher = patch('botocore.client.BaseClient._make_api_call')
+        self.patcher = patch("botocore.client.BaseClient._make_api_call")
         self.mock_object = self.patcher.start()
         self.api_results = deepcopy(API_RESULTS)
         topology.reset()
         aggregator.reset()
         self.check = AwsTopologyCheck(self.CHECK_NAME, config, [self.instance])
+        state_descriptor = self.check._get_state_descriptor()
+        # clear the state
+        self.check.state_manager.clear(state_descriptor)
 
         def results(operation_name, api_params):
-            if operation_name == 'AssumeRole' and 'ExternalId' not in api_params:
-                raise ClientError({
-                    'Error': {
-                        'Code': 'AccessDenied'
-                    }
-                }, operation_name)
+            if operation_name == "AssumeRole" and "ExternalId" not in api_params:
+                raise ClientError({"Error": {"Code": "AccessDenied"}}, operation_name)
             else:
                 return self.api_results.get(operation_name) or {}
 
@@ -77,17 +66,13 @@ class TestAWSTopologyCheck(unittest.TestCase):
         Testing AWS Topology check should not produce any topology (apis_to_run set to empty array)
         """
         instance = InstanceInfo(
-            {
-                "role_arn": "arn:aws:iam::123456789012:role/RoleName",
-                "regions": ["eu-west-1"],
-                "apis_to_run": []
-            }
+            {"role_arn": "arn:aws:iam::123456789012:role/RoleName", "regions": ["eu-west-1"], "apis_to_run": []}
         )
         self.check.check(instance)
         test_topology = topology.get_snapshot(self.check.check_id)
-        self.assertEqual(test_topology['instance_key'], {'type': 'aws-v2', 'url': '123456789012'})
-        self.assertEqual(test_topology['components'], [])
-        self.assertEqual(test_topology['relations'], [])
+        self.assertEqual(test_topology["instance_key"], {"type": "aws-v2", "url": "123456789012"})
+        self.assertEqual(test_topology["components"], [])
+        self.assertEqual(test_topology["relations"], [])
         service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_CONNECT_NAME)
         self.assertGreater(len(service_checks), 0)
         self.assertEqual(service_checks[0].status, AgentCheck.OK)
@@ -120,45 +105,28 @@ class TestAWSTopologyCheck(unittest.TestCase):
             def process_all(self, filter=None):
                 raise Exception("error")
 
-        registry = {
-            'regional': {
-                's3':  s3
-            },
-            'global': {}
-        }
+        registry = {"regional": {"s3": s3}, "global": {}}
 
-        self.check.APIS = {
-            'regional': {
-                's3': {}
-            }
-        }
-        with patch('stackstate_checks.aws_topology.resources.ResourceRegistry.get_registry', return_value=registry):
+        self.check.APIS = {"regional": {"s3": {}}}
+        with patch("stackstate_checks.aws_topology.resources.ResourceRegistry.get_registry", return_value=registry):
             self.check.run()
             service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_EXECUTE_NAME)
             self.assertGreater(len(service_checks), 0)
-            self.assertIn('topology collection failed', service_checks[0].message)
+            self.assertIn("topology collection failed", service_checks[0].message)
 
     def test_metadata(self):
-        self.api_results.update({
-            'ListBuckets': {
-                'Buckets': [{
-                    'Name': 'testname'
-                }]
-            }
-        })
+        self.api_results.update({"ListBuckets": {"Buckets": [{"Name": "testname"}]}})
         self.check.run()
         service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_EXECUTE_NAME)
         self.assertEquals(service_checks[0].status, AgentCheck.OK)
         test_topology = topology.get_snapshot(self.check.check_id)
-        self.assertEqual(len(test_topology['components']), 1)
-        self.assertIsNotNone(test_topology['components'][0]['data'])
-        self.assertEqual(test_topology['components'][0]['data']['Tags'], {})
+        self.assertEqual(len(test_topology["components"]), 1)
+        self.assertIsNotNone(test_topology["components"][0]["data"])
+        self.assertEqual(test_topology["components"][0]["data"]["Tags"], {})
         self.assertEqual(
-            test_topology['components'][0]['data']['Location'],
-            {'AwsAccount': '123456789012', 'AwsRegion': 'eu-west-1'}
+            test_topology["components"][0]["data"]["Location"], {"AwsAccount": "123456789012", "AwsRegion": "eu-west-1"}
         )
         self.assertEqual(
-            test_topology['components'][0]['data']['tags'],
-            ['integration-type:aws-v2', 'integration-url:123456789012']
+            test_topology["components"][0]["data"]["tags"], ["integration-type:aws-v2", "integration-url:123456789012"]
         )
         self.assertGreater(len(service_checks), 0)
