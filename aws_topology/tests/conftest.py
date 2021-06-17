@@ -11,7 +11,7 @@ from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
 from stackstate_checks.base import AgentCheck
 import botocore
 import hashlib
-import datetime
+from datetime import datetime, timedelta
 
 
 REGION = "test-region"
@@ -120,7 +120,8 @@ def wrapper(api, not_authorized, subdirectory, event_name=None):
         if args[0] == "LookupEvents":
             if event_name:
                 res = resource("json/" + api + "/cloudtrail/" + event_name + ".json")
-                res["eventTime"] = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+                dt = datetime.utcnow() + timedelta(hours=3)
+                res["eventTime"] = dt.strftime("%Y-%m-%dT%H:%M:%SZ")
                 msg = {"Events": [{"CloudTrailEvent": json.dumps(res)}]}
                 return msg
             else:
@@ -222,6 +223,9 @@ class BaseApiTest(unittest.TestCase):
         instance.update({"apis_to_run": apis})
 
         self.check = AwsTopologyCheck(self.CHECK_NAME, InitConfig(init_config), [instance])
+        state_descriptor = self.check._get_state_descriptor()
+        # clear the state
+        self.check.state_manager.clear(state_descriptor)
         self.mock_object.side_effect = wrapper(api, not_authorized, subdirectory, event_name=cloudtrail_event)
         self.components_checked = 0
         self.relations_checked = 0
