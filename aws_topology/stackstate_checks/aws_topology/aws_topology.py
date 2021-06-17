@@ -1,22 +1,20 @@
 # (C) StackState 2021
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
+from .cloudtrail import CloudtrailCollector
 import logging
 import boto3
 import time
 import traceback
 from botocore.exceptions import ClientError
 from schematics import Model
-from schematics.exceptions import ValidationError
-from schematics.types import StringType, ListType, DictType
+from schematics.types import StringType, ListType, DictType, DateTimeType, ModelType, IntType
 from botocore.config import Config
 from stackstate_checks.base import AgentCheck, TopologyInstance
 from .resources import ResourceRegistry, type_arn, RegisteredResourceCollector
-from .utils import location_info, correct_tags, capitalize_keys
-import json
-from datetime import datetime
+from .utils import location_info, correct_tags, capitalize_keys, seconds_ago
+from datetime import datetime, timedelta
 import pytz
-import dateutil.parser
 import concurrent.futures
 import threading
 
@@ -36,6 +34,11 @@ class InitConfig(Model):
     aws_access_key_id = StringType(required=True)
     aws_secret_access_key = StringType(required=True)
     external_id = StringType(required=True)
+    full_run_interval = IntType(default=3600)
+
+
+class State(Model):
+    last_full_topology = DateTimeType(required=True, tzd='utc')
 
 
 class InstanceInfo(Model):
@@ -44,6 +47,8 @@ class InstanceInfo(Model):
     tags = ListType(StringType, default=[])
     arns = DictType(StringType, default={})
     apis_to_run = ListType(StringType)
+    log_bucket_name = StringType()
+    state = ModelType(State)
 
 
 class AwsTopologyCheck(AgentCheck):
@@ -60,6 +65,9 @@ class AwsTopologyCheck(AgentCheck):
     def get_instance_key(self, instance_info):
         return TopologyInstance(self.INSTANCE_TYPE, str(self.get_account_id(instance_info)))
 
+    def must_run_full(self, instance_info, interval):
+        return seconds_ago(instance_info.state.last_full_topology) > interval
+
     def check(self, instance_info):
         try:
             init_config = InitConfig(self.init_config)
@@ -75,9 +83,19 @@ class AwsTopologyCheck(AgentCheck):
             return
 
         try:
+            if not instance_info.state:
+                # Create empty state
+                instance_info.state = State(
+                    {
+                        'last_full_topology': datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(
+                            seconds=init_config.full_run_interval + 60
+                        )
+                    }
+                )
             self.delete_ids = []
             self.components_seen = set()
-            if True:  # TODO hourly
+            if self.must_run_full(instance_info, init_config.full_run_interval):
+                instance_info.state.last_full_topology = datetime.utcnow().replace(tzinfo=pytz.utc)
                 self.get_topology(instance_info, aws_client)
             self.get_topology_update(instance_info, aws_client)
             self.service_check(self.SERVICE_CHECK_EXECUTE_NAME, AgentCheck.OK, tags=instance_info.tags)
@@ -90,6 +108,7 @@ class AwsTopologyCheck(AgentCheck):
 
     def get_topology(self, instance_info, aws_client):
         """Gets AWS Topology returns them in Agent format."""
+
         self.start_snapshot()
 
         errors = []
@@ -115,7 +134,7 @@ class AwsTopologyCheck(AgentCheck):
                             if (api + "|") in to_run:
                                 filter = to_run.split("|")[1]
                     if client is None:
-                        client = session.client(api)
+                        client = session.client(api) if api != "noclient" else None
                     processor = registry[api](location.clone(), client, agent_proxy)
                     futures[executor.submit(processor.process_all, filter)] = {
                         "location": location.clone(),
@@ -152,89 +171,58 @@ class AwsTopologyCheck(AgentCheck):
         self.stop_snapshot()
 
     def get_topology_update(self, instance_info, aws_client):
+        not_before = instance_info.state.last_full_topology
         agent_proxy = AgentProxy(self, instance_info.role_arn)
         listen_for = ResourceRegistry.CLOUDTRAIL
         for region in instance_info.regions:
             session = aws_client.get_session(instance_info.role_arn, region)
-            registry = ResourceRegistry.get_registry()["regional" if region != "global" else "global"]
-            client = session.client("cloudtrail")
-            location = location_info(self.get_account_id(instance_info), session.region_name)
-            resources_seen = set()
-            events = []
-            collectors = {}
-            stop = False
+            events_per_api = {}
+            collector = CloudtrailCollector(
+                instance_info.log_bucket_name,
+                self.get_account_id(instance_info),
+                session,
+                agent_proxy,
+                self.log
+            )
             # collect the events (ordering is most recent event first)
-            for pg in client.get_paginator("lookup_events").paginate(
-                LookupAttributes=[{"AttributeKey": "ReadOnly", "AttributeValue": "false"}],
-            ):
-                for itm in pg.get("Events") or []:
-                    rec = json.loads(itm["CloudTrailEvent"])
-                    event_date = dateutil.parser.isoparse(rec["eventTime"])
-                    delta = datetime.utcnow().replace(tzinfo=pytz.utc) - event_date
-                    if delta.total_seconds() > 60 * 60 * 24 * 5:  # TODO have better stop condition!
-                        stop = True
-                        break
-                    msgs = listen_for.get(rec["eventSource"])
-                    if not msgs and rec.get("apiVersion"):
-                        msgs = listen_for.get(rec["apiVersion"] + "-" + rec["eventSource"])
-                    if isinstance(msgs, dict):
-                        event_name = rec.get("eventName")
-                        event_class = msgs.get(event_name)
-                        if event_class:
-                            if isinstance(event_class, bool):
-                                print("should interpret: " + rec["eventName"] + "-" + rec["eventSource"])
-                                print(rec)
-                            elif issubclass(event_class, Model):
-                                try:
-                                    event = event_class(rec, strict=False)
-                                    event.validate()
-                                    resource_id = event.get_resource_arn(agent_proxy, location.clone())
-                                    # only add the event if there was no event for the resource before
-                                    if resource_id not in resources_seen:
-                                        events.append(event)
-                                except ValidationError as e:
-                                    agent_proxy.warning(
-                                        "Could not validate schema of cloudtrail messages {}: {}".format(
-                                            event_name, e.messages
-                                        )
-                                    )
-                            elif issubclass(event_class, RegisteredResourceCollector):
-                                # the new way of event handling
-                                collector = collectors.get(event_class.API)
-                                if collector:
-                                    collector.append(rec)
-                                else:
-                                    collectors[event_class.API] = [rec]
+            for event in collector.get_messages(not_before):
+                msgs = listen_for.get(event["eventSource"])
+                if not msgs and event.get("apiVersion"):
+                    msgs = listen_for.get(event["apiVersion"] + "-" + event["eventSource"])
+                if isinstance(msgs, dict):
+                    event_name = event.get("eventName")
+                    event_class = msgs.get(event_name)
+                    if event_class:
+                        if isinstance(event_class, bool):
+                            agent_proxy.warning("should interpret: " + event["eventName"] + "-" + event["eventSource"])
+                        elif issubclass(event_class, RegisteredResourceCollector):
+                            # the new way of event handling
+                            events = events_per_api.get(event_class.API)
+                            if events:
+                                events.append(event)
+                            else:
+                                events_per_api[event_class.API] = [event]
 
-                if stop:
-                    break
-            # old processing, will deprecate soon
-            for event in events:
-                if event.process:
-                    # TODO if full snapshot ran just before we can use components_seen here too
-                    # operation type C=create D=delete U=update E=event
-                    # component seen: YES
-                    #  C -> skip
-                    #  U -> timing, do is safe
-                    #  D -> timing!, skip will leave component in for hour
-                    #  E -> do
-                    # component seen: NO
-                    #  C -> try
-                    #  U -> try
-                    #  D -> skip
-                    #  E -> timing, skip (!could have create before)
-                    try:
-                        event.process(session, location.clone(), agent_proxy)
-                    except Exception as e:
-                        print(e)
-            # new processing
-            for api in collectors:
-                client = session.client(api)
+            # TODO if full snapshot ran just before we can use components_seen here too
+            # operation type C=create D=delete U=update E=event
+            # component seen: YES
+            #  C -> skip
+            #  U -> timing, do is safe
+            #  D -> timing!, skip will leave component in for hour
+            #  E -> do
+            # component seen: NO
+            #  C -> try
+            #  U -> try
+            #  D -> skip
+            #  E -> timing, skip (!could have create before)
+            location = location_info(self.get_account_id(instance_info), session.region_name)
+            registry = ResourceRegistry.get_registry()["regional" if region != "global" else "global"]
+            for api in events_per_api:
+                client = session.client(api) if api != "noclient" else None
                 resources_seen = set()
                 processor = registry[api](location.clone(), client, agent_proxy)
-                for event in collectors[api]:
-                    id = processor.process_cloudtrail_event(event, resources_seen)
-                    resources_seen.add(id)
+                for event in events_per_api[api]:
+                    processor.process_cloudtrail_event(event, resources_seen)
 
         self.delete_ids += agent_proxy.delete_ids
 

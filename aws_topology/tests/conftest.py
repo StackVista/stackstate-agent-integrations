@@ -11,7 +11,7 @@ from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
 from stackstate_checks.base import AgentCheck
 import botocore
 import hashlib
-import datetime
+from datetime import datetime, timedelta
 
 
 REGION = "test-region"
@@ -120,14 +120,21 @@ def wrapper(api, not_authorized, subdirectory, event_name=None):
         if args[0] == "LookupEvents":
             if event_name:
                 res = resource("json/" + api + "/cloudtrail/" + event_name + ".json")
-                res["eventTime"] = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+                dt = datetime.utcnow() + timedelta(hours=3)
+                res["eventTime"] = dt.strftime("%Y-%m-%dT%H:%M:%SZ")
                 msg = {"Events": [{"CloudTrailEvent": json.dumps(res)}]}
                 return msg
             else:
                 return {}
         operation_name = botocore.xform_name(args[0])
         if operation_name in not_authorized:
-            raise botocore.exceptions.ClientError({"Error": {"Code": "AccessDenied"}}, operation_name)
+            # Some APIs return a different error code when there is no permission
+            # But there are no docs on which ones do. Here is an array of some known APIs
+            if api in ["stepfunctions", "firehose"]:
+                error_code = "AccessDeniedException"
+            else:
+                error_code = "AccessDenied"
+            raise botocore.exceptions.ClientError({"Error": {"Code": error_code}}, operation_name)
         apidir = api
         if apidir is None:
             apidir = self._service_model.service_name
@@ -145,11 +152,10 @@ def wrapper(api, not_authorized, subdirectory, event_name=None):
             raise Exception(error)
         # If an error code is included in the response metadata, raise this instead
         if "Error" in result.get("ResponseMetadata", {}):
-            raise botocore.exceptions.ClientError({
-                "Error": result["ResponseMetadata"]["Error"]
-            }, operation_name)
+            raise botocore.exceptions.ClientError({"Error": result["ResponseMetadata"]["Error"]}, operation_name)
         else:
             return result
+
     return mock_boto_calls
 
 
@@ -217,6 +223,9 @@ class BaseApiTest(unittest.TestCase):
         instance.update({"apis_to_run": apis})
 
         self.check = AwsTopologyCheck(self.CHECK_NAME, InitConfig(init_config), [instance])
+        state_descriptor = self.check._get_state_descriptor()
+        # clear the state
+        self.check.state_manager.clear(state_descriptor)
         self.mock_object.side_effect = wrapper(api, not_authorized, subdirectory, event_name=cloudtrail_event)
         self.components_checked = 0
         self.relations_checked = 0
