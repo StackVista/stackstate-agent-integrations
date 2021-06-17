@@ -122,7 +122,6 @@ class DynatraceCheck(AgentCheck):
                 instance_info.state = State({'last_processed_event_timestamp': empty_state_timestamp})
             self.start_snapshot()
             self._process_topology(instance_info)
-            self._process_synthetics(instance_info)
             self.stop_snapshot()
             # process events is not inside snapshot block as Vishal suggested
             self._process_events(instance_info)
@@ -158,7 +157,7 @@ class DynatraceCheck(AgentCheck):
         self.log.info("Collected %d topology entities.", len(dynatrace_entities_cache))
         self.log.debug("Time taken to collect the topology is: %d seconds" % time_taken.total_seconds())
 
-    def _process_topology(self, item, component_type, instance_info):
+    def _create_topology(self, item, component_type, instance_info):
         item = self._clean_unsupported_metadata(item)
         if component_type == "monitor":
             item.update({"displayName": item["name"]})
@@ -199,9 +198,9 @@ class DynatraceCheck(AgentCheck):
         """
         if component_type != "monitor":
             for item in response:
-                self._process_topology(item, component_type, instance_info)
+                self._create_topology(item, component_type, instance_info)
         else :
-            self._process_topology(response, component_type, instance_info)
+            self._create_topology(response, component_type, instance_info)
 
     def _collect_relations(self, dynatrace_component, external_id):
         """
