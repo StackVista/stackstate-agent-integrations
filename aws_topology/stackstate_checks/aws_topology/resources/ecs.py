@@ -1,170 +1,276 @@
-import boto3
-from botocore.config import Config
-from .utils import make_valid_data, with_dimensions, create_arn as arn
+from collections import namedtuple
+from .utils import (
+    make_valid_data,
+    with_dimensions,
+    create_arn as arn,
+    client_array_operation,
+    set_required_access_v2,
+    transformation,
+)
+from schematics import Model
+from schematics.types import StringType, ListType, ModelType
 from .registry import RegisteredResourceCollector
-
-
-DEFAULT_BOTO3_RETRIES_COUNT = 50
-
-DEFAULT_BOTO3_CONFIG = Config(retries=dict(max_attempts=DEFAULT_BOTO3_RETRIES_COUNT))
 
 
 def create_cluster_arn(region=None, account_id=None, resource_id=None, **kwargs):
     return arn(resource="ecs", region=region, account_id=account_id, resource_id="cluster/" + resource_id)
 
 
+class TaskMapItem(Model):
+    taskArn = StringType()
+    names = ListType(StringType())
+
+
+class Task(Model):
+    class TaskContainers(Model):
+        class TaskContainerNetworkInterface(Model):
+            privateIpv4Address = StringType()
+
+        name = StringType(default="UNKNOWN")
+        networkInterfaces = ListType(ModelType(TaskContainerNetworkInterface), default=[])
+
+    taskArn = StringType(required=True)
+    taskDefinitionArn = StringType()
+    group = StringType(default="UNKNOWN")
+    containers = ListType(ModelType(TaskContainers), default=[])
+
+
+class Service(Model):
+    class ServiceLoadBalancers(Model):
+        targetGroupArn = StringType()
+
+    serviceArn = StringType(required=True)
+    serviceName = StringType()
+    clusterArn = StringType(required=True)
+    loadBalancers = ListType(ModelType(ServiceLoadBalancers), default=[])
+
+
+class ContainerInstance(Model):
+    ec2InstanceId = StringType(required=True)
+
+
+class Cluster(Model):
+    clusterArn = StringType(required=True)
+    clusterName = StringType()
+
+
+ClusterData = namedtuple("ClusterData", ["cluster", "container_instances", "tasks", "services"])
+
+
 class EcsCollector(RegisteredResourceCollector):
     API = "ecs"
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.ecs.cluster"
+    MAX_PAGE_SIZE = 100  # Number of items that can be fetched in one describe_* page call
+
+    @set_required_access_v2("")
+    def collect_service_page(self, cluster_arn, service_arns):
+        max_calls = self.MAX_PAGE_SIZE
+        return self.client.describe_services(
+            cluster=cluster_arn, include=["TAGS"], services=service_arns[:max_calls]
+        ).get("services", [])
+
+    @set_required_access_v2("")
+    def collect_services(self, cluster_arn):
+        services = []
+        service_arns = []
+        for service_arn in client_array_operation(self.client, "list_services", "serviceArns", cluster=cluster_arn):
+            if len(service_arns) >= self.MAX_PAGE_SIZE:
+                # If no service pages are returned, instead return a minimal object with the data we have
+                services += self.collect_service_page(cluster_arn, service_arns) or [
+                    {"serviceArn": sarn, "clusterArn": cluster_arn} for sarn in service_arns
+                ]
+                service_arns = []
+            else:
+                service_arns.append(service_arn)
+        # Process any leftover items, if they exist
+        if service_arns:
+            services += self.collect_service_page(cluster_arn, service_arns) or [
+                {"serviceArn": sarn, "clusterArn": cluster_arn} for sarn in service_arns
+            ]
+        return services
+
+    @set_required_access_v2("")
+    def collect_task_page(self, cluster_arn, task_arns):
+        max_calls = self.MAX_PAGE_SIZE
+        return self.client.describe_tasks(cluster=cluster_arn, tasks=task_arns[:max_calls]).get("tasks", [])
+
+    @set_required_access_v2("")
+    def collect_tasks(self, cluster_arn):
+        tasks = []
+        task_arns = []
+        for task_arn in client_array_operation(self.client, "list_tasks", "taskArns", cluster=cluster_arn):
+            if len(task_arns) >= self.MAX_PAGE_SIZE:
+                # If no task pages are returned, instead return a minimal object with the data we have
+                tasks += self.collect_task_page(cluster_arn, task_arns) or [
+                    {"taskArn": tarn, "clusterArn": cluster_arn} for tarn in task_arns
+                ]
+                task_arns = []
+            else:
+                task_arns.append(task_arn)
+        # Process any leftover items, if they exist
+        if task_arns:
+            tasks += self.collect_task_page(cluster_arn, task_arns) or [
+                {"taskArn": tarn, "clusterArn": cluster_arn} for tarn in task_arns
+            ]
+        return tasks
+
+    @set_required_access_v2("")
+    def collect_container_instance_page(self, cluster_arn, container_instance_arns):
+        max_calls = self.MAX_PAGE_SIZE
+        return self.client.describe_container_instances(
+            cluster=cluster_arn, containerInstances=container_instance_arns[:max_calls]
+        ).get("containerInstances", [])
+
+    @set_required_access_v2("")
+    def collect_container_instances(self, cluster_arn):
+        container_instances = []
+        container_instance_arns = []
+        for container_instance_arn in client_array_operation(
+            self.client, "list_container_instances", "containerInstanceArns", cluster=cluster_arn
+        ):
+            if len(container_instance_arns) >= self.MAX_PAGE_SIZE:
+                # Don't attempt to create a minimal object here as we require data from describe_container_instances
+                container_instances += self.collect_container_instance_page(cluster_arn, container_instance_arns) or []
+                container_instance_arns = []
+            else:
+                container_instance_arns.append(container_instance_arn)
+        if container_instance_arns:
+            container_instances += self.collect_container_instance_page(cluster_arn, container_instance_arns) or []
+        return container_instances
+
+    @set_required_access_v2("")
+    def collect_cluster_page(self, cluster_arns):
+        return self.client.describe_clusters(clusters=cluster_arns, include=["TAGS"]).get("clusters", [])
+
+    @set_required_access_v2("")
+    def collect_clusters(self):
+        for cluster_arn in client_array_operation(self.client, "list_clusters", "clusterArns"):
+            yield cluster_arn
+
+    def process_cluster_page(self, cluster_arns):
+        for data in self.collect_cluster_page(cluster_arns) or [
+            {"clusterArn": cluster_arn} for cluster_arn in cluster_arns
+        ]:
+            cluster_arn = data.get("clusterArn")
+            container_instances = self.collect_container_instances(cluster_arn) or []
+            tasks = self.collect_tasks(cluster_arn) or []
+            services = self.collect_services(cluster_arn) or []
+            self.process_cluster(
+                ClusterData(cluster=data, container_instances=container_instances, tasks=tasks, services=services)
+            )
+
+    def process_clusters(self):
+        cluster_arns = []
+        for cluster_arn in self.collect_clusters():
+            if len(cluster_arns) >= self.MAX_PAGE_SIZE:
+                self.process_cluster_page(cluster_arns)
+                cluster_arns = []
+            else:
+                cluster_arns.append(cluster_arn)
+        if cluster_arns:
+            self.process_cluster_page(cluster_arns)
 
     def process_all(self, filter=None):
-        for cluster_page in self.client.get_paginator("list_clusters").paginate():
-            cluster_arns = cluster_page.get("clusterArns") or []
-            self.process_clusters(cluster_arns)
+        if not filter or "clusters" in filter:
+            self.process_clusters()
 
-    def process_clusters(self, cluster_arns):
-        for cluster_data_raw in (
-            self.client.describe_clusters(clusters=cluster_arns, include=["TAGS"]).get("clusters") or []
-        ):
-            cluster_data = make_valid_data(cluster_data_raw)
-            self.process_cluster(cluster_data)
-
-        for cluster_arn in cluster_arns:
-            for container_instance_page in self.client.get_paginator("list_container_instances").paginate(
-                cluster=cluster_arn
-            ):
-                if (
-                    isinstance(container_instance_page.get("containerInstanceArns"), list)
-                    and len(container_instance_page["containerInstanceArns"]) > 0
-                ):
-                    described_container_instance = self.client.describe_container_instances(
-                        cluster=cluster_arn, containerInstances=container_instance_page["containerInstanceArns"]
-                    )
-                    for container_instance in described_container_instance.get("containerInstances", []):
-                        self.emit_relation(cluster_arn, container_instance["ec2InstanceId"], "uses_ec2_host", {})
-
-    def process_one_cluster(self, cluster_arn):
-        self.process_clusters([cluster_arn])
-
-    def process_cluster(self, cluster_data):
-        cluster_arn = cluster_data["clusterArn"]
-        cluster_name = cluster_data["clusterName"]
-        cluster_data["Name"] = cluster_name
-        cluster_data.update(with_dimensions([{"key": "ClusterName", "value": cluster_name}]))
-        self.emit_component(cluster_arn, self.COMPONENT_TYPE, cluster_data)
-
-        # key: service_name, value: list of container_name
-        self.ecs_containers_per_service = self.process_cluster_tasks(cluster_arn)
-
-        self.process_services(cluster_arn, cluster_name)
-
-    def process_cluster_tasks(self, cluster_arn):
-        task_map = {}
-        for task_page in self.client.get_paginator("list_tasks").paginate(cluster=cluster_arn):
-            if isinstance(task_page.get("taskArns"), list) and len(task_page["taskArns"]) >= 1:
-                for task_data_raw in (
-                    self.client.describe_tasks(cluster=cluster_arn, tasks=task_page["taskArns"]).get("tasks") or []
-                ):
-                    task_data = make_valid_data(task_data_raw)
-                    result = self.process_cluster_task(cluster_arn, task_data)
-                    task_map.update(result)
-        return task_map
-
-    def process_cluster_task(self, cluster_arn, task_data):
-        task_definition_arn = task_data["taskDefinitionArn"]
-        task_data["Name"] = task_definition_arn[task_definition_arn.rfind("/") + 1 :]
+    def process_task(self, cluster, data):
+        task = Task(data, strict=False)
+        task.validate()
+        output = make_valid_data(data)
+        # If no task definition ARN is found, use the UUID of the task as the name
+        output["Name"] = (task.taskDefinitionArn or task.taskArn).rsplit("/", 1)[1]
 
         # add a service instance identifier so it can merge with trace instance services
         identifiers = []
         container_names = []
-        task_group = task_data["group"]
 
-        if task_group.startswith("service:"):
-            has_group_service = True
-            base_identifier = "urn:service-instance:/{0}".format(task_group.replace(":", "-"))
-            for container in task_data["containers"]:
+        if task.group.startswith("service:"):
+            base_identifier = "urn:service-instance:/{0}".format(task.group.replace(":", "-"))
+            for container in task.containers:
                 # this follow the same format that Traefik uses to name the backend
                 # the trace agent uses the backend.meta tag present in the client span to create
                 # the identifier for the service and service-instance components
-                container_names.append("{0}-{1}".format(task_group.replace(":", "-"), container["name"]))
-                if "networkInterfaces" in container:
-                    for interface in container["networkInterfaces"]:
-                        identifiers.append(
-                            "{0}-{1}:/{2}".format(base_identifier, container["name"], interface["privateIpv4Address"])
-                        )
+                container_names.append("{0}-{1}".format(task.group.replace(":", "-"), container["name"]))
+                for interface in container.networkInterfaces:
+                    identifiers.append(
+                        "{0}-{1}:/{2}".format(base_identifier, container.name, interface.privateIpv4Address)
+                    )
         else:
-            has_group_service = False
+            # Only emit a direct relation between a task and a cluster if the task has no service
+            self.emit_relation(cluster.clusterArn, task.taskArn, "has_cluster_node", {})
 
-        task_data["URN"] = identifiers
-        task_arn = task_data["taskArn"]
-        # TODO self.logger.debug('task {2}, group {0}: {1}'.
-        # format(task_group, ecs_containers_per_service[task_group], task_data['Name']))
+        output["URN"] = identifiers
+        self.emit_component(task.taskArn, "aws.ecs.task", output)
+        return {task.group: TaskMapItem({"taskArn": task.taskArn, "names": container_names})}
 
-        self.emit_component(task_arn, "aws.ecs.task", task_data)
-        if not has_group_service:
-            self.emit_relation(cluster_arn, task_arn, "has_cluster_node", {})
-        return {task_group: {"taskArn": task_arn, "names": container_names}}
-
-    def process_services(self, cluster_arn, cluster_name):
-        for services_page in self.client.get_paginator("list_services").paginate(cluster=cluster_arn):
-            if isinstance(services_page.get("serviceArns"), list) and len(services_page["serviceArns"]) >= 1:
-                for service_data_raw in self.client.describe_services(
-                    cluster=cluster_arn, include=["TAGS"], services=services_page["serviceArns"]
-                )["services"]:
-                    service_data = make_valid_data(service_data_raw)
-                    self.process_service(cluster_arn, cluster_name, service_data)
-
-    def process_service(self, cluster_arn, cluster_name, service_data):
-        service_arn = service_data["serviceArn"]
-        service_name = service_data["serviceName"]
-        for lb in service_data["loadBalancers"]:
-            if "targetGroupArn" in lb:
-                self.emit_relation(service_arn, lb["targetGroupArn"], "uses service", {})
-        service_data["Name"] = service_name
-        service_data.update(
+    @transformation()
+    def process_service(self, cluster, data, task_map):
+        service = Service(data, strict=False)
+        service.validate()
+        output = make_valid_data(data)
+        service_arn = service.serviceArn
+        service_name = service.serviceName or service_arn.rsplit("/", 1)[1]
+        output["Name"] = service_name
+        output.update(
             with_dimensions(
-                [{"key": "ClusterName", "value": cluster_name}, {"key": "ServiceName", "value": service_name}]
+                [{"key": "ClusterName", "value": cluster.clusterName}, {"key": "ServiceName", "value": service_name}]
             )
         )
 
+        for lb in service.loadBalancers:
+            if lb.targetGroupArn:
+                self.emit_relation(service_arn, lb.targetGroupArn, "uses service", {})
+
         # remove events because they do not belong to a component
-        service_data.pop("events", None)
+        output.pop("events", None)
 
         # add a service identifier so it can merge with trace services
         prefixed_service_name = "service:" + service_name
-        if prefixed_service_name in self.ecs_containers_per_service:
-            containers = self.ecs_containers_per_service[prefixed_service_name]
+        if prefixed_service_name in task_map:
+            containers = task_map[prefixed_service_name]
             identifiers = []
             base_identifier = "urn:service:/"
-            for container_name in containers["names"]:
+            for container_name in containers.names:
                 identifiers.append(base_identifier + container_name)
-            service_data["URN"] = identifiers
-
-            # TODO self.logger.debug('ecs service {0} with identifiers: {1}'.format(service_name, identifiers))
-
+            output["URN"] = identifiers
             # create a relation with the task
-            self.emit_relation(service_arn, containers["taskArn"], "has_cluster_node", {})
-        # else:
-        # TODO   self.logger.warning('no containers for ecs service {0}'.format(service_name))
+            self.emit_relation(service_arn, containers.taskArn, "has_cluster_node", {})
 
-        self.emit_component(service_arn, "aws.ecs.service", service_data)
-        self.emit_relation(cluster_arn, service_arn, "has_cluster_node", {})
+        self.emit_component(service_arn, "aws.ecs.service", output)
+        self.emit_relation(cluster.clusterArn, service_arn, "has_cluster_node", {})
 
-        # TODO makes new client ? should we do that here ?
-        for registry in service_data["serviceRegistries"]:
-            registry_arn = registry["registryArn"]
-            discovery_client = boto3.client("servicediscovery", config=DEFAULT_BOTO3_CONFIG)
-            servicediscovery_list = discovery_client.list_services()["Services"]
+    @transformation()
+    def process_container_instance(self, cluster, data):
+        container_instance = ContainerInstance(data, strict=False)
+        container_instance.validate()
+        self.emit_relation(cluster.clusterArn, container_instance.ec2InstanceId, "uses_ec2_host", {})
 
-            filtered_registries = list(filter(lambda x: x["Arn"] in registry_arn, servicediscovery_list))
+    @transformation()
+    def process_cluster(self, data):
+        cluster = Cluster(data.cluster, strict=False)
+        cluster.validate()
+        output = make_valid_data(data.cluster)
+        cluster_arn = cluster.clusterArn
+        # If ecs:DescribeClusters is not granted, we can infer name from ARN
+        cluster_name = cluster.clusterName or cluster_arn.rsplit("/", 1)[1]
+        output["Name"] = cluster_name
+        output.update(with_dimensions([{"key": "ClusterName", "value": cluster_name}]))
+        self.emit_component(cluster_arn, self.COMPONENT_TYPE, output)
 
-            if len(filtered_registries) == 1:
-                service = discovery_client.get_service(Id=filtered_registries[0]["Id"])["Service"]
-                namespace_id = service["DnsConfig"]["NamespaceId"]
-                namespace_data = discovery_client.get_namespace(Id=namespace_id)
-                hosted_zone_id = namespace_data["Namespace"]["Properties"]["DnsProperties"]["HostedZoneId"]
-                self.emit_relation(service_arn, "/hostedzone/" + hosted_zone_id, "uses service", {})
+        for container_instance in data.container_instances:
+            self.process_container_instance(cluster, container_instance)
+
+        task_map = {}
+        for task in data.tasks:
+            task_map.update(self.process_task(cluster, task))
+
+        for service in data.services:
+            self.process_service(cluster, service, task_map)
+
+    def process_one_cluster(self, cluster_arn):
+        self.process_cluster_page([cluster_arn])
 
     EVENT_SOURCE = "ecs.amazonaws.com"
     CLOUDTRAIL_EVENTS = [
