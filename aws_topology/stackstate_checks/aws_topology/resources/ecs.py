@@ -70,7 +70,7 @@ class EcsCollector(RegisteredResourceCollector):
             cluster=cluster_arn, include=["TAGS"], services=service_arns[:max_calls]
         ).get("services", [])
 
-    @set_required_access_v2("")
+    @set_required_access_v2("ecs:ListServices")
     def collect_services(self, cluster_arn):
         services = []
         service_arns = []
@@ -90,12 +90,12 @@ class EcsCollector(RegisteredResourceCollector):
             ]
         return services
 
-    @set_required_access_v2("")
+    @set_required_access_v2("ecs:DescibeTasks")
     def collect_task_page(self, cluster_arn, task_arns):
         max_calls = self.MAX_PAGE_SIZE
         return self.client.describe_tasks(cluster=cluster_arn, tasks=task_arns[:max_calls]).get("tasks", [])
 
-    @set_required_access_v2("")
+    @set_required_access_v2("ecs:ListTasks")
     def collect_tasks(self, cluster_arn):
         tasks = []
         task_arns = []
@@ -115,14 +115,14 @@ class EcsCollector(RegisteredResourceCollector):
             ]
         return tasks
 
-    @set_required_access_v2("")
+    @set_required_access_v2("ecs:DescribeContainerInstances")
     def collect_container_instance_page(self, cluster_arn, container_instance_arns):
         max_calls = self.MAX_PAGE_SIZE
         return self.client.describe_container_instances(
             cluster=cluster_arn, containerInstances=container_instance_arns[:max_calls]
         ).get("containerInstances", [])
 
-    @set_required_access_v2("")
+    @set_required_access_v2("ecs:ListContainerInstances")
     def collect_container_instances(self, cluster_arn):
         container_instances = []
         container_instance_arns = []
@@ -139,11 +139,10 @@ class EcsCollector(RegisteredResourceCollector):
             container_instances += self.collect_container_instance_page(cluster_arn, container_instance_arns) or []
         return container_instances
 
-    @set_required_access_v2("")
+    @set_required_access_v2("ecs:DescribeClusters")
     def collect_cluster_page(self, cluster_arns):
         return self.client.describe_clusters(clusters=cluster_arns, include=["TAGS"]).get("clusters", [])
 
-    @set_required_access_v2("")
     def collect_clusters(self):
         for cluster_arn in client_array_operation(self.client, "list_clusters", "clusterArns"):
             yield cluster_arn
@@ -160,6 +159,7 @@ class EcsCollector(RegisteredResourceCollector):
                 ClusterData(cluster=data, container_instances=container_instances, tasks=tasks, services=services)
             )
 
+    @set_required_access_v2("ecs:ListClusters")
     def process_clusters(self):
         cluster_arns = []
         for cluster_arn in self.collect_clusters():
