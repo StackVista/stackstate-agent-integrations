@@ -1,6 +1,5 @@
 from collections import namedtuple
 from .utils import (
-    create_arn as arn,
     client_array_operation,
     set_required_access_v2,
     transformation,
@@ -8,10 +7,6 @@ from .utils import (
 from schematics import Model
 from schematics.types import StringType, ModelType, DictType
 from .registry import RegisteredResourceCollector
-
-
-def create_arn(region=None, account_id=None, resource_id=None, **kwargs):
-    return arn(resource="kinesis", region=region, account_id=account_id, resource_id="stream/" + resource_id)
 
 
 class Service(Model):
@@ -29,7 +24,7 @@ class Namespace(Model):
 
         DnsProperties = ModelType(NamespaceDnsProperties)
 
-    Properties = ModelType(NamespaceProperties)
+    Properties = ModelType(NamespaceProperties, required=True)
 
 
 ServiceDiscoveryData = namedtuple("ServiceDiscoveryData", ["service", "instances", "namespace"])
@@ -61,8 +56,8 @@ class ServiceDiscoveryCollector(RegisteredResourceCollector):
         data = self.collect_service_description(service_id) or service_data
         instances = self.collect_instances(service_id) or []
         namespace = {}
-        if service_data.get("DnsConfig", {}).get("NamespaceId"):
-            namespace = self.collect_namespace(service_data["DnsConfig"]["NamespaceId"]) or {}
+        if data.get("DnsConfig", {}).get("NamespaceId"):
+            namespace = self.collect_namespace(data["DnsConfig"]["NamespaceId"]) or {}
         return ServiceDiscoveryData(service=data, instances=instances, namespace=namespace)
 
     def collect_services(self):
@@ -83,7 +78,7 @@ class ServiceDiscoveryCollector(RegisteredResourceCollector):
 
     @transformation()
     def process_instance(self, data, hosted_zone_id):
-        instance = Instance(data)
+        instance = Instance(data, strict=False)
         instance.validate()
 
         if "ECS_SERVICE_NAME" in instance.Attributes:
@@ -98,9 +93,11 @@ class ServiceDiscoveryCollector(RegisteredResourceCollector):
 
     @transformation()
     def process_service(self, data):
-        namespace = Namespace(data.namespace, strict=False)
-        namespace.validate()
+        # If no namespace data exists, do nothing
+        if data.namespace:
+            namespace = Namespace(data.namespace, strict=False)
+            namespace.validate()
 
-        if namespace.Properties.DnsProperties.HostedZoneId:
-            for instance in data.instances:
-                self.process_instance(instance, namespace.Properties.DnsProperties.HostedZoneId)
+            if namespace.Properties.DnsProperties.HostedZoneId:
+                for instance in data.instances:
+                    self.process_instance(instance, namespace.Properties.DnsProperties.HostedZoneId)

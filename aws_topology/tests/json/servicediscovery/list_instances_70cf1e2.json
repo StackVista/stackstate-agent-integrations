@@ -1,0 +1,25 @@
+{
+  "Instances": [
+    {
+      "Id": "45dbfea340304677bc0e765336e545ae",
+      "Attributes": {
+        "AVAILABILITY_ZONE": "eu-west-1c",
+        "AWS_INIT_HEALTH_STATUS": "HEALTHY",
+        "AWS_INSTANCE_IPV4": "10.0.99.207",
+        "AWS_INSTANCE_PORT": "32769",
+        "EC2_INSTANCE_ID": "i-1234567890123456",
+        "ECS_CLUSTER_NAME": "default",
+        "ECS_SERVICE_NAME": "sample-app-service",
+        "ECS_TASK_DEFINITION_FAMILY": "first-run-task-definition",
+        "REGION": "eu-west-1"
+      }
+    }
+  ],
+  "ResponseMetadata": {
+    "Parameters": { "ServiceId": "srv-cjh4ioui5h4g2vbr" },
+    "OperationName": "ListInstances",
+    "Generater": "2021-06-18 15:45:36.709391",
+    "Region": "eu-west-1",
+    "Account": "548105126730"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "Services": [
+    {
+      "Id": "srv-cjh4ioui5h4g2vbr",
+      "Arn": "arn:aws:servicediscovery:eu-west-1:548105126730:service/srv-cjh4ioui5h4g2vbr",
+      "Name": "ServiceDiscoveryService-ZooW4fuE03gB",
+      "DnsConfig": {
+        "RoutingPolicy": "MULTIVALUE",
+        "DnsRecords": [
+          {
+            "Type": "SRV",
+            "TTL": 60
+          }
+        ]
+      },
+      "CreateDate": "2021-06-18T15:23:01.569000+02:00"
+    }
+  ],
+  "ResponseMetadata": {
+    "Parameters": {},
+    "OperationName": "ListServices",
+    "Generater": "2021-06-18 15:45:36.709391",
+    "Region": "eu-west-1",
+    "Account": "548105126730"
+  }
+}
