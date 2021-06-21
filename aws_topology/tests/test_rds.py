@@ -12,7 +12,7 @@ class TestRds(BaseApiTest):
         return "731070500579"
 
     def test_process_rds(self):
-        with patch('socket.getaddrinfo', return_value=((0,0,0,0,['10.1.1.10']),)):
+        with patch('socket.getaddrinfo', return_value=((0, 0, 0, 0, ['10.1.1.10']),)):
             self.check.run()
 
         topology = [top.get_snapshot(self.check.check_id)]

@@ -43,6 +43,7 @@ class InstanceEndpoint(Model):
     Address = StringType(required=True)
     Port = IntType(required=True)
 
+
 class InstanceVpcSecurityGroup(Model):
     VpcSecurityGroupId = StringType(required=True)
 
@@ -125,8 +126,11 @@ class RdsCollector(RegisteredResourceCollector):
             "urn:endpoint:/" + instance.Endpoint.Address
         ]
         try:
-            urns += get_ipurns_from_hostname("sni1kn9dgtwv86.cc0zqxj4jtdx.eu-west-1.rds.amazonaws.com", instance.DBSubnetGroup.VpcId)
-        except Exception as e:
+            urns += get_ipurns_from_hostname(
+                "sni1kn9dgtwv86.cc0zqxj4jtdx.eu-west-1.rds.amazonaws.com",
+                instance.DBSubnetGroup.VpcId
+            )
+        except Exception:
             self.agent.warning('Failed to resolve RDS endpoint address {}'.format(instance.Endpoint.Address))
         output["URN"] = urns
         output.update(with_dimensions([{"key": "DBInstanceIdentifier", "value": instance_id}]))

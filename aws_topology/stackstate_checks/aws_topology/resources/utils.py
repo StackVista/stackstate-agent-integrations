@@ -7,6 +7,7 @@ from datetime import datetime, date
 from botocore.exceptions import ClientError
 from functools import cmp_to_key
 import socket
+
 try:
     import ipaddress
 except ImportError:
@@ -14,6 +15,7 @@ except ImportError:
         from pip._vendor import ipaddress  # type: ignore
     except ImportError:
         import ipaddr as ipaddress  # type: ignore
+
         ipaddress.ip_address = ipaddress.IPAddress  # type: ignore
         ipaddress.ip_network = ipaddress.IPNetwork  # type: ignore
 
@@ -229,9 +231,7 @@ def set_required_access_v2(value, ignore_codes=[]):
                 elif is_throttling_error(code):
                     self.agent.warning("throttling")
                 elif code in ignore_codes:
-                    self.agent.warning(
-                        'Error code {} returned but is explicitly ignored'.format(code)
-                    )
+                    self.agent.warning("Error code {} returned but is explicitly ignored".format(code))
                 else:
                     raise e
 
@@ -254,15 +254,11 @@ def transformation():
 
     return decorator
 
+
 def get_ipurns_from_hostname(host_name, vpc_id):
     result = []
     ai = socket.getaddrinfo(host_name, 0, socket.AF_INET)
-    ips = set(
-            i        # raw socket structure
-                [4]  # internet protocol info
-                [0]  # address
-            for i in ai
-        )
+    ips = set(i[4][0] for i in ai)
     for ip in ips:
         if ipaddress.ip_address(ip).is_private:
             result.append("urn:vpcip:{}/{}".format(vpc_id, ip))

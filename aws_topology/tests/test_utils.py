@@ -147,7 +147,7 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(correct_tags(data), {"Tags": {"test": "test"}})
 
     def test_utils_get_ipurns_from_hostname(self):
-        with patch('socket.getaddrinfo', return_value=((0,0,0,0,['10.1.1.10']),)):
+        with patch('socket.getaddrinfo', return_value=((0, 0, 0, 0, ['10.1.1.10']),)):
             self.assertEqual(get_ipurns_from_hostname('test1', 'vpc-123'), ['urn:vpcip:vpc-123/10.1.1.10'])
-        with patch('socket.getaddrinfo', return_value=((0,0,0,0,['197.128.230.1']),)):
+        with patch('socket.getaddrinfo', return_value=((0, 0, 0, 0, ['197.128.230.1']),)):
             self.assertEqual(get_ipurns_from_hostname('test1', 'vpc-123'), ['urn:publicip:197.128.230.1'])
