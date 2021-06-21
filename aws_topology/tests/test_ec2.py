@@ -50,6 +50,7 @@ class TestEC2(BaseApiTest):
                 "URN": [
                     "urn:host:/{}".format(test_instance_id),
                     "arn:aws:ec2:{}:731070500579:instance/{}".format("eu-west-1", test_instance_id),
+                    "urn:vpcip:vpc-6b25d10e/{}".format(test_public_ip),
                     "urn:host:/{}".format(test_public_dns),
                     "urn:host:/{}".format(test_public_ip),
                 ],

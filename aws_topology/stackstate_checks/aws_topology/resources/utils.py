@@ -255,13 +255,17 @@ def transformation():
     return decorator
 
 
+def ipaddress_to_urn(ip, vpc_id):
+    if ipaddress.ip_address(ip).is_private:
+        return "urn:vpcip:{}/{}".format(vpc_id, ip)
+    else:
+        return create_host_urn(ip)
+
+
 def get_ipurns_from_hostname(host_name, vpc_id):
     result = []
     ai = socket.getaddrinfo(host_name, 0, socket.AF_INET)
     ips = set(i[4][0] for i in ai)
     for ip in ips:
-        if ipaddress.ip_address(ip).is_private:
-            result.append("urn:vpcip:{}/{}".format(vpc_id, ip))
-        else:
-            result.append("urn:publicip:{}".format(ip))
+        result.append(ipaddress_to_urn(ip, vpc_id))
     return result

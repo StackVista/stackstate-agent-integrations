@@ -1,5 +1,7 @@
 import time
-from .utils import make_valid_data, create_host_urn, create_resource_arn, create_hash
+
+from schematics.types.net import URI_PATTERNS
+from .utils import make_valid_data, create_host_urn, create_resource_arn, create_hash, ipaddress_to_urn
 from .registry import RegisteredResourceCollector
 from schematics import Model
 from schematics.types import StringType, ModelType, ListType, BooleanType
@@ -76,7 +78,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
                 )
             )
         instance_id = instance_data["InstanceId"]
-        instance_data["URN"] = [
+        urns = [
             create_host_urn(instance_id),
             create_resource_arn(
                 "ec2",
@@ -86,6 +88,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
                 instance_id,
             ),
         ]
+        vpc_id = instance_data.get("VpcId", '')
 
         if "Tags" not in instance_data:
             instance_data["Tags"] = []
@@ -93,12 +96,15 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         instance_data["Tags"].append({"Key": "instance-id", "Value": instance_id})
         if instance_data.get("PrivateIpAddress") and instance_data.get("PrivateIpAddress") != "":  # pragma: no cover
             instance_data["Tags"].append({"Key": "private-ip", "Value": instance_data["PrivateIpAddress"]})
+            urns.append(ipaddress_to_urn(instance_data["PrivateIpAddress"], vpc_id))
         if instance_data.get("PublicDnsName") and instance_data.get("PublicDnsName") != "":  # pragma: no cover
             instance_data["Tags"].append({"Key": "fqdn", "Value": instance_data["PublicDnsName"]})
-            instance_data["URN"].append(create_host_urn(instance_data["PublicDnsName"]))
+            urns.append(create_host_urn(instance_data["PublicDnsName"]))
         if instance_data.get("PublicIpAddress") and instance_data.get("PublicIpAddress") != "":  # pragma: no cover
             instance_data["Tags"].append({"Key": "public-ip", "Value": instance_data["PublicIpAddress"]})
-            instance_data["URN"].append(create_host_urn(instance_data["PublicIpAddress"]))
+            urns.append(create_host_urn(instance_data["PublicIpAddress"]))
+
+        instance_data["URN"] = urns
 
         instance_data["isNitro"] = False
         if instance_data["InstanceType"] in map(lambda x: x["InstanceType"], self.nitroInstances):
@@ -108,8 +114,8 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         # Map the subnet and if not available then map the VPC
         if instance_data.get("SubnetId"):
             self.emit_relation(instance_id, instance_data["SubnetId"], "uses service", {})
-        elif instance_data.get("VpcId"):  # pragma: no cover
-            self.emit_relation(instance_id, instance_data["VpcId"], "uses service", {})
+        elif vpc_id:  # pragma: no cover
+            self.emit_relation(instance_id, vpc_id, "uses service", {})
 
         if instance_data.get("SecurityGroups"):  # pragma: no cover
             for security_group in instance_data["SecurityGroups"]:
