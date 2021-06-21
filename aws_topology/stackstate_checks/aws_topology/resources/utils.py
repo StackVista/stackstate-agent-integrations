@@ -6,6 +6,16 @@ import json
 from datetime import datetime, date
 from botocore.exceptions import ClientError
 from functools import cmp_to_key
+import socket
+try:
+    import ipaddress
+except ImportError:
+    try:
+        from pip._vendor import ipaddress  # type: ignore
+    except ImportError:
+        import ipaddr as ipaddress  # type: ignore
+        ipaddress.ip_address = ipaddress.IPAddress  # type: ignore
+        ipaddress.ip_network = ipaddress.IPNetwork  # type: ignore
 
 
 def make_valid_data_internal(data):
@@ -243,3 +253,19 @@ def transformation():
         return inner_function
 
     return decorator
+
+def get_ipurns_from_hostname(host_name, vpc_id):
+    result = []
+    ai = socket.getaddrinfo(host_name, 0, socket.AF_INET)
+    ips = set(
+            i        # raw socket structure
+                [4]  # internet protocol info
+                [0]  # address
+            for i in ai
+        )
+    for ip in ips:
+        if ipaddress.ip_address(ip).is_private:
+            result.append("urn:vpcip:{}/{}".format(vpc_id, ip))
+        else:
+            result.append("urn:publicip:{}".format(ip))
+    return result

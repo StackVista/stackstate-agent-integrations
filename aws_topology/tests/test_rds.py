@@ -1,6 +1,7 @@
 from stackstate_checks.base.stubs import topology as top
 from .conftest import BaseApiTest, set_cloudtrail_event
 from stackstate_checks.aws_topology.resources.rds import create_cluster_arn
+from mock import patch
 
 
 class TestRds(BaseApiTest):
@@ -11,7 +12,9 @@ class TestRds(BaseApiTest):
         return "731070500579"
 
     def test_process_rds(self):
-        self.check.run()
+        with patch('socket.getaddrinfo', return_value=((0,0,0,0,['10.1.1.10']),)):
+            self.check.run()
+
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
@@ -45,7 +48,10 @@ class TestRds(BaseApiTest):
                 "DBInstanceIdentifier": "productiondatabase-eu-west-1c",
                 "Name": "productiondatabase-eu-west-1c",
                 "CW.Dimensions": [{"Key": "DBInstanceIdentifier", "Value": "productiondatabase-eu-west-1c"}],
-                "URN": ["urn:endpoint:/productiondatabase-eu-west-1c.cdnm1uvvpdkc.eu-west-1.rds.amazonaws.com"],
+                "URN": [
+                    "urn:endpoint:/productiondatabase-eu-west-1c.cdnm1uvvpdkc.eu-west-1.rds.amazonaws.com",
+                    "urn:vpcip:vpc-6b25d10e/10.1.1.10"
+                ],
             },
         )
         # cluster <-> instance-1
