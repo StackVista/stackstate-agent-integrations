@@ -1,4 +1,4 @@
-from six import string_types, integer_types
+from six import ensure_text, string_types, integer_types
 import re
 import hashlib
 import sys
@@ -256,7 +256,7 @@ def transformation():
 
 
 def ipaddress_to_urn(ip, vpc_id):
-    if ipaddress.ip_address(ip).is_private:
+    if ipaddress.ip_address(ensure_text(ip)).is_private:
         return "urn:vpcip:{}/{}".format(vpc_id, ip)
     else:
         return create_host_urn(ip)
