@@ -355,6 +355,9 @@ def process_http_error(span, segment):
     """
     error = segment.get('fault') or segment.get('throttle') or segment.get('error')
     if is_affirmative(error):
+        # this is always required to produce the trace error metrics
+        span['error'] = 1
+
         meta = span.get('meta')
         if meta:
             status_code = meta.get("http.response.status")

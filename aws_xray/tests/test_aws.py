@@ -104,10 +104,13 @@ def test_error_trace():
     assert spans[4]["meta"]["span.kind"] == "internal"
     # should produce errorClass 4xx caused by `error`
     assert spans[0]["meta"]["span.errorClass"] == '4xx'
+    assert spans[0]["error"]
     # should produce errorClass 5xx caused by `fault`
     assert spans[1]["meta"]["span.errorClass"] == '5xx'
+    assert spans[1]["error"]
     # should produce errorClass 4xx caused by `throttle`
     assert spans[3]["meta"]["span.errorClass"] == '4xx'
+    assert spans[3]["error"]
 
 
 def test_end_time():
