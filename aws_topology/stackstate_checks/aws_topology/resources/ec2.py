@@ -1,6 +1,5 @@
 import time
 
-from schematics.types.net import URI_PATTERNS
 from .utils import make_valid_data, create_host_urn, create_resource_arn, create_hash, ipaddress_to_urn
 from .registry import RegisteredResourceCollector
 from schematics import Model
