@@ -88,7 +88,8 @@ class ServiceDiscoveryCollector(RegisteredResourceCollector):
                 instance.Attributes["ECS_SERVICE_NAME"],
             )
             self.emit_relation(service_arn, hosted_zone_id, "uses service", {})
-        if "EC2_INSTANCE_ID" in instance.Attributes:
+        # Don't make a relation to EC2 if ECS is being used - this could be done directly in ECS
+        elif "EC2_INSTANCE_ID" in instance.Attributes:
             self.emit_relation(instance.Attributes["EC2_INSTANCE_ID"], hosted_zone_id, "uses instance", {})
 
     @transformation()

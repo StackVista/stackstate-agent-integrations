@@ -14,6 +14,21 @@
         ]
       },
       "CreateDate": "2021-06-18T15:23:01.569000+02:00"
+    },
+    {
+      "Id": "srv-cjh4ioui5h4g2cyf",
+      "Arn": "arn:aws:servicediscovery:eu-west-1:548105126730:service/srv-cjh4ioui5h4g2cyf",
+      "Name": "ServiceDiscoveryService-ZooW4fuE25Fd",
+      "DnsConfig": {
+        "RoutingPolicy": "MULTIVALUE",
+        "DnsRecords": [
+          {
+            "Type": "SRV",
+            "TTL": 60
+          }
+        ]
+      },
+      "CreateDate": "2021-06-19T15:23:01.569000+02:00"
     }
   ],
   "ResponseMetadata": {
