@@ -11,7 +11,7 @@ from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
 from stackstate_checks.base import AgentCheck
 import botocore
 import hashlib
-import datetime
+from datetime import datetime, timedelta
 
 
 REGION = "test-region"
@@ -82,6 +82,14 @@ def set_cloudtrail_event(value):
     return inner
 
 
+def set_eventbridge_event(value):
+    def inner(func):
+        func.eventbridge_event = value
+        return func
+
+    return inner
+
+
 def set_filter(value):
     def inner(func):
         func.filter = value
@@ -113,21 +121,41 @@ def resource(path):
     return x
 
 
-def wrapper(api, not_authorized, subdirectory, event_name=None):
+def wrapper(api, not_authorized, subdirectory, event_name=None, eventbridge_event_name=None):
     def mock_boto_calls(self, *args, **kwargs):
         if args[0] == "AssumeRole":
             return {"Credentials": {"AccessKeyId": "KEY_ID", "SecretAccessKey": "ACCESS_KEY", "SessionToken": "TOKEN"}}
         if args[0] == "LookupEvents":
             if event_name:
                 res = resource("json/" + api + "/cloudtrail/" + event_name + ".json")
-                res["eventTime"] = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+                dt = datetime.utcnow() + timedelta(hours=3)
+                res["eventTime"] = dt.strftime("%Y-%m-%dT%H:%M:%SZ")
                 msg = {"Events": [{"CloudTrailEvent": json.dumps(res)}]}
                 return msg
             else:
                 return {}
         operation_name = botocore.xform_name(args[0])
+        if operation_name == "list_objects_v2" and eventbridge_event_name:
+            return {
+                "Contents": [
+                    {
+                        "Key": "AWSLogs/123456789012/EventBridge/eu-west-1"
+                        + "/2021/06/11/05/stackstate-eventbridge-stream-2-2021-06-11-05-18-05-"
+                        + "b7d5fff3-928a-4e63-939b-1a32662b6a63.gz"
+                    }
+                ]
+            }
+        if operation_name == "get_object" and eventbridge_event_name:
+            res = resource("json/" + api + "/cloudtrail/" + eventbridge_event_name + ".json")
+            return {"Body": json.dumps(res)}
         if operation_name in not_authorized:
-            raise botocore.exceptions.ClientError({"Error": {"Code": "AccessDenied"}}, operation_name)
+            # Some APIs return a different error code when there is no permission
+            # But there are no docs on which ones do. Here is an array of some known APIs
+            if api in ["stepfunctions", "firehose"]:
+                error_code = "AccessDeniedException"
+            else:
+                error_code = "AccessDenied"
+            raise botocore.exceptions.ClientError({"Error": {"Code": error_code}}, operation_name)
         apidir = api
         if apidir is None:
             apidir = self._service_model.service_name
@@ -145,11 +173,10 @@ def wrapper(api, not_authorized, subdirectory, event_name=None):
             raise Exception(error)
         # If an error code is included in the response metadata, raise this instead
         if "Error" in result.get("ResponseMetadata", {}):
-            raise botocore.exceptions.ClientError({
-                "Error": result["ResponseMetadata"]["Error"]
-            }, operation_name)
+            raise botocore.exceptions.ClientError({"Error": result["ResponseMetadata"]["Error"]}, operation_name)
         else:
             return result
+
     return mock_boto_calls
 
 
@@ -181,6 +208,9 @@ class BaseApiTest(unittest.TestCase):
         cloudtrail_event = None
         if hasattr(method, "cloudtrail_event"):
             cloudtrail_event = method.cloudtrail_event
+        eventbridge_event = None
+        if hasattr(method, "eventbridge_event"):
+            eventbridge_event = method.eventbridge_event
         filter = ""
         if hasattr(method, "filter"):
             filter = method.filter
@@ -204,6 +234,7 @@ class BaseApiTest(unittest.TestCase):
         instance = {
             "role_arn": "arn:aws:iam::{}:role/RoleName".format(self.get_account_id()),
             "regions": regions,
+            "state": {"last_full_topology": "2021-05-01T00:00:00"},
         }
         api = self.get_api()
         apis = None
@@ -217,7 +248,16 @@ class BaseApiTest(unittest.TestCase):
         instance.update({"apis_to_run": apis})
 
         self.check = AwsTopologyCheck(self.CHECK_NAME, InitConfig(init_config), [instance])
-        self.mock_object.side_effect = wrapper(api, not_authorized, subdirectory, event_name=cloudtrail_event)
+        state_descriptor = self.check._get_state_descriptor()
+        # clear the state
+        self.check.state_manager.clear(state_descriptor)
+        self.mock_object.side_effect = wrapper(
+            api,
+            not_authorized,
+            subdirectory,
+            event_name=cloudtrail_event,
+            eventbridge_event_name=eventbridge_event
+        )
         self.components_checked = 0
         self.relations_checked = 0
 

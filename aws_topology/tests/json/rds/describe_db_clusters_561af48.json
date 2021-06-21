@@ -57,7 +57,7 @@
     ],
     "ResponseMetadata": {
         "Parameters": {
-            "DBClusterIdentifier": "databasecluster"
+            "DBClusterIdentifier": "arn:aws:rds:eu-west-1:731070500579:cluster:databasecluster"
         },
         "OperationName": "ListTagsForResource",
         "Generater": "2021-05-29 07:45:36.709391",

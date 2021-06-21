@@ -28,7 +28,7 @@ class TestDynamoDB(BaseApiTest):
             "aws.dynamodb",
             checks={
                 "TableArn": "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1",
-                "Name": "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1",
+                "Name": "table_1",
                 "CW.Dimensions": [{"Key": "TableName", "Value": "table_1"}],
             },
         )
@@ -40,7 +40,7 @@ class TestDynamoDB(BaseApiTest):
             checks={
                 "LatestStreamArn": "arn:aws:dynamodb:eu-west-1:731070500579:"
                 + "table/table_1/stream/2018-05-17T08:09:27.110",
-                "Name": "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1/stream/2018-05-17T08:09:27.110",
+                "Name": "table_1/stream/2018-05-17T08:09:27.110",
                 "CW.Dimensions": [
                     {"Key": "TableName", "Value": "table_1"},
                     {"Key": "StreamLabel", "Value": "2018-05-17T08:09:27.110"},
@@ -68,9 +68,7 @@ class TestDynamoDB(BaseApiTest):
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
-        self.assertEqual(
-            "arn:aws:dynamodb:eu-west-1:731070500579:table/table_2", topology[0]["components"][0]["data"]["Name"]
-        )
+        self.assertEqual("table_2", topology[0]["components"][0]["data"]["Name"])
 
     @set_cloudtrail_event("delete_table")
     def test_process_dynamodb_delete_table(self):
@@ -88,9 +86,7 @@ class TestDynamoDB(BaseApiTest):
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
-        self.assertEqual(
-            "arn:aws:dynamodb:eu-west-1:731070500579:table/table_2", topology[0]["components"][0]["data"]["Name"]
-        )
+        self.assertEqual("table_2", topology[0]["components"][0]["data"]["Name"])
 
     @set_cloudtrail_event("untag_table")
     def test_process_dynamodb_untag_table(self):
@@ -99,6 +95,4 @@ class TestDynamoDB(BaseApiTest):
         self.assertEqual(len(topology), 1)
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
-        self.assertEqual(
-            "arn:aws:dynamodb:eu-west-1:731070500579:table/table_2", topology[0]["components"][0]["data"]["Name"]
-        )
+        self.assertEqual("table_2", topology[0]["components"][0]["data"]["Name"])

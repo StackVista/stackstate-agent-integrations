@@ -146,6 +146,15 @@ class TestAllApis(BaseApiTest):
         # assert for ec2 instance relation
         top.assert_relation(relations, source_id, "i-0aac5bab082561475", "has resource")
 
+        # assert for cloudformation nested stack
+        top.assert_relation(
+            relations,
+            "arn:aws:cloudformation:eu-west-1:731070500579:stack/stackstate-topo-cwevents/"
+            + "077bd960-9919-11e9-adb7-02135cc8443e",
+            source_id,
+            "has resource",
+        )
+
         top.assert_all_checked(components, relations, unchecked_components=133)
 
     def unique_topology_types(self, topology):

@@ -229,5 +229,26 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         self.process_some_instances(ids)
         return ids
 
+    def process_state_notification(self, event, seen):
+        instance_id = event.get("instance-id", "")
+        state = event.get("state", "")
+        if state == 'terminated':
+            self.agent.delete(instance_id)
+        else:
+            stackstate_event = {
+                "timestamp": int(time.time()),
+                "event_type": "ec2_state",
+                "msg_title": "EC2 Instance State-change Notification",
+                "msg_text": state,
+                "host": instance_id,
+                "tags": [
+                    "state:" + state
+                ]
+            }
+            self.agent.event(stackstate_event)
+
     EVENT_SOURCE = "ec2.amazonaws.com"
-    CLOUDTRAIL_EVENTS = [{"event_name": "RunInstances", "processor": process_run_instances}]
+    CLOUDTRAIL_EVENTS = [
+        {"event_name": "RunInstances", "processor": process_run_instances},
+        {"event_name": "InstanceStateChangeNotification", "processor": process_state_notification}
+    ]
