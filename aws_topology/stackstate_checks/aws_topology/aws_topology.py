@@ -2,6 +2,7 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 from .cloudtrail import CloudtrailCollector
+from .flowlogs import FlowlogCollector
 import logging
 import boto3
 import time
@@ -98,6 +99,7 @@ class AwsTopologyCheck(AgentCheck):
                 instance_info.state.last_full_topology = datetime.utcnow().replace(tzinfo=pytz.utc)
                 self.get_topology(instance_info, aws_client)
             self.get_topology_update(instance_info, aws_client)
+            self.get_flowlog_update(instance_info, aws_client)
             self.service_check(self.SERVICE_CHECK_EXECUTE_NAME, AgentCheck.OK, tags=instance_info.tags)
         except Exception as e:
             msg = "AWS topology collection failed: {}".format(e)
@@ -225,6 +227,20 @@ class AwsTopologyCheck(AgentCheck):
                     processor.process_cloudtrail_event(event, resources_seen)
 
         self.delete_ids += agent_proxy.delete_ids
+
+    def get_flowlog_update(self, instance_info, aws_client):
+        not_before = instance_info.state.last_full_topology - timedelta(seconds=60*60)
+        agent_proxy = AgentProxy(self, instance_info.role_arn)
+        for region in instance_info.regions:
+            session = aws_client.get_session(instance_info.role_arn, region)
+            collector = FlowlogCollector(
+                instance_info.log_bucket_name,
+                self.get_account_id(instance_info),
+                session,
+                agent_proxy,
+                self.log
+            )
+            collector.read_flowlog(not_before)
 
 
 class AgentProxy(object):

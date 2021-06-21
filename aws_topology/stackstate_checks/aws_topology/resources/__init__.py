@@ -18,6 +18,13 @@ from .ecs import EcsCollector  # noqa: F401
 from .cloudformation import CloudformationCollector, type_arn  # noqa: F401
 from .sqs import SqsCollector  # noqa: F401
 from .stepfunction import StepFunctionCollector  # noqa: F401
+from .utils import is_private
 
-
-__all__ = ["ResourceRegistry", "RegisteredResourceCollector", "listen_for", "type_arn", "get_ipurns_from_hostname"]
+__all__ = [
+    "ResourceRegistry",
+    "RegisteredResourceCollector",
+    "listen_for",
+    "type_arn",
+    "get_ipurns_from_hostname",
+    "is_private"
+]

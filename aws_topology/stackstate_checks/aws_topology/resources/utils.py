@@ -255,8 +255,12 @@ def transformation():
     return decorator
 
 
+def is_private(ip):
+    return ipaddress.ip_address(ensure_text(ip)).is_private
+
+
 def ipaddress_to_urn(ip, vpc_id):
-    if ipaddress.ip_address(ensure_text(ip)).is_private:
+    if is_private(ip):
         return "urn:vpcip:{}/{}".format(vpc_id, ip)
     else:
         return create_host_urn(ip)
