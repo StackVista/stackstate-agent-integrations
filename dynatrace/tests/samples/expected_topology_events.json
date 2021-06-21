@@ -42,6 +42,7 @@
           "url": "https://instance.live.dynatrace.com"
         }
       ]
-    }
+    },
+    "event_type": "Dynatrace Events"
   }
 ]
