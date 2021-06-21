@@ -141,6 +141,7 @@ class AgentIntegrationSampleCheck(AgentCheck):
 
         self.event({
             "timestamp": int(time.time()),
+            # test old api - source type name instead of event type
             "source_type_name": "HTTP_TIMEOUT",
             "msg_title": "URL timeout",
             "msg_text": "Http request to %s timed out after %s seconds." % (instance_url, timeout),
@@ -148,8 +149,17 @@ class AgentIntegrationSampleCheck(AgentCheck):
         })
 
         self.event({
+            "timestamp": int(time.time()),
+            # test old api - source type name instead of event type
+            "event_type": "HTTP_TIMEOUT_EVENT_TYPE",
+            "msg_title": "URL timeout (event type)",
+            "msg_text": "Http request to %s timed out after %s seconds.(event type)" % (instance_url, timeout),
+            "aggregation_key": "instance-request-%s" % instance_url
+        })
+
+        self.event({
             "timestamp": int(1),
-            "source_type_name": "HTTP_TIMEOUT",
+            "event_type": "HTTP_TIMEOUT",
             "msg_title": "URL timeout",
             "msg_text": "Http request to %s timed out after %s seconds." % (instance_url, timeout),
             "aggregation_key": "instance-request-%s" % instance_url,
