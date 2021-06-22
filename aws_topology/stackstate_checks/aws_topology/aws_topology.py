@@ -1,6 +1,7 @@
 # (C) StackState 2021
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
+from schematics.types.base import BooleanType
 from .cloudtrail import CloudtrailCollector
 from .flowlogs import FlowlogCollector
 import logging
@@ -36,6 +37,7 @@ class InitConfig(Model):
     aws_secret_access_key = StringType(required=True)
     external_id = StringType(required=True)
     full_run_interval = IntType(default=3600)
+    process_flow_logs = BooleanType(default=False)
 
 
 class State(Model):
@@ -99,10 +101,11 @@ class AwsTopologyCheck(AgentCheck):
                 instance_info.state.last_full_topology = datetime.utcnow().replace(tzinfo=pytz.utc)
                 self.get_topology(instance_info, aws_client)
             self.get_topology_update(instance_info, aws_client)
-            self.get_flowlog_update(instance_info, aws_client)
+            if init_config.process_flow_logs:
+                self.get_flowlog_update(instance_info, aws_client)
             self.service_check(self.SERVICE_CHECK_EXECUTE_NAME, AgentCheck.OK, tags=instance_info.tags)
         except Exception as e:
-            msg = "AWS topology collection failed: {}".format(e)
+            msg = "AWS topology collection failed: {} {}".format(e, traceback.format_exc())
             self.log.error(msg)
             self.service_check(
                 self.SERVICE_CHECK_EXECUTE_NAME, AgentCheck.CRITICAL, message=msg, tags=instance_info.tags
@@ -233,10 +236,12 @@ class AwsTopologyCheck(AgentCheck):
         agent_proxy = AgentProxy(self, instance_info.role_arn)
         for region in instance_info.regions:
             session = aws_client.get_session(instance_info.role_arn, region)
+            location = location_info(self.get_account_id(instance_info), session.region_name)
             collector = FlowlogCollector(
                 instance_info.log_bucket_name,
                 self.get_account_id(instance_info),
                 session,
+                location,
                 agent_proxy,
                 self.log
             )

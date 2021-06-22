@@ -18,7 +18,7 @@ from .ecs import EcsCollector  # noqa: F401
 from .cloudformation import CloudformationCollector, type_arn  # noqa: F401
 from .sqs import SqsCollector  # noqa: F401
 from .stepfunction import StepFunctionCollector  # noqa: F401
-from .utils import is_private
+from .utils import is_private, client_array_operation
 
 __all__ = [
     "ResourceRegistry",
@@ -26,5 +26,6 @@ __all__ = [
     "listen_for",
     "type_arn",
     "get_ipurns_from_hostname",
-    "is_private"
+    "is_private",
+    "client_array_operation"
 ]

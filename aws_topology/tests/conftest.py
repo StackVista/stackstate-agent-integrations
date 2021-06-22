@@ -218,11 +218,6 @@ class BaseApiTest(unittest.TestCase):
         if hasattr(method, "subdirectory"):
             subdirectory = method.subdirectory
         self.patcher = patch("botocore.client.BaseClient._make_api_call", autospec=True)
-        self.extrapatch = patch(
-            "stackstate_checks.aws_topology.AwsTopologyCheck.get_flowlog_update",
-            return_value=False
-        )
-        self.extrapatch.start()
         self.mock_object = self.patcher.start()
         top.reset()
         aggregator.reset()
@@ -268,7 +263,6 @@ class BaseApiTest(unittest.TestCase):
 
     def tearDown(self):
         self.patcher.stop()
-        self.extrapatch.stop()
 
     def assert_executed_ok(self):
         service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_EXECUTE_NAME)

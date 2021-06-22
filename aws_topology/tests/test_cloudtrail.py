@@ -188,11 +188,6 @@ class TestCloudtrail(unittest.TestCase):
             use_gz = method.gz
         self.patcher = patch("botocore.client.BaseClient._make_api_call", autospec=True)
         self.extrapatch = patch("stackstate_checks.aws_topology.AwsTopologyCheck.must_run_full", return_value=False)
-        self.flowlog_patch = patch(
-            "stackstate_checks.aws_topology.AwsTopologyCheck.get_flowlog_update",
-            return_value=False
-        )
-        self.flowlog_patch.start()
         self.regpatch = patch(
             "stackstate_checks.aws_topology.resources.ResourceRegistry.CLOUDTRAIL", {
                 "test": {
@@ -240,7 +235,6 @@ class TestCloudtrail(unittest.TestCase):
         self.patcher.stop()
         self.extrapatch.stop()
         self.regpatch.stop()
-        self.flowlog_patch.stop()
 
     def assert_executed_ok(self):
         service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_EXECUTE_NAME)

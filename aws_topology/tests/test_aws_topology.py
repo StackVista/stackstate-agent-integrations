@@ -42,11 +42,6 @@ class TestAWSTopologyCheck(unittest.TestCase):
         )
         self.patcher = patch("botocore.client.BaseClient._make_api_call")
         self.mock_object = self.patcher.start()
-        self.flowlog_patch = patch(
-            "stackstate_checks.aws_topology.AwsTopologyCheck.get_flowlog_update",
-            return_value=False
-        )
-        self.flowlog_patch.start()
         self.api_results = deepcopy(API_RESULTS)
         topology.reset()
         aggregator.reset()
@@ -65,7 +60,6 @@ class TestAWSTopologyCheck(unittest.TestCase):
 
     def tearDown(self):
         self.patcher.stop()
-        self.flowlog_patch.stop()
 
     def test_collect_empty_topology(self):
         """

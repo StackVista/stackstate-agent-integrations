@@ -3,17 +3,18 @@ import botocore
 import io
 import pytz
 from datetime import datetime
-from six import string_types
+from six import PY2, string_types
 import re
-from .resources import is_private
+from .resources import is_private, client_array_operation
 
 
 class FlowlogCollector(object):
     MAX_S3_DELETES = 999
 
-    def __init__(self, bucket_name, account_id, session, agent, log):
+    def __init__(self, bucket_name, account_id, session, location_info, agent, log):
         self.bucket_name = bucket_name
         self.session = session
+        self.location_info = location_info
         self.agent = agent
         self.account_id = account_id
         self.log = log
@@ -21,8 +22,11 @@ class FlowlogCollector(object):
     def collect_networkinterfaces(self):
         nwinterfaces = {}
         client = self.session.client('ec2')
-        itfs = client.describe_network_interfaces()
-        for itf in itfs["NetworkInterfaces"]:
+        for itf in client_array_operation(
+            client,
+            "describe_network_interfaces",
+            "NetworkInterfaces"
+        ):
             nwinterfaces[itf["NetworkInterfaceId"]] = itf
         return nwinterfaces
 
@@ -79,6 +83,7 @@ class FlowlogCollector(object):
         traffic = {}
         for file in files:
             s3_body = client.get_object(Bucket=bucket_name, Key=file).get('Body')
+            self._delete_files(client, bucket_name, [{"Key": file}])
             with self._get_stream(s3_body) as data:
                 first = True
                 for line in data:
@@ -134,8 +139,8 @@ class FlowlogCollector(object):
                 add_to_connections(traffic[nwi]["vpc"], nwi, ip)
         for connection in connections:
             sides = connection.split('|')
-            self.agent.component(sides[0], 'vpc.request', {"URN": [sides[0]]})
-            self.agent.component(sides[1], 'vpc.request', {"URN": [sides[0]]})
+            self.agent.component(self.location_info, sides[0], 'vpc.request', {"URN": [sides[0]]})
+            self.agent.component(self.location_info, sides[1], 'vpc.request', {"URN": [sides[1]]})
             self.agent.relation(sides[0], sides[1], "uses service", {})
 
     def _is_gz_file(self, body):
@@ -145,7 +150,10 @@ class FlowlogCollector(object):
     def _get_stream(self, body):
         if isinstance(body, string_types):
             # this case is only for test purposes
-            body = bytes(body, 'ascii')
+            if PY2:
+                body = bytes(body)
+            else:
+                body = bytes(body, "ascii")
         elif isinstance(body, botocore.response.StreamingBody):
             body = body.read()
         if self._is_gz_file(body):
