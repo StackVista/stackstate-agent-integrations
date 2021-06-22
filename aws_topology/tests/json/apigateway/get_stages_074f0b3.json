@@ -12,12 +12,9 @@
             },
             "createdDate": 1483996738,
             "lastUpdatedDate": 1502091405,
-            "tags": [
-                {
-                    "key": "StageTagKey1",
-                    "value": "StageTagValue1"
-                }
-            ]
+            "tags": {
+                "StageTagKey1": "StageTagValue1"
+            }
         },
         {
             "deploymentId": "0scs64",

@@ -325,6 +325,56 @@ Resources:
       IntegrationUri: !GetAtt LambdaFunction.Arn
       PayloadFormatVersion: "2.0"
 
+  ApiGatewayRestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: ApiGatewayRestApiTest
+
+  ApiGatewayRestApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - ApiGatewayRestApiMethod1
+      - ApiGatewayRestApiMethod2
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+
+  ApiGatewayRestApiStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      DeploymentId: !Ref ApiGatewayRestApiDeployment
+
+  ApiGatewayRestApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ApiGatewayRestApi.RootResourceId
+      PathPart: test
+      RestApiId: !Ref ApiGatewayRestApi
+
+  ApiGatewayRestApiMethod1:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      ResourceId: !Ref ApiGatewayRestApiResource
+      RestApiId: !Ref ApiGatewayRestApi
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: GET
+        Uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunction.Arn}/invocations
+
+  ApiGatewayRestApiMethod2:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: POST
+      ResourceId: !Ref ApiGatewayRestApiResource
+      RestApiId: !Ref ApiGatewayRestApi
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunction.Arn}/invocations
+
   LambdaFunctionPermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -426,6 +476,20 @@ Resources:
     Properties:
       MessageRetentionPeriod: 60
 
+  ServiceDiscoveryNamespace:
+    Type: AWS::ServiceDiscovery::PrivateDnsNamespace
+    Properties:
+      Vpc: !Ref VpcId
+      Name: local
+  ServiceDiscoveryService:
+    Type: AWS::ServiceDiscovery::Service
+    Properties:
+      DnsConfig:
+        NamespaceId: !Ref ServiceDiscoveryNamespace
+        DnsRecords:
+          - Type: SRV
+            TTL: 60
+
   # ECS Cluster
 
   EcsCluster:
@@ -480,6 +544,10 @@ Resources:
           ContainerPort: 80
           ContainerName: nginx
       Cluster: !Ref EcsCluster
+      ServiceRegistries:
+        - ContainerName: nginx
+          ContainerPort: 80
+          RegistryArn: !GetAtt ServiceDiscoveryService.Arn
   EcsTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
