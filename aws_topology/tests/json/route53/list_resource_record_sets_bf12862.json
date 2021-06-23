@@ -100,7 +100,7 @@
     ],
     "ResponseMetadata": {
         "Parameters": {
-            "HostedZoneId": "/hostedzone/Z4OKCQBA0VS63"
+            "HostedZoneId": "Z4OKCQBA0VS63"
         },
         "OperationName": "ListResourceRecordSets",
         "Generater": "2021-05-29 07:45:36.709391",
