@@ -18,6 +18,7 @@ from .ecs import EcsCollector  # noqa: F401
 from .cloudformation import CloudformationCollector, type_arn  # noqa: F401
 from .sqs import SqsCollector  # noqa: F401
 from .stepfunction import StepFunctionCollector  # noqa: F401
+from .service_discovery import ServiceDiscoveryCollector  # noqa: F401
 from .utils import is_private, client_array_operation
 
 __all__ = [

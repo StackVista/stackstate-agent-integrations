@@ -476,6 +476,20 @@ Resources:
     Properties:
       MessageRetentionPeriod: 60
 
+  ServiceDiscoveryNamespace:
+    Type: AWS::ServiceDiscovery::PrivateDnsNamespace
+    Properties:
+      Vpc: !Ref VpcId
+      Name: local
+  ServiceDiscoveryService:
+    Type: AWS::ServiceDiscovery::Service
+    Properties:
+      DnsConfig:
+        NamespaceId: !Ref ServiceDiscoveryNamespace
+        DnsRecords:
+          - Type: SRV
+            TTL: 60
+
   # ECS Cluster
 
   EcsCluster:
@@ -530,6 +544,10 @@ Resources:
           ContainerPort: 80
           ContainerName: nginx
       Cluster: !Ref EcsCluster
+      ServiceRegistries:
+        - ContainerName: nginx
+          ContainerPort: 80
+          RegistryArn: !GetAtt ServiceDiscoveryService.Arn
   EcsTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
