@@ -31,7 +31,7 @@ class TestServiceDiscovery(BaseApiTest):
             relations,
             "i-1234567890123456",
             "Z08264772EZNA9MYBM2OH",
-            "uses instance",
+            "uses service",
         )
 
         top.assert_all_checked(components, relations)

@@ -61,7 +61,7 @@ class Route53HostedzoneCollector(RegisteredResourceCollector):
         return {"HostedZone": hosted_zone_data, "DelegationSet": {}, "VPCs": []}
 
     def collect_hosted_zone(self, hosted_zone_data):
-        hosted_zone_id = hosted_zone_data.get("Id", "")
+        hosted_zone_id = hosted_zone_data.get("Id", "").rsplit("/", 1)[-1]  # Remove /hostedzone/
         data = self.collect_hosted_zone_description(hosted_zone_id) or self.construct_hosted_zone_description(
             hosted_zone_data
         )
