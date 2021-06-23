@@ -1034,10 +1034,14 @@ class __AgentCheckPy3(AgentCheckBase):
             event['timestamp'] = int(event['timestamp'])
         if event.get('aggregation_key'):
             event['aggregation_key'] = ensure_unicode(event['aggregation_key'])
-        if event.get('source_type_name'):
+        # TODO: This is a workaround as the Go agent doesn't correctly map event_type for normal events. Clean this up
+        if event.get('event_type'):
+            # map event_type as source_type_name for go agent
+            event['source_type_name'] = ensure_unicode(event['event_type'])
+        elif event.get('source_type_name'):
             self._log_deprecation("source_type_name")
-            if 'event_type' not in event:
-                event['event_type'] = ensure_unicode(event['source_type_name'])
+            # if we have the source_type_name and not an event_type map the source_type_name as the event_type
+            event['event_type'] = ensure_unicode(event['source_type_name'])
 
         if 'context' in event:
             telemetry.submit_topology_event(self, self.check_id, event)
@@ -1196,10 +1200,14 @@ class __AgentCheckPy2(AgentCheckBase):
             event['timestamp'] = int(event['timestamp'])
         if event.get('aggregation_key'):
             event['aggregation_key'] = ensure_string(event['aggregation_key'])
-        if event.get('source_type_name'):
+        # TODO: This is a workaround as the Go agent doesn't correctly map event_type for normal events. Clean this up
+        if event.get('event_type'):
+            # map event_type as source_type_name for go agent
+            event['source_type_name'] = ensure_string(event['event_type'])
+        elif event.get('source_type_name'):
             self._log_deprecation("source_type_name")
-            if 'event_type' not in event:
-                event['event_type'] = ensure_string(event['source_type_name'])
+            # if we have the source_type_name and not an event_type map the source_type_name as the event_type
+            event['event_type'] = ensure_string(event['source_type_name'])
 
         if 'context' in event:
             telemetry.submit_topology_event(self, self.check_id, event)
