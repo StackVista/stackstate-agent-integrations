@@ -24,7 +24,7 @@ class TestEC2(BaseApiTest):
         components = topology[0]["components"]
         relations = topology[0]["relations"]
 
-        test_instance_id = "i-0aac5bab082561475"
+        test_instance_id = "i-0f70dba7ea83d6dec"
         test_instance_type = "m4.xlarge"
         test_public_ip = "172.30.0.96"
         test_public_dns = "ec2-172-30-0-96.eu-west-1.compute.amazonaws.com"
@@ -73,7 +73,7 @@ class TestEC2(BaseApiTest):
         self.assertEqual(events[0]["host"], test_instance_id)
         self.assertEqual(events[0]["tags"], ["state:stopped"])
         self.assertEqual(events[1]["host"], "i-1234567890123456")
-        self.assertEqual(events[1]["tags"], ["state:stopped"])
+        self.assertEqual(events[1]["tags"], ["state:running"])
 
         top.assert_all_checked(components, relations)
 
@@ -184,6 +184,19 @@ class TestEC2(BaseApiTest):
             },
         )
 
+        top.assert_all_checked(components, relations)
+
+    @set_filter("subnets")
+    def test_process_ec2_subnets(self):
+        self.check.run()
+        self.assert_executed_ok()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+
+        components = topology[0]["components"]
+        relations = topology[0]["relations"]
+
         comp = top.assert_component(
             components,
             "subnet-9e4be5f9",
@@ -242,21 +255,6 @@ class TestEC2(BaseApiTest):
         self.assertEqual("i-0f70dba7ea83d6dec", topology[0]["components"][0]["id"])
 
     @set_filter('xxx')
-    @set_eventbridge_event("state_stopping")
-    def test_process_ec2_state_stopping(self):
-        with patch("stackstate_checks.aws_topology.AwsTopologyCheck.must_run_full", return_value=False):
-            self.check.run()
-            self.assert_executed_ok()
-            events = aggregator.events
-            self.assertEqual(len(events), 1)
-            self.assertEqual(events[0]["event_type"], "ec2_state")
-            self.assertEqual(events[0]["host"], "i-0e5ef5c511849a4be")
-            self.assertEqual(events[0]["msg_text"], "stopping")
-            self.assertEqual(events[0]["msg_title"], "EC2 Instance State-change Notification")
-            self.assertEqual(events[0]["msg_text"], "stopping")
-            self.assertEqual(events[0]["tags"], ['state:stopping'])
-
-    @set_filter('xxx')
     @set_eventbridge_event("state_stopped")
     def test_process_ec2_state_stopped(self):
         with patch("stackstate_checks.aws_topology.AwsTopologyCheck.must_run_full", return_value=False):
@@ -265,26 +263,11 @@ class TestEC2(BaseApiTest):
             events = aggregator.events
             self.assertEqual(len(events), 1)
             self.assertEqual(events[0]["event_type"], "ec2_state")
-            self.assertEqual(events[0]["host"], "i-0e5ef5c511849a4be")
+            self.assertEqual(events[0]["host"], "i-0f70dba7ea83d6dec")
             self.assertEqual(events[0]["msg_text"], "stopped")
-            self.assertEqual(events[0]["msg_title"], "EC2 Instance State-change Notification")
+            self.assertEqual(events[0]["msg_title"], "EC2 instance state")
             self.assertEqual(events[0]["msg_text"], "stopped")
             self.assertEqual(events[0]["tags"], ['state:stopped'])
-
-    @set_filter('xxx')
-    @set_eventbridge_event("state_pending")
-    def test_process_ec2_state_pending(self):
-        with patch("stackstate_checks.aws_topology.AwsTopologyCheck.must_run_full", return_value=False):
-            self.check.run()
-            self.assert_executed_ok()
-            events = aggregator.events
-            self.assertEqual(len(events), 1)
-            self.assertEqual(events[0]["event_type"], "ec2_state")
-            self.assertEqual(events[0]["host"], "i-0e5ef5c511849a4be")
-            self.assertEqual(events[0]["msg_text"], "pending")
-            self.assertEqual(events[0]["msg_title"], "EC2 Instance State-change Notification")
-            self.assertEqual(events[0]["msg_text"], "pending")
-            self.assertEqual(events[0]["tags"], ['state:pending'])
 
     @set_filter('xxx')
     @set_eventbridge_event("state_running")
@@ -295,9 +278,9 @@ class TestEC2(BaseApiTest):
             events = aggregator.events
             self.assertEqual(len(events), 1)
             self.assertEqual(events[0]["event_type"], "ec2_state")
-            self.assertEqual(events[0]["host"], "i-0e5ef5c511849a4be")
+            self.assertEqual(events[0]["host"], "i-1234567890123456")
             self.assertEqual(events[0]["msg_text"], "running")
-            self.assertEqual(events[0]["msg_title"], "EC2 Instance State-change Notification")
+            self.assertEqual(events[0]["msg_title"], "EC2 instance state")
             self.assertEqual(events[0]["msg_text"], "running")
             self.assertEqual(events[0]["tags"], ['state:running'])
 
@@ -307,4 +290,4 @@ class TestEC2(BaseApiTest):
         with patch("stackstate_checks.aws_topology.AwsTopologyCheck.must_run_full", return_value=False):
             self.check.run()
             self.assert_executed_ok()
-            self.assertEqual(self.check.delete_ids, ['i-0e5ef5c511849a4be'])
+            self.assertEqual(self.check.delete_ids, ['i-0f70dba7ea83d6dec'])

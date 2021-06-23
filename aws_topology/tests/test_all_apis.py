@@ -144,7 +144,7 @@ class TestAllApis(BaseApiTest):
             relations, source_id, "arn:aws:ecs:eu-west-1:731070500579:cluster/StackState-ECS-Cluster", "has resource"
         )
         # assert for ec2 instance relation
-        top.assert_relation(relations, source_id, "i-0aac5bab082561475", "has resource")
+        top.assert_relation(relations, source_id, "i-1234567890123456", "has resource")
 
         # assert for cloudformation nested stack
         top.assert_relation(
