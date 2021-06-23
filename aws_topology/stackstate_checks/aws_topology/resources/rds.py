@@ -127,7 +127,7 @@ class RdsCollector(RegisteredResourceCollector):
         ]
         try:
             urns += get_ipurns_from_hostname(
-                "sni1kn9dgtwv86.cc0zqxj4jtdx.eu-west-1.rds.amazonaws.com",
+                instance.Endpoint.Address,
                 instance.DBSubnetGroup.VpcId
             )
         except Exception:
