@@ -234,7 +234,7 @@ class BaseApiTest(unittest.TestCase):
         instance = {
             "role_arn": "arn:aws:iam::{}:role/RoleName".format(self.get_account_id()),
             "regions": regions,
-            "state": {"last_full_topology": "2021-05-01T00:00:00"},
+            "last_full_topology": "2021-05-01T00:00:00",
         }
         api = self.get_api()
         apis = None

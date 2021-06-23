@@ -8,7 +8,7 @@ import time
 import traceback
 from botocore.exceptions import ClientError
 from schematics import Model
-from schematics.types import StringType, ListType, DictType, DateTimeType, ModelType, IntType
+from schematics.types import StringType, ListType, DictType, DateTimeType, IntType
 from botocore.config import Config
 from stackstate_checks.base import AgentCheck, TopologyInstance
 from .resources import ResourceRegistry, type_arn, RegisteredResourceCollector
@@ -37,10 +37,6 @@ class InitConfig(Model):
     full_run_interval = IntType(default=3600)
 
 
-class State(Model):
-    last_full_topology = DateTimeType(required=True, tzd='utc')
-
-
 class InstanceInfo(Model):
     role_arn = StringType(required=True)
     regions = ListType(StringType)
@@ -48,7 +44,7 @@ class InstanceInfo(Model):
     arns = DictType(StringType, default={})
     apis_to_run = ListType(StringType)
     log_bucket_name = StringType()
-    state = ModelType(State)
+    last_full_topology = DateTimeType(tzd='utc')
 
 
 class AwsTopologyCheck(AgentCheck):
@@ -66,7 +62,7 @@ class AwsTopologyCheck(AgentCheck):
         return TopologyInstance(self.INSTANCE_TYPE, str(self.get_account_id(instance_info)))
 
     def must_run_full(self, instance_info, interval):
-        return seconds_ago(instance_info.state.last_full_topology) > interval
+        return seconds_ago(instance_info.last_full_topology) > interval
 
     def check(self, instance_info):
         try:
@@ -83,19 +79,15 @@ class AwsTopologyCheck(AgentCheck):
             return
 
         try:
-            if not instance_info.state:
+            if not instance_info.last_full_topology:
                 # Create empty state
-                instance_info.state = State(
-                    {
-                        'last_full_topology': datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(
-                            seconds=init_config.full_run_interval + 60
-                        )
-                    }
+                instance_info.last_full_topology = datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(
+                    seconds=init_config.full_run_interval + 60
                 )
             self.delete_ids = []
             self.components_seen = set()
             if self.must_run_full(instance_info, init_config.full_run_interval):
-                instance_info.state.last_full_topology = datetime.utcnow().replace(tzinfo=pytz.utc)
+                instance_info.last_full_topology = datetime.utcnow().replace(tzinfo=pytz.utc)
                 self.get_topology(instance_info, aws_client)
             self.get_topology_update(instance_info, aws_client)
             self.service_check(self.SERVICE_CHECK_EXECUTE_NAME, AgentCheck.OK, tags=instance_info.tags)
@@ -171,7 +163,7 @@ class AwsTopologyCheck(AgentCheck):
         self.stop_snapshot()
 
     def get_topology_update(self, instance_info, aws_client):
-        not_before = instance_info.state.last_full_topology
+        not_before = instance_info.last_full_topology
         agent_proxy = AgentProxy(self, instance_info.role_arn)
         listen_for = ResourceRegistry.CLOUDTRAIL
         for region in instance_info.regions:
