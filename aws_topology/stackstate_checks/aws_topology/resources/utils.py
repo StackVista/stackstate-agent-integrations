@@ -90,7 +90,7 @@ def replace_stage_variables(string, variables):
     :rtype: str
     """
     # Make sure there's something that needs to be replaced
-    if len(variables) == 0:
+    if not variables:
         return string
 
     replacements = {"${stageVariables." + name + "}": value for (name, value) in variables.items()}
