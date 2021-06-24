@@ -338,6 +338,20 @@ class TestEC2(BaseApiTest):
             self.assertEqual(events[0]["msg_text"], "stopped")
             self.assertEqual(events[0]["tags"], ["state:stopped"])
 
+    @set_eventbridge_event("state_pending")
+    def test_process_ec2_state_pending(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        components = topology[0]["components"]
+        top.assert_component(
+            components,
+            "i-1234567890123456",
+            "aws.ec2",
+            checks={"InstanceId": "i-1234567890123456"},
+        )
+
     @set_filter("xxx")
     @set_eventbridge_event("state_running")
     def test_process_ec2_state_running(self):
@@ -352,6 +366,20 @@ class TestEC2(BaseApiTest):
             self.assertEqual(events[0]["msg_title"], "EC2 instance state")
             self.assertEqual(events[0]["msg_text"], "running")
             self.assertEqual(events[0]["tags"], ["state:running"])
+
+    @set_eventbridge_event("state_stopping")
+    def test_process_ec2_state_stopping(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        components = topology[0]["components"]
+        top.assert_component(
+            components,
+            "i-1234567890123456",
+            "aws.ec2",
+            checks={"InstanceId": "i-1234567890123456"},
+        )
 
     @set_filter("xxx")
     @set_eventbridge_event("state_terminated")
