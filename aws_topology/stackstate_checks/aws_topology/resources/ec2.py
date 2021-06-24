@@ -6,6 +6,7 @@ from .utils import (
     create_host_urn,
     create_resource_arn,
     create_hash,
+    set_required_access_v2,
     transformation,
 )
 from .registry import RegisteredResourceCollector
@@ -107,6 +108,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         if not filter or "vpn_gateways" in filter:
             self.process_vpn_gateways()
 
+    @set_required_access_v2("ec2:DescribeInstanceTypes")
     def collect_instance_types(self):
         # This list does not change often, safe to hold in memory
         if not self.nitroInstances:
@@ -143,6 +145,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
             for instance in reservation.get("Instances", []):
                 yield instance
 
+    @set_required_access_v2("ec2:DescribeInstances")
     def process_instances(self, **kwargs):
         instance_types = self.collect_instance_types() or []
         for instance_data in self.collect_instances(**kwargs):
@@ -217,6 +220,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         for security_group in client_array_operation(self.client, "describe_security_groups", "SecurityGroups"):
             yield security_group
 
+    @set_required_access_v2("ec2:DescribeSecurityGroups")
     def process_security_groups(self):
         for security_group_data in self.collect_security_groups():
             self.process_security_group(security_group_data)
@@ -246,6 +250,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         for vpc in client_array_operation(self.client, "describe_vpcs", "Vpcs"):
             yield vpc
 
+    @set_required_access_v2("ec2:DescribeVpcs")
     def process_vpcs(self):
         for vpc_data in self.collect_vpcs():
             self.process_vpc(vpc_data)
@@ -275,6 +280,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         for subnet in client_array_operation(self.client, "describe_subnets", "Subnets"):
             yield subnet
 
+    @set_required_access_v2("ec2:DescribeSubnets")
     def process_subnets(self):
         for subnet_data in self.collect_subnets():
             self.process_subnet(subnet_data)
@@ -314,6 +320,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         ):
             yield vpn_gateway
 
+    @set_required_access_v2("ec2:DescribeVpnGateways")
     def process_vpn_gateways(self):
         for vpn_gateway_data in self.collect_vpn_gateways():
             self.process_vpn_gateway(vpn_gateway_data)
@@ -327,7 +334,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
             if vpn_attachment.State == "attached":
                 self.emit_relation(vpn_gateway.VpnGatewayId, vpn_attachment.VpcId, "uses service", {})
 
-    def process_run_instances(self, event, seen):
+    def process_batch_instances(self, event, seen):
         data = RunInstances(event, strict=False)
         data.validate()
         instance_ids = [instance.instanceId for instance in data.responseElements.instancesSet.items]
@@ -336,14 +343,29 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
 
     def process_state_notification(self, event, seen):
         instance_id = event.get("instance-id", "")
-        state = event.get("state", "")
-        if state == "terminated":
+        if event.get("state") == "terminated":
             self.agent.delete(instance_id)
         else:
             self.process_instances(InstanceIds=[instance_id])
 
+    def process_one_instance(self, instance_id):
+        self.process_instances(InstanceIds=[instance_id])
+
     EVENT_SOURCE = "ec2.amazonaws.com"
     CLOUDTRAIL_EVENTS = [
-        {"event_name": "RunInstances", "processor": process_run_instances},
+        {"event_name": "RunInstances", "processor": process_batch_instances},
+        {"event_name": "StartInstances", "processor": process_batch_instances},
+        {"event_name": "StopInstances", "processor": process_batch_instances},
+        {"event_name": "TerminateInstances", "processor": process_batch_instances},
         {"event_name": "InstanceStateChangeNotification", "processor": process_state_notification},
+        {
+            "event_name": "ModifyInstanceAttribute",
+            "path": "requestParameters.instanceId",
+            "processor": process_one_instance,
+        },
+        {
+            "event_name": "ModifyInstanceAttribute",
+            "path": "responseElements.instanceId",
+            "processor": process_one_instance,
+        },
     ]
