@@ -275,6 +275,62 @@ class TestEC2(BaseApiTest):
             checks={"InstanceId": "i-1234567890123456", "InstanceType": "M6gd"},
         )
 
+    @set_cloudtrail_event("attach_volume")
+    def test_process_ec2_attach_volume(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        components = topology[0]["components"]
+        self.assertEqual(len(topology[0]["components"]), 1)
+        top.assert_component(
+            components,
+            "i-1234567890123456",
+            "aws.ec2",
+            checks={
+                "InstanceId": "i-1234567890123456",
+                "BlockDeviceMappings": [
+                    {
+                        "DeviceName": "/dev/sda1",
+                        "Ebs": {
+                            "Status": "attached",
+                            "DeleteOnTermination": True,
+                            "VolumeId": "vol-0b83c17b2c8bd35b2",
+                            "AttachTime": "2018-04-05T09:34:07+00:00",
+                        },
+                    }
+                ],
+            },
+        )
+
+    @set_cloudtrail_event("detach_volume")
+    def test_process_ec2_detach_volume(self):
+        self.check.run()
+        topology = [top.get_snapshot(self.check.check_id)]
+        self.assertEqual(len(topology), 1)
+        self.assert_executed_ok()
+        components = topology[0]["components"]
+        self.assertEqual(len(topology[0]["components"]), 1)
+        top.assert_component(
+            components,
+            "i-1234567890123456",
+            "aws.ec2",
+            checks={
+                "InstanceId": "i-1234567890123456",
+                "BlockDeviceMappings": [
+                    {
+                        "DeviceName": "/dev/sda1",
+                        "Ebs": {
+                            "Status": "attached",
+                            "DeleteOnTermination": True,
+                            "VolumeId": "vol-0b83c17b2c8bd35b2",
+                            "AttachTime": "2018-04-05T09:34:07+00:00",
+                        },
+                    }
+                ],
+            },
+        )
+
     @set_cloudtrail_event("start_instances")
     def test_process_ec2_start_instances(self):
         self.check.run()
