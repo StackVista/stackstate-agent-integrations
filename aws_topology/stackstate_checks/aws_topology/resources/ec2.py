@@ -132,11 +132,11 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
                 {
                     "Name": "instance-state-code",  # Don't return terminated instances
                     "Values": [
-                        0,  # pending
-                        16,  # running
-                        32,  # shutting-down
-                        64,  # stopping
-                        80,  # stopped
+                        "0",  # pending
+                        "16",  # running
+                        "32",  # shutting-down
+                        "64",  # stopping
+                        "80",  # stopped
                     ],
                 }
             ],
