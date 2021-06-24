@@ -246,7 +246,7 @@ class TestEC2(BaseApiTest):
     def test_process_ec2_state_stopping(self):
         with patch("stackstate_checks.aws_topology.AwsTopologyCheck.must_run_full", return_value=False):
             self.check.run()
-            self.assert_executed_ok()
+            self.assert_updated_ok()
             events = aggregator.events
             self.assertEqual(len(events), 1)
             self.assertEqual(events[0]["event_type"], "ec2_state")
@@ -261,7 +261,7 @@ class TestEC2(BaseApiTest):
     def test_process_ec2_state_stopped(self):
         with patch("stackstate_checks.aws_topology.AwsTopologyCheck.must_run_full", return_value=False):
             self.check.run()
-            self.assert_executed_ok()
+            self.assert_updated_ok()
             events = aggregator.events
             self.assertEqual(len(events), 1)
             self.assertEqual(events[0]["event_type"], "ec2_state")
@@ -276,7 +276,7 @@ class TestEC2(BaseApiTest):
     def test_process_ec2_state_pending(self):
         with patch("stackstate_checks.aws_topology.AwsTopologyCheck.must_run_full", return_value=False):
             self.check.run()
-            self.assert_executed_ok()
+            self.assert_updated_ok()
             events = aggregator.events
             self.assertEqual(len(events), 1)
             self.assertEqual(events[0]["event_type"], "ec2_state")
@@ -291,7 +291,7 @@ class TestEC2(BaseApiTest):
     def test_process_ec2_state_running(self):
         with patch("stackstate_checks.aws_topology.AwsTopologyCheck.must_run_full", return_value=False):
             self.check.run()
-            self.assert_executed_ok()
+            self.assert_updated_ok()
             events = aggregator.events
             self.assertEqual(len(events), 1)
             self.assertEqual(events[0]["event_type"], "ec2_state")
@@ -306,5 +306,5 @@ class TestEC2(BaseApiTest):
     def test_process_ec2_state_terminated(self):
         with patch("stackstate_checks.aws_topology.AwsTopologyCheck.must_run_full", return_value=False):
             self.check.run()
-            self.assert_executed_ok()
+            self.assert_updated_ok()
             self.assertEqual(self.check.delete_ids, ['i-0e5ef5c511849a4be'])

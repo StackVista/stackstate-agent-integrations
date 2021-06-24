@@ -12,6 +12,7 @@ from stackstate_checks.base import AgentCheck
 import botocore
 import hashlib
 from datetime import datetime, timedelta
+import pytz
 
 
 REGION = "test-region"
@@ -233,8 +234,7 @@ class BaseApiTest(unittest.TestCase):
             regions = [regions]
         instance = {
             "role_arn": "arn:aws:iam::{}:role/RoleName".format(self.get_account_id()),
-            "regions": regions,
-            "last_full_topology": "2021-05-01T00:00:00",
+            "regions": regions
         }
         api = self.get_api()
         apis = None
@@ -248,15 +248,9 @@ class BaseApiTest(unittest.TestCase):
         instance.update({"apis_to_run": apis})
 
         self.check = AwsTopologyCheck(self.CHECK_NAME, InitConfig(init_config), [instance])
-        state_descriptor = self.check._get_state_descriptor()
-        # clear the state
-        self.check.state_manager.clear(state_descriptor)
+        self.check.last_full_topology = datetime(2021, 5, 1, 0, 0, 0).replace(tzinfo=pytz.utc)
         self.mock_object.side_effect = wrapper(
-            api,
-            not_authorized,
-            subdirectory,
-            event_name=cloudtrail_event,
-            eventbridge_event_name=eventbridge_event
+            api, not_authorized, subdirectory, event_name=cloudtrail_event, eventbridge_event_name=eventbridge_event
         )
         self.components_checked = 0
         self.relations_checked = 0
@@ -266,6 +260,11 @@ class BaseApiTest(unittest.TestCase):
 
     def assert_executed_ok(self):
         service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_EXECUTE_NAME)
+        self.assertGreater(len(service_checks), 0)
+        self.assertEqual(service_checks[0].status, AgentCheck.OK, service_checks[0].message)
+
+    def assert_updated_ok(self):
+        service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_UPDATE_NAME)
         self.assertGreater(len(service_checks), 0)
         self.assertEqual(service_checks[0].status, AgentCheck.OK, service_checks[0].message)
 
