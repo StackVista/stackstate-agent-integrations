@@ -178,7 +178,7 @@ class TestAllApis(BaseApiTest):
 
     @parameterized.expand(
         [
-            ("ec2|instances vpcs security_groups", total_unique_types - 1),  # - vpn_gateway
+            ("ec2|instances vpcs subnets security_groups", total_unique_types - 1),  # - vpn_gateway
             ("ec2|instances vpn_gateways security_groups", total_unique_types - 2),  # -vpc -subnet
             ("autoscaling", 35),  # - autoscaling group
             ("apigateway", 31),  # - api - stage - resource - method - integration (dummy)
@@ -194,12 +194,12 @@ class TestAllApis(BaseApiTest):
             ("rds", 34),  # - cluster - database
             ("elbv2", 33),  # - loadbalancer, - target_group - targetgroup instance
             ("elb", 35),  # - loadbalancer
-            ("ec2|vpcs vpn_gateways security_groups", 35),  # - instance
+            ("ec2|vpcs subnets vpn_gateways security_groups", 35),  # - instance
             ("ecs", 33),  # - task / cluster / service
             ("route53domains", 35),  # -domain
             ("route53", 35),  # -hostedzone
             ("cloudformation", 35),  # -stack
-            ("ec2|instances vpcs vpn_gateways", 35),  # - security_group
+            ("ec2|instances vpcs subnets vpn_gateways", 35),  # - security_group
             ("stepfunctions|stepfunctions", 35),  # - activity
             ("stepfunctions|activities", 34),  # - machine - state
         ]

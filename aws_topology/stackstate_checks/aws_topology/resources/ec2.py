@@ -358,14 +358,11 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         {"event_name": "StopInstances", "processor": process_batch_instances},
         {"event_name": "TerminateInstances", "processor": process_batch_instances},
         {"event_name": "InstanceStateChangeNotification", "processor": process_state_notification},
+        {"event_name": "AttachVolume", "path": "responseElements.instanceId", "processor": process_one_instance},
+        {"event_name": "DetachVolume", "path": "responseElements.instanceId", "processor": process_one_instance},
         {
             "event_name": "ModifyInstanceAttribute",
             "path": "requestParameters.instanceId",
-            "processor": process_one_instance,
-        },
-        {
-            "event_name": "ModifyInstanceAttribute",
-            "path": "responseElements.instanceId",
             "processor": process_one_instance,
         },
     ]
