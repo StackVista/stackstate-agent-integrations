@@ -1,0 +1,43 @@
+{
+  "eventVersion": "1.08",
+  "userIdentity": {
+    "type": "AssumedRole",
+    "principalId": "AROARYCSAFRTDKIPCKV7K:user",
+    "arn": "arn:aws:sts::548105126730:assumed-role/Administrator/user",
+    "accountId": "548105126730",
+    "accessKeyId": "ASIARYCSAFRTI4UGTY7L",
+    "sessionContext": {
+      "sessionIssuer": {
+        "type": "Role",
+        "principalId": "AROARYCSAFRTDKIPCKV7K",
+        "arn": "arn:aws:iam::548105126730:role/Administrator",
+        "accountId": "548105126730",
+        "userName": "Administrator"
+      },
+      "webIdFederationData": {},
+      "attributes": { "creationDate": "2021-06-24T10:20:51Z", "mfaAuthenticated": "true" }
+    }
+  },
+  "eventTime": "2021-06-24T10:21:56Z",
+  "eventSource": "ec2.amazonaws.com",
+  "eventName": "DetachVolume",
+  "awsRegion": "eu-west-1",
+  "sourceIPAddress": "45.84.43.163",
+  "userAgent": "console.ec2.amazonaws.com",
+  "requestParameters": { "volumeId": "vol-0a87fa42cdbb0fb21", "instanceId": "i-1234567890123456", "force": false },
+  "responseElements": {
+    "requestId": "87404102-26c8-439d-839e-95f58b5f644e",
+    "volumeId": "vol-0a87fa42cdbb0fb21",
+    "instanceId": "i-1234567890123456",
+    "device": "/dev/sdf",
+    "status": "detaching",
+    "attachTime": 1624530110000
+  },
+  "requestID": "87404102-26c8-439d-839e-95f58b5f644e",
+  "eventID": "fee75d7a-c398-4c15-b0c8-f1bd81e2917d",
+  "readOnly": false,
+  "eventType": "AwsApiCall",
+  "managementEvent": true,
+  "recipientAccountId": "548105126730",
+  "eventCategory": "Management"
+}
