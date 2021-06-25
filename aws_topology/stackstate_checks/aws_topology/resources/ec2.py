@@ -116,7 +116,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
                 "InstanceTypes", []
             )
             if instance_type_data:
-                self.instance_types.update({instance_type: instance_type_data[0]})
+                self.instance_types[instance_type] = instance_type_data[0]
         return self.instance_types.get(instance_type, {})
 
     def collect_instance(self, instance_data):
