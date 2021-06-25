@@ -3,6 +3,7 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import datetime
 import os
+import pytest
 import jsonpickle
 from mock import patch
 
@@ -12,6 +13,10 @@ from stackstate_checks.base import TopologyInstance
 
 AWS_REGION = 'eu-west-1'
 AWS_ACCOUNT = '672574731473'
+
+
+# Mark the entire module as tests of type `unit`
+pytestmark = pytest.mark.unit
 
 
 class MockAwsClient:

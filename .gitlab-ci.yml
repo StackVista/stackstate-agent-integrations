@@ -78,6 +78,7 @@ clear-win-caches:
       entrypoint: ["dockerd-entrypoint.sh", "/usr/local/bin/dockerd", "--host=tcp://0.0.0.0:2375" ]
   script:
     - source ./.setup-scripts/setup_vsphere_artifactory_publishing.sh
+    - source ./.setup-scripts/setup_aws.sh
     - checksdev test --cov ${CHECK}
     - checksdev test ${CHECK} --bench || true
       # [BS] we skip this until https://github.com/PyCQA/pylint/pull/2681/commits/253e5d05e3943d3bc8e4470804a138cb20049548 lands in pylint stable version
@@ -195,6 +196,9 @@ test_aws_xray:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
+  tags:
+    - sts-k8s-xl-no-docker-runner
 
 test_sap:
   <<: *linux_test
