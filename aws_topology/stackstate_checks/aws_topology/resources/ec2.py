@@ -325,6 +325,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         for vpn_gateway_data in self.collect_vpn_gateways():
             self.process_vpn_gateway(vpn_gateway_data)
 
+    @transformation()
     def process_vpn_gateway(self, data):
         vpn_gateway = VpnGateway(data, strict=False)
         vpn_gateway.validate()
@@ -334,6 +335,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
             if vpn_attachment.State == "attached":
                 self.emit_relation(vpn_gateway.VpnGatewayId, vpn_attachment.VpcId, "uses service", {})
 
+    @transformation()
     def process_batch_instances(self, event, seen):
         data = RunInstances(event, strict=False)
         data.validate()
