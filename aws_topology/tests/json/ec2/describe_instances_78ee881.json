@@ -33,7 +33,7 @@
                         }
                     ],
                     "ClientToken": "",
-                    "InstanceType": "M6gd",
+                    "InstanceType": "m6gd.medium",
                     "NetworkInterfaces": [
                         {
                             "Status": "in-use",

@@ -14,7 +14,7 @@ from schematics import Model
 from schematics.types import StringType, ModelType, ListType, BooleanType
 
 
-InstanceData = namedtuple("InstanceData", ["instance", "instance_types"])
+InstanceData = namedtuple("InstanceData", ["instance", "instance_type"])
 
 
 class Tag(Model):
@@ -52,7 +52,7 @@ class VpnGateway(Model):
 
 class InstanceType(Model):
     InstanceType = StringType(required=True)
-    Hypvervisor = StringType(default="nitro")
+    Hypervisor = StringType(default="")
 
 
 class Instance(Model):
@@ -94,7 +94,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
 
     def __init__(self, location_info, client, agent):
         RegisteredResourceCollector.__init__(self, location_info, client, agent)
-        self.nitroInstances = []
+        self.instance_types = {}
 
     def process_all(self, filter=None):
         if not filter or "instances" in filter:
@@ -109,19 +109,20 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
             self.process_vpn_gateways()
 
     @set_required_access_v2("ec2:DescribeInstanceTypes")
-    def collect_instance_types(self):
-        # This list does not change often, safe to hold in memory
-        if not self.nitroInstances:
-            self.nitroInstances = [
-                instance_type
-                for instance_type in client_array_operation(
-                    self.client,
-                    "describe_instance_types",
-                    "InstanceTypes",
-                    Filters=[{"Name": "hypervisor", "Values": ["nitro"]}],
-                )
-            ] or []
-        return self.nitroInstances
+    def collect_instance_type(self, instance_type):
+        # Items never change, only added, safe to hold in memory
+        if instance_type not in self.instance_types:
+            instance_type_data = self.client.describe_instance_types(InstanceTypes=[instance_type]).get(
+                "InstanceTypes", []
+            )
+            if instance_type_data:
+                self.instance_types.update({instance_type: instance_type_data[0]})
+        return self.instance_types.get(instance_type, {})
+
+    def collect_instance(self, instance_data):
+        instance_type = instance_data.get("InstanceType", "")
+        instance_type_data = self.collect_instance_type(instance_type) or {}
+        return InstanceData(instance=instance_data, instance_type=instance_type_data)
 
     def collect_instances(self, **kwargs):
         for reservation in client_array_operation(
@@ -142,14 +143,13 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
             ],
             **kwargs
         ):
-            for instance in reservation.get("Instances", []):
-                yield instance
+            for instance_data in reservation.get("Instances", []):
+                yield self.collect_instance(instance_data)
 
     @set_required_access_v2("ec2:DescribeInstances")
     def process_instances(self, **kwargs):
-        instance_types = self.collect_instance_types() or []
-        for instance_data in self.collect_instances(**kwargs):
-            self.process_instance(InstanceData(instance=instance_data, instance_types=instance_types))
+        for data in self.collect_instances(**kwargs):
+            self.process_instance(data)
 
     def process_some_instances(self, ids):
         self.process_instances(InstanceIds=ids)
@@ -158,7 +158,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
     def process_instance_type(self, data):
         instance_type = InstanceType(data, strict=False)
         instance_type.validate()
-        return instance_type.InstanceType
+        return instance_type
 
     @transformation()
     def process_instance(self, data):
@@ -200,10 +200,9 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
             output["URN"].append(create_host_urn(instance.PublicIpAddress))
             output["Tags"].append({"Key": "public-ip", "Value": instance.PublicIpAddress})
 
-        if data.instance_types:  # Don't run if no instance types were returned
-            output["isNitro"] = instance.InstanceType in [
-                self.process_instance_type(instance_type) for instance_type in data.instance_types
-            ]
+        if data.instance_type:  # Don't run if instance type not found
+            instance_type = self.process_instance_type(data.instance_type)
+            output["isNitro"] = instance_type.Hypervisor == "nitro"
 
         # Map the subnet and if not available then map the VPC
         if instance.SubnetId:

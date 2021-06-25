@@ -1,7 +1,7 @@
 {
     "InstanceTypes": [
         {
-            "InstanceType": "M6gd",
+            "InstanceType": "m6gd.medium",
             "CurrentGeneration": true,
             "FreeTierEligible": false,
             "SupportedUsageClasses": [
@@ -18,56 +18,57 @@
             "Hypervisor": "nitro",
             "ProcessorInfo": {
                 "SupportedArchitectures": [
-                    "x86_64"
+                    "arm64"
                 ],
-                "SustainedClockSpeedInGhz": 2.4
+                "SustainedClockSpeedInGhz": 2.5
             },
             "VCpuInfo": {
-                "DefaultVCpus": 4,
-                "DefaultCores": 2,
-                "DefaultThreadsPerCore": 2,
-                "ValidCores": [
-                    1,
-                    2
-                ],
-                "ValidThreadsPerCore": [
-                    1,
-                    2
-                ]
+                "DefaultVCpus": 1
             },
             "MemoryInfo": {
-                "SizeInMiB": 16384
+                "SizeInMiB": 4096
             },
-            "InstanceStorageSupported": false,
+            "InstanceStorageSupported": true,
+            "InstanceStorageInfo": {
+                "TotalSizeInGB": 59,
+                "Disks": [
+                    {
+                        "SizeInGB": 59,
+                        "Count": 1,
+                        "Type": "ssd"
+                    }
+                ],
+                "NvmeSupport": "required"
+            },
             "EbsInfo": {
                 "EbsOptimizedSupport": "default",
                 "EncryptionSupport": "supported",
                 "EbsOptimizedInfo": {
-                    "BaselineBandwidthInMbps": 750,
-                    "BaselineThroughputInMBps": 93.75,
-                    "BaselineIops": 6000,
-                    "MaximumBandwidthInMbps": 750,
-                    "MaximumThroughputInMBps": 93.75,
-                    "MaximumIops": 6000
+                    "BaselineBandwidthInMbps": 315,
+                    "BaselineThroughputInMBps": 39.375,
+                    "BaselineIops": 2500,
+                    "MaximumBandwidthInMbps": 4750,
+                    "MaximumThroughputInMBps": 593.75,
+                    "MaximumIops": 20000
                 },
-                "NvmeSupport": "unsupported"
+                "NvmeSupport": "required"
             },
             "NetworkInfo": {
-                "NetworkPerformance": "High",
-                "MaximumNetworkInterfaces": 4,
+                "NetworkPerformance": "Up to 10 Gigabit",
+                "MaximumNetworkInterfaces": 2,
                 "MaximumNetworkCards": 1,
                 "DefaultNetworkCardIndex": 0,
                 "NetworkCards": [
                     {
                         "NetworkCardIndex": 0,
-                        "NetworkPerformance": "High",
-                        "MaximumNetworkInterfaces": 4
+                        "NetworkPerformance": "Up to 10 Gigabit",
+                        "MaximumNetworkInterfaces": 2
                     }
                 ],
-                "Ipv4AddressesPerInterface": 15,
-                "Ipv6AddressesPerInterface": 15,
+                "Ipv4AddressesPerInterface": 4,
+                "Ipv6AddressesPerInterface": 4,
                 "Ipv6Supported": true,
-                "EnaSupport": "unsupported",
+                "EnaSupport": "required",
                 "EfaSupported": false
             },
             "PlacementGroupInfo": {
@@ -77,21 +78,16 @@
                     "spread"
                 ]
             },
-            "HibernationSupported": true,
+            "HibernationSupported": false,
             "BurstablePerformanceSupported": false,
             "DedicatedHostsSupported": true,
-            "AutoRecoverySupported": true
+            "AutoRecoverySupported": false
         }
     ],
     "ResponseMetadata": {
         "Parameters": {
-            "Filters": [
-                {
-                    "Name": "hypervisor",
-                    "Values": [
-                        "nitro"
-                    ]
-                }
+            "InstanceTypes": [
+                "m6gd.medium"
             ]
         },
         "OperationName": "DescribeInstanceTypes",

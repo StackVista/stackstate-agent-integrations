@@ -64,7 +64,7 @@ class TestEC2(BaseApiTest):
             components,
             "i-1234567890123456",
             "aws.ec2",
-            checks={"InstanceId": "i-1234567890123456", "InstanceType": "M6gd", "IsNitro": True},
+            checks={"InstanceId": "i-1234567890123456", "InstanceType": "m6gd.medium", "IsNitro": True},
         )
         top.assert_relation(relations, "i-1234567890123456", "vpc-6b25d10e", "uses service")
         top.assert_relation(relations, "i-1234567890123456", "sg-41c3cc3b", "uses service")
@@ -272,7 +272,7 @@ class TestEC2(BaseApiTest):
             components,
             "i-1234567890123456",
             "aws.ec2",
-            checks={"InstanceId": "i-1234567890123456", "InstanceType": "M6gd"},
+            checks={"InstanceId": "i-1234567890123456", "InstanceType": "m6gd.medium"},
         )
 
     @set_cloudtrail_event("attach_volume")
