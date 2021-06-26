@@ -23,6 +23,7 @@ def create_stack():
             template_data = template_fileobj.read()
         return template_data
     boto('cloudformation').create_stack(StackName=STACKNAME, TemplateBody=_parse_template(),
+                                        Capabilities=['CAPABILITY_NAMED_IAM'],
                                         Tags=[{'Key': 'xray-integration', 'Value': 'True'}])
     waiter = boto('cloudformation').get_waiter('stack_create_complete')
     print("...waiting for stack to be ready...")
