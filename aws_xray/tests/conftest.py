@@ -13,7 +13,7 @@ STACKNAME = "xray-test"
 
 
 def boto(resource):
-    return boto3.client(resource)
+    return boto3.client(resource, region_name=os.environ.get("AWS_REGION"))
 
 
 def create_stack():
@@ -51,7 +51,7 @@ def xray_instance():
     return {
         'aws_access_key_id': os.environ.get("AWS_ACCESS_KEY_ID"),
         'aws_secret_access_key': os.environ.get("AWS_SECRET_ACCESS_KEY"),
-        'region': os.environ.get("AWS_DEFAULT_REGION")
+        'region': os.environ.get("AWS_REGION")
     }
 
 
