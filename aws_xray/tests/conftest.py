@@ -9,8 +9,11 @@ import os
 
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-boto = lambda x: boto3.client(x)
 STACKNAME = "xray-test"
+
+
+def boto(resource):
+    return boto3.client(resource)
 
 
 def create_stack():
@@ -18,9 +21,9 @@ def create_stack():
     def _parse_template():
         with open(os.path.join(HERE, 'cloudformation_template', 'xray_template.yaml')) as template_fileobj:
             template_data = template_fileobj.read()
-        boto('cloudformation').validate_template(TemplateBody=template_data)
         return template_data
-    boto('cloudformation').create_stack(StackName=STACKNAME, TemplateBody=_parse_template, Tags=[{'Key': 'xray-integrtion', 'Value': 'True'}])
+    boto('cloudformation').create_stack(StackName=STACKNAME, TemplateBody=_parse_template(),
+                                        Tags=[{'Key': 'xray-integration', 'Value': 'True'}])
     waiter = boto('cloudformation').get_waiter('stack_create_complete')
     print("...waiting for stack to be ready...")
     waiter.wait(StackName=STACKNAME)
