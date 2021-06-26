@@ -12,7 +12,7 @@ def test_xray_check(topology, xray_instance):
         topology.reset()
         assert check.run() == ''
         snapshot = topology.get_snapshot(check.check_id)
-        print(snashot)
+        print(snapshot)
         assert len(snapshot['components']) > 1
 
     assert WaitFor(run_and_check, attempts=10)() is True

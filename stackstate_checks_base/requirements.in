@@ -16,3 +16,5 @@ Deprecated==1.2.10
 enum34==1.1.10
 schematics==2.1.0
 requests-mock==1.8.0
+aws-xray-sdk==2.4.2
+awscli==1.16.312
