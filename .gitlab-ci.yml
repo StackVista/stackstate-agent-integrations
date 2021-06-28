@@ -206,8 +206,10 @@ test_aws_xray:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
     DOCKER_TLS_CERTDIR: ""
-  tags:
-    - sts-k8s-xl-no-docker-runner
+  script:
+    - pwd
+    - python --version
+    - which pip
 
 test_sap:
   <<: *linux_test
