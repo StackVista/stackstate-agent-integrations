@@ -14,6 +14,7 @@ variables:
 
 .xray_dep: &xray_dep
   before_script:
+    - apt-get install -y zip
     - pip install aws-xray-sdk==2.4.2 -t $xray
     - cd $xray && zip -r ../xray-trace.zip .
 
