@@ -137,7 +137,7 @@ class CloudformationCollector(RegisteredResourceCollector):
         stack.validate()
         output = make_valid_data(data.stack)
         output["Name"] = stack.StackName
-        self.emit_component(stack.StackId, self.COMPONENT_TYPE, output)
+        self.emit_component(stack.StackId, ".".join([self.COMPONENT_TYPE, "stack"]), output)
 
         for resource in data.resources:
             self.process_stack_resource(stack.StackId, resource)

@@ -69,7 +69,7 @@ class AutoscalingCollector(RegisteredResourceCollector):
         output["Name"] = auto_scaling_group.AutoScalingGroupName
         output["URN"] = [auto_scaling_group.AutoScalingGroupARN]
         # using name here, s unique in region, arn is not resolvable from CF-resources
-        self.emit_component(auto_scaling_group.AutoScalingGroupName, self.COMPONENT_TYPE, output)
+        self.emit_component(auto_scaling_group.AutoScalingGroupName, ".".join([self.COMPONENT_TYPE, "group"]), output)
 
         for instance in auto_scaling_group.Instances:
             self.emit_relation(auto_scaling_group.AutoScalingGroupARN, instance.InstanceId, "uses service", {})

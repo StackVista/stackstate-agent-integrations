@@ -40,7 +40,7 @@ class InstanceHealth(Model):
 class ELBClassicCollector(RegisteredResourceCollector):
     API = "elb"
     API_TYPE = "regional"
-    COMPONENT_TYPE = "aws.elb_classic"
+    COMPONENT_TYPE = "aws.elb-classic"
     CLOUDFORMATION_TYPE = "AWS::ElasticLoadBalancing::LoadBalancer"
     MAX_TAG_CALLS = 20  # This is the max items that can be requested in one describe_tags call
 
@@ -104,7 +104,7 @@ class ELBClassicCollector(RegisteredResourceCollector):
         output["Name"] = elb.LoadBalancerName
         output["Tags"] = data.tags
         output["URN"] = [elb_arn]
-        self.emit_component(elb_arn, self.COMPONENT_TYPE, output)
+        self.emit_component(elb_arn, ".".join([self.COMPONENT_TYPE, "load-balancer"]), output)
         self.emit_relation(elb_arn, elb.VPCId, "uses service", {})
 
         for instance in output.get("Instances", []):

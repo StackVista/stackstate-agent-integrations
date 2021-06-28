@@ -74,7 +74,7 @@ class RedshiftCollector(RegisteredResourceCollector):
         output["Name"] = cluster.ClusterIdentifier
         output["Tags"] = data.tags
         output["URN"] = [data.arn]
-        self.emit_component(data.arn, self.COMPONENT_TYPE, output)
+        self.emit_component(data.arn, ".".join([self.COMPONENT_TYPE, "cluster"]), output)
         if cluster.VpcId:
             self.emit_relation(data.arn, cluster.VpcId, "uses service", {})
 

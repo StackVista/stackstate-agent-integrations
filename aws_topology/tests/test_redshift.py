@@ -24,7 +24,7 @@ class TestRedshift(BaseApiTest):
         top.assert_component(
             components,
             "arn:aws:redshift:eu-west-1:731070500579:cluster:redshift-cluster-1",
-            "aws.redshift",
+            "aws.redshift.cluster",
             checks={
                 "Name": "redshift-cluster-1",
                 "Tags.OrganizationalUnit": "Testing",

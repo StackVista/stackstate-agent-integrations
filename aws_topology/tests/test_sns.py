@@ -51,7 +51,7 @@ class TestSns(BaseApiTest):
         top.assert_component(
             components,
             "arn:aws:sns:eu-west-1:731070500579:my-topic-1",
-            "aws.sns",
+            "aws.sns.topic",
             checks={
                 "TopicArn": "arn:aws:sns:eu-west-1:731070500579:my-topic-1",
                 "Name": "my-topic-1",
@@ -60,9 +60,9 @@ class TestSns(BaseApiTest):
             },
         )
         self.assert_location_info(topology[0]["components"][0])
-        top.assert_component(components, "arn:aws:sns:eu-west-1:731070500579:my-topic-2", "aws.sns")
-        top.assert_component(components, "arn:aws:sns:eu-west-1:731070500579:my-topic-3", "aws.sns")
-        top.assert_component(components, "arn:aws:sns:eu-west-1:731070500579:my-topic-4", "aws.sns")
+        top.assert_component(components, "arn:aws:sns:eu-west-1:731070500579:my-topic-2", "aws.sns.topic")
+        top.assert_component(components, "arn:aws:sns:eu-west-1:731070500579:my-topic-3", "aws.sns.topic")
+        top.assert_component(components, "arn:aws:sns:eu-west-1:731070500579:my-topic-4", "aws.sns.topic")
 
         top.assert_all_checked(components, relations)
 

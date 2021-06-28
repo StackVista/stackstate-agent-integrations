@@ -39,7 +39,7 @@ HostedZoneData = namedtuple("HostedZoneData", ["hosted_zone", "tags", "resource_
 class Route53HostedzoneCollector(RegisteredResourceCollector):
     API = "route53"
     API_TYPE = "global"
-    COMPONENT_TYPE = "aws.route53.hostedzone"
+    COMPONENT_TYPE = "aws.route53"
 
     @set_required_access_v2("route53:ListTagsForResource")
     def collect_tags(self, hosted_zone_id):
@@ -101,4 +101,4 @@ class Route53HostedzoneCollector(RegisteredResourceCollector):
         output["URN"] = [
             self.agent.create_arn("AWS::Route53::HostedZone", self.location_info, resource_id=hosted_zone_id)
         ]
-        self.emit_component(hosted_zone_id, self.COMPONENT_TYPE, output)
+        self.emit_component(hosted_zone_id, ".".join([self.COMPONENT_TYPE, "hostedzone"]), output)

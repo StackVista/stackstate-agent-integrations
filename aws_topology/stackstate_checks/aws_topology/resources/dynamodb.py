@@ -101,7 +101,7 @@ class DynamodbTableCollector(RegisteredResourceCollector):
         output["Name"] = table_name
         output["Tags"] = data.tags
         output.update(with_dimensions([{"key": "TableName", "value": table_name}]))
-        self.emit_component(table_arn, self.COMPONENT_TYPE, output)
+        self.emit_component(table_arn, ".".join([self.COMPONENT_TYPE, "table"]), output)
 
         latest_stream_arn = table.LatestStreamArn
         stream_specification = table.StreamSpecification
