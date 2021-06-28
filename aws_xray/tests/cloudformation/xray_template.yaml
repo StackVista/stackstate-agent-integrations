@@ -1,0 +1,102 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: >
+  A sample setup, emulating a real-world infrastructure creating xray
+  traces with Lambda function and Dynamodb components.
+
+Resources:
+  XrayDynamoDB:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: Book
+      AttributeDefinitions:
+        - AttributeName: Author
+          AttributeType: S
+        - AttributeName: Title
+          AttributeType: S
+      KeySchema:
+        - AttributeName: Author
+          KeyType: HASH
+        - AttributeName: Title
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+  XrayLambdaRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: Xray_Lambda_Role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+            Sid: ''
+      Policies:
+        - PolicyName: AWSXrayWriteOnlyAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - xray:PutTraceSegments
+                  - xray:PutTelemetryRecords
+                  - xray:GetSamplingRules
+                  - xray:GetSamplingTargets
+                  - xray:GetSamplingStatisticSummaries
+                Resource: "*"
+        - PolicyName: LambdaPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "arn:aws:logs:*:*:*"
+              - Sid: lambda
+                Effect: Allow
+                Action:
+                  - lambda:*
+                Resource: "*"
+              - Sid: dynamodb
+                Effect: Allow
+                Action:
+                  - dynamodb:*
+                Resource: !GetAtt XrayDynamoDB.Arn
+
+  XrayCreateLamdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: TestCreateTrace
+      MemorySize: 128
+      TracingConfig:
+        Mode: Active
+      Handler: add_lambda.lambda_handler
+      Runtime: python3.7
+      Timeout: 100
+      Code:
+        S3Bucket: xray-trace-test
+        S3Key: xray-trace.zip
+      Role: !GetAtt XrayLambdaRole.Arn
+
+  XrayDeleteLamdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      FunctionName: TestDeleteTrace
+      MemorySize: 128
+      TracingConfig:
+        Mode: Active
+      Handler: delete_lambda.lambda_handler
+      Runtime: python3.7
+      Timeout: 100
+      Code:
+        S3Bucket: xray-trace-test
+        S3Key: xray-trace.zip
+      Role: !GetAtt XrayLambdaRole.Arn

@@ -5,9 +5,17 @@ stages:
   - test
   - publish
 
+variables:
+  xray: aws_xray/tests/cloudformation/xray-package/src/
+
 .linux_env: &linux_env
   before_script:
     - source .setup-scripts/setup_env.sh
+
+.xray_dep: &xray_dep
+  before_script:
+    - pip install aws-xray-sdk==2.4.2 -t $xray
+    - cd $xray && zip -r ../xray-trace.zip .
 
 .windows_env: &windows_env
   tags:
@@ -191,6 +199,7 @@ test_aws_topology:
 
 test_aws_xray:
   <<: *linux_test
+  <<: *xray_dep
   variables:
     CHECK: "aws_xray"
     PYTHON3: "true"
