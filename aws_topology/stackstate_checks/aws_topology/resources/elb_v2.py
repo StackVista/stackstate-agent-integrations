@@ -1,6 +1,7 @@
 from .utils import (
     client_array_operation,
     make_valid_data,
+    set_required_access_v2,
     transformation,
     with_dimensions,
     extract_dimension_name,
@@ -57,10 +58,12 @@ class ElbV2Collector(RegisteredResourceCollector):
         if not filter or "targetgroups" in filter:
             self.process_target_groups(load_balancers)
 
+    @set_required_access_v2("elasticloadbalancing:DescribeTags")
     def collect_tag_page(self, load_balancer_ids):
         max_items = self.MAX_TAG_CALLS
         return self.client.describe_tags(ResourceArns=load_balancer_ids[:max_items]).get("TagDescriptions", [])
 
+    @set_required_access_v2("elasticloadbalancing:DescribeListeners")
     def collect_listeners(self, load_balancer_arn):
         return [
             listener
@@ -78,16 +81,19 @@ class ElbV2Collector(RegisteredResourceCollector):
         ]
 
     def process_load_balancer_page(self, load_balancers):
-        tag_page = self.collect_tag_page([load_balancer.get("LoadBalancerArn") for load_balancer in load_balancers])
+        tag_page = (
+            self.collect_tag_page([load_balancer.get("LoadBalancerArn") for load_balancer in load_balancers]) or []
+        )
         for data in load_balancers:
             load_balancer_arn = data.get("LoadBalancerArn")
-            listeners = self.collect_listeners(load_balancer_arn)
+            listeners = self.collect_listeners(load_balancer_arn) or []
             tags = []
             for tag_result in tag_page:
                 if tag_result.get("ResourceArn") == data.get("LoadBalancerArn"):
                     tags = tag_result.get("Tags", [])
             self.process_load_balancer(LoadBalancerData(load_balancer=data, tags=tags, listeners=listeners))
 
+    @set_required_access_v2("elasticloadbalancing:DescribeLoadBalancers")
     def process_load_balancers(self, load_balancer_arns=[]):
         if load_balancer_arns:  # Only pass in LoadBalancerNames if a specific name is needed, otherwise ask for all
             load_balancers = self.collect_load_balancers(LoadBalancerArns=load_balancer_arns)
@@ -138,6 +144,7 @@ class ElbV2Collector(RegisteredResourceCollector):
         for target_group in client_array_operation(self.client, "describe_target_groups", "TargetGroups", **kwargs):
             yield target_group
 
+    @set_required_access_v2("elasticloadbalancing:DescribeTargetHealth")
     def collect_target_health(self, target_group_arn):
         return self.client.describe_target_health(TargetGroupArn=target_group_arn).get("TargetHealthDescriptions", [])
 
@@ -148,7 +155,7 @@ class ElbV2Collector(RegisteredResourceCollector):
             tags = []
             # When using process_one, fetch necessary load balancers
             if not load_balancers and data.get("LoadBalancerArns"):
-                load_balancers = self.process_load_balancers(data.get("LoadBalancerArns"))
+                load_balancers = self.process_load_balancers(data.get("LoadBalancerArns")) or []
             # Match the result from the fetched tags with the specific target group
             for tag_result in tag_page:
                 if tag_result.get("ResourceArn") == data.get("TargetGroupArn"):
@@ -159,6 +166,7 @@ class ElbV2Collector(RegisteredResourceCollector):
                 )
             )
 
+    @set_required_access_v2("elasticloadbalancing:DescribeTargetGroups")
     def process_target_groups(self, load_balancers=[], target_group_names=[]):
         if target_group_names:
             paginator = self.collect_target_groups(TargetGroupArns=target_group_names)
@@ -179,6 +187,7 @@ class ElbV2Collector(RegisteredResourceCollector):
     def process_one_target_group(self, arn):
         self.process_target_groups(target_group_names=[arn])
 
+    @transformation()
     def process_target_health(self, data, target_group):
         target_health = TargetHealth(data, strict=False)
         target_health.validate()
@@ -215,6 +224,7 @@ class ElbV2Collector(RegisteredResourceCollector):
             }
         )
 
+    @transformation()
     def process_target_group(self, data):
         target_group = TargetGroup(data.target_group, strict=False)
         target_group.validate()
