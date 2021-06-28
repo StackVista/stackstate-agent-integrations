@@ -33,9 +33,15 @@ class TestKinesis(BaseApiTest):
                 "Tags.TestKey": "TestValue",
             },
         )
-        top.assert_component(components, base_stream_arn + "stream_2", "aws.kinesis.data-stream", checks={"Name": "stream_2"})
-        top.assert_component(components, base_stream_arn + "stream_3", "aws.kinesis.data-stream", checks={"Name": "stream_3"})
-        top.assert_component(components, base_stream_arn + "stream_4", "aws.kinesis.data-stream", checks={"Name": "stream_4"})
+        top.assert_component(
+            components, base_stream_arn + "stream_2", "aws.kinesis.data-stream", checks={"Name": "stream_2"}
+        )
+        top.assert_component(
+            components, base_stream_arn + "stream_3", "aws.kinesis.data-stream", checks={"Name": "stream_3"}
+        )
+        top.assert_component(
+            components, base_stream_arn + "stream_4", "aws.kinesis.data-stream", checks={"Name": "stream_4"}
+        )
 
         top.assert_all_checked(components, relations)
 
