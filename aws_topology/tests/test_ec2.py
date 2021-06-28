@@ -250,7 +250,7 @@ class TestEC2(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         components = topology[0]["components"]
         self.assertEqual(len(components), 1)
         top.assert_component(
@@ -265,7 +265,7 @@ class TestEC2(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         components = topology[0]["components"]
         self.assertEqual(len(topology[0]["components"]), 1)
         top.assert_component(
@@ -280,7 +280,7 @@ class TestEC2(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         components = topology[0]["components"]
         self.assertEqual(len(topology[0]["components"]), 1)
         top.assert_component(
@@ -308,7 +308,7 @@ class TestEC2(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         components = topology[0]["components"]
         self.assertEqual(len(topology[0]["components"]), 1)
         top.assert_component(
@@ -336,7 +336,7 @@ class TestEC2(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         components = topology[0]["components"]
         self.assertEqual(len(topology[0]["components"]), 1)
         top.assert_component(
@@ -351,7 +351,7 @@ class TestEC2(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         components = topology[0]["components"]
         self.assertEqual(len(topology[0]["components"]), 1)
         top.assert_component(
@@ -366,7 +366,7 @@ class TestEC2(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         components = topology[0]["components"]
         self.assertEqual(len(topology[0]["components"]), 1)
         top.assert_component(
@@ -384,7 +384,7 @@ class TestEC2(BaseApiTest):
     def test_process_ec2_state_stopped(self):
         with patch("stackstate_checks.aws_topology.AwsTopologyCheck.must_run_full", return_value=False):
             self.check.run()
-            self.assert_executed_ok()
+            self.assert_updated_ok()
             events = aggregator.events
             self.assertEqual(len(events), 1)
             self.assertEqual(events[0]["event_type"], "ec2_state")
@@ -394,26 +394,29 @@ class TestEC2(BaseApiTest):
             self.assertEqual(events[0]["msg_text"], "stopped")
             self.assertEqual(events[0]["tags"], ["state:stopped"])
 
+    @set_filter("xxx")
     @set_eventbridge_event("state_pending")
     def test_process_ec2_state_pending(self):
-        self.check.run()
-        topology = [top.get_snapshot(self.check.check_id)]
-        self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
-        components = topology[0]["components"]
-        top.assert_component(
-            components,
-            "i-1234567890123456",
-            "aws.ec2",
-            checks={"InstanceId": "i-1234567890123456"},
-        )
+        with patch("stackstate_checks.aws_topology.AwsTopologyCheck.must_run_full", return_value=False):
+            self.check.run()
+            self.assert_updated_ok()
+            topology = [top.get_snapshot(self.check.check_id)]
+            self.assertEqual(len(topology), 1)
+            self.assert_updated_ok()
+            components = topology[0]["components"]
+            top.assert_component(
+                components,
+                "i-1234567890123456",
+                "aws.ec2",
+                checks={"InstanceId": "i-1234567890123456"},
+            )
 
     @set_filter("xxx")
     @set_eventbridge_event("state_running")
     def test_process_ec2_state_running(self):
         with patch("stackstate_checks.aws_topology.AwsTopologyCheck.must_run_full", return_value=False):
             self.check.run()
-            self.assert_executed_ok()
+            self.assert_updated_ok()
             events = aggregator.events
             self.assertEqual(len(events), 1)
             self.assertEqual(events[0]["event_type"], "ec2_state")
@@ -423,24 +426,26 @@ class TestEC2(BaseApiTest):
             self.assertEqual(events[0]["msg_text"], "running")
             self.assertEqual(events[0]["tags"], ["state:running"])
 
+    @set_filter("xxx")
     @set_eventbridge_event("state_stopping")
     def test_process_ec2_state_stopping(self):
-        self.check.run()
-        topology = [top.get_snapshot(self.check.check_id)]
-        self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
-        components = topology[0]["components"]
-        top.assert_component(
-            components,
-            "i-1234567890123456",
-            "aws.ec2",
-            checks={"InstanceId": "i-1234567890123456"},
-        )
+        with patch("stackstate_checks.aws_topology.AwsTopologyCheck.must_run_full", return_value=False):
+            self.check.run()
+            topology = [top.get_snapshot(self.check.check_id)]
+            self.assertEqual(len(topology), 1)
+            self.assert_updated_ok()
+            components = topology[0]["components"]
+            top.assert_component(
+                components,
+                "i-1234567890123456",
+                "aws.ec2",
+                checks={"InstanceId": "i-1234567890123456"},
+            )
 
     @set_filter("xxx")
     @set_eventbridge_event("state_terminated")
     def test_process_ec2_state_terminated(self):
         with patch("stackstate_checks.aws_topology.AwsTopologyCheck.must_run_full", return_value=False):
             self.check.run()
-            self.assert_executed_ok()
+            self.assert_updated_ok()
             self.assertEqual(self.check.delete_ids, ["i-0f70dba7ea83d6dec"])
