@@ -122,7 +122,7 @@ class AwsTopologyCheck(AgentCheck):
         self.start_snapshot()
 
         errors = []
-        agent_proxy = AgentProxy(self, instance_info.role_arn)
+        agent_proxy = AgentProxy(self, instance_info.role_arn, self.log)
         futures = {}
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             for region in instance_info.regions:
@@ -146,7 +146,7 @@ class AwsTopologyCheck(AgentCheck):
                     if client is None:
                         client = session.client(api) if api != "noclient" else None
                     processor = registry[api](location.clone(), client, agent_proxy)
-                    self.log.info("Starting account {} API {} for region {}".format(
+                    self.log.debug("Starting account {} API {} for region {}".format(
                         self.get_account_id(instance_info),
                         api,
                         session.region_name
@@ -162,7 +162,7 @@ class AwsTopologyCheck(AgentCheck):
                 spec = futures[future]
                 try:
                     future.result()
-                    self.log.info("Finished account {} API {} for region {}".format(
+                    self.log.debug("Finished account {} API {} for region {}".format(
                         self.get_account_id(instance_info),
                         spec["api"],
                         spec["location"].Location.AwsRegion
@@ -187,13 +187,15 @@ class AwsTopologyCheck(AgentCheck):
         self.components_seen = agent_proxy.components_seen
         self.delete_ids += agent_proxy.delete_ids
 
-        self.stop_snapshot()
         if len(errors) > 0:
+            self.log.warning("Not sending 'stop_snapshot' because one or more APIs returned with exceptions")
             raise Exception("get_topology gave following exceptions: %s" % ", ".join(errors))
+
+        self.stop_snapshot()
 
     def get_topology_update(self, instance_info, aws_client):
         not_before = self.last_full_topology
-        agent_proxy = AgentProxy(self, instance_info.role_arn)
+        agent_proxy = AgentProxy(self, instance_info.role_arn, self.log)
         listen_for = ResourceRegistry.CLOUDTRAIL
         for region in instance_info.regions:
             session = aws_client.get_session(instance_info.role_arn, region)
@@ -249,7 +251,7 @@ class AwsTopologyCheck(AgentCheck):
 
 
 class AgentProxy(object):
-    def __init__(self, agent, role_name):
+    def __init__(self, agent, role_name, log):
         self.agent = agent
         self.delete_ids = []
         self.components_seen = set()
@@ -257,6 +259,7 @@ class AgentProxy(object):
         self.role_name = role_name
         self.warnings = {}
         self.lock = threading.Lock()
+        self.log = log
 
     def component(self, location, id, type, data):
         self.components_seen.add(id)
