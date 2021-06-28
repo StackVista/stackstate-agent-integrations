@@ -165,7 +165,7 @@
             "ResourceType": "AWS::EC2::Instance",
             "Timestamp": "2019-06-27T20:24:01.051Z",
             "StackName": "stackstate-topo-publisher",
-            "PhysicalResourceId": "i-0aac5bab082561475",
+            "PhysicalResourceId": "i-1234567890123456",
             "LogicalResourceId": "StackSatePublisher"
         }
     ],

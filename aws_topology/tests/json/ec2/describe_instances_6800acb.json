@@ -22,7 +22,7 @@
                     "ProductCodes": [],
                     "VpcId": "vpc-6b25d10e",
                     "StateTransitionReason": "User initiated (2018-04-16 19:07:25 GMT)",
-                    "InstanceId": "i-0aac5bab082561475",
+                    "InstanceId": "i-0f70dba7ea83d6dec",
                     "ImageId": "ami-d9a5fba0",
                     "PrivateDnsName": "ip-172-30-0-96.eu-west-1.compute.internal",
                     "KeyName": "MartijnThijsDevKP",
@@ -109,104 +109,8 @@
                         "Code": "Client.UserInitiatedShutdown"
                     },
                     "State": {
-                        "Code": 80,
-                        "Name": "terminated"
-                    },
-                    "EbsOptimized": true,
-                    "LaunchTime": "2018-04-16T08:01:08+00:00",
-                    "PrivateIpAddress": "172.30.0.96",
-                    "ProductCodes": [],
-                    "VpcId": "vpc-6b25d10e",
-                    "StateTransitionReason": "User initiated (2018-04-16 19:07:25 GMT)",
-                    "InstanceId": "i-0aac5bab082561XXX",
-                    "ImageId": "ami-d9a5fba0",
-                    "PrivateDnsName": "ip-172-30-0-96.eu-west-1.compute.internal",
-                    "KeyName": "MartijnThijsDevKP",
-                    "SecurityGroups": [
-                        {
-                            "GroupName": "launch-wizard-9",
-                            "GroupId": "sg-41c3cc3b"
-                        }
-                    ],
-                    "ClientToken": "",
-                    "SubnetId": "subnet-67d82910",
-                    "InstanceType": "m4.xlarge",
-                    "NetworkInterfaces": [
-                        {
-                            "Status": "in-use",
-                            "MacAddress": "06:c8:72:7c:3c:e4",
-                            "SourceDestCheck": true,
-                            "VpcId": "vpc-6b25d10e",
-                            "Description": "Primary network interface",
-                            "NetworkInterfaceId": "eni-c9c378fb",
-                            "PrivateIpAddresses": [
-                                {
-                                    "Primary": true,
-                                    "PrivateIpAddress": "172.30.0.96"
-                                }
-                            ],
-                            "SubnetId": "subnet-67d82910",
-                            "Attachment": {
-                                "Status": "attached",
-                                "DeviceIndex": 0,
-                                "DeleteOnTermination": true,
-                                "AttachmentId": "eni-attach-7178d592",
-                                "AttachTime": "2018-04-05T09:34:07+00:00"
-                            },
-                            "Groups": [
-                                {
-                                    "GroupName": "launch-wizard-9",
-                                    "GroupId": "sg-41c3cc3b"
-                                }
-                            ],
-                            "Ipv6Addresses": [],
-                            "OwnerId": "731070500579",
-                            "PrivateIpAddress": "172.30.0.96"
-                        }
-                    ],
-                    "SourceDestCheck": true,
-                    "Placement": {
-                        "Tenancy": "default",
-                        "GroupName": "",
-                        "AvailabilityZone": "eu-west-1a"
-                    },
-                    "Hypervisor": "xen",
-                    "BlockDeviceMappings": [
-                        {
-                            "DeviceName": "/dev/sda1",
-                            "Ebs": {
-                                "Status": "attached",
-                                "DeleteOnTermination": true,
-                                "VolumeId": "vol-0b83c17b2c8bd35b2",
-                                "AttachTime": "2018-04-05T09:34:07+00:00"
-                            }
-                        }
-                    ],
-                    "Architecture": "x86_64",
-                    "RootDeviceType": "ebs",
-                    "RootDeviceName": "/dev/sda1",
-                    "VirtualizationType": "hvm",
-                    "Tags": [
-                        {
-                            "Value": "Martijn's Stackstate",
-                            "Key": "Name"
-                        }
-                    ],
-                    "AmiLaunchIndex": 0
-                },
-                {
-                    "Monitoring": {
-                        "State": "disabled"
-                    },
-                    "PublicDnsName": "ec2-172-30-0-96.eu-west-1.compute.amazonaws.com",
-                    "PublicIpAddress": "172.30.0.96",
-                    "StateReason": {
-                        "Message": "Client.UserInitiatedShutdown: User initiated shutdown",
-                        "Code": "Client.UserInitiatedShutdown"
-                    },
-                    "State": {
-                        "Code": 80,
-                        "Name": "stopped"
+                        "Code": 16,
+                        "Name": "running"
                     },
                     "EbsOptimized": true,
                     "LaunchTime": "2018-04-16T08:01:08+00:00",
@@ -225,7 +129,7 @@
                         }
                     ],
                     "ClientToken": "",
-                    "InstanceType": "M6gd",
+                    "InstanceType": "m6gd.medium",
                     "NetworkInterfaces": [
                         {
                             "Status": "in-use",
@@ -289,7 +193,20 @@
         }
     ],
     "ResponseMetadata": {
-        "Parameters": {},
+        "Parameters": {
+            "Filters": [
+                {
+                    "Name": "instance-state-code",
+                    "Values": [
+                        "0",
+                        "16",
+                        "32",
+                        "64",
+                        "80"
+                    ]
+                }
+            ]
+        },
         "OperationName": "DescribeInstances",
         "Generater": "2021-05-29 07:45:36.570257",
         "Region": "eu-west-1",

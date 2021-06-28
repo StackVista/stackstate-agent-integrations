@@ -59,8 +59,8 @@ class Resource(Model):
 class Stage(Model):
     deploymentId = StringType(required=True)
     stageName = StringType(default="UNKNOWN")
-    variables = DictType(StringType)
-    tags = DictType(StringType)
+    variables = DictType(StringType, default={})
+    tags = DictType(StringType, default={})
 
 
 ApiData = namedtuple("ApiData", ["api", "stages", "resources"])
