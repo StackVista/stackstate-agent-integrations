@@ -12,7 +12,7 @@ rds_username = secret.get("username")
 rds_user_pwd = secret.get("password")
 try:
     conn = psycopg2.connect(host=rds_host, user=rds_username, password=rds_user_pwd, database="postgres")
-except:
+except Exception:
     print("ERROR: Could not connect to Postgres instance.")
     sys.exit(1)
 print("SUCCESS: Connection to RDS Postgres instance succeeded")
