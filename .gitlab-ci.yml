@@ -6,17 +6,11 @@ stages:
   - publish
 
 variables:
-  xray: aws_xray/tests/cloudformation/xray-package/src/
+  xray: aws_xray/tests/cloudformation/xray-package
 
 .linux_env: &linux_env
   before_script:
     - source .setup-scripts/setup_env.sh
-
-.xray_dep: &xray_dep
-  before_script:
-    - apt-get install -y zip
-    - pip install aws-xray-sdk==2.4.2 -t $xray
-    - cd $xray && zip -r ../xray-trace.zip .
 
 .windows_env: &windows_env
   tags:
@@ -88,8 +82,11 @@ clear-win-caches:
       entrypoint: ["dockerd-entrypoint.sh", "/usr/local/bin/dockerd", "--host=tcp://0.0.0.0:2375" ]
   script:
     - source ./.setup-scripts/setup_vsphere_artifactory_publishing.sh
+    - if [ $CHECK = "aws_xray" ]; then cd $xray && source $xray/build.sh && cd -
     - checksdev test --cov ${CHECK}
     - checksdev test ${CHECK} --bench || true
+    - if [ $CHECK = "aws_xray" ]; then source $xray/delete.sh
+
       # [BS] we skip this until https://github.com/PyCQA/pylint/pull/2681/commits/253e5d05e3943d3bc8e4470804a138cb20049548 lands in pylint stable version
       # - if [ -n "$PYTHON3" ]; then checksdev validate py3 ${CHECK}; fi
 
@@ -200,17 +197,14 @@ test_aws_topology:
 
 test_aws_xray:
   <<: *linux_test
-  <<: *xray_dep
   variables:
     CHECK: "aws_xray"
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
     DOCKER_TLS_CERTDIR: ""
-  script:
+  after_script:
     - pwd
-    - python --version
-    - which pip
 
 test_sap:
   <<: *linux_test
