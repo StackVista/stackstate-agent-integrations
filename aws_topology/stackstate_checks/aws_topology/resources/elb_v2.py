@@ -88,9 +88,9 @@ class ElbV2Collector(RegisteredResourceCollector):
                     tags = tag_result.get("Tags", [])
             self.process_load_balancer(LoadBalancerData(load_balancer=data, tags=tags, listeners=listeners))
 
-    def process_load_balancers(self, load_balancer_names=[]):
-        if load_balancer_names:  # Only pass in LoadBalancerNames if a specific name is needed, otherwise ask for all
-            load_balancers = self.collect_load_balancers(LoadBalancerArns=load_balancer_names)
+    def process_load_balancers(self, load_balancer_arns=[]):
+        if load_balancer_arns:  # Only pass in LoadBalancerNames if a specific name is needed, otherwise ask for all
+            load_balancers = self.collect_load_balancers(LoadBalancerArns=load_balancer_arns)
         else:
             load_balancers = self.collect_load_balancers()
         to_process = []
@@ -134,8 +134,8 @@ class ElbV2Collector(RegisteredResourceCollector):
     def process_one_load_balancer(self, arn):
         self.process_load_balancers([arn])
 
-    def collect_target_groups(self):
-        for target_group in client_array_operation(self.client, "describe_target_groups", "TargetGroups"):
+    def collect_target_groups(self, **kwargs):
+        for target_group in client_array_operation(self.client, "describe_target_groups", "TargetGroups", **kwargs):
             yield target_group
 
     def collect_target_health(self, target_group_arn):
@@ -146,6 +146,9 @@ class ElbV2Collector(RegisteredResourceCollector):
         for data in target_groups:
             target_health = self.collect_target_health(data.get("TargetGroupArn")) or []
             tags = []
+            # When using process_one, fetch necessary load balancers
+            if not load_balancers and data.get("LoadBalancerArns"):
+                load_balancers = self.process_load_balancers(data.get("LoadBalancerArns"))
             # Match the result from the fetched tags with the specific target group
             for tag_result in tag_page:
                 if tag_result.get("ResourceArn") == data.get("TargetGroupArn"):
@@ -156,7 +159,7 @@ class ElbV2Collector(RegisteredResourceCollector):
                 )
             )
 
-    def process_target_groups(self, load_balancers, target_group_names=[]):
+    def process_target_groups(self, load_balancers=[], target_group_names=[]):
         if target_group_names:
             paginator = self.collect_target_groups(TargetGroupArns=target_group_names)
         else:
@@ -174,7 +177,7 @@ class ElbV2Collector(RegisteredResourceCollector):
             self.process_target_group_page(target_groups, load_balancers)
 
     def process_one_target_group(self, arn):
-        self.process_target_groups([arn])
+        self.process_target_groups(target_group_names=[arn])
 
     def process_target_health(self, data, target_group):
         target_health = TargetHealth(data, strict=False)
