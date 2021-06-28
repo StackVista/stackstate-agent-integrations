@@ -63,7 +63,7 @@ class EcsCollector(RegisteredResourceCollector):
     COMPONENT_TYPE = "aws.ecs"
     MAX_PAGE_SIZE = 100  # Number of items that can be fetched in one describe_* page call
 
-    @set_required_access_v2("")
+    @set_required_access_v2("ecs:DescribeServices")
     def collect_service_page(self, cluster_arn, service_arns):
         max_calls = self.MAX_PAGE_SIZE
         return self.client.describe_services(
@@ -90,7 +90,7 @@ class EcsCollector(RegisteredResourceCollector):
             ]
         return services
 
-    @set_required_access_v2("ecs:DescibeTasks")
+    @set_required_access_v2("ecs:DescribeTasks")
     def collect_task_page(self, cluster_arn, task_arns):
         max_calls = self.MAX_PAGE_SIZE
         return self.client.describe_tasks(cluster=cluster_arn, tasks=task_arns[:max_calls]).get("tasks", [])
