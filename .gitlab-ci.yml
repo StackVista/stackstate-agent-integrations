@@ -82,7 +82,7 @@ clear-win-caches:
       entrypoint: ["dockerd-entrypoint.sh", "/usr/local/bin/dockerd", "--host=tcp://0.0.0.0:2375" ]
   script:
     - source ./.setup-scripts/setup_vsphere_artifactory_publishing.sh
-    - if [ $CHECK = "aws_xray" ]; then cd $xray && source $xray/build.sh && cd - ; fi
+    - if [ $CHECK = "aws_xray" ]; then cd $xray && source build.sh && cd - ; fi
     - checksdev test --cov ${CHECK}
     - checksdev test ${CHECK} --bench || true
     - if [ $CHECK = "aws_xray" ]; then source $xray/delete.sh ; fi
