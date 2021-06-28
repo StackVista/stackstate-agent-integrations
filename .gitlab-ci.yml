@@ -27,7 +27,6 @@ linux_deps:
       - venv
   script:
     - source $CI_PROJECT_DIR/.setup-scripts/load_deps.sh
-    - source ./.setup-scripts/setup_aws.sh
   artifacts:
     paths:
       - venv
@@ -82,7 +81,7 @@ clear-win-caches:
       entrypoint: ["dockerd-entrypoint.sh", "/usr/local/bin/dockerd", "--host=tcp://0.0.0.0:2375" ]
   script:
     - source ./.setup-scripts/setup_vsphere_artifactory_publishing.sh
-    - if [ $CHECK = "aws_xray" ]; then cd $xray && source build.sh && cd - ; fi
+    - if [ $CHECK = "aws_xray" ]; then  source $xray/build.sh && cd - ; fi
     - checksdev test --cov ${CHECK}
     - checksdev test ${CHECK} --bench || true
     - if [ $CHECK = "aws_xray" ]; then source $xray/delete.sh ; fi

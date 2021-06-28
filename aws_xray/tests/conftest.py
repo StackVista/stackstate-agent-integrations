@@ -82,11 +82,11 @@ def xray_error_instance():
 
 @pytest.fixture(scope='session')
 def xray_integration(request):
-    create_stack()
+    # create_stack()
 
-    def tear_down():
-        delete_stack()
-    request.addfinalizer(tear_down)
+    # def tear_down():
+    #     delete_stack()
+    # request.addfinalizer(tear_down)
     yield True
 
 
