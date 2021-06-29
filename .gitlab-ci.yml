@@ -203,7 +203,7 @@ test_aws_xray:
     DOCKER_DRIVER: overlay2
     DOCKER_TLS_CERTDIR: ""
   after_script:
-    - pwd
+    - source $xray/delete.sh
 
 test_sap:
   <<: *linux_test

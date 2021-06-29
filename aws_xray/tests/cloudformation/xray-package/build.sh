@@ -5,9 +5,9 @@ BUCKET_NAME=xray-trace-test
 
 echo "Setting up the AWS configuration"
 source ./.setup-scripts/setup_aws.sh
-cd aws_xray/tests/cloudformation/xray-package
-echo $xray
 pip install awscli
+
+cd $xray
 pip install aws-xray-sdk==2.4.2 -t src/
 apt-get install -y zip
 echo "Creating the package..."
@@ -22,7 +22,7 @@ aws cloudformation create-stack \
 --stack-name $STACK_NAME \
 --template-body file://$TEMPLATE_PATH \
 --capabilities CAPABILITY_NAMED_IAM \
---tags xray-integration=True
+--tags Key=xray-integration-test,Value=True
 
 aws cloudformation wait stack-create-complete --stack-name $STACK_NAME
 echo "Stack Created"
