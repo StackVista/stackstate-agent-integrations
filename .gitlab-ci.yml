@@ -6,7 +6,7 @@ stages:
   - publish
 
 variables:
-  xray: aws_xray/tests/cloudformation/xray-package
+  xray: aws_xray/tests/cloudformation/
 
 .linux_env: &linux_env
   before_script:
