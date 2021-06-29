@@ -84,7 +84,7 @@ clear-win-caches:
     - if [ $CHECK = "aws_xray" ]; then  source $xray/build.sh && cd - ; fi
     - checksdev test --cov ${CHECK}
     - checksdev test ${CHECK} --bench || true
-    - if [ $CHECK = "aws_xray" ]; then source $xray/delete.sh ; fi
+#    - if [ $CHECK = "aws_xray" ]; then source $xray/delete.sh ; fi
 
       # [BS] we skip this until https://github.com/PyCQA/pylint/pull/2681/commits/253e5d05e3943d3bc8e4470804a138cb20049548 lands in pylint stable version
       # - if [ -n "$PYTHON3" ]; then checksdev validate py3 ${CHECK}; fi
@@ -203,6 +203,7 @@ test_aws_xray:
     DOCKER_DRIVER: overlay2
     DOCKER_TLS_CERTDIR: ""
   after_script:
+    - pip install awscli
     - source $xray/delete.sh
 
 test_sap:

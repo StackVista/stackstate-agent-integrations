@@ -4,7 +4,6 @@ from stackstate_checks.dev import WaitFor
 
 
 @pytest.mark.integration
-@pytest.mark.usefixtures("xray_integration")
 class TestXrayCheck:
 
     def test_xray_check(self, aggregator, xray_instance):

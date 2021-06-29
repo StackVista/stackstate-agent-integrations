@@ -1,3 +1,2 @@
 boto3==1.17.68
 flatten-dict==0.2.0
-aws-xray-sdk==2.4.2
