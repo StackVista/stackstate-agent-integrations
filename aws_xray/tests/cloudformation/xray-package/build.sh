@@ -7,6 +7,7 @@ echo "Setting up the AWS configuration"
 source ./.setup-scripts/setup_aws.sh
 cd aws_xray/tests/cloudformation/xray-package
 echo $xray
+pip install awscli
 pip install aws-xray-sdk==2.4.2 -t src/
 apt-get install -y zip
 echo "Creating the package..."
