@@ -5,13 +5,12 @@
         "Key": "OrganizationalUnit",
         "Value": "Testing"
       },
-      "ResourceName": "arn:aws:redshift:us-east-2:123456789:cluster:redshift-cluster-1",
+      "ResourceName": "arn:aws:redshift:eu-west-1:731070500579:cluster:redshift-cluster-1",
       "ResourceType": "Cluster"
     }
   ],
   "ResponseMetadata": {
     "Parameters": {
-      "ResourceName": "arn:aws:redshift:us-east-2:123456789:cluster:redshift-cluster-1",
       "ResourceType": "Cluster"
     },
     "OperationName": "DescribeTags",
