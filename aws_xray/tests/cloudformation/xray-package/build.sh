@@ -11,11 +11,11 @@ pip install awscli
 pip install aws-xray-sdk==2.4.2 -t src/
 apt-get install -y zip
 echo "Creating the package..."
-zip -r $PACKAGE_NAME.zip src/
+zip -r $PACKAGE_NAME.zip src/ > /dev/null
 echo $PWD
 echo "Uploading the package to s3..."
 aws s3 mb s3://$BUCKET_NAME --region $AWS_REGION
-aws s3 cp ../$PACKAGE_NAME.zip s3://$BUCKET_NAME/
+aws s3 cp $PACKAGE_NAME.zip s3://$BUCKET_NAME/
 
 echo "Creating the stack"
 aws cloudformation create-stack \
