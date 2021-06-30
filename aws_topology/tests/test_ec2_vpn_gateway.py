@@ -50,9 +50,6 @@ class TestVpnGateway(unittest.TestCase):
         topology.reset()
         aggregator.reset()
         self.check = AwsTopologyCheck(self.CHECK_NAME, config, [self.instance])
-        state_descriptor = self.check._get_state_descriptor()
-        # clear the state
-        self.check.state_manager.clear(state_descriptor)
 
         def results(operation_name, kwarg):
             return self.api_results.get(operation_name) or {}

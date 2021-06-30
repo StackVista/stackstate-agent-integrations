@@ -8,12 +8,12 @@ import time
 import traceback
 from botocore.exceptions import ClientError
 from schematics import Model
-from schematics.types import StringType, ListType, DictType, DateTimeType, ModelType, IntType
+from schematics.types import StringType, ListType, DictType, IntType
 from botocore.config import Config
 from stackstate_checks.base import AgentCheck, TopologyInstance
 from .resources import ResourceRegistry, type_arn, RegisteredResourceCollector
 from .utils import location_info, correct_tags, capitalize_keys, seconds_ago
-from datetime import datetime, timedelta
+from datetime import datetime
 import pytz
 import concurrent.futures
 import threading
@@ -37,10 +37,6 @@ class InitConfig(Model):
     full_run_interval = IntType(default=3600)
 
 
-class State(Model):
-    last_full_topology = DateTimeType(required=True, tzd='utc')
-
-
 class InstanceInfo(Model):
     role_arn = StringType(required=True)
     regions = ListType(StringType)
@@ -48,7 +44,6 @@ class InstanceInfo(Model):
     arns = DictType(StringType, default={})
     apis_to_run = ListType(StringType)
     log_bucket_name = StringType()
-    state = ModelType(State)
 
 
 class AwsTopologyCheck(AgentCheck):
@@ -57,6 +52,8 @@ class AwsTopologyCheck(AgentCheck):
     INSTANCE_TYPE = "aws-v2"  # TODO should we add _topology?
     SERVICE_CHECK_CONNECT_NAME = "aws_topology.can_connect"
     SERVICE_CHECK_EXECUTE_NAME = "aws_topology.can_execute"
+    SERVICE_CHECK_UPDATE_NAME = "aws_topology.can_update"
+
     INSTANCE_SCHEMA = InstanceInfo
 
     def get_account_id(self, instance_info):
@@ -65,8 +62,19 @@ class AwsTopologyCheck(AgentCheck):
     def get_instance_key(self, instance_info):
         return TopologyInstance(self.INSTANCE_TYPE, str(self.get_account_id(instance_info)))
 
-    def must_run_full(self, instance_info, interval):
-        return seconds_ago(instance_info.state.last_full_topology) > interval
+    def must_run_full(self, interval):
+        self.log.info('Checking if full run is necessary')
+        if not hasattr(self, 'last_full_topology'):
+            # Create empty state
+            self.log.info('  Result => YES (first run)')
+            return True
+        secs = seconds_ago(self.last_full_topology)
+        self.log.info('  Result => {} (Last run was {} seconds ago, interval is set to {})'.format(
+            "YES" if secs > interval else "NO",
+            int(secs),
+            interval)
+        )
+        return secs > interval
 
     def check(self, instance_info):
         try:
@@ -82,28 +90,30 @@ class AwsTopologyCheck(AgentCheck):
             )
             return
 
-        try:
-            if not instance_info.state:
-                # Create empty state
-                instance_info.state = State(
-                    {
-                        'last_full_topology': datetime.utcnow().replace(tzinfo=pytz.utc) - timedelta(
-                            seconds=init_config.full_run_interval + 60
-                        )
-                    }
-                )
-            self.delete_ids = []
-            self.components_seen = set()
-            if self.must_run_full(instance_info, init_config.full_run_interval):
-                instance_info.state.last_full_topology = datetime.utcnow().replace(tzinfo=pytz.utc)
+        self.delete_ids = []
+        self.components_seen = set()
+        if self.must_run_full(init_config.full_run_interval):
+            try:
+                self.log.info('Starting FULL topology scan')
+                self.last_full_topology = datetime.utcnow().replace(tzinfo=pytz.utc)
                 self.get_topology(instance_info, aws_client)
+                self.log.info('Finished FULL topology scan (no exceptions)')
+                self.service_check(self.SERVICE_CHECK_EXECUTE_NAME, AgentCheck.OK, tags=instance_info.tags)
+            except Exception as e:
+                msg = "AWS topology collection failed: {}".format(e)
+                self.log.error(msg)
+                self.service_check(
+                    self.SERVICE_CHECK_EXECUTE_NAME, AgentCheck.WARNING, message=msg, tags=instance_info.tags
+                )
+
+        try:
             self.get_topology_update(instance_info, aws_client)
-            self.service_check(self.SERVICE_CHECK_EXECUTE_NAME, AgentCheck.OK, tags=instance_info.tags)
+            self.service_check(self.SERVICE_CHECK_UPDATE_NAME, AgentCheck.OK, tags=instance_info.tags)
         except Exception as e:
-            msg = "AWS topology collection failed: {}".format(e)
+            msg = "AWS topology update failed: {}".format(e)
             self.log.error(msg)
             self.service_check(
-                self.SERVICE_CHECK_EXECUTE_NAME, AgentCheck.CRITICAL, message=msg, tags=instance_info.tags
+                self.SERVICE_CHECK_UPDATE_NAME, AgentCheck.WARNING, message=msg, tags=instance_info.tags
             )
 
     def get_topology(self, instance_info, aws_client):
@@ -112,7 +122,7 @@ class AwsTopologyCheck(AgentCheck):
         self.start_snapshot()
 
         errors = []
-        agent_proxy = AgentProxy(self, instance_info.role_arn)
+        agent_proxy = AgentProxy(self, instance_info.role_arn, self.log)
         futures = {}
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             for region in instance_info.regions:
@@ -136,6 +146,11 @@ class AwsTopologyCheck(AgentCheck):
                     if client is None:
                         client = session.client(api) if api != "noclient" else None
                     processor = registry[api](location.clone(), client, agent_proxy)
+                    self.log.debug("Starting account {} API {} for region {}".format(
+                        self.get_account_id(instance_info),
+                        api,
+                        session.region_name
+                    ))
                     futures[executor.submit(processor.process_all, filter)] = {
                         "location": location.clone(),
                         "api": api,
@@ -147,6 +162,11 @@ class AwsTopologyCheck(AgentCheck):
                 spec = futures[future]
                 try:
                     future.result()
+                    self.log.debug("Finished account {} API {} for region {}".format(
+                        self.get_account_id(instance_info),
+                        spec["api"],
+                        spec["location"].Location.AwsRegion
+                    ))
                 except Exception as e:
                     event = {
                         "timestamp": int(time.time()),
@@ -161,18 +181,21 @@ class AwsTopologyCheck(AgentCheck):
                     }
                     self.event(event)
                     errors.append("API %s ended with exception: %s %s" % (spec["api"], str(e), traceback.format_exc()))
-            # TODO this should be for tests, in production these relations should not be sent out
-            agent_proxy.finalize_account_topology()
-            self.components_seen = agent_proxy.components_seen
-            if len(errors) > 0:
-                raise Exception("get_topology gave following exceptions: %s" % ", ".join(errors))
+        # TODO this should be for tests, in production these relations should not be sent out
+        self.log.info('Finalize FULL scan (#components = {})'.format(len(agent_proxy.components_seen)))
+        agent_proxy.finalize_account_topology()
+        self.components_seen = agent_proxy.components_seen
         self.delete_ids += agent_proxy.delete_ids
+
+        if len(errors) > 0:
+            self.log.warning("Not sending 'stop_snapshot' because one or more APIs returned with exceptions")
+            raise Exception("get_topology gave following exceptions: %s" % ", ".join(errors))
 
         self.stop_snapshot()
 
     def get_topology_update(self, instance_info, aws_client):
-        not_before = instance_info.state.last_full_topology
-        agent_proxy = AgentProxy(self, instance_info.role_arn)
+        not_before = self.last_full_topology
+        agent_proxy = AgentProxy(self, instance_info.role_arn, self.log)
         listen_for = ResourceRegistry.CLOUDTRAIL
         for region in instance_info.regions:
             session = aws_client.get_session(instance_info.role_arn, region)
@@ -228,7 +251,7 @@ class AwsTopologyCheck(AgentCheck):
 
 
 class AgentProxy(object):
-    def __init__(self, agent, role_name):
+    def __init__(self, agent, role_name, log):
         self.agent = agent
         self.delete_ids = []
         self.components_seen = set()
@@ -236,6 +259,7 @@ class AgentProxy(object):
         self.role_name = role_name
         self.warnings = {}
         self.lock = threading.Lock()
+        self.log = log
 
     def component(self, location, id, type, data):
         self.components_seen.add(id)
