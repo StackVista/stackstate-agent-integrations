@@ -25,10 +25,10 @@ class TestFirehose(BaseApiTest):
             firehose_arn_prefix + "firehose_1",
             "aws.firehose",
             checks={
-                "Name": "firehose-1",
-                "DeliveryStreamDescription.DeliveryStreamARN": firehose_arn_prefix + "firehose_1",
+                "Name": "firehose_1",
+                "DeliveryStreamARN": firehose_arn_prefix + "firehose_1",
                 "Tags.SomeKey": "SomeValue",
-                "CW.Dimensions": [{"Key": "DeliveryStreamName", "Value": "dnv-sam-seed-button-clicked-firehose"}],
+                "CW.Dimensions": [{"Key": "DeliveryStreamName", "Value": "firehose_1"}],
             },
         )
         top.assert_component(
@@ -36,8 +36,8 @@ class TestFirehose(BaseApiTest):
             firehose_arn_prefix + "firehose_2",
             "aws.firehose",
             checks={
-                "Name": "firehose-2",
-                "DeliveryStreamDescription.DeliveryStreamARN": firehose_arn_prefix + "firehose_2",
+                "Name": "firehose_2",
+                "DeliveryStreamARN": firehose_arn_prefix + "firehose_2",
                 "CW.Dimensions": [{"Key": "DeliveryStreamName", "Value": "firehose_2"}],
             },
         )
@@ -74,8 +74,8 @@ class TestFirehose(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            "dnv-sam-seed-button-clicked-firehose",
-            topology[0]["components"][0]["data"]["DeliveryStreamDescription"]["DeliveryStreamName"],
+            "firehose_1",
+            topology[0]["components"][0]["data"]["DeliveryStreamName"],
         )
 
     @set_cloudtrail_event("delete_stream")
