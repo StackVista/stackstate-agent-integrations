@@ -1,4 +1,4 @@
-from .utils import client_array_operation, make_valid_data, get_partition_name, set_required_access_v2
+from .utils import client_array_operation, make_valid_data, get_partition_name, set_required_access_v2, with_dimensions
 from .registry import RegisteredResourceCollector
 from collections import namedtuple
 import json
@@ -123,6 +123,11 @@ class StepFunctionCollector(RegisteredResourceCollector):
         activity = Activity(data.activity, strict=False)
         activity.validate()
         output["tags"] = data.tags
+        output.update(
+            with_dimensions(
+                [{"key": "ActivityArn", "value": activity.activityArn}]
+            )
+        )
         self.emit_component(activity.activityArn, "aws.stepfunction.activity", output)
 
     def process_one_state_machine(self, arn):
@@ -150,6 +155,11 @@ class StepFunctionCollector(RegisteredResourceCollector):
         if "definition" in output:
             output.pop("definition")
         output["tags"] = data.tags
+        output.update(
+            with_dimensions(
+                [{"key": "StateMachineArn", "value": state_machine.stateMachineArn}]
+            )
+        )
         self.emit_component(state_machine.stateMachineArn, self.COMPONENT_TYPE, output)
         if state_machine.roleArn:
             self.emit_relation(state_machine.stateMachineArn, state_machine.roleArn, "uses service", {})
