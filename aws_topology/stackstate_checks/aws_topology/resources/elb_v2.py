@@ -102,7 +102,7 @@ class ElbV2Collector(RegisteredResourceCollector):
         to_process = []
         for load_balancer in load_balancers or []:
             # Batch up load_balancers into groups, then process them in pages of 20
-            if len(to_process) >= self.MAX_TAG_CALLS:
+            if len(to_process) == self.MAX_TAG_CALLS:
                 self.process_load_balancer_page(to_process)
                 to_process = []
             else:
@@ -175,7 +175,7 @@ class ElbV2Collector(RegisteredResourceCollector):
         target_groups = []
         for target_group in paginator:
             # Batch up target_groups into groups, then process them in pages of 20
-            if len(target_groups) >= self.MAX_TAG_CALLS:
+            if len(target_groups) == self.MAX_TAG_CALLS:
                 self.process_target_group_page(target_groups, load_balancers)
                 target_groups = []
             else:
