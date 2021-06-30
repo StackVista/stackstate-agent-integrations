@@ -102,7 +102,7 @@ class CloudformationCollector(RegisteredResourceCollector):
         return self.client.describe_stack_resources(StackName=stack_id).get("StackResources", [])
 
     def collect_stack(self, stack_data):
-        resources = self.collect_stack_resources(stack_data.get("StackId", ""))
+        resources = self.collect_stack_resources(stack_data.get("StackId", "")) or []
         return StackData(stack=stack_data, resources=resources)
 
     def collect_stacks(self):
