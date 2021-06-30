@@ -25,6 +25,7 @@ class TestFirehose(BaseApiTest):
             firehose_arn_prefix + "firehose_1",
             "aws.firehose",
             checks={
+                "Name": "firehose-1",
                 "DeliveryStreamDescription.DeliveryStreamARN": firehose_arn_prefix + "firehose_1",
                 "Tags.SomeKey": "SomeValue",
                 "CW.Dimensions": [{"Key": "DeliveryStreamName", "Value": "dnv-sam-seed-button-clicked-firehose"}],
@@ -35,6 +36,7 @@ class TestFirehose(BaseApiTest):
             firehose_arn_prefix + "firehose_2",
             "aws.firehose",
             checks={
+                "Name": "firehose-2",
                 "DeliveryStreamDescription.DeliveryStreamARN": firehose_arn_prefix + "firehose_2",
                 "CW.Dimensions": [{"Key": "DeliveryStreamName", "Value": "firehose_2"}],
             },

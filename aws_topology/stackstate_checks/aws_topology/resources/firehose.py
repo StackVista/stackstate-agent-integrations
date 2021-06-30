@@ -39,16 +39,12 @@ class DeliveryStreamDestinations(Model):
     S3DestinationDescription = ModelType(DeliveryStreamS3Destination, default=[])
 
 
-class DeliveryStreamDescription(Model):
-    DeliveryStreamARN = StringType(required=True)
-    DeliveryStreamType = StringType(required=True)
+class DeliveryStream(Model):
     DeliveryStreamName = StringType(required=True)
+    DeliveryStreamARN = StringType()
+    DeliveryStreamType = StringType()
     Source = ModelType(DeliveryStreamSource)
     Destinations = ListType(ModelType(DeliveryStreamDestinations, default=[]))
-
-
-class DeliveryStream(Model):
-    DeliveryStreamDescription = ModelType(DeliveryStreamDescription, required=True)
 
 
 class FirehoseCollector(RegisteredResourceCollector):
@@ -63,7 +59,9 @@ class FirehoseCollector(RegisteredResourceCollector):
 
     @set_required_access_v2("firehose:DescribeDeliveryStream")
     def collect_stream_description(self, stream_name):
-        return self.client.describe_delivery_stream(DeliveryStreamName=stream_name)
+        return self.client.describe_delivery_stream(DeliveryStreamName=stream_name).get(
+            "DeliveryStreamDescription", {"DeliveryStreamName": stream_name}
+        )
 
     def collect_stream(self, stream_name):
         tags = self.collect_tags(stream_name)
@@ -94,19 +92,25 @@ class FirehoseCollector(RegisteredResourceCollector):
         output = make_valid_data(data.stream)
         stream = DeliveryStream(data.stream, strict=False)
         stream.validate()
+        output["Name"] = stream.DeliveryStreamName
         output["Tags"] = data.tags
-        description = stream.DeliveryStreamDescription
-        delivery_stream_arn = description.DeliveryStreamARN
-        output.update(with_dimensions([{"key": "DeliveryStreamName", "value": description.DeliveryStreamName}]))
+        delivery_stream_arn = (
+            stream.DeliveryStreamARN
+            if stream.DeliveryStreamARN
+            else self.agent.create_arn(
+                "AWS::KinesisFirehose::DeliveryStream", self.location_info, stream.DeliveryStreamName
+            )
+        )
+        output.update(with_dimensions([{"key": "DeliveryStreamName", "value": stream.DeliveryStreamName}]))
         self.emit_component(delivery_stream_arn, self.COMPONENT_TYPE, output)
 
-        if description.DeliveryStreamType == "KinesisStreamAsSource":
-            source = description.Source
+        if stream.DeliveryStreamType == "KinesisStreamAsSource":
+            source = stream.Source
             if source:  # pragma: no cover
                 kinesis_stream_arn = source.KinesisStreamSourceDescription.KinesisStreamARN
                 self.emit_relation(kinesis_stream_arn, delivery_stream_arn, RELATION_TYPE.USES_SERVICE, {})
 
-        for destination in description.Destinations:
+        for destination in stream.Destinations:
             if destination.S3DestinationDescription:  # pragma: no cover
                 self.emit_relation(
                     delivery_stream_arn, destination.S3DestinationDescription.BucketARN, "uses service", {}
