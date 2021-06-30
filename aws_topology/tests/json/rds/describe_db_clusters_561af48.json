@@ -52,7 +52,13 @@
                 "eu-west-1c",
                 "eu-west-1a"
             ],
-            "Port": 3306
+            "Port": 3306,
+            "TagList": [
+                {
+                    "Key": "testing",
+                    "Value": "test"
+                }
+            ]
         }
     ],
     "ResponseMetadata": {
