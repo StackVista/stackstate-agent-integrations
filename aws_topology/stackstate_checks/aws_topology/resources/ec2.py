@@ -329,6 +329,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         vpn_gateway = VpnGateway(data, strict=False)
         vpn_gateway.validate()
         output = make_valid_data(data)
+        output["Name"] = vpn_gateway.VpnGatewayId
         self.emit_component(vpn_gateway.VpnGatewayId, "aws.vpngateway", output)
         for vpn_attachment in vpn_gateway.VpcAttachments:
             if vpn_attachment.State == "attached":
