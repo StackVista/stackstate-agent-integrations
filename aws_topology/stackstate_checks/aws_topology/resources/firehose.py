@@ -41,7 +41,7 @@ class DeliveryStreamDestinations(Model):
 
 class DeliveryStream(Model):
     DeliveryStreamName = StringType(required=True)
-    DeliveryStreamARN = StringType()
+    DeliveryStreamARN = StringType(required=True)
     DeliveryStreamType = StringType()
     Source = ModelType(DeliveryStreamSource)
     Destinations = ListType(ModelType(DeliveryStreamDestinations, default=[]))
@@ -55,17 +55,23 @@ class FirehoseCollector(RegisteredResourceCollector):
 
     @set_required_access_v2("firehose:ListTagsForDeliveryStream")
     def collect_tags(self, stream_name):
-        return self.client.list_tags_for_delivery_stream(DeliveryStreamName=stream_name).get("Tags") or []
+        return self.client.list_tags_for_delivery_stream(DeliveryStreamName=stream_name).get("Tags", [])
 
     @set_required_access_v2("firehose:DescribeDeliveryStream")
     def collect_stream_description(self, stream_name):
-        return self.client.describe_delivery_stream(DeliveryStreamName=stream_name).get(
-            "DeliveryStreamDescription", {"DeliveryStreamName": stream_name}
-        )
+        return self.client.describe_delivery_stream(DeliveryStreamName=stream_name).get("DeliveryStreamDescription", {})
+
+    def construct_stream_description(self, stream_name):
+        return {
+            "DeliveryStreamName": stream_name,
+            "DeliveryStreamARN": self.agent.create_arn(
+                "AWS::KinesisFirehose::DeliveryStream", self.location_info, resource_id=stream_name
+            ),
+        }
 
     def collect_stream(self, stream_name):
-        tags = self.collect_tags(stream_name)
-        data = self.collect_stream_description(stream_name)
+        data = self.collect_stream_description(stream_name) or self.construct_stream_description(stream_name)
+        tags = self.collect_tags(stream_name) or []
         return DeliveryStreamData(stream=data, tags=tags)
 
     def collect_streams(self):
@@ -76,13 +82,13 @@ class FirehoseCollector(RegisteredResourceCollector):
             yield stream
 
     @set_required_access_v2("firehose:ListDeliveryStreams")
+    def process_streams(self):
+        for stream_data in self.collect_streams():
+            self.process_delivery_stream(stream_data)
+
     def process_all(self, filter=None):
         if not filter or "streams" in filter:
-            for stream_data in self.collect_streams():
-                try:
-                    self.process_delivery_stream(stream_data)
-                except Exception:
-                    pass
+            self.process_streams()
 
     def process_one_delivery_stream(self, stream_name):
         self.process_delivery_stream(self.collect_stream(stream_name))
@@ -94,13 +100,7 @@ class FirehoseCollector(RegisteredResourceCollector):
         stream.validate()
         output["Name"] = stream.DeliveryStreamName
         output["Tags"] = data.tags
-        delivery_stream_arn = (
-            stream.DeliveryStreamARN
-            if stream.DeliveryStreamARN
-            else self.agent.create_arn(
-                "AWS::KinesisFirehose::DeliveryStream", self.location_info, stream.DeliveryStreamName
-            )
-        )
+        delivery_stream_arn = stream.DeliveryStreamARN
         output.update(with_dimensions([{"key": "DeliveryStreamName", "value": stream.DeliveryStreamName}]))
         self.emit_component(delivery_stream_arn, self.COMPONENT_TYPE, output)
 
