@@ -2,7 +2,7 @@
   "LoadBalancers": [{
     "IpAddressType": "ipv4",
     "VpcId": "vpc-6b25d10e",
-    "LoadBalancerArn": "arn:aws:elasticloadbalancing:eu-west-1:123456789012:loadbalancer/app/elvin-s-Alb-14EDDDCB8Z0I7/0865db53d9ea539c",
+    "LoadBalancerArn": "arn:aws:elasticloadbalancing:eu-west-1:731070500579:loadbalancer/app/myfirstloadbalancer/90dd512583d2d7e9",
     "State": {
       "Code": "active"
     },
@@ -27,7 +27,7 @@
   "ResponseMetadata": {
     "Parameters": {
       "LoadBalancerArns": [
-        "arn:aws:elasticloadbalancing:eu-west-1:123456789012:loadbalancer/app/elvin-s-Alb-14EDDDCB8Z0I7/0865db53d9ea539c"
+        "arn:aws:elasticloadbalancing:eu-west-1:731070500579:loadbalancer/app/myfirstloadbalancer/90dd512583d2d7e9"
       ]      
     },
     "OperationName": "DescribeLoadBalancers",

@@ -77,7 +77,7 @@ class ELBClassicCollector(RegisteredResourceCollector):
         elbs = []
         for elb in paginator:
             # Batch up elbs into groups, then process them in pages of 20
-            if len(elbs) >= self.MAX_TAG_CALLS:
+            if len(elbs) == self.MAX_TAG_CALLS:
                 self.process_elb_page(elbs)
                 elbs = []
             else:

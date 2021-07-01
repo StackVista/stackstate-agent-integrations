@@ -30,24 +30,23 @@ class RedshiftCollector(RegisteredResourceCollector):
     CLOUDFORMATION_TYPE = "AWS::Redshift::Cluster"
 
     @set_required_access_v2("redshift:DescribeTags")
-    def collect_tags(self, cluster_arn):
+    def collect_tags(self):
         return [
-            tag.get("Tag", {})
-            for tag in client_array_operation(
-                self.client, "describe_tags", "TaggedResources", ResourceName=cluster_arn, ResourceType="Cluster"
-            )
+            tag
+            for tag in client_array_operation(self.client, "describe_tags", "TaggedResources", ResourceType="Cluster")
         ]
 
-    def collect_cluster(self, cluster_data):
+    def collect_cluster(self, cluster_data, tags):
         cluster_arn = self.agent.create_arn(
             "AWS::Redshift::Cluster", self.location_info, cluster_data.get("ClusterIdentifier", "UNKNOWN")
         )
-        tags = self.collect_tags(cluster_arn) or []
-        return ClusterData(cluster=cluster_data, tags=tags, arn=cluster_arn)
+        cluster_tags = [tag_item.get("Tag") for tag_item in tags if tag_item.get("ResourceName") == cluster_arn]
+        return ClusterData(cluster=cluster_data, tags=cluster_tags, arn=cluster_arn)
 
     def collect_clusters(self, **kwargs):
+        tags = self.collect_tags() or []
         for cluster in [
-            self.collect_cluster(cluster_data)
+            self.collect_cluster(cluster_data, tags)
             for cluster_data in client_array_operation(self.client, "describe_clusters", "Clusters", **kwargs)
         ]:
             yield cluster
