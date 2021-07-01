@@ -169,7 +169,7 @@ class TestEventBridge(unittest.TestCase):
                     if component["type"] == "aws.ec2.networkinterface":
                         if component["data"]["InterfaceType"] == "lambda":
                             for lmb in components:
-                                if lmb["type"] == "aws.lambda":
+                                if lmb["type"] == "aws.lambda.function":
                                     if lmb["data"].get("VpcConfig"):
                                         if lmb["data"]["VpcConfig"].get("VpcId"):
                                             if lmb["data"]["VpcConfig"].get("VpcId") == component["data"]["VpcId"]:

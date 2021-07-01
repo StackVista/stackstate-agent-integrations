@@ -34,7 +34,7 @@ class TestEC2(BaseApiTest):
         top.assert_component(
             components,
             test_instance_id,
-            "aws.ec2",
+            "aws.ec2.instance",
             checks={
                 "InstanceId": test_instance_id,
                 "InstanceType": test_instance_type,
@@ -63,7 +63,7 @@ class TestEC2(BaseApiTest):
         top.assert_component(
             components,
             "i-1234567890123456",
-            "aws.ec2",
+            "aws.ec2.instance",
             checks={"InstanceId": "i-1234567890123456", "InstanceType": "m6gd.medium", "IsNitro": True},
         )
         top.assert_relation(relations, "i-1234567890123456", "vpc-6b25d10e", "uses service")
@@ -256,7 +256,7 @@ class TestEC2(BaseApiTest):
         top.assert_component(
             components,
             "i-0f70dba7ea83d6dec",
-            "aws.ec2",
+            "aws.ec2.instance",
             checks={"InstanceId": "i-0f70dba7ea83d6dec", "LaunchTime": "2018-04-16T08:01:08+00:00"},
         )
 
@@ -271,7 +271,7 @@ class TestEC2(BaseApiTest):
         top.assert_component(
             components,
             "i-1234567890123456",
-            "aws.ec2",
+            "aws.ec2.instance",
             checks={"InstanceId": "i-1234567890123456", "InstanceType": "m6gd.medium"},
         )
 
@@ -286,7 +286,7 @@ class TestEC2(BaseApiTest):
         top.assert_component(
             components,
             "i-1234567890123456",
-            "aws.ec2",
+            "aws.ec2.instance",
             checks={
                 "InstanceId": "i-1234567890123456",
                 "BlockDeviceMappings": [
@@ -314,7 +314,7 @@ class TestEC2(BaseApiTest):
         top.assert_component(
             components,
             "i-1234567890123456",
-            "aws.ec2",
+            "aws.ec2.instance",
             checks={
                 "InstanceId": "i-1234567890123456",
                 "BlockDeviceMappings": [
@@ -342,7 +342,7 @@ class TestEC2(BaseApiTest):
         top.assert_component(
             components,
             "i-1234567890123456",
-            "aws.ec2",
+            "aws.ec2.instance",
             checks={"InstanceId": "i-1234567890123456", "State": {"Code": 16, "Name": "running"}},
         )
 
@@ -357,7 +357,7 @@ class TestEC2(BaseApiTest):
         top.assert_component(
             components,
             "i-0f70dba7ea83d6dec",
-            "aws.ec2",
+            "aws.ec2.instance",
             checks={"InstanceId": "i-0f70dba7ea83d6dec", "State": {"Code": 80, "Name": "stopped"}},
         )
 
@@ -372,7 +372,7 @@ class TestEC2(BaseApiTest):
         top.assert_component(
             components,
             "i-0f70dba7ea83d6dec",
-            "aws.ec2",
+            "aws.ec2.instance",
             checks={
                 "InstanceId": "i-0f70dba7ea83d6dec",
                 "StateTransitionReason": "User initiated (2018-04-16 19:07:25 GMT)",
@@ -407,7 +407,7 @@ class TestEC2(BaseApiTest):
             top.assert_component(
                 components,
                 "i-1234567890123456",
-                "aws.ec2",
+                "aws.ec2.instance",
                 checks={"InstanceId": "i-1234567890123456"},
             )
 
@@ -438,7 +438,7 @@ class TestEC2(BaseApiTest):
             top.assert_component(
                 components,
                 "i-1234567890123456",
-                "aws.ec2",
+                "aws.ec2.instance",
                 checks={"InstanceId": "i-1234567890123456"},
             )
 

@@ -98,7 +98,7 @@ class FirehoseCollector(RegisteredResourceCollector):
         description = stream.DeliveryStreamDescription
         delivery_stream_arn = description.DeliveryStreamARN
         output.update(with_dimensions([{"key": "DeliveryStreamName", "value": description.DeliveryStreamName}]))
-        self.emit_component(delivery_stream_arn, self.COMPONENT_TYPE, output)
+        self.emit_component(delivery_stream_arn, ".".join([self.COMPONENT_TYPE, "delivery-stream"]), output)
 
         if description.DeliveryStreamType == "KinesisStreamAsSource":
             source = description.Source

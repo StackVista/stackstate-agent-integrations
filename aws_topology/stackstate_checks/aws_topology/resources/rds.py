@@ -59,7 +59,7 @@ class Instance(Model):
 class RdsCollector(RegisteredResourceCollector):
     API = "rds"
     API_TYPE = "regional"
-    COMPONENT_TYPE = "aws.rds_cluster"
+    COMPONENT_TYPE = "aws.rds"
 
     def collect_clusters(self, **kwargs):
         for cluster in client_array_operation(self.client, "describe_db_clusters", "DBClusters", **kwargs):
@@ -106,7 +106,7 @@ class RdsCollector(RegisteredResourceCollector):
         output["Tags"] = instance.TagList
         output["URN"] = ["urn:endpoint:/" + instance.Endpoint.Address]
         output.update(with_dimensions([{"key": "DBInstanceIdentifier", "value": instance_id}]))
-        self.emit_component(instance_arn, "aws.rds_instance", output)
+        self.emit_component(instance_arn, ".".join([self.COMPONENT_TYPE, "instance"]), output)
         self.emit_relation(instance_arn, instance.DBSubnetGroup.VpcId, "uses service", {})
         # TODO agent.create_security_group_relations (but needs change?)
         for security_group in instance.VpcSecurityGroups:
@@ -122,7 +122,7 @@ class RdsCollector(RegisteredResourceCollector):
         output["Name"] = cluster_arn
         output["Tags"] = cluster.TagList
         output.update(with_dimensions([{"key": "DBClusterIdentifier", "value": cluster_id}]))
-        self.emit_component(cluster_arn, self.COMPONENT_TYPE, output)
+        self.emit_component(cluster_arn, ".".join([self.COMPONENT_TYPE, "cluster"]), output)
         for cluster_member in output.get("DBClusterMembers", []):
             db_identifier = cluster_member.get("DBInstanceIdentifier", "UNKNOWN")
             arn = self.agent.create_arn("AWS::RDS::DBInstance", self.location_info, db_identifier)

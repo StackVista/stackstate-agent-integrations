@@ -22,7 +22,7 @@ class TestRds(BaseApiTest):
         top.assert_component(
             components,
             "arn:aws:rds:eu-west-1:731070500579:cluster:productiondatabasecluster",
-            "aws.rds_cluster",
+            "aws.rds.cluster",
             checks={
                 "DBClusterArn": "arn:aws:rds:eu-west-1:731070500579:cluster:productiondatabasecluster",
                 "Name": "arn:aws:rds:eu-west-1:731070500579:cluster:productiondatabasecluster",
@@ -34,13 +34,13 @@ class TestRds(BaseApiTest):
         top.assert_component(
             components,
             "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase",
-            "aws.rds_instance",
+            "aws.rds.instance",
         )
         # instance 2
         top.assert_component(
             components,
             "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase-eu-west-1c",
-            "aws.rds_instance",
+            "aws.rds.instance",
             checks={
                 "DBInstanceIdentifier": "productiondatabase-eu-west-1c",
                 "Name": "productiondatabase-eu-west-1c",

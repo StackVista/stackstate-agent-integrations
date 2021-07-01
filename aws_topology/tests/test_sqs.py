@@ -22,7 +22,7 @@ class TestSqs(BaseApiTest):
         component = top.assert_component(
             components,
             "arn:aws:sqs:eu-west-1:731070500579:STS_stackpack_test",
-            "aws.sqs",
+            "aws.sqs.queue",
             checks={
                 "Tags.a": "b",
                 "Name": "STS_stackpack_test",
