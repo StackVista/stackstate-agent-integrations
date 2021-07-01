@@ -72,7 +72,7 @@ class TestAllApis(BaseApiTest):
         components = topology[0]["components"]
         relations = topology[0]["relations"]
 
-        stacks = list(filter(lambda x: x["type"] == "aws.cloudformation", components))
+        stacks = list(filter(lambda x: x["type"] == "aws.cloudformation.stack", components))
         self.assertEqual(len(stacks), 2)
 
         # total relations should be 14 + 1

@@ -33,7 +33,7 @@ class TestAutoScaling(BaseApiTest):
         comp = top.assert_component(
             components,
             "awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM",
-            "aws.autoscaling",
+            "aws.autoscaling.group",
             checks={
                 "AutoScalingGroupARN": group_arn,
                 "Name": "awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM",

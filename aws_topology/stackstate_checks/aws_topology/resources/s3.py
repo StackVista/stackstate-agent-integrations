@@ -24,7 +24,7 @@ class BucketNotification(Model):
 class S3Collector(RegisteredResourceCollector):
     API = "s3"
     API_TYPE = "regional"
-    COMPONENT_TYPE = "aws.s3_bucket"
+    COMPONENT_TYPE = "aws.s3"
     CLOUDFORMATION_TYPE = "AWS::S3::Bucket"
 
     @set_required_access_v2("s3:ListBucket")
@@ -87,7 +87,7 @@ class S3Collector(RegisteredResourceCollector):
             output["BucketLocation"] = data.location
         output["Tags"] = data.tags
 
-        self.emit_component(bucket_arn, self.COMPONENT_TYPE, output)
+        self.emit_component(bucket_arn, ".".join([self.COMPONENT_TYPE, "bucket"]), output)
         for bucket_notification in config:
             bucket_notification.validate()
             function_arn = bucket_notification.LambdaFunctionArn

@@ -21,7 +21,7 @@ class TestElasticLoadbalancingV2(BaseApiTest):
         top.assert_component(
             components,
             "arn:aws:elasticloadbalancing:eu-west-1:123456789012:loadbalancer/classic-loadbalancer-1",
-            "aws.elb_classic",
+            "aws.elb-classic.load-balancer",
             {
                 "LoadBalancerName": "classic-loadbalancer-1",
                 "Tags.stackstate-environment": "Production",

@@ -60,10 +60,10 @@ ClusterData = namedtuple("ClusterData", ["cluster", "container_instances", "task
 class EcsCollector(RegisteredResourceCollector):
     API = "ecs"
     API_TYPE = "regional"
-    COMPONENT_TYPE = "aws.ecs.cluster"
+    COMPONENT_TYPE = "aws.ecs"
     MAX_PAGE_SIZE = 100  # Number of items that can be fetched in one describe_* page call
 
-    @set_required_access_v2("")
+    @set_required_access_v2("ecs:DescribeServices")
     def collect_service_page(self, cluster_arn, service_arns):
         max_calls = self.MAX_PAGE_SIZE
         return self.client.describe_services(
@@ -90,7 +90,7 @@ class EcsCollector(RegisteredResourceCollector):
             ]
         return services
 
-    @set_required_access_v2("ecs:DescibeTasks")
+    @set_required_access_v2("ecs:DescribeTasks")
     def collect_task_page(self, cluster_arn, task_arns):
         max_calls = self.MAX_PAGE_SIZE
         return self.client.describe_tasks(cluster=cluster_arn, tasks=task_arns[:max_calls]).get("tasks", [])
@@ -202,7 +202,7 @@ class EcsCollector(RegisteredResourceCollector):
             self.emit_relation(cluster.clusterArn, task.taskArn, "has_cluster_node", {})
 
         output["URN"] = identifiers
-        self.emit_component(task.taskArn, "aws.ecs.task", output)
+        self.emit_component(task.taskArn, ".".join([self.COMPONENT_TYPE, "task"]), output)
         return {task.group: TaskMapItem({"taskArn": task.taskArn, "names": container_names})}
 
     @transformation()
@@ -257,7 +257,7 @@ class EcsCollector(RegisteredResourceCollector):
         cluster_name = cluster.clusterName or cluster_arn.rsplit("/", 1)[1]
         output["Name"] = cluster_name
         output.update(with_dimensions([{"key": "ClusterName", "value": cluster_name}]))
-        self.emit_component(cluster_arn, self.COMPONENT_TYPE, output)
+        self.emit_component(cluster_arn, ".".join([self.COMPONENT_TYPE, "cluster"]), output)
 
         for container_instance in data.container_instances:
             self.process_container_instance(cluster, container_instance)

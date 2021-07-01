@@ -23,7 +23,7 @@ class TestFirehose(BaseApiTest):
         top.assert_component(
             components,
             firehose_arn_prefix + "firehose_1",
-            "aws.firehose",
+            "aws.firehose.delivery-stream",
             checks={
                 "DeliveryStreamDescription.DeliveryStreamARN": firehose_arn_prefix + "firehose_1",
                 "Tags.SomeKey": "SomeValue",
@@ -33,7 +33,7 @@ class TestFirehose(BaseApiTest):
         top.assert_component(
             components,
             firehose_arn_prefix + "firehose_2",
-            "aws.firehose",
+            "aws.firehose.delivery-stream",
             checks={
                 "DeliveryStreamDescription.DeliveryStreamARN": firehose_arn_prefix + "firehose_2",
                 "CW.Dimensions": [{"Key": "DeliveryStreamName", "Value": "firehose_2"}],
