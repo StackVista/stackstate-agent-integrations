@@ -48,6 +48,8 @@ This one is a little more complex to deploy:
 4. Check the `ACCOUNT_ID` variable is set correct in `notification-send/build.sh` and then run this script with access to the target AWS account
 5. Uncomment the rest of the Cfn template, and deploy it
 
+The sqs-poll.py file contains the script that is included inline in the helloworld-serverless template. This has been included as it's easier to modify the original.
+
 This is necessary because the lambda function that reads from the RDS database needs a driver that we can't include in the template. TODO: make this easier to automatically deploy
 
 ## Deleting templates
