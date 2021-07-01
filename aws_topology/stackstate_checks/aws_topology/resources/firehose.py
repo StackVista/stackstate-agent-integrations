@@ -12,10 +12,6 @@ from schematics import Model
 from schematics.types import StringType, ModelType, ListType
 
 
-class RELATION_TYPE:
-    USES_SERVICE = "uses service"
-
-
 def create_arn(region=None, account_id=None, resource_id=None, **kwargs):
     return arn(resource="firehose", region=region, account_id=account_id, resource_id="deliverystream/" + resource_id)
 
@@ -24,7 +20,7 @@ DeliveryStreamData = namedtuple("DeliveryStreamData", ["stream", "tags"])
 
 
 class KinesisStreamSourceDescription(Model):
-    KinesisStreamARN = StringType()
+    KinesisStreamARN = StringType(required=True)
 
 
 class DeliveryStreamSource(Model):
@@ -104,11 +100,9 @@ class FirehoseCollector(RegisteredResourceCollector):
         output.update(with_dimensions([{"key": "DeliveryStreamName", "value": stream.DeliveryStreamName}]))
         self.emit_component(delivery_stream_arn, ".".join([self.COMPONENT_TYPE, "delivery-stream"]), output)
 
-        if stream.DeliveryStreamType == "KinesisStreamAsSource":
-            source = stream.Source
-            if source:  # pragma: no cover
-                kinesis_stream_arn = source.KinesisStreamSourceDescription.KinesisStreamARN
-                self.emit_relation(kinesis_stream_arn, delivery_stream_arn, RELATION_TYPE.USES_SERVICE, {})
+        if stream.DeliveryStreamType == "KinesisStreamAsSource" and stream.Source:
+            kinesis_stream_arn = stream.Source.KinesisStreamSourceDescription.KinesisStreamARN
+            self.emit_relation(kinesis_stream_arn, delivery_stream_arn, "uses service", {})
 
         for destination in stream.Destinations:
             if destination.S3DestinationDescription:  # pragma: no cover
