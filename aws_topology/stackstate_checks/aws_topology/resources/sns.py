@@ -91,7 +91,7 @@ class SnsCollector(RegisteredResourceCollector):
         output["Name"] = topic_name
         output["Tags"] = data.tags
         output.update(with_dimensions([{"key": "TopicName", "value": topic_name}]))
-        self.emit_component(topic_arn, self.COMPONENT_TYPE, output)
+        self.emit_component(topic_arn, ".".join([self.COMPONENT_TYPE, "topic"]), output)
 
         for subscription_by_topic in data.subscriptions:
             subscription = Subscription(subscription_by_topic, strict=False)

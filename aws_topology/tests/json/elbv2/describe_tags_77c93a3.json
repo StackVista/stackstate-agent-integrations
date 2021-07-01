@@ -1,0 +1,28 @@
+{
+  "TagDescriptions": [
+    {
+      "ResourceArn": "arn:aws:elasticloadbalancing:eu-west-1:731070500579:targetgroup/myfirsttargetgroup/28ddec997ec55d21",
+      "Tags": [
+        {
+          "Key": "stackstate-domain",
+          "Value": "AWS"
+        },
+        {
+          "Key": "stackstate-environment",
+          "Value": "Production"
+        }
+      ]
+    }
+  ],
+  "ResponseMetadata": {
+    "Parameters": {
+      "ResourceArns": [
+        "arn:aws:elasticloadbalancing:eu-west-1:731070500579:targetgroup/myfirsttargetgroup/28ddec997ec55d21"
+      ]
+    },
+    "OperationName": "DescribeTags",
+    "Generater": "2021-06-25 11:45:36.609965",
+    "Region": "eu-west-1",
+    "Account": "731070500579"
+  }
+}

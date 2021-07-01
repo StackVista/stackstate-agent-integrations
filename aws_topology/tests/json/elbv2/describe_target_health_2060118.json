@@ -27,7 +27,7 @@
     ],
     "ResponseMetadata": {
       "Parameters": {
-        "TargetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:123456789012:targetgroup/elvin-AlbEc-PYQ8ZCZDRD5E/6e2b19e842496efb"
+        "TargetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:731070500579:targetgroup/myfirsttargetgroup/28ddec997ec55d21"
       },
       "OperationName": "DescribeTargetHealth",
       "Generater": "2021-05-29 07:45:36.760186",

@@ -86,7 +86,7 @@ class SqsCollector(RegisteredResourceCollector):
         output["URN"] = [data.queue_url]
         output["QueueUrl"] = data.queue_url
         output.update(with_dimensions([{"key": "QueueName", "value": queue_name}]))
-        self.emit_component(queue_arn, self.COMPONENT_TYPE, output)
+        self.emit_component(queue_arn, ".".join([self.COMPONENT_TYPE, "queue"]), output)
 
     EVENT_SOURCE = "sqs.amazonaws.com"
     CLOUDTRAIL_EVENTS = [

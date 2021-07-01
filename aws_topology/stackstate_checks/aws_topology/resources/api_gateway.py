@@ -69,7 +69,7 @@ ApiData = namedtuple("ApiData", ["api", "stages", "resources"])
 class ApigatewayStageCollector(RegisteredResourceCollector):
     API = "apigateway"
     API_TYPE = "regional"
-    COMPONENT_TYPE = "aws.apigateway.stage"
+    COMPONENT_TYPE = "aws.apigateway"
 
     @set_required_access_v2("apigateway:GET")
     def collect_methods(self, resource_data, rest_api_id):
@@ -166,7 +166,7 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
                 self.emit_component(service_integration_urn, "aws.apigateway.method.http.integration", {})
                 self.emit_relation(method_arn, service_integration_urn, "uses service", {})
 
-            self.emit_component(method_arn, "aws.apigateway.method", method_data)
+            self.emit_component(method_arn, ".".join([self.COMPONENT_TYPE, "method"]), method_data)
             self.emit_relation(resource_arn, method_arn, "uses service", {})
 
     @transformation()
@@ -192,7 +192,7 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
                     ]
                 )
             )
-            self.emit_component(resource_arn, "aws.apigateway.resource", resource_data)
+            self.emit_component(resource_arn, ".".join([self.COMPONENT_TYPE, "resource"]), resource_data)
             self.emit_relation(stage_arn, resource_arn, "uses service", {})
 
             for method_id in resource.resourceMethods.keys():
@@ -216,13 +216,17 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
             api.id,
             stage.stageName,
         )
-        stage_data = {
-            "DeploymentId": stage.deploymentId,
-            "StageName": stage.stageName,
-            "RestApiId": api.id,
-            "RestApiName": api.name,
-        }
-        stage_data.update(
+        output = make_valid_data(data)
+        output.update(
+            {
+                "Name": "{} - {}".format(api.name, stage.stageName),
+                "DeploymentId": stage.deploymentId,
+                "StageName": stage.stageName,
+                "RestApiId": api.id,
+                "RestApiName": api.name,
+            }
+        )
+        output.update(
             with_dimensions(
                 [
                     {"key": "Stage", "value": stage.stageName},
@@ -231,9 +235,9 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
             )
         )
         if stage.tags:
-            stage_data["tags"] = stage.tags
+            output["Tags"] = stage.tags
 
-        self.emit_component(stage_arn, self.COMPONENT_TYPE, stage_data)
+        self.emit_component(stage_arn, ".".join([self.COMPONENT_TYPE, "stage"]), output)
         self.emit_relation(rest_api_arn, stage_arn, "has resource", {})
 
         for resource in resources:
@@ -243,9 +247,12 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
     def process_rest_api(self, data):
         api = Api(data.api, strict=False)
         api.validate()
+        output = make_valid_data(data.api)
         rest_api_arn = self.agent.create_arn("AWS::ApiGateway::RestApi", self.location_info, api.id)
-        rest_api_data = {"RestApiId": api.id, "RestApiName": api.name}
-        self.emit_component(rest_api_arn, "aws.apigateway", rest_api_data)
+        output["Name"] = api.name
+        output["RestApiId"] = api.id
+        output["RestApiName"] = api.name
+        self.emit_component(rest_api_arn, ".".join([self.COMPONENT_TYPE, "rest-api"]), output)
 
         for stage in data.stages:
             self.process_stage(stage, api=api, resources=data.resources, rest_api_arn=rest_api_arn)

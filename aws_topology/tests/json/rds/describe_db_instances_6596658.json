@@ -88,7 +88,17 @@
         "StorageEncrypted": true,
         "DBInstanceClass": "db.r4.large",
         "DbInstancePort": 0,
-        "DBInstanceIdentifier": "productiondatabase"
+        "DBInstanceIdentifier": "productiondatabase",
+        "TagList": [
+          {
+              "Key": "stackstate-domain",
+              "Value": "AWS"
+          },
+          {
+              "Key": "stackstate-environment",
+              "Value": "Production"
+          }
+      ]
       }
     ],
     "ResponseMetadata": {

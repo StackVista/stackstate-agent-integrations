@@ -139,7 +139,7 @@ class TestApiGateway(BaseApiTest):
                 },
             )
 
-        top.assert_component(components, api_arn, "aws.apigateway")
+        top.assert_component(components, api_arn, "aws.apigateway.rest-api")
 
         # we have 2 stages
         relations = topology[0]["relations"]

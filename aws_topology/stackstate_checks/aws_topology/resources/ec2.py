@@ -213,7 +213,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         for security_group in instance.SecurityGroups:
             self.emit_relation(instance.InstanceId, security_group.GroupId, "uses service", {})
 
-        self.emit_component(instance.InstanceId, self.COMPONENT_TYPE, output)
+        self.emit_component(instance.InstanceId, ".".join([self.COMPONENT_TYPE, "instance"]), output)
 
     def collect_security_groups(self):
         for security_group in client_array_operation(self.client, "describe_security_groups", "SecurityGroups"):
