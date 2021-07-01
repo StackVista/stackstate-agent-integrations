@@ -32,7 +32,7 @@ class DeliveryStreamS3Destination(Model):
 
 
 class DeliveryStreamDestinations(Model):
-    S3DestinationDescription = ModelType(DeliveryStreamS3Destination, default=[])
+    S3DestinationDescription = ModelType(DeliveryStreamS3Destination)
 
 
 class DeliveryStream(Model):
