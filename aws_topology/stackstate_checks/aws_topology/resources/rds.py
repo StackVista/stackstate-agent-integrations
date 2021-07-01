@@ -7,7 +7,6 @@ from .utils import (
     transformation,
 )
 from .registry import RegisteredResourceCollector
-from collections import namedtuple
 from schematics import Model
 from schematics.types import StringType, ListType, ModelType
 
@@ -20,8 +19,9 @@ def create_db_arn(region=None, account_id=None, resource_id=None, **kwargs):
     return arn(resource="rds", region=region, account_id=account_id, resource_id="db:" + resource_id)
 
 
-ClusterData = namedtuple("ClusterData", ["cluster", "tags"])
-InstanceData = namedtuple("InstanceData", ["instance", "tags"])
+class TagList(Model):
+    Key = StringType(required=True)
+    Value = StringType(required=True)
 
 
 class ClusterMember(Model):
@@ -32,6 +32,7 @@ class Cluster(Model):
     DBClusterArn = StringType(required=True)
     DBClusterIdentifier = StringType(default="UNKNOWN")
     DBClusterMembers = ListType(ModelType(ClusterMember))
+    TagList = ListType(ModelType(TagList), default=[])
 
 
 class InstanceSubnetGroup(Model):
@@ -52,6 +53,7 @@ class Instance(Model):
     DBSubnetGroup = ModelType(InstanceSubnetGroup)
     Endpoint = ModelType(InstanceEndpoint, required=True)
     VpcSecurityGroups = ListType(ModelType(InstanceVpcSecurityGroup), default=[])
+    TagList = ListType(ModelType(TagList), default=[])
 
 
 class RdsCollector(RegisteredResourceCollector):
@@ -59,30 +61,12 @@ class RdsCollector(RegisteredResourceCollector):
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.rds"
 
-    @set_required_access_v2("rds:ListTagsForResource")
-    def collect_tags(self, resource_arn):
-        return self.client.list_tags_for_resource(ResourceName=resource_arn).get("TagList", "")
-
-    def collect_cluster(self, cluster_data):
-        tags = self.collect_tags(cluster_data.get("DBClusterArn", "")) or []
-        return ClusterData(cluster=cluster_data, tags=tags)
-
     def collect_clusters(self, **kwargs):
-        for cluster in [
-            self.collect_cluster(cluster_data)
-            for cluster_data in client_array_operation(self.client, "describe_db_clusters", "DBClusters", **kwargs)
-        ]:
+        for cluster in client_array_operation(self.client, "describe_db_clusters", "DBClusters", **kwargs):
             yield cluster
 
-    def collect_instance(self, instance_data):
-        tags = tags = self.collect_tags(instance_data.get("DBInstanceArn", "")) or []
-        return InstanceData(instance=instance_data, tags=tags)
-
     def collect_instances(self, **kwargs):
-        for instance in [
-            self.collect_instance(instance_data)
-            for instance_data in client_array_operation(self.client, "describe_db_instances", "DBInstances", **kwargs)
-        ]:
+        for instance in client_array_operation(self.client, "describe_db_instances", "DBInstances", **kwargs):
             yield instance
 
     @set_required_access_v2("rds:DescribeDBClusters")
@@ -113,13 +97,13 @@ class RdsCollector(RegisteredResourceCollector):
 
     @transformation()
     def process_instance(self, data):
-        instance = Instance(data.instance, strict=False)
+        instance = Instance(data, strict=False)
         instance.validate()
-        output = make_valid_data(data.instance)
+        output = make_valid_data(data)
         instance_arn = instance.DBInstanceArn
         instance_id = instance.DBInstanceIdentifier
         output["Name"] = instance_id
-        output["Tags"] = data.tags
+        output["Tags"] = instance.TagList
         output["URN"] = ["urn:endpoint:/" + instance.Endpoint.Address]
         output.update(with_dimensions([{"key": "DBInstanceIdentifier", "value": instance_id}]))
         self.emit_component(instance_arn, ".".join([self.COMPONENT_TYPE, "instance"]), output)
@@ -130,13 +114,13 @@ class RdsCollector(RegisteredResourceCollector):
 
     @transformation()
     def process_cluster(self, data):
-        cluster = Cluster(data.cluster, strict=False)
+        cluster = Cluster(data, strict=False)
         cluster.validate()
-        output = make_valid_data(data.cluster)
+        output = make_valid_data(data)
         cluster_id = cluster.DBClusterIdentifier
         cluster_arn = cluster.DBClusterArn
         output["Name"] = cluster_arn
-        output["Tags"] = data.tags
+        output["Tags"] = cluster.TagList
         output.update(with_dimensions([{"key": "DBClusterIdentifier", "value": cluster_id}]))
         self.emit_component(cluster_arn, ".".join([self.COMPONENT_TYPE, "cluster"]), output)
         for cluster_member in output.get("DBClusterMembers", []):

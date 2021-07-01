@@ -46,7 +46,12 @@
         }
       ],
       "ClusterRevisionNumber": "26742",
-      "Tags": [],
+      "Tags": [
+        {
+          "Key": "OrganizationalUnit",
+          "Value": "Testing"
+        }
+      ],
       "EnhancedVpcRouting": false,
       "IamRoles": [],
       "MaintenanceTrackName": "current",
