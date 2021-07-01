@@ -49,7 +49,6 @@ class ELBClassicCollector(RegisteredResourceCollector):
         max_items = self.MAX_TAG_CALLS  # Limit max items that we fetch to ensure call doesn't fail completely
         return self.client.describe_tags(LoadBalancerNames=elb_names[:max_items]).get("TagDescriptions", [])
 
-    @set_required_access_v2("elasticloadbalancing:DescribeLoadBalancers")
     def collect_elbs(self, **kwargs):
         for elb in client_array_operation(self.client, "describe_load_balancers", "LoadBalancerDescriptions", **kwargs):
             yield elb
@@ -69,6 +68,7 @@ class ELBClassicCollector(RegisteredResourceCollector):
                     tags = tag_result.get("Tags", [])
             self.process_elb(LoadBalancerData(elb=data, tags=tags, instance_health=instance_health))
 
+    @set_required_access_v2("elasticloadbalancing:DescribeLoadBalancers")
     def process_elbs(self, elb_names=[]):
         if elb_names:  # Only pass in LoadBalancerNames if a specific name is needed, otherwise ask for all
             paginator = self.collect_elbs(LoadBalancerNames=elb_names)
