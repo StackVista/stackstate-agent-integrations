@@ -56,23 +56,16 @@ class DynamodbTableCollector(RegisteredResourceCollector):
 
     def construct_table_description(self, table_name):
         return {
-            "Table": {
-                "TableName": table_name,
-                "TableArn": self.agent.create_arn("AWS::DynamoDB::Table", self.location_info, resource_id=table_name),
-            }
+            "TableName": table_name,
+            "TableArn": self.agent.create_arn("AWS::DynamoDB::Table", self.location_info, resource_id=table_name),
         }
 
     def collect_table(self, table_name):
         # If data collection fails, construct the ARN
         data = self.collect_table_description(table_name) or self.construct_table_description(table_name)
-        # If ARN creation fails, skip tag collection
-        if data.get("Table", {}).get("TableArn"):
-            tags = self.collect_tags(data["Table"]["TableArn"])
-        else:
-            tags = []
+        tags = self.collect_tags(data.get("TableArn")) or []
         return TableData(table=data, tags=tags)
 
-    @set_required_access_v2("dynamodb:ListTables")
     def collect_tables(self):
         for table in [
             self.collect_table(table_name)
@@ -80,13 +73,14 @@ class DynamodbTableCollector(RegisteredResourceCollector):
         ]:
             yield table
 
+    @set_required_access_v2("dynamodb:ListTables")
+    def process_tables(self):
+        for table_data in self.collect_tables():
+            self.process_table(table_data)
+
     def process_all(self, filter=None):
         if not filter or "dynamodb" in filter:
-            for table_data in self.collect_tables():
-                try:
-                    self.process_table(table_data)
-                except Exception:
-                    pass
+            self.process_tables()
 
     def process_one_table(self, table_name):
         self.process_table(self.collect_table(table_name))
