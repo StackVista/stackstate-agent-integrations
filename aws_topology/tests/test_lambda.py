@@ -64,6 +64,12 @@ class TestLambda(BaseApiTest):
 
         top.assert_relation(
             relations,
+            "arn:aws:lambda:eu-west-1:731070500579:function:sts-xray-test-02",
+            "arn:aws:rds:eu-west-1:731070500579:db:sn1e7g5j33vyr4o",
+            "uses service",
+        )
+        top.assert_relation(
+            relations,
             "arn:aws:lambda:eu-west-1:731070500579:function:com-stackstate-prod-PersonIdDynamoDBHandler-6KMIBXKKKCEZ",
             "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1/stream/2018-05-17T08:09:27.110",
             "uses service",
