@@ -213,15 +213,13 @@ def set_required_access_v2(value, ignore_codes=[]):
             except ClientError as e:
                 error = e.response.get("Error", {})
                 code = error.get("Code", "Unknown")
-                if code in ["AccessDenied", "AccessDeniedException", "UnauthorizedOperation"]:
+                if code in ["AccessDenied", "AccessDeniedException", "UnauthorizedOperation", "AuthorizationError"]:
                     iam_access = value if not isinstance(value, list) else ", ".join(value)
                     self.agent.warning("Role {} needs {}".format(self.agent.role_name, iam_access), **kwargs)
                 elif is_throttling_error(code):
                     self.agent.warning("throttling")
                 elif code in ignore_codes:
-                    self.agent.warning(
-                        'Error code {} returned but is explicitly ignored'.format(code)
-                    )
+                    self.agent.warning("Error code {} returned but is explicitly ignored".format(code))
                 else:
                     raise e
 
