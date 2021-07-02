@@ -74,11 +74,8 @@ class DynamodbTableCollector(RegisteredResourceCollector):
 
     @set_required_access_v2("dynamodb:ListTables")
     def collect_tables(self):
-        for table in [
-            self.collect_table(table_name)
-            for table_name in client_array_operation(self.client, "list_tables", "TableNames")
-        ]:
-            yield table
+        for table_name in client_array_operation(self.client, "list_tables", "TableNames"):
+            yield self.collect_table(table_name)
 
     def process_all(self, filter=None):
         if not filter or "dynamodb" in filter:

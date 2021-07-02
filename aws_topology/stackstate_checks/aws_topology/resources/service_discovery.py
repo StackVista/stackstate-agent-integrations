@@ -61,11 +61,8 @@ class ServiceDiscoveryCollector(RegisteredResourceCollector):
         return ServiceDiscoveryData(service=data, instances=instances, namespace=namespace)
 
     def collect_services(self):
-        for service in [
-            self.collect_service(service_data)
-            for service_data in client_array_operation(self.client, "list_services", "Services")
-        ]:
-            yield service
+        for service_data in client_array_operation(self.client, "list_services", "Services"):
+            yield self.collect_service(service_data)
 
     @set_required_access_v2("servicediscovery:ListServices")
     def process_services(self):

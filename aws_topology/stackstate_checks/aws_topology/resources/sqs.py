@@ -69,11 +69,8 @@ class SqsCollector(RegisteredResourceCollector):
         return QueueData(queue_url=queue_url, queue=data, tags=tags)
 
     def collect_queues(self):
-        for queue in [
-            self.collect_queue(queue_url)
-            for queue_url in client_array_operation(self.client, "list_queues", "QueueUrls")
-        ]:
-            yield queue
+        for queue_url in client_array_operation(self.client, "list_queues", "QueueUrls"):
+            yield self.collect_queue(queue_url)
 
     def process_all(self, filter=None):
         if not filter or "queues" in filter:

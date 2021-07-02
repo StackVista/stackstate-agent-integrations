@@ -102,15 +102,12 @@ class CloudformationCollector(RegisteredResourceCollector):
         return self.client.describe_stack_resources(StackName=stack_id).get("StackResources", [])
 
     def collect_stack(self, stack_data):
-        resources = self.collect_stack_resources(stack_data.get("StackId", "")) or []
+        resources = self.collect_stack_resources(stack_data.get("StackId")) or []
         return StackData(stack=stack_data, resources=resources)
 
     def collect_stacks(self):
-        for stack in [
-            self.collect_stack(stack_data)
-            for stack_data in client_array_operation(self.client, "describe_stacks", "Stacks")
-        ]:
-            yield stack
+        for stack_data in client_array_operation(self.client, "describe_stacks", "Stacks"):
+            yield self.collect_stack(stack_data)
 
     @set_required_access_v2("cloudformation:DescribeStacks")
     def process_stacks(self):

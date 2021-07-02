@@ -100,11 +100,8 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
         return ApiData(api=rest_api_data, stages=stages, resources=resources)
 
     def collect_rest_apis(self):
-        for rest_api in [
-            self.collect_rest_api(rest_api_data)
-            for rest_api_data in client_array_operation(self.client, "get_rest_apis", "items")
-        ]:
-            yield rest_api
+        for rest_api_data in client_array_operation(self.client, "get_rest_apis", "items"):
+            yield self.collect_rest_api(rest_api_data)
 
     @set_required_access_v2("apigateway:GET")
     def process_rest_apis(self):

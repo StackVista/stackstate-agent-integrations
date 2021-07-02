@@ -71,11 +71,8 @@ class LambdaCollector(RegisteredResourceCollector):
         return FunctionData(function=data, tags=tags, aliases=aliases)
 
     def collect_functions(self):
-        for function in [
-            self.collect_function(function_data)
-            for function_data in client_array_operation(self.client, "list_functions", "Functions")
-        ]:
-            yield function
+        for function_data in client_array_operation(self.client, "list_functions", "Functions"):
+            yield self.collect_function(function_data)
 
     def collect_event_sources(self):
         for event_source in client_array_operation(self.client, "list_event_source_mappings", "EventSourceMappings"):

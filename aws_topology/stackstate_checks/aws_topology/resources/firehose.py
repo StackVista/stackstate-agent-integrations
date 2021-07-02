@@ -71,11 +71,8 @@ class FirehoseCollector(RegisteredResourceCollector):
         return DeliveryStreamData(stream=data, tags=tags)
 
     def collect_streams(self):
-        for stream in [
-            self.collect_stream(stream_name)
-            for stream_name in client_array_operation(self.client, "list_delivery_streams", "DeliveryStreamNames")
-        ]:
-            yield stream
+        for stream_name in client_array_operation(self.client, "list_delivery_streams", "DeliveryStreamNames"):
+            yield self.collect_stream(stream_name)
 
     @set_required_access_v2("firehose:ListDeliveryStreams")
     def process_all(self, filter=None):
