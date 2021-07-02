@@ -13,17 +13,30 @@ from schematics.types import StringType
 import re
 
 
-def create_arn(region=None, account_id=None, resource_id=None, **kwargs):
-    match_string = r"^https:\/\/sqs.[a-z]{2}-([a-z]*-){1,2}\d\.amazonaws.com\/\d{12}\/.+$"
-    if re.match(match_string, resource_id):
+def create_arn(region=None, resource_id=None, **kwargs):
+    if re.match(r"^https:\/\/sqs.[a-z]{2}-([a-z]*-){1,2}\d\.amazonaws\.com\/\d{12}\/.+$", resource_id):
         return arn(
             resource="sqs",
             region=resource_id.split(".", 2)[1],
             account_id=resource_id.rsplit("/", 2)[-2],
             resource_id=resource_id.rsplit("/", 1)[-1],
         )
+    elif re.match(r"^https:\/\/queue\.amazonaws\.com\/\d{12}\/.+$", resource_id):
+        return arn(
+            resource="sqs",
+            region=region,
+            account_id=resource_id.rsplit("/", 2)[1],
+            resource_id=resource_id.rsplit("/", 1)[-1],
+        )
+    elif re.match(r"^https:\/\/[a-z]{2}-([a-z]*-){1,2}\d\.queue\.amazonaws\.com\/\d{12}\/.+$", resource_id):
+        return arn(
+            resource="sqs",
+            region=resource_id.split("/", 3)[2].split(".", 1)[0],
+            account_id=resource_id.rsplit("/", 2)[1],
+            resource_id=resource_id.rsplit("/", 1)[-1],
+        )
     else:
-        raise ValueError("SQS URL {} does not match expected regular expression {}".format(resource_id, match_string))
+        raise ValueError("SQS URL {} does not match expected regular expression".format(resource_id))
 
 
 QueueData = namedtuple("QueueData", ["queue_url", "queue", "tags"])
