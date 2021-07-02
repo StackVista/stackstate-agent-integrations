@@ -156,6 +156,8 @@ def wrapper(api, not_authorized, subdirectory, event_name=None, eventbridge_even
                 error_code = "AccessDeniedException"
             elif api == "ec2":
                 error_code = "UnauthorizedOperation"
+            elif api == "sns":
+                error_code = "AuthorizationError"
             else:
                 error_code = "AccessDenied"
             raise botocore.exceptions.ClientError({"Error": {"Code": error_code}}, operation_name)
