@@ -69,6 +69,7 @@ class TestVpnGateway(unittest.TestCase):
         self.check.run()
         test_topology = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(test_topology["components"]), 1)
+        self.assertEqual(test_topology["components"][0]["data"]["Name"], "vgw-b8c2fccc")
         self.assertEqual(test_topology["components"][0]["type"], "aws.vpngateway")
         self.assertEqual(test_topology["components"][0]["id"], "vgw-b8c2fccc")
         self.assert_executed_ok()
@@ -87,7 +88,7 @@ class TestVpnGateway(unittest.TestCase):
         )
         self.assert_executed_ok()
 
-    def test_vpm_gateway_with_tags(self):
+    def test_vpn_gateway_with_tags(self):
         self.api_results.update(SIMPLE_VPN_GATEWAY)
         self.api_results["DescribeVpnGateways"]["VpnGateways"][0].update(
             {"Tags": [{"Key": "Name", "Value": "my-first-vpn-gateway"}]}
