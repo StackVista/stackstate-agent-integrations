@@ -149,7 +149,7 @@ class ElbV2Collector(RegisteredResourceCollector):
         return self.client.describe_target_health(TargetGroupArn=target_group_arn).get("TargetHealthDescriptions", [])
 
     def process_target_group_page(self, target_groups, load_balancers):
-        tag_page = self.collect_tag_page([target_group.get("TargetGroupArn") for target_group in target_groups])
+        tag_page = self.collect_tag_page([target_group.get("TargetGroupArn") for target_group in target_groups]) or []
         for data in target_groups:
             target_health = self.collect_target_health(data.get("TargetGroupArn")) or []
             tags = []
