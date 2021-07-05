@@ -57,10 +57,8 @@ class S3Collector(RegisteredResourceCollector):
             return BucketData(bucket=bucket, location=location, tags=tags, config=config)
 
     def collect_buckets(self):
-        for bucket in [
-            self.collect_bucket(bucket) for bucket in client_array_operation(self.client, "list_buckets", "Buckets")
-        ]:
-            yield bucket
+        for bucket in client_array_operation(self.client, "list_buckets", "Buckets"):
+            yield self.collect_bucket(bucket)
 
     @set_required_access_v2("s3:ListAllMyBuckets")
     def process_buckets(self):

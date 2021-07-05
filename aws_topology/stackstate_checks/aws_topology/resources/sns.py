@@ -63,11 +63,8 @@ class SnsCollector(RegisteredResourceCollector):
         return TopicData(topic=data, tags=tags, subscriptions=subscriptions)
 
     def collect_topics(self):
-        for topic in [
-            self.collect_topic(topic_data)
-            for topic_data in client_array_operation(self.client, "list_topics", "Topics")
-        ]:
-            yield topic
+        for topic_data in client_array_operation(self.client, "list_topics", "Topics"):
+            yield self.collect_topic(topic_data)
 
     def process_all(self, filter=None):
         if not filter or "topics" in filter:

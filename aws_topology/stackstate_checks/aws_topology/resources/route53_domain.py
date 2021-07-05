@@ -43,11 +43,8 @@ class Route53DomainCollector(RegisteredResourceCollector):
         return DomainData(domain=domain_data, tags=tags)
 
     def collect_domains(self):
-        for domain in [
-            self.collect_domain(domain_data)
-            for domain_data in client_array_operation(self.client, "list_domains", "Domains")
-        ]:
-            yield domain
+        for domain_data in client_array_operation(self.client, "list_domains", "Domains"):
+            yield self.collect_domain(domain_data)
 
     @set_required_access_v2("route53domains:ListDomains")
     def process_domains(self):

@@ -84,11 +84,8 @@ class StepFunctionCollector(RegisteredResourceCollector):
         return StateMachineData(state_machine=state_machine, tags=tags)
 
     def collect_state_machines(self):
-        for state_machine in [
-            self.collect_state_machine(summary)
-            for summary in client_array_operation(self.client, "list_state_machines", "stateMachines")
-        ]:
-            yield state_machine
+        for state_machine_data in client_array_operation(self.client, "list_state_machines", "stateMachines"):
+            yield self.collect_state_machine(state_machine_data)
 
     def collect_activity(self, data):
         activity_arn = data.get("activityArn")

@@ -70,11 +70,8 @@ class Route53HostedzoneCollector(RegisteredResourceCollector):
         return HostedZoneData(hosted_zone=data, tags=tags, resource_record_sets=resource_record_sets)
 
     def collect_hosted_zones(self):
-        for hosted_zone in [
-            self.collect_hosted_zone(hosted_zone_data)
-            for hosted_zone_data in client_array_operation(self.client, "list_hosted_zones", "HostedZones")
-        ]:
-            yield hosted_zone
+        for hosted_zone_data in client_array_operation(self.client, "list_hosted_zones", "HostedZones"):
+            yield self.collect_hosted_zone(hosted_zone_data)
 
     @set_required_access_v2("route53:ListHostedZones")
     def process_hosted_zones(self):

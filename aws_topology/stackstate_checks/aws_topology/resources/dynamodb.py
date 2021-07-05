@@ -67,11 +67,8 @@ class DynamodbTableCollector(RegisteredResourceCollector):
         return TableData(table=data, tags=tags)
 
     def collect_tables(self):
-        for table in [
-            self.collect_table(table_name)
-            for table_name in client_array_operation(self.client, "list_tables", "TableNames")
-        ]:
-            yield table
+        for table_name in client_array_operation(self.client, "list_tables", "TableNames"):
+            yield self.collect_table(table_name)
 
     @set_required_access_v2("dynamodb:ListTables")
     def process_tables(self):
