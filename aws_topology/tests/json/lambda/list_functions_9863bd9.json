@@ -62,6 +62,11 @@
         "LastModified": "2019-09-23T09:34:32.081+0000",
         "CodeSha256": "kOF5jc6u8UoCSzdOuOVATIiQpMdvNVAsHBgC5ImVezA=",
         "Version": "$LATEST",
+        "Environment": {
+          "Variables": {
+            "RDS_HOST": "sn1e7g5j33vyr4o.c0y21wcfwjjc.eu-west-1.rds.amazonaws.com:5432"
+          }
+        },
         "VpcConfig": {
           "SubnetIds": [],
           "SecurityGroupIds": [],
