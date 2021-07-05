@@ -22,19 +22,21 @@ class TestElasticLoadbalancingV2(BaseApiTest):
 
         # LoadBalancer
         top.assert_component(
-            components, prefix + "loadbalancer/app/myfirstloadbalancer/90dd512583d2d7e9", "aws.elb_v2_application"
+            components,
+            prefix + "loadbalancer/app/myfirstloadbalancer/90dd512583d2d7e9",
+            "aws.elb-v2.application-load-balancer",
         )
         # TargetGroup
         top.assert_component(
-            components, prefix + "targetgroup/myfirsttargetgroup/28ddec997ec55d21", "aws.elb_v2_target_group"
+            components, prefix + "targetgroup/myfirsttargetgroup/28ddec997ec55d21", "aws.elb-v2.target-group"
         )
         # ELB Target Group Instance A
         top.assert_component(
-            components, "urn:aws/target-group-instance/" + instance_a, "aws.elb_v2_target_group_instance"
+            components, "urn:aws/target-group-instance/" + instance_a, "aws.elb-v2.target-group-instance"
         )
         # ELB Target Group Instance B
         top.assert_component(
-            components, "urn:aws/target-group-instance/" + instance_b, "aws.elb_v2_target_group_instance"
+            components, "urn:aws/target-group-instance/" + instance_b, "aws.elb-v2.target-group-instance"
         )
 
         # LoadBalancer <-> TargetGroup
@@ -111,7 +113,7 @@ class TestElasticLoadbalancingV2(BaseApiTest):
         top.assert_component(
             components,
             "arn:aws:elasticloadbalancing:eu-west-1:731070500579:targetgroup/myfirsttargetgroup/28ddec997ec55d21",
-            "aws.elb_v2_target_group",
+            "aws.elb-v2.target-group",
         )
         self.assertEqual(
             "arn:aws:elasticloadbalancing:eu-west-1:731070500579:"

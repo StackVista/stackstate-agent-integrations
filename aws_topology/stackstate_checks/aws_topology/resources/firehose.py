@@ -95,7 +95,7 @@ class FirehoseCollector(RegisteredResourceCollector):
         output["Tags"] = data.tags
         delivery_stream_arn = stream.DeliveryStreamARN
         output.update(with_dimensions([{"key": "DeliveryStreamName", "value": stream.DeliveryStreamName}]))
-        self.emit_component(delivery_stream_arn, ".".join([self.COMPONENT_TYPE, "delivery-stream"]), output)
+        self.emit_component(delivery_stream_arn, "delivery-stream", output)
 
         if stream.DeliveryStreamType == "KinesisStreamAsSource" and stream.Source:
             kinesis_stream_arn = stream.Source.KinesisStreamSourceDescription.KinesisStreamARN

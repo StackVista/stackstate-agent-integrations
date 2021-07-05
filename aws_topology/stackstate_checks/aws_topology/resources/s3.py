@@ -85,7 +85,7 @@ class S3Collector(RegisteredResourceCollector):
             output["BucketLocation"] = data.location
         output["Tags"] = data.tags
 
-        self.emit_component(bucket_arn, ".".join([self.COMPONENT_TYPE, "bucket"]), output)
+        self.emit_component(bucket_arn, "bucket", output)
         for bucket_notification in config:
             bucket_notification.validate()
             function_arn = bucket_notification.LambdaFunctionArn

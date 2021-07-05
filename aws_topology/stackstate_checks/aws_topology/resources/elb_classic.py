@@ -104,7 +104,7 @@ class ELBClassicCollector(RegisteredResourceCollector):
         output["Name"] = elb.LoadBalancerName
         output["Tags"] = data.tags
         output["URN"] = [elb_arn]
-        self.emit_component(elb_arn, ".".join([self.COMPONENT_TYPE, "load-balancer"]), output)
+        self.emit_component(elb_arn, "load-balancer", output)
         self.emit_relation(elb_arn, elb.VPCId, "uses service", {})
 
         for instance in output.get("Instances", []):

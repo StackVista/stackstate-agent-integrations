@@ -92,7 +92,7 @@ class DynamodbTableCollector(RegisteredResourceCollector):
         output["Name"] = table_name
         output["Tags"] = data.tags
         output.update(with_dimensions([{"key": "TableName", "value": table_name}]))
-        self.emit_component(table_arn, ".".join([self.COMPONENT_TYPE, "table"]), output)
+        self.emit_component(table_arn, "table", output)
 
         latest_stream_arn = table.LatestStreamArn
         stream_specification = table.StreamSpecification
@@ -110,7 +110,7 @@ class DynamodbTableCollector(RegisteredResourceCollector):
                     [{"key": "TableName", "value": table_name}, {"key": "StreamLabel", "value": latest_stream_label}]
                 )
             )
-            self.emit_component(latest_stream_arn, "aws.dynamodb.streams", stream)
+            self.emit_component(latest_stream_arn, "streams", stream)
             self.emit_relation(table_arn, latest_stream_arn, "uses service", {})
         return {table_name: table_arn}
 

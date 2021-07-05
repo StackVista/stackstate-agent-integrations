@@ -213,7 +213,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         for security_group in instance.SecurityGroups:
             self.emit_relation(instance.InstanceId, security_group.GroupId, "uses service", {})
 
-        self.emit_component(instance.InstanceId, ".".join([self.COMPONENT_TYPE, "instance"]), output)
+        self.emit_component(instance.InstanceId, "instance", output)
 
     def collect_security_groups(self):
         for security_group in client_array_operation(self.client, "describe_security_groups", "SecurityGroups"):
@@ -243,7 +243,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         if security_group.VpcId:  # pragma: no cover
             self.emit_relation(security_group.VpcId, security_group.GroupId, "has resource", {})
 
-        self.emit_component(security_group.GroupId, "aws.security-group", output)
+        self.emit_component(security_group.GroupId, "security-group", output)
 
     def collect_vpcs(self):
         for vpc in client_array_operation(self.client, "describe_vpcs", "Vpcs"):
@@ -273,7 +273,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
                 "ec2", self.location_info.Location.AwsRegion, self.location_info.Location.AwsAccount, "vpc", vpc.VpcId
             )
         ]
-        self.emit_component(vpc.VpcId, "aws.vpc", output)
+        self.emit_component(vpc.VpcId, "vpc", output)
 
     def collect_subnets(self):
         for subnet in client_array_operation(self.client, "describe_subnets", "Subnets"):
@@ -307,7 +307,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
                 subnet.SubnetId,
             )
         ]
-        self.emit_component(subnet.SubnetId, "aws.subnet", output)
+        self.emit_component(subnet.SubnetId, "subnet", output)
         self.emit_relation(subnet.SubnetId, subnet.VpcId, "uses service", {})
 
     def collect_vpn_gateways(self):
@@ -330,7 +330,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         vpn_gateway.validate()
         output = make_valid_data(data)
         output["Name"] = vpn_gateway.VpnGatewayId
-        self.emit_component(vpn_gateway.VpnGatewayId, "aws.vpngateway", output)
+        self.emit_component(vpn_gateway.VpnGatewayId, "vpn-gateway", output)
         for vpn_attachment in vpn_gateway.VpcAttachments:
             if vpn_attachment.State == "attached":
                 self.emit_relation(vpn_gateway.VpnGatewayId, vpn_attachment.VpcId, "uses service", {})

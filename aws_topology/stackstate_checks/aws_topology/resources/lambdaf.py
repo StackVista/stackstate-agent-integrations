@@ -129,7 +129,7 @@ class LambdaCollector(RegisteredResourceCollector):
         function_arn = function.FunctionArn
         output["Name"] = function.FunctionName
         output["Tags"] = data.tags
-        self.emit_component(function_arn, ".".join([self.COMPONENT_TYPE, "function"]), output)
+        self.emit_component(function_arn, "function", output)
 
         if function.VpcConfig.VpcId:
             self.emit_relation(function_arn, function.VpcConfig.VpcId, "uses service", {})
@@ -151,7 +151,7 @@ class LambdaCollector(RegisteredResourceCollector):
             alias.validate()
             alias_output = make_valid_data(alias_data)
             alias_output["Function"] = output
-            self.emit_component(alias.AliasArn, ".".join([self.COMPONENT_TYPE, "alias"]), alias_output)
+            self.emit_component(alias.AliasArn, "alias", alias_output)
             if function.VpcConfig.VpcId:
                 self.emit_relation(alias.AliasArn, function.VpcConfig.VpcId, "uses service", {})
 

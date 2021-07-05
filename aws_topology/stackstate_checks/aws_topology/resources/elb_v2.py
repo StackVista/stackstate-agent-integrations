@@ -48,7 +48,7 @@ class TargetHealth(Model):
 class ElbV2Collector(RegisteredResourceCollector):
     API = "elbv2"
     API_TYPE = "regional"
-    COMPONENT_TYPE = "aws.elb_v2"
+    COMPONENT_TYPE = "aws.elb-v2"
     MAX_TAG_CALLS = 20
 
     def process_all(self, filter=None):
@@ -132,7 +132,7 @@ class ElbV2Collector(RegisteredResourceCollector):
         )
 
         create_security_group_relations(load_balancer.LoadBalancerArn, output, self.agent)
-        load_balancer_type = "aws.elb_v2_" + load_balancer.Type.lower()
+        load_balancer_type = load_balancer.Type.lower() + "-load-balancer"
         self.emit_component(load_balancer.LoadBalancerArn, load_balancer_type, output)
         self.emit_relation(load_balancer.LoadBalancerArn, load_balancer.VpcId, "uses service", {})
         return {load_balancer.LoadBalancerArn: load_balancer.Type.lower()}
@@ -202,7 +202,7 @@ class ElbV2Collector(RegisteredResourceCollector):
 
         # Adding urn:aws/ to make it unique from the EC2 instance id
         self.emit_component(
-            "urn:aws/target-group-instance/" + target_health.Target.Id, "aws.elb_v2_target_group_instance", output
+            "urn:aws/target-group-instance/" + target_health.Target.Id, "target-group-instance", output
         )
 
         # relation between target group and target
@@ -257,7 +257,7 @@ class ElbV2Collector(RegisteredResourceCollector):
                         },
                     )
 
-        self.emit_component(target_group.TargetGroupArn, "aws.elb_v2_target_group", output)
+        self.emit_component(target_group.TargetGroupArn, "target-group", output)
         self.emit_relation(target_group.TargetGroupArn, target_group.VpcId, "uses service", {})
 
         for load_balancer_arn in target_group.LoadBalancerArns:

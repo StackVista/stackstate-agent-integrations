@@ -69,4 +69,4 @@ class Route53DomainCollector(RegisteredResourceCollector):
         output["URN"] = [
             self.agent.create_arn("AWS::Route53Domains::Domain", self.location_info, resource_id=domain_name)
         ]
-        self.emit_component(domain_name, ".".join([self.COMPONENT_TYPE, "domain"]), output)
+        self.emit_component(domain_name, "domain", output)
