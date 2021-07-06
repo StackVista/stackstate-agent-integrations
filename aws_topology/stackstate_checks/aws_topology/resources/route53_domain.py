@@ -38,7 +38,7 @@ class Route53DomainCollector(RegisteredResourceCollector):
     def collect_domain(self, domain_data):
         domain_name = domain_data.get("DomainName", "")
         # ListDomains has some attributes that GetDomainDetail doesn't have, so add to original object
-        domain_data.update(self.collect_domain_description(domain_name))
+        domain_data.update(self.collect_domain_description(domain_name) or {})
         tags = self.collect_tags(domain_name) or []
         return DomainData(domain=domain_data, tags=tags)
 
