@@ -241,7 +241,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
             )
         ]
         if security_group.VpcId:  # pragma: no cover
-            self.emit_relation(security_group.VpcId, security_group.GroupId, "has resource", {})
+            self.emit_relation(security_group.VpcId, security_group.GroupId, "has-resource", {})
 
         self.emit_component(security_group.GroupId, "aws.security-group", output)
 

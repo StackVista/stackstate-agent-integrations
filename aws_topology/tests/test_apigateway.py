@@ -144,7 +144,7 @@ class TestApiGateway(BaseApiTest):
         # we have 2 stages
         relations = topology[0]["relations"]
         for n in range(1, 3):
-            top.assert_relation(relations, api_arn, stage_arn_prefix.format(n), "has resource")
+            top.assert_relation(relations, api_arn, stage_arn_prefix.format(n), "has-resource")
 
             top.assert_relation(relations, stage_arn_prefix.format(n), resource_arn_prefix.format(n), "uses service")
 

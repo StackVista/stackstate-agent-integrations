@@ -235,7 +235,7 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
             output["Tags"] = stage.tags
 
         self.emit_component(stage_arn, ".".join([self.COMPONENT_TYPE, "stage"]), output)
-        self.emit_relation(rest_api_arn, stage_arn, "has resource", {})
+        self.emit_relation(rest_api_arn, stage_arn, "has-resource", {})
 
         for resource in resources:
             self.process_resource(resource, stage=stage, api=api, stage_arn=stage_arn)
