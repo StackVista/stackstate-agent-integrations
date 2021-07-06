@@ -7,7 +7,6 @@
         "customizedName": "RUM Default Application with unicode char: ",
         "discoveredName": "RUM Default Application",
         "firstSeenTimestamp": 1422282024216,
-        "lastSeenTimestamp": 1538579528065,
         "applicationType": "DEFAULT",
         "ruleAppliedPattern": "http",
         "managementZones": [
@@ -50,7 +49,6 @@
         "displayName": "easyTravel Ionic Web",
         "discoveredName": "easyTravel Ionic Web",
         "firstSeenTimestamp": 1528695861873,
-        "lastSeenTimestamp": 1538572321269,
         "applicationType": "RUMONLY",
         "managementZones": [
           {
@@ -86,7 +84,6 @@
         "customizedName": "easyTravel Demo",
         "discoveredName": "752c288d-5973-4c79-b7d1-3a49d4d42ea0",
         "firstSeenTimestamp": 1469613941393,
-        "lastSeenTimestamp": 1538654940201,
         "mobileOsFamily": [
           "ANDROID",
           "IOS",

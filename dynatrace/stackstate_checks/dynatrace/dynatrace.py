@@ -52,7 +52,6 @@ class DynatraceComponent(Model):
     customizedName = StringType()
     discoveredName = StringType()
     firstSeenTimestamp = IntType()
-    lastSeenTimestamp = IntType()
     tags = ListType(DictType(StringType))
     fromRelationships = DictType(ListType(StringType), default={})
     toRelationships = DictType(ListType(StringType), default={})
@@ -220,6 +219,8 @@ class DynatraceCheck(AgentCheck):
             elif type(component[key]) is bool:
                 component[key] = str(component[key])
                 self.log.debug('Converting %s from bool to str.' % key)
+        if "lastSeenTimestamp" in component:
+            del component["lastSeenTimestamp"]
         return component
 
     @staticmethod
