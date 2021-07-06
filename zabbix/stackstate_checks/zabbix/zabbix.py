@@ -16,10 +16,7 @@ from stackstate_checks.base.errors import CheckException
 import requests
 import time
 import json
-try:
-    import datadog_agent
-except ImportError:
-    from stackstate_checks.base.stubs import datadog_agent
+
 from stackstate_checks.utils.identifiers import Identifiers
 
 
@@ -199,7 +196,7 @@ class ZabbixCheck(AgentCheck):
         identifiers = list()
         # get actual hostname from agent
         # if zabbix is deployed on ec2 instance, it doesn't give any metadata about actual hostname
-        hostname = datadog_agent.get_hostname()
+        hostname = self.get_hostname()
         identifiers.append(Identifiers.create_host_identifier(hostname))
         identifiers.append(hostname)
         identifiers.append(zabbix_host.host)

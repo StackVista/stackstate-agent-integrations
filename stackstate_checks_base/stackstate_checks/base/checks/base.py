@@ -312,6 +312,13 @@ class AgentCheckBase(object):
         return datadog_agent.get_clustername()
 
     @staticmethod
+    def get_hostname():
+        """
+        returns the hostname
+        """
+        return datadog_agent.get_hostname()
+
+    @staticmethod
     def load_config(yaml_str):
         """
         Convenience wrapper to ease programmatic use of this class from the C API.
