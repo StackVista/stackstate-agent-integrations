@@ -40,7 +40,7 @@ class DeliveryStream(Model):
     DeliveryStreamARN = StringType(required=True)
     DeliveryStreamType = StringType()
     Source = ModelType(DeliveryStreamSource)
-    Destinations = ListType(ModelType(DeliveryStreamDestinations, default=[]))
+    Destinations = ListType(ModelType(DeliveryStreamDestinations), default=[])
 
 
 class FirehoseCollector(RegisteredResourceCollector):
