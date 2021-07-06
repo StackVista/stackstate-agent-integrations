@@ -66,9 +66,7 @@ setup(
     ],
 
     # The package we're going to ship
-    packages=['stackstate_checks.splunk.client',
-              'stackstate_checks.splunk.config',
-              'stackstate_checks.splunk.saved_search_helper'],
+    packages=['stackstate_checks.splunk'],
 
     # Run-time dependencies
     install_requires=[CHECKS_BASE_REQ],
