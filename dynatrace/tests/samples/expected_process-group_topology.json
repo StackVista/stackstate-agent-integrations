@@ -6,7 +6,6 @@
         "displayName": "EdgeTransport.exe",
         "discoveredName": "EdgeTransport.exe",
         "firstSeenTimestamp": 1600180637596,
-        "lastSeenTimestamp": 1601448396553,
         "metadata": {
           "commandLineArgs": [
             "C:\\Program\\ Files\\Microsoft\\Exchange\\ Server\\V15\\Bin\\EdgeTransport.exe -pipe:2144 -stopkey:Global\\ExchangeStopKey-34b894c1-c976-43db-a83d-cbc89ea5c5e0 -resetkey:Global\\ExchangeResetKey-4a9e8cc5-6ad9-4cc4-8610-36c9627cbcbe -readykey:Global\\ExchangeReadyKey-89d0548b-6776-4101-aed9-dbf884236629 -hangkey:Global\\ExchangeHangKey-b5611f0f-6ac3-4a4f-a405-f99ac6a7d673 -startUpProgressKey:Global\\ExchangeProgressKey-81c9a718-f3c5-40a3-a6b3-74b8d26b7dd2 -workerListening"
@@ -60,7 +59,6 @@
         "displayName": "Elasticsearch stackstate",
         "discoveredName": "Elasticsearch stackstate",
         "firstSeenTimestamp": 1600091968456,
-        "lastSeenTimestamp": 1601448459586,
         "metadata": {
           "elasticSearchClusterNames": [
             "stackstate"
@@ -125,7 +123,6 @@
         "displayName": "IIS",
         "discoveredName": "IIS",
         "firstSeenTimestamp": 1600180637596,
-        "lastSeenTimestamp": 1601448396553,
         "metadata": {
           "executables": [
             "svchost.exe"

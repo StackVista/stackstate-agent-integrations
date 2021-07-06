@@ -6,7 +6,6 @@
         "displayName": "/Exchange.HighAvailability/ServerLocator on msexchangerepl.exe:*",
         "discoveredName": "/Exchange.HighAvailability/ServerLocator on msexchangerepl.exe:*",
         "firstSeenTimestamp": 1600180870242,
-        "lastSeenTimestamp": 1601448273922,
         "agentTechnologyType": "N/A",
         "serviceType": "WebService",
         "softwareTechnologies": [
@@ -45,7 +44,6 @@
         "displayName": "/Microsoft.Exchange.Directory.TopologyService on Microsoft.Exchange.Directory.TopologyService.exe:890",
         "discoveredName": "/Microsoft.Exchange.Directory.TopologyService on Microsoft.Exchange.Directory.TopologyService.exe:890",
         "firstSeenTimestamp": 1600180880242,
-        "lastSeenTimestamp": 1601448261922,
         "agentTechnologyType": "N/A",
         "serviceType": "WebService",
         "softwareTechnologies": [
@@ -85,7 +83,6 @@
         "displayName": "AutodiscoverService",
         "discoveredName": "AutodiscoverService",
         "firstSeenTimestamp": 1600181244244,
-        "lastSeenTimestamp": 1601448254398,
         "agentTechnologyType": "DOTNET",
         "serviceTechnologyTypes": [
           "ASP.NET",

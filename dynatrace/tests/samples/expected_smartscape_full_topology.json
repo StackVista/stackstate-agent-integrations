@@ -8,7 +8,6 @@
         "displayName": "EdgeTransport.exe",
         "discoveredName": "EdgeTransport.exe",
         "firstSeenTimestamp": 1600180620000,
-        "lastSeenTimestamp": 1601448300000,
         "metadata": {
           "commandLineArgs": [
             "C:\\Program\\ Files\\Microsoft\\Exchange\\ Server\\V15\\Bin\\EdgeTransport.exe -pipe:2144 -stopkey:Global\\ExchangeStopKey-34b894c1-c976-43db-a83d-cbc89ea5c5e0 -resetkey:Global\\ExchangeResetKey-4a9e8cc5-6ad9-4cc4-8610-36c9627cbcbe -readykey:Global\\ExchangeReadyKey-89d0548b-6776-4101-aed9-dbf884236629 -hangkey:Global\\ExchangeHangKey-b5611f0f-6ac3-4a4f-a405-f99ac6a7d673 -startUpProgressKey:Global\\ExchangeProgressKey-81c9a718-f3c5-40a3-a6b3-74b8d26b7dd2 -workerListening"
@@ -70,7 +69,6 @@
         "displayName": "Elasticsearch stackstate (stackstate-prod-0)",
         "discoveredName": "Elasticsearch stackstate",
         "firstSeenTimestamp": 1600092000000,
-        "lastSeenTimestamp": 1601448360000,
         "metadata": {
           "elasticSearchClusterNames": [
             "stackstate"
@@ -151,7 +149,6 @@
         "displayName": "IIS",
         "discoveredName": "IIS",
         "firstSeenTimestamp": 1600180620000,
-        "lastSeenTimestamp": 1601448300000,
         "metadata": {
           "executables": [
             "svchost.exe"
@@ -213,7 +210,6 @@
         "displayName": "EX01.stackstate.lab",
         "discoveredName": "EX01.stackstate.lab",
         "firstSeenTimestamp": 1600180637597,
-        "lastSeenTimestamp": 1601447916389,
         "osType": "WINDOWS",
         "osArchitecture": "X86",
         "osVersion": "Windows Server 2016 Datacenter 1607, ver. 10.0.14393 with unicode char: \u0081",
@@ -271,7 +267,6 @@
         "displayName": "SQL01.stackstate.lab",
         "discoveredName": "SQL01.stackstate.lab",
         "firstSeenTimestamp": 1600177757775,
-        "lastSeenTimestamp": 1601447899018,
         "osType": "WINDOWS",
         "osArchitecture": "X86",
         "osVersion": "Windows Server 2016 Datacenter 1607, ver. 10.0.14393",
@@ -329,7 +324,6 @@
         "customizedName": "RUM Default Application with unicode char: \u0081",
         "discoveredName": "RUM Default Application",
         "firstSeenTimestamp": 1422282024216,
-        "lastSeenTimestamp": 1538579528065,
         "applicationType": "DEFAULT",
         "ruleAppliedPattern": "http",
         "managementZones": [
@@ -372,7 +366,6 @@
         "displayName": "easyTravel Ionic Web",
         "discoveredName": "easyTravel Ionic Web",
         "firstSeenTimestamp": 1528695861873,
-        "lastSeenTimestamp": 1538572321269,
         "applicationType": "RUMONLY",
         "managementZones": [
           {
@@ -408,7 +401,6 @@
         "customizedName": "easyTravel Demo",
         "discoveredName": "752c288d-5973-4c79-b7d1-3a49d4d42ea0",
         "firstSeenTimestamp": 1469613941393,
-        "lastSeenTimestamp": 1538654940201,
         "mobileOsFamily": [
           "ANDROID",
           "IOS",
@@ -444,7 +436,6 @@
         "displayName": "EdgeTransport.exe",
         "discoveredName": "EdgeTransport.exe",
         "firstSeenTimestamp": 1600180637596,
-        "lastSeenTimestamp": 1601448396553,
         "metadata": {
           "commandLineArgs": [
             "C:\\Program\\ Files\\Microsoft\\Exchange\\ Server\\V15\\Bin\\EdgeTransport.exe -pipe:2144 -stopkey:Global\\ExchangeStopKey-34b894c1-c976-43db-a83d-cbc89ea5c5e0 -resetkey:Global\\ExchangeResetKey-4a9e8cc5-6ad9-4cc4-8610-36c9627cbcbe -readykey:Global\\ExchangeReadyKey-89d0548b-6776-4101-aed9-dbf884236629 -hangkey:Global\\ExchangeHangKey-b5611f0f-6ac3-4a4f-a405-f99ac6a7d673 -startUpProgressKey:Global\\ExchangeProgressKey-81c9a718-f3c5-40a3-a6b3-74b8d26b7dd2 -workerListening"
@@ -498,7 +489,6 @@
         "displayName": "Elasticsearch stackstate",
         "discoveredName": "Elasticsearch stackstate",
         "firstSeenTimestamp": 1600091968456,
-        "lastSeenTimestamp": 1601448459586,
         "metadata": {
           "elasticSearchClusterNames": [
             "stackstate"
@@ -563,7 +553,6 @@
         "displayName": "IIS",
         "discoveredName": "IIS",
         "firstSeenTimestamp": 1600180637596,
-        "lastSeenTimestamp": 1601448396553,
         "metadata": {
           "executables": [
             "svchost.exe"
@@ -617,7 +606,6 @@
         "displayName": "/Exchange.HighAvailability/ServerLocator on msexchangerepl.exe:*",
         "discoveredName": "/Exchange.HighAvailability/ServerLocator on msexchangerepl.exe:*",
         "firstSeenTimestamp": 1600180870242,
-        "lastSeenTimestamp": 1601448273922,
         "agentTechnologyType": "N/A",
         "serviceType": "WebService",
         "softwareTechnologies": [
@@ -656,7 +644,6 @@
         "displayName": "/Microsoft.Exchange.Directory.TopologyService on Microsoft.Exchange.Directory.TopologyService.exe:890",
         "discoveredName": "/Microsoft.Exchange.Directory.TopologyService on Microsoft.Exchange.Directory.TopologyService.exe:890",
         "firstSeenTimestamp": 1600180880242,
-        "lastSeenTimestamp": 1601448261922,
         "agentTechnologyType": "N/A",
         "serviceType": "WebService",
         "softwareTechnologies": [
@@ -696,7 +683,6 @@
         "displayName": "AutodiscoverService",
         "discoveredName": "AutodiscoverService",
         "firstSeenTimestamp": 1600181244244,
-        "lastSeenTimestamp": 1601448254398,
         "agentTechnologyType": "DOTNET",
         "serviceTechnologyTypes": [
           "ASP.NET",
