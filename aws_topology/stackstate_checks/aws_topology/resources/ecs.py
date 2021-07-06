@@ -245,7 +245,7 @@ class EcsCollector(RegisteredResourceCollector):
     def process_container_instance(self, cluster, data):
         container_instance = ContainerInstance(data, strict=False)
         container_instance.validate()
-        self.emit_relation(cluster.clusterArn, container_instance.ec2InstanceId, "uses_ec2_host", {})
+        self.emit_relation(cluster.clusterArn, container_instance.ec2InstanceId, "uses-ec2-host", {})
 
     @transformation()
     def process_cluster(self, data):
