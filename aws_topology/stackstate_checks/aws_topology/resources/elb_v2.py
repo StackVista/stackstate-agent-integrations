@@ -134,7 +134,7 @@ class ElbV2Collector(RegisteredResourceCollector):
         create_security_group_relations(load_balancer.LoadBalancerArn, output, self.agent)
         load_balancer_type = "aws.elb_v2_" + load_balancer.Type.lower()
         self.emit_component(load_balancer.LoadBalancerArn, load_balancer_type, output)
-        self.emit_relation(load_balancer.LoadBalancerArn, load_balancer.VpcId, "uses service", {})
+        self.emit_relation(load_balancer.LoadBalancerArn, load_balancer.VpcId, "uses-service", {})
         return {load_balancer.LoadBalancerArn: load_balancer.Type.lower()}
 
     def process_one_load_balancer(self, arn):
@@ -207,7 +207,7 @@ class ElbV2Collector(RegisteredResourceCollector):
 
         # relation between target group and target
         self.emit_relation(
-            target_group.TargetGroupArn, "urn:aws/target-group-instance/" + target_health.Target.Id, "uses service", {}
+            target_group.TargetGroupArn, "urn:aws/target-group-instance/" + target_health.Target.Id, "uses-service", {}
         )
 
         self.agent.event(
@@ -258,11 +258,11 @@ class ElbV2Collector(RegisteredResourceCollector):
                     )
 
         self.emit_component(target_group.TargetGroupArn, "aws.elb_v2_target_group", output)
-        self.emit_relation(target_group.TargetGroupArn, target_group.VpcId, "uses service", {})
+        self.emit_relation(target_group.TargetGroupArn, target_group.VpcId, "uses-service", {})
 
         for load_balancer_arn in target_group.LoadBalancerArns:
             self.emit_relation(
-                load_balancer_arn, target_group.TargetGroupArn, "uses service", self.location_info.to_primitive()
+                load_balancer_arn, target_group.TargetGroupArn, "uses-service", self.location_info.to_primitive()
             )
 
         # emit health events for all TargetGroups

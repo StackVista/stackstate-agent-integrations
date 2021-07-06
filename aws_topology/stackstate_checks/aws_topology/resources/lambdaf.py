@@ -119,7 +119,7 @@ class LambdaCollector(RegisteredResourceCollector):
         if event_source.State == "Enabled":
             output = make_valid_data(data)
             # Swapping source/target: StackState models dependencies, not data flow
-            self.emit_relation(event_source.FunctionArn, event_source.EventSourceArn, "uses service", output)
+            self.emit_relation(event_source.FunctionArn, event_source.EventSourceArn, "uses-service", output)
 
     @transformation()
     def process_function(self, data):
@@ -132,7 +132,7 @@ class LambdaCollector(RegisteredResourceCollector):
         self.emit_component(function_arn, ".".join([self.COMPONENT_TYPE, "function"]), output)
 
         if function.VpcConfig.VpcId:
-            self.emit_relation(function_arn, function.VpcConfig.VpcId, "uses service", {})
+            self.emit_relation(function_arn, function.VpcConfig.VpcId, "uses-service", {})
             self.agent.create_security_group_relations(function_arn, output.get("VpcConfig"), "SecurityGroupIds")
 
         if function.Environment:
@@ -142,7 +142,7 @@ class LambdaCollector(RegisteredResourceCollector):
                     rds_arn = self.agent.create_arn(
                         "AWS::RDS::DBInstance", self.location_info, resource_id=env.split(".", 1)[0]
                     )
-                    self.emit_relation(function_arn, rds_arn, "uses service", {})
+                    self.emit_relation(function_arn, rds_arn, "uses-service", {})
 
         # TODO also emit versions as components and relation to alias / canaries
         # https://stackstate.atlassian.net/browse/STAC-13113
@@ -153,7 +153,7 @@ class LambdaCollector(RegisteredResourceCollector):
             alias_output["Function"] = output
             self.emit_component(alias.AliasArn, ".".join([self.COMPONENT_TYPE, "alias"]), alias_output)
             if function.VpcConfig.VpcId:
-                self.emit_relation(alias.AliasArn, function.VpcConfig.VpcId, "uses service", {})
+                self.emit_relation(alias.AliasArn, function.VpcConfig.VpcId, "uses-service", {})
 
     CLOUDFORMATION_TYPE = "AWS::Lambda::Function"
     EVENT_SOURCE = "lambda.amazonaws.com"

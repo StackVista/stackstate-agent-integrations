@@ -111,7 +111,7 @@ class DynamodbTableCollector(RegisteredResourceCollector):
                 )
             )
             self.emit_component(latest_stream_arn, "aws.dynamodb.streams", stream)
-            self.emit_relation(table_arn, latest_stream_arn, "uses service", {})
+            self.emit_relation(table_arn, latest_stream_arn, "uses-service", {})
         return {table_name: table_arn}
 
     def process_resource(self, arn):

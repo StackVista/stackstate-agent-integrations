@@ -64,25 +64,25 @@ class TestRds(BaseApiTest):
         )
         # instance-1 <-> vpc
         top.assert_relation(
-            relations, "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase", "vpc-6b25d10e", "uses service"
+            relations, "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase", "vpc-6b25d10e", "uses-service"
         )
         # instance-1 <-> security group
         top.assert_relation(
-            relations, "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase", "sg-053ecf78", "uses service"
+            relations, "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase", "sg-053ecf78", "uses-service"
         )
         # instance-1 <-> vpc
         top.assert_relation(
             relations,
             "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase-eu-west-1c",
             "vpc-6b25d10e",
-            "uses service",
+            "uses-service",
         )
         # instance-1 <-> security group
         top.assert_relation(
             relations,
             "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase-eu-west-1c",
             "sg-053ecf78",
-            "uses service",
+            "uses-service",
         )
 
         top.assert_all_checked(components, relations)

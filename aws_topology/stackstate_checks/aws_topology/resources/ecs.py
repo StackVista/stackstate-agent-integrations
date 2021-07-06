@@ -221,7 +221,7 @@ class EcsCollector(RegisteredResourceCollector):
 
         for lb in service.loadBalancers:
             if lb.targetGroupArn:
-                self.emit_relation(service_arn, lb.targetGroupArn, "uses service", {})
+                self.emit_relation(service_arn, lb.targetGroupArn, "uses-service", {})
 
         # remove events because they do not belong to a component
         output.pop("events", None)

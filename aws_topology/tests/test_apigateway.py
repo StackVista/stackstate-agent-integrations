@@ -146,48 +146,48 @@ class TestApiGateway(BaseApiTest):
         for n in range(1, 3):
             top.assert_relation(relations, api_arn, stage_arn_prefix.format(n), "has-resource")
 
-            top.assert_relation(relations, stage_arn_prefix.format(n), resource_arn_prefix.format(n), "uses service")
+            top.assert_relation(relations, stage_arn_prefix.format(n), resource_arn_prefix.format(n), "uses-service")
 
             top.assert_relation(
-                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "PATCH"), "uses service"
+                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "PATCH"), "uses-service"
             )
-            top.assert_relation(relations, method_arn_prefix.format(n, "PATCH"), sqs_arn, "uses service")
+            top.assert_relation(relations, method_arn_prefix.format(n, "PATCH"), sqs_arn, "uses-service")
 
             top.assert_relation(
-                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "PUT"), "uses service"
+                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "PUT"), "uses-service"
             )
             top.assert_relation(
                 relations,
                 method_arn_prefix.format(n, "PUT"),
                 lambda_arn_prefix.format("PutHello-1LUD3ESBOR6EY"),
-                "uses service",
+                "uses-service",
             )
 
             top.assert_relation(
-                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "POST"), "uses service"
+                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "POST"), "uses-service"
             )
             top.assert_relation(
-                relations, method_arn_prefix.format(n, "POST"), "urn:service:/84.35.236.89", "uses service"
+                relations, method_arn_prefix.format(n, "POST"), "urn:service:/84.35.236.89", "uses-service"
             )
 
             top.assert_relation(
-                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "GET"), "uses service"
+                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "GET"), "uses-service"
             )
             top.assert_relation(
                 relations,
                 method_arn_prefix.format(n, "GET"),
                 lambda_arn_prefix.format("GetHello-1CZ5O92284Z69"),
-                "uses service",
+                "uses-service",
             )
 
             top.assert_relation(
-                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "DELETE"), "uses service"
+                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "DELETE"), "uses-service"
             )
             top.assert_relation(
                 relations,
                 method_arn_prefix.format(n, "DELETE"),
                 lambda_arn_prefix.format("DeleteHello-1LDFJCU54ZL5"),
-                "uses service",
+                "uses-service",
             )
 
         top.assert_all_checked(components, relations, unchecked_components=1)

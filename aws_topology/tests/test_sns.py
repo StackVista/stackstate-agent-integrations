@@ -21,31 +21,31 @@ class TestSns(BaseApiTest):
             relations,
             "arn:aws:sns:eu-west-1:731070500579:my-topic-1",
             base_target_id + "TopicHandler-11EWA2GN9YNLL",
-            "uses service",
+            "uses-service",
         )
         top.assert_relation(
             relations,
             "arn:aws:sns:eu-west-1:731070500579:my-topic-2",
             base_target_id + "TopicHandler-21EWA2GN9YNLL",
-            "uses service",
+            "uses-service",
         )
         top.assert_relation(
             relations,
             "arn:aws:sns:eu-west-1:731070500579:my-topic-3",
             base_target_id + "TopicHandler-31EWA2GN9YNLL",
-            "uses service",
+            "uses-service",
         )
         top.assert_relation(
             relations,
             "arn:aws:sns:eu-west-1:731070500579:my-topic-3",
             base_target_id + "TopicHandler-41EWA2GN9YNLL",
-            "uses service",
+            "uses-service",
         )
         top.assert_relation(
             relations,
             "arn:aws:sns:eu-west-1:731070500579:my-topic-3",
             "arn:aws:sqs:eu-west-1:731070500579:STS_stackpack_test",
-            "uses service",
+            "uses-service",
         )
 
         top.assert_component(
