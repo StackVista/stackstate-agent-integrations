@@ -126,7 +126,7 @@ class CloudformationCollector(RegisteredResourceCollector):
             resource_arn = self.agent.create_arn(
                 resource.ResourceType, self.location_info, resource.PhysicalResourceId
             )
-            self.emit_relation(stack_id, resource_arn, "has resource", {})
+            self.emit_relation(stack_id, resource_arn, "has-resource", {})
 
     @transformation()
     def process_stack(self, data):

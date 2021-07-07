@@ -107,10 +107,10 @@ class RdsCollector(RegisteredResourceCollector):
         output["URN"] = ["urn:endpoint:/" + instance.Endpoint.Address]
         output.update(with_dimensions([{"key": "DBInstanceIdentifier", "value": instance_id}]))
         self.emit_component(instance_arn, "instance", output)
-        self.emit_relation(instance_arn, instance.DBSubnetGroup.VpcId, "uses service", {})
+        self.emit_relation(instance_arn, instance.DBSubnetGroup.VpcId, "uses-service", {})
         # TODO agent.create_security_group_relations (but needs change?)
         for security_group in instance.VpcSecurityGroups:
-            self.emit_relation(instance_arn, security_group.VpcSecurityGroupId, "uses service", {})
+            self.emit_relation(instance_arn, security_group.VpcSecurityGroupId, "uses-service", {})
 
     @transformation()
     def process_cluster(self, data):

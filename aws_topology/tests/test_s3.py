@@ -48,17 +48,17 @@ class TestS3(BaseApiTest):
             relations,
             "arn:aws:s3:::stackstate.com",
             target_id,
-            "uses service",
+            "uses-service",
             checks={"event_type": "s3:ObjectCreated:*"},
         )
         top.assert_relation(
-            relations, "arn:aws:s3:::binx.io", target_id, "uses service", checks={"event_type": "s3:ObjectRemoved:*"}
+            relations, "arn:aws:s3:::binx.io", target_id, "uses-service", checks={"event_type": "s3:ObjectRemoved:*"}
         )
         top.assert_relation(
             relations,
             "arn:aws:s3:::notags",
             target_id,
-            "uses service",
+            "uses-service",
             checks={
                 "event_type": "s3:ObjectCreated:*"
             }

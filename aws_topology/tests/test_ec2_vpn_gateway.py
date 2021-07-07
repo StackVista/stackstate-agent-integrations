@@ -84,7 +84,7 @@ class TestVpnGateway(unittest.TestCase):
         self.assertEqual(len(test_topology["relations"]), 1)
         self.assertEqual(
             test_topology["relations"][0],
-            {"source_id": "vgw-b8c2fccc", "target_id": "vpc-6b25d10e", "type": "uses service", "data": {}},
+            {"source_id": "vgw-b8c2fccc", "target_id": "vpc-6b25d10e", "type": "uses-service", "data": {}},
         )
         self.assert_executed_ok()
 

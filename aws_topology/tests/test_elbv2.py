@@ -44,33 +44,33 @@ class TestElasticLoadbalancingV2(BaseApiTest):
             relations,
             prefix + "loadbalancer/app/myfirstloadbalancer/90dd512583d2d7e9",
             prefix + "targetgroup/myfirsttargetgroup/28ddec997ec55d21",
-            "uses service",
+            "uses-service",
         )
         # Load Balancer A and Target Group A relationship test
         top.assert_relation(
             relations,
             prefix + "targetgroup/myfirsttargetgroup/28ddec997ec55d21",
             "urn:aws/target-group-instance/" + instance_a,
-            "uses service",
+            "uses-service",
         )
         # Load Balancer B and Target Group B relationship test
         top.assert_relation(
             relations,
             prefix + "targetgroup/myfirsttargetgroup/28ddec997ec55d21",
             "urn:aws/target-group-instance/" + instance_b,
-            "uses service",
+            "uses-service",
         )
         # LoadBalancer <-> SecurityGroup
         top.assert_relation(
-            relations, prefix + "loadbalancer/app/myfirstloadbalancer/90dd512583d2d7e9", "sg-193aec7c", "uses service"
+            relations, prefix + "loadbalancer/app/myfirstloadbalancer/90dd512583d2d7e9", "sg-193aec7c", "uses-service"
         )
         # LoadBalancer <-> Vpc
         top.assert_relation(
-            relations, prefix + "loadbalancer/app/myfirstloadbalancer/90dd512583d2d7e9", "vpc-6b25d10e", "uses service"
+            relations, prefix + "loadbalancer/app/myfirstloadbalancer/90dd512583d2d7e9", "vpc-6b25d10e", "uses-service"
         )
         # TargetGroup <-> Vpc
         top.assert_relation(
-            relations, prefix + "targetgroup/myfirsttargetgroup/28ddec997ec55d21", "vpc-6b25d10e", "uses service"
+            relations, prefix + "targetgroup/myfirsttargetgroup/28ddec997ec55d21", "vpc-6b25d10e", "uses-service"
         )
 
         top.assert_all_checked(components, relations)

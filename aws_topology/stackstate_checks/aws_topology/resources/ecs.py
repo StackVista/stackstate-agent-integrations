@@ -221,7 +221,7 @@ class EcsCollector(RegisteredResourceCollector):
 
         for lb in service.loadBalancers:
             if lb.targetGroupArn:
-                self.emit_relation(service_arn, lb.targetGroupArn, "uses service", {})
+                self.emit_relation(service_arn, lb.targetGroupArn, "uses-service", {})
 
         # remove events because they do not belong to a component
         output.pop("events", None)
@@ -245,7 +245,7 @@ class EcsCollector(RegisteredResourceCollector):
     def process_container_instance(self, cluster, data):
         container_instance = ContainerInstance(data, strict=False)
         container_instance.validate()
-        self.emit_relation(cluster.clusterArn, container_instance.ec2InstanceId, "uses_ec2_host", {})
+        self.emit_relation(cluster.clusterArn, container_instance.ec2InstanceId, "uses-ec2-host", {})
 
     @transformation()
     def process_cluster(self, data):

@@ -84,10 +84,10 @@ class ServiceDiscoveryCollector(RegisteredResourceCollector):
                 self.location_info.Location.AwsAccount,
                 instance.Attributes["ECS_SERVICE_NAME"],
             )
-            self.emit_relation(service_arn, hosted_zone_id, "uses service", {})
+            self.emit_relation(service_arn, hosted_zone_id, "uses-service", {})
         # Don't make a relation to EC2 if ECS is being used - this could be done directly in ECS
         elif "EC2_INSTANCE_ID" in instance.Attributes:
-            self.emit_relation(instance.Attributes["EC2_INSTANCE_ID"], hosted_zone_id, "uses service", {})
+            self.emit_relation(instance.Attributes["EC2_INSTANCE_ID"], hosted_zone_id, "uses-service", {})
 
     @transformation()
     def process_service(self, data):

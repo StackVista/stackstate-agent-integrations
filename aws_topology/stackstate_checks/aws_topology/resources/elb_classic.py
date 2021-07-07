@@ -105,11 +105,11 @@ class ELBClassicCollector(RegisteredResourceCollector):
         output["Tags"] = data.tags
         output["URN"] = [elb_arn]
         self.emit_component(elb_arn, "load-balancer", output)
-        self.emit_relation(elb_arn, elb.VPCId, "uses service", {})
+        self.emit_relation(elb_arn, elb.VPCId, "uses-service", {})
 
         for instance in output.get("Instances", []):
             instance_external_id = instance.get("InstanceId")  # ec2 instance
-            self.emit_relation(elb_arn, instance_external_id, "uses service", {})
+            self.emit_relation(elb_arn, instance_external_id, "uses-service", {})
 
         for instance_health in data.instance_health:
             health = InstanceHealth(instance_health, strict=False)

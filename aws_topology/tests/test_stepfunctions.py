@@ -96,56 +96,56 @@ class TestStepFunctions(BaseApiTest):
         for state_name in state_names:
             top.assert_component(components, sfn_id + ":state/" + state_name, "aws.stepfunction.state")
         # starting state
-        top.assert_relation(relations, sfn_id, sfn_id + ":state/ParallelRun", "uses service")
+        top.assert_relation(relations, sfn_id, sfn_id + ":state/ParallelRun", "uses-service")
         # parallel branch 1
-        top.assert_relation(relations, sfn_id + ":state/ParallelRun", sfn_id + ":state/ECS", "uses service")
+        top.assert_relation(relations, sfn_id + ":state/ParallelRun", sfn_id + ":state/ECS", "uses-service")
         # parallel branch 2
-        top.assert_relation(relations, sfn_id + ":state/ParallelRun", sfn_id + ":state/SNS", "uses service")
+        top.assert_relation(relations, sfn_id + ":state/ParallelRun", sfn_id + ":state/SNS", "uses-service")
         if True:
-            top.assert_relation(relations, sfn_id + ":state/SNS", sfn_id + ":state/SQS", "uses service")
-            top.assert_relation(relations, sfn_id + ":state/SQS", sfn_id + ":state/SQSSecondaryRegion", "uses service")
+            top.assert_relation(relations, sfn_id + ":state/SNS", sfn_id + ":state/SQS", "uses-service")
+            top.assert_relation(relations, sfn_id + ":state/SQS", sfn_id + ":state/SQSSecondaryRegion", "uses-service")
         # parallel branch 3
-        top.assert_relation(relations, sfn_id + ":state/ParallelRun", sfn_id + ":state/Lambda", "uses service")
+        top.assert_relation(relations, sfn_id + ":state/ParallelRun", sfn_id + ":state/Lambda", "uses-service")
         if True:
-            top.assert_relation(relations, sfn_id + ":state/Lambda", sfn_id + ":state/LambdaOldVersion", "uses service")
+            top.assert_relation(relations, sfn_id + ":state/Lambda", sfn_id + ":state/LambdaOldVersion", "uses-service")
             top.assert_relation(
-                relations, sfn_id + ":state/LambdaOldVersion", sfn_id + ":state/DynamoDB", "uses service"
+                relations, sfn_id + ":state/LambdaOldVersion", sfn_id + ":state/DynamoDB", "uses-service"
             )
 
-        top.assert_relation(relations, sfn_id + ":state/ParallelRun", sfn_id + ":state/FakeInput", "uses service")
+        top.assert_relation(relations, sfn_id + ":state/ParallelRun", sfn_id + ":state/FakeInput", "uses-service")
         # iterator
-        top.assert_relation(relations, sfn_id + ":state/FakeInput", sfn_id + ":state/ApiMap", "uses service")
+        top.assert_relation(relations, sfn_id + ":state/FakeInput", sfn_id + ":state/ApiMap", "uses-service")
         if True:
-            top.assert_relation(relations, sfn_id + ":state/ApiMap", sfn_id + ":state/ApiGateway", "uses service")
+            top.assert_relation(relations, sfn_id + ":state/ApiMap", sfn_id + ":state/ApiGateway", "uses-service")
         # choice
-        top.assert_relation(relations, sfn_id + ":state/ApiMap", sfn_id + ":state/FakeChoice", "uses service")
+        top.assert_relation(relations, sfn_id + ":state/ApiMap", sfn_id + ":state/FakeChoice", "uses-service")
         if True:
-            top.assert_relation(relations, sfn_id + ":state/FakeChoice", sfn_id + ":state/Finish", "uses service")
-            top.assert_relation(relations, sfn_id + ":state/FakeChoice", sfn_id + ":state/Activity", "uses service")
+            top.assert_relation(relations, sfn_id + ":state/FakeChoice", sfn_id + ":state/Finish", "uses-service")
+            top.assert_relation(relations, sfn_id + ":state/FakeChoice", sfn_id + ":state/Activity", "uses-service")
         # last
-        top.assert_relation(relations, sfn_id + ":state/Activity", sfn_id + ":state/NoFinish", "uses service")
+        top.assert_relation(relations, sfn_id + ":state/Activity", sfn_id + ":state/NoFinish", "uses-service")
 
         # 15 states
 
-        top.assert_relation(relations, sfn_id + ":state/SNS", get_id("SnsTopic"), "uses service")
-        top.assert_relation(relations, sfn_id + ":state/SQS", get_id("SqsQueue"), "uses service")
+        top.assert_relation(relations, sfn_id + ":state/SNS", get_id("SnsTopic"), "uses-service")
+        top.assert_relation(relations, sfn_id + ":state/SQS", get_id("SqsQueue"), "uses-service")
         top.assert_relation(
             relations,
             sfn_id + ":state/SQSSecondaryRegion",
             get_id("SqsQueue", stack="stackstate-main-account-secondary-region", region="us-east-1"),
-            "uses service",
+            "uses-service",
         )
-        top.assert_relation(relations, sfn_id + ":state/DynamoDB", get_id("DynamoDbTable"), "uses service")
+        top.assert_relation(relations, sfn_id + ":state/DynamoDB", get_id("DynamoDbTable"), "uses-service")
         # TODO ApiGatewayV2 not yet supported (SO RELATION LEFT ALERTER)
         # TODO also verify if this is OK to refer to the API stage here?
         self.assertIn("UNSUPPORTED_ARN-AWS::ApiGatewayV2::", get_id("ApiGatewayApi") + "/test")
         # top.assert_relation(relations, sfn_id + ':state/ApiGateway', get_id('ApiGatewayApi') + '/test')
 
-        top.assert_relation(relations, sfn_id + ":state/Lambda", get_id("LambdaFunction"), "uses service")
-        top.assert_relation(relations, sfn_id + ":state/LambdaOldVersion", get_id("LambdaFunction"), "uses service")
-        top.assert_relation(relations, sfn_id + ":state/ECS", get_id("EcsTaskDefinition"), "uses service")
-        top.assert_relation(relations, sfn_id + ":state/ECS", get_id("EcsCluster"), "uses service")
-        top.assert_relation(relations, sfn_id + ":state/Activity", get_id("StepFunctionsActivity"), "uses service")
+        top.assert_relation(relations, sfn_id + ":state/Lambda", get_id("LambdaFunction"), "uses-service")
+        top.assert_relation(relations, sfn_id + ":state/LambdaOldVersion", get_id("LambdaFunction"), "uses-service")
+        top.assert_relation(relations, sfn_id + ":state/ECS", get_id("EcsTaskDefinition"), "uses-service")
+        top.assert_relation(relations, sfn_id + ":state/ECS", get_id("EcsCluster"), "uses-service")
+        top.assert_relation(relations, sfn_id + ":state/Activity", get_id("StepFunctionsActivity"), "uses-service")
         # TODO IAM not yet supported (SO RELATION LEFT ALERTER)
         self.assertIn("UNSUPPORTED_ARN-AWS::IAM::", get_id("StepFunctionsIamRole"))
         # top.assert_relation(relations, sfn_id, get_id('StepFunctionsIamRole'))
@@ -166,11 +166,11 @@ class TestStepFunctions(BaseApiTest):
             {"StartAt": "B2S1", "States": {"B2S1": {"Next": "B2S2"}, "B2S2": {}}},
         ]
         expected_relations = [
-            {"source_id": "brancharn", "target_id": "root:state/B1S1", "type": "uses service", "data": {}},
-            {"source_id": "brancharn", "target_id": "root:state/B2S1", "type": "uses service", "data": {}},
-            {"source_id": "root:state/B1S1", "target_id": "root:state/B1S2", "type": "uses service", "data": {}},
-            {"source_id": "root:state/B2S1", "target_id": "root:state/B2S2", "type": "uses service", "data": {}},
-            {"source_id": "root:state/B1S2", "target_id": "root:state/B3S1", "type": "uses service", "data": {}},
+            {"source_id": "brancharn", "target_id": "root:state/B1S1", "type": "uses-service", "data": {}},
+            {"source_id": "brancharn", "target_id": "root:state/B2S1", "type": "uses-service", "data": {}},
+            {"source_id": "root:state/B1S1", "target_id": "root:state/B1S2", "type": "uses-service", "data": {}},
+            {"source_id": "root:state/B2S1", "target_id": "root:state/B2S2", "type": "uses-service", "data": {}},
+            {"source_id": "root:state/B1S2", "target_id": "root:state/B3S1", "type": "uses-service", "data": {}},
         ]
         expected_components = [
             {"id": "root:state/B1S1", "type": "aws.stepfunction.state"},

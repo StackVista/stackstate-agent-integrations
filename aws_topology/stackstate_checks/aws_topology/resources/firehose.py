@@ -99,12 +99,12 @@ class FirehoseCollector(RegisteredResourceCollector):
 
         if stream.DeliveryStreamType == "KinesisStreamAsSource" and stream.Source:
             kinesis_stream_arn = stream.Source.KinesisStreamSourceDescription.KinesisStreamARN
-            self.emit_relation(kinesis_stream_arn, delivery_stream_arn, "uses service", {})
+            self.emit_relation(kinesis_stream_arn, delivery_stream_arn, "uses-service", {})
 
         for destination in stream.Destinations:
             if destination.S3DestinationDescription:  # pragma: no cover
                 self.emit_relation(
-                    delivery_stream_arn, destination.S3DestinationDescription.BucketARN, "uses service", {}
+                    delivery_stream_arn, destination.S3DestinationDescription.BucketARN, "uses-service", {}
                 )
         # HasMoreDestinations seen in API response
         # There can also be a relation with a lambda that is uses to transform the data

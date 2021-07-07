@@ -56,8 +56,8 @@ class TestEC2(BaseApiTest):
             },
         )
 
-        top.assert_relation(relations, test_instance_id, "subnet-67d82910", "uses service")
-        top.assert_relation(relations, test_instance_id, "sg-41c3cc3b", "uses service")
+        top.assert_relation(relations, test_instance_id, "subnet-67d82910", "uses-service")
+        top.assert_relation(relations, test_instance_id, "sg-41c3cc3b", "uses-service")
 
         # nitro instances
         top.assert_component(
@@ -66,8 +66,8 @@ class TestEC2(BaseApiTest):
             "aws.ec2.instance",
             checks={"InstanceId": "i-1234567890123456", "InstanceType": "m6gd.medium", "IsNitro": True},
         )
-        top.assert_relation(relations, "i-1234567890123456", "vpc-6b25d10e", "uses service")
-        top.assert_relation(relations, "i-1234567890123456", "sg-41c3cc3b", "uses service")
+        top.assert_relation(relations, "i-1234567890123456", "vpc-6b25d10e", "uses-service")
+        top.assert_relation(relations, "i-1234567890123456", "sg-41c3cc3b", "uses-service")
 
         self.assertEqual(len(events), 2)
         self.assertEqual(events[0]["host"], test_instance_id)
@@ -216,8 +216,8 @@ class TestEC2(BaseApiTest):
             checks={"SubnetId": "subnet-12345678", "Name": "subnet-12345678-eu-west-1a"},
         )
 
-        top.assert_relation(relations, "subnet-9e4be5f9", "vpc-6b25d10e", "uses service")
-        top.assert_relation(relations, "subnet-12345678", "vpc-6b25d10e", "uses service")
+        top.assert_relation(relations, "subnet-9e4be5f9", "vpc-6b25d10e", "uses-service")
+        top.assert_relation(relations, "subnet-12345678", "vpc-6b25d10e", "uses-service")
 
         top.assert_all_checked(components, relations)
 
@@ -241,7 +241,7 @@ class TestEC2(BaseApiTest):
             },
         )
         self.assert_location_info(comp)
-        top.assert_relation(relations, "vgw-b8c2fccc", "vpc-6b25d10e", "uses service")
+        top.assert_relation(relations, "vgw-b8c2fccc", "vpc-6b25d10e", "uses-service")
 
         top.assert_all_checked(components, relations)
 
