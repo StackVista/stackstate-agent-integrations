@@ -119,6 +119,7 @@ def wrapper(testinstance, not_authorized, subdirectory, use_gz, events_file=None
 class CollectorMock(RegisteredResourceCollector):
     API = "noclient"
     API_TYPE = "regional"
+    COMPONENT_TYPE = "aws.test"
 
     def process_event(self, event, seen):
         id = ''
@@ -127,7 +128,7 @@ class CollectorMock(RegisteredResourceCollector):
         else:
             id = event["id"]
         if id not in seen:
-            self.emit_component(id, "aws.test", {})
+            self.emit_component(id, "", {})
             seen.add(id)
 
     def process_all(self, filter=None):

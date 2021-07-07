@@ -202,7 +202,7 @@ class EcsCollector(RegisteredResourceCollector):
             self.emit_relation(cluster.clusterArn, task.taskArn, "has_cluster_node", {})
 
         output["URN"] = identifiers
-        self.emit_component(task.taskArn, ".".join([self.COMPONENT_TYPE, "task"]), output)
+        self.emit_component(task.taskArn, "task", output)
         return {task.group: TaskMapItem({"taskArn": task.taskArn, "names": container_names})}
 
     @transformation()
@@ -238,7 +238,7 @@ class EcsCollector(RegisteredResourceCollector):
             # create a relation with the task
             self.emit_relation(service_arn, containers.taskArn, "has_cluster_node", {})
 
-        self.emit_component(service_arn, "aws.ecs.service", output)
+        self.emit_component(service_arn, "service", output)
         self.emit_relation(cluster.clusterArn, service_arn, "has_cluster_node", {})
 
     @transformation()
@@ -257,7 +257,7 @@ class EcsCollector(RegisteredResourceCollector):
         cluster_name = cluster.clusterName or cluster_arn.rsplit("/", 1)[1]
         output["Name"] = cluster_name
         output.update(with_dimensions([{"key": "ClusterName", "value": cluster_name}]))
-        self.emit_component(cluster_arn, ".".join([self.COMPONENT_TYPE, "cluster"]), output)
+        self.emit_component(cluster_arn, "cluster", output)
 
         for container_instance in data.container_instances:
             self.process_container_instance(cluster, container_instance)

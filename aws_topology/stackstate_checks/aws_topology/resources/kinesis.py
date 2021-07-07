@@ -79,7 +79,7 @@ class KinesisCollector(RegisteredResourceCollector):
         stream_name = stream.StreamDescriptionSummary.StreamName
         output["Name"] = stream_name
         output["Tags"] = data.tags
-        self.emit_component(stream_arn, ".".join([self.COMPONENT_TYPE, "data-stream"]), output)
+        self.emit_component(stream_arn, "data-stream", output)
         # There can also be relations with EC2 instances as enhanced fan out consumers
 
     EVENT_SOURCE = "kinesis.amazonaws.com"

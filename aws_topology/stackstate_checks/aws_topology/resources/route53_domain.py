@@ -38,7 +38,7 @@ class Route53DomainCollector(RegisteredResourceCollector):
     def collect_domain(self, domain_data):
         domain_name = domain_data.get("DomainName", "")
         # ListDomains has some attributes that GetDomainDetail doesn't have, so add to original object
-        domain_data.update(self.collect_domain_description(domain_name))
+        domain_data.update(self.collect_domain_description(domain_name) or {})
         tags = self.collect_tags(domain_name) or []
         return DomainData(domain=domain_data, tags=tags)
 
@@ -69,4 +69,4 @@ class Route53DomainCollector(RegisteredResourceCollector):
         output["URN"] = [
             self.agent.create_arn("AWS::Route53Domains::Domain", self.location_info, resource_id=domain_name)
         ]
-        self.emit_component(domain_name, ".".join([self.COMPONENT_TYPE, "domain"]), output)
+        self.emit_component(domain_name, "domain", output)

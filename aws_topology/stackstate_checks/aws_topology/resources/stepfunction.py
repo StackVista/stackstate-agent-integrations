@@ -188,7 +188,7 @@ class StepFunctionCollector(RegisteredResourceCollector):
             self.process_parallel_state(sfn_arn, state_arn, state.get("Branches"))
         elif state_type == "Task":
             self.process_task_state(state_arn, state)
-        self.emit_component(state_arn, ".".join([self.COMPONENT_TYPE, "state"]), state)
+        self.emit_component(state_arn, "state", state)
 
     def process_choice_state(self, sfn_arn, state_arn, choices, default_state):
         choices = choices or []
