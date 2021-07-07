@@ -120,7 +120,7 @@ class StepFunctionCollector(RegisteredResourceCollector):
         activity = Activity(data.activity, strict=False)
         activity.validate()
         output["tags"] = data.tags
-        self.emit_component(activity.activityArn, ".".join([self.COMPONENT_TYPE, "activity"]), output)
+        self.emit_component(activity.activityArn, "activity", output)
 
     def process_one_state_machine(self, arn):
         self.process_state_machine(self.collect_state_machine({"stateMachineArn": arn}))
@@ -147,7 +147,7 @@ class StepFunctionCollector(RegisteredResourceCollector):
         if "definition" in output:
             output.pop("definition")
         output["tags"] = data.tags
-        self.emit_component(state_machine.stateMachineArn, ".".join([self.COMPONENT_TYPE, "statemachine"]), output)
+        self.emit_component(state_machine.stateMachineArn, "statemachine", output)
         if state_machine.roleArn:
             self.emit_relation(state_machine.stateMachineArn, state_machine.roleArn, "uses-service", {})
         self.process_state_machine_relations(state_machine.stateMachineArn, state_machine.definition)
@@ -178,7 +178,7 @@ class StepFunctionCollector(RegisteredResourceCollector):
             self.process_parallel_state(sfn_arn, state_arn, state.get("Branches"))
         elif state_type == "Task":
             self.process_task_state(state_arn, state)
-        self.emit_component(state_arn, ".".join([self.COMPONENT_TYPE, "state"]), state)
+        self.emit_component(state_arn, "state", state)
 
     def process_choice_state(self, sfn_arn, state_arn, choices, default_state):
         choices = choices or []

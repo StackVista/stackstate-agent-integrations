@@ -70,7 +70,7 @@ class TestVpnGateway(unittest.TestCase):
         test_topology = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(test_topology["components"]), 1)
         self.assertEqual(test_topology["components"][0]["data"]["Name"], "vgw-b8c2fccc")
-        self.assertEqual(test_topology["components"][0]["type"], "aws.vpngateway")
+        self.assertEqual(test_topology["components"][0]["type"], "aws.ec2.vpn-gateway")
         self.assertEqual(test_topology["components"][0]["id"], "vgw-b8c2fccc")
         self.assert_executed_ok()
 

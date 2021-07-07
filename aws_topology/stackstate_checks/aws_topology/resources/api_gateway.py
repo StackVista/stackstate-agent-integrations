@@ -160,10 +160,11 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
             if method.methodIntegration.type == "HTTP_PROXY":
                 parsed_uri = urlparse(method.methodIntegration.uri)
                 service_integration_urn = "urn:service:/{0}".format(parsed_uri.hostname)
-                self.emit_component(service_integration_urn, "aws.apigateway.method.http.integration", {})
+                # This doesn't use the new component type format as it has external dependencies
+                self.emit_component(service_integration_urn, "method.http.integration", {})
                 self.emit_relation(method_arn, service_integration_urn, "uses-service", {})
 
-            self.emit_component(method_arn, ".".join([self.COMPONENT_TYPE, "method"]), method_data)
+            self.emit_component(method_arn, "method", method_data)
             self.emit_relation(resource_arn, method_arn, "uses-service", {})
 
     @transformation()
@@ -189,7 +190,7 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
                     ]
                 )
             )
-            self.emit_component(resource_arn, ".".join([self.COMPONENT_TYPE, "resource"]), resource_data)
+            self.emit_component(resource_arn, "resource", resource_data)
             self.emit_relation(stage_arn, resource_arn, "uses-service", {})
 
             for method_id in resource.resourceMethods.keys():
@@ -234,7 +235,7 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
         if stage.tags:
             output["Tags"] = stage.tags
 
-        self.emit_component(stage_arn, ".".join([self.COMPONENT_TYPE, "stage"]), output)
+        self.emit_component(stage_arn, "stage", output)
         self.emit_relation(rest_api_arn, stage_arn, "has-resource", {})
 
         for resource in resources:
@@ -249,7 +250,7 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
         output["Name"] = api.name
         output["RestApiId"] = api.id
         output["RestApiName"] = api.name
-        self.emit_component(rest_api_arn, ".".join([self.COMPONENT_TYPE, "rest-api"]), output)
+        self.emit_component(rest_api_arn, "rest-api", output)
 
         for stage in data.stages:
             self.process_stage(stage, api=api, resources=data.resources, rest_api_arn=rest_api_arn)

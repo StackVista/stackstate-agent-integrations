@@ -61,7 +61,9 @@ class RegisteredResourceCollector(with_metaclass(ResourceRegistry, object)):
         return self.agent.delete_ids
 
     def emit_component(self, id, type, data):
-        self.agent.component(self.location_info, id, type, data)
+        if type[:4] == "aws.":
+            raise Exception("Component types must not include the COMPONENT_TYPE variable in the name")
+        self.agent.component(self.location_info, id, ".".join([self.COMPONENT_TYPE, type]), data)
 
     def emit_deletion(self, id):
         self.agent.delete(id)

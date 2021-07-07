@@ -103,7 +103,7 @@ class TestEC2(BaseApiTest):
         top.assert_component(
             components,
             self.first_sg_group_id,
-            "aws.security-group",
+            "aws.ec2.security-group",
             checks={
                 "URN": ["arn:aws:ec2:{}:731070500579:security-group/{}".format("eu-west-1", self.first_sg_group_id)],
                 "Version": version_to_check,
@@ -133,7 +133,7 @@ class TestEC2(BaseApiTest):
         top.assert_component(
             components,
             self.first_sg_group_id,
-            "aws.security-group",
+            "aws.ec2.security-group",
             checks={
                 "URN": ["arn:aws:ec2:{}:731070500579:security-group/{}".format("eu-west-1", self.first_sg_group_id)],
                 "Version": version_to_check,
@@ -157,7 +157,7 @@ class TestEC2(BaseApiTest):
         comp = top.assert_component(
             components,
             "vpc-6b25d10e",
-            "aws.vpc",
+            "aws.ec2.vpc",
             checks={
                 "VpcId": "vpc-6b25d10e",
                 "Name": "vpc-6b25d10e",
@@ -168,7 +168,7 @@ class TestEC2(BaseApiTest):
         comp = top.assert_component(
             components,
             "vpc-12345678",
-            "aws.vpc",
+            "aws.ec2.vpc",
             checks={
                 "VpcId": "vpc-12345678",
                 "Name": "default",
@@ -177,7 +177,7 @@ class TestEC2(BaseApiTest):
         comp = top.assert_component(
             components,
             "vpc-87654321",
-            "aws.vpc",
+            "aws.ec2.vpc",
             checks={
                 "VpcId": "vpc-87654321",
                 "Name": "MyVpc",
@@ -200,7 +200,7 @@ class TestEC2(BaseApiTest):
         comp = top.assert_component(
             components,
             "subnet-9e4be5f9",
-            "aws.subnet",
+            "aws.ec2.subnet",
             checks={
                 "SubnetId": "subnet-9e4be5f9",
                 "Tags.Name": "demo-deployments",
@@ -212,7 +212,7 @@ class TestEC2(BaseApiTest):
         comp = top.assert_component(
             components,
             "subnet-12345678",
-            "aws.subnet",
+            "aws.ec2.subnet",
             checks={"SubnetId": "subnet-12345678", "Name": "subnet-12345678-eu-west-1a"},
         )
 
@@ -235,7 +235,7 @@ class TestEC2(BaseApiTest):
         comp = top.assert_component(
             components,
             "vgw-b8c2fccc",
-            "aws.vpngateway",
+            "aws.ec2.vpn-gateway",
             checks={
                 "VpnGatewayId": "vgw-b8c2fccc",
             },

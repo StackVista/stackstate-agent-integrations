@@ -98,4 +98,4 @@ class Route53HostedzoneCollector(RegisteredResourceCollector):
         output["URN"] = [
             self.agent.create_arn("AWS::Route53::HostedZone", self.location_info, resource_id=hosted_zone_id)
         ]
-        self.emit_component(hosted_zone_id, ".".join([self.COMPONENT_TYPE, "hostedzone"]), output)
+        self.emit_component(hosted_zone_id, "hostedzone", output)
