@@ -26,17 +26,17 @@ class TestS3(BaseApiTest):
         top.assert_component(
             components,
             "arn:aws:s3:::stackstate.com",
-            "aws.s3_bucket",
+            "aws.s3.bucket",
             checks={"Name": "stackstate.com", "Tags.BucketTag": "TagValue", "BucketLocation": "eu-west-1"},
         )
         self.assert_location_info(topology[0]["components"][0])
 
-        top.assert_component(components, "arn:aws:s3:::binx.io", "aws.s3_bucket", checks={"Name": "binx.io"})
+        top.assert_component(components, "arn:aws:s3:::binx.io", "aws.s3.bucket", checks={"Name": "binx.io"})
 
         top.assert_component(
             components,
             "arn:aws:s3:::notags",
-            "aws.s3_bucket",
+            "aws.s3.bucket",
             checks={
                 "Name": "notags",
                 "Tags": {},
@@ -48,17 +48,17 @@ class TestS3(BaseApiTest):
             relations,
             "arn:aws:s3:::stackstate.com",
             target_id,
-            "uses service",
+            "uses-service",
             checks={"event_type": "s3:ObjectCreated:*"},
         )
         top.assert_relation(
-            relations, "arn:aws:s3:::binx.io", target_id, "uses service", checks={"event_type": "s3:ObjectRemoved:*"}
+            relations, "arn:aws:s3:::binx.io", target_id, "uses-service", checks={"event_type": "s3:ObjectRemoved:*"}
         )
         top.assert_relation(
             relations,
             "arn:aws:s3:::notags",
             target_id,
-            "uses service",
+            "uses-service",
             checks={
                 "event_type": "s3:ObjectCreated:*"
             }

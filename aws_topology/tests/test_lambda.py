@@ -24,13 +24,13 @@ class TestLambda(BaseApiTest):
         comp = top.assert_component(
             components,
             "arn:aws:lambda:eu-west-1:731070500579:function:com-stackstate-prod-sam-seed-PutHello-1LUD3ESBOR6EY",
-            "aws.lambda",
+            "aws.lambda.function",
             checks={"FunctionName": "com-stackstate-prod-sam-seed-PutHello-1LUD3ESBOR6EY", "Tags.Group": "StackState"},
         )
         self.assert_location_info(comp)
         # lambda sts-xray-test-01
         top.assert_component(
-            components, "arn:aws:lambda:eu-west-1:731070500579:function:sts-xray-test-01", "aws.lambda"
+            components, "arn:aws:lambda:eu-west-1:731070500579:function:sts-xray-test-01", "aws.lambda.function"
         )
         # Lambda sts-xray-test-01 has an alias
         top.assert_component(
@@ -41,18 +41,18 @@ class TestLambda(BaseApiTest):
         )
         # sts-xray-test-01 has vpcid
         top.assert_relation(
-            relations, "arn:aws:lambda:eu-west-1:731070500579:function:sts-xray-test-01", "vpc-c6d073bf", "uses service"
+            relations, "arn:aws:lambda:eu-west-1:731070500579:function:sts-xray-test-01", "vpc-c6d073bf", "uses-service"
         )
         # alias also has relation with vpcid
         top.assert_relation(
             relations,
             "arn:aws:lambda:eu-west-1:731070500579:function:sts-xray-test-01:old",
             "vpc-c6d073bf",
-            "uses service",
+            "uses-service",
         )
 
         top.assert_component(
-            components, "arn:aws:lambda:eu-west-1:731070500579:function:sts-xray-test-02", "aws.lambda"
+            components, "arn:aws:lambda:eu-west-1:731070500579:function:sts-xray-test-02", "aws.lambda.function"
         )
         # Lambda sts-xray-test-02 has an alias
         top.assert_component(
@@ -64,15 +64,21 @@ class TestLambda(BaseApiTest):
 
         top.assert_relation(
             relations,
+            "arn:aws:lambda:eu-west-1:731070500579:function:sts-xray-test-02",
+            "arn:aws:rds:eu-west-1:731070500579:db:sn1e7g5j33vyr4o",
+            "uses-service",
+        )
+        top.assert_relation(
+            relations,
             "arn:aws:lambda:eu-west-1:731070500579:function:com-stackstate-prod-PersonIdDynamoDBHandler-6KMIBXKKKCEZ",
             "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1/stream/2018-05-17T08:09:27.110",
-            "uses service",
+            "uses-service",
         )
         top.assert_relation(
             relations,
             "arn:aws:lambda:eu-west-1:731070500579:function:com-stackstate-prod-PersonCreatedKinesisHand-19T8EJADX2DE",
             "arn:aws:kinesis:eu-west-1:731070500579:stream/stream_1",
-            "uses service",
+            "uses-service",
         )
 
         top.assert_all_checked(components, relations)

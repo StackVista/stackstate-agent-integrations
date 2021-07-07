@@ -72,13 +72,13 @@ class TestAllApis(BaseApiTest):
         components = topology[0]["components"]
         relations = topology[0]["relations"]
 
-        stacks = list(filter(lambda x: x["type"] == "aws.cloudformation", components))
+        stacks = list(filter(lambda x: x["type"] == "aws.cloudformation.stack", components))
         self.assertEqual(len(stacks), 2)
 
         # total relations should be 14 + 1
         relations = list(
             filter(
-                lambda x: x["type"] == "has resource" and x["source_id"].startswith("arn:aws:cloudformation"),
+                lambda x: x["type"] == "has-resource" and x["source_id"].startswith("arn:aws:cloudformation"),
                 topology[0]["relations"],
             )
         )
@@ -90,61 +90,61 @@ class TestAllApis(BaseApiTest):
             relations,
             source_id,
             "arn:aws:lambda:eu-west-1:731070500579:function:com-stackstate-prod-sam-seed-PutHello-1LUD3ESBOR6EY",
-            "has resource",
+            "has-resource",
         )
         # assert for kinesis stream relation
         top.assert_relation(
-            relations, source_id, "arn:aws:kinesis:eu-west-1:731070500579:stream/stream_1", "has resource"
+            relations, source_id, "arn:aws:kinesis:eu-west-1:731070500579:stream/stream_1", "has-resource"
         )
         # assert for s3 bucket relation
-        top.assert_relation(relations, source_id, "arn:aws:s3:::stackstate.com", "has resource")
+        top.assert_relation(relations, source_id, "arn:aws:s3:::stackstate.com", "has-resource")
         # assert for api_stage relation
-        top.assert_relation(relations, source_id, "arn:aws:execute-api:eu-west-1:731070500579:api_1", "has resource")
+        top.assert_relation(relations, source_id, "arn:aws:execute-api:eu-west-1:731070500579:api_1", "has-resource")
         # assert for loadbalancer relation
         top.assert_relation(
             relations,
             source_id,
             "arn:aws:elasticloadbalancing:eu-west-1:731070500579:loadbalancer/app/myfirstloadbalancer/90dd512583d2d7e9",
-            "has resource",
+            "has-resource",
         )
         # assert for target group relation
         top.assert_relation(
             relations,
             source_id,
             "arn:aws:elasticloadbalancing:eu-west-1:731070500579:targetgroup/myfirsttargetgroup/28ddec997ec55d21",
-            "has resource",
+            "has-resource",
         )
         # assert for autoscaling group relation
         top.assert_relation(
-            relations, source_id, "awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM", "has resource"
+            relations, source_id, "awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM", "has-resource"
         )
         # assert for elb classic loadbalancer  relation
         top.assert_relation(
             relations,
             source_id,
             "arn:aws:elasticloadbalancing:eu-west-1:731070500579:loadbalancer/classic-loadbalancer-1",
-            "has resource",
+            "has-resource",
         )
         # assert for rds relation
         top.assert_relation(
-            relations, source_id, "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase", "has resource"
+            relations, source_id, "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase", "has-resource"
         )
         # assert for sns topic relation
-        top.assert_relation(relations, source_id, "arn:aws:sns:eu-west-1:731070500579:my-topic-3", "has resource")
+        top.assert_relation(relations, source_id, "arn:aws:sns:eu-west-1:731070500579:my-topic-3", "has-resource")
         # assert for sqs queue relation
         top.assert_relation(
-            relations, source_id, "arn:aws:sqs:eu-west-1:731070500579:STS_stackpack_test", "has resource"
+            relations, source_id, "arn:aws:sqs:eu-west-1:731070500579:STS_stackpack_test", "has-resource"
         )
         # assert for dynamodb table relation
         top.assert_relation(
-            relations, source_id, "arn:aws:dynamodb:eu-west-1:731070500579:table/table_3", "has resource"
+            relations, source_id, "arn:aws:dynamodb:eu-west-1:731070500579:table/table_3", "has-resource"
         )
         # assert for ecs cluster relation
         top.assert_relation(
-            relations, source_id, "arn:aws:ecs:eu-west-1:731070500579:cluster/StackState-ECS-Cluster", "has resource"
+            relations, source_id, "arn:aws:ecs:eu-west-1:731070500579:cluster/StackState-ECS-Cluster", "has-resource"
         )
         # assert for ec2 instance relation
-        top.assert_relation(relations, source_id, "i-1234567890123456", "has resource")
+        top.assert_relation(relations, source_id, "i-1234567890123456", "has-resource")
 
         # assert for cloudformation nested stack
         top.assert_relation(
@@ -152,7 +152,7 @@ class TestAllApis(BaseApiTest):
             "arn:aws:cloudformation:eu-west-1:731070500579:stack/stackstate-topo-cwevents/"
             + "077bd960-9919-11e9-adb7-02135cc8443e",
             source_id,
-            "has resource",
+            "has-resource",
         )
 
         top.assert_all_checked(components, relations, unchecked_components=133)

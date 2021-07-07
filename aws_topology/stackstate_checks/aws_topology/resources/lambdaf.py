@@ -8,7 +8,8 @@ from .utils import (
 from .registry import RegisteredResourceCollector
 from collections import namedtuple
 from schematics import Model
-from schematics.types import StringType, ModelType
+from schematics.types import StringType, ModelType, DictType
+import re
 
 
 def create_arn(resource_id, region, account_id, **kwargs):
@@ -29,12 +30,16 @@ class FunctionAlias(Model):
 
 
 class Function(Model):
+    class EnvironmentVariables(Model):
+        Variables = DictType(StringType(), default={})
+
     class FunctionVpcConfig(Model):
         VpcId = StringType()
 
     FunctionName = StringType(required=True)
     FunctionArn = StringType(required=True)
     VpcConfig = ModelType(FunctionVpcConfig, default={})
+    Environment = ModelType(EnvironmentVariables)
 
 
 class LambdaCollector(RegisteredResourceCollector):
@@ -71,11 +76,8 @@ class LambdaCollector(RegisteredResourceCollector):
         return FunctionData(function=data, tags=tags, aliases=aliases)
 
     def collect_functions(self):
-        for function in [
-            self.collect_function(function_data)
-            for function_data in client_array_operation(self.client, "list_functions", "Functions")
-        ]:
-            yield function
+        for function_data in client_array_operation(self.client, "list_functions", "Functions"):
+            yield self.collect_function(function_data)
 
     def collect_event_sources(self):
         for event_source in client_array_operation(self.client, "list_event_source_mappings", "EventSourceMappings"):
@@ -117,7 +119,7 @@ class LambdaCollector(RegisteredResourceCollector):
         if event_source.State == "Enabled":
             output = make_valid_data(data)
             # Swapping source/target: StackState models dependencies, not data flow
-            self.emit_relation(event_source.FunctionArn, event_source.EventSourceArn, "uses service", output)
+            self.emit_relation(event_source.FunctionArn, event_source.EventSourceArn, "uses-service", output)
 
     @transformation()
     def process_function(self, data):
@@ -127,11 +129,21 @@ class LambdaCollector(RegisteredResourceCollector):
         function_arn = function.FunctionArn
         output["Name"] = function.FunctionName
         output["Tags"] = data.tags
-        self.emit_component(function_arn, self.COMPONENT_TYPE, output)
+        self.emit_component(function_arn, ".".join([self.COMPONENT_TYPE, "function"]), output)
 
         if function.VpcConfig.VpcId:
-            self.emit_relation(function_arn, function.VpcConfig.VpcId, "uses service", {})
+            self.emit_relation(function_arn, function.VpcConfig.VpcId, "uses-service", {})
             self.agent.create_security_group_relations(function_arn, output.get("VpcConfig"), "SecurityGroupIds")
+
+        if function.Environment:
+            for env in function.Environment.Variables.values():
+                # Match on a fully formed RDS URI, optionally with port number
+                if re.match(r".+\.[a-z0-9]{12}\.[a-z]{2}-([a-z]*-){1,2}\d\.rds\.amazonaws\.com(:\d{1,5})?$", env):
+                    rds_arn = self.agent.create_arn(
+                        "AWS::RDS::DBInstance", self.location_info, resource_id=env.split(".", 1)[0]
+                    )
+                    self.emit_relation(function_arn, rds_arn, "uses-service", {})
+
         # TODO also emit versions as components and relation to alias / canaries
         # https://stackstate.atlassian.net/browse/STAC-13113
         for alias_data in data.aliases:
@@ -139,9 +151,9 @@ class LambdaCollector(RegisteredResourceCollector):
             alias.validate()
             alias_output = make_valid_data(alias_data)
             alias_output["Function"] = output
-            self.emit_component(alias.AliasArn, "aws.lambda.alias", alias_output)
+            self.emit_component(alias.AliasArn, ".".join([self.COMPONENT_TYPE, "alias"]), alias_output)
             if function.VpcConfig.VpcId:
-                self.emit_relation(alias.AliasArn, function.VpcConfig.VpcId, "uses service", {})
+                self.emit_relation(alias.AliasArn, function.VpcConfig.VpcId, "uses-service", {})
 
     CLOUDFORMATION_TYPE = "AWS::Lambda::Function"
     EVENT_SOURCE = "lambda.amazonaws.com"

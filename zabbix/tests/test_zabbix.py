@@ -220,6 +220,7 @@ class TestZabbix(unittest.TestCase):
         self.assertEqual(len(topo_instances['relations']), 0)
 
         component = topo_instances['components'][0]
+        expected_identifier = ["urn:host:/stubbed.hostname", "stubbed.hostname", "zabbix01.example.com"]
         self.assertEqual(component['id'], 'urn:host:/zabbix01.example.com')
         self.assertEqual(component['type'], 'zabbix_host')
         self.assertEqual(component['data']['name'], 'Zabbix server')
@@ -227,7 +228,7 @@ class TestZabbix(unittest.TestCase):
         self.assertEqual(component['data']['host'], 'zabbix01.example.com')
         self.assertEqual(component['data']['layer'], 'Host')
         self.assertEqual(component['data']['domain'], 'Zabbix servers')
-        self.assertEqual(component['data']['identifiers'], ['zabbix01.example.com'])
+        self.assertEqual(component['data']['identifiers'], expected_identifier)
         self.assertEqual(component['data']['environment'], 'Production')
         self.assertEqual(component['data']['host_groups'], ['Zabbix servers'])
 

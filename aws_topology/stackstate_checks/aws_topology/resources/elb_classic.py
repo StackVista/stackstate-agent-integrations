@@ -40,7 +40,7 @@ class InstanceHealth(Model):
 class ELBClassicCollector(RegisteredResourceCollector):
     API = "elb"
     API_TYPE = "regional"
-    COMPONENT_TYPE = "aws.elb_classic"
+    COMPONENT_TYPE = "aws.elb-classic"
     CLOUDFORMATION_TYPE = "AWS::ElasticLoadBalancing::LoadBalancer"
     MAX_TAG_CALLS = 20  # This is the max items that can be requested in one describe_tags call
 
@@ -49,7 +49,6 @@ class ELBClassicCollector(RegisteredResourceCollector):
         max_items = self.MAX_TAG_CALLS  # Limit max items that we fetch to ensure call doesn't fail completely
         return self.client.describe_tags(LoadBalancerNames=elb_names[:max_items]).get("TagDescriptions", [])
 
-    @set_required_access_v2("elasticloadbalancing:DescribeLoadBalancers")
     def collect_elbs(self, **kwargs):
         for elb in client_array_operation(self.client, "describe_load_balancers", "LoadBalancerDescriptions", **kwargs):
             yield elb
@@ -69,6 +68,7 @@ class ELBClassicCollector(RegisteredResourceCollector):
                     tags = tag_result.get("Tags", [])
             self.process_elb(LoadBalancerData(elb=data, tags=tags, instance_health=instance_health))
 
+    @set_required_access_v2("elasticloadbalancing:DescribeLoadBalancers")
     def process_elbs(self, elb_names=[]):
         if elb_names:  # Only pass in LoadBalancerNames if a specific name is needed, otherwise ask for all
             paginator = self.collect_elbs(LoadBalancerNames=elb_names)
@@ -77,7 +77,7 @@ class ELBClassicCollector(RegisteredResourceCollector):
         elbs = []
         for elb in paginator:
             # Batch up elbs into groups, then process them in pages of 20
-            if len(elbs) >= self.MAX_TAG_CALLS:
+            if len(elbs) == self.MAX_TAG_CALLS:
                 self.process_elb_page(elbs)
                 elbs = []
             else:
@@ -104,12 +104,12 @@ class ELBClassicCollector(RegisteredResourceCollector):
         output["Name"] = elb.LoadBalancerName
         output["Tags"] = data.tags
         output["URN"] = [elb_arn]
-        self.emit_component(elb_arn, self.COMPONENT_TYPE, output)
-        self.emit_relation(elb_arn, elb.VPCId, "uses service", {})
+        self.emit_component(elb_arn, ".".join([self.COMPONENT_TYPE, "load-balancer"]), output)
+        self.emit_relation(elb_arn, elb.VPCId, "uses-service", {})
 
         for instance in output.get("Instances", []):
             instance_external_id = instance.get("InstanceId")  # ec2 instance
-            self.emit_relation(elb_arn, instance_external_id, "uses service", {})
+            self.emit_relation(elb_arn, instance_external_id, "uses-service", {})
 
         for instance_health in data.instance_health:
             health = InstanceHealth(instance_health, strict=False)

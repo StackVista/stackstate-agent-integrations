@@ -33,7 +33,7 @@ class TestAutoScaling(BaseApiTest):
         comp = top.assert_component(
             components,
             "awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM",
-            "aws.autoscaling",
+            "aws.autoscaling.group",
             checks={
                 "AutoScalingGroupARN": group_arn,
                 "Name": "awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM",
@@ -46,11 +46,11 @@ class TestAutoScaling(BaseApiTest):
             relations,
             "arn:aws:elasticloadbalancing:eu-west-1:731070500579:loadbalancer/awseb-e-g-AWSEBLoa-1WTFTHM4EDGUX",
             group_arn,
-            "uses service",
+            "uses-service",
         )
-        top.assert_relation(relations, group_arn, "i-063c119ff97e71b82", "uses service")
-        top.assert_relation(relations, group_arn, "i-0928b13f776ba8e76", "uses service")
-        top.assert_relation(relations, group_arn, "i-0ed02eb3eab5399fb", "uses service")
+        top.assert_relation(relations, group_arn, "i-063c119ff97e71b82", "uses-service")
+        top.assert_relation(relations, group_arn, "i-0928b13f776ba8e76", "uses-service")
+        top.assert_relation(relations, group_arn, "i-0ed02eb3eab5399fb", "uses-service")
 
         self.assertEqual(len(topology[0]["delete_ids"]), 3)
 

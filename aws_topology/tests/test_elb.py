@@ -21,7 +21,7 @@ class TestElasticLoadbalancingV2(BaseApiTest):
         top.assert_component(
             components,
             "arn:aws:elasticloadbalancing:eu-west-1:123456789012:loadbalancer/classic-loadbalancer-1",
-            "aws.elb_classic",
+            "aws.elb-classic.load-balancer",
             {
                 "LoadBalancerName": "classic-loadbalancer-1",
                 "Tags.stackstate-environment": "Production",
@@ -32,25 +32,25 @@ class TestElasticLoadbalancingV2(BaseApiTest):
             relations,
             "arn:aws:elasticloadbalancing:eu-west-1:123456789012:loadbalancer/classic-loadbalancer-1",
             "vpc-6b25d10e",
-            "uses service",
+            "uses-service",
         )
         top.assert_relation(
             relations,
             "arn:aws:elasticloadbalancing:eu-west-1:123456789012:loadbalancer/classic-loadbalancer-1",
             "sg-193aec7c",
-            "uses service",
+            "uses-service",
         )
         top.assert_relation(
             relations,
             "arn:aws:elasticloadbalancing:eu-west-1:123456789012:loadbalancer/classic-loadbalancer-1",
             "i-09388d5bfc0ab9e78",
-            "uses service",
+            "uses-service",
         )
         top.assert_relation(
             relations,
             "arn:aws:elasticloadbalancing:eu-west-1:123456789012:loadbalancer/classic-loadbalancer-1",
             "i-05b20853cc72c23c4",
-            "uses service",
+            "uses-service",
         )
 
         top.assert_all_checked(components, relations)

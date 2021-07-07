@@ -61,11 +61,8 @@ class ServiceDiscoveryCollector(RegisteredResourceCollector):
         return ServiceDiscoveryData(service=data, instances=instances, namespace=namespace)
 
     def collect_services(self):
-        for service in [
-            self.collect_service(service_data)
-            for service_data in client_array_operation(self.client, "list_services", "Services")
-        ]:
-            yield service
+        for service_data in client_array_operation(self.client, "list_services", "Services"):
+            yield self.collect_service(service_data)
 
     @set_required_access_v2("servicediscovery:ListServices")
     def process_services(self):
@@ -87,10 +84,10 @@ class ServiceDiscoveryCollector(RegisteredResourceCollector):
                 self.location_info.Location.AwsAccount,
                 instance.Attributes["ECS_SERVICE_NAME"],
             )
-            self.emit_relation(service_arn, hosted_zone_id, "uses service", {})
+            self.emit_relation(service_arn, hosted_zone_id, "uses-service", {})
         # Don't make a relation to EC2 if ECS is being used - this could be done directly in ECS
         elif "EC2_INSTANCE_ID" in instance.Attributes:
-            self.emit_relation(instance.Attributes["EC2_INSTANCE_ID"], hosted_zone_id, "uses service", {})
+            self.emit_relation(instance.Attributes["EC2_INSTANCE_ID"], hosted_zone_id, "uses-service", {})
 
     @transformation()
     def process_service(self, data):

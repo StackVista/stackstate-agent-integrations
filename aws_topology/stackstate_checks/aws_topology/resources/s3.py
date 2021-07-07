@@ -24,7 +24,7 @@ class BucketNotification(Model):
 class S3Collector(RegisteredResourceCollector):
     API = "s3"
     API_TYPE = "regional"
-    COMPONENT_TYPE = "aws.s3_bucket"
+    COMPONENT_TYPE = "aws.s3"
     CLOUDFORMATION_TYPE = "AWS::S3::Bucket"
 
     @set_required_access_v2("s3:ListBucket")
@@ -57,10 +57,8 @@ class S3Collector(RegisteredResourceCollector):
             return BucketData(bucket=bucket, location=location, tags=tags, config=config)
 
     def collect_buckets(self):
-        for bucket in [
-            self.collect_bucket(bucket) for bucket in client_array_operation(self.client, "list_buckets", "Buckets")
-        ]:
-            yield bucket
+        for bucket in client_array_operation(self.client, "list_buckets", "Buckets"):
+            yield self.collect_bucket(bucket)
 
     @set_required_access_v2("s3:ListAllMyBuckets")
     def process_buckets(self):
@@ -87,13 +85,13 @@ class S3Collector(RegisteredResourceCollector):
             output["BucketLocation"] = data.location
         output["Tags"] = data.tags
 
-        self.emit_component(bucket_arn, self.COMPONENT_TYPE, output)
+        self.emit_component(bucket_arn, ".".join([self.COMPONENT_TYPE, "bucket"]), output)
         for bucket_notification in config:
             bucket_notification.validate()
             function_arn = bucket_notification.LambdaFunctionArn
             if function_arn:  # pragma: no cover
                 for event in bucket_notification.Events:
-                    self.emit_relation(bucket_arn, function_arn, "uses service", {"event_type": event})
+                    self.emit_relation(bucket_arn, function_arn, "uses-service", {"event_type": event})
 
     EVENT_SOURCE = "s3.amazonaws.com"
     CLOUDTRAIL_EVENTS = [

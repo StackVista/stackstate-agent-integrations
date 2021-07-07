@@ -25,7 +25,7 @@ class TestDynamoDB(BaseApiTest):
         top.assert_component(
             components,
             "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1",
-            "aws.dynamodb",
+            "aws.dynamodb.table",
             checks={
                 "TableArn": "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1",
                 "Name": "table_1",
@@ -52,12 +52,12 @@ class TestDynamoDB(BaseApiTest):
             relations,
             "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1",
             "arn:aws:dynamodb:eu-west-1:731070500579:table/table_1/stream/2018-05-17T08:09:27.110",
-            "uses service",
+            "uses-service",
         )
 
-        top.assert_component(components, "arn:aws:dynamodb:eu-west-1:731070500579:table/table_2", "aws.dynamodb")
-        top.assert_component(components, "arn:aws:dynamodb:eu-west-1:731070500579:table/table_3", "aws.dynamodb")
-        top.assert_component(components, "arn:aws:dynamodb:eu-west-1:731070500579:table/table_4", "aws.dynamodb")
+        top.assert_component(components, "arn:aws:dynamodb:eu-west-1:731070500579:table/table_2", "aws.dynamodb.table")
+        top.assert_component(components, "arn:aws:dynamodb:eu-west-1:731070500579:table/table_3", "aws.dynamodb.table")
+        top.assert_component(components, "arn:aws:dynamodb:eu-west-1:731070500579:table/table_4", "aws.dynamodb.table")
 
         top.assert_all_checked(components, relations)
 

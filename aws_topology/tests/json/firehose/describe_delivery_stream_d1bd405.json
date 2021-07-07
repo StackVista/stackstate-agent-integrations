@@ -1,6 +1,6 @@
 {
     "DeliveryStreamDescription": {
-        "DeliveryStreamName": "dnv-sam-seed-button-clicked-firehose",
+        "DeliveryStreamName": "firehose_1",
         "DeliveryStreamARN": "arn:aws:firehose:eu-west-1:548105126730:deliverystream/firehose_1",
         "DeliveryStreamStatus": "ACTIVE",
         "DeliveryStreamType": "KinesisStreamAsSource",

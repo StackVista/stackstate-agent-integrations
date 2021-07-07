@@ -138,7 +138,7 @@ client.list_buckets().get("Buckets")
 describe_auto_scaling_groups_page.get('AutoScalingGroups')
     component
         id = data['AutoScalingGroupARN']
-        type = aws.autoscaling
+        type = aws.autoscaling.group
         data =
             ! make_valid_data
             + location_info
@@ -167,7 +167,7 @@ describe_auto_scaling_groups_page.get('AutoScalingGroups')
             auto_scaling_group_arn = auto_scaling_group_description['AutoScalingGroupARN']
             auto_scaling_group_description.update(location_info)
             auto_scaling_group_name = auto_scaling_group_description['AutoScalingGroupName']
-            agent.component(auto_scaling_group_arn, 'aws.autoscaling',
+            agent.component(auto_scaling_group_arn, 'aws.autoscaling.group',
                             correct_tags(auto_scaling_group_description))
             auto_scaling[auto_scaling_group_name] = auto_scaling_group_arn
             for instance in auto_scaling_group_description['Instances']:
