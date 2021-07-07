@@ -125,7 +125,7 @@ class StepFunctionCollector(RegisteredResourceCollector):
                 [{"key": "ActivityArn", "value": activity.activityArn}]
             )
         )
-        self.emit_component(activity.activityArn, ".".join([self.COMPONENT_TYPE, "activity"]), output)
+        self.emit_component(activity.activityArn, "activity", output)
 
     def process_one_state_machine(self, arn):
         self.process_state_machine(self.collect_state_machine({"stateMachineArn": arn}))
@@ -157,7 +157,7 @@ class StepFunctionCollector(RegisteredResourceCollector):
                 [{"key": "StateMachineArn", "value": state_machine.stateMachineArn}]
             )
         )
-        self.emit_component(state_machine.stateMachineArn, ".".join([self.COMPONENT_TYPE, "statemachine"]), output)
+        self.emit_component(state_machine.stateMachineArn, "statemachine", output)
         if state_machine.roleArn:
             self.emit_relation(state_machine.stateMachineArn, state_machine.roleArn, "uses-service", {})
         self.process_state_machine_relations(state_machine.stateMachineArn, state_machine.definition)
