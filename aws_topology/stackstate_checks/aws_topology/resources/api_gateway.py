@@ -145,7 +145,7 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
                 integration_arn = method_integration_uri[
                     method_integration_uri.rfind("arn") : method_integration_uri.find("/invocations")
                 ]
-                self.emit_relation(method_arn, integration_arn, "uses service", {})
+                self.emit_relation(method_arn, integration_arn, "uses-service", {})
             elif re.match("arn:aws:apigateway:.+:sqs:path/.+", method_integration_uri):
                 queue_arn = arn(
                     resource="sqs",
@@ -153,7 +153,7 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
                     account_id=method_integration_uri.split("/", 2)[1],
                     resource_id=method_integration_uri.rsplit("/", 1)[-1],
                 )
-                self.emit_relation(method_arn, queue_arn, "uses service", {})
+                self.emit_relation(method_arn, queue_arn, "uses-service", {})
 
             # Creates a dummy service component that is connected to the api gateway method
             # this dummy service component will merge with a real trace service
@@ -161,10 +161,10 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
                 parsed_uri = urlparse(method.methodIntegration.uri)
                 service_integration_urn = "urn:service:/{0}".format(parsed_uri.hostname)
                 self.emit_component(service_integration_urn, "aws.apigateway.method.http.integration", {})
-                self.emit_relation(method_arn, service_integration_urn, "uses service", {})
+                self.emit_relation(method_arn, service_integration_urn, "uses-service", {})
 
             self.emit_component(method_arn, ".".join([self.COMPONENT_TYPE, "method"]), method_data)
-            self.emit_relation(resource_arn, method_arn, "uses service", {})
+            self.emit_relation(resource_arn, method_arn, "uses-service", {})
 
     @transformation()
     def process_resource(self, data, stage, api, stage_arn):
@@ -190,7 +190,7 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
                 )
             )
             self.emit_component(resource_arn, ".".join([self.COMPONENT_TYPE, "resource"]), resource_data)
-            self.emit_relation(stage_arn, resource_arn, "uses service", {})
+            self.emit_relation(stage_arn, resource_arn, "uses-service", {})
 
             for method_id in resource.resourceMethods.keys():
                 self.process_resource_method(
@@ -235,7 +235,7 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
             output["Tags"] = stage.tags
 
         self.emit_component(stage_arn, ".".join([self.COMPONENT_TYPE, "stage"]), output)
-        self.emit_relation(rest_api_arn, stage_arn, "has resource", {})
+        self.emit_relation(rest_api_arn, stage_arn, "has-resource", {})
 
         for resource in resources:
             self.process_resource(resource, stage=stage, api=api, stage_arn=stage_arn)

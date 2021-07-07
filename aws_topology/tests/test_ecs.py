@@ -86,11 +86,11 @@ class TestEcs(BaseApiTest):
             relations,
             "arn:aws:ecs:eu-west-1:731070500579:service/sample-app-service",
             "arn:aws:elasticloadbalancing:eu-west-1:731070500579:targetgroup/EC2Co-Defau-7HYSTVRX07KO/a7e4eb718fda7510",
-            "uses service",
+            "uses-service",
         )
         # ECS cluster has an instance
         top.assert_relation(
-            relations, "arn:aws:ecs:eu-west-1:731070500579:cluster/StackState-ECS-Cluster", "string", "uses_ec2_host"
+            relations, "arn:aws:ecs:eu-west-1:731070500579:cluster/StackState-ECS-Cluster", "string", "uses-ec2-host"
         )
         top.assert_all_checked(components, relations)
 

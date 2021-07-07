@@ -206,12 +206,12 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
 
         # Map the subnet and if not available then map the VPC
         if instance.SubnetId:
-            self.emit_relation(instance.InstanceId, instance.SubnetId, "uses service", {})
+            self.emit_relation(instance.InstanceId, instance.SubnetId, "uses-service", {})
         elif instance.VpcId:  # pragma: no cover
-            self.emit_relation(instance.InstanceId, instance.VpcId, "uses service", {})
+            self.emit_relation(instance.InstanceId, instance.VpcId, "uses-service", {})
 
         for security_group in instance.SecurityGroups:
-            self.emit_relation(instance.InstanceId, security_group.GroupId, "uses service", {})
+            self.emit_relation(instance.InstanceId, security_group.GroupId, "uses-service", {})
 
         self.emit_component(instance.InstanceId, ".".join([self.COMPONENT_TYPE, "instance"]), output)
 
@@ -241,7 +241,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
             )
         ]
         if security_group.VpcId:  # pragma: no cover
-            self.emit_relation(security_group.VpcId, security_group.GroupId, "has resource", {})
+            self.emit_relation(security_group.VpcId, security_group.GroupId, "has-resource", {})
 
         self.emit_component(security_group.GroupId, "aws.security-group", output)
 
@@ -308,7 +308,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
             )
         ]
         self.emit_component(subnet.SubnetId, "aws.subnet", output)
-        self.emit_relation(subnet.SubnetId, subnet.VpcId, "uses service", {})
+        self.emit_relation(subnet.SubnetId, subnet.VpcId, "uses-service", {})
 
     def collect_vpn_gateways(self):
         for vpn_gateway in client_array_operation(
@@ -333,7 +333,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         self.emit_component(vpn_gateway.VpnGatewayId, "aws.vpngateway", output)
         for vpn_attachment in vpn_gateway.VpcAttachments:
             if vpn_attachment.State == "attached":
-                self.emit_relation(vpn_gateway.VpnGatewayId, vpn_attachment.VpcId, "uses service", {})
+                self.emit_relation(vpn_gateway.VpnGatewayId, vpn_attachment.VpcId, "uses-service", {})
 
     @transformation()
     def process_batch_instances(self, event, seen):

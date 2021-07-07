@@ -95,7 +95,7 @@ class SnsCollector(RegisteredResourceCollector):
             subscription.validate()
             if subscription.Protocol in ["lambda", "sqs"]:
                 # TODO subscriptions can be cross region! probably also cross account
-                self.emit_relation(topic_arn, subscription.Endpoint, "uses service", {})
+                self.emit_relation(topic_arn, subscription.Endpoint, "uses-service", {})
 
     EVENT_SOURCE = "sns.amazonaws.com"
     CLOUDTRAIL_EVENTS = [

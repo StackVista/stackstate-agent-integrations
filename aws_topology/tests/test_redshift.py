@@ -35,7 +35,7 @@ class TestRedshift(BaseApiTest):
             relations,
             "arn:aws:redshift:eu-west-1:731070500579:cluster:redshift-cluster-1",
             "vpc-c6d073bf",
-            "uses service",
+            "uses-service",
         )
 
         top.assert_all_checked(components, relations)

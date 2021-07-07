@@ -53,7 +53,7 @@ class RedshiftCollector(RegisteredResourceCollector):
         output["URN"] = [cluster_arn]
         self.emit_component(cluster_arn, ".".join([self.COMPONENT_TYPE, "cluster"]), output)
         if cluster.VpcId:
-            self.emit_relation(cluster_arn, cluster.VpcId, "uses service", {})
+            self.emit_relation(cluster_arn, cluster.VpcId, "uses-service", {})
 
     EVENT_SOURCE = "redshift.amazonaws.com"
     CLOUDTRAIL_EVENTS = [

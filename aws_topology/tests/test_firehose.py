@@ -46,13 +46,13 @@ class TestFirehose(BaseApiTest):
             relations,
             "arn:aws:kinesis:eu-west-1:548105126730:stream/stream_1",
             firehose_arn_prefix + "firehose_1",
-            "uses service",
+            "uses-service",
         )
         top.assert_relation(
-            relations, firehose_arn_prefix + "firehose_1", "arn:aws:s3:::firehose-bucket_1", "uses service"
+            relations, firehose_arn_prefix + "firehose_1", "arn:aws:s3:::firehose-bucket_1", "uses-service"
         )
         top.assert_relation(
-            relations, firehose_arn_prefix + "firehose_2", "arn:aws:s3:::firehose-bucket_2", "uses service"
+            relations, firehose_arn_prefix + "firehose_2", "arn:aws:s3:::firehose-bucket_2", "uses-service"
         )
 
         top.assert_all_checked(components, relations)
