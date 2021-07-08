@@ -203,7 +203,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
             output["Tags"].append({"Key": "public-ip", "Value": instance.PublicIpAddress})
 
         output["URN"] = urns
-            
+
         if data.instance_type:  # Don't run if instance type not found
             instance_type = self.process_instance_type(data.instance_type)
             output["isNitro"] = instance_type.Hypervisor == "nitro"

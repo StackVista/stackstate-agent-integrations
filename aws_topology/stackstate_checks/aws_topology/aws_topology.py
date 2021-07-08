@@ -15,7 +15,7 @@ from botocore.config import Config
 from stackstate_checks.base import AgentCheck, TopologyInstance
 from .resources import ResourceRegistry, type_arn, RegisteredResourceCollector
 from .utils import location_info, correct_tags, capitalize_keys, seconds_ago
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 import concurrent.futures
 import threading
@@ -113,7 +113,7 @@ class AwsTopologyCheck(AgentCheck):
             self.get_topology_update(instance_info, aws_client)
             if init_config.process_flow_logs:
                 self.get_flowlog_update(instance_info, aws_client)
-            self.service_check(self.SERVICE_CHECK_EXECUTE_NAME, AgentCheck.OK, tags=instance_info.tags)
+            self.service_check(self.SERVICE_CHECK_UPDATE_NAME, AgentCheck.OK, tags=instance_info.tags)
         except Exception as e:
             msg = "AWS topology update failed: {}".format(e)
             self.log.error(msg)
@@ -255,8 +255,8 @@ class AwsTopologyCheck(AgentCheck):
         self.delete_ids += agent_proxy.delete_ids
 
     def get_flowlog_update(self, instance_info, aws_client):
-        not_before = instance_info.state.last_full_topology - timedelta(seconds=60*60)
-        agent_proxy = AgentProxy(self, instance_info.role_arn)
+        not_before = self.last_full_topology - timedelta(seconds=60*60)
+        agent_proxy = AgentProxy(self, instance_info.role_arn, self.log)
         for region in instance_info.regions:
             session = aws_client.get_session(instance_info.role_arn, region)
             location = location_info(self.get_account_id(instance_info), session.region_name)

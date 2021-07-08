@@ -9,6 +9,8 @@ import botocore
 import io
 from .conftest import get_params_hash
 from functools import reduce
+from datetime import datetime
+import pytz
 
 
 def relative_path(path):
@@ -152,8 +154,7 @@ class TestFlowLogs(unittest.TestCase):
             regions = [regions]
         instance = {
             "role_arn": "arn:aws:iam::{}:role/RoleName".format(self.get_account_id()),
-            "regions": regions,
-            "state": {"last_full_topology": "2021-05-01T00:00:00"},
+            "regions": regions
         }
         if log_bucket_name:
             instance.update({"log_bucket_name": log_bucket_name})
@@ -161,6 +162,7 @@ class TestFlowLogs(unittest.TestCase):
         instance.update({"apis_to_run": apis})
 
         self.check = AwsTopologyCheck(self.CHECK_NAME, InitConfig(init_config), [instance])
+        self.check.last_full_topology = datetime(2021, 5, 1, 0, 0, 0).replace(tzinfo=pytz.utc)
         state_descriptor = self.check._get_state_descriptor()
         # clear the state
         self.check.state_manager.clear(state_descriptor)
@@ -170,14 +172,14 @@ class TestFlowLogs(unittest.TestCase):
         self.patcher.stop()
         self.extrapatch.stop()
 
-    def assert_executed_ok(self):
-        service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_EXECUTE_NAME)
+    def assert_updated_ok(self):
+        service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_UPDATE_NAME)
         self.assertGreater(len(service_checks), 0)
         self.assertEqual(service_checks[0].status, AgentCheck.OK, service_checks[0].message)
 
     def test_process_flowlogs(self):
         self.check.run()
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
 
