@@ -69,16 +69,16 @@ class AutoscalingCollector(RegisteredResourceCollector):
         output["Name"] = auto_scaling_group.AutoScalingGroupName
         output["URN"] = [auto_scaling_group.AutoScalingGroupARN]
         # using name here, s unique in region, arn is not resolvable from CF-resources
-        self.emit_component(auto_scaling_group.AutoScalingGroupName, self.COMPONENT_TYPE, output)
+        self.emit_component(auto_scaling_group.AutoScalingGroupName, "group", output)
 
         for instance in auto_scaling_group.Instances:
-            self.emit_relation(auto_scaling_group.AutoScalingGroupARN, instance.InstanceId, "uses service", {})
+            self.emit_relation(auto_scaling_group.AutoScalingGroupARN, instance.InstanceId, "uses-service", {})
 
         for load_balancer_name in auto_scaling_group.LoadBalancerNames:
             elb_arn = self.agent.create_arn(
                 "AWS::ElasticLoadBalancing::LoadBalancer", self.location_info, resource_id=load_balancer_name
             )
-            self.emit_relation(elb_arn, auto_scaling_group.AutoScalingGroupARN, "uses service", {})
+            self.emit_relation(elb_arn, auto_scaling_group.AutoScalingGroupARN, "uses-service", {})
 
             for instance in auto_scaling_group.Instances:
                 # removing elb instances if there are any
@@ -86,7 +86,7 @@ class AutoscalingCollector(RegisteredResourceCollector):
                 self.agent.delete(relation_id)
 
         for target_group_arn in auto_scaling_group.TargetGroupARNs:
-            self.emit_relation(target_group_arn, auto_scaling_group.AutoScalingGroupARN, "uses service", {})
+            self.emit_relation(target_group_arn, auto_scaling_group.AutoScalingGroupARN, "uses-service", {})
 
             for instance in auto_scaling_group.Instances:
                 # removing elb instances if there are any

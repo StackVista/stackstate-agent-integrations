@@ -102,15 +102,12 @@ class CloudformationCollector(RegisteredResourceCollector):
         return self.client.describe_stack_resources(StackName=stack_id).get("StackResources", [])
 
     def collect_stack(self, stack_data):
-        resources = self.collect_stack_resources(stack_data.get("StackId", ""))
+        resources = self.collect_stack_resources(stack_data.get("StackId")) or []
         return StackData(stack=stack_data, resources=resources)
 
     def collect_stacks(self):
-        for stack in [
-            self.collect_stack(stack_data)
-            for stack_data in client_array_operation(self.client, "describe_stacks", "Stacks")
-        ]:
-            yield stack
+        for stack_data in client_array_operation(self.client, "describe_stacks", "Stacks"):
+            yield self.collect_stack(stack_data)
 
     @set_required_access_v2("cloudformation:DescribeStacks")
     def process_stacks(self):
@@ -129,7 +126,7 @@ class CloudformationCollector(RegisteredResourceCollector):
             resource_arn = self.agent.create_arn(
                 resource.ResourceType, self.location_info, resource.PhysicalResourceId
             )
-            self.emit_relation(stack_id, resource_arn, "has resource", {})
+            self.emit_relation(stack_id, resource_arn, "has-resource", {})
 
     @transformation()
     def process_stack(self, data):
@@ -137,7 +134,7 @@ class CloudformationCollector(RegisteredResourceCollector):
         stack.validate()
         output = make_valid_data(data.stack)
         output["Name"] = stack.StackName
-        self.emit_component(stack.StackId, self.COMPONENT_TYPE, output)
+        self.emit_component(stack.StackId, "stack", output)
 
         for resource in data.resources:
             self.process_stack_resource(stack.StackId, resource)

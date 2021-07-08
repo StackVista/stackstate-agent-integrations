@@ -25,7 +25,7 @@ class Domain(Model):
 class Route53DomainCollector(RegisteredResourceCollector):
     API = "route53domains"
     API_TYPE = "global"
-    COMPONENT_TYPE = "aws.route53.domain"
+    COMPONENT_TYPE = "aws.route53"
 
     @set_required_access_v2("route53domains:ListTagsForDomain")
     def collect_tags(self, domain_name):
@@ -38,16 +38,13 @@ class Route53DomainCollector(RegisteredResourceCollector):
     def collect_domain(self, domain_data):
         domain_name = domain_data.get("DomainName", "")
         # ListDomains has some attributes that GetDomainDetail doesn't have, so add to original object
-        domain_data.update(self.collect_domain_description(domain_name))
+        domain_data.update(self.collect_domain_description(domain_name) or {})
         tags = self.collect_tags(domain_name) or []
         return DomainData(domain=domain_data, tags=tags)
 
     def collect_domains(self):
-        for domain in [
-            self.collect_domain(domain_data)
-            for domain_data in client_array_operation(self.client, "list_domains", "Domains")
-        ]:
-            yield domain
+        for domain_data in client_array_operation(self.client, "list_domains", "Domains"):
+            yield self.collect_domain(domain_data)
 
     @set_required_access_v2("route53domains:ListDomains")
     def process_domains(self):
@@ -72,4 +69,4 @@ class Route53DomainCollector(RegisteredResourceCollector):
         output["URN"] = [
             self.agent.create_arn("AWS::Route53Domains::Domain", self.location_info, resource_id=domain_name)
         ]
-        self.emit_component(domain_name, self.COMPONENT_TYPE, output)
+        self.emit_component(domain_name, "domain", output)

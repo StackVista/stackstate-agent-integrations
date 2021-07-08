@@ -23,19 +23,21 @@ class TestFirehose(BaseApiTest):
         top.assert_component(
             components,
             firehose_arn_prefix + "firehose_1",
-            "aws.firehose",
+            "aws.firehose.delivery-stream",
             checks={
-                "DeliveryStreamDescription.DeliveryStreamARN": firehose_arn_prefix + "firehose_1",
+                "Name": "firehose_1",
+                "DeliveryStreamARN": firehose_arn_prefix + "firehose_1",
                 "Tags.SomeKey": "SomeValue",
-                "CW.Dimensions": [{"Key": "DeliveryStreamName", "Value": "dnv-sam-seed-button-clicked-firehose"}],
+                "CW.Dimensions": [{"Key": "DeliveryStreamName", "Value": "firehose_1"}],
             },
         )
         top.assert_component(
             components,
             firehose_arn_prefix + "firehose_2",
-            "aws.firehose",
+            "aws.firehose.delivery-stream",
             checks={
-                "DeliveryStreamDescription.DeliveryStreamARN": firehose_arn_prefix + "firehose_2",
+                "Name": "firehose_2",
+                "DeliveryStreamARN": firehose_arn_prefix + "firehose_2",
                 "CW.Dimensions": [{"Key": "DeliveryStreamName", "Value": "firehose_2"}],
             },
         )
@@ -44,13 +46,13 @@ class TestFirehose(BaseApiTest):
             relations,
             "arn:aws:kinesis:eu-west-1:548105126730:stream/stream_1",
             firehose_arn_prefix + "firehose_1",
-            "uses service",
+            "uses-service",
         )
         top.assert_relation(
-            relations, firehose_arn_prefix + "firehose_1", "arn:aws:s3:::firehose-bucket_1", "uses service"
+            relations, firehose_arn_prefix + "firehose_1", "arn:aws:s3:::firehose-bucket_1", "uses-service"
         )
         top.assert_relation(
-            relations, firehose_arn_prefix + "firehose_2", "arn:aws:s3:::firehose-bucket_2", "uses service"
+            relations, firehose_arn_prefix + "firehose_2", "arn:aws:s3:::firehose-bucket_2", "uses-service"
         )
 
         top.assert_all_checked(components, relations)
@@ -72,8 +74,8 @@ class TestFirehose(BaseApiTest):
         self.assert_executed_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
-            "dnv-sam-seed-button-clicked-firehose",
-            topology[0]["components"][0]["data"]["DeliveryStreamDescription"]["DeliveryStreamName"],
+            "firehose_1",
+            topology[0]["components"][0]["data"]["DeliveryStreamName"],
         )
 
     @set_cloudtrail_event("delete_stream")

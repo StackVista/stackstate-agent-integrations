@@ -59,8 +59,8 @@ class Resource(Model):
 class Stage(Model):
     deploymentId = StringType(required=True)
     stageName = StringType(default="UNKNOWN")
-    variables = DictType(StringType)
-    tags = DictType(StringType)
+    variables = DictType(StringType, default={})
+    tags = DictType(StringType, default={})
 
 
 ApiData = namedtuple("ApiData", ["api", "stages", "resources"])
@@ -69,7 +69,7 @@ ApiData = namedtuple("ApiData", ["api", "stages", "resources"])
 class ApigatewayStageCollector(RegisteredResourceCollector):
     API = "apigateway"
     API_TYPE = "regional"
-    COMPONENT_TYPE = "aws.apigateway.stage"
+    COMPONENT_TYPE = "aws.apigateway"
 
     @set_required_access_v2("apigateway:GET")
     def collect_methods(self, resource_data, rest_api_id):
@@ -100,11 +100,8 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
         return ApiData(api=rest_api_data, stages=stages, resources=resources)
 
     def collect_rest_apis(self):
-        for rest_api in [
-            self.collect_rest_api(rest_api_data)
-            for rest_api_data in client_array_operation(self.client, "get_rest_apis", "items")
-        ]:
-            yield rest_api
+        for rest_api_data in client_array_operation(self.client, "get_rest_apis", "items"):
+            yield self.collect_rest_api(rest_api_data)
 
     @set_required_access_v2("apigateway:GET")
     def process_rest_apis(self):
@@ -148,7 +145,7 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
                 integration_arn = method_integration_uri[
                     method_integration_uri.rfind("arn") : method_integration_uri.find("/invocations")
                 ]
-                self.emit_relation(method_arn, integration_arn, "uses service", {})
+                self.emit_relation(method_arn, integration_arn, "uses-service", {})
             elif re.match("arn:aws:apigateway:.+:sqs:path/.+", method_integration_uri):
                 queue_arn = arn(
                     resource="sqs",
@@ -156,18 +153,19 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
                     account_id=method_integration_uri.split("/", 2)[1],
                     resource_id=method_integration_uri.rsplit("/", 1)[-1],
                 )
-                self.emit_relation(method_arn, queue_arn, "uses service", {})
+                self.emit_relation(method_arn, queue_arn, "uses-service", {})
 
             # Creates a dummy service component that is connected to the api gateway method
             # this dummy service component will merge with a real trace service
             if method.methodIntegration.type == "HTTP_PROXY":
                 parsed_uri = urlparse(method.methodIntegration.uri)
                 service_integration_urn = "urn:service:/{0}".format(parsed_uri.hostname)
-                self.emit_component(service_integration_urn, "aws.apigateway.method.http.integration", {})
-                self.emit_relation(method_arn, service_integration_urn, "uses service", {})
+                # This doesn't use the new component type format as it has external dependencies
+                self.emit_component(service_integration_urn, "method.http.integration", {})
+                self.emit_relation(method_arn, service_integration_urn, "uses-service", {})
 
-            self.emit_component(method_arn, "aws.apigateway.method", method_data)
-            self.emit_relation(resource_arn, method_arn, "uses service", {})
+            self.emit_component(method_arn, "method", method_data)
+            self.emit_relation(resource_arn, method_arn, "uses-service", {})
 
     @transformation()
     def process_resource(self, data, stage, api, stage_arn):
@@ -192,8 +190,8 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
                     ]
                 )
             )
-            self.emit_component(resource_arn, "aws.apigateway.resource", resource_data)
-            self.emit_relation(stage_arn, resource_arn, "uses service", {})
+            self.emit_component(resource_arn, "resource", resource_data)
+            self.emit_relation(stage_arn, resource_arn, "uses-service", {})
 
             for method_id in resource.resourceMethods.keys():
                 self.process_resource_method(
@@ -216,13 +214,17 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
             api.id,
             stage.stageName,
         )
-        stage_data = {
-            "DeploymentId": stage.deploymentId,
-            "StageName": stage.stageName,
-            "RestApiId": api.id,
-            "RestApiName": api.name,
-        }
-        stage_data.update(
+        output = make_valid_data(data)
+        output.update(
+            {
+                "Name": "{} - {}".format(api.name, stage.stageName),
+                "DeploymentId": stage.deploymentId,
+                "StageName": stage.stageName,
+                "RestApiId": api.id,
+                "RestApiName": api.name,
+            }
+        )
+        output.update(
             with_dimensions(
                 [
                     {"key": "Stage", "value": stage.stageName},
@@ -231,10 +233,10 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
             )
         )
         if stage.tags:
-            stage_data["tags"] = stage.tags
+            output["Tags"] = stage.tags
 
-        self.emit_component(stage_arn, self.COMPONENT_TYPE, stage_data)
-        self.emit_relation(rest_api_arn, stage_arn, "has resource", {})
+        self.emit_component(stage_arn, "stage", output)
+        self.emit_relation(rest_api_arn, stage_arn, "has-resource", {})
 
         for resource in resources:
             self.process_resource(resource, stage=stage, api=api, stage_arn=stage_arn)
@@ -243,9 +245,12 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
     def process_rest_api(self, data):
         api = Api(data.api, strict=False)
         api.validate()
+        output = make_valid_data(data.api)
         rest_api_arn = self.agent.create_arn("AWS::ApiGateway::RestApi", self.location_info, api.id)
-        rest_api_data = {"RestApiId": api.id, "RestApiName": api.name}
-        self.emit_component(rest_api_arn, "aws.apigateway", rest_api_data)
+        output["Name"] = api.name
+        output["RestApiId"] = api.id
+        output["RestApiName"] = api.name
+        self.emit_component(rest_api_arn, "rest-api", output)
 
         for stage in data.stages:
             self.process_stage(stage, api=api, resources=data.resources, rest_api_arn=rest_api_arn)

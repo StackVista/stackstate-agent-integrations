@@ -1,4 +1,4 @@
-from .utils import client_array_operation, make_valid_data, get_partition_name, set_required_access_v2
+from .utils import client_array_operation, make_valid_data, get_partition_name, set_required_access_v2, with_dimensions
 from .registry import RegisteredResourceCollector
 from collections import namedtuple
 import json
@@ -67,7 +67,7 @@ class Activity(Model):
 class StepFunctionCollector(RegisteredResourceCollector):
     API = "stepfunctions"
     API_TYPE = "regional"
-    COMPONENT_TYPE = "aws.stepfunction.statemachine"
+    COMPONENT_TYPE = "aws.stepfunction"
 
     @set_required_access_v2("states:ListTagsForResource")
     def collect_tags(self, arn):
@@ -84,11 +84,8 @@ class StepFunctionCollector(RegisteredResourceCollector):
         return StateMachineData(state_machine=state_machine, tags=tags)
 
     def collect_state_machines(self):
-        for state_machine in [
-            self.collect_state_machine(summary)
-            for summary in client_array_operation(self.client, "list_state_machines", "stateMachines")
-        ]:
-            yield state_machine
+        for state_machine_data in client_array_operation(self.client, "list_state_machines", "stateMachines"):
+            yield self.collect_state_machine(state_machine_data)
 
     def collect_activity(self, data):
         activity_arn = data.get("activityArn")
@@ -123,7 +120,12 @@ class StepFunctionCollector(RegisteredResourceCollector):
         activity = Activity(data.activity, strict=False)
         activity.validate()
         output["tags"] = data.tags
-        self.emit_component(activity.activityArn, "aws.stepfunction.activity", output)
+        output.update(
+            with_dimensions(
+                [{"key": "ActivityArn", "value": activity.activityArn}]
+            )
+        )
+        self.emit_component(activity.activityArn, "activity", output)
 
     def process_one_state_machine(self, arn):
         self.process_state_machine(self.collect_state_machine({"stateMachineArn": arn}))
@@ -150,9 +152,14 @@ class StepFunctionCollector(RegisteredResourceCollector):
         if "definition" in output:
             output.pop("definition")
         output["tags"] = data.tags
-        self.emit_component(state_machine.stateMachineArn, self.COMPONENT_TYPE, output)
+        output.update(
+            with_dimensions(
+                [{"key": "StateMachineArn", "value": state_machine.stateMachineArn}]
+            )
+        )
+        self.emit_component(state_machine.stateMachineArn, "statemachine", output)
         if state_machine.roleArn:
-            self.emit_relation(state_machine.stateMachineArn, state_machine.roleArn, "uses service", {})
+            self.emit_relation(state_machine.stateMachineArn, state_machine.roleArn, "uses-service", {})
         self.process_state_machine_relations(state_machine.stateMachineArn, state_machine.definition)
 
     def process_state_machine_relations(self, arn, definition):
@@ -166,12 +173,12 @@ class StepFunctionCollector(RegisteredResourceCollector):
     def process_state(self, sfn_arn, arn, state_name, state, is_start=False):
         state_arn = sfn_arn + ":state/" + state_name
         if is_start:
-            self.emit_relation(arn, state_arn, "uses service", {})  # starts state
+            self.emit_relation(arn, state_arn, "uses-service", {})  # starts state
         state["Name"] = state_name
         next_state = state.get("Next")
         if next_state:
             next_state_arn = sfn_arn + ":state/" + next_state
-            self.emit_relation(state_arn, next_state_arn, "uses service", {})  # can transition to
+            self.emit_relation(state_arn, next_state_arn, "uses-service", {})  # can transition to
         state_type = state.get("Type")
         if state_type == "Choice":
             self.process_choice_state(sfn_arn, state_arn, state.get("Choices"), state.get("Default"))
@@ -181,18 +188,18 @@ class StepFunctionCollector(RegisteredResourceCollector):
             self.process_parallel_state(sfn_arn, state_arn, state.get("Branches"))
         elif state_type == "Task":
             self.process_task_state(state_arn, state)
-        self.emit_component(state_arn, "aws.stepfunction.state", state)
+        self.emit_component(state_arn, "state", state)
 
     def process_choice_state(self, sfn_arn, state_arn, choices, default_state):
         choices = choices or []
         if default_state:
             default_state_arn = sfn_arn + ":state/" + default_state
-            self.emit_relation(state_arn, default_state_arn, "uses service", {})  # can transition to (default)
+            self.emit_relation(state_arn, default_state_arn, "uses-service", {})  # can transition to (default)
         for choice in choices:
             choice_next = choice.get("Next")
             if choice_next:
                 choice_arn = sfn_arn + ":state/" + choice_next
-                self.emit_relation(state_arn, choice_arn, "uses service", {})  # can transition to (choice)
+                self.emit_relation(state_arn, choice_arn, "uses-service", {})  # can transition to (choice)
 
     def process_map_state(self, sfn_arn, state_arn, iterator):
         iterator = iterator or {}
@@ -262,39 +269,39 @@ class StepFunctionCollector(RegisteredResourceCollector):
             state["IntegrationType"] = "lambda"
             fn_arn = self.get_function_reference(parameters.get("FunctionName"))
             if fn_arn:
-                self.emit_relation(state_arn, fn_arn, "uses service", {})
+                self.emit_relation(state_arn, fn_arn, "uses-service", {})
         elif resource.startswith("arn:{}:lambda:".format(partition)):
             state["IntegrationType"] = "lambda"
             fn_arn = self.get_function_reference(resource)
             if fn_arn:
-                self.emit_relation(state_arn, fn_arn, "uses service", {})
+                self.emit_relation(state_arn, fn_arn, "uses-service", {})
         elif resource.startswith("arn:{}:states:::dynamodb:".format(partition)):
             state["IntegrationType"] = "dynamodb"
             table_name = parameters.get("TableName")
             if table_name:
                 operation = resource[len("arn:{}:states:::dynamodb:".format(partition)) :]
                 table_arn = self.agent.create_arn("AWS::DynamoDB::Table", self.location_info, resource_id=table_name)
-                self.emit_relation(state_arn, table_arn, "uses service", {"operation": operation})
+                self.emit_relation(state_arn, table_arn, "uses-service", {"operation": operation})
         elif resource.startswith("arn:{}:states:::states:".format(partition)):
             state["IntegrationType"] = "stepfunctions"
             sfn_arn = parameters.get("StateMachineArn")
             if sfn_arn:
-                self.emit_relation(state_arn, sfn_arn, "uses service", {})  # TODO get the type of action
+                self.emit_relation(state_arn, sfn_arn, "uses-service", {})  # TODO get the type of action
         elif ":activity:" in resource:
             state["IntegrationType"] = "activity"
-            self.emit_relation(state_arn, resource, "uses service", {})
+            self.emit_relation(state_arn, resource, "uses-service", {})
         elif resource.startswith("arn:{}:states:::sns:".format(partition)):
             # TODO TopicArn (to topic) or TargetArn (to platform, no component yet)
             state["IntegrationType"] = "sns"
             topic_arn = parameters.get("TopicArn")
             if topic_arn:
-                self.emit_relation(state_arn, topic_arn, "uses service", {})  # TODO get the type of action
+                self.emit_relation(state_arn, topic_arn, "uses-service", {})  # TODO get the type of action
         elif resource.startswith("arn:{}:states:::sqs:".format(partition)):
             state["IntegrationType"] = "sqs"
             queue_url = parameters.get("QueueUrl")
             if queue_url:
                 queue_arn = self.agent.create_arn("AWS::SQS::Queue", self.location_info, queue_url)
-                self.emit_relation(state_arn, queue_arn, "uses service", {})  # TODO get the type of action
+                self.emit_relation(state_arn, queue_arn, "uses-service", {})  # TODO get the type of action
         elif resource.startswith("arn:{}:states:::ecs:".format(partition)):
             # TODO can be full ARN or family:revision
             # TODO NetworkConfiguration also has connection to securitygroups AND subnets
@@ -302,13 +309,13 @@ class StepFunctionCollector(RegisteredResourceCollector):
             definition_id = parameters.get("TaskDefinition")
             if definition_id:
                 definition_arn = definition_id
-                self.emit_relation(state_arn, definition_arn, "uses service", {})  # TODO get the type of action
+                self.emit_relation(state_arn, definition_arn, "uses-service", {})  # TODO get the type of action
             cluster_id = parameters.get("Cluster")
             if cluster_id:
                 cluster_arn = cluster_id
                 if not cluster_id.startswith("arn:"):
                     cluster_arn = self.agent.create_arn("AWS::ECS::Cluster", self.location_info, cluster_id)
-                self.emit_relation(state_arn, cluster_arn, "uses service", {})
+                self.emit_relation(state_arn, cluster_arn, "uses-service", {})
         elif resource.startswith("arn:{}:states:::apigateway:".format(partition)):
             state["IntegrationType"] = "apigateway"
             api_host = parameters.get("ApiEndpoint")
@@ -322,7 +329,7 @@ class StepFunctionCollector(RegisteredResourceCollector):
                     api_arn = self.agent.create_arn(
                         "AWS::ApiGateway::RestApi", self.location_info, api_id + "/" + api_stage
                     )
-                    self.emit_relation(state_arn, api_arn, "uses service", {})
+                    self.emit_relation(state_arn, api_arn, "uses-service", {})
 
     EVENT_SOURCE = "states.amazonaws.com"
     CLOUDTRAIL_EVENTS = [

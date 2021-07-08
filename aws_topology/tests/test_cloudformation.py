@@ -42,16 +42,16 @@ class TestCloudFormation(BaseApiTest):
         top.assert_component(
             components,
             stack1,
-            "aws.cloudformation",
+            "aws.cloudformation.stack",
             checks={"LastUpdatedTime": "2019-06-27T20:23:43.548Z", "StackName": "stackstate-topo-publisher"},
         )
         top.assert_component(
             components,
             stack2,
-            "aws.cloudformation",
+            "aws.cloudformation.stack",
             checks={"LastUpdatedTime": "2019-06-27T20:20:45.336Z", "StackName": "stackstate-topo-cwevents"},
         )
 
-        top.assert_relation(relations, stack2, stack1, "has resource")
+        top.assert_relation(relations, stack2, stack1, "has-resource")
 
         top.assert_all_checked(components, relations)

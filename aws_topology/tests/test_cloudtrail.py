@@ -10,6 +10,7 @@ import botocore
 from datetime import datetime
 from functools import reduce
 import io
+import pytz
 
 
 def relative_path(path):
@@ -118,6 +119,7 @@ def wrapper(testinstance, not_authorized, subdirectory, use_gz, events_file=None
 class CollectorMock(RegisteredResourceCollector):
     API = "noclient"
     API_TYPE = "regional"
+    COMPONENT_TYPE = "aws.test"
 
     def process_event(self, event, seen):
         id = ''
@@ -126,7 +128,7 @@ class CollectorMock(RegisteredResourceCollector):
         else:
             id = event["id"]
         if id not in seen:
-            self.emit_component(id, "aws.test", {})
+            self.emit_component(id, "", {})
             seen.add(id)
 
     def process_all(self, filter=None):
@@ -218,7 +220,6 @@ class TestCloudtrail(unittest.TestCase):
         instance = {
             "role_arn": "arn:aws:iam::{}:role/RoleName".format(self.get_account_id()),
             "regions": regions,
-            "state": {"last_full_topology": "2021-05-01T00:00:00"},
         }
         if log_bucket_name:
             instance.update({"log_bucket_name": log_bucket_name})
@@ -226,9 +227,7 @@ class TestCloudtrail(unittest.TestCase):
         instance.update({"apis_to_run": apis})
 
         self.check = AwsTopologyCheck(self.CHECK_NAME, InitConfig(init_config), [instance])
-        state_descriptor = self.check._get_state_descriptor()
-        # clear the state
-        self.check.state_manager.clear(state_descriptor)
+        self.check.last_full_topology = datetime(2021, 5, 1, 0, 0, 0).replace(tzinfo=pytz.utc)
         self.mock_object.side_effect = wrapper(self, not_authorized, subdirectory, use_gz, events_file=events_file)
 
     def tearDown(self):
@@ -237,7 +236,7 @@ class TestCloudtrail(unittest.TestCase):
         self.regpatch.stop()
 
     def assert_executed_ok(self):
-        service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_EXECUTE_NAME)
+        service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_UPDATE_NAME)
         self.assertGreater(len(service_checks), 0)
         self.assertEqual(service_checks[0].status, AgentCheck.OK, service_checks[0].message)
 

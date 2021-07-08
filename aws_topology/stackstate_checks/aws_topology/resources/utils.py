@@ -102,7 +102,7 @@ def replace_stage_variables(string, variables):
     :rtype: str
     """
     # Make sure there's something that needs to be replaced
-    if len(variables) == 0:
+    if not variables:
         return string
 
     replacements = {"${stageVariables." + name + "}": value for (name, value) in variables.items()}
@@ -121,7 +121,7 @@ def replace_stage_variables(string, variables):
 def create_security_group_relations(resource_id, resource_data, agent, security_group_field="SecurityGroups"):
     if resource_data.get(security_group_field):
         for security_group_id in resource_data[security_group_field]:
-            agent.relation(resource_id, security_group_id, "uses service", {})  # TODO
+            agent.relation(resource_id, security_group_id, "uses-service", {})  # TODO
 
 
 def deep_sort_lists(value):
@@ -225,7 +225,7 @@ def set_required_access_v2(value, ignore_codes=[]):
             except ClientError as e:
                 error = e.response.get("Error", {})
                 code = error.get("Code", "Unknown")
-                if code in ["AccessDenied", "AccessDeniedException"]:
+                if code in ["AccessDenied", "AccessDeniedException", "UnauthorizedOperation", "AuthorizationError"]:
                     iam_access = value if not isinstance(value, list) else ", ".join(value)
                     self.agent.warning("Role {} needs {}".format(self.agent.role_name, iam_access), **kwargs)
                 elif is_throttling_error(code):

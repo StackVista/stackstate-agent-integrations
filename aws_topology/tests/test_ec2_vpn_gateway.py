@@ -50,9 +50,6 @@ class TestVpnGateway(unittest.TestCase):
         topology.reset()
         aggregator.reset()
         self.check = AwsTopologyCheck(self.CHECK_NAME, config, [self.instance])
-        state_descriptor = self.check._get_state_descriptor()
-        # clear the state
-        self.check.state_manager.clear(state_descriptor)
 
         def results(operation_name, kwarg):
             return self.api_results.get(operation_name) or {}
@@ -72,7 +69,8 @@ class TestVpnGateway(unittest.TestCase):
         self.check.run()
         test_topology = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(test_topology["components"]), 1)
-        self.assertEqual(test_topology["components"][0]["type"], "aws.vpngateway")
+        self.assertEqual(test_topology["components"][0]["data"]["Name"], "vgw-b8c2fccc")
+        self.assertEqual(test_topology["components"][0]["type"], "aws.ec2.vpn-gateway")
         self.assertEqual(test_topology["components"][0]["id"], "vgw-b8c2fccc")
         self.assert_executed_ok()
 
@@ -86,11 +84,11 @@ class TestVpnGateway(unittest.TestCase):
         self.assertEqual(len(test_topology["relations"]), 1)
         self.assertEqual(
             test_topology["relations"][0],
-            {"source_id": "vgw-b8c2fccc", "target_id": "vpc-6b25d10e", "type": "uses service", "data": {}},
+            {"source_id": "vgw-b8c2fccc", "target_id": "vpc-6b25d10e", "type": "uses-service", "data": {}},
         )
         self.assert_executed_ok()
 
-    def test_vpm_gateway_with_tags(self):
+    def test_vpn_gateway_with_tags(self):
         self.api_results.update(SIMPLE_VPN_GATEWAY)
         self.api_results["DescribeVpnGateways"]["VpnGateways"][0].update(
             {"Tags": [{"Key": "Name", "Value": "my-first-vpn-gateway"}]}

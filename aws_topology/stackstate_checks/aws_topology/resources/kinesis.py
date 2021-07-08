@@ -55,11 +55,8 @@ class KinesisCollector(RegisteredResourceCollector):
         return StreamData(stream=data, tags=tags)
 
     def collect_streams(self):
-        for stream in [
-            self.collect_stream(stream_name)
-            for stream_name in client_array_operation(self.client, "list_streams", "StreamNames")
-        ]:
-            yield stream
+        for stream_name in client_array_operation(self.client, "list_streams", "StreamNames"):
+            yield self.collect_stream(stream_name)
 
     def process_all(self, filter=None):
         if not filter or "kinesis" in filter:
@@ -82,7 +79,7 @@ class KinesisCollector(RegisteredResourceCollector):
         stream_name = stream.StreamDescriptionSummary.StreamName
         output["Name"] = stream_name
         output["Tags"] = data.tags
-        self.emit_component(stream_arn, self.COMPONENT_TYPE, output)
+        self.emit_component(stream_arn, "data-stream", output)
         # There can also be relations with EC2 instances as enhanced fan out consumers
 
     EVENT_SOURCE = "kinesis.amazonaws.com"

@@ -56,37 +56,28 @@ class DynamodbTableCollector(RegisteredResourceCollector):
 
     def construct_table_description(self, table_name):
         return {
-            "Table": {
-                "TableName": table_name,
-                "TableArn": self.agent.create_arn("AWS::DynamoDB::Table", self.location_info, resource_id=table_name),
-            }
+            "TableName": table_name,
+            "TableArn": self.agent.create_arn("AWS::DynamoDB::Table", self.location_info, resource_id=table_name),
         }
 
     def collect_table(self, table_name):
         # If data collection fails, construct the ARN
         data = self.collect_table_description(table_name) or self.construct_table_description(table_name)
-        # If ARN creation fails, skip tag collection
-        if data.get("Table", {}).get("TableArn"):
-            tags = self.collect_tags(data["Table"]["TableArn"])
-        else:
-            tags = []
+        tags = self.collect_tags(data.get("TableArn")) or []
         return TableData(table=data, tags=tags)
 
-    @set_required_access_v2("dynamodb:ListTables")
     def collect_tables(self):
-        for table in [
-            self.collect_table(table_name)
-            for table_name in client_array_operation(self.client, "list_tables", "TableNames")
-        ]:
-            yield table
+        for table_name in client_array_operation(self.client, "list_tables", "TableNames"):
+            yield self.collect_table(table_name)
+
+    @set_required_access_v2("dynamodb:ListTables")
+    def process_tables(self):
+        for table_data in self.collect_tables():
+            self.process_table(table_data)
 
     def process_all(self, filter=None):
         if not filter or "dynamodb" in filter:
-            for table_data in self.collect_tables():
-                try:
-                    self.process_table(table_data)
-                except Exception:
-                    pass
+            self.process_tables()
 
     def process_one_table(self, table_name):
         self.process_table(self.collect_table(table_name))
@@ -101,7 +92,7 @@ class DynamodbTableCollector(RegisteredResourceCollector):
         output["Name"] = table_name
         output["Tags"] = data.tags
         output.update(with_dimensions([{"key": "TableName", "value": table_name}]))
-        self.emit_component(table_arn, self.COMPONENT_TYPE, output)
+        self.emit_component(table_arn, "table", output)
 
         latest_stream_arn = table.LatestStreamArn
         stream_specification = table.StreamSpecification
@@ -119,8 +110,8 @@ class DynamodbTableCollector(RegisteredResourceCollector):
                     [{"key": "TableName", "value": table_name}, {"key": "StreamLabel", "value": latest_stream_label}]
                 )
             )
-            self.emit_component(latest_stream_arn, "aws.dynamodb.streams", stream)
-            self.emit_relation(table_arn, latest_stream_arn, "uses service", {})
+            self.emit_component(latest_stream_arn, "streams", stream)
+            self.emit_relation(table_arn, latest_stream_arn, "uses-service", {})
         return {table_name: table_arn}
 
     def process_resource(self, arn):

@@ -25,7 +25,7 @@ class TestRds(BaseApiTest):
         top.assert_component(
             components,
             "arn:aws:rds:eu-west-1:731070500579:cluster:productiondatabasecluster",
-            "aws.rds_cluster",
+            "aws.rds.cluster",
             checks={
                 "DBClusterArn": "arn:aws:rds:eu-west-1:731070500579:cluster:productiondatabasecluster",
                 "Name": "arn:aws:rds:eu-west-1:731070500579:cluster:productiondatabasecluster",
@@ -37,13 +37,13 @@ class TestRds(BaseApiTest):
         top.assert_component(
             components,
             "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase",
-            "aws.rds_instance",
+            "aws.rds.instance",
         )
         # instance 2
         top.assert_component(
             components,
             "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase-eu-west-1c",
-            "aws.rds_instance",
+            "aws.rds.instance",
             checks={
                 "DBInstanceIdentifier": "productiondatabase-eu-west-1c",
                 "Name": "productiondatabase-eu-west-1c",
@@ -70,25 +70,25 @@ class TestRds(BaseApiTest):
         )
         # instance-1 <-> vpc
         top.assert_relation(
-            relations, "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase", "vpc-6b25d10e", "uses service"
+            relations, "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase", "vpc-6b25d10e", "uses-service"
         )
         # instance-1 <-> security group
         top.assert_relation(
-            relations, "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase", "sg-053ecf78", "uses service"
+            relations, "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase", "sg-053ecf78", "uses-service"
         )
         # instance-1 <-> vpc
         top.assert_relation(
             relations,
             "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase-eu-west-1c",
             "vpc-6b25d10e",
-            "uses service",
+            "uses-service",
         )
         # instance-1 <-> security group
         top.assert_relation(
             relations,
             "arn:aws:rds:eu-west-1:731070500579:db:productiondatabase-eu-west-1c",
             "sg-053ecf78",
-            "uses service",
+            "uses-service",
         )
 
         top.assert_all_checked(components, relations)

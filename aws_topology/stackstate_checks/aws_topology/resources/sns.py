@@ -63,11 +63,8 @@ class SnsCollector(RegisteredResourceCollector):
         return TopicData(topic=data, tags=tags, subscriptions=subscriptions)
 
     def collect_topics(self):
-        for topic in [
-            self.collect_topic(topic_data)
-            for topic_data in client_array_operation(self.client, "list_topics", "Topics")
-        ]:
-            yield topic
+        for topic_data in client_array_operation(self.client, "list_topics", "Topics"):
+            yield self.collect_topic(topic_data)
 
     def process_all(self, filter=None):
         if not filter or "topics" in filter:
@@ -91,14 +88,14 @@ class SnsCollector(RegisteredResourceCollector):
         output["Name"] = topic_name
         output["Tags"] = data.tags
         output.update(with_dimensions([{"key": "TopicName", "value": topic_name}]))
-        self.emit_component(topic_arn, self.COMPONENT_TYPE, output)
+        self.emit_component(topic_arn, "topic", output)
 
         for subscription_by_topic in data.subscriptions:
             subscription = Subscription(subscription_by_topic, strict=False)
             subscription.validate()
             if subscription.Protocol in ["lambda", "sqs"]:
                 # TODO subscriptions can be cross region! probably also cross account
-                self.emit_relation(topic_arn, subscription.Endpoint, "uses service", {})
+                self.emit_relation(topic_arn, subscription.Endpoint, "uses-service", {})
 
     EVENT_SOURCE = "sns.amazonaws.com"
     CLOUDTRAIL_EVENTS = [
