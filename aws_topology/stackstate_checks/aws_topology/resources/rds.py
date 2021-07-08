@@ -122,7 +122,7 @@ class RdsCollector(RegisteredResourceCollector):
         output = make_valid_data(data)
         cluster_id = cluster.DBClusterIdentifier
         cluster_arn = cluster.DBClusterArn
-        output["Name"] = cluster_arn
+        output["Name"] = cluster_id
         output["Tags"] = cluster.TagList
         urns = []
         if cluster.Endpoint:
