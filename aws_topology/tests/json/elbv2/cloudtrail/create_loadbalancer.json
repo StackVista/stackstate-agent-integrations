@@ -1,0 +1,96 @@
+{
+    "eventVersion": "1.08",
+    "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROAUHNFPQM253JKRZCRS:user",
+        "arn": "arn:aws:sts::731070500579:assumed-role/Administrator/user",
+        "accountId": "731070500579",
+        "accessKeyId": "ASIAJYWOP6P2GYXJZIPQ",
+        "sessionContext": {
+            "sessionIssuer": {
+                "type": "Role",
+                "principalId": "AROAUHNFPQM253JKRZCRS",
+                "arn": "arn:aws:iam::731070500579:role/Administrator",
+                "accountId": "731070500579",
+                "userName": "Administrator"
+            },
+            "webIdFederationData": {},
+            "attributes": {
+                "mfaAuthenticated": "false",
+                "creationDate": "2021-04-29T13:08:29Z"
+            }
+        },
+        "invokedBy": "cloudformation.amazonaws.com"
+    },
+    "eventTime": "2021-04-29T14:06:21Z",
+    "eventSource": "elasticloadbalancing.amazonaws.com",
+    "eventName": "CreateLoadBalancer",
+    "awsRegion": "eu-west-1",
+    "sourceIPAddress": "cloudformation.amazonaws.com",
+    "userAgent": "cloudformation.amazonaws.com",
+    "requestParameters": {
+        "securityGroups": [
+            "sg-05b7bb98078f65701"
+        ],
+        "type": "application",
+        "subnetMappings": [
+            {
+                "subnetId": "subnet-0a2f1fe14c3bf603a"
+            },
+            {
+                "subnetId": "subnet-0c1174f87ac8ed0d6"
+            },
+            {
+                "subnetId": "subnet-0d517eb1ca3c62ea1"
+            }
+        ],
+        "name": "myfirstloadbalancer",
+        "scheme": "internal"
+    },
+    "responseElements": {
+        "loadBalancers": [
+            {
+                "loadBalancerName": "myfirstloadbalancer",
+                "securityGroups": [
+                    "sg-05b7bb98078f65701"
+                ],
+                "state": {
+                    "code": "provisioning"
+                },
+                "dNSName": "internal-myfirstloadbalancer-1780434672.eu-west-1.elb.amazonaws.com",
+                "canonicalHostedZoneId": "Z32O12XQLNTSW2",
+                "loadBalancerArn": "arn:aws:elasticloadbalancing:eu-west-1:731070500579:loadbalancer/app/myfirstloadbalancer/90dd512583d2d7e9",
+                "type": "application",
+                "vpcId": "vpc-0b2efd20708d0e477",
+                "availabilityZones": [
+                    {
+                        "loadBalancerAddresses": [],
+                        "subnetId": "subnet-0a2f1fe14c3bf603a",
+                        "zoneName": "eu-west-1c"
+                    },
+                    {
+                        "loadBalancerAddresses": [],
+                        "subnetId": "subnet-0c1174f87ac8ed0d6",
+                        "zoneName": "eu-west-1b"
+                    },
+                    {
+                        "loadBalancerAddresses": [],
+                        "subnetId": "subnet-0d517eb1ca3c62ea1",
+                        "zoneName": "eu-west-1a"
+                    }
+                ],
+                "ipAddressType": "ipv4",
+                "createdTime": "Apr 29, 2021 2:06:21 PM",
+                "scheme": "internal"
+            }
+        ]
+    },
+    "requestID": "890020ee-5b37-491c-addb-2876cc4c58c8",
+    "eventID": "b67f5526-e399-4fb4-89c3-f5bbc69d290c",
+    "readOnly": false,
+    "eventType": "AwsApiCall",
+    "apiVersion": "2015-12-01",
+    "managementEvent": true,
+    "eventCategory": "Management",
+    "recipientAccountId": "731070500579"
+}

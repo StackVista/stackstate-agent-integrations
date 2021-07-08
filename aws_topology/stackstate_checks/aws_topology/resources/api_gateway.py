@@ -1,7 +1,17 @@
-import copy
 import re
-from .utils import with_dimensions, make_valid_data, create_arn as arn, replace_stage_variables
+from .utils import (
+    set_required_access_v2,
+    with_dimensions,
+    make_valid_data,
+    create_arn as arn,
+    replace_stage_variables,
+    transformation,
+    client_array_operation,
+)
 from .registry import RegisteredResourceCollector
+from collections import namedtuple
+from schematics import Model
+from schematics.types import StringType, ModelType, DictType
 
 try:
     from urlparse import urlparse
@@ -10,154 +20,237 @@ except ImportError:
 
 
 def create_api_arn(region=None, account_id=None, resource_id=None, **kwargs):
-    return arn(resource='execute-api', region=region, account_id=account_id, resource_id=resource_id)
+    return arn(resource="execute-api", region=region, account_id=account_id, resource_id=resource_id)
 
 
 def create_stage_arn(region=None, account_id=None, resource_id=None, **kwargs):
-    return arn(resource='execute-api', region=region, account_id=account_id, resource_id=resource_id)
+    return arn(resource="execute-api", region=region, account_id=account_id, resource_id=resource_id)
 
 
 def create_resource_arn(region=None, account_id=None, resource_id=None, **kwargs):
-    return arn(resource='execute-api', region=region, account_id=account_id, resource_id=resource_id)
+    return arn(resource="execute-api", region=region, account_id=account_id, resource_id=resource_id)
 
 
 def create_method_arn(region=None, account_id=None, resource_id=None, **kwargs):
-    return arn(resource='execute-api', region=region, account_id=account_id, resource_id=resource_id)
+    return arn(resource="execute-api", region=region, account_id=account_id, resource_id=resource_id)
+
+
+class Api(Model):
+    id = StringType(required=True)
+    name = StringType(default="UNKNOWN")
+
+
+class ResourceMethod(Model):
+    class ResourceMethodIntegration(Model):
+        type = StringType(default="UNKNOWN")
+        uri = StringType(required=True)
+
+    httpMethod = StringType()
+    methodIntegration = ModelType(ResourceMethodIntegration)
+
+
+class Resource(Model):
+    id = StringType(required=True)
+    path = StringType(required=True)
+    pathPart = StringType(default=None)
+    resourceMethods = DictType(ModelType(ResourceMethod), default={})
+
+
+class Stage(Model):
+    deploymentId = StringType(required=True)
+    stageName = StringType(default="UNKNOWN")
+    variables = DictType(StringType, default={})
+    tags = DictType(StringType, default={})
+
+
+ApiData = namedtuple("ApiData", ["api", "stages", "resources"])
 
 
 class ApigatewayStageCollector(RegisteredResourceCollector):
     API = "apigateway"
     API_TYPE = "regional"
-    COMPONENT_TYPE = "aws.apigateway.stage"
+    COMPONENT_TYPE = "aws.apigateway"
+
+    @set_required_access_v2("apigateway:GET")
+    def collect_methods(self, resource_data, rest_api_id):
+        for method in resource_data.get("resourceMethods", {}).keys():
+            # The boto3 docs suggest that methods are returned in the get_resources call; this is a lie.
+            if not resource_data["resourceMethods"][method]:
+                resource_data["resourceMethods"][method] = (
+                    self.client.get_method(restApiId=rest_api_id, resourceId=resource_data.get("id"), httpMethod=method)
+                    or {}
+                )
+        return resource_data
+
+    @set_required_access_v2("apigateway:GET")
+    def collect_resources(self, rest_api_id):
+        return [
+            self.collect_methods(resource, rest_api_id)
+            for resource in client_array_operation(self.client, "get_resources", "items", restApiId=rest_api_id)
+        ] or []
+
+    @set_required_access_v2("apigateway:GET")
+    def collect_stages(self, rest_api_id):
+        return self.client.get_stages(restApiId=rest_api_id).get("item", [])
+
+    def collect_rest_api(self, rest_api_data):
+        rest_api_id = rest_api_data.get("id", "")
+        stages = self.collect_stages(rest_api_id)
+        resources = self.collect_resources(rest_api_id)
+        return ApiData(api=rest_api_data, stages=stages, resources=resources)
+
+    def collect_rest_apis(self):
+        for rest_api_data in client_array_operation(self.client, "get_rest_apis", "items"):
+            yield self.collect_rest_api(rest_api_data)
+
+    @set_required_access_v2("apigateway:GET")
+    def process_rest_apis(self):
+        for rest_api_data in self.collect_rest_apis():
+            self.process_rest_api(rest_api_data)
 
     def process_all(self, filter=None):
-        # array because same rest_api_id can have multiple stages and cloudformation
-        # takes rest_api_id as an Physical resource ID for the stack
-        for rest_apis_page in self.client.get_paginator('get_rest_apis').paginate():
-            for rest_api in rest_apis_page.get('items') or []:
-                rest_api_id = rest_api['id']
-                rest_api_data = {
-                    'RestApiId': rest_api['id'],
-                    'RestApiName': rest_api['name']
+        if not filter or "apis" in filter:
+            self.process_rest_apis()
+
+    @transformation()
+    def process_resource_method(self, data, method, resource, stage, api, stage_arn, resource_arn):
+        if method.methodIntegration and method.methodIntegration.type in ["AWS_PROXY", "AWS", "HTTP_PROXY"]:
+            method_data = make_valid_data(data)
+            method_arn = "{}/{}{}".format(stage_arn, method.httpMethod, resource.path)
+            method_data.update(
+                {
+                    "ResourceId": resource.id,
+                    "Path": resource.path,
+                    "PathPart": resource.pathPart,
+                    "DeploymentId": stage.deploymentId,
+                    "StageName": stage.stageName,
+                    "RestApiId": api.id,
+                    "RestApiName": api.name,
                 }
-                rest_api_arn = self.agent.create_arn('AWS::ApiGateway::RestApi', self.location_info, rest_api_id)
-                self.emit_component(rest_api_arn, 'aws.apigateway', rest_api_data)
-                stages = [
-                    stage
-                    for stage in self.client.get_stages(restApiId=rest_api_id)['item']
-                ]
-                resources = [
-                    resource
-                    for rest_api_resource_page in self.client.get_paginator(
-                        'get_resources'
-                    ).paginate(restApiId=rest_api_id)
-                    for resource in rest_api_resource_page['items']
-                    if 'resourceMethods' in resource
-                ]
-                http_methods_per_resource = {
-                    resource['id']: [
-                        method_details
-                        for method_details in [
-                            self.client.get_method(
-                                restApiId=rest_api_id,
-                                resourceId=resource['id'],
-                                httpMethod=http_method
-                            )
-                            for http_method in sorted(resource['resourceMethods'].keys())
-                        ]
-                        if method_details.get('methodIntegration') and method_details['methodIntegration']['type']
-                        in ['AWS_PROXY', 'AWS', 'HTTP_PROXY']
+            )
+            method_data.update(
+                with_dimensions(
+                    [
+                        {"key": "Method", "value": method.httpMethod},
+                        {"key": "Resource", "value": resource.path},
+                        {"key": "Stage", "value": stage.stageName},
+                        {"key": "ApiName", "value": api.name},
                     ]
-                    for resource in resources
-                }
+                )
+            )
+            method_integration_uri = replace_stage_variables(method.methodIntegration.uri, stage.variables)
+            method_data["methodIntegration"]["uri"] = method_integration_uri
 
-                # send stages
-                for stage in stages:
-                    stage_name = stage['stageName']
-                    stage_arn = 'arn:aws:execute-api:{}:{}:{}/{}'.format(
-                        self.location_info['Location']['AwsRegion'],
-                        self.location_info['Location']['AwsAccount'],
-                        rest_api_id, stage_name
-                    )
+            if method.methodIntegration.type == "AWS_PROXY":
+                integration_arn = method_integration_uri[
+                    method_integration_uri.rfind("arn") : method_integration_uri.find("/invocations")
+                ]
+                self.emit_relation(method_arn, integration_arn, "uses-service", {})
+            elif re.match("arn:aws:apigateway:.+:sqs:path/.+", method_integration_uri):
+                queue_arn = arn(
+                    resource="sqs",
+                    region=method_integration_uri.split(":", 4)[3],
+                    account_id=method_integration_uri.split("/", 2)[1],
+                    resource_id=method_integration_uri.rsplit("/", 1)[-1],
+                )
+                self.emit_relation(method_arn, queue_arn, "uses-service", {})
 
-                    stage_data = {
-                        'DeploymentId': stage['deploymentId'],
-                        'StageName': stage_name
-                    }
-                    if 'tags' in stage:
-                        stage_data['tags'] = stage['tags']
-                    stage_data.update(rest_api_data)
-                    stage_data.update(with_dimensions([
-                        {'key': 'Stage', 'value': stage_name},
-                        {'key': 'ApiName', 'value': rest_api_data['RestApiName']}
-                    ]))
+            # Creates a dummy service component that is connected to the api gateway method
+            # this dummy service component will merge with a real trace service
+            if method.methodIntegration.type == "HTTP_PROXY":
+                parsed_uri = urlparse(method.methodIntegration.uri)
+                service_integration_urn = "urn:service:/{0}".format(parsed_uri.hostname)
+                # This doesn't use the new component type format as it has external dependencies
+                self.emit_component(service_integration_urn, "method.http.integration", {})
+                self.emit_relation(method_arn, service_integration_urn, "uses-service", {})
 
-                    self.emit_component(stage_arn, self.COMPONENT_TYPE, stage_data)
-                    self.agent.relation(rest_api_arn, stage_arn, "has resource", {})
+            self.emit_component(method_arn, "method", method_data)
+            self.emit_relation(resource_arn, method_arn, "uses-service", {})
 
-                    # send resources per stage
-                    for resource in resources:
-                        resource_path = resource['path']
-                        resource_arn = '{}/*{}'.format(stage_arn, resource_path)
-                        resource_data = {
-                            'ResourceId': resource['id'],
-                            'Path': resource_path,
-                            'PathPart': resource.get("pathPart", None)
-                        }
+    @transformation()
+    def process_resource(self, data, stage, api, stage_arn):
+        resource = Resource(data, strict=False)
+        resource.validate()
+        if resource.resourceMethods:
+            resource_arn = "{}/*{}".format(stage_arn, resource.path)
+            resource_data = {
+                "ResourceId": resource.id,
+                "Path": resource.path,
+                "PathPart": resource.pathPart,
+                "DeploymentId": stage.deploymentId,
+                "StageName": stage.stageName,
+                "RestApiId": api.id,
+                "RestApiName": api.name,
+            }
+            resource_data.update(
+                with_dimensions(
+                    [
+                        {"key": "Stage", "value": stage.stageName},
+                        {"key": "ApiName", "value": api.name},
+                    ]
+                )
+            )
+            self.emit_component(resource_arn, "resource", resource_data)
+            self.emit_relation(stage_arn, resource_arn, "uses-service", {})
 
-                        resource_data.update(stage_data)
-                        self.emit_component(resource_arn, 'aws.apigateway.resource', resource_data)
-                        self.agent.relation(stage_arn, resource_arn, 'uses service', {})
+            for method_id in resource.resourceMethods.keys():
+                self.process_resource_method(
+                    data["resourceMethods"][method_id],
+                    method=resource.resourceMethods[method_id],
+                    resource=resource,
+                    stage=stage,
+                    api=api,
+                    stage_arn=stage_arn,
+                    resource_arn=resource_arn,
+                )
 
-                        # send methods per resource per stage
-                        for method_raw in http_methods_per_resource[resource['id']]:
-                            method = make_valid_data(method_raw)
-                            method_arn = '{}/{}{}'.format(stage_arn, method['httpMethod'], resource_path)
-                            method_data = copy.deepcopy(method)
-                            method_data.update(resource_data)
-                            method_data.update(with_dimensions([
-                                {'key': 'Method', 'value': method['httpMethod']},
-                                {'key': 'Resource', 'value': resource_data['Path']},
-                                {'key': 'Stage', 'value': resource_data['StageName']},
-                                {'key': 'ApiName', 'value': resource_data['RestApiName']}
-                            ]))
+    @transformation()
+    def process_stage(self, data, api, resources, rest_api_arn):
+        stage = Stage(data, strict=False)
+        stage.validate()
+        stage_arn = "arn:aws:execute-api:{}:{}:{}/{}".format(
+            self.location_info.Location.AwsRegion,
+            self.location_info.Location.AwsAccount,
+            api.id,
+            stage.stageName,
+        )
+        output = make_valid_data(data)
+        output.update(
+            {
+                "Name": "{} - {}".format(api.name, stage.stageName),
+                "DeploymentId": stage.deploymentId,
+                "StageName": stage.stageName,
+                "RestApiId": api.id,
+                "RestApiName": api.name,
+            }
+        )
+        output.update(
+            with_dimensions(
+                [
+                    {"key": "Stage", "value": stage.stageName},
+                    {"key": "ApiName", "value": api.name},
+                ]
+            )
+        )
+        if stage.tags:
+            output["Tags"] = stage.tags
 
-                            method_integration_uri = replace_stage_variables(
-                                method_data['methodIntegration']['uri'], stage['variables']
-                            ) if 'variables' in stage else method_data['methodIntegration']['uri']
-                            method_data['methodIntegration']['uri'] = method_integration_uri
+        self.emit_component(stage_arn, "stage", output)
+        self.emit_relation(rest_api_arn, stage_arn, "has-resource", {})
 
-                            integration_arn = None
-                            if method_data['methodIntegration']['type'] == 'AWS_PROXY':
-                                integration_arn = method_integration_uri[
-                                    method_integration_uri.rfind('arn'):method_integration_uri.find('/invocations')
-                                ]
-                            elif re.match("arn:aws:apigateway:.+:sqs:path/.+", method_integration_uri):
-                                #  TODO cross region fails
-                                queue_name = method_integration_uri.rsplit('/', 1)[-1]
-                                queue_arn = arn(
-                                    'sqs',
-                                    self.location_info['Location']['AwsRegion'],
-                                    self.location_info['Location']['AwsAccount'],
-                                    queue_name
-                                )
-                                integration_arn = queue_arn
+        for resource in resources:
+            self.process_resource(resource, stage=stage, api=api, stage_arn=stage_arn)
 
-                            self.emit_component(method_arn, 'aws.apigateway.method', method_data)
-                            self.agent.relation(resource_arn, method_arn, 'uses service', {})
+    @transformation()
+    def process_rest_api(self, data):
+        api = Api(data.api, strict=False)
+        api.validate()
+        output = make_valid_data(data.api)
+        rest_api_arn = self.agent.create_arn("AWS::ApiGateway::RestApi", self.location_info, api.id)
+        output["Name"] = api.name
+        output["RestApiId"] = api.id
+        output["RestApiName"] = api.name
+        self.emit_component(rest_api_arn, "rest-api", output)
 
-                            if integration_arn:
-                                self.agent.relation(method_arn, integration_arn, 'uses service', {})
-
-                            # Creates a dummy service component that is connected to the api gateway method
-                            # this dummy service component will merge with a real trace service
-                            if method_data['methodIntegration']['type'] == 'HTTP_PROXY':
-                                parsed_uri = urlparse(method_data['methodIntegration']['uri'])
-                                service_integration_urn = 'urn:service:/{0}'.format(parsed_uri.hostname)
-
-                                self.emit_component(
-                                    service_integration_urn,
-                                    'aws.apigateway.method.http.integration',
-                                    {}
-                                )
-                                self.agent.relation(method_arn, service_integration_urn, 'uses service', {})
+        for stage in data.stages:
+            self.process_stage(stage, api=api, resources=data.resources, rest_api_arn=rest_api_arn)

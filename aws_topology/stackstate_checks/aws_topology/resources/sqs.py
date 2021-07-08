@@ -1,93 +1,119 @@
-from .utils import make_valid_data, with_dimensions, CloudTrailEventBase, create_arn as arn
+from .utils import (
+    make_valid_data,
+    with_dimensions,
+    create_arn as arn,
+    client_array_operation,
+    set_required_access_v2,
+    transformation,
+)
 from .registry import RegisteredResourceCollector
+from collections import namedtuple
 from schematics import Model
-from schematics.types import StringType, ModelType
+from schematics.types import StringType
+import re
 
 
-def create_arn(region=None, account_id=None, resource_id=None, **kwargs):
-    return arn(resource='sqs', region=region, account_id=account_id, resource_id=resource_id)
+def create_arn(region=None, resource_id=None, **kwargs):
+    if re.match(r"^https:\/\/sqs.[a-z]{2}-([a-z]*-){1,2}\d\.amazonaws\.com\/\d{12}\/.+$", resource_id):
+        return arn(
+            resource="sqs",
+            region=resource_id.split(".", 2)[1],
+            account_id=resource_id.rsplit("/", 2)[-2],
+            resource_id=resource_id.rsplit("/", 1)[-1],
+        )
+    elif re.match(r"^https:\/\/queue\.amazonaws\.com\/\d{12}\/.+$", resource_id):
+        return arn(
+            resource="sqs",
+            region=region,
+            account_id=resource_id.rsplit("/", 2)[1],
+            resource_id=resource_id.rsplit("/", 1)[-1],
+        )
+    elif re.match(r"^https:\/\/[a-z]{2}-([a-z]*-){1,2}\d\.queue\.amazonaws\.com\/\d{12}\/.+$", resource_id):
+        return arn(
+            resource="sqs",
+            region=resource_id.split("/", 3)[2].split(".", 1)[0],
+            account_id=resource_id.rsplit("/", 2)[1],
+            resource_id=resource_id.rsplit("/", 1)[-1],
+        )
+    else:
+        raise ValueError("SQS URL {} does not match expected regular expression".format(resource_id))
 
 
-class SqsEventBase(CloudTrailEventBase):
-    def get_collector_class(self):
-        return SqsCollector
-
-    def _internal_process(self, session, location, agent):
-        operation_type = self.get_operation_type()
-        if operation_type == 'D':
-            agent.delete(self.get_resource_name())  # TODO Queue id has changed!
-        elif operation_type == 'E':
-            # TODO this should probably emit some event to StackState
-            pass
-        else:
-            client = session.client('sqs')
-            collector = SqsCollector(location, client, agent)
-            collector.process_queue(self.get_resource_name())
+QueueData = namedtuple("QueueData", ["queue_url", "queue", "tags"])
 
 
-class Sqs_CreateQueue(SqsEventBase):
-    class ResponseElements(Model):
-        queueUrl = StringType(required=True)
-
-    responseElements = ModelType(ResponseElements, required=True)
-
-    def get_resource_name(self):
-        return self.responseElements.queueUrl
-
-    def get_operation_type(self):
-        return 'C'
-
-
-class Sqs_UpdateQueue(SqsEventBase):
-    class RequestParameters(Model):
-        queueUrl = StringType(required=True)
-
-    requestParameters = ModelType(RequestParameters, required=True)
-
-    def get_resource_name(self):
-        return self.requestParameters.queueUrl
-
-    def get_operation_type(self):
-        if self.eventName == 'DeleteQueue':
-            return 'D'
-        elif self.eventName == 'PurgeQueue':
-            return 'E'
-        return 'U'
+class Queue(Model):
+    QueueArn = StringType(required=True)
 
 
 class SqsCollector(RegisteredResourceCollector):
     API = "sqs"
     API_TYPE = "regional"
     COMPONENT_TYPE = "aws.sqs"
-    EVENT_SOURCE = "sqs.amazonaws.com"
-    CLOUDTRAIL_EVENTS = {
-        'CreateQueue': Sqs_CreateQueue,
-        'DeleteQueue': Sqs_UpdateQueue,
-        'AddPermission': True,
-        'RemovePermission': True,
-        'SetQueueAttributes': Sqs_UpdateQueue,
-        'TagQueue': Sqs_UpdateQueue,
-        'UntagQueue': Sqs_UpdateQueue,
-        'PurgeQueue': Sqs_UpdateQueue
-    }
-    CLOUDFORMATION_TYPE = 'AWS::SQS::Queue'
+    CLOUDFORMATION_TYPE = "AWS::SQS::Queue"
+
+    @set_required_access_v2("sqs:ListQueueTags")
+    def collect_tags(self, queue_url):
+        return self.client.list_queue_tags(QueueUrl=queue_url).get("Tags", [])
+
+    @set_required_access_v2("sqs:GetQueueAttributes")
+    def collect_queue_description(self, queue_url):
+        return self.client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=["All"]).get("Attributes", {})
+
+    def construct_queue_description(self, queue_url):
+        return {"QueueArn": self.agent.create_arn("AWS::SQS::Queue", self.location_info, resource_id=queue_url)}
+
+    def collect_queue(self, queue_url):
+        data = self.collect_queue_description(queue_url) or self.construct_queue_description(queue_url)
+        tags = self.collect_tags(queue_url) or []
+        return QueueData(queue_url=queue_url, queue=data, tags=tags)
+
+    def collect_queues(self):
+        for queue_url in client_array_operation(self.client, "list_queues", "QueueUrls"):
+            yield self.collect_queue(queue_url)
 
     def process_all(self, filter=None):
-        for queue_url in self.client.list_queues().get('QueueUrls', []):
-            self.process_queue(queue_url)
+        if not filter or "queues" in filter:
+            self.process_queues()
 
-    def process_queue(self, queue_url):
-        queue_data_raw = self.client.get_queue_attributes(
-            QueueUrl=queue_url,
-            AttributeNames=['All']
-        ).get('Attributes', {})
-        queue_data = make_valid_data(queue_data_raw)
-        queue_arn = queue_data.get('QueueArn')
-        queue_data['Tags'] = self.client.list_queue_tags(QueueUrl=queue_url).get('Tags')
-        queue_data['URN'] = [queue_url]
-        queue_data['Name'] = queue_url
-        queue_data['QueueUrl'] = queue_url
-        queue_name = queue_url.rsplit('/', 1)[-1]
-        queue_data.update(with_dimensions([{'key': 'QueueName', 'value': queue_name}]))
+    @set_required_access_v2("sqs:ListQueues")
+    def process_queues(self):
+        for queue_data in self.collect_queues():
+            self.process_queue(queue_data)
 
-        self.emit_component(queue_arn, self.COMPONENT_TYPE, queue_data)
+    def process_one_queue(self, queue_url):
+        self.process_queue(self.collect_queue(queue_url))
+
+    @transformation()
+    def process_queue(self, data):
+        queue = Queue(data.queue, strict=False)
+        queue.validate()
+        output = make_valid_data(data.queue)
+        queue_arn = queue.QueueArn
+        queue_name = queue_arn.rsplit(":", 1)[-1]
+        output["Name"] = queue_name
+        output["Tags"] = data.tags
+        output["URN"] = [data.queue_url]
+        output["QueueUrl"] = data.queue_url
+        output.update(with_dimensions([{"key": "QueueName", "value": queue_name}]))
+        self.emit_component(queue_arn, "queue", output)
+
+    EVENT_SOURCE = "sqs.amazonaws.com"
+    CLOUDTRAIL_EVENTS = [
+        {"event_name": "CreateQueue", "path": "responseElements.queueUrl", "processor": process_one_queue},
+        {
+            "event_name": "DeleteQueue",
+            "path": "requestParameters.queueUrl",
+            "processor": RegisteredResourceCollector.process_delete_by_name,
+        },
+        {
+            "event_name": "AddPermission",
+        },
+        {
+            "event_name": "RemovePermission",
+        },
+        {"event_name": "SetQueueAttributes", "path": "requestParameters.queueUrl", "processor": process_one_queue},
+        {"event_name": "TagQueue", "path": "requestParameters.queueUrl", "processor": process_one_queue},
+        {"event_name": "UntagQueue", "path": "requestParameters.queueUrl", "processor": process_one_queue},
+        {"event_name": "PurgeQueue"},
+    ]

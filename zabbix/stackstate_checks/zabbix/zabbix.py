@@ -17,6 +17,8 @@ import requests
 import time
 import json
 
+from stackstate_checks.utils.identifiers import Identifiers
+
 
 class ZabbixHost:
     def __init__(self, host_id, host, name, host_groups):
@@ -191,6 +193,14 @@ class ZabbixCheck(AgentCheck):
 
     def process_host_topology(self, topology_instance, zabbix_host, stackstate_environment):
         external_id = "urn:host:/%s" % zabbix_host.host
+        identifiers = list()
+        # get actual hostname from agent
+        # if zabbix is deployed on ec2 instance, it doesn't give any metadata about actual hostname
+        hostname = self.get_hostname()
+        identifiers.append(Identifiers.create_host_identifier(hostname))
+        identifiers.append(hostname)
+        identifiers.append(zabbix_host.host)
+
         url = topology_instance.get('url')
         if 'http' in url or 'https' in url:
             instance_url = url.split("//")[1].split("/")[0]
@@ -206,7 +216,7 @@ class ZabbixCheck(AgentCheck):
             'layer': 'Host',
             # use host group of component as StackState domain when there is only one host group
             'domain': zabbix_host.host_groups[0].name if len(zabbix_host.host_groups) == 1 else 'Zabbix',
-            'identifiers': [zabbix_host.host],
+            'identifiers': identifiers,
             'environment': stackstate_environment,
             'host_groups': [host_group.name for host_group in zabbix_host.host_groups],
             'labels': labels,

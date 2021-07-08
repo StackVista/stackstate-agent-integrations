@@ -1,0 +1,43 @@
+{
+    "eventVersion": "1.08",
+    "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROAUHNFPQM253JKRZCRS:user",
+        "arn": "arn:aws:sts::731070500579:assumed-role/Administrator/user",
+        "accountId": "731070500579",
+        "accessKeyId": "ASIAJZP4T4WLEW4FCHUA",
+        "sessionContext": {
+            "sessionIssuer": {
+                "type": "Role",
+                "principalId": "AROAUHNFPQM253JKRZCRS",
+                "arn": "arn:aws:iam::731070500579:role/Administrator",
+                "accountId": "731070500579",
+                "userName": "Administrator"
+            },
+            "webIdFederationData": {},
+            "attributes": {
+                "mfaAuthenticated": "false",
+                "creationDate": "2021-04-29T12:07:41Z"
+            }
+        },
+        "invokedBy": "cloudformation.amazonaws.com"
+    },
+    "eventTime": "2021-04-29T12:50:06Z",
+    "eventSource": "elasticloadbalancing.amazonaws.com",
+    "eventName": "DeleteLoadBalancer",
+    "awsRegion": "eu-west-1",
+    "sourceIPAddress": "cloudformation.amazonaws.com",
+    "userAgent": "cloudformation.amazonaws.com",
+    "requestParameters": {
+        "loadBalancerArn": "arn:aws:elasticloadbalancing:eu-west-1:731070500579:loadbalancer/app/myfirstloadbalancer/90dd512583d2d7e9"
+    },
+    "responseElements": null,
+    "requestID": "53dce973-52e5-4195-a902-c21110014d81",
+    "eventID": "03306f4a-0f19-4a07-ab23-c7ebf4cd17ab",
+    "readOnly": false,
+    "eventType": "AwsApiCall",
+    "apiVersion": "2015-12-01",
+    "managementEvent": true,
+    "eventCategory": "Management",
+    "recipientAccountId": "731070500579"
+}

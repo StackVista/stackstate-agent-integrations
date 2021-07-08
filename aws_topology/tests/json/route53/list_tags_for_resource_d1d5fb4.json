@@ -1,0 +1,20 @@
+{
+    "ResourceTagSet": {
+        "Tags": [
+            {
+                "Key": "ResourceTagKey",
+                "Value": "ResourceTagValue"
+            }
+        ]
+    },
+    "ResponseMetadata": {
+        "Parameters": {
+            "ResourceType": "hostedzone",
+            "ResourceId": "Z4OKCQBA0VS63"
+        },
+        "OperationName": "ListTagsForResource",
+        "Generater": "2021-05-29 07:45:36.709391",
+        "Region": "eu-west-1",
+        "Account": "508573134510"
+    }
+}

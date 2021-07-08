@@ -1,15 +1,15 @@
-from .utils import make_valid_data, create_arn as arn, client_array_operation, CloudTrailEventBase
+from .utils import make_valid_data, create_arn as arn, client_array_operation, set_required_access_v2
 from .registry import RegisteredResourceCollector
 from collections import namedtuple
 from schematics import Model
-from schematics.types import StringType, ListType, ModelType
+from schematics.types import StringType, ListType
 
 
 def create_arn(resource_id=None, **kwargs):
-    return arn(resource='s3', region='', account_id='', resource_id=resource_id)
+    return arn(resource="s3", region="", account_id="", resource_id=resource_id)
 
 
-BucketData = namedtuple('BucketData', ['bucket', 'location', 'tags', 'config'])
+BucketData = namedtuple("BucketData", ["bucket", "location", "tags", "config"])
 
 
 class Bucket(Model):
@@ -21,94 +21,84 @@ class BucketNotification(Model):
     Events = ListType(StringType, required=True)
 
 
-class S3_UpdateBucket(CloudTrailEventBase):
-    class RequestParameters(Model):
-        bucketName = StringType(required=True)
-
-    requestParameters = ModelType(RequestParameters, required=True)
-
-    def get_collector_class(self):
-        return S3Collector
-
-    def get_resource_name(self):
-        return self.requestParameters.bucketName
-
-    def get_operation_type(self):
-        return 'D' if self.eventName == 'DeleteBucket' else 'U'  # outputs C as U (does not matter yet)
-
-    def _internal_process(self, session, location, agent):
-        if self.get_operation_type() == 'D':
-            agent.delete(self.get_resource_arn(agent, location))
-        else:
-            client = session.client('s3')
-            collector = S3Collector(location, client, agent)
-            collector.process_one_bucket(self.requestParameters.bucketName)
-
-
 class S3Collector(RegisteredResourceCollector):
     API = "s3"
     API_TYPE = "regional"
-    COMPONENT_TYPE = "aws.s3_bucket"
-    EVENT_SOURCE = 's3.amazonaws.com'
-    CLOUDTRAIL_EVENTS = {
-        'CreateBucket': S3_UpdateBucket,
-        'DeleteBucket': S3_UpdateBucket
-    }
-    CLOUDFORMATION_TYPE = 'AWS::S3::Bucket'
+    COMPONENT_TYPE = "aws.s3"
+    CLOUDFORMATION_TYPE = "AWS::S3::Bucket"
+
+    @set_required_access_v2("s3:ListBucket")
+    def collect_location(self, name):
+        # The get_bucket_location call can return None for very old buckets in US regions, this is more reliable
+        return (
+            self.client.head_bucket(Bucket=name)
+            .get("ResponseMetadata", {})
+            .get("HTTPHeaders", {})
+            .get("x-amz-bucket-region", "")
+        )
+
+    @set_required_access_v2("s3:GetBucketTagging", ignore_codes=["NoSuchTagSet"])
+    def collect_tags(self, name):
+        return self.client.get_bucket_tagging(Bucket=name).get("TagSet", [])
+
+    @set_required_access_v2("s3:GetBucketNotification")
+    def collect_configuration(self, name):
+        return self.client.get_bucket_notification_configuration(Bucket=name).get("LambdaFunctionConfigurations", [])
 
     def collect_bucket(self, bucket):
-        name = bucket.get('Name')
-        try:
-            location = self.client.get_bucket_location(Bucket=name).get('LocationConstraint', '')
-        except Exception:  # TODO catch throttle + permission exceptions
-            location = ''
-        try:
-            tags = self.client.get_bucket_tagging(Bucket=name).get("TagSet", [])
-        except Exception:  # TODO catch throttle + permission exceptions
-            tags = []
-        try:
-            config = self.client.get_bucket_notification_configuration(Bucket=name).get(
-                "LambdaFunctionConfigurations", []
-            )
-        except Exception:  # TODO catch throttle + permission exceptions
-            config = []
-        return BucketData(bucket=bucket, location=location, tags=tags, config=config)
+        region = self.location_info.Location.AwsRegion
+        name = bucket.get("Name")
+        # If the location can't be found, then process it anyway
+        location = self.collect_location(name) or region
+        # Only return data if the bucket is in the same region as the check
+        if location == region:
+            tags = self.collect_tags(name) or []
+            config = self.collect_configuration(name) or []
+            return BucketData(bucket=bucket, location=location, tags=tags, config=config)
 
     def collect_buckets(self):
-        for bucket in [
-                self.collect_bucket(bucket) for bucket in client_array_operation(
-                    self.client,
-                    'list_buckets',
-                    'Buckets'
-                )
-        ]:
-            yield bucket
+        for bucket in client_array_operation(self.client, "list_buckets", "Buckets"):
+            yield self.collect_bucket(bucket)
 
-    def process_all(self, filter=None):
-        # buckets should only be fetched for global OR filtered by LocationConstraint
-        if not filter or 'buckets' in filter:
-            for bucket_data in self.collect_buckets():
+    @set_required_access_v2("s3:ListAllMyBuckets")
+    def process_buckets(self):
+        for bucket_data in self.collect_buckets():
+            if bucket_data:
                 self.process_bucket(bucket_data)
 
+    def process_all(self, filter=None):
+        if not filter or "buckets" in filter:
+            self.process_buckets()
+
     def process_one_bucket(self, bucket_name):
-        self.process_bucket(self.collect_bucket({'Name': bucket_name}))
+        self.process_bucket(self.collect_bucket({"Name": bucket_name}))
 
     def process_bucket(self, data):
+        bucket = Bucket(data.bucket, strict=False)
+        bucket.validate()
+        config = [BucketNotification(notification, strict=False) for notification in data.config]
         output = make_valid_data(data.bucket)
 
-        bucket = Bucket(data.bucket, strict=False)
-        config = [BucketNotification(notification, strict=False) for notification in data.config]
-
-        bucket_name = bucket.Name
-        bucket_arn = create_arn(resource_id=bucket_name)
+        bucket_arn = create_arn(resource_id=bucket.Name)
 
         if data.location:
             output["BucketLocation"] = data.location
         output["Tags"] = data.tags
 
-        self.emit_component(bucket_arn, self.COMPONENT_TYPE, output)
+        self.emit_component(bucket_arn, "bucket", output)
         for bucket_notification in config:
+            bucket_notification.validate()
             function_arn = bucket_notification.LambdaFunctionArn
-            if function_arn:
+            if function_arn:  # pragma: no cover
                 for event in bucket_notification.Events:
-                    self.agent.relation(bucket_arn, function_arn, "uses service", {"event_type": event})
+                    self.emit_relation(bucket_arn, function_arn, "uses-service", {"event_type": event})
+
+    EVENT_SOURCE = "s3.amazonaws.com"
+    CLOUDTRAIL_EVENTS = [
+        {"event_name": "CreateBucket", "path": "requestParameters.bucketName", "processor": process_one_bucket},
+        {
+            "event_name": "DeleteBucket",
+            "path": "requestParameters.bucketName",
+            "processor": RegisteredResourceCollector.process_delete_by_name,
+        },
+    ]

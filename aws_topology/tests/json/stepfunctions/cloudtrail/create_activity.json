@@ -1,0 +1,45 @@
+{
+    "eventVersion": "1.08",
+    "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROAX7HM4QNFPDB64TSWX:jkulman",
+        "arn": "arn:aws:sts::548105126730:assumed-role/binx/jkulman",
+        "accountId": "548105126730",
+        "accessKeyId": "ASIAX7HM4QNFMRFHS62P",
+        "sessionContext": {
+            "sessionIssuer": {
+                "type": "Role",
+                "principalId": "AROAX7HM4QNFPDB64TSWX",
+                "arn": "arn:aws:iam::548105126730:role/binx",
+                "accountId": "548105126730",
+                "userName": "binx"
+            },
+            "webIdFederationData": {},
+            "attributes": {
+                "mfaAuthenticated": "false",
+                "creationDate": "2021-05-23T10:43:39Z"
+            }
+        }
+    },
+    "eventTime": "2021-05-23T10:46:33Z",
+    "eventSource": "states.amazonaws.com",
+    "eventName": "CreateActivity",
+    "awsRegion": "eu-west-1",
+    "sourceIPAddress": "83.163.185.52",
+    "userAgent": "console.amazonaws.com",
+    "requestParameters": {
+        "name": "Test",
+        "tags": []
+    },
+    "responseElements": {
+        "activityArn": "arn:aws:states:eu-west-1:548105126730:activity:Test",
+        "creationDate": "May 23, 2021 10:46:33 AM"
+    },
+    "requestID": "daa4af50-3ff0-41be-9dc4-3f21175bbea3",
+    "eventID": "57cb7bcd-58e5-440e-824b-58335d2d9db2",
+    "readOnly": false,
+    "eventType": "AwsApiCall",
+    "managementEvent": true,
+    "eventCategory": "Management",
+    "recipientAccountId": "548105126730"
+}

@@ -1,21 +1,39 @@
+from schematics import Model
+from schematics.types import StringType, ModelType
+from datetime import datetime
+import pytz
+
+
+class Location(Model):
+    AwsRegion = StringType(required=True)
+    AwsAccount = StringType(required=True)
+
+
+class LocationInfo(Model):
+    Location = ModelType(Location)
+
+    def clone(self):
+        return location_info(self.Location.AwsAccount, self.Location.AwsRegion)
+
+
 def location_info(account_id, region):
-    return {'Location': {'AwsAccount': account_id, 'AwsRegion': region}}
+    return LocationInfo({"Location": {"AwsAccount": account_id, "AwsRegion": region}})
 
 
 def _tags_as_dictionary(lisf_of_tags, cap_flag=True):
     if lisf_of_tags and cap_flag:
-        return dict((item['Key'], item['Value']) for item in lisf_of_tags)
+        return dict((item["Key"], item["Value"]) for item in lisf_of_tags)
     elif lisf_of_tags and not cap_flag:
-        return dict((item['key'], item['value']) for item in lisf_of_tags)
+        return dict((item["key"], item["value"]) for item in lisf_of_tags)
     else:
         return {}
 
 
 def correct_tags(data):
-    if 'Tags' in data and isinstance(data['Tags'], list):
-        data['Tags'] = _tags_as_dictionary(data['Tags'])
-    if 'tags' in data and isinstance(data['tags'], list):
-        data['Tags'] = _tags_as_dictionary(data['tags'], False)
+    if "Tags" in data and isinstance(data["Tags"], list):
+        data["Tags"] = _tags_as_dictionary(data["Tags"])
+    if "tags" in data and isinstance(data["tags"], list):
+        data["Tags"] = _tags_as_dictionary(data["tags"], False)
     return data
 
 
@@ -32,3 +50,7 @@ def capitalize_keys(in_dict):
         return [capitalize_keys(obj) for obj in in_dict]
     else:
         return in_dict
+
+
+def seconds_ago(dt):
+    return (datetime.utcnow().replace(tzinfo=pytz.utc) - dt).total_seconds()

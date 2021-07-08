@@ -192,6 +192,14 @@ test_cloudera:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
 
+test_aws_topology:
+  <<: *linux_test
+  variables:
+    CHECK: "aws_topology"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
 test_aws_xray:
   <<: *linux_test
   variables:
@@ -282,6 +290,12 @@ test_nagios:
     - checksdev test -c %CHECK%
   tags:
     - agent_windows_6
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+      - script_failure
 
 test_stackstate_checks_dev_win:
   <<: *windows_test

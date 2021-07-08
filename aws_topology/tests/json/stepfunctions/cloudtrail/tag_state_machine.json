@@ -1,0 +1,42 @@
+{
+    "eventVersion": "1.08",
+    "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROAX7HM4QNFPDB64TSWX:jkulman",
+        "arn": "arn:aws:sts::548105126730:assumed-role/binx/jkulman",
+        "accountId": "548105126730",
+        "accessKeyId": "ASIAX7HM4QNFMRFHS62P",
+        "sessionContext": {
+            "sessionIssuer": {
+                "type": "Role",
+                "principalId": "AROAX7HM4QNFPDB64TSWX",
+                "arn": "arn:aws:iam::548105126730:role/binx",
+                "accountId": "548105126730",
+                "userName": "binx"
+            },
+            "webIdFederationData": {},
+            "attributes": {
+                "mfaAuthenticated": "false",
+                "creationDate": "2021-05-23T10:43:39Z"
+            }
+        }
+    },
+    "eventTime": "2021-05-23T10:44:50Z",
+    "eventSource": "states.amazonaws.com",
+    "eventName": "TagResource",
+    "awsRegion": "eu-west-1",
+    "sourceIPAddress": "83.163.185.52",
+    "userAgent": "console.amazonaws.com",
+    "requestParameters": {
+        "resourceArn": "arn:aws:states:eu-west-1:548105126730:stateMachine:MyStateMachine",
+        "tags": []
+    },
+    "responseElements": null,
+    "requestID": "735ed83b-dd97-40b4-b81e-3e463b85608a",
+    "eventID": "95cf5127-a6a6-4507-8ecd-660e2eb47ed5",
+    "readOnly": false,
+    "eventType": "AwsApiCall",
+    "managementEvent": true,
+    "eventCategory": "Management",
+    "recipientAccountId": "548105126730"
+}

@@ -1,0 +1,24 @@
+{
+  "tags": [
+    {
+      "key": "aws:cloudformation:stack-id",
+      "value": "arn:aws:cloudformation:eu-west-1:548105126730:stack/stackstate-main-account-main-region/39160b70-b178-11eb-ac72-06cc4292e70d"
+    },
+    {
+      "key": "aws:cloudformation:stack-name",
+      "value": "stackstate-main-account-main-region"
+    },
+    {
+      "key": "aws:cloudformation:logical-id",
+      "value": "StepFunctionsActivity"
+    }
+  ],
+  "ResponseMetadata": {
+    "Parameters": {
+      "resourceArn": "arn:aws:states:eu-west-1:548105126730:activity:TestActivity"
+    },
+    "OperationName": "ListTagsForResource",
+    "Generater": "2021-05-13 15:46:52.247695",
+    "Region": "eu-west-1"
+  }
+}

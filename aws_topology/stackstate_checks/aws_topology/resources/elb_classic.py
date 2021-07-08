@@ -1,62 +1,148 @@
 import time
-from .utils import make_valid_data, create_resource_arn
+from .utils import (
+    client_array_operation,
+    make_valid_data,
+    create_arn as arn,
+    set_required_access_v2,
+    transformation,
+)
 from .registry import RegisteredResourceCollector
+from collections import namedtuple
+from schematics import Model
+from schematics.types import StringType, ListType, ModelType
 
 
 def create_arn(region=None, account_id=None, resource_id=None, **kwargs):
-    return "classic_elb_" + resource_id
+    return arn(
+        resource="elasticloadbalancing", region=region, account_id=account_id, resource_id="loadbalancer/" + resource_id
+    )
+
+
+LoadBalancerData = namedtuple("LoadBalancerData", ["elb", "tags", "instance_health"])
+
+
+class LoadBalancerInstances(Model):
+    InstanceId = StringType()
+
+
+class LoadBalancer(Model):
+    LoadBalancerName = StringType(required=True)
+    VPCId = StringType()
+    Instances = ListType(ModelType(LoadBalancerInstances))
+
+
+class InstanceHealth(Model):
+    InstanceId = StringType(required=True)
+    State = StringType(default="UNKNOWN")
+    Description = StringType()
 
 
 class ELBClassicCollector(RegisteredResourceCollector):
     API = "elb"
     API_TYPE = "regional"
-    COMPONENT_TYPE = "aws.elb_classic"
+    COMPONENT_TYPE = "aws.elb-classic"
+    CLOUDFORMATION_TYPE = "AWS::ElasticLoadBalancing::LoadBalancer"
+    MAX_TAG_CALLS = 20  # This is the max items that can be requested in one describe_tags call
+
+    @set_required_access_v2("elasticloadbalancing:DescribeTags")
+    def collect_tag_page(self, elb_names):
+        max_items = self.MAX_TAG_CALLS  # Limit max items that we fetch to ensure call doesn't fail completely
+        return self.client.describe_tags(LoadBalancerNames=elb_names[:max_items]).get("TagDescriptions", [])
+
+    def collect_elbs(self, **kwargs):
+        for elb in client_array_operation(self.client, "describe_load_balancers", "LoadBalancerDescriptions", **kwargs):
+            yield elb
+
+    @set_required_access_v2("elasticloadbalancing:DescribeInstanceHealth")
+    def collect_instance_health(self, elb_name):
+        return self.client.describe_instance_health(LoadBalancerName=elb_name).get("InstanceStates", [])
+
+    def process_elb_page(self, elbs):
+        tag_page = self.collect_tag_page([elb.get("LoadBalancerName", "") for elb in elbs])
+        for data in elbs:
+            instance_health = self.collect_instance_health(data.get("LoadBalancerName"))
+            tags = []
+            # Match the result from the fetched tags with the specific ELB
+            for tag_result in tag_page:
+                if tag_result.get("LoadBalancerName") == data.get("LoadBalancerName"):
+                    tags = tag_result.get("Tags", [])
+            self.process_elb(LoadBalancerData(elb=data, tags=tags, instance_health=instance_health))
+
+    @set_required_access_v2("elasticloadbalancing:DescribeLoadBalancers")
+    def process_elbs(self, elb_names=[]):
+        if elb_names:  # Only pass in LoadBalancerNames if a specific name is needed, otherwise ask for all
+            paginator = self.collect_elbs(LoadBalancerNames=elb_names)
+        else:
+            paginator = self.collect_elbs()
+        elbs = []
+        for elb in paginator:
+            # Batch up elbs into groups, then process them in pages of 20
+            if len(elbs) == self.MAX_TAG_CALLS:
+                self.process_elb_page(elbs)
+                elbs = []
+            else:
+                elbs.append(elb)
+        # If we run out of elbs to process, process the last ones
+        if len(elbs):
+            self.process_elb_page(elbs)
 
     def process_all(self, filter=None):
-        for elb_data_raw in self.client.describe_load_balancers().get('LoadBalancerDescriptions') or []:
-            elb_data = make_valid_data(elb_data_raw)
-            self.process_loadbalancer(elb_data)
+        if not filter or "loadbalancers" in filter:
+            self.process_elbs()
 
-    def process_loadbalancer(self, elb_data):
-        elb_name = elb_data['LoadBalancerName']
-        instance_id = 'classic_elb_' + elb_name
-        elb_data['URN'] = [
-            create_resource_arn(
-                'elasticloadbalancing',
-                self.location_info['Location']['AwsRegion'],
-                self.location_info['Location']['AwsAccount'],
-                'loadbalancer',
-                elb_name
+    def process_one_elb(self, elb_name):
+        self.process_elbs([elb_name])
+
+    @transformation()
+    def process_elb(self, data):
+        elb = LoadBalancer(data.elb, strict=False)
+        elb.validate()
+        output = make_valid_data(data.elb)
+        elb_arn = self.agent.create_arn(
+            "AWS::ElasticLoadBalancing::LoadBalancer", self.location_info, resource_id=elb.LoadBalancerName
+        )
+        output["Name"] = elb.LoadBalancerName
+        output["Tags"] = data.tags
+        output["URN"] = [elb_arn]
+        self.emit_component(elb_arn, "load-balancer", output)
+        self.emit_relation(elb_arn, elb.VPCId, "uses-service", {})
+
+        for instance in output.get("Instances", []):
+            instance_external_id = instance.get("InstanceId")  # ec2 instance
+            self.emit_relation(elb_arn, instance_external_id, "uses-service", {})
+
+        for instance_health in data.instance_health:
+            health = InstanceHealth(instance_health, strict=False)
+            health.validate()
+            self.agent.event(
+                {
+                    "timestamp": int(time.time()),
+                    "event_type": "ec2_state",
+                    "msg_title": "EC2 instance state",
+                    "msg_text": health.State,
+                    "host": health.InstanceId,
+                    "tags": ["state:" + health.State, "description:" + health.Description],
+                }
             )
-        ]
-        taginfo = self.client.describe_tags(LoadBalancerNames=[elb_name]).get('TagDescriptions')
-        if taginfo and len(taginfo) > 0:
-            tags = taginfo[0].get('Tags')
-        if tags:
-            elb_data['Tags'] = tags
-        self.emit_component(instance_id, self.COMPONENT_TYPE, elb_data)
 
-        vpc_id = elb_data['VPCId']
-        self.agent.relation(instance_id, vpc_id, 'uses service', {})
+        self.agent.create_security_group_relations(elb_arn, output)
 
-        for instance in elb_data.get('Instances') or []:
-            instance_external_id = instance['InstanceId']  # ec2 instance
-            self.agent.relation(instance_id, instance_external_id, 'uses service', {})
-
-        for instance_health in self.client.describe_instance_health(
-            LoadBalancerName=elb_name
-        ).get('InstanceStates') or []:
-            event = {
-                'timestamp': int(time.time()),
-                'event_type': 'ec2_state',
-                'msg_title': 'EC2 instance state',
-                'msg_text': instance_health['State'],
-                'host': instance_health['InstanceId'],
-                'tags': [
-                    "state:" + instance_health['State'],
-                    "description:" + instance_health['Description']
-                ]
-            }
-            self.agent.event(event)
-
-        self.agent.create_security_group_relations(instance_id, elb_data)
+    EVENT_SOURCE = "elasticloadbalancing.amazonaws.com"
+    API_VERSION = "2012-06-01"
+    CLOUDTRAIL_EVENTS = [
+        {
+            "event_name": "CreateLoadBalancer",
+            "path": "requestParameters.loadBalancerName",
+            "processor": process_one_elb,
+        },
+        {
+            "event_name": "DeleteLoadBalancer",
+            "path": "requestParameters.loadBalancerName",
+            "processor": RegisteredResourceCollector.process_delete_by_name,
+        },
+        {
+            "event_name": "RegisterInstancesWithLoadBalancer",
+            "path": "requestParameters.loadBalancerName",
+            "processor": process_one_elb,
+        },
+    ]

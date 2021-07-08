@@ -65,6 +65,7 @@ class TestAgentIntegration(unittest.TestCase):
           {
             "timestamp": int(1),
             "event_type": "HTTP_TIMEOUT",
+            "source_type_name": "HTTP_TIMEOUT",
             "msg_title": "URL timeout",
             "msg_text": "Http request to http://localhost timed out after 5.0 seconds.",
             "aggregation_key": "instance-request-http://localhost",

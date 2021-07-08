@@ -95,8 +95,22 @@ def test_error_trace():
     segments = get_file('segments_error.json')
     spans = check._generate_spans(segments)
     assert len(spans) == 5
-    assert spans[0]['error'] == 1
-    assert spans[1]['error'] == 1
+    # 2 main segments should kind as client
+    assert spans[0]["meta"]["span.kind"] == "client"
+    assert spans[1]["meta"]["span.kind"] == "client"
+    # 3 subsegments should have kind as internal
+    assert spans[2]["meta"]["span.kind"] == "internal"
+    assert spans[3]["meta"]["span.kind"] == "internal"
+    assert spans[4]["meta"]["span.kind"] == "internal"
+    # should produce errorClass 4xx caused by `error`
+    assert spans[0]["meta"]["span.errorClass"] == '4xx'
+    assert spans[0]["error"]
+    # should produce errorClass 5xx caused by `fault`
+    assert spans[1]["meta"]["span.errorClass"] == '5xx'
+    assert spans[1]["error"]
+    # should produce errorClass 4xx caused by `throttle`
+    assert spans[3]["meta"]["span.errorClass"] == '4xx'
+    assert spans[3]["error"]
 
 
 def test_end_time():

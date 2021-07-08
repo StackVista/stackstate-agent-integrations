@@ -17,12 +17,8 @@ from .dynamodb import DynamodbTableCollector  # noqa: F401
 from .ecs import EcsCollector  # noqa: F401
 from .cloudformation import CloudformationCollector, type_arn  # noqa: F401
 from .sqs import SqsCollector  # noqa: F401
+from .stepfunction import StepFunctionCollector  # noqa: F401
+from .service_discovery import ServiceDiscoveryCollector  # noqa: F401
 
-from .cloudtrail import listen_for
 
-__all__ = [
-    'ResourceRegistry',
-    'RegisteredResourceCollector',
-    'listen_for',
-    'type_arn'
-]
+__all__ = ["ResourceRegistry", "RegisteredResourceCollector", "listen_for", "type_arn"]

@@ -1,0 +1,16 @@
+{
+  "stateMachines": [
+    {
+      "stateMachineArn": "arn:aws:states:eu-west-1:548105126730:stateMachine:StepFunctionsStateMachine-wAXvzDJDy4ja",
+      "name": "StepFunctionsStateMachine-wAXvzDJDy4ja",
+      "type": "STANDARD",
+      "creationDate": "2021-05-10 12:16:45.021000+02:00"
+    }
+  ],
+  "ResponseMetadata": {
+    "Parameters": {},
+    "OperationName": "ListStateMachines",
+    "Generater": "2021-05-13 15:46:52.039869",
+    "Region": "eu-west-1"
+  }
+}

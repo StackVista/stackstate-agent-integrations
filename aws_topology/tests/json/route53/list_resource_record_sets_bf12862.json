@@ -1,0 +1,110 @@
+{
+    "ResourceRecordSets": [
+        {
+            "Name": "serverless.nl.",
+            "Type": "A",
+            "AliasTarget": {
+                "HostedZoneId": "Z2FDTNDATAQYW2",
+                "DNSName": "df0mb1k4jywj6.cloudfront.net.",
+                "EvaluateTargetHealth": false
+            }
+        },
+        {
+            "Name": "serverless.nl.",
+            "Type": "MX",
+            "TTL": 1800,
+            "ResourceRecords": [
+                {
+                    "Value": "10 inbound-smtp.eu-west-1.amazonaws.com"
+                }
+            ]
+        },
+        {
+            "Name": "serverless.nl.",
+            "Type": "NS",
+            "TTL": 172800,
+            "ResourceRecords": [
+                {
+                    "Value": "ns-702.awsdns-23.net."
+                },
+                {
+                    "Value": "ns-1800.awsdns-33.co.uk."
+                },
+                {
+                    "Value": "ns-474.awsdns-59.com."
+                },
+                {
+                    "Value": "ns-1209.awsdns-23.org."
+                }
+            ]
+        },
+        {
+            "Name": "serverless.nl.",
+            "Type": "SOA",
+            "TTL": 900,
+            "ResourceRecords": [
+                {
+                    "Value": "ns-474.awsdns-59.com. awsdns-hostmaster.amazon.com. 1 7200 900 1209600 86400"
+                }
+            ]
+        },
+        {
+            "Name": "_2ede3b45be420707539a31fee681bc2b.serverless.nl.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_6d6d782ed8f93e2b027a9df080c92089.acm-validations.aws."
+                }
+            ]
+        },
+        {
+            "Name": "_amazonses.serverless.nl.",
+            "Type": "TXT",
+            "TTL": 1800,
+            "ResourceRecords": [
+                {
+                    "Value": "\"3WPEwNTaUhJEyKIP+qEIjYmGvS0jFNIg/8w4A+XeDhg=\""
+                }
+            ]
+        },
+        {
+            "Name": "blog.serverless.nl.",
+            "Type": "A",
+            "AliasTarget": {
+                "HostedZoneId": "Z2FDTNDATAQYW2",
+                "DNSName": "d3mj1pd16w6s5m.cloudfront.net.",
+                "EvaluateTargetHealth": false
+            }
+        },
+        {
+            "Name": "stackstate.serverless.nl.",
+            "Type": "A",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "52.48.222.173"
+                }
+            ]
+        },
+        {
+            "Name": "_ecda34c4655e7c66efd5dec35675744a.www.serverless.nl.",
+            "Type": "CNAME",
+            "TTL": 300,
+            "ResourceRecords": [
+                {
+                    "Value": "_524ccc386afd5601098f4c39b1194d7a.acm-validations.aws."
+                }
+            ]
+        }
+    ],
+    "ResponseMetadata": {
+        "Parameters": {
+            "HostedZoneId": "Z4OKCQBA0VS63"
+        },
+        "OperationName": "ListResourceRecordSets",
+        "Generater": "2021-05-29 07:45:36.709391",
+        "Region": "eu-west-1",
+        "Account": "508573134510"
+    }
+}
