@@ -297,7 +297,13 @@ class TestServicenow(unittest.TestCase):
         topology.reset()
         aggregator.reset()
         telemetry.reset()
-        self.check.commit_state(None)
+
+    def tearDown(self):
+        """
+        Destroy the check state
+        """
+        state_descriptor = self.check.get_state_descriptor()
+        self.check.get_state_manager().clear(state_descriptor)
 
     def test_check(self):
         """
@@ -628,7 +634,7 @@ class TestServicenow(unittest.TestCase):
         self.check._batch_collect(self.check._batch_collect_components, instance_info)
 
         # no snapshot is created
-        self.assertRaises(KeyError, topology.get_snapshot, self.check.check_id)
+        self.assertEqual(topology.get_snapshot(self.check.check_id), {})
 
     def test_batch_collect_exact_result_as_batch_size(self):
         """

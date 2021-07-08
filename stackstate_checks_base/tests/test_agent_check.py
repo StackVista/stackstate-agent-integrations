@@ -10,7 +10,8 @@ from schematics.types import IntType, StringType, ModelType
 import pytest
 from six import PY3
 
-from stackstate_checks.checks import AgentCheck, TopologyInstance, AgentIntegrationInstance
+from stackstate_checks.checks import AgentCheck, AutoSnapshotMixin, StateFulMixin, TopologyInstance, \
+    AgentIntegrationInstance
 from stackstate_checks.base.utils.agent_integration_test_util import AgentIntegrationTestUtil
 from stackstate_checks.base.stubs.topology import component, relation
 import copy
@@ -345,19 +346,12 @@ class TopologyCheck(AgentCheck):
         return self.key
 
 
-class TopologyAutoSnapshotCheck(TopologyCheck):
-    def __init__(self):
-        instances = [{'a': 'b'}]
-        super(TopologyAutoSnapshotCheck, self) \
-            .__init__(TopologyInstance("mytype", "someurl", with_snapshots=True), "test", {}, instances)
-
+class TopologyAutoSnapshotMixinCheck(AutoSnapshotMixin, TopologyCheck):
     def check(self, instance):
         pass
 
 
-class TopologyBrokenCheck(TopologyAutoSnapshotCheck):
-    def __init__(self):
-        super(TopologyBrokenCheck, self).__init__()
+class TopologyBrokenCheck(AutoSnapshotMixin, TopologyCheck):
 
     def check(self, instance):
         raise Exception("some error in my check")
@@ -373,9 +367,7 @@ TEST_STATE = {
 }
 
 
-class TopologyStatefulCheck(TopologyAutoSnapshotCheck):
-    def __init__(self):
-        super(TopologyStatefulCheck, self).__init__()
+class TopologyStatefulCheck(StateFulMixin, AutoSnapshotMixin, TopologyCheck):
 
     @staticmethod
     def get_agent_conf_d_path():
@@ -385,21 +377,7 @@ class TopologyStatefulCheck(TopologyAutoSnapshotCheck):
         instance.update({'state': TEST_STATE})
 
 
-class TopologyStatefulCheckStateLocation(TopologyAutoSnapshotCheck):
-    def __init__(self):
-        instances = [{"state_location": "./test_data_2"}]
-        super(TopologyAutoSnapshotCheck, self) \
-            .__init__(TopologyInstance("mytype", "https://some.type.url", with_snapshots=True), "test", {}, instances)
-
-    def check(self, instance):
-        instance.update({'state': TEST_STATE})
-
-
-class TopologyStatefulStateDescriptorCleanupCheck(TopologyAutoSnapshotCheck):
-    def __init__(self):
-        instances = [{'a': 'b'}]
-        super(TopologyAutoSnapshotCheck, self) \
-            .__init__(TopologyInstance("mytype", "https://some.type.url", with_snapshots=True), "test", {}, instances)
+class TopologyStatefulStateDescriptorCleanupCheck(StateFulMixin, AutoSnapshotMixin, TopologyCheck):
 
     @staticmethod
     def get_agent_conf_d_path():
@@ -409,7 +387,15 @@ class TopologyStatefulStateDescriptorCleanupCheck(TopologyAutoSnapshotCheck):
         instance.update({'state': TEST_STATE})
 
 
-class TopologyClearStatefulCheck(TopologyStatefulCheck):
+class TopologyStatefulCheckStateLocation(StateFulMixin, AutoSnapshotMixin, TopologyCheck):
+    def __init__(self):
+        super(TopologyStatefulCheckStateLocation, self).__init__(instances=[{"state_location": "./test_data_2"}])
+
+    def check(self, instance):
+        instance.update({'state': TEST_STATE})
+
+
+class TopologyClearStatefulCheck(StateFulMixin, AutoSnapshotMixin, TopologyCheck):
     def __init__(self):
         super(TopologyClearStatefulCheck, self).__init__()
 
@@ -417,9 +403,7 @@ class TopologyClearStatefulCheck(TopologyStatefulCheck):
         instance.update({'state': None})
 
 
-class TopologyBrokenStatefulCheck(TopologyStatefulCheck):
-    def __init__(self):
-        super(TopologyBrokenStatefulCheck, self).__init__()
+class TopologyBrokenStatefulCheck(StateFulMixin, AutoSnapshotMixin, TopologyCheck):
 
     def check(self, instance):
         instance.update({'state': TEST_STATE})
@@ -471,8 +455,11 @@ class CheckInstanceSchema(Model):
     state = ModelType(StateSchema, required=True, default=StateSchema({'offset': 0}))
 
 
-class TopologyStatefulSchemaCheck(TopologyStatefulCheck):
+class TopologyStatefulSchemaCheck(StateFulMixin, AutoSnapshotMixin, TopologyCheck):
     INSTANCE_SCHEMA = CheckInstanceSchema
+
+    def __init__(self, *args, **kwargs):
+        super(TopologyStatefulSchemaCheck, self).__init__(instances=[{'a': 'b'}])
 
     def check(self, instance):
         print(instance.a)
@@ -687,7 +674,7 @@ class TestTopology:
         topology.assert_snapshot(check.check_id, check.key, relations=[created_relation])
 
     def test_auto_snapshotting(self, topology):
-        check = TopologyAutoSnapshotCheck()
+        check = TopologyAutoSnapshotMixinCheck()
         check.run()
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
@@ -722,9 +709,9 @@ class TestTopology:
 
     def test_stateful_state_descriptor_cleanup_check(self, topology, state):
         check = TopologyStatefulStateDescriptorCleanupCheck()
-        state_descriptor = check._get_state_descriptor()
-        assert state_descriptor.instance_key == "instance.mytype.https_some.type.url"
-        assert check._get_instance_key_dict() == {'type': 'mytype', 'url': 'https://some.type.url'}
+        state_descriptor = check.get_state_descriptor()
+        assert state_descriptor.instance_key == "instance.mytype.someurl"
+        assert check._get_instance_key_dict() == {'type': 'mytype', 'url': 'someurl'}
         state.assert_state_check(check, expected_pre_run_state=None, expected_post_run_state=TEST_STATE)
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
@@ -732,7 +719,7 @@ class TestTopology:
     def test_clear_stateful_check(self, topology, state):
         check = TopologyClearStatefulCheck()
         # set the previous state and assert the state check function as expected
-        check.state_manager.set_state(check._get_state_descriptor(), TEST_STATE)
+        check.get_state_manager().set_state(check.get_state_descriptor(), TEST_STATE)
         state.assert_state_check(check, expected_pre_run_state=TEST_STATE, expected_post_run_state=None)
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
@@ -741,7 +728,7 @@ class TestTopology:
         check = TopologyBrokenStatefulCheck()
         # set the previous state and assert the state check function as expected
         previous_state = {'my_old': 'state'}
-        check.state_manager.set_state(check._get_state_descriptor(), previous_state)
+        check.get_state_manager().set_state(check.get_state_descriptor(), previous_state)
         state.assert_state_check(check, expected_pre_run_state=previous_state, expected_post_run_state=previous_state)
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=False)

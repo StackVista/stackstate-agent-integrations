@@ -1016,7 +1016,7 @@ class VSphereCheck(AgentCheck):
         if "host" not in instance:
             raise ConfigurationError("Missing 'host' in instance configuration.")
 
-        return StackPackInstance(self.INSTANCE_TYPE, instance["host"], with_snapshots=False)
+        return StackPackInstance(self.INSTANCE_TYPE, instance["host"])
 
     def extract_tags(self, object_type, object_id):
         sts_identifiers = []

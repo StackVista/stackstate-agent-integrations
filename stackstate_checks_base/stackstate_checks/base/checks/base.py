@@ -96,6 +96,10 @@ class _TopologyInstanceBase(object):
     def tags(self):
         return ["integration-type:{}".format(self.type), "integration-url:{}".format(self.url)]
 
+    def instance_key(self):
+        return to_string(AgentCheckNormalizer.normalize("instance.{}.{}".format(self.type, self.url),
+                                                        extra_disallowed_chars=b":"))
+
     def __eq__(self, other):
         if not isinstance(other, TopologyInstance):
             return False
@@ -137,6 +141,10 @@ class AgentIntegrationInstance(_TopologyInstanceBase):
     def tags(self):
         return ["integration-type:{}".format(self.integration), "integration-url:{}".format(self.name)]
 
+    def instance_key(self):
+        return to_string(AgentCheckNormalizer.normalize("instance.{}.{}".format(self.integration, self.name),
+                                                        extra_disallowed_chars=b":"))
+
     def __eq__(self, other):
         if (isinstance(other, AgentIntegrationInstance)):
             return self.integration == other.integration and self.name == other.name
@@ -154,6 +162,58 @@ class TopologyInstance(_TopologyInstanceBase):
 
 
 StackPackInstance = TopologyInstance
+
+
+class AgentCheckNormalizer:
+    FIRST_CAP_RE = re.compile(br'(.)([A-Z][a-z]+)')
+    ALL_CAP_RE = re.compile(br'([a-z0-9])([A-Z])')
+    METRIC_REPLACEMENT = re.compile(br'([^a-zA-Z0-9_.]+)|(^[^a-zA-Z]+)')
+    DOT_UNDERSCORE_CLEANUP = re.compile(br'_*\._*')
+
+    @staticmethod
+    def normalize(metric, prefix=None, fix_case=False, extra_disallowed_chars=None):
+        """
+        Turn a metric into a well-formed metric name
+        prefix.b.c
+        :param metric The metric name to normalize
+        :param prefix A prefix to to add to the normalized name, default None
+        :param fix_case A boolean, indicating whether to make sure that the metric name returned is in "snake_case"
+        """
+        if isinstance(metric, text_type):
+            metric = unicodedata.normalize('NFKD', metric).encode('ascii', 'ignore')
+
+        if fix_case:
+            name = AgentCheckNormalizer.convert_to_underscore_separated(metric)
+            if prefix is not None:
+                prefix = AgentCheckNormalizer.convert_to_underscore_separated(prefix)
+        elif extra_disallowed_chars:
+            name = re.sub(br"[,\+\*\-/()\[\]{}\s" + extra_disallowed_chars + br"]", b"_", metric)
+        else:
+            name = re.sub(br"[,\+\*\-/()\[\]{}\s]", b"_", metric)
+        # Eliminate multiple _
+        name = re.sub(br"__+", b"_", name)
+        # Don't start/end with _
+        name = re.sub(br"^_", b"", name)
+        name = re.sub(br"_$", b"", name)
+        # Drop ._ and _.
+        name = re.sub(br"\._", b".", name)
+        name = re.sub(br"_\.", b".", name)
+
+        if prefix is not None:
+            return ensure_string(prefix) + b"." + name
+        else:
+            return name
+
+    @staticmethod
+    def convert_to_underscore_separated(name):
+        """
+        Convert from CamelCase to camel_case
+        And substitute illegal metric characters
+        """
+        metric_name = AgentCheckNormalizer.FIRST_CAP_RE.sub(br'\1_\2', ensure_string(name))
+        metric_name = AgentCheckNormalizer.ALL_CAP_RE.sub(br'\1_\2', metric_name).lower()
+        metric_name = AgentCheckNormalizer.METRIC_REPLACEMENT.sub(br'_', metric_name)
+        return AgentCheckNormalizer.DOT_UNDERSCORE_CLEANUP.sub(br'.', metric_name).strip(b'_')
 
 
 class AgentCheckBase(object):
@@ -178,11 +238,6 @@ class AgentCheckBase(object):
     INSTANCE_SCHEMA allows checks to specify a schematics Schema that is used for the instance in self.check
     """
     INSTANCE_SCHEMA = None
-
-    """
-    STATE_FIELD_NAME is used to determine to which key the check state should be set, defaults to `state`
-    """
-    STATE_FIELD_NAME = 'state'
 
     def __init__(self, *args, **kwargs):
         self.check_id = ''
@@ -218,7 +273,6 @@ class AgentCheckBase(object):
         self.cluster_name = AgentCheckBase.get_cluster_name()
 
         self.log = logging.getLogger('{}.{}'.format(__name__, self.name))
-        self.state_manager = StateManager(self.log)
         self._deprecations = {}
         # Set proxy settings
         self.proxies = self._get_requests_proxy()
@@ -228,35 +282,48 @@ class AgentCheckBase(object):
             self._use_agent_proxy = is_affirmative(self.init_config.get('use_agent_proxy', True))
 
         self.default_integration_http_timeout = float(self.agentConfig.get('default_integration_http_timeout', 9))
+        self.check_hooks = []
+
+    def check_hook_contract(self):
+        # try getting the topology instance, if we encounter an error log it and return the topology instance as None
+        # for the check contract. The error will be handled in the check run and notified with the integration
+        # monitoring
+        topology_instance = None
+        try:
+            topology_instance = self._get_instance_key()
+        except Exception as e:
+            self.log.error('encountered error when generating check hook contract with instance key: %s.', str(e))
+
+        return CheckHookContract(
+            name=self.name,
+            check_id=self.check_id,
+            log=self.log,
+            check_instance=copy.deepcopy(self.instance),
+            topology_instance=topology_instance,
+            agent_conf_d_path=self.get_agent_conf_d_path()
+        )
 
     def _check_run_base(self, default_result):
         try:
-            # start auto snapshot if with_snapshots is set to True
-            if self._get_instance_key().with_snapshots:
-                topology.submit_start_snapshot(self, self.check_id, self._get_instance_key_dict())
-
             # create integration instance components for monitoring purposes
             self.create_integration_instance()
-            # create a copy of the check instance, get state if any and add it to the instance object for the check
-            instance = self.instances[0]
-            check_instance = copy.deepcopy(instance)
-            # if this instance has some stored state set it to 'state'
-            state_descriptor = self._get_state_descriptor()
-            current_state = copy.deepcopy(self.state_manager.get_state(state_descriptor))
-            if current_state:
-                check_instance[self.STATE_FIELD_NAME] = current_state
+
+            # create a copy of the check instance
+            check_instance = copy.deepcopy(self.instance)
+
+            for check_hook in self.check_hooks:
+                pre_run_res = check_hook.pre_run_task()
+                if pre_run_res:
+                    check_instance = dict(check_instance, **pre_run_res)
+
             # if this check has a instance schema defined, cast it into that type and validate it
             if self.INSTANCE_SCHEMA:
                 check_instance = self.INSTANCE_SCHEMA(check_instance, strict=False)  # strict=False ignores extra fields
                 check_instance.validate()
             self.check(check_instance)
 
-            # set the state from the check instance
-            self.state_manager.set_state(state_descriptor, check_instance.get(self.STATE_FIELD_NAME))
-
-            # stop auto snapshot if with_snapshots is set to True
-            if self._get_instance_key().with_snapshots:
-                topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key_dict())
+            for check_hook in self.check_hooks:
+                check_hook.post_run_task(copy.deepcopy(check_instance))
 
             result = default_result
         except Exception as e:
@@ -272,14 +339,6 @@ class AgentCheckBase(object):
 
         return result
 
-    def commit_state(self, state, flush=True):
-        """
-        commit_state can be used to immediately set (and optionally flush) state in the agent, instead of first
-        completing
-        the check
-        """
-        self.state_manager.set_state(self._get_state_descriptor(), state, flush)
-
     def set_metric_limits(self):
         try:
             metric_limit = self.instances[0].get('max_returned_metrics', self.DEFAULT_METRIC_LIMIT)
@@ -294,15 +353,6 @@ class AgentCheckBase(object):
             metric_limit = self.DEFAULT_METRIC_LIMIT
         if metric_limit > 0:
             self.metric_limiter = Limiter(self.name, 'metrics', metric_limit, self.warning)
-
-    def _get_state_descriptor(self):
-        integration_instance = self._get_instance_key()
-        instance_key = to_string(
-            self.normalize("instance.{}.{}".format(integration_instance.type, integration_instance.url),
-                           extra_disallowed_chars=b":")
-        )
-
-        return StateDescriptor(instance_key, self.get_check_state_path())
 
     @staticmethod
     def get_cluster_name():
@@ -913,15 +963,6 @@ class AgentCheckBase(object):
 
         return False
 
-    def get_check_state_path(self):
-        """
-        get_check_state_path returns the path where the check state is stored. By default the check configuration
-        location will be used. If state_location is set in the check configuration that will be used instead.
-        """
-        state_location = self.instance.get("state_location", self.get_agent_conf_d_path())
-
-        return "{}.d".format(os.path.join(state_location, self.name))
-
     def get_check_config_path(self):
         return "{}.d".format(os.path.join(self.get_agent_conf_d_path(), self.name))
 
@@ -931,6 +972,11 @@ class AgentCheckBase(object):
     @staticmethod
     def get_config(key):
         return datadog_agent.get_config(key)
+
+    def register_hook(self, check_hook_cls):
+        check_hook = check_hook_cls(check_hook_contract=self.check_hook_contract())
+        self.check_hooks.append(check_hook)
+        return check_hook
 
 
 class __AgentCheckPy3(AgentCheckBase):
@@ -1284,6 +1330,156 @@ class __AgentCheckPy2(AgentCheckBase):
 
     def run(self):
         return self._check_run_base(b'')
+
+
+class CheckMixin(object):
+    """
+    CheckMixin is used to register a agent hook to be used by the agent base and the check itself.
+    """
+
+    def __init__(self, *args, **kwargs):
+        # Initialize AgentCheck's base class
+        super(CheckMixin, self).__init__(*args, **kwargs)
+
+
+class StateFulMixin(CheckMixin):
+    """
+    StateFulMixin registers the Stateful hook to be used by the agent base and the check itself.
+    """
+    def __init__(self, *args, **kwargs):
+        super(StateFulMixin, self).__init__(*args, **kwargs)
+        self.stateful_hook = self.register_hook(StateFulHook)
+
+    def get_state_descriptor(self):
+        return self.stateful_hook.get_state_descriptor()
+
+    def commit_state(self, state, flush=True):
+        return self.stateful_hook.commit_state(state, flush)
+
+    def get_check_state_path(self):
+        return self.stateful_hook.get_check_state_path()
+
+    def get_state_manager(self):
+        return self.stateful_hook.get_state_manager()
+
+
+class AutoSnapshotMixin(CheckMixin):
+    """
+    AutoSnapshotMixin registers the Stateful hook to be used by the agent base and the check itself.
+    """
+    def __init__(self, *args, **kwargs):
+        super(AutoSnapshotMixin, self).__init__(*args, **kwargs)
+        self.register_hook(AutoSnapshotHook)
+
+
+class CheckHookContract:
+    """
+    CheckHookContract exposes the contract to all check hooks
+    """
+    def __init__(self, name, check_id, log, check_instance, topology_instance, agent_conf_d_path):
+        self.name = name
+        self.check_id = check_id
+        self.log = log
+        self.check_instance = check_instance
+        self.topology_instance = topology_instance
+        self.agent_conf_d_path = agent_conf_d_path
+
+
+class CheckHook(object):
+    """
+    CheckHook is an interface that can be implemented to run pre and post check run tasks
+    """
+    def __init__(self, check_hook_contract, *args, **kwargs):
+        self.check_hook_contract = check_hook_contract
+
+    def pre_run_task(self):
+        raise NotImplementedError
+
+    def post_run_task(self, post_check_instance):
+        raise NotImplementedError
+
+
+class AutoSnapshotHook(CheckHook):
+    """
+    AutoSnapshotHook submits a start snapshot before the check run and a stop snapshot after the check has completed
+    successfully.
+    """
+
+    def pre_run_task(self):
+        """
+        Submit the start of the snapshot before the check is run
+        """
+        topology.submit_start_snapshot(None, self.check_hook_contract.check_id,
+                                       self.check_hook_contract.topology_instance.to_dict())
+
+    def post_run_task(self, post_check_instance):
+        """
+        Submit the stop of the snapshot before the check is run
+        """
+        topology.submit_stop_snapshot(None, self.check_hook_contract.check_id,
+                                      self.check_hook_contract.topology_instance.to_dict())
+
+
+class StateFulHook(CheckHook):
+    """
+    StateFulMixin can be added to any Agent Check to make the check Stateful. This will use the persistent state to
+    store data across check runs.
+    """
+
+    """
+    STATE_FIELD_NAME is used to determine to which key the check state should be set, defaults to `state`
+    """
+    STATE_FIELD_NAME = 'state'
+
+    def __init__(self, check_hook_contract, *args, **kwargs):
+        super(StateFulHook, self).__init__(check_hook_contract, *args, **kwargs)
+        self.state_manager = StateManager(check_hook_contract.log)
+
+    def pre_run_task(self):
+        """
+        Fetch the current state before the check is run and add it the current state to the check instance.
+        """
+        state_descriptor = self.get_state_descriptor()
+        current_state = copy.deepcopy(self.state_manager.get_state(state_descriptor))
+        if current_state:
+            return {self.STATE_FIELD_NAME: current_state}
+
+        return
+    def post_run_task(self, post_check_instance):
+        """
+        Set the state that was returned after the check completed succesfully.
+        """
+        # set the state from the check instance
+        state_descriptor = self.get_state_descriptor()
+        self.state_manager.set_state(state_descriptor, post_check_instance.get(self.STATE_FIELD_NAME))
+
+    def get_state_manager(self):
+        return self.state_manager
+
+    def get_state_descriptor(self):
+        """
+        Returns the state descriptor that contains the state instance key and the state location.
+        """
+        instance_key = self.check_hook_contract.topology_instance.instance_key()
+        return StateDescriptor(instance_key, self.get_check_state_path())
+
+    def commit_state(self, state, flush=True):
+        """
+        commit_state can be used to immediately set (and optionally flush) state in the agent, instead of first
+        completing
+        the check
+        """
+        self.state_manager.set_state(self.get_state_descriptor(), state, flush)
+
+    def get_check_state_path(self):
+        """
+        get_check_state_path returns the path where the check state is stored. By default the check configuration
+        location will be used. If state_location is set in the check configuration that will be used instead.
+        """
+        state_location = self.check_hook_contract.check_instance\
+            .get("state_location", self.check_hook_contract.agent_conf_d_path)
+
+        return "{}.d".format(os.path.join(state_location, self.check_hook_contract.name))
 
 
 if PY3:

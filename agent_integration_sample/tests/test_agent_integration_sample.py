@@ -40,6 +40,27 @@ class TestAgentIntegration(unittest.TestCase):
         config = {}
         self.check = AgentIntegrationSampleCheck(self.CHECK_NAME, config, instances=[self.instance])
 
+    def tearDown(self):
+        """
+        Destroy the check state
+        """
+        state_descriptor = self.check.get_state_descriptor()
+        self.check.get_state_manager().clear(state_descriptor)
+
+    def test_check_state_multiple_run(self):
+        topology.reset()
+
+        for _ in range(50):
+            topology.reset()
+            result = self.check.run()
+            assert result == ''
+            topo_instances = topology.get_snapshot(self.check.check_id)
+            self.assertEqual(len(topo_instances['components']), 6)
+            self.assertEqual(len(topo_instances['relations']), 3)
+
+        state_descriptor = self.check.get_state_descriptor()
+        assert self.check.get_state_manager().get_state(state_descriptor) == {'run_count': 50}
+
     def test_check(self):
         # TODO this is needed because the topology retains data across tests
         topology.reset()

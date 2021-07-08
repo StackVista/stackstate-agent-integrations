@@ -210,20 +210,21 @@ def state():
             - perform the check run, (potentially) altering the state.
             - assert the state after the check has run, making sure it's the value of `post_run_state`.
             """
-            state_descriptor = check._get_state_descriptor()
+            state_descriptor = check.get_state_descriptor()
             try:
                 if expected_pre_run_state:
-                    assert check.state_manager.get_state(state_descriptor, state_schema) == expected_pre_run_state
+                    assert check.get_state_manager().get_state(state_descriptor, state_schema) == expected_pre_run_state
                 else:
-                    assert check.state_manager.get_state(state_descriptor, state_schema) is None
+                    assert check.get_state_manager().get_state(state_descriptor, state_schema) is None
                 check.run()
                 if expected_post_run_state:
-                    assert check.state_manager.get_state(state_descriptor, state_schema) == expected_post_run_state
+                    assert check.get_state_manager().get_state(state_descriptor, state_schema) == \
+                           expected_post_run_state
                 else:
-                    assert check.state_manager.get_state(state_descriptor, state_schema) is None
+                    assert check.get_state_manager().get_state(state_descriptor, state_schema) is None
             finally:
                 # remove all test data
-                check.state_manager.clear(state_descriptor)
+                check.get_state_manager().clear(state_descriptor)
                 shutil.rmtree(check.get_check_state_path(), ignore_errors=True)
 
         def assert_state(self, instance, state, state_schema=None, with_clear=True):
