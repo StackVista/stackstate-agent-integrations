@@ -43,6 +43,20 @@ win_deps:
       - venv
     expire_in: 1 week
 
+rules:
+  - &base_changes
+    if: $CI_MERGE_REQUEST_IID
+    changes:
+      - "stackstate_checks_base/*"
+      - "stackstate_checks_base/**/*"
+      - "stackstate_checks_dev/*"
+      - "stackstate_checks_dev/**/*"
+      - ".gitlab-ci.yml"
+  - &master_branch
+    if: '$CI_COMMIT_BRANCH == "master"'
+  - &release_branch
+    if: $CI_COMMIT_TAG
+
 clear-caches:
   cache:
     policy: push
@@ -82,6 +96,10 @@ clear-win-caches:
     - checksdev test ${CHECK} --bench || true
       # [BS] we skip this until https://github.com/PyCQA/pylint/pull/2681/commits/253e5d05e3943d3bc8e4470804a138cb20049548 lands in pylint stable version
       # - if [ -n "$PYTHON3" ]; then checksdev validate py3 ${CHECK}; fi
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
 
 test_stackstate_checks_base:
   <<: *linux_test
@@ -109,6 +127,11 @@ test_stackstate_checks_dev:
     DOCKER_TLS_CERTDIR: ""
   tags:
     - sts-k8s-xl-no-docker-runner
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
+
 
 test_kubernetes:
   <<: *linux_test
@@ -117,6 +140,14 @@ test_kubernetes:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
+    - if: $CI_MERGE_REQUEST_IID
+      changes:
+      - "kubernetes/*"
+      - "kubernetes/**/*"
 
 test_dynatrace:
   <<: *linux_test
@@ -125,6 +156,14 @@ test_dynatrace:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
+    - if: $CI_MERGE_REQUEST_IID
+      changes:
+      - "dynatrace/*"
+      - "dynatrace/**/*"
 
 test_kubelet:
   <<: *linux_test
@@ -133,6 +172,14 @@ test_kubelet:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
+    - if: $CI_MERGE_REQUEST_IID
+      changes:
+      - "kubelet/*"
+      - "kubelet/**/*"
 
 test_kubernetes_state:
   <<: *linux_test
@@ -141,6 +188,14 @@ test_kubernetes_state:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
+    - if: $CI_MERGE_REQUEST_IID
+      changes:
+      - "kubernetes_state/*"
+      - "kubernetes_state/**/*"
 
 test_mysql:
   <<: *linux_test
@@ -150,6 +205,14 @@ test_mysql:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
     DOCKER_TLS_CERTDIR: ""
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
+    - if: $CI_MERGE_REQUEST_IID
+      changes:
+      - "mysql/*"
+      - "mysql/**/*"
   tags:
     - sts-aws
 
@@ -160,6 +223,14 @@ test_openmetrics:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
+    - if: $CI_MERGE_REQUEST_IID
+      changes:
+      - "openmetrics/*"
+      - "openmetrics/**/*"
 
 test_postgres:
   <<: *linux_test
@@ -169,6 +240,14 @@ test_postgres:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
     DOCKER_TLS_CERTDIR: ""
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
+    - if: $CI_MERGE_REQUEST_IID
+      changes:
+      - "postgres/*"
+      - "postgres/**/*"
   tags:
     - sts-k8s-xl-no-docker-runner
 
@@ -179,6 +258,14 @@ test_cloudera:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
+    - if: $CI_MERGE_REQUEST_IID
+      changes:
+      - "cloudera/*"
+      - "cloudera/**/*"
 
 test_aws_topology:
   <<: *linux_test
@@ -187,6 +274,14 @@ test_aws_topology:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
+    - if: $CI_MERGE_REQUEST_IID
+      changes:
+      - "aws_topology/*"
+      - "aws_topology/**/*"
 
 test_aws_xray:
   <<: *linux_test
@@ -195,6 +290,14 @@ test_aws_xray:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
+    - if: $CI_MERGE_REQUEST_IID
+    changes:
+      - "aws_xray/*"
+      - "aws_xray/**/*"
 
 test_sap:
   <<: *linux_test
@@ -203,6 +306,14 @@ test_sap:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
+    - if: $CI_MERGE_REQUEST_IID
+      changes:
+      - "sap/*"
+      - "sap/**/*"
 
 test_agent_integration_sample:
   <<: *linux_test
@@ -211,6 +322,14 @@ test_agent_integration_sample:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
+    - if: $CI_MERGE_REQUEST_IID
+      changes:
+      - "agent_integration_sample/*"
+      - "agent_integration_sample/**/*"
 
 test_vsphere:
   <<: *linux_test
@@ -219,6 +338,14 @@ test_vsphere:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
+    - if: $CI_MERGE_REQUEST_IID
+      changes:
+      - "vsphere/*"
+      - "vsphere/**/*"
 
 test_zabbix:
   <<: *linux_test
@@ -227,6 +354,14 @@ test_zabbix:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
+    - if: $CI_MERGE_REQUEST_IID
+      changes:
+      - "zabbix/*"
+      - "zabbix/**/*"
 
 test_servicenow:
   <<: *linux_test
@@ -235,6 +370,14 @@ test_servicenow:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
+    - if: $CI_MERGE_REQUEST_IID
+      changes:
+      - "servicenow/*"
+      - "servicenow/**/*"
 
 test_static_topology:
   <<: *linux_test
@@ -243,6 +386,14 @@ test_static_topology:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
+    - if: $CI_MERGE_REQUEST_IID
+      changes:
+      - "static_topology/*"
+      - "static_topology/**/*"
 
 test_nagios:
   <<: *linux_test
@@ -251,6 +402,14 @@ test_nagios:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
+    - if: $CI_MERGE_REQUEST_IID
+      changes:
+      - "nagios/*"
+      - "nagios/**/*"
 
 
 .windows_test: &windows_test
@@ -260,6 +419,10 @@ test_nagios:
     - win_deps
   script:
     - checksdev test -c %CHECK%
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
   tags:
     - agent_windows_6
   retry:
@@ -273,26 +436,63 @@ test_stackstate_checks_dev_win:
   <<: *windows_test
   variables:
     CHECK: "stackstate_checks_dev:py27-default,stackstate_checks_dev:flake8"
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
+    - if: $CI_MERGE_REQUEST_IID
+      changes:
+      - "stackstate_checks_dev/*"
+      - "stackstate_checks_dev/**/*"
 
 test_stackstate_checks_base_win:
   <<: *windows_test
   variables:
     CHECK: "stackstate_checks_base"
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
+    - if: $CI_MERGE_REQUEST_IID
+      changes:
+      - "stackstate_checks_base/*"
+      - "stackstate_checks_base/**/*"
 
 test_wmi_check:
   <<: *windows_test
   variables:
     CHECK: "wmi_check"
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
+    - if: $CI_MERGE_REQUEST_IID
+      changes:
+      - "wmi_check/*"
 
 test_cloudera_win:
   <<: *windows_test
   variables:
     CHECK: "cloudera"
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
+    - if: $CI_MERGE_REQUEST_IID
+      changes:
+      - "cloudera/*"
 
 test_aws_xray_win:
   <<: *windows_test
   variables:
     CHECK: "aws_xray"
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
+    - if: $CI_MERGE_REQUEST_IID
+      changes:
+      - "aws_xray/*"
 
 publish-checks-dev:
   stage: publish
@@ -301,3 +501,7 @@ publish-checks-dev:
     - export VERSION=`./.setup-scripts/version.sh`
     - echo "__version__ = \"$VERSION\"" > stackstate_checks_dev/stackstate_checks/dev/__about__.py
     - cd stackstate_checks_dev && python setup.py sdist bdist_wheel upload -r local
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
