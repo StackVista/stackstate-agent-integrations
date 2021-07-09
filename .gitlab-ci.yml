@@ -43,7 +43,7 @@ win_deps:
       - venv
     expire_in: 1 week
 
-rules:
+.rules:
   - &base_changes
     if: $CI_MERGE_REQUEST_IID
     changes:
@@ -295,7 +295,7 @@ test_aws_xray:
     - <<: *master_branch
     - <<: *release_branch
     - if: $CI_MERGE_REQUEST_IID
-    changes:
+      changes:
       - "aws_xray/*"
       - "aws_xray/**/*"
 
