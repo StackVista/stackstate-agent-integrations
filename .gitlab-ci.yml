@@ -145,8 +145,7 @@ test_kubernetes:
     - <<: *base_changes
     - <<: *master_branch
     - <<: *release_branch
-    - if: $CI_MERGE_REQUEST_IID
-      changes:
+    - changes:
       - "kubernetes/*"
       - "kubernetes/**/*"
 
