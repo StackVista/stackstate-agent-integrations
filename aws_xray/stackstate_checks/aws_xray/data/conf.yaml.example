@@ -1,13 +1,18 @@
 init_config:
-    # optional
+    # File path to persist the last process time for trace (optional)
     # cache_file: '/opt/stackstate-agent/tmp'
 
 instances:
-  # mandatory AWS credentials and config
+  # AWS access key ID of account  (mandatory)
   - aws_access_key_id: 'abc'
+    # AWS secret access key of account (mandatory)
     aws_secret_access_key: 'cde'
-    role_arn: 'arn:aws:iam::0123456789:role/RoleName'
+    # Region name for which data need to be collected (mandatory)
     region: 'ijk'
+    # Role to assume for access (optional)
+    # role_arn: 'arn:aws:iam::0123456789:role/RoleName'
+    # Maximum time limit cap for retrieval of traces in hours (optional)
+    # trace_time_limit: 3   # by default it's 3 hrs
     # optional
     # min_collection_interval: 60
 

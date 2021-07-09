@@ -3,10 +3,13 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import datetime
 import json
+import time
 import logging
 import os
+import sys
 import tempfile
 import uuid
+from six import text_type
 
 import boto3
 import flatten_dict
@@ -14,6 +17,7 @@ import requests
 from botocore.config import Config
 
 from stackstate_checks.base import AgentCheck, TopologyInstance, is_affirmative
+from stackstate_checks.utils.common import to_string
 
 DEFAULT_BOTO3_RETRIES_COUNT = 50
 
@@ -73,10 +77,12 @@ class AwsCheck(AgentCheck):
             # empty memory cache
             self.trace_ids = {}
             self.arns = {}
-
             traces = self._process_xray_traces(aws_client)
             if traces:
+                start = time.time()
+                self.log.info("Size of traces data to be sent is {} bytes".format(sys.getsizeof(traces)))
                 self._send_payload(traces)
+                self.log.info("Time took to send the data is: {}s".format(time.time()-start))
 
             aws_client.write_cache_file()
             self.service_check(self.SERVICE_CHECK_EXECUTE_NAME, AgentCheck.OK, tags=self.tags)
@@ -132,7 +138,6 @@ class AwsCheck(AgentCheck):
                     service_name = arn
 
             flat_segment = flatten_segment(segment, kind)
-
             # times format is the unix epoch in nanoseconds
             span = {
                 'trace_id': trace_id,
@@ -251,6 +256,7 @@ class AwsClient:
         self.aws_session_token = None
         self.collection_interval = instance.get('min_collection_interval', DEFAULT_COLLECTION_INTERVAL)
         self.cache_file = config.get('cache_file', os.path.join(tempfile.gettempdir(), 'sts_agent_aws_check_end_time'))
+        self.max_cap_time_traces = instance.get('trace_time_limit', 3)
         self.last_end_time = None
 
         if aws_secret_access_key and aws_access_key_id and role_arn and self.region:
@@ -269,21 +275,15 @@ class AwsClient:
 
     def get_xray_traces(self):
         xray_client = self._get_boto3_client('xray')
-
         start_time = self._get_last_request_end_time()
         operation_params = {
             'StartTime': start_time,
             'EndTime': datetime.datetime.utcnow()
         }
-        trace_summaries = []
         traces = []
-
         for page in xray_client.get_paginator('get_trace_summaries').paginate(**operation_params):
             for trace_summary in page['TraceSummaries']:
-                trace_summaries.append(trace_summary)
-
-        for trace_summary in trace_summaries:
-            traces.append(xray_client.batch_get_traces(TraceIds=[trace_summary['Id']]))
+                traces.append(xray_client.batch_get_traces(TraceIds=[trace_summary['Id']]))
 
         self.last_end_time = operation_params['EndTime']
         return traces
@@ -305,10 +305,11 @@ class AwsClient:
                 self.log.info(
                     'Read {}. Start time for X-Ray retrieval period is last retrieval end time: {}'.format(
                         self.cache_file, start_time))
-                if datetime.datetime.now() - datetime.timedelta(hours=24) > start_time:
+                if datetime.datetime.now() - datetime.timedelta(hours=self.max_cap_time_traces) > start_time:
                     start_time = self.default_start_time()
-                    self.log.warning('Time range cannot be longer than 24 hours. '
-                                     'New Start time for X-Ray retrieval period is: {}'.format(start_time))
+                    self.log.warning('Time range cannot be longer than {} hours as maximum cap trace limit definition '
+                                     'New Start time for X-Ray retrieval period is: {}'.format(self.max_cap_time_traces,
+                                                                                               start_time))
         except IOError:
             start_time = self.default_start_time()
             self.log.info(
@@ -338,7 +339,11 @@ def flatten_segment(segment, kind):
             if isinstance(value, list):
                 flat_segment[key] = ', '.join([str(elem) for elem in value])
             elif not isinstance(value, str):
-                flat_segment[key] = str(value)
+                # sometimes we can receive unicode data for some of the field
+                if isinstance(value, text_type):
+                    flat_segment[key] = to_string(value)
+                else:
+                    flat_segment[key] = str(value)
     # STAC-13020: we decided to make all the spans from aws-xray as CLIENT to produce metrics
     # otherwise receiver won't produce any metrics if the kind is INTERNAL
     flat_segment["span.kind"] = kind
@@ -357,7 +362,6 @@ def process_http_error(span, segment):
     if is_affirmative(error):
         # this is always required to produce the trace error metrics
         span['error'] = 1
-
         meta = span.get('meta')
         if meta:
             status_code = meta.get("http.response.status")
