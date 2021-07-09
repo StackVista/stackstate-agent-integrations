@@ -6,7 +6,6 @@
 * [Fixed] AWS x-ray check memory leak caused by `trace_ids` and `arns`.
 * [Fixed] AWS x-ray integration spans produce a span kind to allow StackState to correctly calculate metrics.
 * [Added] AWS x-ray integration spans are interpreted to get http response codes.
-* [Fixed] AWS x-ray integration can run using an IAM role or credentials.
 * [Added] Hostname identifiers for Zabbix hosts.
 * [Added] `get_hostname` to AgentCheck base class.
 * [Fixed] `event_type` is used as the Event Type in StackState for normal events.
