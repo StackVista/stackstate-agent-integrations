@@ -51,6 +51,8 @@ win_deps:
       - "stackstate_checks_base/**/*"
       - "stackstate_checks_dev/*"
       - "stackstate_checks_dev/**/*"
+      - "stackstate_checks_tests_helper/*"
+      - "stackstate_checks_tests_helper/**/*"
       - ".gitlab-ci.yml"
   - &master_branch
     if: '$CI_COMMIT_BRANCH == "master"'
