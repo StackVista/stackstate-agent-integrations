@@ -124,9 +124,9 @@ def test_end_time():
 
 def test_end_time_older_than_24h():
     client = AwsClient({}, {})
-    client.last_end_time = datetime.datetime.utcnow() - datetime.timedelta(hours=48)
+    client.last_end_time = datetime.datetime.utcnow() - datetime.timedelta(hours=4)
     client.write_cache_file()
-    assert client.default_start_time() > datetime.datetime.utcnow() - datetime.timedelta(hours=24)
+    assert client.default_start_time() > datetime.datetime.utcnow() - datetime.timedelta(hours=3)
 
 
 def get_file(file_name):

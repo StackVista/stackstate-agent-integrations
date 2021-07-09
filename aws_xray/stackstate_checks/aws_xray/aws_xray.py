@@ -305,7 +305,7 @@ class AwsClient:
                 self.log.info(
                     'Read {}. Start time for X-Ray retrieval period is last retrieval end time: {}'.format(
                         self.cache_file, start_time))
-                if datetime.datetime.now() - datetime.timedelta(hours=self.max_cap_time_traces) > start_time:
+                if datetime.datetime.utcnow() - datetime.timedelta(hours=self.max_cap_time_traces) > start_time:
                     start_time = self.default_start_time()
                     self.log.warning('Time range cannot be longer than {} hours as maximum cap trace limit definition '
                                      'New Start time for X-Ray retrieval period is: {}'.format(self.max_cap_time_traces,
