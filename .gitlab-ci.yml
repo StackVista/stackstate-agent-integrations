@@ -15,6 +15,12 @@ stages:
   before_script:
     - call .setup-scripts/windows_setup_env.cmd
 
+print_env:
+  <<: *linux_env
+  stage: build
+  script:
+    - printenv
+
 linux_deps:
   <<: *linux_env
   stage: build
