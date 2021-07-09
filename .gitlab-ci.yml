@@ -160,8 +160,7 @@ test_dynatrace:
     - <<: *base_changes
     - <<: *master_branch
     - <<: *release_branch
-    - if: $CI_MERGE_REQUEST_IID
-      changes:
+    - changes:
       - "dynatrace/*"
       - "dynatrace/**/*"
 
@@ -176,8 +175,7 @@ test_kubelet:
     - <<: *base_changes
     - <<: *master_branch
     - <<: *release_branch
-    - if: $CI_MERGE_REQUEST_IID
-      changes:
+    - changes:
       - "kubelet/*"
       - "kubelet/**/*"
 
@@ -192,8 +190,7 @@ test_kubernetes_state:
     - <<: *base_changes
     - <<: *master_branch
     - <<: *release_branch
-    - if: $CI_MERGE_REQUEST_IID
-      changes:
+    - changes:
       - "kubernetes_state/*"
       - "kubernetes_state/**/*"
 
@@ -209,8 +206,7 @@ test_mysql:
     - <<: *base_changes
     - <<: *master_branch
     - <<: *release_branch
-    - if: $CI_MERGE_REQUEST_IID
-      changes:
+    - changes:
       - "mysql/*"
       - "mysql/**/*"
   tags:
@@ -227,8 +223,7 @@ test_openmetrics:
     - <<: *base_changes
     - <<: *master_branch
     - <<: *release_branch
-    - if: $CI_MERGE_REQUEST_IID
-      changes:
+    - changes:
       - "openmetrics/*"
       - "openmetrics/**/*"
 
@@ -244,8 +239,7 @@ test_postgres:
     - <<: *base_changes
     - <<: *master_branch
     - <<: *release_branch
-    - if: $CI_MERGE_REQUEST_IID
-      changes:
+    - changes:
       - "postgres/*"
       - "postgres/**/*"
   tags:
@@ -262,8 +256,7 @@ test_cloudera:
     - <<: *base_changes
     - <<: *master_branch
     - <<: *release_branch
-    - if: $CI_MERGE_REQUEST_IID
-      changes:
+    - changes:
       - "cloudera/*"
       - "cloudera/**/*"
 
@@ -278,8 +271,7 @@ test_aws_topology:
     - <<: *base_changes
     - <<: *master_branch
     - <<: *release_branch
-    - if: $CI_MERGE_REQUEST_IID
-      changes:
+    - changes:
       - "aws_topology/*"
       - "aws_topology/**/*"
 
@@ -294,8 +286,7 @@ test_aws_xray:
     - <<: *base_changes
     - <<: *master_branch
     - <<: *release_branch
-    - if: $CI_MERGE_REQUEST_IID
-      changes:
+    - changes:
       - "aws_xray/*"
       - "aws_xray/**/*"
 
@@ -310,8 +301,7 @@ test_sap:
     - <<: *base_changes
     - <<: *master_branch
     - <<: *release_branch
-    - if: $CI_MERGE_REQUEST_IID
-      changes:
+    - changes:
       - "sap/*"
       - "sap/**/*"
 
@@ -326,8 +316,7 @@ test_agent_integration_sample:
     - <<: *base_changes
     - <<: *master_branch
     - <<: *release_branch
-    - if: $CI_MERGE_REQUEST_IID
-      changes:
+    - changes:
       - "agent_integration_sample/*"
       - "agent_integration_sample/**/*"
 
@@ -342,8 +331,7 @@ test_vsphere:
     - <<: *base_changes
     - <<: *master_branch
     - <<: *release_branch
-    - if: $CI_MERGE_REQUEST_IID
-      changes:
+    - changes:
       - "vsphere/*"
       - "vsphere/**/*"
 
@@ -358,8 +346,7 @@ test_zabbix:
     - <<: *base_changes
     - <<: *master_branch
     - <<: *release_branch
-    - if: $CI_MERGE_REQUEST_IID
-      changes:
+    - changes:
       - "zabbix/*"
       - "zabbix/**/*"
 
@@ -374,8 +361,7 @@ test_servicenow:
     - <<: *base_changes
     - <<: *master_branch
     - <<: *release_branch
-    - if: $CI_MERGE_REQUEST_IID
-      changes:
+    - changes:
       - "servicenow/*"
       - "servicenow/**/*"
 
@@ -390,8 +376,7 @@ test_static_topology:
     - <<: *base_changes
     - <<: *master_branch
     - <<: *release_branch
-    - if: $CI_MERGE_REQUEST_IID
-      changes:
+    - changes:
       - "static_topology/*"
       - "static_topology/**/*"
 
@@ -406,11 +391,9 @@ test_nagios:
     - <<: *base_changes
     - <<: *master_branch
     - <<: *release_branch
-    - if: $CI_MERGE_REQUEST_IID
-      changes:
+    - changes:
       - "nagios/*"
       - "nagios/**/*"
-
 
 .windows_test: &windows_test
   <<: *windows_env
@@ -440,10 +423,6 @@ test_stackstate_checks_dev_win:
     - <<: *base_changes
     - <<: *master_branch
     - <<: *release_branch
-    - if: $CI_MERGE_REQUEST_IID
-      changes:
-      - "stackstate_checks_dev/*"
-      - "stackstate_checks_dev/**/*"
 
 test_stackstate_checks_base_win:
   <<: *windows_test
@@ -453,10 +432,6 @@ test_stackstate_checks_base_win:
     - <<: *base_changes
     - <<: *master_branch
     - <<: *release_branch
-    - if: $CI_MERGE_REQUEST_IID
-      changes:
-      - "stackstate_checks_base/*"
-      - "stackstate_checks_base/**/*"
 
 test_wmi_check:
   <<: *windows_test
@@ -466,9 +441,9 @@ test_wmi_check:
     - <<: *base_changes
     - <<: *master_branch
     - <<: *release_branch
-    - if: $CI_MERGE_REQUEST_IID
-      changes:
+    - changes:
       - "wmi_check/*"
+      - "wmi_check/**/*"
 
 test_cloudera_win:
   <<: *windows_test
@@ -478,9 +453,9 @@ test_cloudera_win:
     - <<: *base_changes
     - <<: *master_branch
     - <<: *release_branch
-    - if: $CI_MERGE_REQUEST_IID
-      changes:
+    - changes:
       - "cloudera/*"
+      - "cloudera/**/*"
 
 test_aws_xray_win:
   <<: *windows_test
@@ -490,9 +465,9 @@ test_aws_xray_win:
     - <<: *base_changes
     - <<: *master_branch
     - <<: *release_branch
-    - if: $CI_MERGE_REQUEST_IID
-      changes:
+    - changes:
       - "aws_xray/*"
+      - "aws_xray/**/*"
 
 publish-checks-dev:
   stage: publish
