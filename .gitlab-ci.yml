@@ -45,7 +45,6 @@ win_deps:
 
 .rules:
   - &base_changes
-    if: $CI_MERGE_REQUEST_IID
     changes:
       - "stackstate_checks_base/*"
       - "stackstate_checks_base/**/*"
