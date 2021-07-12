@@ -81,10 +81,16 @@ clear-caches:
     key: "stackstate-agent-integrations-build-cache"
     paths:
       - venv
-  when: manual
   stage: build
   script:
     - rm -rf venv || true
+  rules:
+    - <<: *pull_requests
+      when: manual
+    - <<: *master_branch
+      when: manual
+    - <<: *release_branch
+      when: manual
 
 clear-win-caches:
   cache:
@@ -92,12 +98,18 @@ clear-win-caches:
     key: "stackstate-agent-integrations-windows-build-cache"
     paths:
       - venv
-  when: manual
   stage: build
   script:
     - "if exist %WIN_CI_PROJECT_DIR%\\venv rd /s/q %WIN_CI_PROJECT_DIR%\\venv"
   tags:
     - agent_windows_6
+  rules:
+    - <<: *pull_requests
+      when: manual
+    - <<: *master_branch
+      when: manual
+    - <<: *release_branch
+      when: manual
 
 .linux_test: &linux_test
   <<: *linux_env
