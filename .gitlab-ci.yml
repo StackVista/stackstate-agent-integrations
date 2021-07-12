@@ -85,10 +85,6 @@ clear-caches:
   stage: build
   script:
     - rm -rf venv || true
-  rules:
-    - <<: *pull_requests
-    - <<: *master_branch
-    - <<: *release_branch
 
 clear-win-caches:
   cache:
@@ -102,10 +98,6 @@ clear-win-caches:
     - "if exist %WIN_CI_PROJECT_DIR%\\venv rd /s/q %WIN_CI_PROJECT_DIR%\\venv"
   tags:
     - agent_windows_6
-  rules:
-    - <<: *pull_requests
-    - <<: *master_branch
-    - <<: *release_branch
 
 .linux_test: &linux_test
   <<: *linux_env
