@@ -191,7 +191,7 @@ class TestFlowLogs(unittest.TestCase):
         self.assertEqual(
             components[0],
             {
-                "id": "urn:vpcip:vpc-0305206adbbda9918/10.16.133.15",
+                "id": "local/vpc-0305206adbbda9918/10.16.133.15:5432/10.16.5.72:60428",
                 "data": {
                     "Location": {"AwsAccount": "123456789012", "AwsRegion": "eu-west-1"},
                     "URN": ["urn:vpcip:vpc-0305206adbbda9918/10.16.133.15"],
@@ -203,7 +203,7 @@ class TestFlowLogs(unittest.TestCase):
         self.assertEqual(
             components[1],
             {
-                "id": "urn:vpcip:vpc-0305206adbbda9918/10.16.5.72",
+                "id": "remote/vpc-0305206adbbda9918/10.16.133.15:5432/10.16.5.72:60428",
                 "data": {
                     "Location": {"AwsAccount": "123456789012", "AwsRegion": "eu-west-1"},
                     "URN": ["urn:vpcip:vpc-0305206adbbda9918/10.16.5.72"],
@@ -216,8 +216,8 @@ class TestFlowLogs(unittest.TestCase):
             relations[0],
             {
                 "data": {},
-                "source_id": "urn:vpcip:vpc-0305206adbbda9918/10.16.133.15",
-                "target_id": "urn:vpcip:vpc-0305206adbbda9918/10.16.5.72",
+                "source_id": "local/vpc-0305206adbbda9918/10.16.133.15:5432/10.16.5.72:60428",
+                "target_id": "remote/vpc-0305206adbbda9918/10.16.133.15:5432/10.16.5.72:60428",
                 "type": "uses service",
             },
         )

@@ -259,6 +259,10 @@ def is_private(ip):
     return ipaddress.ip_address(ensure_text(ip)).is_private
 
 
+def ip_version(ip):
+    return ipaddress.ip_address(ensure_text(ip)).version
+
+
 def ipaddress_to_urn(ip, vpc_id):
     if is_private(ip):
         return "urn:vpcip:{}/{}".format(vpc_id, ip)
