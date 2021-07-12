@@ -6,6 +6,8 @@ stages:
   - publish
 
 .rules:
+  - &pull_requests
+    if: $CI_EXTERNAL_PULL_REQUEST_IID
   - &base_changes
     if: $CI_EXTERNAL_PULL_REQUEST_IID
     changes:
@@ -25,7 +27,7 @@ stages:
   before_script:
     - source .setup-scripts/setup_env.sh
   rules:
-    - <<: *base_changes
+    - <<: *pull_requests
     - <<: *master_branch
     - <<: *release_branch
 
@@ -35,7 +37,7 @@ stages:
   before_script:
     - call .setup-scripts/windows_setup_env.cmd
   rules:
-    - <<: *base_changes
+    - <<: *pull_requests
     - <<: *master_branch
     - <<: *release_branch
 
@@ -58,10 +60,6 @@ linux_deps:
     paths:
       - venv
     expire_in: 1 week
-  rules:
-    - <<: *base_changes
-    - <<: *master_branch
-    - <<: *release_branch
 
 win_deps:
   <<: *windows_env
@@ -76,10 +74,6 @@ win_deps:
     paths:
       - venv
     expire_in: 1 week
-  rules:
-    - <<: *base_changes
-    - <<: *master_branch
-    - <<: *release_branch
 
 clear-caches:
   cache:
@@ -91,6 +85,10 @@ clear-caches:
   stage: build
   script:
     - rm -rf venv || true
+  rules:
+    - <<: *pull_requests
+    - <<: *master_branch
+    - <<: *release_branch
 
 clear-win-caches:
   cache:
@@ -104,6 +102,10 @@ clear-win-caches:
     - "if exist %WIN_CI_PROJECT_DIR%\\venv rd /s/q %WIN_CI_PROJECT_DIR%\\venv"
   tags:
     - agent_windows_6
+  rules:
+    - <<: *pull_requests
+    - <<: *master_branch
+    - <<: *release_branch
 
 .linux_test: &linux_test
   <<: *linux_env
