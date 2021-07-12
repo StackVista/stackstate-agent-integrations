@@ -114,7 +114,7 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
 
     @transformation()
     def process_resource_method(self, data, method, resource, stage, api, stage_arn, resource_arn):
-        if method.methodIntegration and method.methodIntegration.type in ["AWS_PROXY", "AWS", "HTTP_PROXY"]:
+        if method.methodIntegration:
             method_data = make_valid_data(data)
             method_arn = "{}/{}{}".format(stage_arn, method.httpMethod, resource.path)
             method_data.update(
