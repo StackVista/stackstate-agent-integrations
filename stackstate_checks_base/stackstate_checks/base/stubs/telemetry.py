@@ -25,7 +25,6 @@ class TelemetryStub(object):
     def assert_topology_event(self, event, count=None, at_least=1):
         candidates = []
         for e in self._topology_events:
-            print(e)
             if e == event:
                 candidates.append(e)
 

@@ -1,0 +1,23 @@
+{
+  "display_name": "Static Health",
+  "maintainer": "info@stackstate.com",
+  "manifest_version": "1.0.0",
+  "name": "static_health",
+  "metric_prefix": "static_health.",
+  "metric_to_check": "",
+  "creates_events": false,
+  "short_description": "Ingest static health from file",
+  "guid": "49d58ebe-b178-478e-9b43-2b160b847eb7",
+  "support": "core",
+  "supported_os": [
+    "linux",
+    "mac_os",
+    "windows"
+  ],
+  "public_title": "StackState-Static Health Integration",
+  "categories": [
+    ""
+  ],
+  "type": "check",
+  "is_public": false
+}

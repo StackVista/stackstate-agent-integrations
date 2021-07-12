@@ -34,6 +34,8 @@ class Cluster(Model):
     DBClusterIdentifier = StringType(default="UNKNOWN")
     DBClusterMembers = ListType(ModelType(ClusterMember))
     TagList = ListType(ModelType(TagList), default=[])
+    Endpoint = StringType()
+    ReaderEndpoint = StringType()
 
 
 class InstanceSubnetGroup(Model):
@@ -53,7 +55,7 @@ class Instance(Model):
     DBInstanceArn = StringType(required=True)
     DBInstanceIdentifier = StringType(default="UNKNOWN")
     DBSubnetGroup = ModelType(InstanceSubnetGroup)
-    Endpoint = ModelType(InstanceEndpoint, required=True)
+    Endpoint = ModelType(InstanceEndpoint)
     VpcSecurityGroups = ListType(ModelType(InstanceVpcSecurityGroup), default=[])
     TagList = ListType(ModelType(TagList), default=[])
 
@@ -106,16 +108,16 @@ class RdsCollector(RegisteredResourceCollector):
         instance_id = instance.DBInstanceIdentifier
         output["Name"] = instance_id
         output["Tags"] = instance.TagList
-        urns = [
-            "urn:endpoint:/" + instance.Endpoint.Address
-        ]
-        try:
-            urns += get_ipurns_from_hostname(
-                instance.Endpoint.Address,
-                instance.DBSubnetGroup.VpcId
-            )
-        except Exception:
-            self.agent.warning('Failed to resolve RDS endpoint address {}'.format(instance.Endpoint.Address))
+        urns = []
+        if instance.Endpoint:
+            urns.append("urn:endpoint:/" + instance.Endpoint.Address)
+            try:
+                urns += get_ipurns_from_hostname(
+                    instance.Endpoint.Address,
+                    instance.DBSubnetGroup.VpcId
+                )
+            except Exception:
+                self.agent.warning('Failed to resolve RDS endpoint address {}'.format(instance.Endpoint.Address))
         output["URN"] = urns
         output.update(with_dimensions([{"key": "DBInstanceIdentifier", "value": instance_id}]))
         self.emit_component(instance_arn, "instance", output)
@@ -131,8 +133,14 @@ class RdsCollector(RegisteredResourceCollector):
         output = make_valid_data(data)
         cluster_id = cluster.DBClusterIdentifier
         cluster_arn = cluster.DBClusterArn
-        output["Name"] = cluster_arn
+        output["Name"] = cluster_id
         output["Tags"] = cluster.TagList
+        urns = []
+        if cluster.Endpoint:
+            urns.append("urn:endpoint:/" + cluster.Endpoint)
+        if cluster.ReaderEndpoint:
+            urns.append("urn:endpoint:/" + cluster.ReaderEndpoint)
+        output["URN"] = urns
         output.update(with_dimensions([{"key": "DBClusterIdentifier", "value": cluster_id}]))
         self.emit_component(cluster_arn, "cluster", output)
         for cluster_member in output.get("DBClusterMembers", []):

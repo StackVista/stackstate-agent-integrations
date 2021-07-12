@@ -1,0 +1,3 @@
+check_state_id,name,health,topology_element_identifier,message
+1,health1,clear,ident,
+2,health2,critical,ident,mymessage

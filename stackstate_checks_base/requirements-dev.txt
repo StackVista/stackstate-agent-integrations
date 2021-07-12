@@ -1,1 +1,2 @@
 -e ../stackstate_checks_dev
+requests-mock==1.8.0

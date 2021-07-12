@@ -1,0 +1,28 @@
+{
+  "aliases": [
+    "/integrations/splunkhealth"
+  ],
+  "categories": [
+    "data store",
+    "log collection"
+  ],
+  "creates_events": false,
+  "display_name": "Splunk Health",
+  "guid": "f539ffb1-7c92-4bc1-b92b-11a14dcf5048",
+  "is_public": true,
+  "maintainer": "info@stackstate.com",
+  "manifest_version": "1.0.0",
+  "metric_prefix": "splunk_health.",
+  "metric_to_check": "splunk_health.connections",
+  "name": "splunk_health",
+  "process_signatures": [],
+  "public_title": "StackState-Splunk Health Integration",
+  "short_description": "StackState check for converting splunk searches into StackState health.",
+  "support": "core",
+  "supported_os": [
+    "linux",
+    "mac_os",
+    "windows"
+  ],
+  "type": "check"
+}
