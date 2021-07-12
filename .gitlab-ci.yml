@@ -49,6 +49,10 @@ win_deps:
       - venv
     expire_in: 1 week
 
+rules:
+  - if: $CI_EXTERNAL_PULL_REQUEST_IID
+    when: on_success
+
 .rules:
   - &base_changes
     changes:
