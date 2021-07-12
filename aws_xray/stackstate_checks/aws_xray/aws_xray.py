@@ -5,9 +5,7 @@ import datetime
 import json
 import time
 import logging
-import os
 import sys
-import tempfile
 import uuid
 from six import text_type
 
@@ -15,6 +13,9 @@ import boto3
 import flatten_dict
 import requests
 from botocore.config import Config
+from schematics import Model
+from schematics.types import IntType, StringType, ModelType, DateTimeType
+
 
 from stackstate_checks.base import AgentCheck, TopologyInstance, is_affirmative
 from stackstate_checks.utils.common import to_string
@@ -28,8 +29,25 @@ DEFAULT_BOTO3_CONFIG = Config(
 )
 
 TRACES_API_ENDPOINT = 'http://localhost:8126/v0.3/traces'
+# number of hours
+MAX_TRACE_HISTORY_LIMIT = 3
+# number of minutes
+MAX_TRACE_HISTORY_BATCH_SIZE = 5
+# number of seconds
+DEFAULT_MAX_TRACE_BATCH_SIZE = 60
 
-DEFAULT_COLLECTION_INTERVAL = 60
+
+class State(Model):
+    last_processed_timestamp = DateTimeType(required=True)
+
+
+class Instance(Model):
+    aws_access_key_id = StringType(required=True)
+    aws_secret_access_key = StringType(required=True)
+    region = StringType(required=True)
+    role_arn = StringType()
+    trace_time_limit = IntType(default=MAX_TRACE_HISTORY_LIMIT)
+    state = ModelType(State)
 
 
 class AwsCheck(AgentCheck):
@@ -37,6 +55,7 @@ class AwsCheck(AgentCheck):
     INSTANCE_TYPE = 'aws'
     SERVICE_CHECK_CONNECT_NAME = 'aws_xray.can_connect'
     SERVICE_CHECK_EXECUTE_NAME = 'aws_xray.can_execute'
+    INSTANCE_SCHEMA = Instance
 
     def __init__(self, name, init_config, agentConfig, instances=None):
         AgentCheck.__init__(self, name, init_config, agentConfig, instances)
@@ -52,7 +71,7 @@ class AwsCheck(AgentCheck):
 
     def check(self, instance):
         try:
-            aws_client = AwsClient(instance, self.init_config)
+            aws_client = AwsClient(instance)
             self.region = aws_client.region
             self.account_id = aws_client.get_account_id()
             self.service_check(self.SERVICE_CHECK_CONNECT_NAME, AgentCheck.OK, tags=self.tags)
@@ -60,8 +79,8 @@ class AwsCheck(AgentCheck):
             msg = 'AWS connection failed: {}'.format(e)
             self.log.error(msg)
             # set self.account_id so that we can still identify this instance if something went wrong
-            aws_access_key_id = instance.get('aws_access_key_id')
-            role_arn = instance.get('role_arn')
+            aws_access_key_id = instance.aws_access_key_id
+            role_arn = instance.role_arn
             # account_id is used in topology instance url, so we recover and set the role_arn or aws_access_key_id as
             # the account_id so we can map the service_check in StackState
             if role_arn:
@@ -77,24 +96,39 @@ class AwsCheck(AgentCheck):
             # empty memory cache
             self.trace_ids = {}
             self.arns = {}
-            traces = self._process_xray_traces(aws_client)
-            if traces:
-                start = time.time()
-                self.log.info("Size of traces data to be sent is {} bytes".format(sys.getsizeof(traces)))
-                self._send_payload(traces)
-                self.log.info("Time took to send the data is: {}s".format(time.time()-start))
-
-            aws_client.write_cache_file()
+            self._process_xray_traces(aws_client, instance)
             self.service_check(self.SERVICE_CHECK_EXECUTE_NAME, AgentCheck.OK, tags=self.tags)
         except Exception as e:
             msg = 'AWS check failed: {}'.format(e)
             self.log.error(msg)
             self.service_check(self.SERVICE_CHECK_EXECUTE_NAME, AgentCheck.CRITICAL, message=msg, tags=self.tags)
+            raise e
 
-    def _process_xray_traces(self, aws_client):
-        """Gets AWS X-Ray traces returns them in Trace Agent format."""
+    def _process_xray_traces(self, aws_client, instance):
+        """
+        Process XRAY Traces in following process on each check run
+        fetch_batch -> process_batch -> send_batch -> commit_state
+        @param
+        aws_client: AWS Client
+        instance: Instance schema of this check
+        @return
+        None
+        """
+        start_time, end_time = self.get_start_end_time_trace(instance)
+        xray_traces_batch = self.fetch_batch_traces(aws_client, start_time, end_time)
+        traces = self.process_batch_traces(xray_traces_batch)
+        self.send_batch_traces(traces)
+        instance.state.last_processed_timestamp = end_time
+
+    def process_batch_traces(self, xray_traces_batch):
+        """
+        Process incoming batch traces
+        @param
+        xray_traces_batch: List of xray traces batch from AWS API
+        @return
+        Returns the list of formatted traces in Span format required by Trace API
+        """
         traces = []
-        xray_traces_batch = aws_client.get_xray_traces()
         for xray_traces in xray_traces_batch:
             for xray_trace in xray_traces['Traces']:
                 trace = []
@@ -106,8 +140,109 @@ class AwsCheck(AgentCheck):
         self.log.debug('Collected total %s traces.', len(traces))
         return traces
 
+    def fetch_batch_traces(self, aws_client, start_time, end_time):
+        """
+        Fetch the batch of traces from AWS with start and end time
+        @param
+        aws_client: AWS Client
+        start_time: StartTime parameter for API to collect trace from
+        end_time: EndTime parameter for API to collect trace to
+        @return
+        Returns the list of traces from AWS
+        """
+        self.log.debug("Collecting traces from {} to {}".format(start_time, end_time))
+        xray_client = aws_client.get_boto3_client('xray')
+        operation_params = {
+            'StartTime': start_time,
+            'EndTime': end_time
+        }
+        traces = []
+        for page in xray_client.get_paginator('get_trace_summaries').paginate(**operation_params):
+            for trace_summary in page['TraceSummaries']:
+                traces.append(xray_client.batch_get_traces(TraceIds=[trace_summary['Id']]))
+        return traces
+
+    @staticmethod
+    def _current_time():
+        """
+        This method is mocked for testing. Do not change its behavior
+        @return: current time in utc
+        """
+        return datetime.datetime.utcnow()
+
+    def get_start_end_time_trace(self, instance):
+        """
+        Calculate start and end time for collecting the traces
+        Case 1: Normal Start up
+         - Start up, no state.
+         - Fetch from MAX_TRACE_HISTORY_LIMIT (start time) in batches of MAX_TRACE_HISTORY_BATCH_SIZE (end time).
+        Case 2: Behind less than MAX_TRACE_HISTORY_LIMIT
+         - Start up, state < MAX_TRACE_HISTORY_LIMIT.
+         - If MAX_TRACE_HISTORY_BATCH_SIZE < state < MAX_TRACE_HISTORY_LIMIT
+         - Fetch from state(start time) in batches of MAX_TRACE_HISTORY_BATCH_SIZE (end time)
+        Case 3: Behind more than MAX_TRACE_HISTORY_LIMIT
+         - Start up, state > MAX_TRACE_HISTORY_LIMIT.
+         - Reset state to current utc - MAX_TRACE_HISTORY_LIMIT.
+         - Fetch from state (start time) in batches of MAX_TRACE_HISTORY_BATCH_SIZE (end time).
+
+        @param
+        instance: Instance schema of the check
+        @return
+        Returns the start time and end time
+        """
+        if not instance.state:
+            trace_end_timestamp = self._current_time() - datetime.timedelta(hours=MAX_TRACE_HISTORY_LIMIT)
+            self.log.info('Creating default start time for the trace : %s', trace_end_timestamp)
+            instance.state = State({'last_processed_timestamp': trace_end_timestamp})
+        start_time = instance.state.last_processed_timestamp
+        diff_time = self._current_time() - start_time
+        # case 1 & case 2: Normal Startup | Behind less than MAX_TRACE_HISTORY_LIMIT
+        if self.delta_time(minutes=True) <= diff_time <= self.delta_time(hours=True):
+            end_time = start_time + self.delta_time(minutes=True)
+            self.log.info("Catching up from {} to {}".format(start_time, end_time))
+        # case 3: Behind more than MAX_TRACE_HISTORY_LIMIT
+        elif diff_time > self.delta_time(hours=True):
+            # reset the start time to utc - 3 hours
+            self.log.info("Lagging behind more than defined threshold value of MAX_TRACE_HISTORY_LIMIT : {}hrs. "
+                          "Resetting now....".format(MAX_TRACE_HISTORY_LIMIT))
+            start_time = self._current_time() - self.delta_time(hours=True)
+            end_time = start_time + self.delta_time(minutes=True)
+        # when not lagging behind
+        else:
+            self.log.info("Catching up complete and will continuing with normal {}secs interval"
+                          .format(DEFAULT_MAX_TRACE_BATCH_SIZE))
+            end_time = start_time + self.delta_time(seconds=True)
+        return start_time, end_time
+
+    @staticmethod
+    def delta_time(hours=False, minutes=False, seconds=False):
+        """
+        Get time delta for different time formats with specific constants
+        @params
+        hours: If True return MAX_TRACE_HISTORY_LIMIT hours delta, False by default
+        minutes: If True return MAX_TRACE_HISTORY_BATCH_SIZE minutes delta, False by default
+        seconds: If True return DEFAULT_MAX_TRACE_BATCH_SIZE seconds delta, False by default
+        """
+        delta = 0
+        if hours:
+            delta = datetime.timedelta(hours=MAX_TRACE_HISTORY_LIMIT)
+        elif minutes:
+            delta = datetime.timedelta(minutes=MAX_TRACE_HISTORY_BATCH_SIZE)
+        elif seconds:
+            delta = datetime.timedelta(seconds=DEFAULT_MAX_TRACE_BATCH_SIZE)
+        return delta
+
     def _generate_spans(self, segments, trace_id=None, parent_id=None, kind="client"):
-        """Translates X-Ray trace to StackState trace."""
+        """
+        Translates X-Ray trace to StackState trace.
+        @param
+        segments: Segment Documents from AWS Trace API
+        trace_id: 64bit unsigned integer Trace ID
+        parent_id: Segment ID for the parent span
+        kind: Type of span default to Client
+        @return
+        Returns the list of spans formatted in Trace-Agent defined structure
+        """
         spans = []
 
         for segment in segments:
@@ -163,7 +298,13 @@ class AwsCheck(AgentCheck):
         return spans
 
     def _convert_trace_id(self, aws_trace_id):
-        """Converts Amazon X-Ray trace_id to 64bit unsigned integer."""
+        """
+        Converts Amazon X-Ray trace_id to 64bit unsigned integer.
+        @param
+        aws_trace_id: Segment Trace ID from AWS Trace API
+        @return
+        Returns the 64bit unsigned integer
+        """
         try:
             trace_id = self.trace_ids[aws_trace_id]
         except KeyError:
@@ -239,24 +380,28 @@ class AwsCheck(AgentCheck):
 
         return arn
 
-    @staticmethod
-    def _send_payload(traces):
-        """Sends traces payload to Traces Agent."""
+    def send_batch_traces(self, traces):
+        """
+        Sends traces payload to Traces Agent.
+        @param
+        traces: the payload to be sent to TraceAPI
+        """
         headers = {'Content-Type': 'application/json'}
-        requests.put(TRACES_API_ENDPOINT, data=json.dumps(traces), headers=headers)
+        if traces:
+            start = time.time()
+            self.log.info("Size of traces data to be sent is {} bytes".format(sys.getsizeof(traces)))
+            requests.put(TRACES_API_ENDPOINT, data=json.dumps(traces), headers=headers)
+            self.log.info("Time took to send the data is: {}s".format(time.time()-start))
 
 
 class AwsClient:
-    def __init__(self, instance, config):
+    def __init__(self, instance):
         self.log = logging.getLogger(__name__)
-        aws_access_key_id = instance.get('aws_access_key_id')
-        aws_secret_access_key = instance.get('aws_secret_access_key')
-        role_arn = instance.get('role_arn')
-        self.region = instance.get('region')
+        aws_access_key_id = instance.aws_access_key_id
+        aws_secret_access_key = instance.aws_secret_access_key
+        role_arn = instance.role_arn
+        self.region = instance.region
         self.aws_session_token = None
-        self.collection_interval = instance.get('min_collection_interval', DEFAULT_COLLECTION_INTERVAL)
-        self.cache_file = config.get('cache_file', os.path.join(tempfile.gettempdir(), 'sts_agent_aws_check_end_time'))
-        self.max_cap_time_traces = instance.get('trace_time_limit', 3)
         self.last_end_time = None
 
         if aws_secret_access_key and aws_access_key_id and role_arn and self.region:
@@ -271,63 +416,24 @@ class AwsClient:
             self.aws_secret_access_key = aws_secret_access_key
 
     def get_account_id(self):
-        return self._get_boto3_client('sts').get_caller_identity().get('Account')
+        return self.get_boto3_client('sts').get_caller_identity().get('Account')
 
-    def get_xray_traces(self):
-        xray_client = self._get_boto3_client('xray')
-        start_time = self._get_last_request_end_time()
-        operation_params = {
-            'StartTime': start_time,
-            'EndTime': datetime.datetime.utcnow()
-        }
-        traces = []
-        for page in xray_client.get_paginator('get_trace_summaries').paginate(**operation_params):
-            for trace_summary in page['TraceSummaries']:
-                traces.append(xray_client.batch_get_traces(TraceIds=[trace_summary['Id']]))
-
-        self.last_end_time = operation_params['EndTime']
-        return traces
-
-    def _get_boto3_client(self, service_name):
+    def get_boto3_client(self, service_name):
         return boto3.client(service_name, region_name=self.region, config=DEFAULT_BOTO3_CONFIG,
                             aws_access_key_id=self.aws_access_key_id,
                             aws_secret_access_key=self.aws_secret_access_key,
                             aws_session_token=self.aws_session_token)
 
-    def _get_last_request_end_time(self):
-        try:
-            with open(self.cache_file, 'r') as file:
-                last_end_time = file.read()
-                # if the file was empty, put 0 to avoid the float conversion of empty string.
-                if not last_end_time:
-                    last_end_time = 0
-                start_time = datetime.datetime.utcfromtimestamp(float(last_end_time))
-                self.log.info(
-                    'Read {}. Start time for X-Ray retrieval period is last retrieval end time: {}'.format(
-                        self.cache_file, start_time))
-                if datetime.datetime.utcnow() - datetime.timedelta(hours=self.max_cap_time_traces) > start_time:
-                    start_time = self.default_start_time()
-                    self.log.warning('Time range cannot be longer than {} hours as maximum cap trace limit definition '
-                                     'New Start time for X-Ray retrieval period is: {}'.format(self.max_cap_time_traces,
-                                                                                               start_time))
-        except IOError:
-            start_time = self.default_start_time()
-            self.log.info(
-                'Cache file {} not found. Start time for X-Ray retrieval period is: {}'.format(self.cache_file,
-                                                                                               start_time))
-        return start_time
-
-    def default_start_time(self):
-        return datetime.datetime.utcnow() - datetime.timedelta(seconds=self.collection_interval)
-
-    def write_cache_file(self):
-        with open(self.cache_file, 'w') as file:
-            end_timestamp = (self.last_end_time - datetime.datetime.utcfromtimestamp(0)).total_seconds()
-            file.write('{:f}'.format(end_timestamp))
-            self.log.info('Writen X-Ray retrieval end time {} to {}'.format(self.last_end_time, self.cache_file))
-
 
 def flatten_segment(segment, kind):
+    """
+    Flatten the nested disctionary object into root dictionary
+    @param
+    segment: The Trace segment which has to be flatten
+    kind: Span Kind
+    @return
+    Returns the flatten segment with additional fields
+    """
     flat_segment = flatten_dict.flatten(segment, dot_reducer)
     for key, value in flat_segment.items():
         if key == 'subsegments':
@@ -354,9 +460,11 @@ def flatten_segment(segment, kind):
 def process_http_error(span, segment):
     """
     Process the span on different error code
-    :param span: The span in which error code has to be sent
-    :param segment: The segment from which error code has to be processed
-    :return: span processed with error codes
+    @param
+    span: The span in which error code has to be sent
+    segment: The segment from which error code has to be processed
+    @return
+    Returns the span processed with error codes
     """
     error = segment.get('fault') or segment.get('throttle') or segment.get('error')
     if is_affirmative(error):
@@ -375,6 +483,14 @@ def process_http_error(span, segment):
 
 
 def dot_reducer(key1, key2):
+    """
+    Format pair of keys into key1.key2 format
+    @param
+    key1: first key
+    key2: second key
+    @return
+    Returns the keys in format key1.key2
+    """
     if key1 is None:
         return key2
     else:
