@@ -47,9 +47,12 @@ class DockerInterface(object):
         self.config_file = locate_config_file(check, env)
         self.config_file_name = config_file_name(self.check)
 
+    def mount_dir(self, subdir):
+        return '/home/{}'.format(subdir)
+
     @property
     def check_mount_dir(self):
-        return '/home/{}'.format(self.check)
+        return self.mount_dir(self.check)
 
     @property
     def base_mount_dir(self):
@@ -97,6 +100,14 @@ class DockerInterface(object):
             'docker', 'exec', self.container_name, 'pip', 'install', '-e', self.base_mount_dir
         ]
         run_command(command, capture=True, check=True)
+        # Install shared libraries
+        with open(path_join(get_root(), "shared_libraries.in"), "r") as shared_file:
+            for line in shared_file:
+                shared_lib = line.strip()
+                command = [
+                    'docker', 'exec', self.container_name, 'pip', 'install', '-e', self.mount_dir(shared_lib)
+                ]
+                run_command(command, capture=True, check=True)
 
     def update_agent(self):
         if self.agent_build:
@@ -158,6 +169,13 @@ class DockerInterface(object):
             # Mount the check directory
             command.append('-v')
             command.append('{}:{}'.format(self.base_package, self.base_mount_dir))
+
+            # Include shared libraries
+            with open(path_join(get_root(), "shared_libraries.in"), "r") as shared_file:
+                for line in shared_file:
+                    shared_lib = line.strip()
+                    command.append('-v')
+                    command.append('{}:{}'.format(path_join(get_root(), shared_lib), self.mount_dir(shared_lib)))
 
         # The chosen tag
         command.append(self.agent_build)

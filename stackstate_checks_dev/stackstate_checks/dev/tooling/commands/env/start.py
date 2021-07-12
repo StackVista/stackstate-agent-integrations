@@ -26,7 +26,8 @@ from ....utils import dir_exists, file_exists, path_join
               help='The docker image of the agent to use')
 @click.option('--dev/--prod', default=True, show_default=True,
               help='Use the latest version of a check (or else what is shipped with the agent package)')
-@click.option('--base', is_flag=True, help='Whether to use the latest version of the base check or what is shipped')
+@click.option('--base', is_flag=True, help='Whether to use the latest version of the base check or what is shipped.\
+ Also will install all shared libraries')
 @click.option('--api-key', '-k',
               help='Set the api key. can also be picked up form the STS_API_KEY environment variable')
 @click.option('--sts-url', '-u',

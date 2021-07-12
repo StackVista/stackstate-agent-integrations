@@ -1,0 +1,28 @@
+{
+  "aliases": [
+    "/integrations/splunktopology"
+  ],
+  "categories": [
+    "data store",
+    "log collection"
+  ],
+  "creates_events": false,
+  "display_name": "Splunk Topology",
+  "guid": "5b5dc241-bcd3-4f84-a615-a87bd828c233",
+  "is_public": true,
+  "maintainer": "info@stackstate.com",
+  "manifest_version": "1.0.0",
+  "metric_prefix": "splunk_topology.",
+  "metric_to_check": "splunk_topology.connections",
+  "name": "splunk_topology",
+  "process_signatures": [],
+  "public_title": "StackState-Splunk Topology Integration",
+  "short_description": "tackState check for converting splunk searches into StackState topology.",
+  "support": "core",
+  "supported_os": [
+    "linux",
+    "mac_os",
+    "windows"
+  ],
+  "type": "check"
+}
