@@ -5,15 +5,39 @@ stages:
   - test
   - publish
 
+.rules:
+  - &base_changes
+    if: $CI_EXTERNAL_PULL_REQUEST_IID
+    changes:
+      - "stackstate_checks_base/*"
+      - "stackstate_checks_base/**/*"
+      - "stackstate_checks_dev/*"
+      - "stackstate_checks_dev/**/*"
+      - "stackstate_checks_tests_helper/*"
+      - "stackstate_checks_tests_helper/**/*"
+#      - ".gitlab-ci.yml"
+  - &master_branch
+    if: '$CI_COMMIT_BRANCH == "master"'
+  - &release_branch
+    if: $CI_COMMIT_TAG
+
 .linux_env: &linux_env
   before_script:
     - source .setup-scripts/setup_env.sh
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
 
 .windows_env: &windows_env
   tags:
     - agent_windows_6
   before_script:
     - call .setup-scripts/windows_setup_env.cmd
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
 
 print_env:
   <<: *linux_env
@@ -34,6 +58,10 @@ linux_deps:
     paths:
       - venv
     expire_in: 1 week
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
 
 win_deps:
   <<: *windows_env
@@ -48,23 +76,10 @@ win_deps:
     paths:
       - venv
     expire_in: 1 week
-
-
-.rules:
-  - &base_changes
-    if: $CI_EXTERNAL_PULL_REQUEST_IID
-    changes:
-      - "stackstate_checks_base/*"
-      - "stackstate_checks_base/**/*"
-      - "stackstate_checks_dev/*"
-      - "stackstate_checks_dev/**/*"
-      - "stackstate_checks_tests_helper/*"
-      - "stackstate_checks_tests_helper/**/*"
-#      - ".gitlab-ci.yml"
-  - &master_branch
-    if: '$CI_COMMIT_BRANCH == "master"'
-  - &release_branch
-    if: $CI_COMMIT_TAG
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
 
 clear-caches:
   cache:
