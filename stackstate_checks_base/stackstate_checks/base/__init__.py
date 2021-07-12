@@ -11,6 +11,7 @@ from .utils.common import ensure_string, ensure_unicode, to_string
 from .utils.identifiers import Identifiers
 from .utils.telemetry import MetricStream, MetricHealthChecks, EventStream, EventHealthChecks, HealthState,\
     ServiceCheckStream, ServiceCheckHealthChecks, TopologyEventContext, SourceLink, Event
+from .utils.health_api import Health, HealthStream, HealthStreamUrn, HealthType
 from .utils.agent_integration_test_util import AgentIntegrationTestUtil
 from .utils.persistent_state import StateDescriptor, StateManager, StateNotPersistedException, \
     StateCorruptedException, StateReadException
@@ -57,5 +58,8 @@ __all__ = [
     'StateManager',
     'StateNotPersistedException',
     'StateCorruptedException',
-    'StateReadException'
+    'StateReadException',
+    'HealthStream',
+    'Health',
+    'HealthStreamUrn'
 ]

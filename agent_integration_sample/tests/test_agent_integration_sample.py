@@ -10,7 +10,7 @@ import os
 
 # project
 from stackstate_checks.agent_integration_sample import AgentIntegrationSampleCheck
-from stackstate_checks.base.stubs import topology, aggregator, telemetry
+from stackstate_checks.base.stubs import topology, aggregator, telemetry, health
 
 
 class InstanceInfo():
@@ -39,11 +39,13 @@ class TestAgentIntegration(unittest.TestCase):
         """
         config = {}
         self.check = AgentIntegrationSampleCheck(self.CHECK_NAME, config, instances=[self.instance])
-
-    def test_check(self):
         # TODO this is needed because the topology retains data across tests
         topology.reset()
+        aggregator.reset()
+        health.reset()
+        telemetry.reset()
 
+    def test_check(self):
         result = self.check.run()
         assert result == ''
         topo_instances = topology.get_snapshot(self.check.check_id)
@@ -81,11 +83,17 @@ class TestAgentIntegration(unittest.TestCase):
           count=1
         )
         aggregator.assert_service_check('example.can_connect', self.check.OK)
+        health.assert_snapshot(self.check.check_id, self.check.health.stream,
+                               start_snapshot={'expiry_interval_s': 60, 'repeat_interval_s': 15},
+                               stop_snapshot={},
+                               check_states=[{'checkStateId': 'id',
+                                              'health': 'CRITICAL',
+                                              'name': 'name',
+                                              'topologyElementIdentifier': 'identifier',
+                                              'message': 'msg'}
+                                             ])
 
     def test_topology_items_from_config_check(self):
-        # TODO this is needed because the topology retains data across tests
-        topology.reset()
-
         instance_config = {
            "stackstate-layer": "layer-conf-a",
            "stackstate-environment": "environment-conf-a",

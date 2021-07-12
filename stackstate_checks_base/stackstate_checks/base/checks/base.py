@@ -13,6 +13,7 @@ from collections import defaultdict
 from os.path import basename
 from functools import reduce
 
+
 import yaml
 from six import PY3, iteritems, text_type, string_types, integer_types
 
@@ -62,6 +63,7 @@ from ..utils.limiter import Limiter
 from ..utils.identifiers import Identifiers
 from ..utils.telemetry import EventStream, MetricStream, ServiceCheckStream, \
     ServiceCheckHealthChecks, Event
+from ..utils.health_api import Health, HealthStream, HealthStreamUrn, HealthCheckData, HealthApi
 from ..utils.persistent_state import StateDescriptor, StateManager
 from deprecated.sphinx import deprecated
 
@@ -218,6 +220,12 @@ class AgentCheckBase(object):
         self.cluster_name = AgentCheckBase.get_cluster_name()
 
         self.log = logging.getLogger('{}.{}'.format(__name__, self.name))
+        if using_stub_aggregator:
+            self.log.warn("Using stub aggregator api")
+        if using_stub_topology:
+            self.log.warn("Using stub topology api")
+        if using_stub_telemetry:
+            self.log.warn("Using stub telemetry api")
         self.state_manager = StateManager(self.log)
         self._deprecations = {}
         # Set proxy settings
@@ -229,6 +237,23 @@ class AgentCheckBase(object):
 
         self.default_integration_http_timeout = float(self.agentConfig.get('default_integration_http_timeout', 9))
 
+        # Will be initialized as part of the check, to allow for proper error reporting there if initialization fails
+        self.health = None
+
+    def _init_health_api(self):
+        if self.health is not None:
+            return
+
+        stream_spec = self.get_health_stream(self._get_instance_schema(self.instance))
+        if stream_spec:
+            # 15 seconds is the default interval (see defaults.DefaultCheckInterval in the core agent)
+            min_collection_interval = self.instance.get('min_collection_interval', 15)
+            repeat_interval_seconds = stream_spec.repeat_interval_seconds or min_collection_interval
+            expiry_seconds = stream_spec.expiry_seconds
+            if expiry_seconds is None:
+                expiry_seconds = repeat_interval_seconds * 4
+            self.health = HealthApi(self, stream_spec, expiry_seconds, repeat_interval_seconds)
+
     def _check_run_base(self, default_result):
         try:
             # start auto snapshot if with_snapshots is set to True
@@ -237,6 +262,10 @@ class AgentCheckBase(object):
 
             # create integration instance components for monitoring purposes
             self.create_integration_instance()
+
+            # Initialize the health api
+            self._init_health_api()
+
             # create a copy of the check instance, get state if any and add it to the instance object for the check
             instance = self.instances[0]
             check_instance = copy.deepcopy(instance)
@@ -245,10 +274,8 @@ class AgentCheckBase(object):
             current_state = copy.deepcopy(self.state_manager.get_state(state_descriptor))
             if current_state:
                 check_instance[self.STATE_FIELD_NAME] = current_state
-            # if this check has a instance schema defined, cast it into that type and validate it
-            if self.INSTANCE_SCHEMA:
-                check_instance = self.INSTANCE_SCHEMA(check_instance, strict=False)  # strict=False ignores extra fields
-                check_instance.validate()
+
+            check_instance = self._get_instance_schema(check_instance)
             self.check(check_instance)
 
             # set the state from the check instance
@@ -333,33 +360,59 @@ class AgentCheckBase(object):
     def _context_uid(self, mtype, name, tags=None, hostname=None):
         return '{}-{}-{}-{}'.format(mtype, name, tags if tags is None else hash(frozenset(tags)), hostname)
 
-    def _check_is_string(self, argumentName, value):
+    @staticmethod
+    def _check_not_none(argument_name, value):
         if value is None:
-            raise ValueError("Got None value for argument {}".format(argumentName))
-        elif not isinstance(value, string_types):
-            self._raise_unexpected_type(argumentName, value, "string")
+            raise ValueError("Got None value for argument {}".format(argument_name))
 
-    def _raise_unexpected_type(self, argumentName, value, expected):
+    @staticmethod
+    def _check_is_string(argumentName, value):
+        AgentCheckBase._check_not_none(argumentName, value)
+        if not isinstance(value, string_types):
+            AgentCheckBase._raise_unexpected_type(argumentName, value, "string")
+
+    @staticmethod
+    def _raise_unexpected_type(argumentName, value, expected):
         raise ValueError("Got unexpected {} for argument {}, expected {}".format(type(value), argumentName, expected))
 
-    def _check_struct_value(self, argumentName, value):
+    @staticmethod
+    def _check_struct_value(argumentName, value):
         if value is None or isinstance(value, string_types) or isinstance(value, integer_types) or \
                 isinstance(value, float) or isinstance(value, bool):
             return
         elif isinstance(value, dict):
             for k in value:
-                self._check_struct_value("{}.{}".format(argumentName, k), value[k])
+                AgentCheckBase._check_struct_value("{}.{}".format(argumentName, k), value[k])
         elif isinstance(value, list):
             for idx, val in enumerate(value):
-                self._check_struct_value("{}[{}]".format(argumentName, idx), val)
+                AgentCheckBase._check_struct_value("{}[{}]".format(argumentName, idx), val)
         else:
-            self._raise_unexpected_type(argumentName, value, "string, int, dictionary, list or None value")
+            AgentCheckBase._raise_unexpected_type(argumentName, value, "string, int, dictionary, list or None value")
 
-    def _check_struct(self, argumentName, value):
+    @staticmethod
+    def _check_struct(argumentName, value):
         if isinstance(value, dict):
-            self._check_struct_value(argumentName, value)
+            AgentCheckBase._check_struct_value(argumentName, value)
         else:
-            self._raise_unexpected_type(argumentName, value, "dictionary or None value")
+            AgentCheckBase._raise_unexpected_type(argumentName, value, "dictionary or None value")
+
+    def get_health_stream(self, instance):
+        """
+        Integration checks can override this if they want to be producing a health stream. Defining the will
+        enable self.health() calls
+
+        :return: a class extending HealthStream
+        """
+        return None
+
+    def _get_instance_schema(self, instance):
+        check_instance = instance
+
+        # if this check has a instance schema defined, cast it into that type and validate it
+        if self.INSTANCE_SCHEMA:
+            check_instance = self.INSTANCE_SCHEMA(instance, strict=False)  # strict=False ignores extra fields
+            check_instance.validate()
+        return check_instance
 
     def get_instance_key(self, instance):
         """
@@ -371,17 +424,16 @@ class AgentCheckBase(object):
         return NoIntegrationInstance()
 
     def _get_instance_key(self):
-        check_instance = self.instance
-        # if this check has a instance schema defined, cast it into that type and validate it
-        if self.INSTANCE_SCHEMA:
-            check_instance = self.INSTANCE_SCHEMA(self.instance, strict=False)  # strict=False ignores extra fields
-            check_instance.validate()
+        check_instance = self._get_instance_schema(self.instance)
+
         value = self.get_instance_key(check_instance)
         if value is None:
-            self._raise_unexpected_type("get_instance_key()", "None", "dictionary")
+            AgentCheckBase._raise_unexpected_type("get_instance_key()", "None", "dictionary")
         if not isinstance(value, (TopologyInstance, AgentIntegrationInstance, NoIntegrationInstance)):
-            self._raise_unexpected_type("get_instance_key()", value, "TopologyInstance, AgentIntegrationInstance or "
-                                                                     "DefaultIntegrationInstance")
+            AgentCheckBase._raise_unexpected_type("get_instance_key()",
+                                                  value,
+                                                  "TopologyInstance, AgentIntegrationInstance or "
+                                                  "DefaultIntegrationInstance")
         if not isinstance(value.type, str):
             raise ValueError("Instance requires a 'type' field of type 'string'")
         if not isinstance(value.url, str):
@@ -477,8 +529,8 @@ class AgentCheckBase(object):
 
     def _map_component_data(self, id, type, integration_instance, data, streams=None, checks=None,
                             add_instance_tags=True):
-        self._check_is_string("id", id)
-        self._check_is_string("type", type)
+        AgentCheckBase._check_is_string("id", id)
+        AgentCheckBase._check_is_string("type", type)
         if data is None:
             data = {}
         self._check_struct("data", data)
@@ -599,9 +651,9 @@ class AgentCheckBase(object):
         return data
 
     def _map_relation_data(self, source, target, type, data, streams=None, checks=None):
-        self._check_is_string("source", source)
-        self._check_is_string("target", target)
-        self._check_is_string("type", type)
+        AgentCheckBase._check_is_string("source", source)
+        AgentCheckBase._check_is_string("target", target)
+        AgentCheckBase._check_is_string("type", type)
         self._check_struct("data", data)
         if data is None:
             data = {}
@@ -799,7 +851,7 @@ class AgentCheckBase(object):
             _event.validate()
             event = _event
         elif not isinstance(event, Event):
-            self._raise_unexpected_type("event", event, "Dictionary or Event")
+            AgentCheckBase._raise_unexpected_type("event", event, "Dictionary or Event")
 
     def _submit_metric(self, mtype, name, value, tags=None, hostname=None, device_name=None):
         pass
