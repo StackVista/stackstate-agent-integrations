@@ -14,7 +14,8 @@
           "GET": {},
           "PATCH": {},
           "POST": {},
-          "PUT": {}
+          "PUT": {},
+          "OPTIONS": {}
         }
       }
     ],
