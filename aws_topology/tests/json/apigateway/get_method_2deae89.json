@@ -1,0 +1,53 @@
+{
+  "httpMethod": "OPTIONS",
+  "authorizationType": "NONE",
+  "apiKeyRequired": false,
+  "requestParameters": {},
+  "requestModels": {},
+  "methodResponses": {
+      "200": {
+          "statusCode": "200",
+          "responseParameters": {
+              "method.response.header.Access-Control-Allow-Headers": true,
+              "method.response.header.Access-Control-Allow-Methods": true,
+              "method.response.header.Access-Control-Allow-Origin": true
+          },
+          "responseModels": {}
+      }
+  },
+  "methodIntegration": {
+      "type": "MOCK",
+      "requestParameters": {},
+      "requestTemplates": {
+          "application/json": "{statusCode:200}"
+      },
+      "passthroughBehavior": "WHEN_NO_MATCH",
+      "timeoutInMillis": 29000,
+      "cacheNamespace": "3wxl4n",
+      "cacheKeyParameters": [],
+      "integrationResponses": {
+          "200": {
+              "statusCode": "200",
+              "responseParameters": {
+                  "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'",
+                  "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET'",
+                  "method.response.header.Access-Control-Allow-Origin": "'*'"
+              },
+              "responseTemplates": {
+                  "application/json": null
+              }
+          }
+      }
+  },
+  "ResponseMetadata": {
+      "Parameters": {
+          "restApiId": "api_1",
+          "resourceId": "resource_2",
+          "httpMethod": "OPTIONS"
+      },
+      "OperationName": "GetMethod",
+      "Generater": "2021-07-12 07:45:36.709391",
+      "Region": "eu-west-1",
+      "Account": "508573134510"
+  }
+}

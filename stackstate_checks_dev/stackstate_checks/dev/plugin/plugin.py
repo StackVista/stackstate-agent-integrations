@@ -66,6 +66,23 @@ except ImportError:
         raise ImportError('stackstate-checks-base is not installed!')
 
 
+try:
+    from stackstate_checks.base.stubs import health as __health
+
+    @pytest.fixture
+    def health():
+        """This fixture returns a mocked Agent health api with state cleared."""
+        __health.reset()
+        return __health
+
+except ImportError:
+    __health = None
+
+    @pytest.fixture
+    def health():
+        raise ImportError('stackstate-checks-base is not installed!')
+
+
 @pytest.fixture(scope='session', autouse=True)
 def sts_environment_runner(request):
     testing_plugin = os.getenv(TESTING_PLUGIN) == 'true'

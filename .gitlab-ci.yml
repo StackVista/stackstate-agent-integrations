@@ -140,6 +140,7 @@ clear-win-caches:
       entrypoint: ["dockerd-entrypoint.sh", "/usr/local/bin/dockerd", "--host=tcp://0.0.0.0:2375" ]
   script:
     - source ./.setup-scripts/setup_vsphere_artifactory_publishing.sh
+    - ./.setup-scripts/setup_artifactory_docker.sh
     - checksdev test --cov ${CHECK}
     - checksdev test ${CHECK} --bench || true
       # [BS] we skip this until https://github.com/PyCQA/pylint/pull/2681/commits/253e5d05e3943d3bc8e4470804a138cb20049548 lands in pylint stable version
@@ -235,6 +236,17 @@ test_postgres:
   tags:
     - sts-k8s-xl-no-docker-runner
 
+test_splunk_topology:
+  <<: *linux_test
+  variables:
+    CHECK: "splunk_topology"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
+  tags:
+    - sts-k8s-xl-no-docker-runner
+
 test_cloudera:
   <<: *linux_test
   variables:
@@ -291,6 +303,14 @@ test_zabbix:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
 
+test_splunk_base:
+  <<: *linux_test
+  variables:
+    CHECK: "splunk_base"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
 test_servicenow:
   <<: *linux_test
   variables:
@@ -303,6 +323,14 @@ test_static_topology:
   <<: *linux_test
   variables:
     CHECK: "static_topology"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
+test_static_health:
+  <<: *linux_test
+  variables:
+    CHECK: "static_health"
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2

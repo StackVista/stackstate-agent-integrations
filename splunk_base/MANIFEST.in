@@ -1,0 +1,7 @@
+graft stackstate_checks
+graft tests
+
+include MANIFEST.in
+include README.md
+
+global-exclude *.py[cod] __pycache__

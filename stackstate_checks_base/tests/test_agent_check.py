@@ -7,13 +7,16 @@ import mock
 import shutil
 from schematics import Model
 from schematics.types import IntType, StringType, ModelType
+from schematics.exceptions import ValidationError, ConversionError, DataError
 import pytest
 from six import PY3
 
-from stackstate_checks.checks import AgentCheck, TopologyInstance, AgentIntegrationInstance
+from stackstate_checks.checks import AgentCheck, TopologyInstance, AgentIntegrationInstance,\
+    HealthStream, HealthStreamUrn, Health
 from stackstate_checks.base.utils.agent_integration_test_util import AgentIntegrationTestUtil
 from stackstate_checks.base.stubs.topology import component, relation
 import copy
+import re
 
 
 def test_instance():
@@ -361,6 +364,19 @@ class TopologyBrokenCheck(TopologyAutoSnapshotCheck):
 
     def check(self, instance):
         raise Exception("some error in my check")
+
+
+class HealthCheck(AgentCheck):
+    def __init__(self, stream=HealthStream(HealthStreamUrn("source", "stream_id"), "sub_stream"), *args, **kwargs):
+        instances = [{'a': 'b'}]
+        self.stream = stream
+        super(HealthCheck, self).__init__("test", {}, instances)
+
+    def get_health_stream(self, instance):
+        return self.stream
+
+    def check(self, instance):
+        return
 
 
 TEST_STATE = {
@@ -1011,3 +1027,115 @@ expected TopologyInstance, AgentIntegrationInstance or DefaultIntegrationInstanc
         component = topology.get_snapshot(check.check_id)['components'][0]
         # there should be no identifier mapped for host because field value `x.y.z.url` doesn't exist in data
         assert component["data"].get("identifiers") is None
+
+
+class TestHealthStreamUrn:
+    def test_health_stream_urn_escaping(self):
+        urn = HealthStreamUrn("source.", "stream_id:")
+        assert urn.urn_string() == "urn:health:source.:stream_id%3A"
+
+    def test_verify_types(self):
+        with pytest.raises(ConversionError) as e:
+            HealthStreamUrn(None, "stream_id")
+        assert e.value[0] == "This field is required."
+
+        with pytest.raises(ConversionError) as e2:
+            HealthStreamUrn("source", None)
+        assert e2.value[0] == "This field is required."
+
+
+class TestHealthStream:
+    def test_throws_error_when_expiry_on_sub_stream(self):
+        with pytest.raises(ValueError) as e:
+            HealthStream(HealthStreamUrn("source.", "stream_id:"), "sub_stream", expiry_seconds=0)
+        assert str(e.value) == "Expiry cannot be disabled if a substream is specified"
+
+    def test_verify_types(self):
+        with pytest.raises(ValidationError) as e:
+            HealthStream("str")
+        assert e.value[0] == "Value must be of class: <class 'stackstate_checks.base.utils.health_api.HealthStreamUrn'>"
+
+        with pytest.raises(ValidationError) as e:
+            HealthStream(HealthStreamUrn("source", "urn"), sub_stream=1)
+        assert e.value[0] == """Value must be a string"""
+
+        with pytest.raises(ConversionError) as e:
+            HealthStream(HealthStreamUrn("source", "urn"), repeat_interval_seconds="")
+        assert e.value[0].summary == "Value '' is not int."
+
+        with pytest.raises(ConversionError) as e:
+            HealthStream(HealthStreamUrn("source", "urn"), expiry_seconds="")
+        assert e.value[0].summary == "Value '' is not int."
+
+
+class TestHealth:
+    def test_check_state_max_values(self, health):
+        # Max values: fill in as much of the optional fields as possible
+        check = HealthCheck()
+        check._init_health_api()
+        check.health.check_state("check_id", "name", Health.CRITICAL, "identifier", "message")
+        health.assert_snapshot(check.check_id, check.get_health_stream(None), check_states=[{
+            'checkStateId': 'check_id',
+            'health': 'CRITICAL',
+            'message': 'message',
+            'name': 'name',
+            'topologyElementIdentifier': 'identifier'
+        }])
+
+    def test_check_state_min_values(self, health):
+        # Min values: fill in as few of the optional fields as possible
+        check = HealthCheck()
+        check._init_health_api()
+        check.health.check_state("check_id", "name", Health.CRITICAL, "identifier")
+        health.assert_snapshot(check.check_id, check.get_health_stream(None), check_states=[{
+            'checkStateId': 'check_id',
+            'health': 'CRITICAL',
+            'name': 'name',
+            'topologyElementIdentifier': 'identifier'
+        }])
+
+    def test_check_state_verify_types(self):
+        check = HealthCheck()
+        check._init_health_api()
+        with pytest.raises(DataError):
+            check.health.check_state(1, "name", Health.CRITICAL, "identifier")
+
+        with pytest.raises(DataError):
+            check.health.check_state("check_id", 1, Health.CRITICAL, "identifier")
+
+        with pytest.raises(ValueError):
+            check.health.check_state("check_id", "name", "bla", "identifier")
+
+        with pytest.raises(DataError):
+            check.health.check_state("check_id", "name", Health.CRITICAL, 1)
+
+        with pytest.raises(DataError):
+            check.health.check_state("check_id", "name", Health.CRITICAL, "identifier", 1)
+
+    def test_start_snapshot(self, health):
+        check = HealthCheck()
+        check._init_health_api()
+        check.health.start_snapshot()
+        health.assert_snapshot(check.check_id,
+                               check.get_health_stream(None),
+                               start_snapshot={'expiry_interval_s': 60, 'repeat_interval_s': 15},
+                               stop_snapshot=None)
+
+    def test_stop_snapshot(self, health):
+        check = HealthCheck()
+        check._init_health_api()
+        check.health.stop_snapshot()
+        health.assert_snapshot(check.check_id,
+                               check.get_health_stream(None),
+                               start_snapshot=None,
+                               stop_snapshot={})
+
+    def test_run_initializes_health_api(self, health):
+        check = HealthCheck()
+        check.run()
+        assert check.health is not None
+
+    def test_run_not_initializes_health_api(self, health):
+        check = HealthCheck(stream=None)
+        check.run()
+        assert check.health is None

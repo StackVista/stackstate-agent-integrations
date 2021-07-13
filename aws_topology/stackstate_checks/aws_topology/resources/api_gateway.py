@@ -43,7 +43,7 @@ class Api(Model):
 class ResourceMethod(Model):
     class ResourceMethodIntegration(Model):
         type = StringType(default="UNKNOWN")
-        uri = StringType(required=True)
+        uri = StringType()
 
     httpMethod = StringType()
     methodIntegration = ModelType(ResourceMethodIntegration)
@@ -114,7 +114,7 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
 
     @transformation()
     def process_resource_method(self, data, method, resource, stage, api, stage_arn, resource_arn):
-        if method.methodIntegration and method.methodIntegration.type in ["AWS_PROXY", "AWS", "HTTP_PROXY"]:
+        if method.methodIntegration:
             method_data = make_valid_data(data)
             method_arn = "{}/{}{}".format(stage_arn, method.httpMethod, resource.path)
             method_data.update(
@@ -138,22 +138,24 @@ class ApigatewayStageCollector(RegisteredResourceCollector):
                     ]
                 )
             )
-            method_integration_uri = replace_stage_variables(method.methodIntegration.uri, stage.variables)
-            method_data["methodIntegration"]["uri"] = method_integration_uri
 
-            if method.methodIntegration.type == "AWS_PROXY":
-                integration_arn = method_integration_uri[
-                    method_integration_uri.rfind("arn") : method_integration_uri.find("/invocations")
-                ]
-                self.emit_relation(method_arn, integration_arn, "uses-service", {})
-            elif re.match("arn:aws:apigateway:.+:sqs:path/.+", method_integration_uri):
-                queue_arn = arn(
-                    resource="sqs",
-                    region=method_integration_uri.split(":", 4)[3],
-                    account_id=method_integration_uri.split("/", 2)[1],
-                    resource_id=method_integration_uri.rsplit("/", 1)[-1],
-                )
-                self.emit_relation(method_arn, queue_arn, "uses-service", {})
+            if method.methodIntegration.uri:
+                method_integration_uri = replace_stage_variables(method.methodIntegration.uri, stage.variables)
+                method_data["methodIntegration"]["uri"] = method_integration_uri
+
+                if method.methodIntegration.type == "AWS_PROXY":
+                    integration_arn = method_integration_uri[
+                        method_integration_uri.rfind("arn") : method_integration_uri.find("/invocations")
+                    ]
+                    self.emit_relation(method_arn, integration_arn, "uses-service", {})
+                elif re.match("arn:aws:apigateway:.+:sqs:path/.+", method_integration_uri):
+                    queue_arn = arn(
+                        resource="sqs",
+                        region=method_integration_uri.split(":", 4)[3],
+                        account_id=method_integration_uri.split("/", 2)[1],
+                        resource_id=method_integration_uri.rsplit("/", 1)[-1],
+                    )
+                    self.emit_relation(method_arn, queue_arn, "uses-service", {})
 
             # Creates a dummy service component that is connected to the api gateway method
             # this dummy service component will merge with a real trace service

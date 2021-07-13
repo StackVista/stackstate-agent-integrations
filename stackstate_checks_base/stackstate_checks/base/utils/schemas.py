@@ -2,7 +2,7 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 from six import string_types
-from schematics.types import StringType
+from schematics.types import StringType, BaseType
 from schematics.exceptions import ValidationError
 
 
@@ -27,5 +27,18 @@ class StrictStringType(StringType):
 
         if self.value_mapping:
             value = self.value_mapping(value)
+
+        return value
+
+
+class ClassType(BaseType):
+    def __init__(self, expected_class, **kwargs):
+        self.expected_class = expected_class
+        super(ClassType, self).__init__(**kwargs)
+
+    def convert(self, value, context=None):
+        # check if the value is of the expected class
+        if not isinstance(value, self.expected_class):
+            raise ValidationError("Value must be of class: %s" % str(self.expected_class))
 
         return value
