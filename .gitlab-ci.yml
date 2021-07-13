@@ -17,7 +17,7 @@ stages:
       - stackstate_checks_dev/**/*
       - stackstate_checks_tests_helper/*
       - stackstate_checks_tests_helper/**/*
-      - .gitlab-ci.yml
+#      - .gitlab-ci.yml
       - $CHECK/*
       - $CHECK/**/*
   - &master_branch
