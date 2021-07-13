@@ -387,4 +387,5 @@ publish-checks-dev:
     - export VERSION=`./.setup-scripts/version.sh`
     - echo "__version__ = \"$VERSION\"" > stackstate_checks_dev/stackstate_checks/dev/__about__.py
     - cd stackstate_checks_dev && python setup.py sdist bdist_wheel upload -r local
+  allow_failure: true
   <<: *manual_job_rules
