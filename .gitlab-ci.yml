@@ -46,6 +46,14 @@ print_env:
   stage: build
   script:
     - printenv
+  allow_failure: true
+  rules:
+    - <<: *pull_requests
+      when: manual
+    - <<: *master_branch
+      when: manual
+    - <<: *release_branch
+      when: manual
 
 linux_deps:
   <<: *linux_env
@@ -84,6 +92,7 @@ clear-caches:
   stage: build
   script:
     - rm -rf venv || true
+  allow_failure: true
   rules:
     - <<: *pull_requests
       when: manual
@@ -103,6 +112,7 @@ clear-win-caches:
     - "if exist %WIN_CI_PROJECT_DIR%\\venv rd /s/q %WIN_CI_PROJECT_DIR%\\venv"
   tags:
     - agent_windows_6
+  allow_failure: true
   rules:
     - <<: *pull_requests
       when: manual
