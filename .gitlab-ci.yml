@@ -65,6 +65,7 @@ print_env:
   script:
     - printenv
   allow_failure: true
+  interruptible: true
   rules:
     - <<: *pull_requests
       when: manual
@@ -77,6 +78,7 @@ linux_deps:
   <<: *linux_env
   <<: *base_job_rules
   stage: build
+  interruptible: true
   cache:
     key: "stackstate-agent-integrations-build-cache"
     paths:
@@ -92,6 +94,7 @@ win_deps:
   <<: *windows_env
   <<: *base_job_rules
   stage: build
+  interruptible: true
   cache:
     key: "stackstate-agent-integrations-windows-build-cache"
     paths:
@@ -111,6 +114,7 @@ clear-caches:
     paths:
       - venv
   stage: build
+  interruptible: true
   script:
     - rm -rf venv || true
   allow_failure: true
@@ -123,6 +127,7 @@ clear-win-caches:
     paths:
       - venv
   stage: build
+  interruptible: true
   script:
     - "if exist %WIN_CI_PROJECT_DIR%\\venv rd /s/q %WIN_CI_PROJECT_DIR%\\venv"
   tags:
@@ -144,6 +149,7 @@ clear-win-caches:
     - checksdev test ${CHECK} --bench || true
       # [BS] we skip this until https://github.com/PyCQA/pylint/pull/2681/commits/253e5d05e3943d3bc8e4470804a138cb20049548 lands in pylint stable version
       # - if [ -n "$PYTHON3" ]; then checksdev validate py3 ${CHECK}; fi
+  interruptible: true
 
 test_stackstate_checks_base:
   <<: *linux_test
@@ -341,6 +347,7 @@ test_nagios:
     - win_deps
   script:
     - checksdev test -c %CHECK%
+  interruptible: true
   tags:
     - agent_windows_6
   retry:
@@ -382,6 +389,7 @@ test_aws_xray_win:
 
 publish-checks-dev:
   stage: publish
+  interruptible: true
   script:
     - source ./.setup-scripts/setup_artifactory_publishing.sh
     - export VERSION=`./.setup-scripts/version.sh`
