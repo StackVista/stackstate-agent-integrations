@@ -17,7 +17,7 @@ stages:
       - stackstate_checks_dev/**/*
       - stackstate_checks_tests_helper/*
       - stackstate_checks_tests_helper/**/*
-#      - .gitlab-ci.yml
+      - .gitlab-ci.yml
       - $CHECK/*
       - $CHECK/**/*
   - &master_branch
@@ -61,18 +61,12 @@ stages:
 
 print_env:
   <<: *linux_env
+  <<: *manual_job_rules
   stage: build
   script:
     - printenv
   allow_failure: true
   interruptible: true
-  rules:
-    - <<: *pull_requests
-      when: manual
-    - <<: *master_branch
-      when: manual
-    - <<: *release_branch
-      when: manual
 
 linux_deps:
   <<: *linux_env
@@ -179,7 +173,6 @@ test_stackstate_checks_dev:
   tags:
     - sts-k8s-xl-no-docker-runner
   <<: *base_integration_rules
-
 
 test_kubernetes:
   <<: *linux_test
