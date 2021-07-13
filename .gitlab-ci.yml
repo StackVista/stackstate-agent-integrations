@@ -130,6 +130,7 @@ clear-win-caches:
 
 .linux_test: &linux_test
   <<: *linux_env
+  <<: *base_integration_rules
   stage: test
   needs:
     - linux_deps
@@ -160,7 +161,6 @@ test_stackstate_checks_base:
     - checksdev validate service-checks
     - checksdev test --cov ${CHECK}
     - checksdev test ${CHECK} --bench || true
-  <<: *base_integration_rules
 
 test_stackstate_checks_dev:
   <<: *linux_test
@@ -172,7 +172,6 @@ test_stackstate_checks_dev:
     DOCKER_TLS_CERTDIR: ""
   tags:
     - sts-k8s-xl-no-docker-runner
-  <<: *base_integration_rules
 
 test_kubernetes:
   <<: *linux_test
@@ -181,7 +180,6 @@ test_kubernetes:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
-  <<: *base_integration_rules
 
 test_dynatrace:
   <<: *linux_test
@@ -190,7 +188,6 @@ test_dynatrace:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
-  <<: *base_integration_rules
 
 test_kubelet:
   <<: *linux_test
@@ -199,7 +196,6 @@ test_kubelet:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
-  <<: *base_integration_rules
 
 test_kubernetes_state:
   <<: *linux_test
@@ -208,7 +204,6 @@ test_kubernetes_state:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
-  <<: *base_integration_rules
 
 test_mysql:
   <<: *linux_test
@@ -218,7 +213,6 @@ test_mysql:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
     DOCKER_TLS_CERTDIR: ""
-  <<: *base_integration_rules
   tags:
     - sts-aws
 
@@ -229,7 +223,6 @@ test_openmetrics:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
-  <<: *base_integration_rules
 
 test_postgres:
   <<: *linux_test
@@ -239,7 +232,6 @@ test_postgres:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
     DOCKER_TLS_CERTDIR: ""
-  <<: *base_integration_rules
   tags:
     - sts-k8s-xl-no-docker-runner
 
@@ -250,7 +242,6 @@ test_cloudera:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
-  <<: *base_integration_rules
 
 test_aws_topology:
   <<: *linux_test
@@ -259,7 +250,6 @@ test_aws_topology:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
-  <<: *base_integration_rules
 
 test_aws_xray:
   <<: *linux_test
@@ -268,7 +258,6 @@ test_aws_xray:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
-  <<: *base_integration_rules
 
 test_sap:
   <<: *linux_test
@@ -277,7 +266,6 @@ test_sap:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
-  <<: *base_integration_rules
 
 test_agent_integration_sample:
   <<: *linux_test
@@ -286,7 +274,6 @@ test_agent_integration_sample:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
-  <<: *base_integration_rules
 
 test_vsphere:
   <<: *linux_test
@@ -295,7 +282,6 @@ test_vsphere:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
-  <<: *base_integration_rules
 
 test_zabbix:
   <<: *linux_test
@@ -304,7 +290,6 @@ test_zabbix:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
-  <<: *base_integration_rules
 
 test_servicenow:
   <<: *linux_test
@@ -313,7 +298,6 @@ test_servicenow:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
-  <<: *base_integration_rules
 
 test_static_topology:
   <<: *linux_test
@@ -322,7 +306,6 @@ test_static_topology:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
-  <<: *base_integration_rules
 
 test_nagios:
   <<: *linux_test
@@ -331,10 +314,10 @@ test_nagios:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
-  <<: *base_integration_rules
 
 .windows_test: &windows_test
   <<: *windows_env
+  <<: *base_integration_rules
   stage: test
   needs:
     - win_deps
@@ -354,31 +337,26 @@ test_stackstate_checks_dev_win:
   <<: *windows_test
   variables:
     CHECK: "stackstate_checks_dev:py27-default,stackstate_checks_dev:flake8"
-  <<: *base_integration_rules
 
 test_stackstate_checks_base_win:
   <<: *windows_test
   variables:
     CHECK: "stackstate_checks_base"
-  <<: *base_integration_rules
 
 test_wmi_check:
   <<: *windows_test
   variables:
     CHECK: "wmi_check"
-  <<: *base_integration_rules
 
 test_cloudera_win:
   <<: *windows_test
   variables:
     CHECK: "cloudera"
-  <<: *base_integration_rules
 
 test_aws_xray_win:
   <<: *windows_test
   variables:
     CHECK: "aws_xray"
-  <<: *base_integration_rules
 
 publish-checks-dev:
   stage: publish
