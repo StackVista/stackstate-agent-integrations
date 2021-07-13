@@ -139,6 +139,21 @@ class TestApiGateway(BaseApiTest):
                 },
             )
 
+            top.assert_component(
+                components,
+                method_arn_prefix.format(n + 1, "OPTIONS"),
+                "aws.apigateway.method",
+                checks={
+                    "HttpMethod": "OPTIONS",
+                    "CW.Dimensions": [
+                        {"Key": "Method", "Value": "OPTIONS"},
+                        {"Key": "Resource", "Value": "/hello"},
+                        {"Key": "Stage", "Value": "stage{}".format(n + 1)},
+                        {"Key": "ApiName", "Value": "api_1"},
+                    ],
+                },
+            )
+
         top.assert_component(components, api_arn, "aws.apigateway.rest-api")
 
         # we have 2 stages
@@ -152,6 +167,10 @@ class TestApiGateway(BaseApiTest):
                 relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "PATCH"), "uses-service"
             )
             top.assert_relation(relations, method_arn_prefix.format(n, "PATCH"), sqs_arn, "uses-service")
+
+            top.assert_relation(
+                relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "OPTIONS"), "uses-service"
+            )
 
             top.assert_relation(
                 relations, resource_arn_prefix.format(n), method_arn_prefix.format(n, "PUT"), "uses-service"

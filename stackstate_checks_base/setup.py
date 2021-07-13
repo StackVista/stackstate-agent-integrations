@@ -35,7 +35,6 @@ def get_requirements(fpath, exclude=[], only=[]):
 setup(
     # Version should always match one from an agent release
     version=ABOUT["__version__"],
-
     name='stackstate_checks_base',
     description='The StackState Check Toolkit',
     long_description=LONG_DESC,
@@ -60,7 +59,11 @@ setup(
     include_package_data=True,
 
     extras_require={
-        'deps': get_requirements('requirements.in', exclude=['kubernetes']),
+        'deps': get_requirements(
+            'requirements.in',
+            exclude=['kubernetes', 'orjson'],
+        ),
+        'json': get_requirements('requirements.in', only=['orjson']),
         'kube': get_requirements('requirements.in', only=['kubernetes']),
     },
 )

@@ -1,0 +1,34 @@
+{
+  "preview": false,
+  "init_offset": 0,
+  "messages": [],
+  "fields": [
+    {
+      "name": "check_state_id"
+    },
+    {
+      "name": "name"
+    },
+    {
+      "name": "health"
+    },
+    {
+      "name": "topology_element_identifier"
+    },
+    {
+      "name": "message"
+    }
+  ],
+  "results": [
+    {
+      "check_state_id": "disk_sda",
+      "name": "disk sda usage",
+      "health": "clear",
+      "topology_element_identifier": "component1",
+      "message": "disk sda is ok"
+    },
+    {
+    }
+  ],
+  "highlighted": {}
+}

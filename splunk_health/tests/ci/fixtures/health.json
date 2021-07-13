@@ -1,0 +1,81 @@
+{
+  "preview": false,
+  "init_offset": 0,
+  "messages": [],
+  "fields": [
+    {
+      "name": "check_state_id"
+    },
+    {
+      "name": "name"
+    },
+    {
+      "name": "health"
+    },
+    {
+      "name": "topology_element_identifier"
+    },
+    {
+      "name": "message"
+    },
+    {
+      "name": "_bkt"
+    },
+    {
+      "name": "_cd"
+    },
+    {
+      "name": "_indextime"
+    },
+    {
+      "name": "_raw"
+    },
+    {
+      "name": "_serial"
+    },
+    {
+      "name": "_si"
+    },
+    {
+      "name": "_sourcetype"
+    },
+    {
+      "name": "_time"
+    }
+  ],
+  "results": [
+    {
+      "check_state_id": "disk_sda",
+      "name": "disk sda usage",
+      "health": "clear",
+      "topology_element_identifier": "component1",
+      "message": "disk sda is ok",
+      "_bkt": "main~1~60326C78-E9E8-45CD-90C3-CF75DB894977",
+      "_cd": "1:66",
+      "_indextime": "1488812154",
+      "_raw": "blaat",
+      "_serial": "0",
+      "_si": ["c5ff346549e7", "main" ],
+      "_sourcetype": "unknown-too_small",
+      "_time": "2017-03-06T14:55:54.000+00:00"
+    },
+    {
+      "check_state_id": "disk_sdb",
+      "name": "disk sdb usage",
+      "health": "critical",
+      "topology_element_identifier": "component2",
+      "_bkt": "main~1~60326C78-E9E8-45CD-90C3-CF75DB894977",
+      "_cd": "1:56",
+      "_indextime": "1488812154",
+      "_raw": "blaat2",
+      "_serial": "3",
+      "_si": [
+        "c5ff346549e7",
+        "main"
+      ],
+      "_sourcetype": "unknown-too_small",
+      "_time": "2017-03-06T14:55:54.000+00:00"
+    }
+  ],
+  "highlighted": {}
+}
