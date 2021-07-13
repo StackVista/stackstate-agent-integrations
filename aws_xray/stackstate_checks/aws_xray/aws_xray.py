@@ -1,13 +1,14 @@
 # (C) StackState, Inc. 2020
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
-import datetime
+
 import json
 import time
 import logging
 import sys
 import uuid
 from six import text_type
+from datetime import datetime, timedelta
 
 import boto3
 import flatten_dict
@@ -34,7 +35,7 @@ MAX_TRACE_HISTORY_LIMIT = 3
 # number of minutes
 MAX_TRACE_HISTORY_BATCH_SIZE = 5
 # number of seconds
-DEFAULT_MAX_TRACE_BATCH_SIZE = 60
+DEFAULT_COLLECTION_INTERVAL = 60
 
 
 class State(Model):
@@ -45,8 +46,9 @@ class Instance(Model):
     aws_access_key_id = StringType(required=True)
     aws_secret_access_key = StringType(required=True)
     region = StringType(required=True)
-    role_arn = StringType()
-    trace_time_limit = IntType(default=MAX_TRACE_HISTORY_LIMIT)
+    role_arn = StringType(default="unknown-instance")
+    max_trace_history_limit = IntType(default=MAX_TRACE_HISTORY_LIMIT)
+    max_trace_history_batch_size = IntType(default=MAX_TRACE_HISTORY_BATCH_SIZE)
     state = ModelType(State)
 
 
@@ -90,7 +92,7 @@ class AwsCheck(AgentCheck):
             else:
                 self.account_id = "unknown-instance"
             self.service_check(self.SERVICE_CHECK_CONNECT_NAME, AgentCheck.CRITICAL, message=msg, tags=self.tags)
-            return
+            raise e
 
         try:
             # empty memory cache
@@ -168,7 +170,7 @@ class AwsCheck(AgentCheck):
         This method is mocked for testing. Do not change its behavior
         @return: current time in utc
         """
-        return datetime.datetime.utcnow()
+        return datetime.utcnow()
 
     def get_start_end_time_trace(self, instance):
         """
@@ -191,46 +193,32 @@ class AwsCheck(AgentCheck):
         Returns the start time and end time
         """
         if not instance.state:
-            trace_end_timestamp = self._current_time() - datetime.timedelta(hours=MAX_TRACE_HISTORY_LIMIT)
+            # reason to add 1 min is we might lag few seconds till we reach the comparison for normal start
+            trace_end_timestamp = self._current_time() - timedelta(hours=instance.max_trace_history_limit) \
+                                  + timedelta(minutes=1)
             self.log.info('Creating default start time for the trace : %s', trace_end_timestamp)
             instance.state = State({'last_processed_timestamp': trace_end_timestamp})
         start_time = instance.state.last_processed_timestamp
         diff_time = self._current_time() - start_time
         # case 1 & case 2: Normal Startup | Behind less than MAX_TRACE_HISTORY_LIMIT
-        if self.delta_time(minutes=True) <= diff_time <= self.delta_time(hours=True):
-            end_time = start_time + self.delta_time(minutes=True)
+        if timedelta(minutes=instance.max_trace_history_batch_size) <= diff_time <= \
+                timedelta(hours=instance.max_trace_history_limit):
+            end_time = start_time + timedelta(minutes=instance.max_trace_history_batch_size)
             self.log.info("Catching up from {} to {}".format(start_time, end_time))
         # case 3: Behind more than MAX_TRACE_HISTORY_LIMIT
-        elif diff_time > self.delta_time(hours=True):
+        elif diff_time > timedelta(hours=instance.max_trace_history_limit):
             # reset the start time to utc - 3 hours
             self.log.info("Lagging behind more than defined threshold value of MAX_TRACE_HISTORY_LIMIT : {}hrs. "
-                          "Resetting now....".format(MAX_TRACE_HISTORY_LIMIT))
-            start_time = self._current_time() - self.delta_time(hours=True)
-            end_time = start_time + self.delta_time(minutes=True)
+                          "Resetting now....".format(instance.max_trace_history_limit))
+            start_time = self._current_time() - timedelta(hours=instance.max_trace_history_limit)
+            end_time = start_time + timedelta(minutes=instance.max_trace_history_batch_size)
         # when not lagging behind
         else:
-            self.log.info("Catching up complete and will continuing with normal {}secs interval"
-                          .format(DEFAULT_MAX_TRACE_BATCH_SIZE))
-            end_time = start_time + self.delta_time(seconds=True)
+            self.log.info("Catching up complete till {} and will continue normally"
+                          .format(start_time))
+            # we don't like to go in future so we always fetch from state to current time if no lagging behind
+            end_time = self._current_time()
         return start_time, end_time
-
-    @staticmethod
-    def delta_time(hours=False, minutes=False, seconds=False):
-        """
-        Get time delta for different time formats with specific constants
-        @params
-        hours: If True return MAX_TRACE_HISTORY_LIMIT hours delta, False by default
-        minutes: If True return MAX_TRACE_HISTORY_BATCH_SIZE minutes delta, False by default
-        seconds: If True return DEFAULT_MAX_TRACE_BATCH_SIZE seconds delta, False by default
-        """
-        delta = 0
-        if hours:
-            delta = datetime.timedelta(hours=MAX_TRACE_HISTORY_LIMIT)
-        elif minutes:
-            delta = datetime.timedelta(minutes=MAX_TRACE_HISTORY_BATCH_SIZE)
-        elif seconds:
-            delta = datetime.timedelta(seconds=DEFAULT_MAX_TRACE_BATCH_SIZE)
-        return delta
 
     def _generate_spans(self, segments, trace_id=None, parent_id=None, kind="client"):
         """
@@ -247,9 +235,9 @@ class AwsCheck(AgentCheck):
 
         for segment in segments:
             span_id = int(segment['id'], 16)
-            start = datetime.datetime.utcfromtimestamp(segment['start_time'])
+            start = datetime.utcfromtimestamp(segment['start_time'])
             try:
-                end = datetime.datetime.utcfromtimestamp(segment['end_time'])
+                end = datetime.utcfromtimestamp(segment['end_time'])
             except KeyError:
                 # segment still in progress, we skip it
                 continue
@@ -272,7 +260,11 @@ class AwsCheck(AgentCheck):
                 if arn:
                     service_name = arn
 
-            flat_segment = flatten_segment(segment, kind)
+            flat_segment = flatten_segment(segment)
+            # STAC-13020: we decided to make all the spans from aws-xray as CLIENT to produce metrics
+            # otherwise receiver won't produce any metrics if the kind is INTERNAL
+            flat_segment["span.kind"] = kind
+            flat_segment["span.serviceType"] = "xray"
             # times format is the unix epoch in nanoseconds
             span = {
                 'trace_id': trace_id,
@@ -425,7 +417,7 @@ class AwsClient:
                             aws_session_token=self.aws_session_token)
 
 
-def flatten_segment(segment, kind):
+def flatten_segment(segment):
     """
     Flatten the nested disctionary object into root dictionary
     @param
@@ -450,10 +442,6 @@ def flatten_segment(segment, kind):
                     flat_segment[key] = to_string(value)
                 else:
                     flat_segment[key] = str(value)
-    # STAC-13020: we decided to make all the spans from aws-xray as CLIENT to produce metrics
-    # otherwise receiver won't produce any metrics if the kind is INTERNAL
-    flat_segment["span.kind"] = kind
-    flat_segment["span.serviceType"] = "xray"
     return flat_segment
 
 

@@ -240,9 +240,8 @@ class AgentCheckBase(object):
             # create a copy of the check instance, get state if any and add it to the instance object for the check
             instance = self.instances[0]
             check_instance = copy.deepcopy(instance)
-            # if this instance has some stored state set it to 'state'
-            state_descriptor = self._get_state_descriptor()
-            current_state = copy.deepcopy(self.state_manager.get_state(state_descriptor))
+            # if this instance has some state then set it to state
+            current_state = copy.deepcopy(self.state_manager.get_state(self._get_state_descriptor()))
             if current_state:
                 check_instance[self.STATE_FIELD_NAME] = current_state
             # if this check has a instance schema defined, cast it into that type and validate it
@@ -252,7 +251,9 @@ class AgentCheckBase(object):
             self.check(check_instance)
 
             # set the state from the check instance
-            self.state_manager.set_state(state_descriptor, check_instance.get(self.STATE_FIELD_NAME))
+            # call self._get_state_descriptor method to get the instance key if it is update in the check run
+            # example: aws-xray
+            self.state_manager.set_state(self._get_state_descriptor(), check_instance.get(self.STATE_FIELD_NAME))
 
             # stop auto snapshot if with_snapshots is set to True
             if self._get_instance_key().with_snapshots:
