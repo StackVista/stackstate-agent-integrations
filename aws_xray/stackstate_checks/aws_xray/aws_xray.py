@@ -34,8 +34,6 @@ TRACES_API_ENDPOINT = 'http://localhost:8126/v0.3/traces'
 MAX_TRACE_HISTORY_LIMIT = 3
 # number of minutes
 MAX_TRACE_HISTORY_BATCH_SIZE = 5
-# number of seconds
-DEFAULT_COLLECTION_INTERVAL = 60
 
 
 class State(Model):
@@ -86,12 +84,12 @@ class AwsCheck(AgentCheck):
             # account_id is used in topology instance url, so we recover and set the role_arn or aws_access_key_id as
             # the account_id so we can map the service_check in StackState
             if role_arn:
-                self.account_id = role_arn
+                self.account_id = to_string(role_arn)
             elif aws_access_key_id:
-                self.account_id = aws_access_key_id
+                self.account_id = to_string(aws_access_key_id)
             else:
                 self.account_id = "unknown-instance"
-            self.service_check(self.SERVICE_CHECK_CONNECT_NAME, AgentCheck.CRITICAL, message=msg, tags=self.tags)
+            self.service_check(self.SERVICE_CHECK_CONNECT_NAME, AgentCheck.CRITICAL, tags=[])
             raise e
 
         try:
