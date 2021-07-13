@@ -5,6 +5,24 @@ stages:
   - test
   - publish
 
+.default:
+  &base_rules
+  rules:
+    - if: $CI_EXTERNAL_PULL_REQUEST_IID
+      changes:
+        - stackstate_checks_base/*
+        - stackstate_checks_base/**/*
+        - stackstate_checks_dev/*
+        - stackstate_checks_dev/**/*
+        - stackstate_checks_tests_helper/*
+        - stackstate_checks_tests_helper/**/*
+        - .gitlab-ci.yml
+        - $CHECK/*
+        - $CHECK/**/*
+    - if: $CI_COMMIT_BRANCH == "master"
+    - if: $CI_COMMIT_TAG
+
+
 .rules:
   - &pull_requests
     if: $CI_EXTERNAL_PULL_REQUEST_IID
@@ -180,14 +198,7 @@ test_kubernetes:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
-  rules:
-    - <<: *base_changes
-    - <<: *master_branch
-    - <<: *release_branch
-    - if: $CI_EXTERNAL_PULL_REQUEST_IID
-      changes:
-      - "kubernetes/*"
-      - "kubernetes/**/*"
+  <<: *base_rules
 
 test_dynatrace:
   <<: *linux_test
