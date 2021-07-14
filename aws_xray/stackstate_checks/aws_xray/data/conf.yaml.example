@@ -1,13 +1,19 @@
 init_config:
-    # optional
-    # cache_file: '/opt/stackstate-agent/tmp'
 
 instances:
-  # mandatory AWS credentials and config
+  # AWS access key ID of account  (mandatory)
   - aws_access_key_id: 'abc'
+    # AWS secret access key of account (mandatory)
     aws_secret_access_key: 'cde'
-    role_arn: 'arn:aws:iam::0123456789:role/RoleName'
+    # Region name for which data need to be collected (mandatory)
     region: 'ijk'
-    # optional
-    # min_collection_interval: 60
+    # Role to assume for access (optional)
+    # role_arn: 'arn:aws:iam::0123456789:role/RoleName'
 
+    # Maximum trace history limit for retrieval of traces in hours (optional)
+    # max_trace_history_limit: 3   # by default it's 3 hrs
+
+    # Maximum trace history batch size (in minutes) for retrieval of traces when lagging behind
+    # more than this value but less than max_trace_history_limit value (optional)
+    # Recommended to keep the small batch size, increasing the value can impact the performance
+    # max_trace_history_batch_size: 5   # by default it's 5 mins
