@@ -74,10 +74,6 @@ def test_check_run_normal_start(aws_check, aggregator):
     # state should be equal to end time
     assert datetime.strptime(state.get('last_processed_timestamp'), "%Y-%m-%dT%H:%M:%S.%f") == end_time
 
-    # clear the files and state
-    # aws_check.state_manager.clear(state_descriptor)
-    # shutil.rmtree(aws_check.get_check_state_path(), ignore_errors=True)
-
     # Ok Service Check should be generated for Execute and Connect
     aggregator.assert_service_check(aws_check.SERVICE_CHECK_EXECUTE_NAME, aws_check.OK)
     aggregator.assert_service_check(aws_check.SERVICE_CHECK_CONNECT_NAME, aws_check.OK)
@@ -108,10 +104,6 @@ def test_check_run_already_lagging_behind(aws_check, aggregator):
 
     # state should be equal to end time
     assert string_to_datetime(state.get('last_processed_timestamp')) == end_time
-
-    # clear the files and state
-    # aws_check.state_manager.clear(state_descriptor)
-    # shutil.rmtree(aws_check.get_check_state_path(), ignore_errors=True)
 
     # Ok Service Check should be generated for Execute and Connect
     aggregator.assert_service_check(aws_check.SERVICE_CHECK_EXECUTE_NAME, aws_check.OK)
@@ -146,10 +138,6 @@ def test_check_run_lagging_behind_more_than_10hrs(aws_check, aggregator):
     # state should be equal to end time
     assert string_to_datetime(state.get('last_processed_timestamp')) == end_time
 
-    # clear the files and state
-    # aws_check.state_manager.clear(state_descriptor)
-    # shutil.rmtree(aws_check.get_check_state_path(), ignore_errors=True)
-
     # Ok Service Check should be generated for Execute and Connect
     aggregator.assert_service_check(aws_check.SERVICE_CHECK_EXECUTE_NAME, aws_check.OK)
     aggregator.assert_service_check(aws_check.SERVICE_CHECK_CONNECT_NAME, aws_check.OK)
@@ -168,10 +156,6 @@ def test_check_run_exception_no_state_persistence(aws_check, aggregator):
     state = aws_check.state_manager.get_state(state_descriptor)
     # state should not be written if exception is thrown
     assert state is None
-
-    # clear the files and state
-    # aws_check.state_manager.clear(state_descriptor)
-    # shutil.rmtree(aws_check.get_check_state_path(), ignore_errors=True)
 
     # Ok Service Check should be generated for Execute and Connect
     aggregator.assert_service_check(aws_check.SERVICE_CHECK_EXECUTE_NAME, aws_check.CRITICAL)
@@ -212,10 +196,10 @@ def test_get_start_end_time_trace_lagging_15_mins(instance):
 
     last_trace_end_timestamp = instance.state.last_processed_timestamp + timedelta(minutes=MAX_TRACE_HISTORY_BATCH_SIZE)
     st, et = aws_check.get_start_end_time_trace(instance)
-    # state holds a time 15 mins behind, so start time will be from state
+    # state holds a time 15 minutes behind, so start time will be from state
     assert st == instance.state.last_processed_timestamp
     # since the time from state is still lagging behind more than MAX_TRACE_HISTORY_BATCH_SIZE but less than
-    # MAX_TRACE_HISTORY_LIMIT, end time = last time from state + MAX_TRACE_HISTORY_BATCH_SIZE
+    # MAX_TRACE_HISTORY_LIMIT, so end time should be last time from state + MAX_TRACE_HISTORY_BATCH_SIZE
     assert et == last_trace_end_timestamp
 
 
@@ -234,21 +218,25 @@ def test_get_start_end_time_trace_lagging_15_hrs(instance):
     # state holds a time greater than MAX_TRACE_HISTORY_LIMIT, so start time will be reset and becomes now - 3 hrs
     assert st == aws_check._current_time.return_value - timedelta(hours=MAX_TRACE_HISTORY_LIMIT)
     # since the state is reset, will process in batch of MAX_TRACE_HISTORY_BATCH_SIZE
-    # end time = last time from state + MAX_TRACE_HISTORY_BATCH_SIZE
+    # end time should be last time from state + MAX_TRACE_HISTORY_BATCH_SIZE
     assert et == st + timedelta(minutes=MAX_TRACE_HISTORY_BATCH_SIZE)
 
 
 @patch('stackstate_checks.aws_xray.aws_xray.AwsClient', MockBrokenAwsClient)
 def test_service_check_broken_client(aggregator, instance):
+    """
+    Test to check if critical service check is produced in case of AWSClient throws exception
+    """
     aws_check = AwsCheck('aws', {}, {}, instances=[instance])
     aws_check.run()
-    # Service Checks should be generated
-    service_checks = aggregator.service_checks(aws_check.SERVICE_CHECK_CONNECT_NAME)
-    print("service checks are:- {}".format(service_checks))
+    # critical service check should be generated for AWSClient
     aggregator.assert_service_check(aws_check.SERVICE_CHECK_CONNECT_NAME, aws_check.CRITICAL)
 
 
 def test_span_generation():
+    """
+    Test to check the number of spans generated
+    """
     check = AwsCheck('test', {}, {})
     segment = get_file('segment.json')
     spans = check._generate_spans([segment])
@@ -256,6 +244,9 @@ def test_span_generation():
 
 
 def test_error_trace():
+    """
+    Test to check if correct errorClass and kind is produced in the generated spans
+    """
     check = AwsCheck('test', {}, {})
     segments = get_file('segments_error.json')
     spans = check._generate_spans(segments)
@@ -279,6 +270,9 @@ def test_error_trace():
 
 
 def get_file(file_name):
+    """
+    Return content from the file name
+    """
     file_with_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'data', file_name)
     with open(file_with_path, 'r') as file:
         object_from_json_file = jsonpickle.decode(file.read())
