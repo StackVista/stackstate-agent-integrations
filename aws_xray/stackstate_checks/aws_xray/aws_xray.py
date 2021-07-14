@@ -89,7 +89,7 @@ class AwsCheck(AgentCheck):
                 self.account_id = to_string(aws_access_key_id)
             else:
                 self.account_id = "unknown-instance"
-            self.service_check(self.SERVICE_CHECK_CONNECT_NAME, AgentCheck.CRITICAL, tags=[])
+            self.service_check(self.SERVICE_CHECK_CONNECT_NAME, AgentCheck.CRITICAL, message=msg, tags=self.tags)
             raise e
 
         try:
