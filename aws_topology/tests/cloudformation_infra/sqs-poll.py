@@ -20,8 +20,8 @@ sqs = boto3.client("sqs")
 queue = os.environ.get("SQS_QUEUE")
 while True:
     messages = sqs.receive_message(QueueUrl=queue).get("Messages")
-    if messages is not None:
-        with conn.cursor() as cur:
+    with conn.cursor() as cur:
+        if messages is not None:
             for message in messages:
                 body = json.loads(message.get("Body")).get("Input")
                 cur.execute(
@@ -30,7 +30,9 @@ while True:
                 )
                 sqs.delete_message(QueueUrl=queue, ReceiptHandle=message.get("ReceiptHandle"))
                 print(f"Committed {body}")
-            conn.commit()
-    else:
-        print("No message to commit")
-        sleep(5)
+        else:
+            cur.execute("select * from information_schema.tables limit 2")
+            cur.fetchall()
+            print("No message to commit")
+            sleep(5)
+        conn.commit()
