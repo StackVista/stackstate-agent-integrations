@@ -7,7 +7,8 @@ try:
     from checks import AgentCheck
     from checks.network_checks import NetworkCheck, Status, EventType
 except ImportError:
-    from .base import AgentCheck, TopologyInstance, StackPackInstance, AgentIntegrationInstance
+    from .base import AgentCheck, TopologyInstance, StackPackInstance, AgentIntegrationInstance,\
+        HealthStream, HealthStreamUrn, Health
     from .network import NetworkCheck, Status, EventType
 
 __all__ = [
@@ -18,4 +19,7 @@ __all__ = [
     'NetworkCheck',
     'Status',
     'EventType',
+    'HealthStream',
+    'HealthStreamUrn',
+    'Health'
 ]

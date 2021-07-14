@@ -33,6 +33,8 @@ class Cluster(Model):
     DBClusterIdentifier = StringType(default="UNKNOWN")
     DBClusterMembers = ListType(ModelType(ClusterMember))
     TagList = ListType(ModelType(TagList), default=[])
+    Endpoint = StringType()
+    ReaderEndpoint = StringType()
 
 
 class InstanceSubnetGroup(Model):
@@ -51,7 +53,7 @@ class Instance(Model):
     DBInstanceArn = StringType(required=True)
     DBInstanceIdentifier = StringType(default="UNKNOWN")
     DBSubnetGroup = ModelType(InstanceSubnetGroup)
-    Endpoint = ModelType(InstanceEndpoint, required=True)
+    Endpoint = ModelType(InstanceEndpoint)
     VpcSecurityGroups = ListType(ModelType(InstanceVpcSecurityGroup), default=[])
     TagList = ListType(ModelType(TagList), default=[])
 
@@ -104,7 +106,8 @@ class RdsCollector(RegisteredResourceCollector):
         instance_id = instance.DBInstanceIdentifier
         output["Name"] = instance_id
         output["Tags"] = instance.TagList
-        output["URN"] = ["urn:endpoint:/" + instance.Endpoint.Address]
+        if instance.Endpoint:
+            output["URN"] = ["urn:endpoint:/" + instance.Endpoint.Address]
         output.update(with_dimensions([{"key": "DBInstanceIdentifier", "value": instance_id}]))
         self.emit_component(instance_arn, "instance", output)
         self.emit_relation(instance_arn, instance.DBSubnetGroup.VpcId, "uses-service", {})
@@ -119,8 +122,14 @@ class RdsCollector(RegisteredResourceCollector):
         output = make_valid_data(data)
         cluster_id = cluster.DBClusterIdentifier
         cluster_arn = cluster.DBClusterArn
-        output["Name"] = cluster_arn
+        output["Name"] = cluster_id
         output["Tags"] = cluster.TagList
+        urns = []
+        if cluster.Endpoint:
+            urns.append("urn:endpoint:/" + cluster.Endpoint)
+        if cluster.ReaderEndpoint:
+            urns.append("urn:endpoint:/" + cluster.ReaderEndpoint)
+        output["URN"] = urns
         output.update(with_dimensions([{"key": "DBClusterIdentifier", "value": cluster_id}]))
         self.emit_component(cluster_arn, "cluster", output)
         for cluster_member in output.get("DBClusterMembers", []):
