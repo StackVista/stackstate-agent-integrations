@@ -207,6 +207,7 @@ class ZabbixCheck(AgentCheck):
         else:
             instance_url = url.split("/")[0]
         labels = ['zabbix', 'instance_url:%s' % instance_url]
+        identifiers.append(Identifiers.create_host_identifier(instance_url))
         for host_group in zabbix_host.host_groups:
             labels.append('host group:%s' % host_group.name)
         data = {

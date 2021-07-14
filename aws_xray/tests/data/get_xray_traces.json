@@ -18,7 +18,7 @@
         "Id": "1-5e2860fc-aabdc27d7ba9bf71664b75af",
         "Segments": [
           {
-            "Document": "{\"id\":\"0dfc43a213f03e6a\",\"name\":\"test-get\",\"start_time\":1.579704572495E9,\"end_time\":1.579704573533E9,\"parent_id\":\"066577889bc76215\",\"http\":{\"response\":{\"status\":200}},\"aws\":{\"request_id\":\"d9f3bd36-d3f4-49f3-823f-c1125f77b9a4\"},\"trace_id\":\"1-5e2860fc-aabdc27d7ba9bf71664b75af\",\"origin\":\"AWS::Lambda\",\"resource_arn\":\"arn:aws:lambda:eu-west-1:672574731473:function:test-get\"}",
+            "Document": "{\"id\":\"0dfc43a213f03e6a\",\"name\":\"Øtest-get\",\"start_time\":1.579704572495E9,\"end_time\":1.579704573533E9,\"parent_id\":\"066577889bc76215\",\"http\":{\"response\":{\"status\":200}},\"aws\":{\"request_id\":\"d9f3bd36-d3f4-49f3-823f-c1125f77b9a4\"},\"trace_id\":\"1-5e2860fc-aabdc27d7ba9bf71664b75af\",\"origin\":\"AWS::Lambda\",\"resource_arn\":\"arn:aws:lambda:eu-west-1:672574731473:function:test-get\"}",
             "Id": "0dfc43a213f03e6a"
           },
           {
