@@ -22,15 +22,6 @@ def instance():
 
 
 @pytest.fixture
-def instance_no_role_arn():
-    return {
-        'aws_access_key_id': 'abc',
-        'aws_secret_access_key': 'cde',
-        'region': 'ijk'
-    }
-
-
-@pytest.fixture
 def aws_check(instance):
     # setUp the check
     instance['role_arn'] = '672574731473'

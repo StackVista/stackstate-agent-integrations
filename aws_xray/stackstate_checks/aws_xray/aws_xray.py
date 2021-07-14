@@ -44,7 +44,7 @@ class Instance(Model):
     aws_access_key_id = StringType(required=True)
     aws_secret_access_key = StringType(required=True)
     region = StringType(required=True)
-    role_arn = StringType(default="unknown-instance")
+    role_arn = StringType()
     max_trace_history_limit = IntType(default=MAX_TRACE_HISTORY_LIMIT)
     max_trace_history_batch_size = IntType(default=MAX_TRACE_HISTORY_BATCH_SIZE)
     state = ModelType(State)
