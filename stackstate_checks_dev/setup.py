@@ -32,7 +32,7 @@ REQUIRES = [
     'requests>=2.20.0',
     'six',
     'Deprecated==1.2.10',
-    'enum34==1.1.10',
+    'enum34==1.1.10; python_version < \'3.4\'',
     'schematics==2.1.0'
 ]
 

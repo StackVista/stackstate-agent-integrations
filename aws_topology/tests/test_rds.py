@@ -28,9 +28,13 @@ class TestRds(BaseApiTest):
             "aws.rds.cluster",
             checks={
                 "DBClusterArn": "arn:aws:rds:eu-west-1:731070500579:cluster:productiondatabasecluster",
-                "Name": "arn:aws:rds:eu-west-1:731070500579:cluster:productiondatabasecluster",
+                "Name": "productiondatabasecluster",
                 "CW.Dimensions": [{"Key": "DBClusterIdentifier", "Value": "productiondatabasecluster"}],
                 "Tags.testing": "test",
+                "URN": [
+                    'urn:endpoint:/productiondatabasecluster.cluster-cdnm1uvvpdkc.eu-west-1.rds.amazonaws.com',
+                    'urn:endpoint:/productiondatabasecluster.cluster-ro-cdnm1uvvpdkc.eu-west-1.rds.amazonaws.com'
+                ],
             },
         )
         # instance 1
