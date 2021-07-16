@@ -792,3 +792,19 @@ Resources:
       StorageType: standard
       VPCSecurityGroups:
         - !GetAtt RdsDatabaseSecurityGroup.GroupId
+  AuroraServerlessDatabase:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      MasterUsername: postgres
+      MasterUserPassword: testing123 # this database is completely firewalled off so this is fine
+      Engine: aurora
+      EngineVersion: 5.6.10a
+      EngineMode: serverless
+      DBSubnetGroupName: !Ref PublicDBSubnetGroup
+      ScalingConfiguration:
+        AutoPause: true
+        MinCapacity: 4
+        MaxCapacity: 32
+        SecondsUntilAutoPause: 1000
+      VpcSecurityGroupIds:
+        - !GetAtt RdsDatabaseSecurityGroup.GroupId
