@@ -522,7 +522,7 @@ class AgentCheckBase(object):
             fixed_data = self._sanitize(data)
             fixed_streams = self._sanitize(streams)
             fixed_checks = self._sanitize(checks)
-        except UnicodeError:
+        except (UnicodeError, TypeError):
             return
         data = self._map_component_data(id, type, integration_instance, fixed_data, fixed_streams, fixed_checks)
         topology.submit_component(self, self.check_id, self._get_instance_key_dict(), id, type, data)
@@ -550,7 +550,7 @@ class AgentCheckBase(object):
             fixed_data = self._sanitize(data)
             fixed_streams = self._sanitize(streams)
             fixed_checks = self._sanitize(checks)
-        except UnicodeError:
+        except (UnicodeError, TypeError):
             return
         data = self._map_relation_data(source, target, type, fixed_data, fixed_streams, fixed_checks)
         topology.submit_relation(self, self.check_id, self._get_instance_key_dict(), source, target, type, data)
@@ -1095,7 +1095,7 @@ class __AgentCheckPy3(AgentCheckBase):
         # Enforce types of some fields, considerably facilitates handling in go bindings downstream
         try:
             event = self._sanitize(event)
-        except UnicodeError:
+        except (UnicodeError, TypeError):
             return
 
         self.validate_event(event)
@@ -1263,7 +1263,7 @@ class __AgentCheckPy2(AgentCheckBase):
         # Enforce types of some fields, considerably facilitates handling in go bindings downstream
         try:
             event = self._sanitize(event)
-        except UnicodeError:
+        except (UnicodeError, TypeError):
             return
 
         if event.get('tags'):
