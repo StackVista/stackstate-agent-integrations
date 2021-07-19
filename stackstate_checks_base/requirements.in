@@ -1,6 +1,4 @@
 binary==1.0.0
-ddtrace==0.32.2; sys_platform == 'win32' and python_version < '3.0'
-ddtrace==0.48.0; sys_platform != 'win32' or python_version > '3.0'
 kubernetes==8.0.1
 pyyaml==5.3.1
 prometheus-client==0.3.0
