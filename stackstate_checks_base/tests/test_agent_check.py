@@ -737,6 +737,61 @@ class TestTagsAndConfigMapping:
         # list of lists and sets
         exeception_case([['a'], set(['a']), ['b'], set(['b'])], {list, set})
 
+        # ensure nothing is created for components with non-homogeneous lists
+        data = {"key": "value", "intlist": [1], "emptykey": None, "nestedobject": {"nestedkey": "nestedValue"},
+                "mixedlist": ['a', 'b', 'c', 4]}
+        assert check.component("my-id", "my-type", data) is None
+        # ensure nothing is created for relations with non-homogeneous lists
+        data = {"key": "value", "intlist": [1], "emptykey": None, "nestedobject": {"nestedkey": "nestedValue"},
+                "mixedlist": ['a', 'b', 'c', 4]}
+        assert check.relation("source-id", "target-id", "my-type", data) is None
+        # ensure that a schematics data error is thrown for events with non-homogeneous tags
+        with pytest.raises(DataError) as e:
+            event = {
+                "timestamp": 123456789,
+                "event_type": "new.event",
+                "source_type_name": "new.source.type",
+                "msg_title": "new test event",
+                "aggregation_key": "test.event",
+                "msg_text": "test event test event",
+                "tags": ['a', 'b', 'c', 4],
+            }
+            assert check.event(event) is None
+        # ensure that a schematics data error is thrown for topology events with non-homogeneous tags
+        with pytest.raises(DataError) as e:
+            event = {
+                "timestamp": 123456789,
+                "source_type_name": "new.source.type",
+                "msg_title": "new test event",
+                "aggregation_key": "test.event",
+                "msg_text": "test event test event",
+                "tags": ['a', 'b', 'c', 4],
+                "context": {
+                    "element_identifiers": ["urn:test:/value"],
+                    "source": "test source",
+                    "category": "test category",
+                }
+            }
+            assert check.event(event) is None
+        # ensure that a nothing is created for topology events with non-homogeneous tags in the data section
+        event = {
+            "timestamp": 123456789,
+            "source_type_name": "new.source.type",
+            "msg_title": "new test event",
+            "aggregation_key": "test.event",
+            "msg_text": "test event test event",
+            "tags": ['a', 'b', 'c', 'd'],
+            "context": {
+                "element_identifiers": ["urn:test:/value"],
+                "source": "test source",
+                "category": "test category",
+                "data": {
+                    "mixedlist": ['a', 'b', 'c', 4]
+                }
+            }
+        }
+        assert check.event(event) is None
+
 
 class TestTopology:
     def test_component(self, topology):

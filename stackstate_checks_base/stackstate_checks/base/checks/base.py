@@ -1286,6 +1286,8 @@ class __AgentCheckPy2(AgentCheckBase):
         else:
             aggregator.submit_event(self, self.check_id, event)
 
+        return event
+
     def _normalize_tags_type(self, tags, device_name=None, metric_name=None):
         """
         Normalize tags contents and type:
