@@ -3,7 +3,8 @@ boto3==1.17.68
 cm-client==33.0.0
 cryptography==3.3.2; python_version < "3.0"
 cryptography==3.4.6; python_version > "3.0"
-ddtrace==0.32.2
+ddtrace==0.32.2; sys_platform == 'win32' and python_version < '3.0'
+ddtrace==0.48.0; sys_platform != 'win32' or python_version > '3.0'
 deprecated==1.2.10
 enum34==1.1.10; python_version < "3.4"
 flatten-dict==0.2.0

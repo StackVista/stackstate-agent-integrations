@@ -746,7 +746,7 @@ class TestTagsAndConfigMapping:
                 "mixedlist": ['a', 'b', 'c', 4]}
         assert check.relation("source-id", "target-id", "my-type", data) is None
         # ensure that a schematics data error is thrown for events with non-homogeneous tags
-        with pytest.raises(DataError) as e:
+        with pytest.raises(DataError):
             event = {
                 "timestamp": 123456789,
                 "event_type": "new.event",
@@ -758,7 +758,7 @@ class TestTagsAndConfigMapping:
             }
             assert check.event(event) is None
         # ensure that a schematics data error is thrown for topology events with non-homogeneous tags
-        with pytest.raises(DataError) as e:
+        with pytest.raises(DataError):
             event = {
                 "timestamp": 123456789,
                 "source_type_name": "new.source.type",

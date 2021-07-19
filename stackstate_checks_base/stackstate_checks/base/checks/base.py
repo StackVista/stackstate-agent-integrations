@@ -970,13 +970,19 @@ class AgentCheckBase(object):
 
     def _ensure_homogeneous_list(self, list):
         """
-        _ensure_homogeneous_list checks whether all values of a list or set are of the same type. StackState only supports
-        homogeneous lists.
+        _ensure_homogeneous_list checks whether all values of a list or set are of the same type. StackState only
+        supports homogeneous lists.
         """
         type_list = [type(element) for element in list]
         type_set = set(type_list)
+
+        # exclusion rule - allow string + unicode, conversion will happen later
+        if type_set == {str, text_type}:
+            return
+
         if len(type_set) > 1:
-            raise TypeError("List: {0}, is not homogeneous, it contains the following types: {1}".format(list, type_set))
+            raise TypeError("List: {0}, is not homogeneous, it contains the following types: {1}"
+                            .format(list, type_set))
 
     def get_check_state_path(self):
         """
@@ -1092,13 +1098,13 @@ class __AgentCheckPy3(AgentCheckBase):
                                         hostname, message)
 
     def event(self, event):
+        self.validate_event(event)
+
         # Enforce types of some fields, considerably facilitates handling in go bindings downstream
         try:
             event = self._sanitize(event)
         except (UnicodeError, TypeError):
             return
-
-        self.validate_event(event)
 
         if event.get('tags'):
             event['tags'] = self._normalize_tags_type(event['tags'])
