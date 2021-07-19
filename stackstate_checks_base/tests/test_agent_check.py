@@ -677,6 +677,66 @@ class TestTagsAndConfigMapping:
                                                     'urn:process:/mapped-identifier:3:1234567890',
                                                     'urn:process:/mapped-identifier:001:1234567890']
 
+    def test_ensure_homogeneous_list(self):
+        check = AgentCheck()
+
+        # list of ints
+        check._ensure_homogeneous_list([1, 2, 3])
+        # list of booleans
+        check._ensure_homogeneous_list([True, True, False])
+        # list of string
+        check._ensure_homogeneous_list(['a', 'b', 'c'])
+        # list of floats
+        check._ensure_homogeneous_list([1.0, 2.0, 3.0])
+        # list of dicts
+        check._ensure_homogeneous_list([{'a': 'b'}, {'a': 'c'}, {'a': 'd'}])
+        # list of mixed dicts
+        check._ensure_homogeneous_list([{'a': 'b'}, {'c': []}, {'d': False}])
+        # list of lists
+        check._ensure_homogeneous_list([[1], [2], [3]])
+        # list of mixed lists
+        check._ensure_homogeneous_list([[1], ['b'], [True], [{'c': 'd'}]])
+        # list of sets
+        check._ensure_homogeneous_list([set([1]), set([2]), set([3])])
+        # list of mixed sets
+        check._ensure_homogeneous_list([set([1]), set(['b']), set([True]), set([1.5])])
+
+        def exeception_case(list, expected_types):
+            with pytest.raises(TypeError) as e:
+                check._ensure_homogeneous_list(list)
+
+            assert str(e.value) == "List: {0}, is not homogeneous, it contains the following types: {1}"\
+                .format(list, expected_types)
+
+        # list of ints and strings
+        exeception_case([1, '2', 3, '4'], {str, int})
+        # list of ints and floats
+        exeception_case([1, 1.5, 2, 2.5], {int, float})
+        # list of ints and bools
+        exeception_case([1, True, 2, False], {int, bool})
+        # list of ints and dicts
+        exeception_case([1, {'a': True}, 2, {'a': False}], {int, dict})
+        # list of strings and lists
+        exeception_case(['a', [True], 'b', [False]], {str, list})
+        # list of strings and sets
+        exeception_case(['a', set([True]), 'b', set([False])], {str, set})
+
+        # list of strings and dicts
+        exeception_case(['a', {'a': True}, 'b', {'a': False}], {str, dict})
+        # list of strings and floats
+        exeception_case(['a', 1.5, 'b', 2.5], {str, float})
+        # list of strings and bools
+        exeception_case(['a', True, 'b', False], {str, bool})
+        # list of strings and lists
+        exeception_case(['a', [True], 'b', [False]], {str, list})
+        # list of strings and sets
+        exeception_case(['a', set([True]), 'b', set([False])], {str, set})
+
+        # list of lists and dicts
+        exeception_case([['a'], {'a': True}, ['b'], {'a': False}], {list, dict})
+        # list of lists and sets
+        exeception_case([['a'], set(['a']), ['b'], set(['b'])], {list, set})
+
 
 class TestTopology:
     def test_component(self, topology):

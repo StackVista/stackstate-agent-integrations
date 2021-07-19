@@ -938,6 +938,7 @@ class AgentCheckBase(object):
             for key, value in list(iteritems(field)):
                 field[key] = self._sanitize(value, "key '{0}' of dict".format(key))
         elif isinstance(field, list):
+            self._ensure_homogeneous_list(field)
             field = [element for element in field if self._is_not_empty(element)]
             for i, element in enumerate(field):
                 field[i] = self._sanitize(element, "index '{0}' of list".format(i))
@@ -945,6 +946,7 @@ class AgentCheckBase(object):
             # we convert a set to a list so we can update it in place
             # and then at the end we turn the list back to a set
             encoding_list = [element for element in list(field) if self._is_not_empty(element)]
+            self._ensure_homogeneous_list(encoding_list)
             for i, element in enumerate(encoding_list):
                 encoding_list[i] = self._sanitize(element, "element of set")
             field = set(encoding_list)
@@ -965,6 +967,16 @@ class AgentCheckBase(object):
                 return True
 
         return False
+
+    def _ensure_homogeneous_list(self, list):
+        """
+        _ensure_homogeneous_list checks whether all values of a list or set are of the same type. StackState only supports
+        homogeneous lists.
+        """
+        type_list = [type(element) for element in list]
+        type_set = set(type_list)
+        if len(type_set) > 1:
+            raise TypeError("List: {0}, is not homogeneous, it contains the following types: {1}".format(list, type_set))
 
     def get_check_state_path(self):
         """
