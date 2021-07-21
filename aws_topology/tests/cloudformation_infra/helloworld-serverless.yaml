@@ -38,7 +38,7 @@ Conditions:
 Mappings:
   AmazonLinux2Ami:
     eu-west-1:
-      AmiId: ami-063d4ab14480ac177
+      AmiId: ami-058b1b7fe545997ae
 
 Resources:
   NotificationStepFunctionsIamRole:
@@ -415,9 +415,15 @@ Resources:
           Arn: !GetAtt NotificationEc2InstanceProfile.Arn
         SecurityGroupIds:
           - !GetAtt NotificationEc2SecurityGroup.GroupId
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - Key: Name
+                Value: !Sub ${AWS::StackName}-NotificationEc2
         UserData:
           Fn::Base64: !Sub |
             #!/bin/bash -xe
+            yum update -y
             yum install -y postgresql gcc
             pip3 install boto3 psycopg2-binary
             mkdir -p /var/task
@@ -437,7 +443,7 @@ Resources:
             rds_user_pwd = secret.get("password")
             try:
                 conn = psycopg2.connect(host=rds_host, user=rds_username, password=rds_user_pwd, database="postgres")
-            except:
+            except Exception:
                 print("ERROR: Could not connect to Postgres instance.")
                 sys.exit(1)
             print("SUCCESS: Connection to RDS Postgres instance succeeded")
@@ -445,19 +451,22 @@ Resources:
             queue = os.environ.get("SQS_QUEUE")
             while True:
                 messages = sqs.receive_message(QueueUrl=queue).get("Messages")
-                if messages is not None:
-                    with conn.cursor() as cur:
+                with conn.cursor() as cur:
+                    if messages is not None:
                         for message in messages:
                             body = json.loads(message.get("Body")).get("Input")
                             cur.execute(
-                                "insert into mailing_list (name, email) values(%s, %s)", (body.get("name"), body.get("email"))
+                                "insert into mailing_list (name, email) values(%s, %s)",
+                                (body.get("name"), body.get("email")),
                             )
                             sqs.delete_message(QueueUrl=queue, ReceiptHandle=message.get("ReceiptHandle"))
                             print(f"Committed {body}")
-                        conn.commit()
-                else:
-                    print("No message to commit")
-                    sleep(5)
+                    else:
+                        cur.execute("select * from information_schema.tables limit 2")
+                        cur.fetchall()
+                        print("No message to commit")
+                        sleep(5)
+                    conn.commit()
             EOF
 
             cat << EOF > /etc/systemd/system/sqs-poll.service

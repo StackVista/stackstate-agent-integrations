@@ -4,7 +4,9 @@ init_config:
   external_id: 'randomvalue'
 
 instances:
-  - role_arn: arn:aws:iam::0123456789:role/RoleName
+    # collection interval for topology
+  - min_collection_interval: 120
+    role_arn: arn:aws:iam::0123456789:role/RoleName
     regions: 
       - global
       - eu-west-1
