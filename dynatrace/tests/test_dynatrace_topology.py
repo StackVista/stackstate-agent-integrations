@@ -36,12 +36,13 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         topology.reset()
 
     @staticmethod
-    def _set_http_responses(m, hosts="[]", apps="[]", svcs="[]", procs="[]", proc_groups="[]"):
+    def _set_http_responses(m, hosts="[]", apps="[]", svcs="[]", procs="[]", proc_groups="[]", custom="[]"):
         m.get("/api/v1/entity/infrastructure/hosts", text=hosts)
         m.get("/api/v1/entity/applications", text=apps)
         m.get("/api/v1/entity/services", text=svcs)
         m.get("/api/v1/entity/infrastructure/processes", text=procs)
         m.get("/api/v1/entity/infrastructure/process-groups", text=proc_groups)
+        m.get("/api/v2/entities", text=custom)
         m.get("/api/v1/events", text="[]")
 
     @requests_mock.Mocker()
@@ -196,3 +197,16 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         self.assertEqual(len(relations), len(expected_relations))
         for relation in relations:
             self.assertIn(relation, expected_relations)
+
+    @requests_mock.Mocker()
+    def test_collect_custom_devices(self, m):
+        """
+        Testing Dynatrace check should collect process-groups
+        """
+        self._set_http_responses(m, custom=read_file("custom_device_response.json"))
+        self.check.url = self.instance.get('url')
+        self.check.run()
+        topo_instances = topology.get_snapshot(self.check.check_id)
+        actual_topology = load_json_from_file("expected_custom_device_topology.json")
+        # sort the keys of components and relations, so we match it in actual
+        self.assert_topology(actual_topology, topo_instances)
