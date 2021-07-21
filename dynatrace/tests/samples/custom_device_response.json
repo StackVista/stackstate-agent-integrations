@@ -5,7 +5,6 @@
     {
       "entityId": "CUSTOM_DEVICE-D3692A3DBB1B6419",
       "displayName": "coffeeMachine",
-      "lastSeenTms": 1626769374641,
       "properties": {
         "dnsNames": [
           "coffee-machine.dynatrace.internal.com"

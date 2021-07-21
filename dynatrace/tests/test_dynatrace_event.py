@@ -185,11 +185,11 @@ def test_simulated_ok_events(dynatrace_check, test_instance):
         dynatrace_check.run()
         aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.OK)
         assert len(topology.get_snapshot('').get('components')) == 15
-        assert len(aggregator.events) == 22
+        assert len(aggregator.events) == 23
         real_events = [e for e in aggregator.events if 'source:StackState Agent' not in e.get('tags', [])]
         simulated_events = [e for e in aggregator.events if 'source:StackState Agent' in e.get('tags', [])]
         assert len(real_events) == 8
-        assert len(simulated_events) == 14
+        assert len(simulated_events) == 15
         assert len(telemetry._topology_events) == 1
 
 
@@ -237,7 +237,7 @@ def test_unicode_in_response_text(dynatrace_check, test_instance):
         m.get("{}/api/v1/entity/services".format(url), status_code=200, text='[]')
         m.get("{}/api/v1/entity/infrastructure/processes".format(url), status_code=200, text='[]')
         m.get("{}/api/v1/entity/infrastructure/process-groups".format(url), status_code=200, text='[]')
-        m.get("{}/api/v2/entities".format(url), status_code=200, text='[]')
+        m.get("{}/api/v2/entities".format(url), status_code=200, text='{"entities":[]}')
         m.get('{}/api/v1/events?from={}'.format(url, timestamp), status_code=200,
               text=read_file('unicode_topology_event_response.json'))
         dynatrace_check.run()

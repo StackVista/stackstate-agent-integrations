@@ -19,6 +19,7 @@ EVENTS_PROCESS_LIMIT = 10000
 RELATIVE_TIME = 'hour'
 ENVIRONMENT = 'production'
 DOMAIN = 'dynatrace'
+CUSTOM_DEVICE_DEFAULT_RELATIVE_TIME = '3h'
 CUSTOM_DEVICE_DEFAULT_FIELDS = '+fromRelationships,+toRelationships,+tags,+managementZones,+properties.dnsNames,' \
                                '+properties.ipAddress'
 
@@ -69,8 +70,6 @@ class DynatraceComponent(Model):
     azureHostNames = StringType()
     publicHostName = StringType()
     localHostName = StringType()
-    # Custom Device attribute
-    properties = DictType(ListType(StringType), default={})
 
 
 class CustomDevice(Model):
@@ -117,7 +116,7 @@ class InstanceInfo(Model):
     relative_time = StringType(default=RELATIVE_TIME)
     state = ModelType(State)
     custom_device_fields = StringType(default=CUSTOM_DEVICE_DEFAULT_FIELDS)
-    custom_device_relative_time = StringType(default="3h")
+    custom_device_relative_time = StringType(default=CUSTOM_DEVICE_DEFAULT_RELATIVE_TIME)
 
 
 class DynatraceCheck(AgentCheck):

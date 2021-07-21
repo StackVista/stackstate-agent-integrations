@@ -16,13 +16,14 @@
         "domain": "dynatrace",
         "environments": ["production"],
         "identifiers": [
-          "urn:dynatrace:/HOST-6AAE0F78BCF2E0F4",
-          "urn:host:/10.0.0.1",
+          "urn:dynatrace:/CUSTOM_DEVICE-D3692A3DBB1B6419",
           "urn:host:/coffee-machine.dynatrace.internal.com",
+          "urn:host:/10.0.0.1"
         ],
         "instance": "https://ton48129.live.dynatrace.com",
         "tags": [
-          "HOST-6AAE0F78BCF2E0F4",
+          "CUSTOM_DEVICE-D3692A3DBB1B6419",
+          "foo:bar",
           "integration-type:dynatrace",
           "integration-url:https://ton48129.live.dynatrace.com"
         ]

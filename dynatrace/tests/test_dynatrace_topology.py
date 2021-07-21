@@ -36,13 +36,13 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         topology.reset()
 
     @staticmethod
-    def _set_http_responses(m, hosts="[]", apps="[]", svcs="[]", procs="[]", proc_groups="[]", custom="[]"):
+    def _set_http_responses(m, hosts="[]", apps="[]", svcs="[]", procs="[]", proc_groups="[]", dev='{"entities":[]}'):
         m.get("/api/v1/entity/infrastructure/hosts", text=hosts)
         m.get("/api/v1/entity/applications", text=apps)
         m.get("/api/v1/entity/services", text=svcs)
         m.get("/api/v1/entity/infrastructure/processes", text=procs)
         m.get("/api/v1/entity/infrastructure/process-groups", text=proc_groups)
-        m.get("/api/v2/entities", text=custom)
+        m.get("/api/v2/entities", text=dev)
         m.get("/api/v1/events", text="[]")
 
     @requests_mock.Mocker()
@@ -203,7 +203,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         """
         Testing Dynatrace check should collect process-groups
         """
-        self._set_http_responses(m, custom=read_file("custom_device_response.json"))
+        self._set_http_responses(m, dev=read_file("custom_device_response.json"))
         self.check.url = self.instance.get('url')
         self.check.run()
         topo_instances = topology.get_snapshot(self.check.check_id)
