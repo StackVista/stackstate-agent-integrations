@@ -37,7 +37,8 @@ DYNATRACE_UI_URLS = {
     "process-group": "%s/#processgroupdetails;id=%s",
     "process": "%s/#processdetails;id=%s",
     "host": "%s/#newhosts/hostdetails;id=%s",
-    "application": "%s/#uemapplications/uemappmetrics;uemapplicationId=%s"
+    "application": "%s/#uemapplications/uemappmetrics;uemapplicationId=%s",
+    "custom-device": "%s/#customdevicegroupdetails/entity;id=%s"
 }
 
 dynatrace_entities_cache = {}
@@ -159,14 +160,14 @@ class DynatraceCheck(AgentCheck):
         @return
         Returns the parameter for custom device entities
         """
-        if not next_page_key:
+        if next_page_key:
+            params = {'nextPageKey': next_page_key}
+        else:
             params = {'entitySelector': 'type("CUSTOM_DEVICE")'}
             relative_time = {'from': 'now-{}'.format(instance_info.custom_device_relative_time)}
             params.update(relative_time)
             fields = {'fields': '{}'.format(instance_info.custom_device_fields)}
             params.update(fields)
-        else:
-            params = {'nextPageKey': next_page_key}
         return params
 
     def process_custom_device_topology(self, instance_info, endpoint, component_type):
@@ -182,12 +183,12 @@ class DynatraceCheck(AgentCheck):
         # wanted to override the params for custom-device as it is completely different from smartscape
         params = self.get_custom_device_params(instance_info)
         response = self._get_dynatrace_json_response(instance_info, endpoint, params)
-        self._collect_topology(response, component_type, instance_info)
+        self._collect_topology(response.get("entities", []), component_type, instance_info)
         next_page_key = response.get('nextPageKey')
         while next_page_key:
             params = self.get_custom_device_params(instance_info, next_page_key)
             response = self._get_dynatrace_json_response(instance_info, endpoint, params)
-            self._collect_topology(response, 'custom-device', instance_info)
+            self._collect_topology(response.get("entities", []), component_type, instance_info)
             next_page_key = response.get('nextPageKey')
 
     def _process_topology(self, instance_info):
@@ -237,9 +238,6 @@ class DynatraceCheck(AgentCheck):
         :param instance_info: instance configuration
         :return: create the component on stackstate API
         """
-        # since custom device response returns entities
-        if component_type == "custom-device":
-            response = response.get("entities")
         for item in response:
             item = self._clean_unsupported_metadata(item)
             if component_type == "custom-device":
@@ -392,13 +390,8 @@ class DynatraceCheck(AgentCheck):
                     "expectedMonitoringState:%s" % dynatrace_component.monitoringState.expectedMonitoringState)
         if dynatrace_component.get('softwareTechnologies'):
             for technologies in dynatrace_component.softwareTechnologies:
-                tech_label = ''
-                if technologies.get('type'):
-                    tech_label += technologies['type']
-                if technologies.get('edition'):
-                    tech_label += ":%s" % technologies['edition']
-                if technologies.get('version'):
-                    tech_label += ":%s" % technologies['version']
+                tech_label = ':'.join(filter(None, [technologies.get('type'), technologies.get('edition'),
+                                                    technologies.get('version')]))
                 labels.append(tech_label)
         labels_from_tags = self._get_labels_from_dynatrace_tags(dynatrace_component)
         labels.extend(labels_from_tags)
