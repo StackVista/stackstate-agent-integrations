@@ -2,9 +2,9 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 from .__about__ import __version__
-from .solarwinds import SolarwindsCheck
+from .solarwinds import SolarWindsCheck
 
 __all__ = [
     '__version__',
-    'SolarwindsCheck'
+    'SolarWindsCheck'
 ]

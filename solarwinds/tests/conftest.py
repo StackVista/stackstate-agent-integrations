@@ -2,6 +2,9 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import pytest
+from stackstate_checks.base.stubs import aggregator, telemetry, topology
+
+from stackstate_checks.solarwinds import SolarWindsCheck
 
 
 @pytest.fixture(scope='session')
@@ -12,6 +15,29 @@ def sts_environment():
     return {"key": "value"}
 
 
+@pytest.fixture(scope='class')
+def test_instance():
+    return {
+        "url": "solarwinds.domain.com",
+        "username": "user",
+        "password": "secret",
+        "solarwinds_domain": "StackState_Domain",
+        "solarwinds_domain_values": ["Alkmaar Subset"],
+        "min_collection_interval": 30,
+    }
+
+
 @pytest.fixture
-def instance():
-    return {}
+def solarwinds_check(test_instance):
+    check = SolarWindsCheck("solarwinds", {}, {}, instances=[test_instance])
+    yield check
+    aggregator.reset()
+    telemetry.reset()
+    topology.reset()
+    check.commit_state(None)
+
+
+@pytest.fixture(scope="session")
+def npm_topology():
+    npm_topology = None
+    return npm_topology
