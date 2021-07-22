@@ -201,7 +201,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
     @requests_mock.Mocker()
     def test_collect_custom_devices(self, m):
         """
-        Testing Dynatrace check should collect process-groups
+        Test Dynatrace check should produce custom devices
         """
         self._set_http_responses(m, dev=read_file("custom_device_response.json"))
         self.check.url = self.instance.get('url')
@@ -209,4 +209,22 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         topo_instances = topology.get_snapshot(self.check.check_id)
         actual_topology = load_json_from_file("expected_custom_device_topology.json")
         # sort the keys of components and relations, so we match it in actual
+        self.assert_topology(actual_topology, topo_instances)
+
+    @requests_mock.Mocker()
+    def test_collect_custom_devices_with_pagination(self, m):
+        """
+        Test Dynatrace check should produce custom devices with pagination
+        """
+        self._set_http_responses(m)
+        url = self.instance.get('url')
+        first_url = url + "/api/v2/entities?entitySelector=type%28%22CUSTOM_DEVICE%22%29&from=now-1h&fields=%2B" \
+                          "fromRelationships%2C%2BtoRelationships%2C%2Btags%2C%2BmanagementZones%2C%2B" \
+                          "properties.dnsNames%2C%2Bproperties.ipAddress"
+        second_url = url + "/api/v2/entities?nextPageKey=nextpageresultkey"
+        m.get(first_url, status_code=200, text=read_file("custom_device_response_next_page.json"))
+        m.get(second_url, status_code=200, text=read_file("custom_device_response.json"))
+        self.check.run()
+        topo_instances = topology.get_snapshot(self.check.check_id)
+        actual_topology = load_json_from_file("expected_custom_device_pagination_full_topology.json")
         self.assert_topology(actual_topology, topo_instances)

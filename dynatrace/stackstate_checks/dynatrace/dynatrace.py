@@ -19,7 +19,7 @@ EVENTS_PROCESS_LIMIT = 10000
 RELATIVE_TIME = 'hour'
 ENVIRONMENT = 'production'
 DOMAIN = 'dynatrace'
-CUSTOM_DEVICE_DEFAULT_RELATIVE_TIME = '3h'
+CUSTOM_DEVICE_DEFAULT_RELATIVE_TIME = '1h'
 CUSTOM_DEVICE_DEFAULT_FIELDS = '+fromRelationships,+toRelationships,+tags,+managementZones,+properties.dnsNames,' \
                                '+properties.ipAddress'
 
@@ -151,7 +151,7 @@ class DynatraceCheck(AgentCheck):
                                message=str(e))
 
     @staticmethod
-    def get_custom_device_params(instance_info):
+    def get_custom_device_params(instance_info, next_page_key=None):
         """
         Process the default parameters needed for custom device
         @param
@@ -159,12 +159,36 @@ class DynatraceCheck(AgentCheck):
         @return
         Returns the parameter for custom device entities
         """
-        params = {'entitySelector': 'type("CUSTOM_DEVICE")'}
-        relative_time = {'from': 'now-{}'.format(instance_info.custom_device_relative_time)}
-        params.update(relative_time)
-        fields = {'fields': '{}'.format(instance_info.custom_device_fields)}
-        params.update(fields)
+        if not next_page_key:
+            params = {'entitySelector': 'type("CUSTOM_DEVICE")'}
+            relative_time = {'from': 'now-{}'.format(instance_info.custom_device_relative_time)}
+            params.update(relative_time)
+            fields = {'fields': '{}'.format(instance_info.custom_device_fields)}
+            params.update(fields)
+        else:
+            params = {'nextPageKey': next_page_key}
         return params
+
+    def process_custom_device_topology(self, instance_info, endpoint, component_type):
+        """
+        Process the custom device topology
+        @param
+        instance_info: Instance configuration schema
+        endpoint: Endpoint to collect custom devices
+        component_type: Type of the component
+        @return
+        None
+        """
+        # wanted to override the params for custom-device as it is completely different from smartscape
+        params = self.get_custom_device_params(instance_info)
+        response = self._get_dynatrace_json_response(instance_info, endpoint, params)
+        self._collect_topology(response, component_type, instance_info)
+        next_page_key = response.get('nextPageKey')
+        while next_page_key:
+            params = self.get_custom_device_params(instance_info, next_page_key)
+            response = self._get_dynatrace_json_response(instance_info, endpoint, params)
+            self._collect_topology(response, 'custom-device', instance_info)
+            next_page_key = response.get('nextPageKey')
 
     def _process_topology(self, instance_info):
         """
@@ -177,10 +201,11 @@ class DynatraceCheck(AgentCheck):
             endpoint = self._get_endpoint(instance_info.url, path)
             params = {"relativeTime": instance_info.relative_time}
             if component_type == "custom-device":
-                # wanted to override the params for custom-device as it is completely different from smartscape
-                params = self.get_custom_device_params(instance_info)
-            response = self._get_dynatrace_json_response(instance_info, endpoint, params)
-            self._collect_topology(response, component_type, instance_info)
+                # process the custom device topology separately because of pagination
+                self.process_custom_device_topology(instance_info, endpoint, component_type)
+            else:
+                response = self._get_dynatrace_json_response(instance_info, endpoint, params)
+                self._collect_topology(response, component_type, instance_info)
         end_time = datetime.now()
         time_taken = end_time - start_time
         self.log.info("Collected %d topology entities.", len(dynatrace_entities_cache))

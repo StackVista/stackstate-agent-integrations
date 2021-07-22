@@ -1,0 +1,37 @@
+{
+  "totalCount": 1,
+  "pageSize": 50,
+  "nextPageKey": "nextpageresultkey",
+  "entities": [
+    {
+      "entityId": "CUSTOM_DEVICE-D3692A3DBB1B6420",
+      "displayName": "Test Device",
+      "properties": {
+        "dnsNames": [
+          "test-machine.dynatrace.internal.com"
+        ],
+        "ipAddress": [
+          "10.0.0.2"
+        ]
+      },
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "foo",
+          "value": "bar",
+          "stringRepresentation": "foo:bar"
+        }
+      ],
+      "managementZones": [],
+      "fromRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "CUSTOM_DEVICE_GROUP-06A60E63A8179AAC",
+            "type": "CUSTOM_DEVICE_GROUP"
+          }
+        ]
+      },
+      "toRelationships": {}
+    }
+  ]
+}
