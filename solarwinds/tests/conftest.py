@@ -15,7 +15,7 @@ def sts_environment():
     return {"key": "value"}
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture
 def test_instance():
     return {
         "url": "solarwinds.domain.com",
