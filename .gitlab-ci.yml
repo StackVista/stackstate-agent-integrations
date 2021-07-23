@@ -354,6 +354,15 @@ test_nagios:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
 
+test_solarwinds:
+  <<: *linux_test
+  variables:
+    CHECK: "solarwinds"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
+
 .windows_test: &windows_test
   <<: *windows_env
   <<: *base_integration_rules

@@ -6,7 +6,7 @@
   "metric_prefix": "solarwinds.",
   "metric_to_check": "",
   "creates_events": false,
-  "short_description": "",
+  "short_description": "Retrieve nodes, interfaces, connections and health from SolarWinds instance",
   "guid": "92da8251-804c-4027-8631-83befaf3aaaa",
   "support": "core",
   "supported_os": [
