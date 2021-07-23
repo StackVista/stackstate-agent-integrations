@@ -21,7 +21,6 @@ def test_get_npm_topology_data(requests_mock, test_instance, solarwinds_check):
         orion_server=orion_server
     )
     requests_mock.post(QUERY_URL, text=read_file("npm_topology_data.json", "samples"))
-    # Still needed to initialize swis
     solarwinds_check.run()
     npm_topology_data = solarwinds_check.get_npm_topology_data("", "")
     assert npm_topology_data == load_json_from_file("npm_topology_data.json", "samples")["results"]
@@ -35,8 +34,9 @@ def test_create_npm_topology(solarwinds_check):
     solarwinds_check.base_url = 'https://solarwinds.procyonnetworks.nl'
     npm_topology = solarwinds_check.create_npm_topology(npm_topology_data, solarwinds_domain)
     # Compare serialized npm topology with saved version
-    assert json.dumps(npm_topology, indent=4, default=lambda o: o.__dict__) == read_file("npm_topology_dumps.json",
-                                                                                         "samples")
+    serialized_npm_topology = json.loads(json.dumps(npm_topology, indent=4, default=lambda o: o.__dict__))
+    expected_npm_topology = json.loads(read_file("npm_topology_dumps.json", "samples"))
+    assert serialized_npm_topology == expected_npm_topology
 
 
 def test_check_udt_active(requests_mock, test_instance, solarwinds_check):
@@ -68,5 +68,6 @@ def test_add_udt_topology(solarwinds_check):
     global udt_topology_data
     solarwinds_check.add_udt_topology(udt_topology_data, npm_topology)
     # Compare serialized npm + udt topology with saved version
-    assert json.dumps(npm_topology, indent=4, default=lambda o: o.__dict__) == read_file(
-        "npm_and_udt_topology_dumps.json", "samples")
+    serialized_npm_topology = json.loads(json.dumps(npm_topology, indent=4, default=lambda o: o.__dict__))
+    expected_npm_and_udt_topology = json.loads(read_file("npm_and_udt_topology_dumps.json", "samples"))
+    assert serialized_npm_topology == expected_npm_and_udt_topology
