@@ -157,6 +157,7 @@ class DynatraceCheck(AgentCheck):
         Process the default parameters needed for custom device
         @param
         instance_info: Instance configuration schema
+        next_page_key: nextPageKey value for pagination of API results
         @return
         Returns the parameter for custom device entities
         """
@@ -170,9 +171,25 @@ class DynatraceCheck(AgentCheck):
             params.update(fields)
         return params
 
+    def collect_custom_devices_get_next_key(self, instance_info, endpoint, component_type, next_page_key=None):
+        """
+        Process custom device response & topology and returns the next page key for result
+        @param
+        instance_info: Instance configuration schema
+        endpoint: Endpoint to collect custom devices
+        component_type: Type of the component
+        next_page_key: nextPageKey value for pagination of API results
+        @return
+        Returns the next_page_key value from API response
+        """
+        params = self.get_custom_device_params(instance_info, next_page_key)
+        response = self._get_dynatrace_json_response(instance_info, endpoint, params)
+        self._collect_topology(response.get("entities", []), component_type, instance_info)
+        return response.get('nextPageKey')
+
     def process_custom_device_topology(self, instance_info, endpoint, component_type):
         """
-        Process the custom device topology
+        Process the custom device topology until next page key is None
         @param
         instance_info: Instance configuration schema
         endpoint: Endpoint to collect custom devices
@@ -180,16 +197,10 @@ class DynatraceCheck(AgentCheck):
         @return
         None
         """
-        # wanted to override the params for custom-device as it is completely different from smartscape
-        params = self.get_custom_device_params(instance_info)
-        response = self._get_dynatrace_json_response(instance_info, endpoint, params)
-        self._collect_topology(response.get("entities", []), component_type, instance_info)
-        next_page_key = response.get('nextPageKey')
+        next_page_key = self.collect_custom_devices_get_next_key(instance_info, endpoint, component_type)
         while next_page_key:
-            params = self.get_custom_device_params(instance_info, next_page_key)
-            response = self._get_dynatrace_json_response(instance_info, endpoint, params)
-            self._collect_topology(response.get("entities", []), component_type, instance_info)
-            next_page_key = response.get('nextPageKey')
+            next_page_key = self.collect_custom_devices_get_next_key(instance_info, endpoint, component_type,
+                                                                     next_page_key)
 
     def _process_topology(self, instance_info):
         """
