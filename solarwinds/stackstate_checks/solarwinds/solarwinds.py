@@ -254,7 +254,7 @@ class SolarWindsCheck(AgentCheck):
                 # Register the interface component
                 self.component(interface.identifiers[0], "Interface", interface_component)
                 # Connect this interface to its node
-                self.relation(node.identifiers[0], interface.identifiers[0], "has", {"Type of feet": "Fluffybunnyfeet"})
+                self.relation(node.identifiers[0], interface.identifiers[0], "has", {})
 
     def create_relations(self, npm_topology):
         self.log.info("Create all interface connections")
@@ -264,20 +264,8 @@ class SolarWindsCheck(AgentCheck):
                 for connection in interface.connections:
                     # For bi-directional connections we temporarily use 'puts message' as the type
                     # This will have to be changed later
-                    self.relation(
-                        interface.identifiers[0],
-                        connection.dest_identifier,
-                        "puts message",
-                        {"Type of feet": "Hairybunnyfeet"},
-                        # Not sure we're doing this correctly. Can't find the property in STS
-                    )
-                    self.relation(
-                        connection.dest_identifier,
-                        interface.identifiers[0],
-                        "puts message",
-                        {"Type of feet": "Hairybunnyfeet"},
-                        # Not sure we're doing this correctly. Can't find the property in STS
-                    )
+                    self.relation(interface.identifiers[0], connection.dest_identifier, "puts message", {})
+                    self.relation(connection.dest_identifier, interface.identifiers[0], "puts message", {})
 
     def get_health_stream(self, instance_info):
         return HealthStream(HealthStreamUrn(self.INSTANCE_TYPE, "solarwinds_health"), repeat_interval_seconds=150,
@@ -307,8 +295,7 @@ class SolarWindsCheck(AgentCheck):
             message = "Node Status includes up/down state and rollup status of 'child objects' like CPU, Memory, " \
                       "interfaces, etc. The child status is determined by 'NODE STATUS CALCULATION' in " \
                       "polling settings."
-            self.health.check_state(check_state_id, name, health_value, topology_element_identifier,
-                                    message if message != "" else None)
+            self.health.check_state(check_state_id, name, health_value, topology_element_identifier, message)
             for interface in node.interfaces:
                 # Has to be unique per health state
                 check_state_id = interface.identifiers[0]
@@ -317,8 +304,7 @@ class SolarWindsCheck(AgentCheck):
                 topology_element_identifier = interface.identifiers[0]
                 # Message supports markdown and could include a link to the SolarWinds Orion page for more info
                 message = "Interface Status indicating up/down state, but also bandwidth usage and error thresholds."
-                self.health.check_state(check_state_id, name, health_value, topology_element_identifier,
-                                        message if message != "" else None)
+                self.health.check_state(check_state_id, name, health_value, topology_element_identifier, message)
 
     def check(self, instance_info):
         try:
@@ -480,7 +466,7 @@ class ConnectionL2(OrionConnection):
                 "interface",
                 "{dest_node_name}.{dest_interface_name}".format(
                     dest_node_name=self.dest_node_name, dest_interface_name=self.dest_interface_name
-                ),
+                )
             )
 
     def __repr__(self):
