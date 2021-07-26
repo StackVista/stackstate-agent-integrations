@@ -273,6 +273,14 @@ class SolarWindsCheck(AgentCheck):
 
     def send_component_health(self, npm_topology):
         self.log.info("Create component health state")
+        # UNKNOWN state should not happen. That means something is wrong. A device cannot be polled usually.
+        # The thing is… it doesnt have to mean the device is not working, but it does mean something needs to be done.
+        # Hence… DEVIATING.
+        # UNREACHABLE is a special state. Suppose you have this: Device ----- router ----- SolarWinds Server
+        # If the router fails, the device might still be working just fine. But… we don’t know.
+        # So in SolarWinds, you can set up what are called dependencies.
+        # A dependency would say ’if the router fails, we don’t know about the device’s state, but we do know we cannot
+        # reach it. So the device gets the special state UNREACHABLE. SolarWinds assumes the device is up and healthy.
         health_value_translations = {
             "Up": Health.CLEAR,
             "External": Health.CLEAR,
@@ -289,6 +297,7 @@ class SolarWindsCheck(AgentCheck):
             # Has to be unique per health state
             check_state_id = node.identifiers[0]
             name = "Node Status"
+            # Unknown status we map to Deviating, check explanation above.
             health_value = health_value_translations.get(node.node_status, Health.DEVIATING)
             topology_element_identifier = node.identifiers[0]
             # Message supports markdown and could include a link to the SolarWinds Orion page for more info
