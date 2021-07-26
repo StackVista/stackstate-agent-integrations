@@ -44,10 +44,10 @@ class SolarWindsCheck(AgentCheck):
         # Build SWQL WHERE clause
         where_clause = ""
         for value in solarwinds_domain_values:
-            if not where_clause:
-                where_clause = "WHERE (N.CustomProperties.{domain} = ".format(domain=solarwinds_domain)
-            else:
+            if where_clause:
                 where_clause += " OR N.CustomProperties.{domain} = ".format(domain=solarwinds_domain)
+            else:
+                where_clause = "WHERE (N.CustomProperties.{domain} = ".format(domain=solarwinds_domain)
             where_clause += "'{value}'".format(value=value)
         where_clause += ")"
         self.log.debug("SWQL WHERE clause: %s" % where_clause)
@@ -80,7 +80,7 @@ class SolarWindsCheck(AgentCheck):
             "{where_clause}".format(domain=solarwinds_domain, where_clause=where_clause)
         )
         # Assign the query results to a variable
-        npm_topology_data = query_npm["results"]
+        npm_topology_data = query_npm.get("results")
         return npm_topology_data
 
     def create_npm_topology(self, npm_data, solarwinds_domain):
@@ -142,7 +142,7 @@ class SolarWindsCheck(AgentCheck):
         query_udt = self.swis.query(
             "SELECT LicenseName, IsExpired FROM Orion.InstalledModule WHERE LicenseName = 'UDT' AND IsExpired = FALSE"
         )
-        if query_udt["results"]:
+        if query_udt.get("results"):
             self.log.debug("UDT module is active")
             return True
         else:
