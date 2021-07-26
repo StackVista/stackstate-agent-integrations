@@ -29,16 +29,18 @@ class SolarWindsCheck(AgentCheck):
         return StackPackInstance(self.INSTANCE_TYPE, str(instance_info.url))
 
     def build_base_url(self, orion_server):
-        self.log.info("Build orion server base URL")
+        self.log.debug("Build orion server base URL")
         # Build base url to reach the orion server for more data
         https_status = self.swis.query("SELECT SSLEnabled FROM Orion.Websites WHERE Port = 443")
         if len(https_status["results"]):
-            return "https://" + orion_server
+            url = "https://" + orion_server
         else:
-            return "http://" + orion_server
+            url = "http://" + orion_server
+        self.log.debug("URL: %s" % url)
+        return url
 
     def build_where_clause(self, solarwinds_domain_values, solarwinds_domain):
-        self.log.info("Build SWQL WHERE clause")
+        self.log.debug("Build SWQL WHERE clause")
         # Build SWQL WHERE clause
         where_clause = ""
         for value in solarwinds_domain_values:
@@ -135,16 +137,16 @@ class SolarWindsCheck(AgentCheck):
         return nodes
 
     def check_udt_active(self):
-        self.log.info("Check for installed UDT module")
+        self.log.debug("Check for installed UDT module")
         # Get a list of all installed Orion modules, check for (not expired) UDT
         query_udt = self.swis.query(
             "SELECT LicenseName, IsExpired FROM Orion.InstalledModule WHERE LicenseName = 'UDT' AND IsExpired = FALSE"
         )
         if query_udt["results"]:
-            self.log.info("UDT module is active")
+            self.log.debug("UDT module is active")
             return True
         else:
-            self.log.info("Licensed UDT module not detected")
+            self.log.debug("Licensed UDT module not detected")
             return False
 
     def get_udt_topology_data(self):
