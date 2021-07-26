@@ -34,7 +34,6 @@ def solarwinds_check(test_instance):
     aggregator.reset()
     telemetry.reset()
     topology.reset()
-    check.commit_state(None)
 
 
 @pytest.fixture(scope="session")
