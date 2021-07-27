@@ -1,41 +1,24 @@
-# Agent Check: Solarwinds
+# Agent Check: SolarWinds
 
 ## Overview
 
-This check monitors [Solarwinds][1] through the StackState Agent.
+This check monitors [SolarWinds][1] through the StackState Agent.
 
 ## Setup
 
 ### Installation
 
-The Solarwinds check is included in the [StackState Agent][2] package, so you do not
-need to install anything else on your server.
+The Solarwinds check is included in the [StackState Agent][2] package, so you do not need to install anything else on your server.
 
-### Configuration
 
-1. Edit the `solarwinds.d/conf.yaml` file, in the `conf.d/` folder at the root of your
-   Agent's configuration directory to start collecting your solarwinds performance data.
-   See the [sample solarwinds.d/conf.yaml][2] for all available configuration options.
+## Documentation
 
-2. Restart the Agent
+- [StackState docs site][3] - Documentation for the StackState SolarWinds integration, including how to configure the SolarWinds check and details of the data retrieved.
+- [StackState Agent integrations README][4] - Developer information for working with the StackState Agent integrations.
+- [StackState support knowledge base][5] - Troubleshooting steps for known issues relating to the SolarWinds check .
 
-## Data Collected
-
-### Metrics
-
-Solarwinds does not include any metrics.
-
-### Service Checks
-
-Solarwinds does not include any service checks.
-
-### Events
-
-Solarwinds does not include any events.
-
-### Topology
-
-Solarwinds does not include any topology.
-
-[1]: **LINK_TO_INTEGERATION_SITE**
+[1]: https://www.solarwinds.com/
 [2]: https://github.com/StackVista/stackstate-agent-integrations/blob/master/solarwinds/stackstate_checks/solarwinds/data/conf.yaml.example
+[3]: https://docs.stackstate.com/stackpacks/integrations/solarwinds
+[4]: https://github.com/StackVista/stackstate-agent-integrations
+[5]: https://support.stackstate.com/hc/en-us/search?category=360002777619&filter_by=knowledge_base&query=solarwinds
