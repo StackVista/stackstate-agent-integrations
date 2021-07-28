@@ -243,7 +243,7 @@ class ServicenowCheck(AgentCheck):
         """
         Gets SNOW components name, external_id and other identifiers
         :param instance_info:
-        :return:
+        :return: None
         """
         collected_components = self._batch_collect(self._batch_collect_components, instance_info)
 
@@ -324,10 +324,13 @@ class ServicenowCheck(AgentCheck):
 
             self.relation(parent_sys_id, child_sys_id, relation_type, data)
 
-    def _collect_change_requests(self, instance_info):
-        auth = (instance_info.user, instance_info.password)
-        cert = (instance_info.cert, instance_info.keyfile)
-        url = instance_info.url + '/api/now/table/change_request'
+    def _collect_new_change_requests(self, instance_info):
+        """
+        Constructs params for getting new Change Requests (CR) from ServiceNow. New CR means updated after the last time
+        we queried ServiceNow for CR. Last query time is persisted in state var latest_sys_updated_on.
+        :param instance_info: instance object
+        :return: dict with servicenow rest api response
+        """
         reformatted_date = instance_info.state.latest_sys_updated_on.strftime("'%Y-%m-%d', '%H:%M:%S'")
         sysparm_query = 'sys_updated_on>javascript:gs.dateGenerate(%s)' % reformatted_date
         self.log.debug('sysparm_query: %s', sysparm_query)
@@ -337,11 +340,23 @@ class ServicenowCheck(AgentCheck):
             'sysparm_limit': instance_info.change_request_process_limit,
             'sysparm_query': sysparm_query
         }
+        return self._collect_change_requests(instance_info, params)
+
+    def _collect_change_requests(self, instance_info, params):
+        """
+        Prepares ServiceNow call for change request rest api endpoint.
+        :param instance_info: instance object
+        :param params: custom params for rest api call
+        :return: dict with servicenow rest api response
+        """
         params = self._params_append_to_sysparm_query(instance_info.change_request_sysparm_query, params)
+        auth = (instance_info.user, instance_info.password)
+        cert = (instance_info.cert, instance_info.keyfile)
+        url = instance_info.url + '/api/now/table/change_request'
         return self._get_json(url, instance_info.timeout, params, auth, instance_info.verify_https, cert)
 
     def _process_change_requests(self, instance_info):
-        response = self._collect_change_requests(instance_info)
+        response = self._collect_new_change_requests(instance_info)
         state = instance_info.state
         self.log.info('Received %d Change Requests', len(response['result']))
         for cr in response['result']:
