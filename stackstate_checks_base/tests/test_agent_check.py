@@ -824,15 +824,15 @@ class TestTagsAndConfigMapping:
         exeception_case({'a': {'b': {'c': {True: 'f'}}}}, {bool}) # inner dictionary only has a bool key
 
 
-        # ensure nothing is created for components with non-homogeneous lists
+        # ensure nothing is created for components with non-string key dicts
         data = {"key": "value", "intlist": [1], "emptykey": None, "nestedobject": {"nestedkey": "nestedValue"},
                 "nonstringkeydict": {'a': 'b', 3: 'c'}}
         assert check.component("my-id", "my-type", data) is None
-        # ensure nothing is created for relations with non-homogeneous lists
+        # ensure nothing is created for relations with non-string key dicts
         data = {"key": "value", "intlist": [1], "emptykey": None, "nestedobject": {"nestedkey": "nestedValue"},
                 "nonstringkeydict": {'a': 'b', 3: 'c'}}
         assert check.relation("source-id", "target-id", "my-type", data) is None
-        # ensure that a nothing is created for topology events with non-homogeneous tags in the data section
+        # ensure that a nothing is created for topology events with non-string key dicts in the data section
         event = {
             "timestamp": 123456789,
             "source_type_name": "new.source.type",
