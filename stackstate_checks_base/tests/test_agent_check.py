@@ -799,7 +799,7 @@ class TestTagsAndConfigMapping:
         """
         check = AgentCheck()
 
-        # list of ints
+        # valid dictionaries
         check._sanitize({'a': 1, 'c': True, 'e': 'f'})
         check._sanitize({'a': {'b': {'c': True}}, 'e': 1.2})
         check._sanitize({'a': {'b': {'c': {'e': ['f', 'g']}}}})
