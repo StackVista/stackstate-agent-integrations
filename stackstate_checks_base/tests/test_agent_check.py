@@ -9,7 +9,7 @@ from schematics import Model
 from schematics.types import IntType, StringType, ModelType
 from schematics.exceptions import ValidationError, ConversionError, DataError
 import pytest
-from six import PY3
+from six import PY3, text_type
 
 from stackstate_checks.checks import AgentCheck, TopologyInstance, AgentIntegrationInstance,\
     HealthStream, HealthStreamUrn, Health
@@ -792,6 +792,62 @@ class TestTagsAndConfigMapping:
         }
         assert check.event(event) is None
 
+    def test_ensure_string_only_keys(self):
+        """
+        Testing the functionality of _ensure_string_only_keys, but we're calling _sanitize to deal with multi-tier
+        dictionaries
+        """
+        check = AgentCheck()
+
+        # list of ints
+        check._sanitize({'a': 1, 'c': True, 'e': 'f'})
+        check._sanitize({'a': {'b': {'c': True}}, 'e': 1.2})
+        check._sanitize({'a': {'b': {'c': {'e': ['f', 'g']}}}})
+
+        def exeception_case(dictionary, error_type_set):
+            with pytest.raises(TypeError) as e:
+                check._sanitize(dictionary)
+
+            assert "contains keys which are not string or {0}: {1}".format(text_type, error_type_set) in str(e.value)
+
+        # dictionary with int as keys
+        exeception_case({'a': 'b', 'c': 'd', 1: 'f'}, {str, int})
+        exeception_case({'a': {'b': {1: 'd'}}, 'e': 'f'}, {int}) # inner dictionary only has a int key
+        exeception_case({'a': {'b': {'c': {1: 'f'}}}}, {int}) # inner dictionary only has a int key
+        # dictionary with None as keys
+        exeception_case({'a': 'b', 'c': 'd', None: 'f'}, {str, type(None)})
+        exeception_case({'a': {'b': {None: 'd'}}, 'e': 'f'}, {type(None)}) # inner dictionary only has a None key
+        exeception_case({'a': {'b': {'c': {None: 'f'}}}}, {type(None)}) # inner dictionary only has a None key
+        # dictionary with list as keys
+        exeception_case({'a': 'b', 'c': 'd', True: 'f'}, {str, bool})
+        exeception_case({'a': {'b': {True: 'd'}}, 'e': 'f'}, {bool}) # inner dictionary only has a bool key
+        exeception_case({'a': {'b': {'c': {True: 'f'}}}}, {bool}) # inner dictionary only has a bool key
+
+
+        # ensure nothing is created for components with non-homogeneous lists
+        data = {"key": "value", "intlist": [1], "emptykey": None, "nestedobject": {"nestedkey": "nestedValue"},
+                "nonstringkeydict": {'a': 'b', 3: 'c'}}
+        assert check.component("my-id", "my-type", data) is None
+        # ensure nothing is created for relations with non-homogeneous lists
+        data = {"key": "value", "intlist": [1], "emptykey": None, "nestedobject": {"nestedkey": "nestedValue"},
+                "nonstringkeydict": {'a': 'b', 3: 'c'}}
+        assert check.relation("source-id", "target-id", "my-type", data) is None
+        # ensure that a nothing is created for topology events with non-homogeneous tags in the data section
+        event = {
+            "timestamp": 123456789,
+            "source_type_name": "new.source.type",
+            "msg_title": "new test event",
+            "aggregation_key": "test.event",
+            "msg_text": "test event test event",
+            "tags": ['a', 'b', 'c', 'd'],
+            "context": {
+                "element_identifiers": ["urn:test:/value"],
+                "source": "test source",
+                "category": "test category",
+                "data": {"nonstringkeydict": {'a': 'b', 3: 'c'}}
+            }
+        }
+        assert check.event(event) is None
 
 class TestTopology:
     def test_component(self, topology):

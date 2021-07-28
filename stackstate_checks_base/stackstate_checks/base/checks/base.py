@@ -15,7 +15,7 @@ from functools import reduce
 
 
 import yaml
-from six import PY3, iteritems, text_type, string_types, integer_types
+from six import PY3, iteritems, iterkeys, text_type, string_types, integer_types
 
 try:
     import datadog_agent
@@ -934,6 +934,7 @@ class AgentCheckBase(object):
                 raise e
             return fixed_value
         elif isinstance(field, dict):
+            self._ensure_string_only_keys(field, context)
             field = {k: v for k, v in iteritems(field) if self._is_not_empty(v)}
             for key, value in list(iteritems(field)):
                 field[key] = self._sanitize(value, "key '{0}' of dict".format(key))
@@ -967,6 +968,21 @@ class AgentCheckBase(object):
                 return True
 
         return False
+
+    def _ensure_string_only_keys(self, dictionary, context=None):
+        """
+        _ensure_homogeneous_list checks whether all the keys of a dictionary are strings. StackState only
+        supports dictionaries with string keys.
+        """
+        type_list = [type(element) for element in iterkeys(dictionary)]
+        type_set = set(type_list)
+
+        # if the type_set is a subset of str and unicode return - allow string + unicode, conversion will happen later
+        if type_set <= {str, text_type}:
+            return
+
+        raise TypeError("Dictionary: {0} contains keys which are not string or {1}: {2}"
+                        .format(dictionary, text_type, type_set, context))
 
     def _ensure_homogeneous_list(self, list):
         """
