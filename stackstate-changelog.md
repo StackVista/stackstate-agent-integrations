@@ -1,5 +1,9 @@
 # StackState Agent Integrations v2 releases
 
+## 1.15.0 / 2021-??-??
+
+* [Added] SolarWinds check
+
 ## 1.14.0 / 2021-07-09
 
 * [Fixed] AWS x-ray check error when `role_arn` is not defined in `conf.yaml`.

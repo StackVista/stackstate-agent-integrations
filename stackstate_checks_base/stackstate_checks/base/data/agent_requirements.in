@@ -12,6 +12,7 @@ iso8601==0.1.14
 jaydebeapi==1.1.1
 jpype1==0.7.0
 kubernetes==8.0.1
+orionsdk==0.3.0
 orjson==2.6.1; python_version > '3.0'
 psutil==5.7.0
 psycopg2-binary==2.8.4
@@ -33,3 +34,5 @@ uptime==3.0.1
 uuid==1.30
 vsphere-automation-sdk==1.0.0
 zeep==3.4.0
+ruamel.yaml==0.16.13
+ruamel.yaml.clib==0.2.2

@@ -1,0 +1,12 @@
+init_config:
+
+instances:
+  - url: [FQDN or IP address to SolarWinds Server]
+    instance_type: solarwinds
+    password: [API account password]
+    username: [API account username]
+    solarwinds_domain: [Custom property to check for STS inclusion]
+    solarwinds_domain_values:
+      - [Custom property value 1]
+      - [Custom property value 2]
+    min_collection_interval: 30
