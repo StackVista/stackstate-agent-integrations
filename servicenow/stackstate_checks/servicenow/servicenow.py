@@ -389,6 +389,7 @@ class ServicenowCheck(AgentCheck):
         identifiers = Identifiers.append_lowercase_identifiers(identifiers)
         timestamp = (change_request.sys_updated_on.value - datetime.datetime.utcfromtimestamp(0)).total_seconds()
         msg_title = '%s: %s' % (change_request.number.display_value, change_request.short_description.display_value)
+        msg_txt = change_request.description.display_value or change_request.short_description.display_value
         tags = [
             'number:%s' % change_request.number.display_value,
             'priority:%s' % change_request.priority.display_value,
@@ -406,7 +407,7 @@ class ServicenowCheck(AgentCheck):
             'timestamp': timestamp,
             'event_type': event_type,
             'msg_title': msg_title,
-            'msg_text': change_request.description.display_value,
+            'msg_text': msg_txt,
             'context': {
                 'source': 'servicenow',
                 'category': 'change_request',
