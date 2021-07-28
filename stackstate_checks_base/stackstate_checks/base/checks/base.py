@@ -971,7 +971,7 @@ class AgentCheckBase(object):
 
     def _ensure_string_only_keys(self, dictionary, context=None):
         """
-        _ensure_homogeneous_list checks whether all the keys of a dictionary are strings. StackState only
+        _ensure_string_only_keys checks whether all the keys of a dictionary are strings. StackState only
         supports dictionaries with string keys.
         """
         type_list = [type(element) for element in iterkeys(dictionary)]
