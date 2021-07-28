@@ -17,3 +17,4 @@ schematics==2.1.0
 orjson==2.6.1; python_version > '3.0'
 ruamel.yaml==0.16.13
 ruamel.yaml.clib==0.2.2
+msgpack==1.0.2
