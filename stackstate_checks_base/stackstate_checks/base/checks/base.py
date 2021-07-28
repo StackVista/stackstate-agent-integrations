@@ -934,7 +934,7 @@ class AgentCheckBase(object):
                 raise e
             return fixed_value
         elif isinstance(field, dict):
-            self._ensure_string_only_keys(field, context)
+            self._ensure_string_only_keys(field)
             field = {k: v for k, v in iteritems(field) if self._is_not_empty(v)}
             for key, value in list(iteritems(field)):
                 field[key] = self._sanitize(value, "key '{0}' of dict".format(key))
@@ -969,7 +969,7 @@ class AgentCheckBase(object):
 
         return False
 
-    def _ensure_string_only_keys(self, dictionary, context=None):
+    def _ensure_string_only_keys(self, dictionary):
         """
         _ensure_string_only_keys checks whether all the keys of a dictionary are strings. StackState only
         supports dictionaries with string keys.
@@ -982,7 +982,7 @@ class AgentCheckBase(object):
             return
 
         raise TypeError("Dictionary: {0} contains keys which are not string or {1}: {2}"
-                        .format(dictionary, text_type, type_set, context))
+                        .format(dictionary, text_type, type_set))
 
     def _ensure_homogeneous_list(self, list):
         """

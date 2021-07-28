@@ -812,17 +812,16 @@ class TestTagsAndConfigMapping:
 
         # dictionary with int as keys
         exeception_case({'a': 'b', 'c': 'd', 1: 'f'}, {str, int})
-        exeception_case({'a': {'b': {1: 'd'}}, 'e': 'f'}, {int}) # inner dictionary only has a int key
-        exeception_case({'a': {'b': {'c': {1: 'f'}}}}, {int}) # inner dictionary only has a int key
+        exeception_case({'a': {'b': {1: 'd'}}, 'e': 'f'}, {int})  # inner dictionary only has a int key
+        exeception_case({'a': {'b': {'c': {1: 'f'}}}}, {int})  # inner dictionary only has a int key
         # dictionary with None as keys
         exeception_case({'a': 'b', 'c': 'd', None: 'f'}, {str, type(None)})
-        exeception_case({'a': {'b': {None: 'd'}}, 'e': 'f'}, {type(None)}) # inner dictionary only has a None key
-        exeception_case({'a': {'b': {'c': {None: 'f'}}}}, {type(None)}) # inner dictionary only has a None key
+        exeception_case({'a': {'b': {None: 'd'}}, 'e': 'f'}, {type(None)})  # inner dictionary only has a None key
+        exeception_case({'a': {'b': {'c': {None: 'f'}}}}, {type(None)})  # inner dictionary only has a None key
         # dictionary with list as keys
         exeception_case({'a': 'b', 'c': 'd', True: 'f'}, {str, bool})
-        exeception_case({'a': {'b': {True: 'd'}}, 'e': 'f'}, {bool}) # inner dictionary only has a bool key
-        exeception_case({'a': {'b': {'c': {True: 'f'}}}}, {bool}) # inner dictionary only has a bool key
-
+        exeception_case({'a': {'b': {True: 'd'}}, 'e': 'f'}, {bool})  # inner dictionary only has a bool key
+        exeception_case({'a': {'b': {'c': {True: 'f'}}}}, {bool})  # inner dictionary only has a bool key
 
         # ensure nothing is created for components with non-string key dicts
         data = {"key": "value", "intlist": [1], "emptykey": None, "nestedobject": {"nestedkey": "nestedValue"},
@@ -848,6 +847,7 @@ class TestTagsAndConfigMapping:
             }
         }
         assert check.event(event) is None
+
 
 class TestTopology:
     def test_component(self, topology):
