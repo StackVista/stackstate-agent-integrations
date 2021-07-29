@@ -49,8 +49,8 @@ class ChangeRequest(Model):
     sys_updated_on = ModelType(WrapperDateType, required=True)
     business_service = ModelType(WrapperStringType)
     service_offering = ModelType(WrapperStringType)
-    short_description = ModelType(WrapperStringType, default='No short description')
-    description = ModelType(WrapperStringType, default='No description')
+    short_description = ModelType(WrapperStringType)
+    description = ModelType(WrapperStringType)
     type = ModelType(WrapperStringType)
     priority = ModelType(WrapperStringType)
     impact = ModelType(WrapperStringType)
@@ -61,6 +61,8 @@ class ChangeRequest(Model):
     conflict_last_run = ModelType(WrapperStringType)
     assignment_group = ModelType(WrapperStringType)
     assigned_to = ModelType(WrapperStringType)
+    requested_by_date = ModelType(WrapperStringType)
+    end_date = ModelType(WrapperStringType)
 
 
 class ConfigurationItem(Model):
@@ -358,7 +360,7 @@ class ServicenowCheck(AgentCheck):
     def _process_change_requests(self, instance_info):
         response = self._collect_new_change_requests(instance_info)
         state = instance_info.state
-        self.log.info('Received %d Change Requests', len(response['result']))
+        number_of_processed_crs = 0
         for cr in response['result']:
             try:
                 mapping = {'custom_cmdb_ci': instance_info.custom_cmdb_ci_field}
@@ -368,7 +370,7 @@ class ServicenowCheck(AgentCheck):
                 self.log.warning('%s - DataError: %s. This CR is skipped.', cr['number']['value'], e)
                 continue
             if change_request.custom_cmdb_ci.value:
-                self.log.info(
+                self.log.debug(
                     '%s: %s %s - sys_updated_on value: %s display_value: %s',
                     change_request.number.display_value,
                     change_request.custom_cmdb_ci.value,
@@ -382,14 +384,17 @@ class ServicenowCheck(AgentCheck):
                 if old_state is None or old_state != change_request.state.display_value:
                     self._create_event_from_change_request(change_request)
                     state.change_requests[change_request.number.display_value] = change_request.state.display_value
+                    number_of_processed_crs += 1
+        self.log.info('Received %d Change Requests', number_of_processed_crs)
 
     def _create_event_from_change_request(self, change_request):
         host = Identifiers.create_host_identifier(to_string(change_request.custom_cmdb_ci.display_value))
         identifiers = [change_request.custom_cmdb_ci.value, host]
         identifiers = Identifiers.append_lowercase_identifiers(identifiers)
         timestamp = (change_request.sys_updated_on.value - datetime.datetime.utcfromtimestamp(0)).total_seconds()
-        msg_title = '%s: %s' % (change_request.number.display_value, change_request.short_description.display_value)
-        msg_txt = change_request.description.display_value or change_request.short_description.display_value
+        msg_title = '%s: %s' % (change_request.number.display_value,
+                                change_request.short_description.display_value or 'No short description')
+        msg_txt = change_request.description.display_value or 'No description'
         tags = [
             'number:%s' % change_request.number.display_value,
             'priority:%s' % change_request.priority.display_value,
@@ -398,6 +403,8 @@ class ServicenowCheck(AgentCheck):
             'category:%s' % change_request.category.display_value,
             'conflict_status:%s' % change_request.conflict_status.display_value,
             'assigned_to:%s' % change_request.assigned_to.display_value,
+            'requested_by_date:%s' % change_request.requested_by_date.display_value,
+            'end_date:%s' % change_request.end_date.display_value
         ]
         event_type = 'Change Request %s' % change_request.type.display_value
 
