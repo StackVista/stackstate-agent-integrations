@@ -394,7 +394,7 @@ class Node(OrionComponent):
             if self.component_type == "host":
                 self._node_identifier = Identifiers.create_host_identifier(self.caption)
             else:
-                self._node_identifier = Identifiers.create_custom_identifier('network_host:', self.caption)
+                self._node_identifier = Identifiers.create_custom_identifier('network_host', self.caption)
             self.identifiers.append(self._node_identifier)
         else:
             if self.component_type == 'host':
