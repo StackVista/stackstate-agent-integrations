@@ -61,7 +61,7 @@ class ChangeRequest(Model):
     conflict_last_run = ModelType(WrapperStringType)
     assignment_group = ModelType(WrapperStringType)
     assigned_to = ModelType(WrapperStringType)
-    requested_by_date = ModelType(WrapperStringType)
+    start_date = ModelType(WrapperStringType)
     end_date = ModelType(WrapperStringType)
 
 
@@ -344,6 +344,25 @@ class ServicenowCheck(AgentCheck):
         }
         return self._collect_change_requests(instance_info, params)
 
+    def _collect_planned_change_requests(self, instance_info):
+        """
+        Constructs params for getting planned Change Requests (CR) from ServiceNow.
+        CR can be planned in advance, sometimes by as much as a few months. Change Requests in ServiceNow have a Planned
+        Start Date field that tracks this. Select CRs with Planned Start Date set for today or tomorrow.
+        :param instance_info: instance object
+        :return: dict with servicenow rest api response
+        """
+        sysparm_query = 'start_dateONToday@javascript:gs.beginningOfToday()@javascript:gs.endOfToday()' \
+                        '^ORstart_dateONTomorrow@javascript:gs.beginningOfTomorrow()@javascript:gs.endOfTomorrow()'
+        self.log.debug('sysparm_query: %s', sysparm_query)
+        params = {
+            'sysparm_display_value': 'all',
+            'sysparm_exclude_reference_link': 'true',
+            'sysparm_limit': instance_info.change_request_process_limit,
+            'sysparm_query': sysparm_query
+        }
+        return self._collect_change_requests(instance_info, params)
+
     def _collect_change_requests(self, instance_info, params):
         """
         Prepares ServiceNow call for change request rest api endpoint.
@@ -358,10 +377,42 @@ class ServicenowCheck(AgentCheck):
         return self._get_json(url, instance_info.timeout, params, auth, instance_info.verify_https, cert)
 
     def _process_change_requests(self, instance_info):
-        response = self._collect_new_change_requests(instance_info)
+        number_of_new_crs = 0
+        number_of_planned_crs = 0
+
+        #  Get new change requests
+        response_new_crs = self._collect_new_change_requests(instance_info)
         state = instance_info.state
-        number_of_processed_crs = 0
-        for cr in response['result']:
+        for cr in response_new_crs.get('result', []):
+            try:
+                mapping = {'custom_cmdb_ci': instance_info.custom_cmdb_ci_field}
+                change_request = ChangeRequest(cr, strict=False, deserialize_mapping=mapping)
+                change_request.validate()
+            except DataError as e:
+                self.log.warning('%s - DataError: %s. This CR is skipped.', cr['number']['value'], e)
+                continue
+            # Change request must have CMDB_CI to be connected to STS component
+            if change_request.custom_cmdb_ci.value:
+                self.log.debug(
+                    'New CR %s: %s - sys_updated_on value: %s display_value: %s',
+                    change_request.number.display_value,
+                    change_request.custom_cmdb_ci.display_value,
+                    change_request.sys_updated_on.value,
+                    change_request.sys_updated_on.display_value
+                )
+                if change_request.sys_updated_on.value > state.latest_sys_updated_on:
+                    state.latest_sys_updated_on = change_request.sys_updated_on.value
+                old_state = state.change_requests.get(change_request.number.display_value)
+                # send CR to STS if its state changed
+                if old_state is None or old_state != change_request.state.display_value:
+                    self._create_event_from_change_request(change_request)
+                    state.change_requests[change_request.number.display_value] = change_request.state.display_value
+                    number_of_new_crs += 1
+        self.log.info('Received %d new Change Requests', number_of_new_crs)
+
+        # Get planned change requests
+        response_planned_crs = self._collect_planned_change_requests(instance_info)
+        for cr in response_planned_crs.get('result', []):
             try:
                 mapping = {'custom_cmdb_ci': instance_info.custom_cmdb_ci_field}
                 change_request = ChangeRequest(cr, strict=False, deserialize_mapping=mapping)
@@ -378,14 +429,13 @@ class ServicenowCheck(AgentCheck):
                     change_request.sys_updated_on.value,
                     change_request.sys_updated_on.display_value
                 )
-                if change_request.sys_updated_on.value > state.latest_sys_updated_on:
-                    state.latest_sys_updated_on = change_request.sys_updated_on.value
-                old_state = state.change_requests.get(change_request.number.display_value)
-                if old_state is None or old_state != change_request.state.display_value:
-                    self._create_event_from_change_request(change_request)
-                    state.change_requests[change_request.number.display_value] = change_request.state.display_value
-                    number_of_processed_crs += 1
-        self.log.info('Received %d Change Requests', number_of_processed_crs)
+                # TODO Send Change Requests to StackState as an event if the current time is a configurable time period
+                #  before the scheduled Planned Start Date of the Change Request (default: 1h)
+                self._create_event_from_change_request(change_request)
+                # TODO persist in state that we send planed CR so we dont send it again
+                number_of_planned_crs += 1
+        if number_of_planned_crs:
+            self.log.info('Resend %d planned Change Requests', number_of_planned_crs)
 
     def _create_event_from_change_request(self, change_request):
         host = Identifiers.create_host_identifier(to_string(change_request.custom_cmdb_ci.display_value))
@@ -403,7 +453,7 @@ class ServicenowCheck(AgentCheck):
             'category:%s' % change_request.category.display_value,
             'conflict_status:%s' % change_request.conflict_status.display_value,
             'assigned_to:%s' % change_request.assigned_to.display_value,
-            'requested_by_date:%s' % change_request.requested_by_date.display_value,
+            'start_date:%s' % change_request.start_date.display_value,
             'end_date:%s' % change_request.end_date.display_value
         ]
         event_type = 'Change Request %s' % change_request.type.display_value
