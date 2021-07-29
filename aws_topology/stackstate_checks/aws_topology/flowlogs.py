@@ -5,7 +5,7 @@ import pytz
 from datetime import datetime
 from six import PY2, string_types
 import re
-from .resources import is_private, ip_version, client_array_operation, make_valid_data
+from .resources import is_private, ip_version, client_array_operation, make_valid_data, ipaddress_to_urn
 from schematics import Model
 from schematics.types import StringType, ListType, ModelType
 import json
@@ -15,7 +15,9 @@ class Ipv6Address(Model):
     Ipv6Address = StringType(default="unknown_ipv6")
 
 
-selflog = None
+class Association(Model):
+    PublicIp = StringType()
+
 
 class NetworkInterface(Model):
     NetworkInterfaceId = StringType(required=True)
@@ -23,6 +25,7 @@ class NetworkInterface(Model):
     Ipv6Addresses = ListType(ModelType(Ipv6Address), default=[])
     VpcId = StringType(default="unknown_vpc")
     Description = StringType(default="")
+    Association = ModelType(Association)
 
     addresses = set()
 
@@ -43,14 +46,13 @@ def should_process(connection):
     # filter out if any of the network_interfaces starts with "Interface for NAT Gateway" or "ELB app/"
     result = True
     for id, itf in connection.network_interfaces.items():
-        if itf.Description.startswith("Interface for NAT Gateway") \
-            or itf.Description.startswith("ELB app/"):
+        if itf.Description.startswith("Interface for NAT Gateway") or itf.Description.startswith("ELB app/"):
             result = False
     return result
 
 
 class Connection(object):
-    def __init__(self, namespace, family, laddr, raddr, start, end, traffic_type, incoming, byte_count, nwitf):
+    def __init__(self, namespace, family, laddr, raddr, start, end, traffic_type, incoming, byte_count, nwitf, log):
         self.namespace = namespace
         self.laddr = laddr
         self.raddr = raddr
@@ -61,12 +63,13 @@ class Connection(object):
         self.bytes_sent = 0
         self.bytes_received = 0
         self.network_interfaces = {}
-        self.add_traffic(start, end, traffic_type, incoming, byte_count, nwitf, False)
+        self.traffic_log = []  # for debugging purposes
+        self.add_traffic(start, end, traffic_type, incoming, byte_count, nwitf, False, log)
 
-    def add_traffic(self, start, end, traffic_type, incoming, byte_count, nwitf, reverse):
-        # TODO because now the id uses sorted ips we sometimes need to reverse the traffic
-        # keeping this arround, has all ip addresses of network interface
-        self.network_interfaces[nwitf.NetworkInterfaceId] = nwitf
+    def add_traffic(self, start, end, traffic_type, incoming, byte_count, nwitf, reverse, log):
+        self.network_interfaces.update(nwitf)
+        _, itf = nwitf.items()[0]
+        self.traffic_log.append("nwitf: {} log: {} incoming={} reverse={}".format(itf.PrivateIpAddress, log, incoming, reverse))
         if self.start_time == 0 or start < self.start_time:
             self.start_time = start
         if self.end_time == 0 or end > self.end_time:
@@ -126,7 +129,7 @@ class FlowlogCollector(object):
         client = self.session.client("s3")
         region = client.meta.region_name
         bucket_name = self._get_bucket_name()
-        self.log.info("Start collecting FlowLogs events from S3 bucket {} for region {}".format(bucket_name, region))
+        self.log.info("Start FlowLogs for {} from S3-bucket {}".format(bucket_name, region))
         to_delete = []
         files_to_handle = []
         for pg in client.get_paginator("list_objects_v2").paginate(
@@ -150,10 +153,11 @@ class FlowlogCollector(object):
                         files_to_handle.append(itm["Key"])
 
         self._delete_files(client, bucket_name, to_delete)
-        self.log.info("Found {} objects in S3".format(len(files_to_handle)))
-        connections = self.process_files(client, bucket_name, files_to_handle, nwinterfaces)
-        self.log.info("Found {} connections in FlowLogs".format(len(connections.keys())))
-        self.process_connections(connections)
+        number_of_files = len(files_to_handle)
+        if number_of_files > 0:
+            connections = self.process_files(client, bucket_name, files_to_handle, nwinterfaces)
+            count = self.process_connections(connections)
+            self.log.info("Found {} S3 objects with {} connections".format(number_of_files, count))
 
     def _delete_files(self, client, bucket_name, files):
         for i in range(0, len(files), self.MAX_S3_DELETES):
@@ -181,27 +185,34 @@ class FlowlogCollector(object):
         dir = "unknown"
         private = None
         family = "v4" if ip_version(src_ip) == 4 else "v6"
+        nwitf_update = {}
+        id = ""
+        reverse = None
         if src_ip in nwitf.addresses:
             laddr = "{}:{}".format(src_ip, src_port)
             raddr = "{}:{}".format(dst_ip, dst_port)
             private = is_private(dst_ip)
             dir = "out"
+            nwitf_update = {src_ip: nwitf}
+            id, reverse = connection_identifier(nwitf.VpcId, src_ip, dst_ip)
         elif dst_ip in nwitf.addresses:
             laddr = "{}:{}".format(dst_ip, dst_port)
             raddr = "{}:{}".format(src_ip, src_port)
             private = is_private(src_ip)
             dir = "in"
+            nwitf_update = {dst_ip: nwitf}
+            id, reverse = connection_identifier(nwitf.VpcId, dst_ip, src_ip)
         else:
             self.log.warning("Could not determine traffic direction src={} dst={}".format(src_ip, dst_ip))
 
         if private and dir != "unknown":  # currently only supporting private traffic
-            id, reverse = connection_identifier(nwitf.VpcId, dst_ip, src_ip)
+            logline = "{}:{} <-> {}:{} bytes={}".format(src_ip, src_port, dst_ip, dst_port, bytes_transfered)
             conn = connections.get(id, None)
             if conn:
-                conn.add_traffic(start, end, protocol, dir == "in", bytes_transfered, nwitf, reverse)
+                conn.add_traffic(start, end, protocol, dir == "in", bytes_transfered, nwitf_update, reverse, logline)
             else:
                 connections[id] = Connection(
-                    nwitf.VpcId, family, laddr, raddr, start, end, protocol, dir == "in", bytes_transfered, nwitf
+                    nwitf.VpcId, family, laddr, raddr, start, end, protocol, dir == "in", bytes_transfered, nwitf_update, logline
                 )
 
     def process_files(self, client, bucket_name, files, nwinterfaces):
@@ -221,6 +232,7 @@ class FlowlogCollector(object):
                         log = {fld: val for (fld, val) in zip(flds, vals)}
                         status = log.get("log-status", "NODATA")
                         nwitf = nwinterfaces.get(log["interface-id"], None)
+                        # TODO there is the log record also contains "action" (ACCEPT or REJECT)
                         if status != "NODATA" and status != "SKIPDATA" and nwitf:
                             self.process_record(connections, log, nwitf)
                 else:
@@ -228,48 +240,59 @@ class FlowlogCollector(object):
         return connections
 
     def process_connection(self, id, connection):
-        # create component for local side
-        ip = connection.laddr.split(":")[0]
-        lcid = "local/{}".format(id)
-        self.agent.component(
-            self.location_info,
-            lcid,
-            "vpc.request",
-            {"URN": ["urn:vpcip:{}/{}".format(connection.namespace, ip)]},
-        )
-        self.log.info("LEFT " + "urn:vpcip:{}/{}".format(connection.namespace, ip))
-        # remote component for remote side
-        ip = connection.raddr.split(":")[0]
-        rcid = "remote/{}".format(id)
-        self.agent.component(
-            self.location_info,
-            rcid,
-            "vpc.request",
-            {"URN": ["urn:vpcip:{}/{}".format(connection.namespace, ip)]},
-        )
-        self.log.info("RIGHT " + "urn:vpcip:{}/{}".format(connection.namespace, ip))
-        # make relation between the two
+        network_interfaces = []
+        for _, itf in connection.network_interfaces.items():
+            network_interfaces.append(itf.original_data)
         data = {
             "traffic_type": connection.traffic_type,
             "bytes_sent": connection.bytes_sent,
             "bytes_received": connection.bytes_received,
             "family": connection.family,
-            "bytes_sent_per_second": str(connection.bytes_sent_per_second),
-            "bytes_received_per_second": str(connection.bytes_received_per_second),
+            "bytes_sent_per_second": connection.bytes_sent_per_second,
+            "bytes_received_per_second": connection.bytes_received_per_second,
             "local_address": connection.laddr,
-            "remote_address": connection.raddr
+            "remote_address": connection.raddr,
+            "log": connection.traffic_log
         }
-        network_interfaces = []
-        self.log.info(json.dumps(data, indent=2, default=str))
-        for id, itf in connection.network_interfaces.items():
-            network_interfaces.append(itf.original_data)
         data["network_interfaces"] = network_interfaces
+        data = make_valid_data(data)
+        # create component for local side
+        ip = connection.laddr.split(":")[0]
+        nwitf = connection.network_interfaces.get(ip, None)
+        lcid = "local/{}".format(id)
+        urns = [ipaddress_to_urn(ip, connection.namespace)]
+        if nwitf and nwitf.Association and nwitf.Association.PublicIp:
+            urns.append(ipaddress_to_urn(nwitf.Association.PublicIp, ""))
+        self.agent.component(
+            self.location_info,
+            lcid,
+            "vpc.request",
+            {"URN": urns, "debug_data": data},
+        )
+        # remote component for remote side
+        ip = connection.raddr.split(":")[0]
+        nwitf = connection.network_interfaces.get(ip, None)
+        rcid = "remote/{}".format(id)
+        urns = [ipaddress_to_urn(ip, connection.namespace)]
+        if nwitf and nwitf.Association and nwitf.Association.PublicIp:
+            urns.append(ipaddress_to_urn(nwitf.Association.PublicIp, ""))
+        self.agent.component(
+            self.location_info,
+            rcid,
+            "vpc.request",
+            {"URN": urns, "debug_data": data},
+        )
+        # make relation between the two
+        self.log.info(json.dumps(data, indent=2, default=str))
         self.agent.relation(lcid, rcid, "is-connected-to", data)
 
     def process_connections(self, connections):
+        count = 0
         for id, connection in connections.items():
             if should_process(connection):
                 self.process_connection(id, connection)
+                count += 1
+        return count
 
     def _is_gz_file(self, body):
         with io.BytesIO(body) as test_f:
