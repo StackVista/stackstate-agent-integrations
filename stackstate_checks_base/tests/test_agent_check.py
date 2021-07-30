@@ -677,6 +677,7 @@ class TestTagsAndConfigMapping:
                                                     'urn:process:/mapped-identifier:3:1234567890',
                                                     'urn:process:/mapped-identifier:001:1234567890']
 
+
 class TestBaseSanitize:
     def test_ensure_homogeneous_list(self):
         """
