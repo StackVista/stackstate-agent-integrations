@@ -430,7 +430,7 @@ class ServicenowCheck(AgentCheck):
             # TODO Send Change Requests to StackState as an event if the current time is a configurable time period
             #  before the scheduled Planned Start Date of the Change Request (default: 1h)
             self._create_event_from_change_request(change_request)
-            # TODO persist in state when we send planned CR so we know that we dont need to send it again
+            # TODO persist in state or cache when we send planned CR so we know that we dont need to send it again
             number_of_planned_crs += 1
         if number_of_planned_crs:
             self.log.info('Resend %d PLANNED Change Requests', number_of_planned_crs)
