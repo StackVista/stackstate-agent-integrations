@@ -355,7 +355,7 @@ class ServicenowCheck(AgentCheck):
         """
         Prepares ServiceNow call for change request rest api endpoint.
         :param instance_info: instance object
-        :param params: custom params for rest api call
+        :param sysparm_query: custom params for rest api call
         :return: dict with servicenow rest api response
         """
         params = {
@@ -399,6 +399,14 @@ class ServicenowCheck(AgentCheck):
         return change_requests
 
     def _process_change_requests(self, instance_info):
+        """
+        Change requests (CR) are distinguished by following criteria:
+        - New CRs that are created now or existing CR that change its state
+        - Planned CRs that were created in the past that are due today so we resend them 1 hour (default value) before
+          their Planned Start Date.
+        :param instance_info: Instance object
+        :return: None
+        """
         state = instance_info.state
         number_of_new_crs = 0
         number_of_planned_crs = 0
