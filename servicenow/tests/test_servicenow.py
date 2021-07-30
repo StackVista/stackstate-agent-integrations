@@ -765,6 +765,7 @@ class TestServicenow(unittest.TestCase):
         self.check._collect_relation_types = mock_collect_process
         self.check._batch_collect_components = mock_collect_process
         self.check._batch_collect_relations = mock_collect_process
+        self.check._collect_planned_change_requests = mock_collect_process
         self.check._collect_new_change_requests = mock.MagicMock()
         self.check._collect_new_change_requests.return_value = self._read_data('CHG0000001.json')
         self.check.run()
@@ -783,6 +784,7 @@ class TestServicenow(unittest.TestCase):
         self.check._collect_relation_types = mock_collect_process
         self.check._batch_collect_components = mock_collect_process
         self.check._batch_collect_relations = mock_collect_process
+        self.check._collect_planned_change_requests = mock_collect_process
         self.check._collect_new_change_requests = mock.MagicMock()
         self.check._collect_new_change_requests.return_value = self._read_data('CHG0000002.json')
         self.check.run()
@@ -855,6 +857,7 @@ class TestServicenow(unittest.TestCase):
         check._collect_relation_types = mock_collect_process
         check._batch_collect_components = mock_collect_process
         check._batch_collect_relations = mock_collect_process
+        check._collect_planned_change_requests = mock_collect_process
         check._collect_new_change_requests = mock.MagicMock()
         response = self._read_data('CHG0000003.json')
         self.assertEqual(
