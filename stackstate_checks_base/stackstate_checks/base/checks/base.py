@@ -971,13 +971,16 @@ class AgentCheckBase(object):
 
     def _ensure_string_only_keys(self, dictionary):
         """
-        _ensure_string_only_keys checks whether all the keys of a dictionary are strings. StackState only
-        supports dictionaries with string keys.
+        _ensure_string_only_keys checks whether all the keys of a dictionary are strings (and / or text_type).
+        StackState only supports dictionaries with string keys. The conversion of text_type will happen in the _sanitize
+        function using to_string(field).
         """
         type_list = [type(element) for element in iterkeys(dictionary)]
         type_set = set(type_list)
 
-        # if the type_set is a subset of str and unicode return - allow string + unicode, conversion will happen later
+        # if the type_set is a subset of str and text_type return - We allow string + text_type as keys in a dictionary.
+        # The conversion of text_type will happen in the _sanitize function using to_string(field).
+        # <= is the subset operation on python sets.
         if type_set <= {str, text_type}:
             return
 
@@ -992,7 +995,10 @@ class AgentCheckBase(object):
         type_list = [type(element) for element in list]
         type_set = set(type_list)
 
-        # exclusion rule - allow string + unicode, conversion will happen later
+        # exception rule - we allow string + text_type types together. The conversion of text_type will happen in the
+        # _sanitize function using to_string(field). If the list only contains string type or text type the if condition
+        # below will not trigger and the list is considered homogeneous. If a different combination exists (str, int)
+        # then it fails as expected.
         if type_set == {str, text_type}:
             return
 

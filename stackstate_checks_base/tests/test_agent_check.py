@@ -677,7 +677,12 @@ class TestTagsAndConfigMapping:
                                                     'urn:process:/mapped-identifier:3:1234567890',
                                                     'urn:process:/mapped-identifier:001:1234567890']
 
+class TestBaseSanitize:
     def test_ensure_homogeneous_list(self):
+        """
+        Testing the functionality of _ensure_homogeneous_list to ensure that agent checks can only produce homogeneous
+        lists
+        """
         check = AgentCheck()
 
         # list of ints
@@ -686,6 +691,8 @@ class TestTagsAndConfigMapping:
         check._ensure_homogeneous_list([True, True, False])
         # list of string
         check._ensure_homogeneous_list(['a', 'b', 'c'])
+        # list of string + text_type
+        check._ensure_homogeneous_list(['a', u'b', '®'])
         # list of floats
         check._ensure_homogeneous_list([1.0, 2.0, 3.0])
         # list of dicts
@@ -710,6 +717,8 @@ class TestTagsAndConfigMapping:
 
         # list of ints and strings
         exeception_case([1, '2', 3, '4'], {str, int})
+        # list of int, string, float, bool
+        exeception_case([1, '2', 3.5, True], {str, int, float, bool})
         # list of ints and floats
         exeception_case([1, 1.5, 2, 2.5], {int, float})
         # list of ints and bools
@@ -720,6 +729,8 @@ class TestTagsAndConfigMapping:
         exeception_case(['a', [True], 'b', [False]], {str, list})
         # list of strings and sets
         exeception_case(['a', set([True]), 'b', set([False])], {str, set})
+        # list of strings, sets and dicts
+        exeception_case(['a', set([True]), {'a': True}, 'b', set([False])], {str, set, dict})
 
         # list of strings and dicts
         exeception_case(['a', {'a': True}, 'b', {'a': False}], {str, dict})
@@ -736,6 +747,13 @@ class TestTagsAndConfigMapping:
         exeception_case([['a'], {'a': True}, ['b'], {'a': False}], {list, dict})
         # list of lists and sets
         exeception_case([['a'], set(['a']), ['b'], set(['b'])], {list, set})
+
+    def test_ensure_homogeneous_list_check_api(self):
+        """
+        Testing the functionality of _ensure_homogeneous_list, but we're calling it through the check api to ensure that
+        topology and telemetry is not created when the data contains a non-homogeneous list
+        """
+        check = AgentCheck()
 
         # ensure nothing is created for components with non-homogeneous lists
         data = {"key": "value", "intlist": [1], "emptykey": None, "nestedobject": {"nestedkey": "nestedValue"},
@@ -823,6 +841,12 @@ class TestTagsAndConfigMapping:
         exeception_case({'a': {'b': {True: 'd'}}, 'e': 'f'}, {bool})  # inner dictionary only has a bool key
         exeception_case({'a': {'b': {'c': {True: 'f'}}}}, {bool})  # inner dictionary only has a bool key
 
+    def test_ensure_string_only_keys_check_functions(self):
+        """
+        Testing the functionality of _ensure_string_only_keys, but we're calling it through the check api to ensure that
+        topology and telemetry is not created when a dictionary contains a non-string key
+        """
+        check = AgentCheck()
         # ensure nothing is created for components with non-string key dicts
         data = {"key": "value", "intlist": [1], "emptykey": None, "nestedobject": {"nestedkey": "nestedValue"},
                 "nonstringkeydict": {'a': 'b', 3: 'c'}}

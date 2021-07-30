@@ -34,6 +34,3 @@ uptime==3.0.1
 uuid==1.30
 vsphere-automation-sdk==1.0.0
 zeep==3.4.0
-ruamel.yaml==0.16.13
-ruamel.yaml.clib==0.2.2
-msgpack==1.0.2
