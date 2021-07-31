@@ -25,14 +25,12 @@ VERIFY_HTTPS = True
 CRS_BOOTSTRAP_DAYS_DEFAULT = 100
 CRS_DEFAULT_PROCESS_LIMIT = 1000
 CMDB_CI_DEFAULT_FIELD = 'cmdb_ci'
+PLANNED_CR_DEFAULT_INTERVAL_IN_HOURS = 1
 
 # keys for which `display_value` has to be used
 DEFAULT_COMPONENT_DISPLAY_VALUE_LIST = ["sys_tags", "maintenance_schedule", "location", "company", "manufacturer",
                                         "vendor"]
 DEFAULT_RELATION_DISPLAY_VALUE_LIST = ["sys_tags", "type"]
-
-# TODO here we keep CRs that was send, move to state file if this works
-planned_change_requests_cache = []
 
 
 class WrapperStringType(Model):
@@ -92,6 +90,7 @@ class CIRelation(Model):
 class State(Model):
     latest_sys_updated_on = DateTimeType(required=True)
     change_requests = DictType(StringType, default={})
+    planned_change_requests_cache = ListType(StringType, default=[])
 
 
 class InstanceInfo(Model):
@@ -113,6 +112,7 @@ class InstanceInfo(Model):
     cmdb_rel_ci_sysparm_query = StringType()
     change_request_sysparm_query = StringType()
     custom_cmdb_ci_field = StringType(default=CMDB_CI_DEFAULT_FIELD)
+    resend_planned_change_request_interval = IntType(default=PLANNED_CR_DEFAULT_INTERVAL_IN_HOURS)
     state = ModelType(State)
 
 
@@ -415,9 +415,8 @@ class ServicenowCheck(AgentCheck):
         for change_request in self._validate_and_filter_change_requests_response(response_new_crs, instance_info):
             if change_request.sys_updated_on.value > instance_info.state.latest_sys_updated_on:
                 instance_info.state.latest_sys_updated_on = change_request.sys_updated_on.value
-            old_state = instance_info.state.change_requests.get(change_request.number.display_value)
-            #
-            if old_state is None or old_state != change_request.state.display_value:
+            old_cr_state = instance_info.state.change_requests.get(change_request.number.display_value)
+            if old_cr_state is None or old_cr_state != change_request.state.display_value:
                 self._create_event_from_change_request(change_request)
                 instance_info.state.change_requests[
                     change_request.number.display_value] = change_request.state.display_value
@@ -426,31 +425,29 @@ class ServicenowCheck(AgentCheck):
 
     def _process_planned_change_requests(self, instance_info):
         """
-        Planned Change Requests were created in the past, and they are due today so we resend them 1 hour before
+        Planned Change Requests (CR) were created in the past, and they are due today so we resend them 1 hour before
         their Planned Start Date. 1 hour is default value. It can be changed in check config.
+        InstanceInfo.state.planned_change_requests_cache holds list of sent Planned CRs so we don't resend them.
         :param instance_info: Instance object
         :return: None
         """
         number_of_planned_crs = 0
         response_planned_crs = self._collect_planned_change_requests(instance_info)
         for change_request in self._validate_and_filter_change_requests_response(response_planned_crs, instance_info):
-            # TODO Send Change Requests to StackState as an event if the current time is a configurable time period
-            #  before the scheduled Planned Start Date of the Change Request (default: 1h)
             if change_request.start_date:
                 cr = change_request.number.display_value
                 start = datetime.datetime.strptime(change_request.start_date.display_value, '%Y-%m-%d %H:%M:%S')
-                resend = start - datetime.timedelta(hours=1)
+                resend = start - datetime.timedelta(hours=instance_info.resend_planned_change_request_interval)
                 now = datetime.datetime.now()
-                self.log.debug('Planned CR start: %s resend: %s', start, resend)
-                if resend <= now < start and cr not in planned_change_requests_cache:
+                self.log.debug('Planned CR start: %s and resend: %s time', start, resend)
+                if resend <= now < start and cr not in instance_info.state.planned_change_requests_cache:
                     self._create_event_from_change_request(change_request)
-                    planned_change_requests_cache.append(cr)
-                    # TODO persist in state or cache when we send planned CR
-                    #  so we know that we dont need to send it again
+                    instance_info.state.planned_change_requests_cache.append(cr)
+                    self.log.debug('Added CR %s to planned_change_requests_cache.', cr)
                     number_of_planned_crs += 1
-                elif start < now and cr in planned_change_requests_cache:
-                    planned_change_requests_cache.remove(cr)
-
+                elif start < now and cr in instance_info.state.planned_change_requests_cache:
+                    instance_info.state.planned_change_requests_cache.remove(cr)
+                    self.log.debug('Removed CR %s from planned_change_requests_cache.', cr)
         if number_of_planned_crs:
             self.log.info('Resend %d planned Change Requests.', number_of_planned_crs)
 
@@ -477,7 +474,7 @@ class ServicenowCheck(AgentCheck):
         ]
         event_type = 'Change Request %s' % change_request.type.display_value
 
-        self.log.debug('Creating event from CR %s', change_request.number.display_value)
+        self.log.debug('Creating STS topology event from SNOW CR %s', change_request.number.display_value)
 
         self.event({
             'timestamp': timestamp,
