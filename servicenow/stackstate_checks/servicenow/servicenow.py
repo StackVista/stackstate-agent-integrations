@@ -27,6 +27,7 @@ CRS_DEFAULT_PROCESS_LIMIT = 1000
 CMDB_CI_DEFAULT_FIELD = 'cmdb_ci'
 CR_PLANNED_RESEND_SCHEDULE_IN_HOURS_DEFAULT = 1
 CR_PLANNED_START_DATE_DEFAULT_FIELD = 'start_date'
+CR_PLANNED_END_DATE_DEFAULT_FIELD = 'end_date'
 
 # keys for which `display_value` has to be used
 DEFAULT_COMPONENT_DISPLAY_VALUE_LIST = ["sys_tags", "maintenance_schedule", "location", "company", "manufacturer",
@@ -64,7 +65,7 @@ class ChangeRequest(Model):
     assignment_group = ModelType(WrapperStringType)
     assigned_to = ModelType(WrapperStringType)
     custom_planned_start_date = ModelType(WrapperStringType)
-    end_date = ModelType(WrapperStringType)
+    custom_planned_end_date = ModelType(WrapperStringType)
 
 
 class ConfigurationItem(Model):
@@ -115,6 +116,7 @@ class InstanceInfo(Model):
     custom_cmdb_ci_field = StringType(default=CMDB_CI_DEFAULT_FIELD)
     planned_change_request_resend_schedule = IntType(default=CR_PLANNED_RESEND_SCHEDULE_IN_HOURS_DEFAULT)
     custom_planned_start_date_field = StringType(default=CR_PLANNED_START_DATE_DEFAULT_FIELD)
+    custom_planned_end_date_field = StringType(default=CR_PLANNED_END_DATE_DEFAULT_FIELD)
     state = ModelType(State)
 
 
@@ -388,7 +390,8 @@ class ServicenowCheck(AgentCheck):
             try:
                 mapping = {
                     'custom_cmdb_ci': instance_info.custom_cmdb_ci_field,
-                    'custom_planned_start_date': instance_info.custom_planned_start_date_field
+                    'custom_planned_start_date': instance_info.custom_planned_start_date_field,
+                    'custom_planned_end_date': instance_info.custom_planned_end_date_field,
                 }
                 change_request = ChangeRequest(cr, strict=False, deserialize_mapping=mapping)
                 change_request.validate()
@@ -503,7 +506,7 @@ class ServicenowCheck(AgentCheck):
                     'conflict_last_run': change_request.conflict_last_run.display_value,
                     'service_offering': change_request.service_offering.display_value,
                     'start_date:': change_request.custom_planned_start_date.display_value,
-                    'end_date:': change_request.end_date.display_value,
+                    'end_date:': change_request.custom_planned_end_date.display_value,
                 },
             },
             'tags': tags

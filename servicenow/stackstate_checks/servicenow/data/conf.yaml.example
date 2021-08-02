@@ -51,7 +51,10 @@ instances:
     # custom_cmdb_ci_field: u_configuration_item
 
     # ServiceNow Change Request Planned Start Date custom field mapping. The default value is start_date.
-    # custom_planned_start_date: u_custom_start_date
+    # custom_planned_start_date_field: u_custom_start_date
+
+    # ServiceNow Change Request Planned End Date custom field mapping. The default value is end_date.
+    # custom_planned_end_date_field: u_custom_end_date
 
     # List of attributes in CI Component to use `display_value`. Default is listed.
     # component_display_value_attributes:
