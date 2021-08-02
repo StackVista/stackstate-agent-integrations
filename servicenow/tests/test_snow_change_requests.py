@@ -24,6 +24,8 @@ def test_two_planned_crs_one_matches_resend_schedule(servicenow_check, requests_
     topology_events = telemetry._topology_events
     assert len(topology_events) == 1
     assert topology_events[0].get('msg_title') == 'CHG0040004: Please reboot AS400'
+    state = servicenow_check.state_manager.get_state(servicenow_check._get_state_descriptor())
+    assert ['CHG0040004'] == state.get('sent_planned_crs_cache')
 
 
 def request_mock_cmdb_ci_tables_setup(requests_mock, url):
