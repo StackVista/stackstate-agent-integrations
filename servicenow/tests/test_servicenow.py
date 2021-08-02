@@ -766,8 +766,8 @@ class TestServicenow(unittest.TestCase):
         self.check._batch_collect_components = mock_collect_process
         self.check._batch_collect_relations = mock_collect_process
         self.check._collect_planned_change_requests = mock_collect_process
-        self.check._collect_new_change_requests = mock.MagicMock()
-        self.check._collect_new_change_requests.return_value = self._read_data('CHG0000001.json')
+        self.check._collect_change_requests_updates = mock.MagicMock()
+        self.check._collect_change_requests_updates.return_value = self._read_data('CHG0000001.json')
         self.check.run()
         topology_events = telemetry._topology_events
         service_checks = aggregator.service_checks('servicenow.cmdb.topology_information')
@@ -785,8 +785,8 @@ class TestServicenow(unittest.TestCase):
         self.check._batch_collect_components = mock_collect_process
         self.check._batch_collect_relations = mock_collect_process
         self.check._collect_planned_change_requests = mock_collect_process
-        self.check._collect_new_change_requests = mock.MagicMock()
-        self.check._collect_new_change_requests.return_value = self._read_data('CHG0000002.json')
+        self.check._collect_change_requests_updates = mock.MagicMock()
+        self.check._collect_change_requests_updates.return_value = self._read_data('CHG0000002.json')
         self.check.run()
         topology_events = telemetry._topology_events
         service_checks = aggregator.service_checks('servicenow.cmdb.topology_information')
@@ -836,7 +836,7 @@ class TestServicenow(unittest.TestCase):
         instance_info['change_request_sysparm_query'] = "company.nameSTARTSWITHaxa"
         instance_info['include_resource_types'] = ['cmdb_ci_netgear']
         instance_info['state'] = state
-        params = self.check._collect_new_change_requests(instance_info)
+        params = self.check._collect_change_requests_updates(instance_info)
         self.assertEqual(params.get("sysparm_display_value"), 'all')
         self.assertEqual(params.get("sysparm_exclude_reference_link"), 'true')
         self.assertEqual(params.get('sysparm_limit'), 1000)
@@ -858,7 +858,7 @@ class TestServicenow(unittest.TestCase):
         check._batch_collect_components = mock_collect_process
         check._batch_collect_relations = mock_collect_process
         check._collect_planned_change_requests = mock_collect_process
-        check._collect_new_change_requests = mock.MagicMock()
+        check._collect_change_requests_updates = mock.MagicMock()
         response = self._read_data('CHG0000003.json')
         self.assertEqual(
             to_string('Sales © Force Automation'),
@@ -868,7 +868,7 @@ class TestServicenow(unittest.TestCase):
             'Service Management Tools Portal - AXA WINTERTHUR - Production - Standard'),
             response['result'][0]['cmdb_ci']['display_value']
         )
-        check._collect_new_change_requests.return_value = response
+        check._collect_change_requests_updates.return_value = response
         check.run()
         topology_events = telemetry._topology_events
         service_checks = aggregator.service_checks('servicenow.cmdb.topology_information')

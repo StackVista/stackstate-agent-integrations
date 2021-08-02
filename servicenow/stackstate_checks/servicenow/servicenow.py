@@ -337,10 +337,10 @@ class ServicenowCheck(AgentCheck):
 
             self.relation(parent_sys_id, child_sys_id, relation_type, data)
 
-    def _collect_new_change_requests(self, instance_info):
+    def _collect_change_requests_updates(self, instance_info):
         """
-        Constructs params for getting new Change Requests (CR) from ServiceNow. New CR means updated after the last time
-        we queried ServiceNow for CR. Last query time is persisted in state var latest_sys_updated_on.
+        Constructs params for getting new Change Requests (CR) and CRs updated after the last time we queried
+        ServiceNow for them. Last query time is persisted in InstanceInfo.state.latest_sys_updated_on.
         :param instance_info: instance object
         :return: dict with servicenow rest api response
         """
@@ -422,18 +422,19 @@ class ServicenowCheck(AgentCheck):
         :return: None
         """
         number_of_new_crs = 0
-        response_new_crs = self._collect_new_change_requests(instance_info)
+        self.log.debug('Begin processing change requests.')
+        response_new_crs = self._collect_change_requests_updates(instance_info)
         for change_request in self._validate_and_filter_change_requests_response(response_new_crs, instance_info):
             if change_request.sys_updated_on.value > instance_info.state.latest_sys_updated_on:
                 instance_info.state.latest_sys_updated_on = change_request.sys_updated_on.value
-                self.log.debug('New sys_updated_on %s writen to state.', change_request.sys_updated_on.value)
+                self.log.debug('New sys_updated_on %s writen.', change_request.sys_updated_on.value)
             cr = change_request.number.display_value
             new_cr_state = change_request.state.display_value
             old_cr_state = instance_info.state.change_requests.get(cr)
             if old_cr_state is None or old_cr_state != new_cr_state:
                 self._create_event_from_change_request(change_request)
                 instance_info.state.change_requests[cr] = new_cr_state
-                self.log.debug('CR %s new state %s', cr, new_cr_state)
+                self.log.debug('CR %s new state %s.', cr, new_cr_state)
                 number_of_new_crs += 1
         if number_of_new_crs:
             self.log.info('Created %d new Change Requests events.', number_of_new_crs)
@@ -447,6 +448,7 @@ class ServicenowCheck(AgentCheck):
         :return: None
         """
         number_of_planned_crs = 0
+        self.log.debug('Begin processing planned change requests.')
         response_planned_crs = self._collect_planned_change_requests(instance_info)
         for change_request in self._validate_and_filter_change_requests_response(response_planned_crs, instance_info):
             if change_request.custom_planned_start_date:
@@ -456,7 +458,7 @@ class ServicenowCheck(AgentCheck):
                 )
                 resend = start - datetime.timedelta(hours=instance_info.planned_change_request_resend_schedule)
                 now = datetime.datetime.now()
-                self.log.debug('Planned CR %s start: %s and resend: %s', cr, start, resend)
+                self.log.debug('CR %s Planned start: %s Resend schedule: %s Now: %s', cr, start, resend, now)
                 if resend <= now < start:
                     if cr not in instance_info.state.sent_planned_crs_cache:
                         self._create_event_from_change_request(change_request)
