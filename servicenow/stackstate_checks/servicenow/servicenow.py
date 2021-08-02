@@ -451,11 +451,14 @@ class ServicenowCheck(AgentCheck):
                 resend = start - datetime.timedelta(hours=instance_info.planned_change_request_resend_schedule)
                 now = datetime.datetime.now()
                 self.log.debug('Planned CR start: %s and resend: %s time', start, resend)
-                if resend <= now < start and cr not in instance_info.state.sent_planned_crs_cache:
-                    self._create_event_from_change_request(change_request)
-                    instance_info.state.sent_planned_crs_cache.append(cr)
-                    self.log.debug('Added CR %s to sent_planned_crs_cache.', cr)
-                    number_of_planned_crs += 1
+                if resend <= now < start:
+                    if cr not in instance_info.state.sent_planned_crs_cache:
+                        self._create_event_from_change_request(change_request)
+                        instance_info.state.sent_planned_crs_cache.append(cr)
+                        self.log.debug('Added CR %s to sent_planned_crs_cache.', cr)
+                        number_of_planned_crs += 1
+                    else:
+                        self.log.debug('CR %s is in sent_planned_crs_cache.', cr)
                 elif start < now and cr in instance_info.state.sent_planned_crs_cache:
                     instance_info.state.sent_planned_crs_cache.remove(cr)
                     self.log.debug('Removed CR %s from sent_planned_crs_cache.', cr)
