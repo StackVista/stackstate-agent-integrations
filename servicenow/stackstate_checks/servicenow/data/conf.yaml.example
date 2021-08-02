@@ -45,7 +45,7 @@ instances:
 
     # Send Change Requests to StackState as an event if the current time is a time period (in hours) before the
     # scheduled Planned Start Date of the Change Request. Default value is 1.
-    # resend_planned_change_request_interval: 1
+    # resend_planned_change_request_schedule: 1
 
     # ServiceNow CMDB Configuration Item custom field mapping. The default value is cmdb_ci.
     # custom_cmdb_ci_field: u_configuration_item

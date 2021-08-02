@@ -25,7 +25,7 @@ VERIFY_HTTPS = True
 CRS_BOOTSTRAP_DAYS_DEFAULT = 100
 CRS_DEFAULT_PROCESS_LIMIT = 1000
 CMDB_CI_DEFAULT_FIELD = 'cmdb_ci'
-PLANNED_CR_DEFAULT_INTERVAL_IN_HOURS = 1
+PLANNED_CR_DEFAULT_SCHEDULE_IN_HOURS = 1
 
 # keys for which `display_value` has to be used
 DEFAULT_COMPONENT_DISPLAY_VALUE_LIST = ["sys_tags", "maintenance_schedule", "location", "company", "manufacturer",
@@ -90,7 +90,7 @@ class CIRelation(Model):
 class State(Model):
     latest_sys_updated_on = DateTimeType(required=True)
     change_requests = DictType(StringType, default={})
-    planned_change_requests_cache = ListType(StringType, default=[])
+    sent_planned_crs_cache = ListType(StringType, default=[])
 
 
 class InstanceInfo(Model):
@@ -112,7 +112,7 @@ class InstanceInfo(Model):
     cmdb_rel_ci_sysparm_query = StringType()
     change_request_sysparm_query = StringType()
     custom_cmdb_ci_field = StringType(default=CMDB_CI_DEFAULT_FIELD)
-    resend_planned_change_request_interval = IntType(default=PLANNED_CR_DEFAULT_INTERVAL_IN_HOURS)
+    resend_planned_change_request_schedule = IntType(default=PLANNED_CR_DEFAULT_SCHEDULE_IN_HOURS)
     state = ModelType(State)
 
 
@@ -421,7 +421,8 @@ class ServicenowCheck(AgentCheck):
                 instance_info.state.change_requests[
                     change_request.number.display_value] = change_request.state.display_value
                 number_of_new_crs += 1
-        self.log.info('Created %d new Change Requests events.', number_of_new_crs)
+        if number_of_new_crs:
+            self.log.info('Created %d new Change Requests events.', number_of_new_crs)
 
     def _process_planned_change_requests(self, instance_info):
         """
@@ -437,19 +438,19 @@ class ServicenowCheck(AgentCheck):
             if change_request.start_date:
                 cr = change_request.number.display_value
                 start = datetime.datetime.strptime(change_request.start_date.display_value, '%Y-%m-%d %H:%M:%S')
-                resend = start - datetime.timedelta(hours=instance_info.resend_planned_change_request_interval)
+                resend = start - datetime.timedelta(hours=instance_info.resend_planned_change_request_schedule)
                 now = datetime.datetime.now()
                 self.log.debug('Planned CR start: %s and resend: %s time', start, resend)
-                if resend <= now < start and cr not in instance_info.state.planned_change_requests_cache:
+                if resend <= now < start and cr not in instance_info.state.sent_planned_crs_cache:
                     self._create_event_from_change_request(change_request)
-                    instance_info.state.planned_change_requests_cache.append(cr)
-                    self.log.debug('Added CR %s to planned_change_requests_cache.', cr)
+                    instance_info.state.sent_planned_crs_cache.append(cr)
+                    self.log.debug('Added CR %s to sent_planned_crs_cache.', cr)
                     number_of_planned_crs += 1
-                elif start < now and cr in instance_info.state.planned_change_requests_cache:
-                    instance_info.state.planned_change_requests_cache.remove(cr)
-                    self.log.debug('Removed CR %s from planned_change_requests_cache.', cr)
+                elif start < now and cr in instance_info.state.sent_planned_crs_cache:
+                    instance_info.state.sent_planned_crs_cache.remove(cr)
+                    self.log.debug('Removed CR %s from sent_planned_crs_cache.', cr)
         if number_of_planned_crs:
-            self.log.info('Resend %d planned Change Requests.', number_of_planned_crs)
+            self.log.info('Sent %d planned Change Requests.', number_of_planned_crs)
 
     def _create_event_from_change_request(self, change_request):
         """
