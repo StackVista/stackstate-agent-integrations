@@ -1,8 +1,15 @@
 # StackState Agent Integrations v2 releases
 
-## 1.15.0 / 2021-??-??
-
-* [Added] SolarWinds check
+## 1.15.0 / 2021-08-02
+* [Fixed] Solarwinds Component has multiple health statuses. [(STAC-13796)](https://stackstate.atlassian.net/browse/STAC-13796)
+* [Improvement] AWS x-ray integration performance improvements when fetching historic data, as well as schema validation using Schematics.  [(STAC-13551)](https://stackstate.atlassian.net/browse/STAC-13551)
+* [Fixed] Unable to load Splunk Topology on Stackstate UI. [(STAC-13564)](https://stackstate.atlassian.net/browse/STAC-13564)
+* [Added] Splunk http helper base library. [(STAC-13089)](https://stackstate.atlassian.net/browse/STAC-13089)
+* [Added] Health synchronization splunk check to synchronize health states from Splunk into StackState. [(STAC-13174)](https://stackstate.atlassian.net/browse/STAC-13174)
+* [Added] SolarWinds integrations that monitors your network landscape and reports it to StackState. [(STAC-13240)](https://stackstate.atlassian.net/browse/STAC-13240)
+* [Fixed] AWS Topology ResourceMethodIntegration validation for API Gateway resources.  [(STAC-13604)](https://stackstate.atlassian.net/browse/STAC-13604)
+* [Added] Add instance url as an identifier for zabbix integration. [(STAC-13621)](https://stackstate.atlassian.net/browse/STAC-13621)
+* [Added] Validation to ensure all lists produced by integrations are homogeneous and all dictionaries contain only string keys.
 
 ## 1.14.0 / 2021-07-09
 
