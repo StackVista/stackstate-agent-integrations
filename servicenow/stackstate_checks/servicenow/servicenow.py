@@ -403,14 +403,14 @@ class ServicenowCheck(AgentCheck):
                 continue
             # Change request must have CMDB_CI to be connected to STS component
             if change_request.custom_cmdb_ci.value:
+                change_requests.append(change_request)
                 self.log.debug(
-                    'New CR %s: %s - sys_updated_on value: %s display_value: %s',
+                    'CR %s: CMDB_CI: %s - sys_updated_on value: %s display_value: %s',
                     change_request.number.display_value,
                     change_request.custom_cmdb_ci.display_value,
                     change_request.sys_updated_on.value,
                     change_request.sys_updated_on.display_value
                 )
-                change_requests.append(change_request)
         return change_requests
 
     def _process_change_requests(self, instance_info):
