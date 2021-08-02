@@ -50,6 +50,9 @@ instances:
     # ServiceNow CMDB Configuration Item custom field mapping. The default value is cmdb_ci.
     # custom_cmdb_ci_field: u_configuration_item
 
+    # ServiceNow Change Request Planned Start Date custom field mapping. The default value is start_date.
+    # custom_planned_start_date: u_custom_start_date
+
     # List of attributes in CI Component to use `display_value`. Default is listed.
     # component_display_value_attributes:
     #   - sys_tags

@@ -25,7 +25,8 @@ VERIFY_HTTPS = True
 CRS_BOOTSTRAP_DAYS_DEFAULT = 100
 CRS_DEFAULT_PROCESS_LIMIT = 1000
 CMDB_CI_DEFAULT_FIELD = 'cmdb_ci'
-PLANNED_CR_DEFAULT_SCHEDULE_IN_HOURS = 1
+CR_PLANNED_RESEND_SCHEDULE_IN_HOURS_DEFAULT = 1
+CR_PLANNED_START_DATE_DEFAULT_FIELD = 'start_date'
 
 # keys for which `display_value` has to be used
 DEFAULT_COMPONENT_DISPLAY_VALUE_LIST = ["sys_tags", "maintenance_schedule", "location", "company", "manufacturer",
@@ -62,7 +63,7 @@ class ChangeRequest(Model):
     conflict_last_run = ModelType(WrapperStringType)
     assignment_group = ModelType(WrapperStringType)
     assigned_to = ModelType(WrapperStringType)
-    start_date = ModelType(WrapperStringType)
+    custom_planned_start_date = ModelType(WrapperStringType)
     end_date = ModelType(WrapperStringType)
 
 
@@ -112,7 +113,8 @@ class InstanceInfo(Model):
     cmdb_rel_ci_sysparm_query = StringType()
     change_request_sysparm_query = StringType()
     custom_cmdb_ci_field = StringType(default=CMDB_CI_DEFAULT_FIELD)
-    resend_planned_change_request_schedule = IntType(default=PLANNED_CR_DEFAULT_SCHEDULE_IN_HOURS)
+    planned_change_request_resend_schedule = IntType(default=CR_PLANNED_RESEND_SCHEDULE_IN_HOURS_DEFAULT)
+    custom_planned_start_date_field = StringType(default=CR_PLANNED_START_DATE_DEFAULT_FIELD)
     state = ModelType(State)
 
 
@@ -384,7 +386,10 @@ class ServicenowCheck(AgentCheck):
         change_requests = []
         for cr in response.get('result', []):
             try:
-                mapping = {'custom_cmdb_ci': instance_info.custom_cmdb_ci_field}
+                mapping = {
+                    'custom_cmdb_ci': instance_info.custom_cmdb_ci_field,
+                    'custom_planned_start_date': instance_info.custom_planned_start_date_field
+                }
                 change_request = ChangeRequest(cr, strict=False, deserialize_mapping=mapping)
                 change_request.validate()
             except DataError as e:
@@ -435,10 +440,12 @@ class ServicenowCheck(AgentCheck):
         number_of_planned_crs = 0
         response_planned_crs = self._collect_planned_change_requests(instance_info)
         for change_request in self._validate_and_filter_change_requests_response(response_planned_crs, instance_info):
-            if change_request.start_date:
+            if change_request.custom_planned_start_date:
                 cr = change_request.number.display_value
-                start = datetime.datetime.strptime(change_request.start_date.display_value, '%Y-%m-%d %H:%M:%S')
-                resend = start - datetime.timedelta(hours=instance_info.resend_planned_change_request_schedule)
+                start = datetime.datetime.strptime(
+                    change_request.custom_planned_start_date.display_value, '%Y-%m-%d %H:%M:%S'
+                )
+                resend = start - datetime.timedelta(hours=instance_info.planned_change_request_resend_schedule)
                 now = datetime.datetime.now()
                 self.log.debug('Planned CR start: %s and resend: %s time', start, resend)
                 if resend <= now < start and cr not in instance_info.state.sent_planned_crs_cache:
@@ -495,7 +502,7 @@ class ServicenowCheck(AgentCheck):
                     'conflict_status:': change_request.conflict_status.display_value,
                     'conflict_last_run': change_request.conflict_last_run.display_value,
                     'service_offering': change_request.service_offering.display_value,
-                    'start_date:': change_request.start_date.display_value,
+                    'start_date:': change_request.custom_planned_start_date.display_value,
                     'end_date:': change_request.end_date.display_value,
                 },
             },
