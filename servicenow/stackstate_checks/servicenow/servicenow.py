@@ -18,6 +18,9 @@ from schematics.types import URLType, StringType, ListType, IntType, DictType, D
 from stackstate_checks.base import AgentCheck, StackPackInstance, Identifiers, to_string
 from stackstate_checks.base.errors import CheckException
 
+API_SNOW_TABLE_CMDB_CI = '/api/now/table/cmdb_ci'
+API_SNOW_TABLE_CMDB_REL_CI = '/api/now/table/cmdb_rel_ci'
+API_SNOW_TABLE_CHANGE_REQUEST = '/api/now/table/change_request'
 BATCH_DEFAULT_SIZE = 2500
 BATCH_MAX_SIZE = 10000
 TIMEOUT = 20
@@ -215,7 +218,7 @@ class ServicenowCheck(AgentCheck):
         """
         auth = (instance_info.user, instance_info.password)
         cert = (instance_info.cert, instance_info.keyfile)
-        url = instance_info.url + '/api/now/table/cmdb_ci'
+        url = instance_info.url + API_SNOW_TABLE_CMDB_CI
         sys_class_filter_query = self._get_sys_class_component_filter_query(instance_info.include_resource_types)
         params = self._params_append_to_sysparm_query(add_to_query=sys_class_filter_query)
         params = self._params_append_to_sysparm_query(add_to_query=instance_info.cmdb_ci_sysparm_query, params=params)
@@ -296,7 +299,7 @@ class ServicenowCheck(AgentCheck):
         """
         auth = (instance_info.user, instance_info.password)
         cert = (instance_info.cert, instance_info.keyfile)
-        url = instance_info.url + '/api/now/table/cmdb_rel_ci'
+        url = instance_info.url + API_SNOW_TABLE_CMDB_REL_CI
         sys_class_filter_query = self._get_sys_class_relation_filter_query(instance_info.include_resource_types)
         params = self._params_append_to_sysparm_query(add_to_query=sys_class_filter_query)
         params = self._params_append_to_sysparm_query(add_to_query=instance_info.cmdb_rel_ci_sysparm_query,
@@ -375,7 +378,7 @@ class ServicenowCheck(AgentCheck):
         params = self._params_append_to_sysparm_query(instance_info.change_request_sysparm_query, params)
         auth = (instance_info.user, instance_info.password)
         cert = (instance_info.cert, instance_info.keyfile)
-        url = instance_info.url + '/api/now/table/change_request'
+        url = instance_info.url + API_SNOW_TABLE_CHANGE_REQUEST
         return self._get_json(url, instance_info.timeout, params, auth, instance_info.verify_https, cert)
 
     def _validate_and_filter_change_requests_response(self, response, instance_info):
@@ -423,11 +426,14 @@ class ServicenowCheck(AgentCheck):
         for change_request in self._validate_and_filter_change_requests_response(response_new_crs, instance_info):
             if change_request.sys_updated_on.value > instance_info.state.latest_sys_updated_on:
                 instance_info.state.latest_sys_updated_on = change_request.sys_updated_on.value
-            old_cr_state = instance_info.state.change_requests.get(change_request.number.display_value)
-            if old_cr_state is None or old_cr_state != change_request.state.display_value:
+                self.log.debug('New sys_updated_on %s writen to state.', change_request.sys_updated_on.value)
+            cr = change_request.number.display_value
+            new_cr_state = change_request.state.display_value
+            old_cr_state = instance_info.state.change_requests.get(cr)
+            if old_cr_state is None or old_cr_state != new_cr_state:
                 self._create_event_from_change_request(change_request)
-                instance_info.state.change_requests[
-                    change_request.number.display_value] = change_request.state.display_value
+                instance_info.state.change_requests[cr] = new_cr_state
+                self.log.debug('CR %s new state %s', cr, new_cr_state)
                 number_of_new_crs += 1
         if number_of_new_crs:
             self.log.info('Created %d new Change Requests events.', number_of_new_crs)
@@ -450,7 +456,7 @@ class ServicenowCheck(AgentCheck):
                 )
                 resend = start - datetime.timedelta(hours=instance_info.planned_change_request_resend_schedule)
                 now = datetime.datetime.now()
-                self.log.debug('Planned CR start: %s and resend: %s time', start, resend)
+                self.log.debug('Planned CR %s start: %s and resend: %s', cr, start, resend)
                 if resend <= now < start:
                     if cr not in instance_info.state.sent_planned_crs_cache:
                         self._create_event_from_change_request(change_request)
