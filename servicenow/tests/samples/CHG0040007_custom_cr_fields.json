@@ -1,0 +1,422 @@
+{
+  "result": [
+    {
+      "active": {
+        "display_value": "true",
+        "value": "true"
+      },
+      "activity_due": {
+        "display_value": "UNKNOWN",
+        "value": ""
+      },
+      "additional_assignee_list": {
+        "display_value": "",
+        "value": ""
+      },
+      "approval": {
+        "display_value": "Requested",
+        "value": "requested"
+      },
+      "approval_history": {
+        "display_value": "",
+        "value": ""
+      },
+      "approval_set": {
+        "display_value": "",
+        "value": ""
+      },
+      "assigned_to": {
+        "display_value": "",
+        "value": ""
+      },
+      "assignment_group": {
+        "display_value": "ITSM Engineering",
+        "value": "5f721d93c0a8010e015533746de18bf9"
+      },
+      "backout_plan": {
+        "display_value": "",
+        "value": ""
+      },
+      "business_duration": {
+        "display_value": "",
+        "value": ""
+      },
+      "business_service": {
+        "display_value": "",
+        "value": ""
+      },
+      "cab_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "cab_delegate": {
+        "display_value": "",
+        "value": ""
+      },
+      "cab_recommendation": {
+        "display_value": "",
+        "value": ""
+      },
+      "cab_required": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "calendar_duration": {
+        "display_value": "",
+        "value": ""
+      },
+      "category": {
+        "display_value": "Server Reboot",
+        "value": "Server Reboot"
+      },
+      "change_plan": {
+        "display_value": "",
+        "value": ""
+      },
+      "close_code": {
+        "display_value": null,
+        "value": ""
+      },
+      "close_notes": {
+        "display_value": "",
+        "value": ""
+      },
+      "closed_at": {
+        "display_value": "",
+        "value": ""
+      },
+      "closed_by": {
+        "display_value": "",
+        "value": ""
+      },
+      "cmdb_ci": {
+        "display_value": "ApplicationServerPeopleSoft",
+        "value": "b0cb50c3c0a8000900893e69d3c5885e"
+      },
+      "comments": {
+        "display_value": "",
+        "value": ""
+      },
+      "comments_and_work_notes": {
+        "display_value": "",
+        "value": ""
+      },
+      "company": {
+        "display_value": "",
+        "value": ""
+      },
+      "conflict_last_run": {
+        "display_value": "2021-08-02 11:31:03",
+        "value": "2021-08-02 09:31:03"
+      },
+      "conflict_status": {
+        "display_value": "Conflict",
+        "value": "Conflict"
+      },
+      "contact_type": {
+        "display_value": null,
+        "value": ""
+      },
+      "contract": {
+        "display_value": "",
+        "value": ""
+      },
+      "correlation_display": {
+        "display_value": "",
+        "value": ""
+      },
+      "correlation_id": {
+        "display_value": "",
+        "value": ""
+      },
+      "delivery_plan": {
+        "display_value": "",
+        "value": ""
+      },
+      "delivery_task": {
+        "display_value": "",
+        "value": ""
+      },
+      "description": {
+        "display_value": "",
+        "value": ""
+      },
+      "due_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "end_date": {
+        "display_value": "2021-08-02 18:00:00",
+        "value": "2021-08-02 16:00:00"
+      },
+      "escalation": {
+        "display_value": "Normal",
+        "value": "0"
+      },
+      "expected_start": {
+        "display_value": "",
+        "value": ""
+      },
+      "follow_up": {
+        "display_value": "",
+        "value": ""
+      },
+      "group_list": {
+        "display_value": "",
+        "value": ""
+      },
+      "impact": {
+        "display_value": "3 - Low",
+        "value": "3"
+      },
+      "implementation_plan": {
+        "display_value": "",
+        "value": ""
+      },
+      "justification": {
+        "display_value": "test01",
+        "value": "test01"
+      },
+      "knowledge": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "location": {
+        "display_value": "",
+        "value": ""
+      },
+      "made_sla": {
+        "display_value": "true",
+        "value": "true"
+      },
+      "number": {
+        "display_value": "CHG0040007",
+        "value": "CHG0040007"
+      },
+      "on_hold": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "on_hold_reason": {
+        "display_value": "",
+        "value": ""
+      },
+      "on_hold_task": {
+        "display_value": "",
+        "value": ""
+      },
+      "opened_at": {
+        "display_value": "2016-08-10 18:37:13",
+        "value": "2016-08-10 16:37:13"
+      },
+      "opened_by": {
+        "display_value": "System Administrator",
+        "value": "6816f79cc0a8016401c5a33be04be441"
+      },
+      "order": {
+        "display_value": "",
+        "value": ""
+      },
+      "outside_maintenance_schedule": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "parent": {
+        "display_value": "",
+        "value": ""
+      },
+      "phase": {
+        "display_value": "Requested",
+        "value": "requested"
+      },
+      "phase_state": {
+        "display_value": "Open",
+        "value": "open"
+      },
+      "priority": {
+        "display_value": "4 - Low",
+        "value": "4"
+      },
+      "production_system": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "reason": {
+        "display_value": "broken",
+        "value": "broken"
+      },
+      "reassignment_count": {
+        "display_value": "0",
+        "value": "0"
+      },
+      "requested_by": {
+        "display_value": "System Administrator",
+        "value": "6816f79cc0a8016401c5a33be04be441"
+      },
+      "requested_by_date": {
+        "display_value": "2016-08-10 18:36:58",
+        "value": "2016-08-10 16:36:58"
+      },
+      "review_comments": {
+        "display_value": "",
+        "value": ""
+      },
+      "review_date": {
+        "display_value": "",
+        "value": ""
+      },
+      "review_status": {
+        "display_value": "",
+        "value": ""
+      },
+      "risk": {
+        "display_value": "Moderate",
+        "value": "3"
+      },
+      "risk_impact_analysis": {
+        "display_value": "",
+        "value": ""
+      },
+      "route_reason": {
+        "display_value": "",
+        "value": ""
+      },
+      "scope": {
+        "display_value": "Medium",
+        "value": "3"
+      },
+      "service_offering": {
+        "display_value": "",
+        "value": ""
+      },
+      "short_description": {
+        "display_value": "Please reboot ApplicationServerPeopleSoft",
+        "value": "Please reboot ApplicationServerPeopleSoft"
+      },
+      "sla_due": {
+        "display_value": "UNKNOWN",
+        "value": ""
+      },
+      "start_date": {
+        "display_value": "2021-08-02 12:00:00",
+        "value": "2021-08-02 10:00:00"
+      },
+      "state": {
+        "display_value": "Authorize",
+        "value": "-3"
+      },
+      "std_change_producer_version": {
+        "display_value": "",
+        "value": ""
+      },
+      "sys_class_name": {
+        "display_value": "Change Request",
+        "value": "change_request"
+      },
+      "sys_created_by": {
+        "display_value": "admin",
+        "value": "admin"
+      },
+      "sys_created_on": {
+        "display_value": "2016-08-10 18:37:13",
+        "value": "2016-08-10 16:37:13"
+      },
+      "sys_domain": {
+        "display_value": "global",
+        "value": "global"
+      },
+      "sys_domain_path": {
+        "display_value": "/",
+        "value": "/"
+      },
+      "sys_id": {
+        "display_value": "c83c5e5347c12200e0ef563dbb9a7190",
+        "value": "c83c5e5347c12200e0ef563dbb9a7190"
+      },
+      "sys_mod_count": {
+        "display_value": "39",
+        "value": "39"
+      },
+      "sys_tags": {
+        "display_value": "",
+        "value": ""
+      },
+      "sys_updated_by": {
+        "display_value": "admin",
+        "value": "admin"
+      },
+      "sys_updated_on": {
+        "display_value": "2021-08-02 11:31:03",
+        "value": "2021-08-02 09:31:03"
+      },
+      "task_effective_number": {
+        "display_value": "CHG0040007",
+        "value": "CHG0040007"
+      },
+      "test_plan": {
+        "display_value": "",
+        "value": ""
+      },
+      "time_worked": {
+        "display_value": "",
+        "value": ""
+      },
+      "type": {
+        "display_value": "Emergency",
+        "value": "emergency"
+      },
+      "u_custom_end_date": {
+        "display_value": "2021-09-01 12:00:00",
+        "value": "2021-09-01 10:00:00"
+      },
+      "u_custom_start_date": {
+        "display_value": "2021-09-01 11:30:00",
+        "value": "2021-09-01 09:30:00"
+      },
+      "unauthorized": {
+        "display_value": "false",
+        "value": "false"
+      },
+      "universal_request": {
+        "display_value": "",
+        "value": ""
+      },
+      "upon_approval": {
+        "display_value": "Proceed to Next Task",
+        "value": "proceed"
+      },
+      "upon_reject": {
+        "display_value": "Cancel all future Tasks",
+        "value": "cancel"
+      },
+      "urgency": {
+        "display_value": "3 - Low",
+        "value": "3"
+      },
+      "user_input": {
+        "display_value": "",
+        "value": ""
+      },
+      "watch_list": {
+        "display_value": "",
+        "value": ""
+      },
+      "work_end": {
+        "display_value": "",
+        "value": ""
+      },
+      "work_notes": {
+        "display_value": "",
+        "value": ""
+      },
+      "work_notes_list": {
+        "display_value": "",
+        "value": ""
+      },
+      "work_start": {
+        "display_value": "",
+        "value": ""
+      }
+    }
+  ]
+}
