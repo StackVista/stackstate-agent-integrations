@@ -281,7 +281,7 @@ instance_info = InstanceInfo(
 
 
 def mock_get_json(url, timeout, params, auth=None, verify=True, cert=None):
-    """Mock method for testing _get_json_batch"""
+    """Mock method that returns params generated for use in _get_json_batch"""
     return params
 
 
