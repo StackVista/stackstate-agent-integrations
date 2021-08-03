@@ -77,6 +77,21 @@ def test_creating_topo_event_from_cr_when_field_has_null_value(servicenow_check,
     assert 'category:None' in topology_events[0]['tags']
 
 
+def test_custom_cmdb_ci_field(servicenow_check, requests_mock, test_cr_instance):
+    response = [{'status_code': 200, 'text': read_file('CHG0000003.json', 'samples')},
+                {'status_code': 200, 'text': EMPTY_RESULT}]
+    test_cr_instance['custom_cmdb_ci_field'] = 'u_configuration_item'
+    request_mock_cmdb_ci_tables_setup(requests_mock, test_cr_instance.get('url'), response)
+    servicenow_check.run()
+    aggregator.assert_service_check(SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
+    topology_events = telemetry._topology_events
+    assert len(topology_events) == 1
+    assert topology_events[0]['msg_title'] == to_string('CHG0000003: Rollback Oracle ® Version')
+    assert to_string('urn:host:/Sales © Force Automation') in topology_events[0]['context']['element_identifiers']
+    assert to_string('urn:host:/sales © force automation') in topology_events[0]['context']['element_identifiers']
+    assert 'a9c0c8d2c6112276018f7705562f9cb0' in topology_events[0]['context']['element_identifiers']
+
+
 @freeze_time("2021-08-02 12:15:00")
 def test_two_planned_crs_one_matches_resend_schedule(servicenow_check, requests_mock, test_cr_instance):
     request_mock_cmdb_ci_tables_setup(requests_mock, test_cr_instance.get('url'), PLANNED_CRS_RESPONSE)
