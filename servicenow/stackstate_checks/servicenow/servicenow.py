@@ -491,6 +491,7 @@ class ServicenowCheck(AgentCheck):
             'number:%s' % change_request.number.display_value,
             'priority:%s' % change_request.priority.display_value,
             'risk:%s' % change_request.risk.display_value,
+            'impact:%s' % change_request.impact.display_value,
             'state:%s' % change_request.state.display_value,
             'category:%s' % change_request.category.display_value,
         ]
@@ -509,7 +510,6 @@ class ServicenowCheck(AgentCheck):
                 'element_identifiers': identifiers,
                 'source_links': [],
                 'data': {
-                    'impact': change_request.impact.display_value,
                     'requested_by': change_request.requested_by.display_value,
                     'assignment_group': change_request.assignment_group.display_value,
                     'assigned_to': change_request.assigned_to.display_value,
