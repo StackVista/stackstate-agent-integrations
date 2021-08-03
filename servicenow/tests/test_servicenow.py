@@ -758,27 +758,6 @@ class TestServicenow(unittest.TestCase):
             topo_instances['components'][0]['data']['identifiers']
         )
 
-    def test_creating_event_from_change_request_when_field_has_null_value(self):
-        """
-        SNOW CR Field can have null for display_value
-        "category": { "display_value": null, "value": "" }
-        """
-        self.check._collect_relation_types = mock_collect_process
-        self.check._batch_collect_components = mock_collect_process
-        self.check._batch_collect_relations = mock_collect_process
-        self.check._collect_planned_change_requests = mock_collect_process
-        self.check._collect_change_requests_updates = mock.MagicMock()
-        self.check._collect_change_requests_updates.return_value = self._read_data('CHG0000002.json')
-        self.check.run()
-        topology_events = telemetry._topology_events
-        service_checks = aggregator.service_checks('servicenow.cmdb.topology_information')
-        self.assertEqual(AgentCheck.OK, service_checks[0].status)
-        self.assertEqual(1, len(topology_events))
-        self.assertEqual('CHG0000002: Rollback Oracle Version', topology_events[0]['msg_title'])
-        category_tag = [e for e in topology_events[0]['tags'] if 'category' in e][0]
-        self.assertEqual('category:None', category_tag)
-        self.check.commit_state(None)
-
     def test_batch_collect_components_sys_filter_with_query_filter(self):
         """
         Test the query filter with resource types while collecting components batch
