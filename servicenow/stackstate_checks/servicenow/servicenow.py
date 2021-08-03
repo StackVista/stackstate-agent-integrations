@@ -9,7 +9,7 @@ from requests import Session
 from stackstate_checks.servicenow import State, InstanceInfo
 from stackstate_checks.servicenow.common import API_SNOW_TABLE_CMDB_CI, API_SNOW_TABLE_CMDB_REL_CI, \
     API_SNOW_TABLE_CHANGE_REQUEST
-from stackstate_checks.servicenow.model import ChangeRequest, ConfigurationItem, CIRelation
+from stackstate_checks.servicenow.models import ChangeRequest, ConfigurationItem, CIRelation
 
 try:
     json_parse_exception = json.decoder.JSONDecodeError
