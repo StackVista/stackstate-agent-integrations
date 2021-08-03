@@ -391,11 +391,20 @@ class Node(OrionComponent):
         self.identifiers = []
         if caption == ip_address:
             # Nodes with just an IP address in the name never have a domain part
-            self._node_identifier = Identifiers.create_host_identifier(self.caption)
+            if self.component_type == "host":
+                self._node_identifier = Identifiers.create_host_identifier(self.caption)
+            else:
+                self._node_identifier = Identifiers.create_custom_identifier('network_host', self.caption)
             self.identifiers.append(self._node_identifier)
         else:
-            self._node_identifier_no_caps = Identifiers.create_host_identifier(self.caption.lower())
-            self._node_identifier_all_caps = Identifiers.create_host_identifier(self.caption.upper())
+            if self.component_type == 'host':
+                self._node_identifier_no_caps = Identifiers.create_host_identifier(self.caption.lower())
+                self._node_identifier_all_caps = Identifiers.create_host_identifier(self.caption.upper())
+            else:
+                self._node_identifier_no_caps = Identifiers.create_custom_identifier('network_host',
+                                                                                     self.caption.lower())
+                self._node_identifier_all_caps = Identifiers.create_custom_identifier('network_host',
+                                                                                      self.caption.upper())
             self._node_identifier_no_caps_no_domain = OrionComponent.strip_domain(self._node_identifier_no_caps)
             self._node_identifier_all_caps_no_domain = OrionComponent.strip_domain(self._node_identifier_all_caps)
             self.identifiers.append(self._node_identifier_no_caps)

@@ -9,15 +9,15 @@
         "component_type": "network_host",
         "details_url": "https://solarwinds.procyonnetworks.nl/Orion/NetPerfMon/NodeDetails.aspx?NetObject=N:4",
         "identifiers": [
-            "urn:host:/procnlalkrt01.procyon.local",
-            "urn:host:/PROCNLALKRT01.PROCYON.LOCAL",
-            "urn:host:/procnlalkrt01",
-            "urn:host:/PROCNLALKRT01"
+            "urn:network_host:/procnlalkrt01.procyon.local",
+            "urn:network_host:/PROCNLALKRT01.PROCYON.LOCAL",
+            "urn:network_host:/procnlalkrt01",
+            "urn:network_host:/PROCNLALKRT01"
         ],
-        "_node_identifier_no_caps": "urn:host:/procnlalkrt01.procyon.local",
-        "_node_identifier_all_caps": "urn:host:/PROCNLALKRT01.PROCYON.LOCAL",
-        "_node_identifier_no_caps_no_domain": "urn:host:/procnlalkrt01",
-        "_node_identifier_all_caps_no_domain": "urn:host:/PROCNLALKRT01",
+        "_node_identifier_no_caps": "urn:network_host:/procnlalkrt01.procyon.local",
+        "_node_identifier_all_caps": "urn:network_host:/PROCNLALKRT01.PROCYON.LOCAL",
+        "_node_identifier_no_caps_no_domain": "urn:network_host:/procnlalkrt01",
+        "_node_identifier_all_caps_no_domain": "urn:network_host:/PROCNLALKRT01",
         "interfaces": [
             {
                 "interface_id": 9,
@@ -153,13 +153,13 @@
         "component_type": "network_host",
         "details_url": "https://solarwinds.procyonnetworks.nl/Orion/NetPerfMon/NodeDetails.aspx?NetObject=N:154",
         "identifiers": [
-            "urn:host:/datnlrijvscg01",
-            "urn:host:/DATNLRIJVSCG01"
+            "urn:network_host:/datnlrijvscg01",
+            "urn:network_host:/DATNLRIJVSCG01"
         ],
-        "_node_identifier_no_caps": "urn:host:/datnlrijvscg01",
-        "_node_identifier_all_caps": "urn:host:/DATNLRIJVSCG01",
-        "_node_identifier_no_caps_no_domain": "urn:host:/datnlrijvscg01",
-        "_node_identifier_all_caps_no_domain": "urn:host:/DATNLRIJVSCG01",
+        "_node_identifier_no_caps": "urn:network_host:/datnlrijvscg01",
+        "_node_identifier_all_caps": "urn:network_host:/DATNLRIJVSCG01",
+        "_node_identifier_no_caps_no_domain": "urn:network_host:/datnlrijvscg01",
+        "_node_identifier_all_caps_no_domain": "urn:network_host:/DATNLRIJVSCG01",
         "interfaces": [
             {
                 "interface_id": 490,
@@ -229,13 +229,13 @@
         "component_type": "network_host",
         "details_url": "https://solarwinds.procyonnetworks.nl/Orion/NetPerfMon/NodeDetails.aspx?NetObject=N:960",
         "identifiers": [
-            "urn:host:/procnlalkesx01-idrac",
-            "urn:host:/PROCNLALKESX01-IDRAC"
+            "urn:network_host:/procnlalkesx01-idrac",
+            "urn:network_host:/PROCNLALKESX01-IDRAC"
         ],
-        "_node_identifier_no_caps": "urn:host:/procnlalkesx01-idrac",
-        "_node_identifier_all_caps": "urn:host:/PROCNLALKESX01-IDRAC",
-        "_node_identifier_no_caps_no_domain": "urn:host:/procnlalkesx01-idrac",
-        "_node_identifier_all_caps_no_domain": "urn:host:/PROCNLALKESX01-IDRAC",
+        "_node_identifier_no_caps": "urn:network_host:/procnlalkesx01-idrac",
+        "_node_identifier_all_caps": "urn:network_host:/PROCNLALKESX01-IDRAC",
+        "_node_identifier_no_caps_no_domain": "urn:network_host:/procnlalkesx01-idrac",
+        "_node_identifier_all_caps_no_domain": "urn:network_host:/PROCNLALKESX01-IDRAC",
         "interfaces": [
             {
                 "interface_id": 7188,
@@ -261,13 +261,13 @@
         "component_type": "network_host",
         "details_url": "https://solarwinds.procyonnetworks.nl/Orion/NetPerfMon/NodeDetails.aspx?NetObject=N:963",
         "identifiers": [
-            "urn:host:/procnlalksw01",
-            "urn:host:/PROCNLALKSW01"
+            "urn:network_host:/procnlalksw01",
+            "urn:network_host:/PROCNLALKSW01"
         ],
-        "_node_identifier_no_caps": "urn:host:/procnlalksw01",
-        "_node_identifier_all_caps": "urn:host:/PROCNLALKSW01",
-        "_node_identifier_no_caps_no_domain": "urn:host:/procnlalksw01",
-        "_node_identifier_all_caps_no_domain": "urn:host:/PROCNLALKSW01",
+        "_node_identifier_no_caps": "urn:network_host:/procnlalksw01",
+        "_node_identifier_all_caps": "urn:network_host:/PROCNLALKSW01",
+        "_node_identifier_no_caps_no_domain": "urn:network_host:/procnlalksw01",
+        "_node_identifier_all_caps_no_domain": "urn:network_host:/PROCNLALKSW01",
         "interfaces": [
             {
                 "interface_id": 7213,
@@ -1176,13 +1176,13 @@
         "component_type": "network_host",
         "details_url": "https://solarwinds.procyonnetworks.nl/Orion/NetPerfMon/NodeDetails.aspx?NetObject=N:968",
         "identifiers": [
-            "urn:host:/procnlalkfw cluster",
-            "urn:host:/PROCNLALKFW CLUSTER"
+            "urn:network_host:/procnlalkfw cluster",
+            "urn:network_host:/PROCNLALKFW CLUSTER"
         ],
-        "_node_identifier_no_caps": "urn:host:/procnlalkfw cluster",
-        "_node_identifier_all_caps": "urn:host:/PROCNLALKFW CLUSTER",
-        "_node_identifier_no_caps_no_domain": "urn:host:/procnlalkfw cluster",
-        "_node_identifier_all_caps_no_domain": "urn:host:/PROCNLALKFW CLUSTER",
+        "_node_identifier_no_caps": "urn:network_host:/procnlalkfw cluster",
+        "_node_identifier_all_caps": "urn:network_host:/PROCNLALKFW CLUSTER",
+        "_node_identifier_no_caps_no_domain": "urn:network_host:/procnlalkfw cluster",
+        "_node_identifier_all_caps_no_domain": "urn:network_host:/PROCNLALKFW CLUSTER",
         "interfaces": [
             {
                 "interface_id": 7270,
@@ -2888,13 +2888,13 @@
         "component_type": "network_host",
         "details_url": "https://solarwinds.procyonnetworks.nl/Orion/NetPerfMon/NodeDetails.aspx?NetObject=N:969",
         "identifiers": [
-            "urn:host:/procnlalkfw01",
-            "urn:host:/PROCNLALKFW01"
+            "urn:network_host:/procnlalkfw01",
+            "urn:network_host:/PROCNLALKFW01"
         ],
-        "_node_identifier_no_caps": "urn:host:/procnlalkfw01",
-        "_node_identifier_all_caps": "urn:host:/PROCNLALKFW01",
-        "_node_identifier_no_caps_no_domain": "urn:host:/procnlalkfw01",
-        "_node_identifier_all_caps_no_domain": "urn:host:/PROCNLALKFW01",
+        "_node_identifier_no_caps": "urn:network_host:/procnlalkfw01",
+        "_node_identifier_all_caps": "urn:network_host:/PROCNLALKFW01",
+        "_node_identifier_no_caps_no_domain": "urn:network_host:/procnlalkfw01",
+        "_node_identifier_all_caps_no_domain": "urn:network_host:/PROCNLALKFW01",
         "interfaces": []
     },
     {
@@ -2907,13 +2907,13 @@
         "component_type": "network_host",
         "details_url": "https://solarwinds.procyonnetworks.nl/Orion/NetPerfMon/NodeDetails.aspx?NetObject=N:970",
         "identifiers": [
-            "urn:host:/procnlalkfw02",
-            "urn:host:/PROCNLALKFW02"
+            "urn:network_host:/procnlalkfw02",
+            "urn:network_host:/PROCNLALKFW02"
         ],
-        "_node_identifier_no_caps": "urn:host:/procnlalkfw02",
-        "_node_identifier_all_caps": "urn:host:/PROCNLALKFW02",
-        "_node_identifier_no_caps_no_domain": "urn:host:/procnlalkfw02",
-        "_node_identifier_all_caps_no_domain": "urn:host:/PROCNLALKFW02",
+        "_node_identifier_no_caps": "urn:network_host:/procnlalkfw02",
+        "_node_identifier_all_caps": "urn:network_host:/PROCNLALKFW02",
+        "_node_identifier_no_caps_no_domain": "urn:network_host:/procnlalkfw02",
+        "_node_identifier_all_caps_no_domain": "urn:network_host:/PROCNLALKFW02",
         "interfaces": []
     },
     {
@@ -3110,15 +3110,15 @@
         "component_type": "network_host",
         "details_url": "https://solarwinds.procyonnetworks.nl/Orion/NetPerfMon/NodeDetails.aspx?NetObject=N:1029",
         "identifiers": [
-            "urn:host:/odk-switch-003.ahk.nl",
-            "urn:host:/ODK-SWITCH-003.AHK.NL",
-            "urn:host:/odk-switch-003",
-            "urn:host:/ODK-SWITCH-003"
+            "urn:network_host:/odk-switch-003.ahk.nl",
+            "urn:network_host:/ODK-SWITCH-003.AHK.NL",
+            "urn:network_host:/odk-switch-003",
+            "urn:network_host:/ODK-SWITCH-003"
         ],
-        "_node_identifier_no_caps": "urn:host:/odk-switch-003.ahk.nl",
-        "_node_identifier_all_caps": "urn:host:/ODK-SWITCH-003.AHK.NL",
-        "_node_identifier_no_caps_no_domain": "urn:host:/odk-switch-003",
-        "_node_identifier_all_caps_no_domain": "urn:host:/ODK-SWITCH-003",
+        "_node_identifier_no_caps": "urn:network_host:/odk-switch-003.ahk.nl",
+        "_node_identifier_all_caps": "urn:network_host:/ODK-SWITCH-003.AHK.NL",
+        "_node_identifier_no_caps_no_domain": "urn:network_host:/odk-switch-003",
+        "_node_identifier_all_caps_no_domain": "urn:network_host:/ODK-SWITCH-003",
         "interfaces": [
             {
                 "interface_id": 13628,
@@ -3584,13 +3584,13 @@
         "component_type": "network_host",
         "details_url": "https://solarwinds.procyonnetworks.nl/Orion/NetPerfMon/NodeDetails.aspx?NetObject=N:1445",
         "identifiers": [
-            "urn:host:/procnlalkesx02-idrac",
-            "urn:host:/PROCNLALKESX02-IDRAC"
+            "urn:network_host:/procnlalkesx02-idrac",
+            "urn:network_host:/PROCNLALKESX02-IDRAC"
         ],
-        "_node_identifier_no_caps": "urn:host:/procnlalkesx02-idrac",
-        "_node_identifier_all_caps": "urn:host:/PROCNLALKESX02-IDRAC",
-        "_node_identifier_no_caps_no_domain": "urn:host:/procnlalkesx02-idrac",
-        "_node_identifier_all_caps_no_domain": "urn:host:/PROCNLALKESX02-IDRAC",
+        "_node_identifier_no_caps": "urn:network_host:/procnlalkesx02-idrac",
+        "_node_identifier_all_caps": "urn:network_host:/PROCNLALKESX02-IDRAC",
+        "_node_identifier_no_caps_no_domain": "urn:network_host:/procnlalkesx02-idrac",
+        "_node_identifier_all_caps_no_domain": "urn:network_host:/PROCNLALKESX02-IDRAC",
         "interfaces": [
             {
                 "interface_id": 13782,
@@ -3747,13 +3747,13 @@
         "component_type": "network_host",
         "details_url": "https://solarwinds.procyonnetworks.nl/Orion/NetPerfMon/NodeDetails.aspx?NetObject=N:1665",
         "identifiers": [
-            "urn:host:/procnlvnr01sw02",
-            "urn:host:/PROCNLVNR01SW02"
+            "urn:network_host:/procnlvnr01sw02",
+            "urn:network_host:/PROCNLVNR01SW02"
         ],
-        "_node_identifier_no_caps": "urn:host:/procnlvnr01sw02",
-        "_node_identifier_all_caps": "urn:host:/PROCNLVNR01SW02",
-        "_node_identifier_no_caps_no_domain": "urn:host:/procnlvnr01sw02",
-        "_node_identifier_all_caps_no_domain": "urn:host:/PROCNLVNR01SW02",
+        "_node_identifier_no_caps": "urn:network_host:/procnlvnr01sw02",
+        "_node_identifier_all_caps": "urn:network_host:/PROCNLVNR01SW02",
+        "_node_identifier_no_caps_no_domain": "urn:network_host:/procnlvnr01sw02",
+        "_node_identifier_all_caps_no_domain": "urn:network_host:/PROCNLVNR01SW02",
         "interfaces": [
             {
                 "interface_id": 16555,
@@ -4247,13 +4247,13 @@
         "component_type": "network_host",
         "details_url": "https://solarwinds.procyonnetworks.nl/Orion/NetPerfMon/NodeDetails.aspx?NetObject=N:2113",
         "identifiers": [
-            "urn:host:/procnlalksz01",
-            "urn:host:/PROCNLALKSZ01"
+            "urn:network_host:/procnlalksz01",
+            "urn:network_host:/PROCNLALKSZ01"
         ],
-        "_node_identifier_no_caps": "urn:host:/procnlalksz01",
-        "_node_identifier_all_caps": "urn:host:/PROCNLALKSZ01",
-        "_node_identifier_no_caps_no_domain": "urn:host:/procnlalksz01",
-        "_node_identifier_all_caps_no_domain": "urn:host:/PROCNLALKSZ01",
+        "_node_identifier_no_caps": "urn:network_host:/procnlalksz01",
+        "_node_identifier_all_caps": "urn:network_host:/PROCNLALKSZ01",
+        "_node_identifier_no_caps_no_domain": "urn:network_host:/procnlalksz01",
+        "_node_identifier_all_caps_no_domain": "urn:network_host:/PROCNLALKSZ01",
         "interfaces": [
             {
                 "interface_id": 35240,
