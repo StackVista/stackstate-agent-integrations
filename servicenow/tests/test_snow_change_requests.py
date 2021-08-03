@@ -8,8 +8,8 @@ from freezegun import freeze_time
 
 from stackstate_checks.base import AgentCheck
 from stackstate_checks.base.utils.common import read_file, to_string
-from stackstate_checks.servicenow.servicenow import API_SNOW_TABLE_CHANGE_REQUEST, API_SNOW_TABLE_CMDB_CI, \
-    API_SNOW_TABLE_CMDB_REL_CI
+from stackstate_checks.servicenow.common import API_SNOW_TABLE_CMDB_CI, API_SNOW_TABLE_CMDB_REL_CI, \
+    API_SNOW_TABLE_CHANGE_REQUEST
 from stackstate_checks.stubs import aggregator, telemetry
 
 SERVICE_CHECK_NAME = 'servicenow.cmdb.topology_information'
@@ -51,8 +51,6 @@ def test_creating_topology_event_from_change_request(servicenow_check, requests_
     assert 'priority:3 - Moderate' in topology_event['tags']
     assert 'impact:3 - Low' in topology_event['tags']
     assert 'risk:High' in topology_event['tags']
-    assert 'risk:High' in topology_event['tags']
-    assert 'state:New' in topology_event['tags']
     assert 'state:New' in topology_event['tags']
     assert 'category:Software' in topology_event['tags']
 
