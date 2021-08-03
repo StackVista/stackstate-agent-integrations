@@ -22,7 +22,7 @@ PLANNED_CRS_RESPONSE = [
 ]
 
 
-def test_creating_event_from_change_request(servicenow_check, requests_mock, test_cr_instance):
+def test_creating_topology_event_from_change_request(servicenow_check, requests_mock, test_cr_instance):
     response = [{'status_code': 200, 'text': read_file('CHG0000001.json', 'samples')},
                 {'status_code': 200, 'text': EMPTY_RESULT}]
     request_mock_cmdb_ci_tables_setup(requests_mock, test_cr_instance.get('url'), response)
@@ -40,8 +40,8 @@ def test_creating_event_from_change_request(servicenow_check, requests_mock, tes
     assert context['source'] == 'servicenow'
     assert context['category'] == 'change_request'
     assert 'a9c0c8d2c6112276018f7705562f9cb0' in context['element_identifiers']
-    assert 'urn:host:/Sales © Force Automation' in context['element_identifiers']
-    assert 'urn:host:/sales © force automation' in context['element_identifiers']
+    assert to_string('urn:host:/Sales © Force Automation') in context['element_identifiers']
+    assert to_string('urn:host:/sales © force automation') in context['element_identifiers']
     assert context['source_links'] == []
     assert context['data']['requested_by'] == 'David Loo'
     assert context['data']['assigned_to'] == 'ITIL User'
