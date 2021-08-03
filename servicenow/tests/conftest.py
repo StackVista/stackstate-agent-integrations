@@ -47,7 +47,7 @@ def test_cr_instance():
         "user": "some_user",
         "password": "secret",
         "batch_size": 100,
-        # 'resend_planned_change_request_schedule': 1,
+        # 'planned_change_request_resend_schedule': 1,
         # 'custom_planned_start_date_field': 'u_custom_start_date'
         # 'custom_planned_end_date_field': 'u_custom_end_date'
     }

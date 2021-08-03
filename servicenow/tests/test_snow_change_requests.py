@@ -42,6 +42,20 @@ def test_planned_cr_is_removed_from_sent_cache_after_end_time(servicenow_check, 
         assert [] == state.get('sent_planned_crs_cache')
 
 
+@freeze_time("2021-08-02 11:15:00")
+def test_change_of_planned_cr_resend_schedule(servicenow_check, requests_mock, test_cr_instance):
+    test_cr_instance['planned_change_request_resend_schedule'] = 2
+    request_mock_cmdb_ci_tables_setup(requests_mock, test_cr_instance.get('url'))
+    servicenow_check.run()
+    aggregator.assert_service_check(SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
+    topology_events = telemetry._topology_events
+    assert len(topology_events) == 2
+    assert topology_events[0].get('msg_title') == 'CHG0040007: Please reboot ApplicationServerPeopleSoft'
+    assert topology_events[1].get('msg_title') == 'CHG0040004: Please reboot AS400'
+    state = servicenow_check.state_manager.get_state(servicenow_check._get_state_descriptor())
+    assert ['CHG0040007', 'CHG0040004'] == state.get('sent_planned_crs_cache')
+
+
 def request_mock_cmdb_ci_tables_setup(requests_mock, url):
     api_cmdb_ci_url = url + API_SNOW_TABLE_CMDB_CI
     api_cmdb_ci_rel_url = url + API_SNOW_TABLE_CMDB_REL_CI
