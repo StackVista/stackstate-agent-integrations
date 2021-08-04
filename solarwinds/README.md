@@ -8,7 +8,7 @@ This check monitors [SolarWinds][1] through the StackState Agent.
 
 ### Installation
 
-The Solarwinds check is included in the [StackState Agent][2] package, so you do not need to install anything else on your server.
+The SolarWinds check is included in the [StackState Agent][2] package, so you do not need to install anything else on your server.
 
 
 ## Documentation

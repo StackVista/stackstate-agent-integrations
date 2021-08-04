@@ -1,7 +1,11 @@
 # StackState Agent Integrations v2 releases
 
+## 1.16.0 / 2021-??-??
+
+* [Added] ServiceNow send Topology Event to StackState before the scheduled Planned Start Date of the Change Request. [(STAC-13256)](https://stackstate.atlassian.net/browse/STAC-13256)
+
 ## 1.15.0 / 2021-08-02
-* [Fixed] Solarwinds Component has multiple health statuses. [(STAC-13796)](https://stackstate.atlassian.net/browse/STAC-13796)
+* [Fixed] SolarWinds Component has multiple health statuses. [(STAC-13796)](https://stackstate.atlassian.net/browse/STAC-13796)
 * [Improvement] AWS x-ray integration performance improvements when fetching historic data, as well as schema validation using Schematics.  [(STAC-13551)](https://stackstate.atlassian.net/browse/STAC-13551)
 * [Fixed] Unable to load Splunk Topology on Stackstate UI. [(STAC-13564)](https://stackstate.atlassian.net/browse/STAC-13564)
 * [Added] Splunk http helper base library. [(STAC-13089)](https://stackstate.atlassian.net/browse/STAC-13089)
