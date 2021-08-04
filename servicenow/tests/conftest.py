@@ -68,3 +68,10 @@ def test_client(test_instance):
     test_instance_schema = check._get_instance_schema(test_instance)
     client = ServiceNowClient(test_instance_schema)
     return client
+
+
+@pytest.fixture
+def get_url_auth(test_instance):
+    url = "{}/api/now/table/cmdb_ci".format(test_instance.get('url'))
+    auth = (test_instance.get('user'), test_instance.get('password'))
+    return url, auth

@@ -72,3 +72,33 @@ def test_get_sys_class_relation_filter_query_only_one_element(test_client):
     sys_class_filter = ['cmdb_ci_app_server_java']
     query = test_client._get_sys_class_relation_filter_query(sys_class_filter)
     assert query == 'parent.sys_class_nameINcmdb_ci_app_server_java^child.sys_class_nameINcmdb_ci_app_server_java'
+
+# def test_get_json_utf_encoding(test_client, requests_mock, get_url_auth):
+#     """
+#     Test to check the method _get_json response with unicode character in name
+#     """
+#     url, auth = get_url_auth()
+#     requests_mock.get(status_code=200, text=json.dumps(mock_result_with_utf8))
+#     mock_req_get.return_value = mock.MagicMock(status_code=200, text=json.dumps(mock_result_with_utf8))
+#     response = self.check._get_json(url, timeout=10, params={}, auth=auth)
+#     self.assertEqual(u'Avery® Wizard 2.1 forMicrosoft® Word 2000', response.get('result').get('name'))
+#
+# @mock.patch('requests.Session.get')
+# def test_get_json_malformed_json(self, mock_request_get):
+#     """
+#     Test just malformed json
+#     """
+#     url, auth = self._get_url_auth()
+#     mock_request_get.return_value = mock.MagicMock(status_code=200, text=mock_result_with_malformed_str)
+#     self.assertRaises(CheckException, self.check._get_json, url, 10, auth)
+#
+# @mock.patch('requests.Session.get')
+# def test_get_json_malformed_json_and_execution_time_exceeded_error(self, mock_request_get):
+#     """
+#     Test malformed json that sometimes happens with
+#     ServiceNow error 'Transaction cancelled: maximum execution time exceeded'
+#     """
+#     url, auth = self._get_url_auth()
+#     mock_request_get.return_value = mock.MagicMock(status_code=200, text=mock_result_malformed_str_with_error_msg)
+#     self.assertRaises(CheckException, self.check._get_json, url, 10, auth)
+#
