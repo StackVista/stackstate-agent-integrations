@@ -2,6 +2,8 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import pytest
+
+from stackstate_checks.servicenow.client import ServiceNowClient
 from stackstate_checks.stubs import aggregator, telemetry, topology
 
 from stackstate_checks.servicenow import ServiceNowCheck
@@ -58,3 +60,11 @@ def servicenow_check(test_instance):
     telemetry.reset()
     topology.reset()
     check.commit_state(None)
+
+
+@pytest.fixture
+def test_client(test_instance):
+    check = ServiceNowCheck('servicenow', {}, instance=[test_instance])
+    test_instance_schema = check._get_instance_schema(test_instance)
+    client = ServiceNowClient(test_instance_schema)
+    return client

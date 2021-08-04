@@ -408,45 +408,6 @@ class TestServicenow(unittest.TestCase):
         mock_req_get.return_value = mock.MagicMock(status_code=200, text=response_txt)
         self.assertRaises(CheckException, self.check._get_json, url, 10, {}, auth)
 
-    def test_get_sys_class_component_filter_query(self):
-        """
-        Test to check if the method creates the proper param query
-        """
-        sys_class_filter = self.instance.get('include_resource_types')
-        self.assertEqual(len(sys_class_filter), 3)
-        query = self.check._get_sys_class_component_filter_query(sys_class_filter)
-        expected_query = "sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server"
-        self.assertEqual(expected_query, query)
-
-    def test_get_sys_class_component_filter_query_only_one_element(self):
-        """
-        Test to check if the method creates the proper param query for only one element
-        """
-        sys_class_filter = ['cmdb_ci_app_server_java']
-        query = self.check._get_sys_class_component_filter_query(sys_class_filter)
-        expected_query = 'sys_class_nameINcmdb_ci_app_server_java'
-        self.assertEqual(expected_query, query)
-
-    def test_get_sys_class_relation_filter_query(self):
-        """
-        Test to check if the method creates the proper param query
-        """
-        sys_class_filter = self.instance.get('include_resource_types')
-        self.assertEqual(len(sys_class_filter), 3)
-        query = self.check._get_sys_class_relation_filter_query(sys_class_filter)
-        expected_query = 'parent.sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server' \
-                         '^child.sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server'
-        self.assertEqual(expected_query, query)
-
-    def test_get_sys_class_relation_filter_query_only_one_element(self):
-        """
-        Test to check if the method creates the proper param query for only one
-        """
-        sys_class_filter = ['cmdb_ci_app_server_java']
-        query = self.check._get_sys_class_relation_filter_query(sys_class_filter)
-        expected_query = 'parent.sys_class_nameINcmdb_ci_app_server_java^child.sys_class_nameINcmdb_ci_app_server_java'
-        self.assertEqual(expected_query, query)
-
     def test_process_components_with_sys_filter_change(self):
         """
         Test _process_components to return whole topology when query changed in between
@@ -576,41 +537,6 @@ class TestServicenow(unittest.TestCase):
             check = ServiceNowCheck('servicenow', {}, {}, [test['instance']])
             result = json.loads(check.run())
             self.assertEqual(test['error'], result[0]['message'])
-
-    def test_append_to_sysparm_query(self):
-        """
-        Test append of sysparm_query to params dict and creation of new empty dict if we don't pass one as parameter.
-        """
-        params = self.check._params_append_to_sysparm_query(add_to_query='first_one')
-        self.assertEqual({'sysparm_query': 'first_one'}, params)
-        params = self.check._params_append_to_sysparm_query(params=params, add_to_query='second_one')
-        self.assertEqual({'sysparm_query': 'first_one^second_one'}, params)
-        params = self.check._params_append_to_sysparm_query(add_to_query='')
-        self.assertEqual({}, params)
-
-    def test_json_batch_params(self):
-        """
-        Test json batch params
-        """
-        offset = 10
-        batch_size = 200
-        params = self.check._prepare_json_batch_params(params={}, offset=offset, batch_size=batch_size)
-        self.assertEqual(offset, params.get('sysparm_offset'))
-        self.assertEqual(batch_size, params.get('sysparm_limit'))
-        self.assertEqual('ORDERBYsys_created_on', params.get('sysparm_query'))
-
-    def test_json_batch_adding_param(self):
-        """
-        Test batch path construction adding to sysparm_query
-        """
-        offset = 10
-        batch_size = 200
-        params = self.check._prepare_json_batch_params(params={'sysparm_query': 'company.nameSTARTSWITHaxa'},
-                                                       offset=offset,
-                                                       batch_size=batch_size)
-        self.assertEqual(offset, params.get('sysparm_offset'))
-        self.assertEqual(batch_size, params.get('sysparm_limit'))
-        self.assertEqual('company.nameSTARTSWITHaxa^ORDERBYsys_created_on', params.get('sysparm_query'))
 
     def test_collect_components_returns_no_result(self):
         """Test if collect component returns no result or its not list"""
