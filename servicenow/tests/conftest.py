@@ -4,7 +4,7 @@
 import pytest
 from stackstate_checks.stubs import aggregator, telemetry, topology
 
-from stackstate_checks.servicenow import ServicenowCheck
+from stackstate_checks.servicenow import ServiceNowCheck
 
 
 @pytest.fixture(scope='session')
@@ -52,7 +52,7 @@ def test_cr_instance():
 
 @pytest.fixture
 def servicenow_check(test_cr_instance):
-    check = ServicenowCheck('servicenow', {}, instances=[test_cr_instance])
+    check = ServiceNowCheck('servicenow', {}, instances=[test_cr_instance])
     yield check
     aggregator.reset()
     telemetry.reset()
