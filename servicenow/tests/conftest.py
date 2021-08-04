@@ -41,7 +41,7 @@ def instance(request):
 
 
 @pytest.fixture(scope="class")
-def test_cr_instance():
+def test_instance():
     return {
         "url": "https://instance.service-now.com",
         "user": "some_user",
@@ -51,8 +51,8 @@ def test_cr_instance():
 
 
 @pytest.fixture
-def servicenow_check(test_cr_instance):
-    check = ServiceNowCheck('servicenow', {}, instances=[test_cr_instance])
+def servicenow_check(test_instance):
+    check = ServiceNowCheck('servicenow', {}, instances=[test_instance])
     yield check
     aggregator.reset()
     telemetry.reset()
