@@ -378,36 +378,6 @@ class TestServicenow(unittest.TestCase):
         self.assertEqual(len(topo_instances['components']), 0)
         self.assertEqual(topo_instances['relations'][0]['type'], 'Cools')
 
-    @mock.patch('requests.Session.get')
-    def test_get_json_ok_status(self, mock_req_get):
-        """
-        Test to check the method _get_json with positive response and get a OK service check
-        """
-        url, auth = self._get_url_auth()
-        example = {'key': 'value'}
-        mock_req_get.return_value = mock.MagicMock(status_code=200, text=json.dumps(example))
-        result = self.check._get_json(url, timeout=10, params={}, auth=auth)
-        self.assertEqual(example, result)
-
-    @mock.patch('requests.Session.get')
-    def test_get_json_error_status(self, mock_req_get):
-        """
-        Test for Check Exception if response code is not 200
-        """
-        url, auth = self._get_url_auth()
-        mock_req_get.return_value = mock.MagicMock(status_code=300, text=json.dumps({'key': 'value'}))
-        self.assertRaises(CheckException, self.check._get_json, url, 10, {}, auth)
-
-    @mock.patch('requests.Session.get')
-    def test_get_json_ok_status_with_error_in_response(self, mock_req_get):
-        """
-        Test for situation when we get error in json and request status is OK
-        """
-        url, auth = self._get_url_auth()
-        response_txt = json.dumps({'error': {'message': 'test error'}})
-        mock_req_get.return_value = mock.MagicMock(status_code=200, text=response_txt)
-        self.assertRaises(CheckException, self.check._get_json, url, 10, {}, auth)
-
     def test_process_components_with_sys_filter_change(self):
         """
         Test _process_components to return whole topology when query changed in between

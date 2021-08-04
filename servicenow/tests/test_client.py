@@ -92,6 +92,43 @@ def test_get_json_utf_encoding(test_client, requests_mock, get_url_auth):
     assert response.get('result')[0].get('name') == u'Avery® Wizard 2.1 forMicrosoft® Word 2000'
 
 
+def test_get_json_ok_status(test_client, requests_mock, get_url_auth):
+    """
+    Test to check the method _get_json with positive response and get a OK service check
+    """
+    url, auth = get_url_auth
+    api_cmdb_ci_url = url + API_SNOW_TABLE_CMDB_CI
+    requests_mock.get(url=api_cmdb_ci_url, status_code=200, text=read_file('cmdb_ci_result_200.json', 'samples'))
+    response = test_client._get_json(api_cmdb_ci_url, timeout=10, params={}, auth=auth)
+    assert response.get('result')[0].get('name') == 'Unknown'
+
+
+def test_get_json_error_status(test_client, requests_mock, get_url_auth):
+    """
+    Test for Check Exception if response code is not 200
+    """
+    url, auth = get_url_auth
+    api_cmdb_ci_url = url + API_SNOW_TABLE_CMDB_CI
+    requests_mock.get(url=api_cmdb_ci_url, status_code=404,
+                      text=read_file('cmdb_ci_result_error_message.json', 'samples'))
+    with pytest.raises(CheckException) as e:
+        test_client._get_json(api_cmdb_ci_url, timeout=10, params={}, auth=auth)
+    assert 'Got status: 404 when hitting' in str(e)
+
+
+def test_get_json_ok_status_with_error_in_response(test_client, requests_mock, get_url_auth):
+    """
+    Test for situation when we get error in json and request status is OK
+    """
+    url, auth = get_url_auth
+    api_cmdb_ci_url = url + API_SNOW_TABLE_CMDB_CI
+    requests_mock.get(url=api_cmdb_ci_url, status_code=200,
+                      text=read_file('cmdb_ci_result_error_message.json', 'samples'))
+    with pytest.raises(CheckException) as e:
+        test_client._get_json(api_cmdb_ci_url, timeout=10, params={}, auth=auth)
+    assert 'The resource you requested is not part of the API.' in str(e)
+
+
 def test_get_json_malformed_json(test_client, requests_mock, get_url_auth):
     """
     Test just malformed json
