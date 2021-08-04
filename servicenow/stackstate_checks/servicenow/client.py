@@ -42,7 +42,6 @@ class ServiceNowClient:
         """
         Constructs params for getting new Change Requests (CR) and CRs updated after the last time we queried
         ServiceNow for them. Last query time is persisted in InstanceInfo.state.latest_sys_updated_on.
-        :param instance_info: instance object
         :return: dict with servicenow rest api response
         """
         reformatted_date = latest_sys_updated_on.strftime("'%Y-%m-%d', '%H:%M:%S'")
@@ -55,7 +54,6 @@ class ServiceNowClient:
         Constructs params for getting planned Change Requests (CR) from ServiceNow.
         CR can be planned in advance, sometimes by as much as a few months. CRs in ServiceNow have a Planned Start Date
         field that tracks this. We select CRs with Planned Start Date set for today or tomorrow.
-        :param instance_info: instance object
         :return: dict with servicenow rest api response
         """
         sysparm_query = 'start_dateONToday@javascript:gs.beginningOfToday()@javascript:gs.endOfToday()' \
@@ -166,7 +164,6 @@ class ServiceNowClient:
     def _collect_change_requests(self, sysparm_query):
         """
         Prepares ServiceNow call for change request rest api endpoint.
-        :param instance_info: instance object
         :param sysparm_query: custom params for rest api call
         :return: dict with servicenow rest api response
         """

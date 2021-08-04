@@ -570,35 +570,6 @@ class TestServicenow(unittest.TestCase):
         topology_instance = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topology_instance['components']), 5)
 
-    @mock.patch('requests.Session.get')
-    def test_get_json_utf_encoding(self, mock_req_get):
-        """
-        Test to check the method _get_json response with unicode character in name
-        """
-        url, auth = self._get_url_auth()
-        mock_req_get.return_value = mock.MagicMock(status_code=200, text=json.dumps(mock_result_with_utf8))
-        response = self.check._get_json(url, timeout=10, params={}, auth=auth)
-        self.assertEqual(u'Avery® Wizard 2.1 forMicrosoft® Word 2000', response.get('result').get('name'))
-
-    @mock.patch('requests.Session.get')
-    def test_get_json_malformed_json(self, mock_request_get):
-        """
-        Test just malformed json
-        """
-        url, auth = self._get_url_auth()
-        mock_request_get.return_value = mock.MagicMock(status_code=200, text=mock_result_with_malformed_str)
-        self.assertRaises(CheckException, self.check._get_json, url, 10, auth)
-
-    @mock.patch('requests.Session.get')
-    def test_get_json_malformed_json_and_execution_time_exceeded_error(self, mock_request_get):
-        """
-        Test malformed json that sometimes happens with
-        ServiceNow error 'Transaction cancelled: maximum execution time exceeded'
-        """
-        url, auth = self._get_url_auth()
-        mock_request_get.return_value = mock.MagicMock(status_code=200, text=mock_result_malformed_str_with_error_msg)
-        self.assertRaises(CheckException, self.check._get_json, url, 10, auth)
-
     def test_batch_size(self):
         """
         Test max batch size value
