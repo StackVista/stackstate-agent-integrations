@@ -16,7 +16,7 @@ class TestEvents(unittest.TestCase):
             'msg_title': 'new test event',
             'msg_text': u'a few strange characters öüéñ',
             'context': {
-                'element_identifiers': [u'urn:test:/value', 123456789],
+                'element_identifiers': [u'urn:test:/value', '123456789'],
                 "A": {
                     "B": u'bbbbbb',
                     "C": {u"ccc1", "ccc2"},
@@ -33,7 +33,7 @@ class TestEvents(unittest.TestCase):
             "key: context, type: <class 'dict'>",
             "key: element_identifiers, type: <class 'list'>",
             "key: element_identifiers, type: <class 'str'>",
-            "key: element_identifiers, type: <class 'int'>",
+            "key: element_identifiers, type: <class 'str'>",
             "key: context, type: <class 'dict'>",
             "key: A, type: <class 'dict'>",
             "key: C, type: <class 'set'>",

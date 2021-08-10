@@ -6,109 +6,20 @@ import json
 
 from requests import Session
 
+from stackstate_checks.servicenow import State, InstanceInfo
+from stackstate_checks.servicenow.common import API_SNOW_TABLE_CMDB_CI, API_SNOW_TABLE_CMDB_REL_CI, \
+    API_SNOW_TABLE_CHANGE_REQUEST
+from stackstate_checks.servicenow.models import ChangeRequest, ConfigurationItem, CIRelation
+
 try:
     json_parse_exception = json.decoder.JSONDecodeError
 except AttributeError:  # Python 2
     json_parse_exception = ValueError
 
-from schematics import Model
 from schematics.exceptions import DataError
-from schematics.types import URLType, StringType, ListType, IntType, DictType, DateTimeType, ModelType, BooleanType
 
 from stackstate_checks.base import AgentCheck, StackPackInstance, Identifiers, to_string
 from stackstate_checks.base.errors import CheckException
-
-BATCH_DEFAULT_SIZE = 2500
-BATCH_MAX_SIZE = 10000
-TIMEOUT = 20
-VERIFY_HTTPS = True
-CRS_BOOTSTRAP_DAYS_DEFAULT = 100
-CRS_DEFAULT_PROCESS_LIMIT = 1000
-CMDB_CI_DEFAULT_FIELD = 'cmdb_ci'
-
-# keys for which `display_value` has to be used
-DEFAULT_COMPONENT_DISPLAY_VALUE_LIST = ["sys_tags", "maintenance_schedule", "location", "company", "manufacturer",
-                                        "vendor"]
-DEFAULT_RELATION_DISPLAY_VALUE_LIST = ["sys_tags", "type"]
-
-
-class WrapperStringType(Model):
-    value = StringType(default='')
-    display_value = StringType(default='')
-
-
-class WrapperDateType(Model):
-    value = DateTimeType()
-    display_value = DateTimeType()
-
-
-class ChangeRequest(Model):
-    number = ModelType(WrapperStringType, required=True)
-    state = ModelType(WrapperStringType, required=True)
-    custom_cmdb_ci = ModelType(WrapperStringType, required=True)
-    sys_updated_on = ModelType(WrapperDateType, required=True)
-    business_service = ModelType(WrapperStringType)
-    service_offering = ModelType(WrapperStringType)
-    short_description = ModelType(WrapperStringType, default='No short description')
-    description = ModelType(WrapperStringType, default='No description')
-    type = ModelType(WrapperStringType)
-    priority = ModelType(WrapperStringType)
-    impact = ModelType(WrapperStringType)
-    risk = ModelType(WrapperStringType)
-    requested_by = ModelType(WrapperStringType)
-    category = ModelType(WrapperStringType)
-    conflict_status = ModelType(WrapperStringType)
-    conflict_last_run = ModelType(WrapperStringType)
-    assignment_group = ModelType(WrapperStringType)
-    assigned_to = ModelType(WrapperStringType)
-
-
-class ConfigurationItem(Model):
-    name = ModelType(WrapperStringType, required=True)
-    sys_class_name = ModelType(WrapperStringType, required=True)
-    sys_id = ModelType(WrapperStringType, required=True)
-    sys_tags = ModelType(WrapperStringType, default=WrapperStringType())
-    fqdn = ModelType(WrapperStringType, default=WrapperStringType())
-    host_name = ModelType(WrapperStringType, default=WrapperStringType())
-
-
-class CIRelation(Model):
-    sys_id = ModelType(WrapperStringType)
-    connection_strength = ModelType(WrapperStringType)
-    parent = ModelType(WrapperStringType, required=True)
-    sys_mod_count = ModelType(WrapperStringType)
-    sys_tags = ModelType(WrapperStringType, default=WrapperStringType())
-    type = ModelType(WrapperStringType, required=True)
-    port = ModelType(WrapperStringType)
-    percent_outage = ModelType(WrapperStringType)
-    child = ModelType(WrapperStringType, required=True)
-
-
-class State(Model):
-    latest_sys_updated_on = DateTimeType(required=True)
-    change_requests = DictType(StringType, default={})
-
-
-class InstanceInfo(Model):
-    url = URLType(required=True)
-    user = StringType(required=True)
-    password = StringType(required=True)
-    include_resource_types = ListType(StringType, default=[])
-    component_display_value_list = ListType(StringType, default=DEFAULT_COMPONENT_DISPLAY_VALUE_LIST)
-    relation_display_value_list = ListType(StringType, default=DEFAULT_RELATION_DISPLAY_VALUE_LIST)
-    batch_size = IntType(default=BATCH_DEFAULT_SIZE, max_value=BATCH_MAX_SIZE)
-    timeout = IntType(default=TIMEOUT)
-    verify_https = BooleanType(default=VERIFY_HTTPS)
-    cert = StringType()
-    keyfile = StringType()
-    instance_tags = ListType(StringType, default=[])
-    change_request_bootstrap_days = IntType(default=CRS_BOOTSTRAP_DAYS_DEFAULT)
-    change_request_process_limit = IntType(default=CRS_DEFAULT_PROCESS_LIMIT)
-    cmdb_ci_sysparm_query = StringType()
-    cmdb_rel_ci_sysparm_query = StringType()
-    change_request_sysparm_query = StringType()
-    custom_cmdb_ci_field = StringType(default=CMDB_CI_DEFAULT_FIELD)
-    state = ModelType(State)
 
 
 class ServicenowCheck(AgentCheck):
@@ -135,6 +46,7 @@ class ServicenowCheck(AgentCheck):
             self._process_components(instance_info)
             self._process_relations(instance_info)
             self._process_change_requests(instance_info)
+            self._process_planned_change_requests(instance_info)
             self.stop_snapshot()
             msg = "ServiceNow CMDB instance detected at %s " % instance_info.url
             tags = ["url:%s" % instance_info.url]
@@ -205,7 +117,7 @@ class ServicenowCheck(AgentCheck):
         """
         auth = (instance_info.user, instance_info.password)
         cert = (instance_info.cert, instance_info.keyfile)
-        url = instance_info.url + '/api/now/table/cmdb_ci'
+        url = instance_info.url + API_SNOW_TABLE_CMDB_CI
         sys_class_filter_query = self._get_sys_class_component_filter_query(instance_info.include_resource_types)
         params = self._params_append_to_sysparm_query(add_to_query=sys_class_filter_query)
         params = self._params_append_to_sysparm_query(add_to_query=instance_info.cmdb_ci_sysparm_query, params=params)
@@ -243,7 +155,7 @@ class ServicenowCheck(AgentCheck):
         """
         Gets SNOW components name, external_id and other identifiers
         :param instance_info:
-        :return:
+        :return: None
         """
         collected_components = self._batch_collect(self._batch_collect_components, instance_info)
 
@@ -286,7 +198,7 @@ class ServicenowCheck(AgentCheck):
         """
         auth = (instance_info.user, instance_info.password)
         cert = (instance_info.cert, instance_info.keyfile)
-        url = instance_info.url + '/api/now/table/cmdb_rel_ci'
+        url = instance_info.url + API_SNOW_TABLE_CMDB_REL_CI
         sys_class_filter_query = self._get_sys_class_relation_filter_query(instance_info.include_resource_types)
         params = self._params_append_to_sysparm_query(add_to_query=sys_class_filter_query)
         params = self._params_append_to_sysparm_query(add_to_query=instance_info.cmdb_rel_ci_sysparm_query,
@@ -324,13 +236,38 @@ class ServicenowCheck(AgentCheck):
 
             self.relation(parent_sys_id, child_sys_id, relation_type, data)
 
-    def _collect_change_requests(self, instance_info):
-        auth = (instance_info.user, instance_info.password)
-        cert = (instance_info.cert, instance_info.keyfile)
-        url = instance_info.url + '/api/now/table/change_request'
+    def _collect_change_requests_updates(self, instance_info):
+        """
+        Constructs params for getting new Change Requests (CR) and CRs updated after the last time we queried
+        ServiceNow for them. Last query time is persisted in InstanceInfo.state.latest_sys_updated_on.
+        :param instance_info: instance object
+        :return: dict with servicenow rest api response
+        """
         reformatted_date = instance_info.state.latest_sys_updated_on.strftime("'%Y-%m-%d', '%H:%M:%S'")
         sysparm_query = 'sys_updated_on>javascript:gs.dateGenerate(%s)' % reformatted_date
         self.log.debug('sysparm_query: %s', sysparm_query)
+        return self._collect_change_requests(instance_info, sysparm_query)
+
+    def _collect_planned_change_requests(self, instance_info):
+        """
+        Constructs params for getting planned Change Requests (CR) from ServiceNow.
+        CR can be planned in advance, sometimes by as much as a few months. CRs in ServiceNow have a Planned Start Date
+        field that tracks this. We select CRs with Planned Start Date set for today or tomorrow.
+        :param instance_info: instance object
+        :return: dict with servicenow rest api response
+        """
+        sysparm_query = 'start_dateONToday@javascript:gs.beginningOfToday()@javascript:gs.endOfToday()' \
+                        '^ORstart_dateONTomorrow@javascript:gs.beginningOfTomorrow()@javascript:gs.endOfTomorrow()'
+        self.log.debug('sysparm_query: %s', sysparm_query)
+        return self._collect_change_requests(instance_info, sysparm_query)
+
+    def _collect_change_requests(self, instance_info, sysparm_query):
+        """
+        Prepares ServiceNow call for change request rest api endpoint.
+        :param instance_info: instance object
+        :param sysparm_query: custom params for rest api call
+        :return: dict with servicenow rest api response
+        """
         params = {
             'sysparm_display_value': 'all',
             'sysparm_exclude_reference_link': 'true',
@@ -338,71 +275,148 @@ class ServicenowCheck(AgentCheck):
             'sysparm_query': sysparm_query
         }
         params = self._params_append_to_sysparm_query(instance_info.change_request_sysparm_query, params)
+        auth = (instance_info.user, instance_info.password)
+        cert = (instance_info.cert, instance_info.keyfile)
+        url = instance_info.url + API_SNOW_TABLE_CHANGE_REQUEST
         return self._get_json(url, instance_info.timeout, params, auth, instance_info.verify_https, cert)
 
-    def _process_change_requests(self, instance_info):
-        response = self._collect_change_requests(instance_info)
-        state = instance_info.state
-        self.log.info('Received %d Change Requests', len(response['result']))
-        for cr in response['result']:
+    def _validate_and_filter_change_requests_response(self, response, instance_info):
+        """
+        CR validation with Schematics model. CR needs to have assigned CMDB_CI to connect it to STS topology component.
+        :param response: ServiceNow rest api response as dict
+        :param instance_info: instance object
+        :return: ChangeRequest list
+        """
+        change_requests = []
+        for cr in response.get('result', []):
             try:
-                mapping = {'custom_cmdb_ci': instance_info.custom_cmdb_ci_field}
+                mapping = {
+                    'custom_cmdb_ci': instance_info.custom_cmdb_ci_field,
+                    'custom_planned_start_date': instance_info.custom_planned_start_date_field,
+                    'custom_planned_end_date': instance_info.custom_planned_end_date_field,
+                }
                 change_request = ChangeRequest(cr, strict=False, deserialize_mapping=mapping)
                 change_request.validate()
             except DataError as e:
                 self.log.warning('%s - DataError: %s. This CR is skipped.', cr['number']['value'], e)
                 continue
+            # Change request must have CMDB_CI to be connected to STS component
             if change_request.custom_cmdb_ci.value:
-                self.log.info(
-                    '%s: %s %s - sys_updated_on value: %s display_value: %s',
+                change_requests.append(change_request)
+                self.log.debug(
+                    'CR %s: CMDB_CI: %s - sys_updated_on value: %s display_value: %s',
                     change_request.number.display_value,
-                    change_request.custom_cmdb_ci.value,
                     change_request.custom_cmdb_ci.display_value,
                     change_request.sys_updated_on.value,
                     change_request.sys_updated_on.display_value
                 )
-                if change_request.sys_updated_on.value > state.latest_sys_updated_on:
-                    state.latest_sys_updated_on = change_request.sys_updated_on.value
-                old_state = state.change_requests.get(change_request.number.display_value)
-                if old_state is None or old_state != change_request.state.display_value:
-                    self._create_event_from_change_request(change_request)
-                    state.change_requests[change_request.number.display_value] = change_request.state.display_value
+        return change_requests
+
+    def _process_change_requests(self, instance_info):
+        """
+        Change Requests (CR) need to fit the following criteria to be send to StackState as Topology Event:
+        - new CR that is created after last time we queried ServiceNow
+        - existing CR that is updated after last time we queried ServiceNow and their State has changed
+        :param instance_info: Instance object
+        :return: None
+        """
+        number_of_new_crs = 0
+        self.log.debug('Begin processing change requests.')
+        response_new_crs = self._collect_change_requests_updates(instance_info)
+        for change_request in self._validate_and_filter_change_requests_response(response_new_crs, instance_info):
+            if change_request.sys_updated_on.value > instance_info.state.latest_sys_updated_on:
+                instance_info.state.latest_sys_updated_on = change_request.sys_updated_on.value
+                self.log.debug('New sys_updated_on %s writen.', change_request.sys_updated_on.value)
+            cr = change_request.number.display_value
+            new_cr_state = change_request.state.display_value
+            old_cr_state = instance_info.state.change_requests.get(cr)
+            if old_cr_state is None or old_cr_state != new_cr_state:
+                self._create_event_from_change_request(change_request)
+                instance_info.state.change_requests[cr] = new_cr_state
+                self.log.debug('CR %s new state %s.', cr, new_cr_state)
+                number_of_new_crs += 1
+        if number_of_new_crs:
+            self.log.info('Created %d new Change Requests events.', number_of_new_crs)
+
+    def _process_planned_change_requests(self, instance_info):
+        """
+        Planned Change Requests (CR) were created in the past, and they are due today so we resend them 1 hour before
+        their Planned Start Date. 1 hour is default value. It can be changed in check config.
+        InstanceInfo.state.planned_change_requests_cache holds list of sent Planned CRs so we don't resend them.
+        :param instance_info: Instance object
+        :return: None
+        """
+        number_of_planned_crs = 0
+        self.log.debug('Begin processing planned change requests.')
+        response_planned_crs = self._collect_planned_change_requests(instance_info)
+        for change_request in self._validate_and_filter_change_requests_response(response_planned_crs, instance_info):
+            if change_request.custom_planned_start_date:
+                cr = change_request.number.display_value
+                start = datetime.datetime.strptime(
+                    change_request.custom_planned_start_date.display_value, '%Y-%m-%d %H:%M:%S'
+                )
+                resend = start - datetime.timedelta(hours=instance_info.planned_change_request_resend_schedule)
+                now = datetime.datetime.now()
+                self.log.debug('CR %s Planned start: %s Resend schedule: %s Now: %s', cr, start, resend, now)
+                if resend <= now < start:
+                    if cr not in instance_info.state.sent_planned_crs_cache:
+                        self._create_event_from_change_request(change_request)
+                        instance_info.state.sent_planned_crs_cache.append(cr)
+                        self.log.debug('Added CR %s to sent_planned_crs_cache.', cr)
+                        number_of_planned_crs += 1
+                    else:
+                        self.log.debug('CR %s is in sent_planned_crs_cache.', cr)
+                elif start < now and cr in instance_info.state.sent_planned_crs_cache:
+                    instance_info.state.sent_planned_crs_cache.remove(cr)
+                    self.log.debug('Removed CR %s from sent_planned_crs_cache.', cr)
+        if number_of_planned_crs:
+            self.log.info('Sent %d planned Change Requests.', number_of_planned_crs)
 
     def _create_event_from_change_request(self, change_request):
+        """
+        StackState topology event is created from ServiceNow Change Request (CR).
+        Time of event is based on when the CR was last time updated.
+        :param change_request: ChangeRequest object
+        :return: None
+        """
         host = Identifiers.create_host_identifier(to_string(change_request.custom_cmdb_ci.display_value))
         identifiers = [change_request.custom_cmdb_ci.value, host]
         identifiers = Identifiers.append_lowercase_identifiers(identifiers)
         timestamp = (change_request.sys_updated_on.value - datetime.datetime.utcfromtimestamp(0)).total_seconds()
-        msg_title = '%s: %s' % (change_request.number.display_value, change_request.short_description.display_value)
+        msg_title = '%s: %s' % (change_request.number.display_value,
+                                change_request.short_description.display_value or 'No short description')
+        msg_txt = change_request.description.display_value or 'No description'
         tags = [
             'number:%s' % change_request.number.display_value,
             'priority:%s' % change_request.priority.display_value,
             'risk:%s' % change_request.risk.display_value,
+            'impact:%s' % change_request.impact.display_value,
             'state:%s' % change_request.state.display_value,
             'category:%s' % change_request.category.display_value,
-            'conflict_status:%s' % change_request.conflict_status.display_value,
-            'assigned_to:%s' % change_request.assigned_to.display_value,
         ]
         event_type = 'Change Request %s' % change_request.type.display_value
 
-        self.log.debug('Creating event from CR %s', change_request.number.display_value)
+        self.log.debug('Creating STS topology event from SNOW CR %s', change_request.number.display_value)
 
         self.event({
             'timestamp': timestamp,
             'event_type': event_type,
             'msg_title': msg_title,
-            'msg_text': change_request.description.display_value,
+            'msg_text': msg_txt,
             'context': {
                 'source': 'servicenow',
                 'category': 'change_request',
                 'element_identifiers': identifiers,
                 'source_links': [],
                 'data': {
-                    'impact': change_request.impact.display_value,
                     'requested_by': change_request.requested_by.display_value,
-                    'conflict_last_run': change_request.conflict_last_run.display_value,
                     'assignment_group': change_request.assignment_group.display_value,
+                    'assigned_to': change_request.assigned_to.display_value,
+                    'conflict_status': change_request.conflict_status.display_value,
+                    'conflict_last_run': change_request.conflict_last_run.display_value,
                     'service_offering': change_request.service_offering.display_value,
+                    'start_date': change_request.custom_planned_start_date.display_value,
+                    'end_date': change_request.custom_planned_end_date.display_value,
                 },
             },
             'tags': tags

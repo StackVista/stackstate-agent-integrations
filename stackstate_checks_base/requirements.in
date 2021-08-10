@@ -1,5 +1,4 @@
 binary==1.0.0
-ddtrace==0.32.2
 kubernetes==8.0.1
 pyyaml==5.3.1
 prometheus-client==0.3.0
@@ -16,5 +15,3 @@ Deprecated==1.2.10
 enum34==1.1.10; python_version < '3.4'
 schematics==2.1.0
 orjson==2.6.1; python_version > '3.0'
-ruamel.yaml==0.16.13
-ruamel.yaml.clib==0.2.2
