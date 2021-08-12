@@ -68,8 +68,13 @@ class Connection(object):
 
     def add_traffic(self, start, end, traffic_type, incoming, byte_count, nwitf, reverse, log):
         self.network_interfaces.update(nwitf)
-        _, itf = nwitf.items()[0]
-        self.traffic_log.append("nwitf: {} log: {} incoming={} reverse={}".format(itf.PrivateIpAddress, log, incoming, reverse))
+        _, itf = next(iter(nwitf.items()))
+        self.traffic_log.append("nwitf: {} log: {} incoming={} reverse={}".format(
+            itf.PrivateIpAddress,
+            log,
+            incoming,
+            reverse
+        ))
         if self.start_time == 0 or start < self.start_time:
             self.start_time = start
         if self.end_time == 0 or end > self.end_time:
@@ -88,15 +93,15 @@ class Connection(object):
     @property
     def bytes_sent_per_second(self):
         try:
-            return self.bytes_sent / self.interval_seconds
-        finally:
+            return (0.0 + self.bytes_sent) / self.interval_seconds
+        except Exception:
             return 0.0
 
     @property
     def bytes_received_per_second(self):
         try:
-            return self.bytes_received / self.interval_seconds
-        finally:
+            return (0.0 + self.bytes_received) / self.interval_seconds
+        except Exception:
             return 0.0
 
 
@@ -124,11 +129,17 @@ class FlowlogCollector(object):
             nwinterfaces[itf.NetworkInterfaceId] = itf
         return nwinterfaces
 
+    def check_bucket(self, client, bucket_name):
+        versioning = client.get_bucket_versioning(Bucket=bucket_name)
+        return isinstance(versioning, dict) and versioning.get("Status") == "Enabled"
+
     def read_flowlog(self, not_before):
         nwinterfaces = self.collect_networkinterfaces()
         client = self.session.client("s3")
         region = client.meta.region_name
         bucket_name = self._get_bucket_name()
+        if not self.check_bucket(client, bucket_name):
+            raise Exception("Object versioning must be enabled on the bucket")
         self.log.info("Start FlowLogs for {} from S3-bucket {}".format(bucket_name, region))
         to_delete = []
         files_to_handle = []
@@ -212,7 +223,17 @@ class FlowlogCollector(object):
                 conn.add_traffic(start, end, protocol, dir == "in", bytes_transfered, nwitf_update, reverse, logline)
             else:
                 connections[id] = Connection(
-                    nwitf.VpcId, family, laddr, raddr, start, end, protocol, dir == "in", bytes_transfered, nwitf_update, logline
+                    nwitf.VpcId,
+                    family,
+                    laddr,
+                    raddr,
+                    start,
+                    end,
+                    protocol,
+                    dir == "in",
+                    bytes_transfered,
+                    nwitf_update,
+                    logline
                 )
 
     def process_files(self, client, bucket_name, files, nwinterfaces):
@@ -284,7 +305,7 @@ class FlowlogCollector(object):
         )
         # make relation between the two
         self.log.info(json.dumps(data, indent=2, default=str))
-        self.agent.relation(lcid, rcid, "is-connected-to", data)
+        self.agent.relation(lcid, rcid, "flowlog", data)
 
     def process_connections(self, connections):
         count = 0

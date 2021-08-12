@@ -248,6 +248,16 @@ class TestCloudtrail(unittest.TestCase):
 
         components = topology[0]["components"]
 
+        # bucket versioning
+        self.assertIn(
+            {
+                "operation_name": "get_bucket_versioning",
+                "parameters": {
+                    "Bucket": "stackstate-logs-123456789012",
+                },
+            },
+            self.recorder,
+        )
         # lists bucket
         self.assertIn(
             {

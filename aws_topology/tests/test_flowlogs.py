@@ -188,29 +188,25 @@ class TestFlowLogs(unittest.TestCase):
 
         self.assertEqual(len(components), 2)
         self.assertEqual(len(relations), 1)
-        self.assertEqual(
-            components[0],
-            {
-                "id": "local/vpc-0305206adbbda9918/10.16.133.15/10.16.5.72",
-                "data": {
-                    "Location": {"AwsAccount": "123456789012", "AwsRegion": "eu-west-1"},
-                    "URN": ["urn:vpcip:vpc-0305206adbbda9918/10.16.133.15"],
-                    "tags": ["integration-type:aws-v2", "integration-url:123456789012"],
-                },
-                "type": "vpc.request",
-            },
+        top.assert_component(
+            components,
+            "local/vpc-0305206adbbda9918/10.16.133.15/10.16.5.72",
+            "vpc.request",
+            checks={
+                "Location": {"AwsAccount": "123456789012", "AwsRegion": "eu-west-1"},
+                "URN": ["urn:vpcip:vpc-0305206adbbda9918/10.16.133.15"],
+                "tags": ["integration-type:aws-v2", "integration-url:123456789012"],
+            }
         )
-        self.assertEqual(
-            components[1],
-            {
-                "id": "remote/vpc-0305206adbbda9918/10.16.133.15/10.16.5.72",
-                "data": {
-                    "Location": {"AwsAccount": "123456789012", "AwsRegion": "eu-west-1"},
-                    "URN": ["urn:vpcip:vpc-0305206adbbda9918/10.16.5.72"],
-                    "tags": ["integration-type:aws-v2", "integration-url:123456789012"],
-                },
-                "type": "vpc.request",
-            },
+        top.assert_component(
+            components,
+            "remote/vpc-0305206adbbda9918/10.16.133.15/10.16.5.72",
+            "vpc.request",
+            checks={
+                "Location": {"AwsAccount": "123456789012", "AwsRegion": "eu-west-1"},
+                "URN": ["urn:vpcip:vpc-0305206adbbda9918/10.16.5.72"],
+                "tags": ["integration-type:aws-v2", "integration-url:123456789012"],
+            }
         )
         relation = relations[0]
         relation["source_id"] = "local/vpc-0305206adbbda9918/10.16.133.15/10.16.5.72"

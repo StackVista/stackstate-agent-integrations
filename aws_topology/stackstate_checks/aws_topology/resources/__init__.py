@@ -19,7 +19,7 @@ from .cloudformation import CloudformationCollector, type_arn  # noqa: F401
 from .sqs import SqsCollector  # noqa: F401
 from .stepfunction import StepFunctionCollector  # noqa: F401
 from .service_discovery import ServiceDiscoveryCollector  # noqa: F401
-from .utils import is_private, ip_version, client_array_operation
+from .utils import is_private, ip_version, client_array_operation, make_valid_data, ipaddress_to_urn
 
 __all__ = [
     "ResourceRegistry",
@@ -29,5 +29,7 @@ __all__ = [
     "get_ipurns_from_hostname",
     "is_private",
     "ip_version",
-    "client_array_operation"
+    "client_array_operation",
+    "make_valid_data",
+    "ipaddress_to_urn"
 ]

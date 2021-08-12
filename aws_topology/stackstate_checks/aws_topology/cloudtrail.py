@@ -42,10 +42,16 @@ class CloudtrailCollector(object):
         else:
             return "stackstate-logs-{}".format(self.account_id)
 
+    def check_bucket(self, client, bucket_name):
+        versioning = client.get_bucket_versioning(Bucket=bucket_name)
+        return isinstance(versioning, dict) and versioning.get("Status") == "Enabled"
+
     def _get_messages_from_s3(self, not_before):
         client = self.session.client("s3")
         region = client.meta.region_name
         bucket_name = self._get_bucket_name()
+        if not self.check_bucket(client, bucket_name):
+            raise Exception("Object versioning must be enabled on the bucket")
         self.log.info("Start collecting EventBridge events from S3 bucket {} for region {}".format(bucket_name, region))
         to_delete = []
         files_to_handle = []

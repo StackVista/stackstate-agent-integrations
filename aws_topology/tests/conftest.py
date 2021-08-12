@@ -136,19 +136,24 @@ def wrapper(api, not_authorized, subdirectory, event_name=None, eventbridge_even
             else:
                 return {}
         operation_name = botocore.xform_name(args[0])
-        if operation_name == "list_objects_v2" and eventbridge_event_name:
-            return {
-                "Contents": [
-                    {
-                        "Key": "AWSLogs/123456789012/EventBridge/eu-west-1"
-                        + "/2021/06/11/05/stackstate-eventbridge-stream-2-2021-06-11-05-18-05-"
-                        + "b7d5fff3-928a-4e63-939b-1a32662b6a63.gz"
-                    }
-                ]
-            }
-        if operation_name == "get_object" and eventbridge_event_name:
-            res = resource("json/" + api + "/cloudtrail/" + eventbridge_event_name + ".json")
-            return {"Body": json.dumps(res)}
+        if eventbridge_event_name:
+            if operation_name == "get_bucket_versioning":
+                return {
+                    "Status": "Enabled"
+                }
+            if operation_name == "list_objects_v2":
+                return {
+                    "Contents": [
+                        {
+                            "Key": "AWSLogs/123456789012/EventBridge/eu-west-1"
+                            + "/2021/06/11/05/stackstate-eventbridge-stream-2-2021-06-11-05-18-05-"
+                            + "b7d5fff3-928a-4e63-939b-1a32662b6a63.gz"
+                        }
+                    ]
+                }
+            if operation_name == "get_object":
+                res = resource("json/" + api + "/cloudtrail/" + eventbridge_event_name + ".json")
+                return {"Body": json.dumps(res)}
         if operation_name in not_authorized:
             # Some APIs return a different error code when there is no permission
             # But there are no docs on which ones do. Here is an array of some known APIs
