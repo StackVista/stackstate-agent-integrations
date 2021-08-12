@@ -231,3 +231,5 @@ class TestFlowLogs(unittest.TestCase):
                 + "_vpcflowlogs_eu-west-1_fl-0630869f236e76872_20210622T0000Z_ea4b0f55.log.gz",
             ],
         )
+
+# other tests: custom bucket, no access to bucket, bucket versioning disabled, bucket versioning not accessable
