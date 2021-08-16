@@ -13,7 +13,7 @@ from stackstate_checks.servicenow.common import API_SNOW_TABLE_CMDB_CI, API_SNOW
 from stackstate_checks.stubs import aggregator, telemetry
 
 SERVICE_CHECK_NAME = 'servicenow.cmdb.topology_information'
-EMPTY_RESULT = '{"result": []}'
+EMPTY_RESULT = read_file('empty_result.json', 'samples')
 PLANNED_CRS_RESPONSE = [
     {'status_code': 200, 'text': EMPTY_RESULT},
     {'status_code': 200, 'text': read_file('planned_crs.json', 'samples')},

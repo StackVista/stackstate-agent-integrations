@@ -4,6 +4,7 @@
 import pytest
 
 from stackstate_checks.servicenow.client import ServiceNowClient
+from stackstate_checks.servicenow.common import API_SNOW_TABLE_CMDB_CI
 from stackstate_checks.stubs import aggregator, telemetry, topology
 
 from stackstate_checks.servicenow import ServiceNowCheck
@@ -72,6 +73,6 @@ def test_client(test_instance):
 
 @pytest.fixture
 def get_url_auth(test_instance):
-    url = "{}/api/now/table/cmdb_ci".format(test_instance.get('url'))
+    url = test_instance.get('url') + API_SNOW_TABLE_CMDB_CI
     auth = (test_instance.get('user'), test_instance.get('password'))
     return url, auth
