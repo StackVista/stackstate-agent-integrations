@@ -1,0 +1,9 @@
+{
+    "Status": "Disabled",
+    "ResponseMetadata": {
+        "Parameters": {
+            "Bucket": "stackstate-logs-123456789012"
+        },
+        "OperationName": "GetBucketVersioning"
+    }
+}
