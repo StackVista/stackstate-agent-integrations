@@ -342,6 +342,18 @@ class TestCloudtrail(unittest.TestCase):
         self.assert_executed_ok()
         self.assertIn(lookup_call, self.recorder)
 
+    @set_not_authorized("get_bucket_versioning")
+    def test_process_cloudtrail_not_authorized_versioning(self):
+        self.check.run()
+        self.assert_executed_ok()
+        self.assertIn(lookup_call, self.recorder)
+
+    @use_subdirectory("versioning_disabled")
+    def test_process_cloudtrail_versioning_disabled(self):
+        self.check.run()
+        self.assert_executed_ok()
+        self.assertIn(lookup_call, self.recorder)
+
     @use_subdirectory("wrong_json")
     def test_process_cloudtrail_wrong_json(self):
         self.check.run()
