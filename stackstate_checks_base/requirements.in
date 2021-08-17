@@ -1,6 +1,6 @@
 binary==1.0.0
 kubernetes==8.0.1
-pyyaml==5.4
+pyyaml==5.4.1
 prometheus-client==0.3.0
 protobuf==3.7.0
 pywin32==228; sys_platform == 'win32'
