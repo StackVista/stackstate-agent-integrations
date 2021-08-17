@@ -37,6 +37,14 @@ instances:
     # Docs - https://www.dynatrace.com/support/help/shortlink/api-applications-get-all#parameters
     # relative_time: hour
 
+    # The relative timeframe for retrieving custom devices. The default is '1 hour'.
+    # https://www.dynatrace.com/support/help/dynatrace-api/environment-api/entity-v2/get-entities-list/#parameters
+    # custom_device_relative_time: 1h
+
+    # Fields property from Custom Device which will be used
+    # https://www.dynatrace.com/support/help/dynatrace-api/environment-api/entity-v2/get-entities-list/#parameters
+    # custom_device_fields: +fromRelationships,+toRelationships,+tags,+managementZones,+properties.dnsNames,+properties.ipAddress
+
     # No. of days to start collecting events.
     # events_bootstrap_days: 5  # by default it's 5 days
 

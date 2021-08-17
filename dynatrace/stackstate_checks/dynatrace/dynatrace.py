@@ -19,13 +19,17 @@ EVENTS_PROCESS_LIMIT = 10000
 RELATIVE_TIME = 'hour'
 ENVIRONMENT = 'production'
 DOMAIN = 'dynatrace'
+CUSTOM_DEVICE_DEFAULT_RELATIVE_TIME = '1h'
+CUSTOM_DEVICE_DEFAULT_FIELDS = '+fromRelationships,+toRelationships,+tags,+managementZones,+properties.dnsNames,' \
+                               '+properties.ipAddress'
 
 TOPOLOGY_API_ENDPOINTS = {
     "process": "api/v1/entity/infrastructure/processes",
     "host": "api/v1/entity/infrastructure/hosts",
     "application": "api/v1/entity/applications",
     "process-group": "api/v1/entity/infrastructure/process-groups",
-    "service": "api/v1/entity/services"
+    "service": "api/v1/entity/services",
+    "custom-device": "api/v2/entities"
 }
 
 DYNATRACE_UI_URLS = {
@@ -33,7 +37,8 @@ DYNATRACE_UI_URLS = {
     "process-group": "%s/#processgroupdetails;id=%s",
     "process": "%s/#processdetails;id=%s",
     "host": "%s/#newhosts/hostdetails;id=%s",
-    "application": "%s/#uemapplications/uemappmetrics;uemapplicationId=%s"
+    "application": "%s/#uemapplications/uemappmetrics;uemapplicationId=%s",
+    "custom-device": "%s/#customdevicegroupdetails/entity;id=%s"
 }
 
 dynatrace_entities_cache = {}
@@ -66,6 +71,16 @@ class DynatraceComponent(Model):
     azureHostNames = StringType()
     publicHostName = StringType()
     localHostName = StringType()
+
+
+class CustomDevice(Model):
+    entityId = StringType(required=True)
+    displayName = StringType(required=True)
+    tags = ListType(DictType(StringType), default=[])
+    fromRelationships = DictType(ListType(DictType(StringType, default={})), default={})
+    toRelationships = DictType(ListType(DictType(StringType, default={})), default={})
+    managementZones = ListType(DictType(StringType), default=[])
+    properties = DictType(ListType(StringType), default={})
 
 
 class DynatraceEvent(Model):
@@ -101,6 +116,8 @@ class InstanceInfo(Model):
     environment = StringType(default=ENVIRONMENT)
     relative_time = StringType(default=RELATIVE_TIME)
     state = ModelType(State)
+    custom_device_fields = StringType(default=CUSTOM_DEVICE_DEFAULT_FIELDS)
+    custom_device_relative_time = StringType(default=CUSTOM_DEVICE_DEFAULT_RELATIVE_TIME)
 
 
 class DynatraceCheck(AgentCheck):
@@ -134,21 +151,95 @@ class DynatraceCheck(AgentCheck):
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=instance_info.instance_tags,
                                message=str(e))
 
+    @staticmethod
+    def get_custom_device_params(instance_info, next_page_key=None):
+        """
+        Process the default parameters needed for custom device
+        @param
+        instance_info: Instance configuration schema
+        next_page_key: nextPageKey value for pagination of API results
+        @return
+        Returns the parameter for custom device entities
+        """
+        if next_page_key:
+            params = {'nextPageKey': next_page_key}
+        else:
+            params = {'entitySelector': 'type("CUSTOM_DEVICE")'}
+            relative_time = {'from': 'now-{}'.format(instance_info.custom_device_relative_time)}
+            params.update(relative_time)
+            fields = {'fields': '{}'.format(instance_info.custom_device_fields)}
+            params.update(fields)
+        return params
+
+    def collect_custom_devices_get_next_key(self, instance_info, endpoint, component_type, next_page_key=None):
+        """
+        Process custom device response & topology and returns the next page key for result
+        @param
+        instance_info: Instance configuration schema
+        endpoint: Endpoint to collect custom devices
+        component_type: Type of the component
+        next_page_key: nextPageKey value for pagination of API results
+        @return
+        Returns the next_page_key value from API response
+        """
+        params = self.get_custom_device_params(instance_info, next_page_key)
+        response = self._get_dynatrace_json_response(instance_info, endpoint, params)
+        self._collect_topology(response.get("entities", []), component_type, instance_info)
+        return response.get('nextPageKey')
+
+    def process_custom_device_topology(self, instance_info, endpoint, component_type):
+        """
+        Process the custom device topology until next page key is None
+        @param
+        instance_info: Instance configuration schema
+        endpoint: Endpoint to collect custom devices
+        component_type: Type of the component
+        @return
+        None
+        """
+        next_page_key = self.collect_custom_devices_get_next_key(instance_info, endpoint, component_type)
+        while next_page_key:
+            next_page_key = self.collect_custom_devices_get_next_key(instance_info, endpoint, component_type,
+                                                                     next_page_key)
+
     def _process_topology(self, instance_info):
         """
         Collects components and relations for each component type from dynatrace smartscape topology API
+        and custom devices from Entities API (v2)
         """
         start_time = datetime.now()
         self.log.debug("Starting the collection of topology")
         for component_type, path in TOPOLOGY_API_ENDPOINTS.items():
             endpoint = self._get_endpoint(instance_info.url, path)
             params = {"relativeTime": instance_info.relative_time}
-            response = self._get_dynatrace_json_response(instance_info, endpoint, params)
-            self._collect_topology(response, component_type, instance_info)
+            if component_type == "custom-device":
+                # process the custom device topology separately because of pagination
+                self.process_custom_device_topology(instance_info, endpoint, component_type)
+            else:
+                response = self._get_dynatrace_json_response(instance_info, endpoint, params)
+                self._collect_topology(response, component_type, instance_info)
         end_time = datetime.now()
         time_taken = end_time - start_time
         self.log.info("Collected %d topology entities.", len(dynatrace_entities_cache))
         self.log.debug("Time taken to collect the topology is: %d seconds" % time_taken.total_seconds())
+
+    @staticmethod
+    def process_custom_device_identifiers(custom_device):
+        """
+        Process identifiers for custom devices based on ip address and dns names
+        @param
+        custom_device: Custom Device element from Dynatrace
+        @return
+        Return the set of identifiers
+        """
+        properties = custom_device.get("properties")
+        identifiers = []
+        if properties:
+            for dns in properties.get('dnsNames', []):
+                identifiers.append(Identifiers.create_host_identifier(dns))
+            for ip in properties.get('ipAddress', []):
+                identifiers.append(Identifiers.create_host_identifier(ip))
+        return identifiers
 
     def _collect_topology(self, response, component_type, instance_info):
         """
@@ -160,14 +251,21 @@ class DynatraceCheck(AgentCheck):
         """
         for item in response:
             item = self._clean_unsupported_metadata(item)
-            dynatrace_component = DynatraceComponent(item, strict=False)
-            dynatrace_component.validate()
+            if component_type == "custom-device":
+                dynatrace_component = CustomDevice(item, strict=False)
+                dynatrace_component.validate()
+            else:
+                dynatrace_component = DynatraceComponent(item, strict=False)
+                dynatrace_component.validate()
             data = {}
             external_id = dynatrace_component.entityId
             identifiers = [Identifiers.create_custom_identifier("dynatrace", external_id)]
             if component_type == "host":
                 host_identifiers = self._get_host_identifiers(dynatrace_component)
                 identifiers.extend(host_identifiers)
+            if component_type == "custom-device":
+                custom_device_identifiers = self.process_custom_device_identifiers(item)
+                identifiers.extend(custom_device_identifiers)
             # derive useful labels from dynatrace tags
             tags = self._get_labels(dynatrace_component)
             tags.extend(instance_info.instance_tags)
@@ -181,14 +279,15 @@ class DynatraceCheck(AgentCheck):
                 "instance": instance_info.url,
             })
             self.component(external_id, component_type, data)
-            self._collect_relations(dynatrace_component, external_id)
+            self._collect_relations(dynatrace_component, external_id, component_type)
             dynatrace_entities_cache[external_id] = {"name": dynatrace_component.displayName, "type": component_type}
 
-    def _collect_relations(self, dynatrace_component, external_id):
+    def _collect_relations(self, dynatrace_component, external_id, component_type):
         """
         Collects relationships from different component-types
         :param dynatrace_component: the component for which relationships need to be extracted and processed
         :param external_id: the component externalId for and from relationship will be created
+        :param component_type: the component type
         :return: None
         """
         # A note on Dynatrace relations terminology:
@@ -198,12 +297,22 @@ class DynatraceCheck(AgentCheck):
             # Ignore `isSiteOf` relation since location components are not processed right now
             if relation_type != "isSiteOf":
                 for target_id in relation_value:
-                    self.relation(external_id, target_id, relation_type, {})
+                    # special case for custom-device because relation value will be a dictionary here
+                    if component_type == 'custom-device':
+                        target_relation_id = target_id.get('id')
+                        self.relation(external_id, target_relation_id, relation_type, {})
+                    else:
+                        self.relation(external_id, target_id, relation_type, {})
         for relation_type, relation_value in dynatrace_component.toRelationships.items():
             # Ignore `isSiteOf` relation since location components are not processed right now
             if relation_type != "isSiteOf":
                 for source_id in relation_value:
-                    self.relation(source_id, external_id, relation_type, {})
+                    # special case for custom-device because relation value will be a dictionary here
+                    if component_type == 'custom-device':
+                        source_relation_id = source_id.get('id')
+                        self.relation(source_relation_id, external_id, relation_type, {})
+                    else:
+                        self.relation(source_id, external_id, relation_type, {})
 
     def _clean_unsupported_metadata(self, component):
         """
@@ -284,21 +393,17 @@ class DynatraceCheck(AgentCheck):
                 labels.append("managementZones:%s" % zone.get("name"))
         if dynatrace_component.entityId:
             labels.append(dynatrace_component.entityId)
-        if dynatrace_component.monitoringState:
+        if dynatrace_component.get('monitoringState'):
             if dynatrace_component.monitoringState.actualMonitoringState:
                 labels.append("actualMonitoringState:%s" % dynatrace_component.monitoringState.actualMonitoringState)
             if dynatrace_component.monitoringState.expectedMonitoringState:
                 labels.append(
                     "expectedMonitoringState:%s" % dynatrace_component.monitoringState.expectedMonitoringState)
-        for technologies in dynatrace_component.softwareTechnologies:
-            tech_label = ''
-            if technologies.get('type'):
-                tech_label += technologies['type']
-            if technologies.get('edition'):
-                tech_label += ":%s" % technologies['edition']
-            if technologies.get('version'):
-                tech_label += ":%s" % technologies['version']
-            labels.append(tech_label)
+        if dynatrace_component.get('softwareTechnologies'):
+            for technologies in dynatrace_component.softwareTechnologies:
+                tech_label = ':'.join(filter(None, [technologies.get('type'), technologies.get('edition'),
+                                                    technologies.get('version')]))
+                labels.append(tech_label)
         labels_from_tags = self._get_labels_from_dynatrace_tags(dynatrace_component)
         labels.extend(labels_from_tags)
         return labels
