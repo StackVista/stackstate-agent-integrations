@@ -15,7 +15,7 @@ from functools import reduce
 
 
 import yaml
-from six import PY3, iteritems, text_type, string_types, integer_types
+from six import PY3, iteritems, iterkeys, text_type, string_types, integer_types
 
 try:
     import datadog_agent
@@ -269,9 +269,8 @@ class AgentCheckBase(object):
             # create a copy of the check instance, get state if any and add it to the instance object for the check
             instance = self.instances[0]
             check_instance = copy.deepcopy(instance)
-            # if this instance has some stored state set it to 'state'
-            state_descriptor = self._get_state_descriptor()
-            current_state = copy.deepcopy(self.state_manager.get_state(state_descriptor))
+            # if this instance has some state then set it to state
+            current_state = copy.deepcopy(self.state_manager.get_state(self._get_state_descriptor()))
             if current_state:
                 check_instance[self.STATE_FIELD_NAME] = current_state
 
@@ -279,7 +278,9 @@ class AgentCheckBase(object):
             self.check(check_instance)
 
             # set the state from the check instance
-            self.state_manager.set_state(state_descriptor, check_instance.get(self.STATE_FIELD_NAME))
+            # call self._get_state_descriptor method to get the instance key if it is update in the check run
+            # example: aws-xray
+            self.state_manager.set_state(self._get_state_descriptor(), check_instance.get(self.STATE_FIELD_NAME))
 
             # stop auto snapshot if with_snapshots is set to True
             if self._get_instance_key().with_snapshots:
@@ -521,7 +522,7 @@ class AgentCheckBase(object):
             fixed_data = self._sanitize(data)
             fixed_streams = self._sanitize(streams)
             fixed_checks = self._sanitize(checks)
-        except UnicodeError:
+        except (UnicodeError, TypeError):
             return
         data = self._map_component_data(id, type, integration_instance, fixed_data, fixed_streams, fixed_checks)
         topology.submit_component(self, self.check_id, self._get_instance_key_dict(), id, type, data)
@@ -549,7 +550,7 @@ class AgentCheckBase(object):
             fixed_data = self._sanitize(data)
             fixed_streams = self._sanitize(streams)
             fixed_checks = self._sanitize(checks)
-        except UnicodeError:
+        except (UnicodeError, TypeError):
             return
         data = self._map_relation_data(source, target, type, fixed_data, fixed_streams, fixed_checks)
         topology.submit_relation(self, self.check_id, self._get_instance_key_dict(), source, target, type, data)
@@ -933,10 +934,12 @@ class AgentCheckBase(object):
                 raise e
             return fixed_value
         elif isinstance(field, dict):
+            self._ensure_string_only_keys(field)
             field = {k: v for k, v in iteritems(field) if self._is_not_empty(v)}
             for key, value in list(iteritems(field)):
                 field[key] = self._sanitize(value, "key '{0}' of dict".format(key))
         elif isinstance(field, list):
+            self._ensure_homogeneous_list(field)
             field = [element for element in field if self._is_not_empty(element)]
             for i, element in enumerate(field):
                 field[i] = self._sanitize(element, "index '{0}' of list".format(i))
@@ -944,6 +947,7 @@ class AgentCheckBase(object):
             # we convert a set to a list so we can update it in place
             # and then at the end we turn the list back to a set
             encoding_list = [element for element in list(field) if self._is_not_empty(element)]
+            self._ensure_homogeneous_list(encoding_list)
             for i, element in enumerate(encoding_list):
                 encoding_list[i] = self._sanitize(element, "element of set")
             field = set(encoding_list)
@@ -964,6 +968,43 @@ class AgentCheckBase(object):
                 return True
 
         return False
+
+    def _ensure_string_only_keys(self, dictionary):
+        """
+        _ensure_string_only_keys checks whether all the keys of a dictionary are strings (and / or text_type).
+        StackState only supports dictionaries with string keys. The conversion of text_type will happen in the _sanitize
+        function using to_string(field).
+        """
+        type_list = [type(element) for element in iterkeys(dictionary)]
+        type_set = set(type_list)
+
+        # if the type_set is a subset of str and text_type return - We allow string + text_type as keys in a dictionary.
+        # The conversion of text_type will happen in the _sanitize function using to_string(field).
+        # <= is the subset operation on python sets.
+        if type_set <= {str, text_type}:
+            return
+
+        raise TypeError("Dictionary: {0} contains keys which are not string or {1}: {2}"
+                        .format(dictionary, text_type, type_set))
+
+    def _ensure_homogeneous_list(self, list):
+        """
+        _ensure_homogeneous_list checks whether all values of a list or set are of the same type. StackState only
+        supports homogeneous lists.
+        """
+        type_list = [type(element) for element in list]
+        type_set = set(type_list)
+
+        # exception rule - we allow string + text_type types together. The conversion of text_type will happen in the
+        # _sanitize function using to_string(field). If the list only contains string type or text type the if condition
+        # below will not trigger and the list is considered homogeneous. If a different combination exists (str, int)
+        # then it fails as expected.
+        if type_set == {str, text_type}:
+            return
+
+        if len(type_set) > 1:
+            raise TypeError("List: {0}, is not homogeneous, it contains the following types: {1}"
+                            .format(list, type_set))
 
     def get_check_state_path(self):
         """
@@ -1079,13 +1120,13 @@ class __AgentCheckPy3(AgentCheckBase):
                                         hostname, message)
 
     def event(self, event):
+        self.validate_event(event)
+
         # Enforce types of some fields, considerably facilitates handling in go bindings downstream
         try:
             event = self._sanitize(event)
-        except UnicodeError:
+        except (UnicodeError, TypeError):
             return
-
-        self.validate_event(event)
 
         if event.get('tags'):
             event['tags'] = self._normalize_tags_type(event['tags'])
@@ -1250,7 +1291,7 @@ class __AgentCheckPy2(AgentCheckBase):
         # Enforce types of some fields, considerably facilitates handling in go bindings downstream
         try:
             event = self._sanitize(event)
-        except UnicodeError:
+        except (UnicodeError, TypeError):
             return
 
         if event.get('tags'):
@@ -1272,6 +1313,8 @@ class __AgentCheckPy2(AgentCheckBase):
             telemetry.submit_topology_event(self, self.check_id, event)
         else:
             aggregator.submit_event(self, self.check_id, event)
+
+        return event
 
     def _normalize_tags_type(self, tags, device_name=None, metric_name=None):
         """

@@ -3,7 +3,8 @@ boto3==1.17.68
 cm-client==33.0.0
 cryptography==3.3.2; python_version < "3.0"
 cryptography==3.4.6; python_version > "3.0"
-ddtrace==0.32.2
+ddtrace==0.32.2; sys_platform == "win32" and python_version < "3.0"
+ddtrace==0.48.0; sys_platform != "win32" or python_version > "3.0"
 deprecated==1.2.10
 enum34==1.1.10; python_version < "3.4"
 flatten-dict==0.2.0
@@ -11,6 +12,7 @@ iso8601==0.1.14
 jaydebeapi==1.1.1
 jpype1==0.7.0
 kubernetes==8.0.1
+orionsdk==0.3.0
 orjson==2.6.1; python_version > '3.0'
 psutil==5.7.0
 psycopg2-binary==2.8.4

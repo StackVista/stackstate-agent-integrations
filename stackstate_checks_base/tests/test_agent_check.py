@@ -9,7 +9,7 @@ from schematics import Model
 from schematics.types import IntType, StringType, ModelType
 from schematics.exceptions import ValidationError, ConversionError, DataError
 import pytest
-from six import PY3
+from six import PY3, text_type
 
 from stackstate_checks.checks import AgentCheck, TopologyInstance, AgentIntegrationInstance,\
     HealthStream, HealthStreamUrn, Health
@@ -676,6 +676,202 @@ class TestTagsAndConfigMapping:
                                                     'urn:process:/mapped-identifier:2:1234567890',
                                                     'urn:process:/mapped-identifier:3:1234567890',
                                                     'urn:process:/mapped-identifier:001:1234567890']
+
+
+class TestBaseSanitize:
+    def test_ensure_homogeneous_list(self):
+        """
+        Testing the functionality of _ensure_homogeneous_list to ensure that agent checks can only produce homogeneous
+        lists
+        """
+        check = AgentCheck()
+
+        # list of ints
+        check._ensure_homogeneous_list([1, 2, 3])
+        # list of booleans
+        check._ensure_homogeneous_list([True, True, False])
+        # list of string
+        check._ensure_homogeneous_list(['a', 'b', 'c'])
+        # list of string + text_type
+        check._ensure_homogeneous_list(['a', u'b', '®'])
+        # list of floats
+        check._ensure_homogeneous_list([1.0, 2.0, 3.0])
+        # list of dicts
+        check._ensure_homogeneous_list([{'a': 'b'}, {'a': 'c'}, {'a': 'd'}])
+        # list of mixed dicts
+        check._ensure_homogeneous_list([{'a': 'b'}, {'c': []}, {'d': False}])
+        # list of lists
+        check._ensure_homogeneous_list([[1], [2], [3]])
+        # list of mixed lists
+        check._ensure_homogeneous_list([[1], ['b'], [True], [{'c': 'd'}]])
+        # list of sets
+        check._ensure_homogeneous_list([set([1]), set([2]), set([3])])
+        # list of mixed sets
+        check._ensure_homogeneous_list([set([1]), set(['b']), set([True]), set([1.5])])
+
+        def exeception_case(list, expected_types):
+            with pytest.raises(TypeError) as e:
+                check._ensure_homogeneous_list(list)
+
+            assert str(e.value) == "List: {0}, is not homogeneous, it contains the following types: {1}"\
+                .format(list, expected_types)
+
+        # list of ints and strings
+        exeception_case([1, '2', 3, '4'], {str, int})
+        # list of int, string, float, bool
+        exeception_case([1, '2', 3.5, True], {str, int, float, bool})
+        # list of ints and floats
+        exeception_case([1, 1.5, 2, 2.5], {int, float})
+        # list of ints and bools
+        exeception_case([1, True, 2, False], {int, bool})
+        # list of ints and dicts
+        exeception_case([1, {'a': True}, 2, {'a': False}], {int, dict})
+        # list of strings and lists
+        exeception_case(['a', [True], 'b', [False]], {str, list})
+        # list of strings and sets
+        exeception_case(['a', set([True]), 'b', set([False])], {str, set})
+        # list of strings, sets and dicts
+        exeception_case(['a', set([True]), {'a': True}, 'b', set([False])], {str, set, dict})
+
+        # list of strings and dicts
+        exeception_case(['a', {'a': True}, 'b', {'a': False}], {str, dict})
+        # list of strings and floats
+        exeception_case(['a', 1.5, 'b', 2.5], {str, float})
+        # list of strings and bools
+        exeception_case(['a', True, 'b', False], {str, bool})
+        # list of strings and lists
+        exeception_case(['a', [True], 'b', [False]], {str, list})
+        # list of strings and sets
+        exeception_case(['a', set([True]), 'b', set([False])], {str, set})
+
+        # list of lists and dicts
+        exeception_case([['a'], {'a': True}, ['b'], {'a': False}], {list, dict})
+        # list of lists and sets
+        exeception_case([['a'], set(['a']), ['b'], set(['b'])], {list, set})
+
+    def test_ensure_homogeneous_list_check_api(self):
+        """
+        Testing the functionality of _ensure_homogeneous_list, but we're calling it through the check api to ensure that
+        topology and telemetry is not created when the data contains a non-homogeneous list
+        """
+        check = AgentCheck()
+
+        # ensure nothing is created for components with non-homogeneous lists
+        data = {"key": "value", "intlist": [1], "emptykey": None, "nestedobject": {"nestedkey": "nestedValue"},
+                "mixedlist": ['a', 'b', 'c', 4]}
+        assert check.component("my-id", "my-type", data) is None
+        # ensure nothing is created for relations with non-homogeneous lists
+        data = {"key": "value", "intlist": [1], "emptykey": None, "nestedobject": {"nestedkey": "nestedValue"},
+                "mixedlist": ['a', 'b', 'c', 4]}
+        assert check.relation("source-id", "target-id", "my-type", data) is None
+        # ensure that a schematics data error is thrown for events with non-homogeneous tags
+        with pytest.raises(DataError):
+            event = {
+                "timestamp": 123456789,
+                "event_type": "new.event",
+                "source_type_name": "new.source.type",
+                "msg_title": "new test event",
+                "aggregation_key": "test.event",
+                "msg_text": "test event test event",
+                "tags": ['a', 'b', 'c', 4],
+            }
+            assert check.event(event) is None
+        # ensure that a schematics data error is thrown for topology events with non-homogeneous tags
+        with pytest.raises(DataError):
+            event = {
+                "timestamp": 123456789,
+                "source_type_name": "new.source.type",
+                "msg_title": "new test event",
+                "aggregation_key": "test.event",
+                "msg_text": "test event test event",
+                "tags": ['a', 'b', 'c', 4],
+                "context": {
+                    "element_identifiers": ["urn:test:/value"],
+                    "source": "test source",
+                    "category": "test category",
+                }
+            }
+            assert check.event(event) is None
+        # ensure that a nothing is created for topology events with non-homogeneous tags in the data section
+        event = {
+            "timestamp": 123456789,
+            "source_type_name": "new.source.type",
+            "msg_title": "new test event",
+            "aggregation_key": "test.event",
+            "msg_text": "test event test event",
+            "tags": ['a', 'b', 'c', 'd'],
+            "context": {
+                "element_identifiers": ["urn:test:/value"],
+                "source": "test source",
+                "category": "test category",
+                "data": {
+                    "mixedlist": ['a', 'b', 'c', 4]
+                }
+            }
+        }
+        assert check.event(event) is None
+
+    def test_ensure_string_only_keys(self):
+        """
+        Testing the functionality of _ensure_string_only_keys, but we're calling _sanitize to deal with multi-tier
+        dictionaries
+        """
+        check = AgentCheck()
+
+        # valid dictionaries
+        check._sanitize({'a': 1, 'c': True, 'e': 'f'})
+        check._sanitize({'a': {'b': {'c': True}}, 'e': 1.2})
+        check._sanitize({'a': {'b': {'c': {'e': ['f', 'g']}}}})
+
+        def exeception_case(dictionary, error_type_set):
+            with pytest.raises(TypeError) as e:
+                check._sanitize(dictionary)
+
+            assert "contains keys which are not string or {0}: {1}".format(text_type, error_type_set) in str(e.value)
+
+        # dictionary with int as keys
+        exeception_case({'a': 'b', 'c': 'd', 1: 'f'}, {str, int})
+        exeception_case({'a': {'b': {1: 'd'}}, 'e': 'f'}, {int})  # inner dictionary only has a int key
+        exeception_case({'a': {'b': {'c': {1: 'f'}}}}, {int})  # inner dictionary only has a int key
+        # dictionary with None as keys
+        exeception_case({'a': 'b', 'c': 'd', None: 'f'}, {str, type(None)})
+        exeception_case({'a': {'b': {None: 'd'}}, 'e': 'f'}, {type(None)})  # inner dictionary only has a None key
+        exeception_case({'a': {'b': {'c': {None: 'f'}}}}, {type(None)})  # inner dictionary only has a None key
+        # dictionary with list as keys
+        exeception_case({'a': 'b', 'c': 'd', True: 'f'}, {str, bool})
+        exeception_case({'a': {'b': {True: 'd'}}, 'e': 'f'}, {bool})  # inner dictionary only has a bool key
+        exeception_case({'a': {'b': {'c': {True: 'f'}}}}, {bool})  # inner dictionary only has a bool key
+
+    def test_ensure_string_only_keys_check_functions(self):
+        """
+        Testing the functionality of _ensure_string_only_keys, but we're calling it through the check api to ensure that
+        topology and telemetry is not created when a dictionary contains a non-string key
+        """
+        check = AgentCheck()
+        # ensure nothing is created for components with non-string key dicts
+        data = {"key": "value", "intlist": [1], "emptykey": None, "nestedobject": {"nestedkey": "nestedValue"},
+                "nonstringkeydict": {'a': 'b', 3: 'c'}}
+        assert check.component("my-id", "my-type", data) is None
+        # ensure nothing is created for relations with non-string key dicts
+        data = {"key": "value", "intlist": [1], "emptykey": None, "nestedobject": {"nestedkey": "nestedValue"},
+                "nonstringkeydict": {'a': 'b', 3: 'c'}}
+        assert check.relation("source-id", "target-id", "my-type", data) is None
+        # ensure that a nothing is created for topology events with non-string key dicts in the data section
+        event = {
+            "timestamp": 123456789,
+            "source_type_name": "new.source.type",
+            "msg_title": "new test event",
+            "aggregation_key": "test.event",
+            "msg_text": "test event test event",
+            "tags": ['a', 'b', 'c', 'd'],
+            "context": {
+                "element_identifiers": ["urn:test:/value"],
+                "source": "test source",
+                "category": "test category",
+                "data": {"nonstringkeydict": {'a': 'b', 3: 'c'}}
+            }
+        }
+        assert check.event(event) is None
 
 
 class TestTopology:

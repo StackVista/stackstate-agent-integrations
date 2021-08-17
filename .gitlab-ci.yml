@@ -5,6 +5,50 @@ stages:
   - test
   - publish
 
+.rules:
+  - &pull_requests
+    if: $CI_EXTERNAL_PULL_REQUEST_IID
+  - &base_changes
+    if: $CI_EXTERNAL_PULL_REQUEST_IID
+    changes:
+      - stackstate_checks_base/*
+      - stackstate_checks_base/**/*
+      - stackstate_checks_dev/*
+      - stackstate_checks_dev/**/*
+      - stackstate_checks_tests_helper/*
+      - stackstate_checks_tests_helper/**/*
+      - .gitlab-ci.yml
+      - $CHECK/*
+      - $CHECK/**/*
+  - &master_branch
+    if: '$CI_COMMIT_BRANCH == "master"'
+  - &release_branch
+    if: $CI_COMMIT_TAG
+
+.base_integration_rules:
+  &base_integration_rules
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
+
+.base_job_rules:
+  &base_job_rules
+  rules:
+    - <<: *pull_requests
+    - <<: *master_branch
+    - <<: *release_branch
+
+.manual_job_rules:
+  &manual_job_rules
+  rules:
+    - <<: *pull_requests
+      when: manual
+    - <<: *master_branch
+      when: manual
+    - <<: *release_branch
+      when: manual
+
 .linux_env: &linux_env
   before_script:
     - source .setup-scripts/setup_env.sh
@@ -15,9 +59,20 @@ stages:
   before_script:
     - call .setup-scripts/windows_setup_env.cmd
 
+print_env:
+  <<: *linux_env
+  <<: *manual_job_rules
+  stage: build
+  script:
+    - printenv
+  allow_failure: true
+  interruptible: true
+
 linux_deps:
   <<: *linux_env
+  <<: *base_job_rules
   stage: build
+  interruptible: true
   cache:
     key: "stackstate-agent-integrations-build-cache"
     paths:
@@ -31,7 +86,9 @@ linux_deps:
 
 win_deps:
   <<: *windows_env
+  <<: *base_job_rules
   stage: build
+  interruptible: true
   cache:
     key: "stackstate-agent-integrations-windows-build-cache"
     paths:
@@ -44,31 +101,36 @@ win_deps:
     expire_in: 1 week
 
 clear-caches:
+  <<: *manual_job_rules
   cache:
     policy: push
     key: "stackstate-agent-integrations-build-cache"
     paths:
       - venv
-  when: manual
   stage: build
+  interruptible: true
   script:
     - rm -rf venv || true
+  allow_failure: true
 
 clear-win-caches:
+  <<: *manual_job_rules
   cache:
     policy: push
     key: "stackstate-agent-integrations-windows-build-cache"
     paths:
       - venv
-  when: manual
   stage: build
+  interruptible: true
   script:
     - "if exist %WIN_CI_PROJECT_DIR%\\venv rd /s/q %WIN_CI_PROJECT_DIR%\\venv"
   tags:
     - agent_windows_6
+  allow_failure: true
 
 .linux_test: &linux_test
   <<: *linux_env
+  <<: *base_integration_rules
   stage: test
   needs:
     - linux_deps
@@ -83,6 +145,7 @@ clear-win-caches:
     - checksdev test ${CHECK} --bench || true
       # [BS] we skip this until https://github.com/PyCQA/pylint/pull/2681/commits/253e5d05e3943d3bc8e4470804a138cb20049548 lands in pylint stable version
       # - if [ -n "$PYTHON3" ]; then checksdev validate py3 ${CHECK}; fi
+  interruptible: true
 
 test_stackstate_checks_base:
   <<: *linux_test
@@ -177,6 +240,17 @@ test_splunk_topology:
   <<: *linux_test
   variables:
     CHECK: "splunk_topology"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
+  tags:
+    - sts-k8s-xl-no-docker-runner
+
+test_splunk_health:
+  <<: *linux_test
+  variables:
+    CHECK: "splunk_health"
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
@@ -280,14 +354,24 @@ test_nagios:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
 
+test_solarwinds:
+  <<: *linux_test
+  variables:
+    CHECK: "solarwinds"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
 
 .windows_test: &windows_test
   <<: *windows_env
+  <<: *base_integration_rules
   stage: test
   needs:
     - win_deps
   script:
     - checksdev test -c %CHECK%
+  interruptible: true
   tags:
     - agent_windows_6
   retry:
@@ -324,8 +408,11 @@ test_aws_xray_win:
 
 publish-checks-dev:
   stage: publish
+  interruptible: true
   script:
     - source ./.setup-scripts/setup_artifactory_publishing.sh
     - export VERSION=`./.setup-scripts/version.sh`
     - echo "__version__ = \"$VERSION\"" > stackstate_checks_dev/stackstate_checks/dev/__about__.py
     - cd stackstate_checks_dev && python setup.py sdist bdist_wheel upload -r local
+  allow_failure: true
+  <<: *manual_job_rules
