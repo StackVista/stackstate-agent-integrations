@@ -1,7 +1,6 @@
 # (C) StackState 2021
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
-from schematics.types.base import BooleanType
 from .cloudtrail import CloudtrailCollector
 from .flowlogs import FlowlogCollector
 import logging
@@ -37,7 +36,6 @@ class InitConfig(Model):
     aws_secret_access_key = StringType(required=True)
     external_id = StringType(required=True)
     full_run_interval = IntType(default=3600)
-    process_flow_logs = BooleanType(default=False)
 
 
 class InstanceInfo(Model):
@@ -111,8 +109,7 @@ class AwsTopologyCheck(AgentCheck):
 
         try:
             self.get_topology_update(instance_info, aws_client)
-            if init_config.process_flow_logs:
-                self.get_flowlog_update(instance_info, aws_client)
+            self.get_flowlog_update(instance_info, aws_client)
             self.service_check(self.SERVICE_CHECK_UPDATE_NAME, AgentCheck.OK, tags=instance_info.tags)
         except Exception as e:
             msg = "AWS topology update failed: {}".format(e)

@@ -2,11 +2,8 @@ import json
 import dateutil.parser
 import pytz
 from datetime import datetime
-import gzip
-import io
-import botocore
-from six import string_types, PY2
 import re
+from .utils import get_stream_from_s3body
 
 
 try:
@@ -107,31 +104,13 @@ class CloudtrailCollector(object):
                 self.log.exception(e)
                 self.agent.warning("CloudtrailCollector: Deleting s3 files failed")
 
-    def _is_gz_file(self, body):
-        with io.BytesIO(body) as test_f:
-            return test_f.read(2) == b"\x1f\x8b"
-
-    def _get_stream(self, body):
-        if isinstance(body, string_types):
-            # this case is only for test purposes
-            if PY2:
-                body = bytes(body)
-            else:
-                body = bytes(body, "ascii")
-        elif isinstance(body, botocore.response.StreamingBody):
-            body = body.read()
-        if self._is_gz_file(body):
-            return gzip.GzipFile(fileobj=io.BytesIO(body), mode="rb")
-        else:
-            return io.BytesIO(body)
-
     def _process_files(self, client, bucket_name, files):
         self.log.info("Starting processing of {} S3 objects".format(len(files)))
         for file in reversed(files):
             self.log.info("Starting processing of object {}".format(file))
             objects = []
             s3_body = client.get_object(Bucket=bucket_name, Key=file).get("Body")
-            with self._get_stream(s3_body) as data:
+            with get_stream_from_s3body(s3_body) as data:
                 decoder = json.JSONDecoder()
                 txt = data.read().decode("ascii")
                 while txt:

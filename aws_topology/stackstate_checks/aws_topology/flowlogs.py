@@ -1,11 +1,8 @@
-import gzip
-import botocore
-import io
 import pytz
 from datetime import datetime
-from six import PY2, string_types
 import re
 from .resources import is_private, ip_version, client_array_operation, make_valid_data, ipaddress_to_urn
+from .utils import get_stream_from_s3body
 from schematics import Model
 from schematics.types import StringType, ListType, ModelType
 import json
@@ -182,7 +179,7 @@ class FlowlogCollector(object):
                 )
             except Exception as e:
                 self.log.exception(e)
-                self.agent.warning("CloudtrailCollector: Deleting s3 files failed")
+                self.agent.warning("FlowlogCollector: Deleting s3 files failed")
 
     def process_record(self, connections, log, nwitf):
         src_ip = log["srcaddr"]
@@ -215,6 +212,7 @@ class FlowlogCollector(object):
             id, reverse = connection_identifier(nwitf.VpcId, dst_ip, src_ip)
         else:
             self.log.warning("Could not determine traffic direction src={} dst={}".format(src_ip, dst_ip))
+            return
 
         if private and dir != "unknown":  # currently only supporting private traffic
             logline = "{}:{} <-> {}:{} bytes={}".format(src_ip, src_port, dst_ip, dst_port, bytes_transfered)
@@ -241,7 +239,7 @@ class FlowlogCollector(object):
         for file in files:
             s3_body = client.get_object(Bucket=bucket_name, Key=file).get("Body")
             self._delete_files(client, bucket_name, [{"Key": file}])
-            with self._get_stream(s3_body) as data:
+            with get_stream_from_s3body(s3_body) as data:
                 lines = iter(data)
                 flds = next(lines).decode("ascii").strip().split(" ")
                 if set(flds) >= set(
@@ -273,9 +271,9 @@ class FlowlogCollector(object):
             "bytes_received_per_second": connection.bytes_received_per_second,
             "local_address": connection.laddr,
             "remote_address": connection.raddr,
-            "log": connection.traffic_log
+            "log": connection.traffic_log,
+            "network_interfaces": network_interfaces,
         }
-        data["network_interfaces"] = network_interfaces
         data = make_valid_data(data)
         # create component for local side
         ip = connection.laddr.split(":")[0]
@@ -314,24 +312,6 @@ class FlowlogCollector(object):
                 self.process_connection(id, connection)
                 count += 1
         return count
-
-    def _is_gz_file(self, body):
-        with io.BytesIO(body) as test_f:
-            return test_f.read(2) == b"\x1f\x8b"
-
-    def _get_stream(self, body):
-        if isinstance(body, string_types):
-            # this case is only for test purposes
-            if PY2:
-                body = bytes(body)
-            else:
-                body = bytes(body, "ascii")
-        elif isinstance(body, botocore.response.StreamingBody):
-            body = body.read()
-        if self._is_gz_file(body):
-            return gzip.GzipFile(fileobj=io.BytesIO(body), mode="rb")
-        else:
-            return io.BytesIO(body)
 
     def _get_bucket_name(self):
         if self.bucket_name:

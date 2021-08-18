@@ -124,23 +124,21 @@ def resource(path):
 
 def wrapper(api, not_authorized, subdirectory, event_name=None, eventbridge_event_name=None):
     def mock_boto_calls(self, *args, **kwargs):
-        if args[0] == "AssumeRole":
+        operation_name = botocore.xform_name(args[0])
+        if operation_name == "assume_role":
             return {"Credentials": {"AccessKeyId": "KEY_ID", "SecretAccessKey": "ACCESS_KEY", "SessionToken": "TOKEN"}}
-        if args[0] == "LookupEvents":
-            if event_name:
+        if event_name:
+            if operation_name == "lookup_events":
                 res = resource("json/" + api + "/cloudtrail/" + event_name + ".json")
                 dt = datetime.utcnow() + timedelta(hours=3)
                 res["eventTime"] = dt.strftime("%Y-%m-%dT%H:%M:%SZ")
                 msg = {"Events": [{"CloudTrailEvent": json.dumps(res)}]}
                 return msg
-            else:
-                return {}
-        operation_name = botocore.xform_name(args[0])
         if eventbridge_event_name:
+            if operation_name == "lookup_events":
+                return {}
             if operation_name == "get_bucket_versioning":
-                return {
-                    "Status": "Enabled"
-                }
+                return {"Status": "Enabled"}
             if operation_name == "list_objects_v2":
                 return {
                     "Contents": [
@@ -258,6 +256,12 @@ class BaseApiTest(unittest.TestCase):
 
         self.check = AwsTopologyCheck(self.CHECK_NAME, InitConfig(init_config), [instance])
         self.check.last_full_topology = datetime(2021, 5, 1, 0, 0, 0).replace(tzinfo=pytz.utc)
+
+        def ignore_callback(self, *args, **kwargs):
+            return
+        self.check.get_flowlog_update = ignore_callback
+        if cloudtrail_event is None and eventbridge_event is None:
+            self.check.get_topology_update = ignore_callback
         self.mock_object.side_effect = wrapper(
             api, not_authorized, subdirectory, event_name=cloudtrail_event, eventbridge_event_name=eventbridge_event
         )

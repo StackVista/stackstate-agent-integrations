@@ -146,7 +146,6 @@ class TestFlowLogs(unittest.TestCase):
                 "aws_access_key_id": "some_key",
                 "aws_secret_access_key": "some_secret",
                 "external_id": "disable_external_id_this_is_unsafe",
-                "process_flow_logs": True
             }
         )
         regions = self.get_region()
