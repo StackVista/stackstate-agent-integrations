@@ -207,10 +207,18 @@ class TestFlowLogs(unittest.TestCase):
                 "tags": ["integration-type:aws-v2", "integration-url:123456789012"],
             }
         )
-        relation = relations[0]
-        relation["source_id"] = "local/vpc-0305206adbbda9918/10.16.133.15/10.16.5.72"
-        relation["target_id"] = "remote/vpc-0305206adbbda9918/10.16.133.15/10.16.5.72"
-        relation["type"] = "is-connected-to"
+        top.assert_relation(
+            relations,
+            "local/vpc-0305206adbbda9918/10.16.133.15/10.16.5.72",
+            "remote/vpc-0305206adbbda9918/10.16.133.15/10.16.5.72",
+            "flowlog",
+            checks={
+                "bytes_sent": 26,
+                "bytes_received": 0,
+                "bytes_sent_per_second": 26.0,
+                "bytes_received_per_second": 0.0
+            }
+        )
 
         dels = filter(lambda x: x["operation_name"] == "delete_objects", self.recorder)
 

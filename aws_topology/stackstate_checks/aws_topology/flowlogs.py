@@ -57,8 +57,8 @@ class Connection(object):
         self.traffic_type = str(traffic_type)
         self.start_time = start
         self.end_time = end
-        self.bytes_sent = 0
-        self.bytes_received = 0
+        self.half_bytes_sent = 0
+        self.half_bytes_received = 0
         self.network_interfaces = {}
         self.traffic_log = []  # for debugging purposes
         self.add_traffic(start, end, traffic_type, incoming, byte_count, nwitf, False, log)
@@ -77,9 +77,9 @@ class Connection(object):
         if self.end_time == 0 or end > self.end_time:
             self.end_time = end
         if incoming ^ reverse:
-            self.bytes_received += byte_count
+            self.half_bytes_received += byte_count
         else:
-            self.bytes_sent += byte_count
+            self.half_bytes_sent += byte_count
         if str(traffic_type) != self.traffic_type:
             self.traffic_type = "unknown"
 
@@ -88,16 +88,24 @@ class Connection(object):
         return self.end_time - self.start_time
 
     @property
+    def total_bytes_sent(self):
+        return self.half_bytes_sent / 2
+
+    @property
+    def total_bytes_received(self):
+        return self.half_bytes_received / 2
+
+    @property
     def bytes_sent_per_second(self):
         try:
-            return (0.0 + self.bytes_sent) / self.interval_seconds
+            return (0.0 + self.total_bytes_sent) / self.interval_seconds
         except Exception:
             return 0.0
 
     @property
     def bytes_received_per_second(self):
         try:
-            return (0.0 + self.bytes_received) / self.interval_seconds
+            return (0.0 + self.total_bytes_received) / self.interval_seconds
         except Exception:
             return 0.0
 
@@ -264,8 +272,8 @@ class FlowlogCollector(object):
             network_interfaces.append(itf.original_data)
         data = {
             "traffic_type": connection.traffic_type,
-            "bytes_sent": connection.bytes_sent,
-            "bytes_received": connection.bytes_received,
+            "bytes_sent": connection.total_bytes_sent,
+            "bytes_received": connection.total_bytes_received,
             "family": connection.family,
             "bytes_sent_per_second": connection.bytes_sent_per_second,
             "bytes_received_per_second": connection.bytes_received_per_second,
