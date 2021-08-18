@@ -343,16 +343,22 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
     def process_batch_instances(self, event, seen):
         data = RunInstances(event, strict=False)
         data.validate()
-        instance_ids = [instance.instanceId for instance in data.responseElements.instancesSet.items]
+        instance_ids = [
+            instance.instanceId
+            for instance in data.responseElements.instancesSet.items
+            if instance.instanceId not in seen
+        ]
         self.process_instances(InstanceIds=instance_ids)
-        return instance_ids
+        seen.update(set(instance_ids))
 
     def process_state_notification(self, event, seen):
         instance_id = event.get("instance-id", "")
-        if event.get("state") == "terminated":
-            self.agent.delete(instance_id)
-        else:
-            self.process_instances(InstanceIds=[instance_id])
+        if instance_id not in seen:
+            seen.add(instance_id)
+            if event.get("state") == "terminated":
+                self.agent.delete(instance_id)
+            else:
+                self.process_instances(InstanceIds=[instance_id])
 
     def process_one_instance(self, instance_id):
         self.process_instances(InstanceIds=[instance_id])

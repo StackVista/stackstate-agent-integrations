@@ -89,6 +89,10 @@ class Connection(object):
 
     @property
     def total_bytes_sent(self):
+        '''
+        We are dividing by 2 because all private traffic in a VPC is counted twice.
+        Once for each networkinterface since each reports in and out.
+        '''
         return self.half_bytes_sent / 2
 
     @property
