@@ -57,8 +57,8 @@ class Connection(object):
         self.traffic_type = str(traffic_type)
         self.start_time = start
         self.end_time = end
-        self.half_bytes_sent = 0
-        self.half_bytes_received = 0
+        self.bytes_sent = 0
+        self.bytes_received = 0
         self.network_interfaces = {}
         self.traffic_log = []  # for debugging purposes
         self.add_traffic(start, end, traffic_type, incoming, byte_count, nwitf, False, log)
@@ -77,9 +77,9 @@ class Connection(object):
         if self.end_time == 0 or end > self.end_time:
             self.end_time = end
         if incoming ^ reverse:
-            self.half_bytes_received += byte_count
+            self.bytes_received += byte_count
         else:
-            self.half_bytes_sent += byte_count
+            self.bytes_sent += byte_count
         if str(traffic_type) != self.traffic_type:
             self.traffic_type = "unknown"
 
@@ -89,15 +89,19 @@ class Connection(object):
 
     @property
     def total_bytes_sent(self):
-        '''
-        We are dividing by 2 because all private traffic in a VPC is counted twice.
-        Once for each networkinterface since each reports in and out.
-        '''
-        return self.half_bytes_sent / 2
+        """
+        We are dividing send bytes by 2 because all private traffic in a VPC is counted twice.
+        Once for each network interface since each reports in and out.
+        """
+        return self.bytes_sent / 2
 
     @property
     def total_bytes_received(self):
-        return self.half_bytes_received / 2
+        """
+        We are dividing received bytes by 2 because all private traffic in a VPC is counted twice.
+        Once for each network interface since each reports in and out.
+        """
+        return self.bytes_received / 2
 
     @property
     def bytes_sent_per_second(self):
@@ -138,7 +142,8 @@ class FlowlogCollector(object):
             nwinterfaces[itf.NetworkInterfaceId] = itf
         return nwinterfaces
 
-    def check_bucket(self, client, bucket_name):
+    @staticmethod
+    def check_bucket(client, bucket_name):
         versioning = client.get_bucket_versioning(Bucket=bucket_name)
         return isinstance(versioning, dict) and versioning.get("Status") == "Enabled"
 
@@ -314,7 +319,6 @@ class FlowlogCollector(object):
             {"URN": urns, "debug_data": data},
         )
         # make relation between the two
-        self.log.info(json.dumps(data, indent=2, default=str))
         self.agent.relation(lcid, rcid, "flowlog", data)
 
     def process_connections(self, connections):
