@@ -1,7 +1,11 @@
+import gzip
+import io
 from schematics import Model
 from schematics.types import StringType, ModelType
 from datetime import datetime
 import pytz
+from six import PY2, string_types
+import botocore
 
 
 class Location(Model):
@@ -54,3 +58,23 @@ def capitalize_keys(in_dict):
 
 def seconds_ago(dt):
     return (datetime.utcnow().replace(tzinfo=pytz.utc) - dt).total_seconds()
+
+
+def is_gz_file(body):
+    with io.BytesIO(body) as test_f:
+        return test_f.read(2) == b"\x1f\x8b"
+
+
+def get_stream_from_s3body(body):
+    if isinstance(body, string_types):
+        # this case is only for test purposes
+        if PY2:
+            body = bytes(body)
+        else:
+            body = bytes(body, "ascii")
+    elif isinstance(body, botocore.response.StreamingBody):
+        body = body.read()
+    if is_gz_file(body):
+        return gzip.GzipFile(fileobj=io.BytesIO(body), mode="rb")
+    else:
+        return io.BytesIO(body)

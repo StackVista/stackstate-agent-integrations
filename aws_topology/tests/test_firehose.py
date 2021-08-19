@@ -62,7 +62,7 @@ class TestFirehose(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         components = topology[0]["components"]
         self.assertEqual(len(components), 0)
 
@@ -71,7 +71,7 @@ class TestFirehose(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
             "firehose_1",
@@ -83,7 +83,7 @@ class TestFirehose(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 0)
         self.assertIn("arn:aws:firehose:eu-west-1:548105126730:deliverystream/firehose_1", self.check.delete_ids)
 
@@ -92,7 +92,7 @@ class TestFirehose(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
             "arn:aws:firehose:eu-west-1:548105126730:deliverystream/firehose_1", topology[0]["components"][0]["id"]
@@ -103,7 +103,7 @@ class TestFirehose(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
             "arn:aws:firehose:eu-west-1:548105126730:deliverystream/firehose_1", topology[0]["components"][0]["id"]
@@ -114,7 +114,7 @@ class TestFirehose(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
             "arn:aws:firehose:eu-west-1:548105126730:deliverystream/firehose_1", topology[0]["components"][0]["id"]
@@ -125,7 +125,7 @@ class TestFirehose(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
             "arn:aws:firehose:eu-west-1:548105126730:deliverystream/firehose_1", topology[0]["components"][0]["id"]
@@ -136,7 +136,7 @@ class TestFirehose(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
             "arn:aws:firehose:eu-west-1:548105126730:deliverystream/firehose_1", topology[0]["components"][0]["id"]
