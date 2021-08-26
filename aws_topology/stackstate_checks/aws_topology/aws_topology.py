@@ -57,7 +57,8 @@ class AwsTopologyCheck(AgentCheck):
 
     INSTANCE_SCHEMA = InstanceInfo
 
-    def get_account_id(self, instance_info):
+    @staticmethod
+    def get_account_id(instance_info):
         return instance_info.role_arn.split(":")[4]
 
     def get_instance_key(self, instance_info):

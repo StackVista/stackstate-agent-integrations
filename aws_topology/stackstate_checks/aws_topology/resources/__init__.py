@@ -24,9 +24,7 @@ from .utils import is_private, ip_version, client_array_operation, make_valid_da
 __all__ = [
     "ResourceRegistry",
     "RegisteredResourceCollector",
-    "listen_for",
     "type_arn",
-    "get_ipurns_from_hostname",
     "is_private",
     "ip_version",
     "client_array_operation",
