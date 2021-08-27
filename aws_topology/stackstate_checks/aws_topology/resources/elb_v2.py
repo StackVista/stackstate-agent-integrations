@@ -210,7 +210,7 @@ class ElbV2Collector(RegisteredResourceCollector):
             target_group.TargetGroupArn, "urn:aws/target-group-instance/" + target_health.Target.Id, "uses-service", {}
         )
 
-        self.agent.event(
+        self.emit_event(
             {
                 "timestamp": int(time.time()),
                 "event_type": "target_instance_health",

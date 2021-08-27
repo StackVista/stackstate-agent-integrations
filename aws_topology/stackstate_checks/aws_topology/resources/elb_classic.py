@@ -114,7 +114,7 @@ class ELBClassicCollector(RegisteredResourceCollector):
         for instance_health in data.instance_health:
             health = InstanceHealth(instance_health, strict=False)
             health.validate()
-            self.agent.event(
+            self.emit_event(
                 {
                     "timestamp": int(time.time()),
                     "event_type": "ec2_state",

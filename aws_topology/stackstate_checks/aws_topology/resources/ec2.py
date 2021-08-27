@@ -166,7 +166,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         instance = Instance(data.instance, strict=False)
         instance.validate()
 
-        self.agent.event(
+        self.emit_event(
             {
                 "timestamp": int(time.time()),
                 "event_type": "ec2_state",

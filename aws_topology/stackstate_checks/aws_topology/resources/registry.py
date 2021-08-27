@@ -68,6 +68,10 @@ class RegisteredResourceCollector(with_metaclass(ResourceRegistry, object)):
     def emit_relation(self, source, target, type, data):
         self.agent.relation(source, target, type, data)
 
+    def emit_event(self, event):
+        self.agent.log.info(event)
+        self.agent.parked_events.append(event)
+
     def process_all(self, filter=None):
         raise NotImplementedError
 

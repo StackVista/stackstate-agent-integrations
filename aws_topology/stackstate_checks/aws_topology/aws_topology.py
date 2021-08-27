@@ -250,6 +250,7 @@ class AwsTopologyCheck(AgentCheck):
                 for event in events_per_api[api]:
                     processor.process_cloudtrail_event(event, resources_seen)
 
+        agent_proxy.send_parked_events()
         self.delete_ids += agent_proxy.delete_ids
 
     def get_flowlog_update(self, instance_info, aws_client):
@@ -279,6 +280,7 @@ class AgentProxy(object):
         self.warnings = {}
         self.lock = threading.Lock()
         self.log = log
+        self.parked_events = []
 
     def component(self, location, id, type, data):
         self.components_seen.add(id)
@@ -308,15 +310,17 @@ class AgentProxy(object):
             self.agent.relation(relation["source_id"], relation["target_id"], relation["type"], relation["data"])
         for warning in self.warnings:
             self.agent.warning(warning + " was encountered {} time(s).".format(self.warnings[warning]))
+        self.send_parked_events()
 
-    def event(self, event):
-        self.agent.event(event)
+    def send_parked_events(self):
+        for event in self.parked_events:
+            self.agent.event(event)
 
     def delete(self, id):
         self.delete_ids.append(id)
 
     def warning(self, error, **kwargs):
-        # TODO make a list of max 5 of the resources inpamcted
+        # TODO make a list of max 5 of the resources impacted
         warning = self.warnings.get(error, 0) + 1
         self.warnings[error] = warning
 
