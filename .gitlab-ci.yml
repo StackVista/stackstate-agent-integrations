@@ -135,7 +135,7 @@ clear-win-caches:
   needs:
     - linux_deps
   services:
-    - name: artifactory.stackstate.io/docker-virtual/docker:19.03.5-dind
+    - name: docker:19.03.5-dind
       ## Overriding the entrypoint to exclude the /var/run/docker.sock because we also mount it
       entrypoint: ["dockerd-entrypoint.sh", "/usr/local/bin/dockerd", "--host=tcp://0.0.0.0:2375" ]
   script:
