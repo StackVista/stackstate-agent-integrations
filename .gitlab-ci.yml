@@ -57,7 +57,7 @@ stages:
   tags:
     - agent_windows_6
   before_script:
-    - call $CI_PROJECT_DIR/.setup-scripts/windows_setup_env.cmd
+    - call %WIN_CI_PROJECT_DIR%/.setup-scripts/windows_setup_env.cmd
 
 print_env:
   <<: *linux_env
@@ -94,7 +94,7 @@ win_deps:
     paths:
       - venv
   script:
-    - call $CI_PROJECT_DIR/.setup-scripts/windows_load_env.cmd
+    - call %WIN_CI_PROJECT_DIR%/.setup-scripts/windows_load_env.cmd
   artifacts:
     paths:
       - venv
