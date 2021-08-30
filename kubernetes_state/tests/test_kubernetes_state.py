@@ -1,4 +1,4 @@
-# (C) Datadog, Inc. 2018
+# (C) Datadog, Inc. 2018-present
 # All rights reserved
 # Licensed under Simplified BSD License (see LICENSE)
 import os
@@ -27,6 +27,7 @@ METRICS = [
     NAMESPACE + '.node.gpu.cards_capacity',
     NAMESPACE + '.node.gpu.cards_allocatable',
     NAMESPACE + '.nodes.by_condition',
+    NAMESPACE + '.node.by_condition',
     # deployments
     NAMESPACE + '.deployment.replicas',
     NAMESPACE + '.deployment.replicas_available',
@@ -56,6 +57,7 @@ METRICS = [
     NAMESPACE + '.pdb.pods_healthy',
     NAMESPACE + '.pdb.pods_total',
     # pods
+    NAMESPACE + '.pod.count',
     NAMESPACE + '.pod.ready',
     NAMESPACE + '.pod.scheduled',
     NAMESPACE + '.pod.status_phase',
@@ -119,37 +121,47 @@ TAGS = {
         'kernel_version:4.9.13',
         'kubelet_version:v1.8.0',
         'kubeproxy_version:v1.8.0',
-        'os_image:Buildroot 2017.02',
+        'os_image:buildroot 2017.02',
     ],
     NAMESPACE + '.pod.ready': ['node:minikube'],
     NAMESPACE + '.pod.scheduled': ['node:minikube'],
     NAMESPACE
     + '.nodes.by_condition': [
-        'condition:MemoryPressure',
-        'condition:DiskPressure',
-        'condition:OutOfDisk',
-        'condition:Ready',
+        'condition:memorypressure',
+        'condition:diskpressure',
+        'condition:outofdisk',
+        'condition:ready',
         'status:true',
         'status:false',
         'status:unknown',
     ],
     NAMESPACE
+    + '.node.by_condition': [
+        'condition:memorypressure',
+        'condition:diskpressure',
+        'condition:outofdisk',
+        'condition:ready',
+        'status:true',
+        'status:false',
+    ],
+    NAMESPACE
     + '.pod.status_phase': [
-        'phase:Pending',
-        'phase:Running',
-        'phase:Failed',
-        'phase:Succeeded',
-        'phase:Unknown',
+        'phase:pending',
+        'phase:running',
+        'phase:failed',
+        'phase:succeeded',
+        'phase:unknown',
         'namespace:default',
         'namespace:kube-system',
     ],
+    NAMESPACE + '.pod.count': ['uid:b6fb4273-2dd6-4edb-9a23-7642bb121806', 'created_by_kind:daemonset'],
     NAMESPACE
     + '.container.status_report.count.waiting': [
-        'reason:ContainerCreating',
-        'reason:CrashLoopBackoff',  # Lowercase "off"
-        'reason:CrashLoopBackOff',  # Uppercase "Off"
-        'reason:ErrImagePull',
-        'reason:ImagePullBackoff',
+        'reason:containercreating',
+        'reason:crashloopbackoff',  # Lowercase "off"
+        'reason:crashloopbackoff',  # Uppercase "Off"
+        'reason:errimagepull',
+        'reason:imagepullbackoff',
         'pod:kube-dns-1326421443-hj4hx',
         'pod:hello-1509998340-k4f8q',
     ],
@@ -165,32 +177,37 @@ TAGS = {
     ],
     NAMESPACE + '.job.failed': ['job:hello', 'job_name:hello2'],
     NAMESPACE + '.job.succeeded': ['job:hello', 'job_name:hello2'],
-    NAMESPACE + '.hpa.condition': ['namespace:default', 'hpa:myhpa', 'condition:true', 'status:AbleToScale'],
+    NAMESPACE + '.hpa.condition': ['namespace:default', 'hpa:myhpa', 'condition:true', 'status:abletoscale'],
 }
 
 JOINED_METRICS = {
-    NAMESPACE + '.deployment.replicas': ['label_addonmanager_kubernetes_io_mode:Reconcile', 'deployment:kube-dns'],
+    NAMESPACE + '.deployment.replicas': ['label_addonmanager_kubernetes_io_mode:reconcile', 'deployment:kube-dns'],
     NAMESPACE
-    + '.deployment.replicas_available': ['label_addonmanager_kubernetes_io_mode:Reconcile', 'deployment:kube-dns'],
+    + '.deployment.replicas_available': ['label_addonmanager_kubernetes_io_mode:reconcile', 'deployment:kube-dns'],
     NAMESPACE
-    + '.deployment.replicas_unavailable': ['label_addonmanager_kubernetes_io_mode:Reconcile', 'deployment:kube-dns'],
+    + '.deployment.replicas_unavailable': ['label_addonmanager_kubernetes_io_mode:reconcile', 'deployment:kube-dns'],
     NAMESPACE
-    + '.deployment.replicas_updated': ['label_addonmanager_kubernetes_io_mode:Reconcile', 'deployment:kube-dns'],
+    + '.deployment.replicas_updated': ['label_addonmanager_kubernetes_io_mode:reconcile', 'deployment:kube-dns'],
     NAMESPACE
-    + '.deployment.replicas_desired': ['label_addonmanager_kubernetes_io_mode:Reconcile', 'deployment:kube-dns'],
-    NAMESPACE + '.deployment.paused': ['label_addonmanager_kubernetes_io_mode:Reconcile', 'deployment:kube-dns'],
+    + '.deployment.replicas_desired': ['label_addonmanager_kubernetes_io_mode:reconcile', 'deployment:kube-dns'],
+    NAMESPACE + '.deployment.paused': ['label_addonmanager_kubernetes_io_mode:reconcile', 'deployment:kube-dns'],
     NAMESPACE
     + '.deployment.rollingupdate.max_unavailable': [
-        'label_addonmanager_kubernetes_io_mode:Reconcile',
+        'label_addonmanager_kubernetes_io_mode:reconcile',
         'deployment:kube-dns',
+    ],
+    NAMESPACE
+    + '.container.status_report.count.waiting': [
+        'label_addonmanager_kubernetes_io_mode:reconcile',
+        'pod:registry-creds-hq249',
     ],
 }
 
 HOSTNAMES = {
-    NAMESPACE + '.pod.ready': 'minikube-stubbed-cluster-name',
-    NAMESPACE + '.pod.scheduled': 'minikube-stubbed-cluster-name',
-    NAMESPACE + '.container.status_report.count.waiting': 'minikube-stubbed-cluster-name',
-    NAMESPACE + '.container.status_report.count.terminated': 'minikube-stubbed-cluster-name',
+    NAMESPACE + '.pod.ready': 'minikube',
+    NAMESPACE + '.pod.scheduled': 'minikube',
+    NAMESPACE + '.container.status_report.count.waiting': 'minikube',
+    NAMESPACE + '.container.status_report.count.terminated': 'minikube',
 }
 
 ZERO_METRICS = [
@@ -215,6 +232,7 @@ class MockResponse:
     def __init__(self, content, content_type):
         self.content = content
         self.headers = {'Content-Type': content_type}
+        self.encoding = 'utf-8'
 
     def iter_lines(self, **_):
         for elt in self.content.split(b"\n"):
@@ -231,19 +249,35 @@ def mock_from_file(fname):
 
 @pytest.fixture
 def instance():
-    return {'host': 'foo', 'kube_state_url': 'http://foo', 'tags': ['optional:tag1'], 'telemetry': False}
+    return {
+        'host': 'foo',
+        'kube_state_url': 'http://foo',
+        'tags': ['optional:tag1'],
+        'telemetry': False,
+    }
+
+
+def _check(instance, mock_file="prometheus.txt"):
+    check = KubernetesState(CHECK_NAME, {}, [instance])
+    check.poll = mock.MagicMock(return_value=MockResponse(mock_from_file(mock_file), 'text/plain'))
+    return check
 
 
 @pytest.fixture
 def check(instance):
-    check = KubernetesState(CHECK_NAME, {}, {}, [instance])
-    check.poll = mock.MagicMock(return_value=MockResponse(mock_from_file("prometheus.txt"), 'text/plain'))
-    return check
+    return _check(instance)
 
 
-def test_check_instance_key(instance):
-    check = KubernetesState(CHECK_NAME, {}, {}, [instance])
-    assert check.get_instance_key(instance) == AgentIntegrationInstance(CHECK_NAME, 'stubbed-cluster-name')
+@pytest.fixture
+def check_with_join_kube_labels(instance):
+    instance['join_kube_labels'] = True
+    return _check(instance)
+
+
+@pytest.fixture
+def check_with_join_standard_tag_labels(instance):
+    instance['join_standard_tags'] = True
+    return _check(instance=instance, mock_file="ksm-standard-tags-gke.txt")
 
 
 def assert_not_all_zeroes(aggregator, metric_name):
@@ -285,57 +319,148 @@ def test_update_kube_state_metrics(aggregator, instance, check):
 
     # Make sure we send counts for all statuses to avoid no-data graphing issues
     aggregator.assert_metric(
-        NAMESPACE + '.nodes.by_condition', tags=['condition:Ready', 'status:true', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=1
+        NAMESPACE + '.nodes.by_condition', tags=['condition:ready', 'status:true', 'optional:tag1'], value=1
     )
     aggregator.assert_metric(
-        NAMESPACE + '.nodes.by_condition', tags=['condition:Ready', 'status:false', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=0
+        NAMESPACE + '.nodes.by_condition', tags=['condition:ready', 'status:false', 'optional:tag1'], value=0
     )
     aggregator.assert_metric(
-        NAMESPACE + '.nodes.by_condition', tags=['condition:Ready', 'status:unknown', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=0
+        NAMESPACE + '.nodes.by_condition', tags=['condition:ready', 'status:unknown', 'optional:tag1'], value=0
     )
 
     # Make sure we send counts for all phases to avoid no-data graphing issues
     aggregator.assert_metric(
-        NAMESPACE + '.pod.status_phase', tags=['namespace:default', 'phase:Pending', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=1
+        NAMESPACE + '.pod.status_phase',
+        tags=['kube_namespace:default', 'namespace:default', 'phase:pending', 'pod_phase:pending', 'optional:tag1', 'cluster_name:stubbed-cluster-name'],
+        value=1
     )
     aggregator.assert_metric(
-        NAMESPACE + '.pod.status_phase', tags=['namespace:default', 'phase:Running', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=3
+        NAMESPACE + '.pod.status_phase',
+        tags=['kube_namespace:default', 'namespace:default', 'phase:running', 'pod_phase:running', 'optional:tag1', 'cluster_name:stubbed-cluster-name'],
+        value=3
     )
     aggregator.assert_metric(
-        NAMESPACE + '.pod.status_phase', tags=['namespace:default', 'phase:Succeeded', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=2
+        NAMESPACE + '.pod.status_phase',
+        tags=['kube_namespace:default', 'namespace:default', 'phase:succeeded', 'pod_phase:succeeded', 'optional:tag1', 'cluster_name:stubbed-cluster-name'],
+        value=2
     )
     aggregator.assert_metric(
-        NAMESPACE + '.pod.status_phase', tags=['namespace:default', 'phase:Failed', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=2
+        NAMESPACE + '.pod.status_phase',
+        tags=['kube_namespace:default', 'namespace:default', 'phase:failed', 'pod_phase:failed', 'optional:tag1', 'cluster_name:stubbed-cluster-name'],
+        value=2
     )
     aggregator.assert_metric(
-        NAMESPACE + '.pod.status_phase', tags=['namespace:default', 'phase:Unknown', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=1
+        NAMESPACE + '.pod.status_phase',
+        tags=['kube_namespace:default', 'namespace:default', 'phase:unknown', 'pod_phase:unknown', 'optional:tag1', 'cluster_name:stubbed-cluster-name'],
+        value=1
     )
 
     # Persistentvolume counts
     aggregator.assert_metric(
         NAMESPACE + '.persistentvolumes.by_phase',
-        tags=['storageclass:local-data', 'phase:Available', 'optional:tag1', 'cluster_name:stubbed-cluster-name'],
+        tags=['storageclass:local-data', 'phase:available', 'optional:tag1', 'cluster_name:stubbed-cluster-name'],
         value=0,
     )
     aggregator.assert_metric(
         NAMESPACE + '.persistentvolumes.by_phase',
-        tags=['storageclass:local-data', 'phase:Bound', 'optional:tag1', 'cluster_name:stubbed-cluster-name'],
+        tags=['storageclass:local-data', 'phase:bound', 'optional:tag1', 'cluster_name:stubbed-cluster-name'],
+        value=2
+    )
+    # No storage class
+    aggregator.assert_metric(
+        NAMESPACE + '.persistentvolumes.by_phase',
+        tags=['storageclass:unknown', 'phase:bound', 'optional:tag1', 'cluster_name:stubbed-cluster-name'],
+        value=1,
+    )
+    aggregator.assert_metric(
+        NAMESPACE + '.persistentvolumes.by_phase',
+        tags=['storageclass:local-data', 'phase:failed', 'optional:tag1', 'cluster_name:stubbed-cluster-name'],
+        value=0,
+    )
+    aggregator.assert_metric(
+        NAMESPACE + '.persistentvolumes.by_phase',
+        tags=['storageclass:local-data', 'phase:pending', 'optional:tag1', 'cluster_name:stubbed-cluster-name'],
+        value=0,
+    )
+    aggregator.assert_metric(
+        NAMESPACE + '.persistentvolumes.by_phase',
+        tags=['storageclass:local-data', 'phase:released', 'optional:tag1', 'cluster_name:stubbed-cluster-name'],
+        value=0,
+    )
+
+    # services count
+    aggregator.assert_metric(
+        NAMESPACE + '.service.count',
+        tags=['namespace:default', 'type:clusterip', 'optional:tag1'],
+        value=3,
+    )
+    aggregator.assert_metric(
+        NAMESPACE + '.service.count',
+        tags=['namespace:default', 'type:loadbalancer', 'optional:tag1'],
         value=2,
     )
     aggregator.assert_metric(
-        NAMESPACE + '.persistentvolumes.by_phase',
-        tags=['storageclass:local-data', 'phase:Failed', 'optional:tag1', 'cluster_name:stubbed-cluster-name'],
-        value=0,
+        NAMESPACE + '.service.count',
+        tags=['namespace:kube-system', 'type:clusterip', 'optional:tag1'],
+        value=4,
     )
     aggregator.assert_metric(
-        NAMESPACE + '.persistentvolumes.by_phase',
-        tags=['storageclass:local-data', 'phase:Pending', 'optional:tag1', 'cluster_name:stubbed-cluster-name'],
-        value=0,
+        NAMESPACE + '.service.count',
+        tags=['namespace:kube-system', 'type:nodeport', 'optional:tag1'],
+        value=1,
+    )
+
+    # namespaces count
+    aggregator.assert_metric(
+        NAMESPACE + '.namespace.count',
+        tags=['phase:active', 'optional:tag1'],
+        value=4,
     )
     aggregator.assert_metric(
-        NAMESPACE + '.persistentvolumes.by_phase',
-        tags=['storageclass:local-data', 'phase:Released', 'optional:tag1', 'cluster_name:stubbed-cluster-name'],
+        NAMESPACE + '.namespace.count',
+        tags=['phase:terminating', 'optional:tag1'],
         value=0,
+    )
+
+    # replicasets count
+    aggregator.assert_metric(
+        NAMESPACE + '.replicaset.count',
+        tags=['namespace:kube-system', 'owner_kind:deployment', 'owner_name:l7-default-backend', 'optional:tag1'],
+        value=1,
+    )
+    aggregator.assert_metric(
+        NAMESPACE + '.replicaset.count',
+        tags=['namespace:kube-system', 'owner_kind:deployment', 'owner_name:metrics-server-v0.3.6', 'optional:tag1'],
+        value=1,
+    )
+    aggregator.assert_metric(
+        NAMESPACE + '.replicaset.count',
+        tags=['namespace:kube-system', 'owner_kind:deployment', 'owner_name:kube-dns-autoscaler', 'optional:tag1'],
+        value=1,
+    )
+
+    # jobs count
+    aggregator.assert_metric(
+        NAMESPACE + '.job.count',
+        tags=['namespace:default', 'owner_kind:cronjob', 'owner_name:a-cronjob', 'optional:tag1'],
+        value=1,
+    )
+    aggregator.assert_metric(
+        NAMESPACE + '.job.count',
+        tags=['namespace:default', 'owner_kind:<none>', 'owner_name:<none>', 'optional:tag1'],
+        value=1,
+    )
+
+    # deployments count
+    aggregator.assert_metric(
+        NAMESPACE + '.deployment.count',
+        tags=['namespace:default', 'optional:tag1'],
+        value=2,
+    )
+    aggregator.assert_metric(
+        NAMESPACE + '.deployment.count',
+        tags=['namespace:kube-system', 'optional:tag1'],
+        value=2,
     )
 
     for metric in METRICS:
@@ -367,12 +492,174 @@ def test_update_kube_state_metrics_v040(aggregator, instance, check):
     # assert resourcequota_was_collected(aggregator)
 
 
+def test_join_kube_labels(aggregator, instance, check_with_join_kube_labels):
+    # run check twice to have pod/node mapping
+    for _ in range(2):
+        check_with_join_kube_labels.check(instance)
+
+    aggregator.assert_metric(
+        NAMESPACE + '.container.ready',
+        tags=[
+            'container:kube-state-metrics',
+            'kube_container_name:kube-state-metrics',
+            'kube_namespace:default',
+            'label_app:kube-state-metrics',
+            'label_pod_template_hash:639670438',
+            'label_release:jaundiced-numbat',
+            'namespace:default',
+            'node:minikube',
+            'optional:tag1',
+            'phase:running',
+            'pod:jaundiced-numbat-kube-state-metrics-b7fbc487d-4phhj',
+            'pod_name:jaundiced-numbat-kube-state-metrics-b7fbc487d-4phhj',
+            'pod_phase:running',
+        ],
+        value=1,
+    )
+    aggregator.assert_metric(
+        NAMESPACE + '.deployment.replicas',
+        tags=[
+            'deployment:jaundiced-numbat-kube-state-metrics',
+            'kube_deployment:jaundiced-numbat-kube-state-metrics',
+            'kube_namespace:default',
+            'label_app:kube-state-metrics',
+            'label_chart:kube-state-metrics-0.3.1',
+            'label_heritage:tiller',
+            'label_release:jaundiced-numbat',
+            'namespace:default',
+            'optional:tag1',
+        ],
+        value=1,
+    )
+
+
+def test_join_standard_tags_labels(aggregator, instance, check_with_join_standard_tag_labels):
+    # run check twice to have pod/node mapping
+    for _ in range(2):
+        check_with_join_standard_tag_labels.check(instance)
+
+    # Pod standard tags
+    aggregator.assert_metric(
+        NAMESPACE + '.container.ready',
+        tags=[
+            'container:master',
+            'kube_container_name:master',
+            'kube_namespace:default',
+            'namespace:default',
+            'optional:tag1',
+            'node:gke-abcdef-cluster-default-pool-53c8a4ea-z9rw',
+            'phase:running',
+            'pod:redis-599d64fcb9-c654j',
+            'pod_name:redis-599d64fcb9-c654j',
+            'pod_phase:running',
+            "env:dev",
+            "service:redis",
+            "version:v1",
+        ],
+        value=1,
+    )
+
+    # Deployment standard tags
+    aggregator.assert_metric(
+        NAMESPACE + '.deployment.replicas',
+        tags=[
+            'deployment:redis',
+            'kube_deployment:redis',
+            'kube_namespace:default',
+            'namespace:default',
+            'optional:tag1',
+            "env:dev",
+            "service:redis",
+            "version:v1",
+        ],
+        value=1,
+    )
+
+    # ReplicaSet standard tags
+    aggregator.assert_metric(
+        NAMESPACE + '.replicaset.replicas_ready',
+        tags=[
+            'replicaset:redis-599d64fcb9',
+            'kube_replica_set:redis-599d64fcb9',
+            'kube_namespace:default',
+            'namespace:default',
+            'optional:tag1',
+            "env:dev",
+            "service:redis",
+            "version:v1",
+        ],
+        value=1,
+    )
+
+    # Daemonset standard tags
+    aggregator.assert_metric(
+        NAMESPACE + '.daemonset.desired',
+        tags=[
+            'daemonset:datadog-monitoring',
+            'kube_daemon_set:datadog-monitoring',
+            'kube_namespace:default',
+            'namespace:default',
+            'optional:tag1',
+            "env:dev",
+            "service:datadog-agent",
+            "version:7",
+        ],
+        value=3,
+    )
+
+    # StatefulSet standard tags
+    aggregator.assert_metric(
+        NAMESPACE + '.statefulset.replicas_ready',
+        tags=[
+            'statefulset:web',
+            'kube_namespace:default',
+            'namespace:default',
+            'optional:tag1',
+            "env:dev",
+            "service:web",
+            "version:v1",
+        ],
+        value=2,
+    )
+
+    # Job standard tags
+    aggregator.assert_metric(
+        NAMESPACE + '.job.succeeded',
+        tags=[
+            'job_name:curl-job',
+            'kube_namespace:default',
+            'namespace:default',
+            'optional:tag1',
+            "env:dev",
+            "service:curl-job",
+            "version:v1",
+        ],
+        value=1,
+    )
+
+    # CronJob standard tags
+    aggregator.assert_metric(
+        NAMESPACE + '.job.succeeded',
+        tags=[
+            'job_name:curl-cron-job',
+            'kube_namespace:default',
+            'namespace:default',
+            'optional:tag1',
+            "env:dev",
+            "service:curl-cron-job",
+            "version:v1",
+        ],
+        value=1,
+    )
+
+
 def test_join_custom_labels(aggregator, instance, check):
     instance['label_joins'] = {
         'kube_deployment_labels': {
-            'label_to_match': 'deployment',
+            'labels_to_match': ['deployment'],
             'labels_to_get': ['label_addonmanager_kubernetes_io_mode'],
-        }
+        },
+        'kube_pod_labels': {'labels_to_match': ['pod'], 'labels_to_get': ['label_addonmanager_kubernetes_io_mode']},
     }
 
     endpoint = instance['kube_state_url']
@@ -409,10 +696,14 @@ def test_pod_phase_gauges(aggregator, instance, check):
     for _ in range(2):
         check.check(instance)
     aggregator.assert_metric(
-        NAMESPACE + '.pod.status_phase', tags=['namespace:default', 'phase:Running', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=3
+        NAMESPACE + '.pod.status_phase',
+        tags=['kube_namespace:default', 'namespace:default', 'phase:running', 'pod_phase:running', 'optional:tag1', 'cluster_name:stubbed-cluster-name'],
+        value=3
     )
     aggregator.assert_metric(
-        NAMESPACE + '.pod.status_phase', tags=['namespace:default', 'phase:Failed', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=2
+        NAMESPACE + '.pod.status_phase',
+        tags=['kube_namespace:default', 'namespace:default', 'phase:failed', 'pod_phase:failed', 'optional:tag1', 'cluster_name:stubbed-cluster-name'],
+        value=2
     )
 
 
@@ -425,7 +716,7 @@ def test_extract_timestamp(check):
     result = check._extract_job_timestamp(job_name2)
     assert result == 1509998340
     result = check._extract_job_timestamp(job_name3)
-    assert result == 0
+    assert result is None
 
 
 def test_job_counts(aggregator, instance):
@@ -435,20 +726,56 @@ def test_job_counts(aggregator, instance):
 
     for _ in range(2):
         check.check(instance)
+
+    # Test cron jobs
     aggregator.assert_metric(
-        NAMESPACE + '.job.failed', tags=['namespace:default', 'job:hello', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=0
+        NAMESPACE + '.job.failed',
+        tags=['namespace:default', 'kube_namespace:default', 'kube_job:hello', 'job:hello', 'optional:tag1'],
+        value=0,
     )
     aggregator.assert_metric(
-        NAMESPACE + '.job.succeeded', tags=['namespace:default', 'job:hello', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=3
+        NAMESPACE + '.job.succeeded',
+        tags=['namespace:default', 'kube_namespace:default', 'kube_job:hello', 'job:hello', 'optional:tag1'],
+        value=3,
+    )
+
+    # Test jobs
+    aggregator.assert_metric(
+        NAMESPACE + '.job.failed',
+        tags=['namespace:default', 'kube_namespace:default', 'job_name:test', 'optional:tag1', 'cluster_name:stubbed-cluster-name'],
+        value=0
+    )
+    aggregator.assert_metric(
+        NAMESPACE + '.job.succeeded',
+        tags=['namespace:default', 'kube_namespace:default', 'job_name:test', 'optional:tag1', 'cluster_name:stubbed-cluster-name'],
+        value=3
     )
 
     # Re-run check to make sure we don't count the same jobs
     check.check(instance)
+
+    # Test cron jobs
     aggregator.assert_metric(
-        NAMESPACE + '.job.failed', tags=['namespace:default', 'job:hello', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=0
+        NAMESPACE + '.job.failed',
+        tags=['namespace:default', 'kube_namespace:default', 'kube_job:hello', 'job:hello', 'optional:tag1'],
+        value=0,
     )
     aggregator.assert_metric(
-        NAMESPACE + '.job.succeeded', tags=['namespace:default', 'job:hello', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=3
+        NAMESPACE + '.job.succeeded',
+        tags=['namespace:default', 'kube_namespace:default', 'kube_job:hello', 'job:hello', 'optional:tag1'],
+        value=3,
+    )
+
+    # Test jobs
+    aggregator.assert_metric(
+        NAMESPACE + '.job.failed',
+        tags=['namespace:default', 'kube_namespace:default', 'job_name:test', 'optional:tag1', 'cluster_name:stubbed-cluster-name'],
+        value=0,
+    )
+    aggregator.assert_metric(
+        NAMESPACE + '.job.succeeded',
+        tags=['namespace:default', 'kube_namespace:default', 'job_name:test', 'optional:tag1', 'cluster_name:stubbed-cluster-name'],
+        value=1,
     )
 
     # Edit the payload and rerun the check
@@ -460,12 +787,117 @@ def test_job_counts(aggregator, instance):
         b'kube_job_status_failed{job="hello-1509998340",namespace="default"} 0',
         b'kube_job_status_failed{job="hello-1509998510",namespace="default"} 1',
     )
+    payload = payload.replace(
+        b'kube_job_status_succeeded{job_name="test",namespace="default"} 1',
+        b'kube_job_status_succeeded{job_name="test",namespace="default"} 0',
+    )
 
     check.poll = mock.MagicMock(return_value=MockResponse(payload, 'text/plain'))
     check.check(instance)
     aggregator.assert_metric(
-        NAMESPACE + '.job.failed', tags=['namespace:default', 'job:hello', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=1
+        NAMESPACE + '.job.failed',
+        tags=['namespace:default', 'kube_namespace:default', 'job:hello', 'kube_job:hello', 'optional:tag1'],
+        value=1,
     )
+    aggregator.assert_metric(
+        NAMESPACE + '.job.succeeded',
+        tags=['namespace:default', 'kube_namespace:default', 'job:hello', 'kube_job:hello', 'optional:tag1'],
+        value=4,
+    )
+
+    # Edit the payload to mimick a job running and rerun the check
+    payload = payload.replace(
+        b'kube_job_status_succeeded{job="hello-1509998500",namespace="default"} 1',
+        b'kube_job_status_succeeded{job="hello-1509998600",namespace="default"} 0',
+    )
+    # Edit the payload to mimick a job re-creation
+    payload = payload.replace(
+        b'kube_job_status_succeeded{job_name="test",namespace="default"} 0',
+        b'kube_job_status_succeeded{job_name="test",namespace="default"} 1',
+    )
+
+    check.poll = mock.MagicMock(return_value=MockResponse(payload, 'text/plain'))
+    check.check(instance)
+    # Test if we now have two as the value for the same job
+    aggregator.assert_metric(
+        NAMESPACE + '.job.succeeded',
+        tags=['namespace:default', 'kube_namespace:default', 'job_name:test', 'optional:tag1'],
+        value=2,
+    )
+
+    # Edit the payload to mimick a job that stopped running and rerun the check
+    payload = payload.replace(
+        b'kube_job_status_succeeded{job="hello-1509998600",namespace="default"} 0',
+        b'kube_job_status_succeeded{job="hello-1509998600",namespace="default"} 1',
+    )
+
+    check.poll = mock.MagicMock(return_value=MockResponse(payload, 'text/plain'))
+    check.check(instance)
+    aggregator.assert_metric(
+        NAMESPACE + '.job.succeeded',
+        tags=['namespace:default', 'kube_namespace:default', 'job:hello', 'kube_job:hello', 'optional:tag1'],
+        value=5,
+    )
+
+
+def test_keep_ksm_labels_desactivated(aggregator, instance):
+    instance['keep_ksm_labels'] = False
+    check = KubernetesState(CHECK_NAME, {}, [instance])
+    check.poll = mock.MagicMock(return_value=MockResponse(mock_from_file("prometheus.txt"), 'text/plain'))
+    check.check(instance)
+    for _ in range(2):
+        check.check(instance)
+    aggregator.assert_metric(
+        NAMESPACE + '.pod.status_phase', tags=['kube_namespace:default', 'pod_phase:running', 'optional:tag1'], value=3
+    )
+
+
+def test_experimental_labels(aggregator, instance):
+    check = KubernetesState(CHECK_NAME, {}, [instance])
+    check.poll = mock.MagicMock(return_value=MockResponse(mock_from_file("prometheus.txt"), 'text/plain'))
+    for _ in range(2):
+        check.check(instance)
+
+    assert aggregator.metrics(NAMESPACE + '.hpa.spec_target_metric') == []
+
+    instance['experimental_metrics'] = True
+    check = KubernetesState(CHECK_NAME, {}, [instance])
+    check.poll = mock.MagicMock(return_value=MockResponse(mock_from_file("prometheus.txt"), 'text/plain'))
+    for _ in range(2):
+        check.check(instance)
+
+    aggregator.assert_metric(
+        NAMESPACE + '.hpa.spec_target_metric',
+        tags=[
+            'hpa:dummy-nginx-ingress-controller',
+            'kube_namespace:default',
+            'metric_name:cpu',
+            'metric_target_type:utilization',
+            'namespace:default',
+            'optional:tag1',
+        ],
+        value=80.0,
+    )
+
+
+def test_telemetry(aggregator, instance):
+    instance['telemetry'] = True
+    instance['experimental_metrics'] = True
+
+    check = KubernetesState(CHECK_NAME, {}, [instance])
+    check.poll = mock.MagicMock(return_value=MockResponse(mock_from_file("prometheus.txt"), 'text/plain'))
+
+    endpoint = instance['kube_state_url']
+    scraper_config = check.config_map[endpoint]
+    scraper_config['_text_filter_blacklist'] = ['resourcequota']
+
+    for _ in range(2):
+        check.check(instance)
+    aggregator.assert_metric(NAMESPACE + '.telemetry.payload.size', tags=['optional:tag1'], value=93895.0)
+    aggregator.assert_metric(NAMESPACE + '.telemetry.metrics.processed.count', tags=['optional:tag1'], value=994.0)
+    aggregator.assert_metric(NAMESPACE + '.telemetry.metrics.input.count', tags=['optional:tag1'], value=1326.0)
+    aggregator.assert_metric(NAMESPACE + '.telemetry.metrics.blacklist.count', tags=['optional:tag1'], value=24.0)
+    aggregator.assert_metric(NAMESPACE + '.telemetry.metrics.ignored.count', tags=['optional:tag1'], value=332.0)
     aggregator.assert_metric(
         NAMESPACE + '.job.succeeded', tags=['namespace:default', 'job:hello', 'optional:tag1', 'cluster_name:stubbed-cluster-name'], value=4
     )

@@ -268,6 +268,7 @@ class OpenMetricsScraperMixin(object):
                 # build the _watched_labels set
                 for metric, val in iteritems(scraper_config['label_joins']):
                     scraper_config['_watched_labels'].add(val['label_to_match'])
+                    # TODO add labels_to_match
 
             for metric in self.parse_metric_family(response, scraper_config):
                 yield metric

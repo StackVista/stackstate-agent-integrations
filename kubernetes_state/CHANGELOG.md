@@ -1,6 +1,80 @@
 # CHANGELOG - kubernetes_state
 
-## 4.7.1 / 2019-08-26
+## 5.7.1 / 2021-06-03
+
+* [Fixed] Fix `node.by_condition` metric. See [#9467](https://github.com/DataDog/integrations-core/pull/9467).
+
+## 5.7.0 / 2021-05-28
+
+* [Added] KSM: add `node.by_condition` to have the conditions of individual nodes. See [#9311](https://github.com/DataDog/integrations-core/pull/9311).
+* [Added] Update `auto_conf.yaml` with valid example configuration. See [#7414](https://github.com/DataDog/integrations-core/pull/7414). Thanks [jfmyers9](https://github.com/jfmyers9).
+
+## 5.6.4 / 2021-03-07 / Agent 7.27.0
+
+* [Fixed] Bump minimum base package version. See [#8443](https://github.com/DataDog/integrations-core/pull/8443).
+
+## 5.6.3 / 2020-12-23 / Agent 7.25.0
+
+* [Fixed] Fix deployment count metric. See [#8247](https://github.com/DataDog/integrations-core/pull/8247).
+
+## 5.6.2 / 2020-12-21
+
+* [Fixed] Fix deployment count metric. See [#8229](https://github.com/DataDog/integrations-core/pull/8229).
+
+## 5.6.1 / 2020-12-18
+
+* [Fixed] [orchestrator] change cardinality of deployment count. See [#8222](https://github.com/DataDog/integrations-core/pull/8222).
+
+## 5.6.0 / 2020-10-31 / Agent 7.24.0
+
+* [Added] add labels from `self.SAMPLE_LABELS` to container status metrics. See [#7602](https://github.com/DataDog/integrations-core/pull/7602). Thanks [jfmyers9](https://github.com/jfmyers9).
+
+## 5.5.1 / 2020-09-21 / Agent 7.23.0
+
+* [Fixed] Fix style for the latest release of Black. See [#7438](https://github.com/DataDog/integrations-core/pull/7438).
+
+## 5.5.0 / 2020-06-29 / Agent 7.21.0
+
+* [Added] Refactor to use Agent 6+ signature. See [#6906](https://github.com/DataDog/integrations-core/pull/6906).
+* [Fixed] Fix debug log line for job metrics. See [#6700](https://github.com/DataDog/integrations-core/pull/6700).
+* [Fixed] Fix issue when the storage class of a persistent volume is empty and add test. See [#6615](https://github.com/DataDog/integrations-core/pull/6615).
+
+## 5.4.1 / 2020-05-21 / Agent 7.20.0
+
+* [Fixed] Document join_standard_tags setting in conf.example.yaml. See [#6707](https://github.com/DataDog/integrations-core/pull/6707).
+
+## 5.4.0 / 2020-05-17
+
+* [Added] Allow optional dependency installation for all checks. See [#6589](https://github.com/DataDog/integrations-core/pull/6589).
+* [Added] Introduce join_standard_tags setting. See [#6253](https://github.com/DataDog/integrations-core/pull/6253).
+* [Fixed] Remove use of `label_to_match` to prevent deprecation warnings. See [#6503](https://github.com/DataDog/integrations-core/pull/6503).
+
+## 5.3.0 / 2020-04-04 / Agent 7.19.0
+
+* [Added] Allow automatic joins to all kube_{object}_labels in KSM check. See [#5650](https://github.com/DataDog/integrations-core/pull/5650).
+* [Fixed] Update deprecated imports. See [#6088](https://github.com/DataDog/integrations-core/pull/6088).
+* [Fixed] Do not fail on octet stream content type for OpenMetrics. See [#5843](https://github.com/DataDog/integrations-core/pull/5843).
+
+## 5.2.1 / 2020-02-27 / Agent 7.18.0
+
+* [Fixed] Fix type error. See [#5904](https://github.com/DataDog/integrations-core/pull/5904).
+
+## 5.2.0 / 2020-02-22
+
+* [Added] Add an option to enable KSM experimental metrics and add some new metrics from KSM 1.9. See [#5447](https://github.com/DataDog/integrations-core/pull/5447).
+* [Fixed] Fix metric validation. See [#5581](https://github.com/DataDog/integrations-core/pull/5581).
+
+## 5.1.0 / 2020-01-13 / Agent 7.17.0
+
+* [Fixed] Fix logger method bug. See [#5395](https://github.com/DataDog/integrations-core/pull/5395).
+* [Added] Use lazy logging format. See [#5377](https://github.com/DataDog/integrations-core/pull/5377).
+
+## 5.0.0 / 2019-12-02 / Agent 7.16.0
+
+* [Changed] Improves tagging compliancy. See [#5105](https://github.com/DataDog/integrations-core/pull/5105).
+* [Fixed] Fix job metrics. See [#4943](https://github.com/DataDog/integrations-core/pull/4943).
+
+## 4.7.1 / 2019-08-26 / Agent 6.14.0
 
 * [Fixed] Properly ignore `kube_pod_created` and `kube_pod_container_info`. See [#4435](https://github.com/DataDog/integrations-core/pull/4435).
 
