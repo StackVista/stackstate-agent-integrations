@@ -92,9 +92,9 @@ win_deps:
   cache:
     key: "stackstate-agent-integrations-windows-build-cache"
     paths:
-      - venv
+      - $CI_PROJECT_DIR/venv
   script:
-    - call "%WIN_CI_PROJECT_DIR%/.setup-scripts/windows_load_env.cmd"
+    - call .setup-scripts/windows_load_env.cmd
   artifacts:
     paths:
       - venv
