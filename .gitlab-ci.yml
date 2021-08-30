@@ -50,14 +50,22 @@ stages:
       when: manual
 
 .linux_env: &linux_env
+  cache:
+    key: "stackstate-agent-integrations-build-cache"
+    paths:
+      - $CI_PROJECT_DIR/venv
   before_script:
     - source $CI_PROJECT_DIR/.setup-scripts/setup_env.sh
 
 .windows_env: &windows_env
+  cache:
+    key: "stackstate-agent-integrations-windows-build-cache"
+    paths:
+      - $CI_PROJECT_DIR/venv
   tags:
     - agent_windows_6
   before_script:
-    - call .setup-scripts/windows_setup_env.cmd"
+    - call .setup-scripts/windows_setup_env.cmd
 
 print_env:
   <<: *linux_env
@@ -73,10 +81,6 @@ linux_deps:
   <<: *base_job_rules
   stage: build
   interruptible: true
-  cache:
-    key: "stackstate-agent-integrations-build-cache"
-    paths:
-      - $CI_PROJECT_DIR/venv
   script:
     - source $CI_PROJECT_DIR/.setup-scripts/load_deps.sh
   artifacts:
@@ -89,10 +93,6 @@ win_deps:
   <<: *base_job_rules
   stage: build
   interruptible: true
-  cache:
-    key: "stackstate-agent-integrations-windows-build-cache"
-    paths:
-      - $CI_PROJECT_DIR/venv
   script:
     - call .setup-scripts/windows_load_env.cmd
   artifacts:

@@ -10,9 +10,10 @@ VENV_PATH=$INTEGRATIONS_DIR_TMP/venv
 
 if [ ! -d $VENV_PATH ]; then
   virtualenv --python=python3 $INTEGRATIONS_DIR_TMP/venv
+  source $INTEGRATIONS_DIR_TMP/venv/bin/activate
+  source $INTEGRATIONS_DIR_TMP/.setup-scripts/load_deps.sh
+else
+  source $INTEGRATIONS_DIR_TMP/venv/bin/activate
 fi
-
-source $INTEGRATIONS_DIR_TMP/venv/bin/activate
-source $INTEGRATIONS_DIR_TMP/.setup-scripts/load_deps.sh
 
 unset INTEGRATIONS_DIR_TMP
