@@ -51,13 +51,13 @@ stages:
 
 .linux_env: &linux_env
   before_script:
-    - source .setup-scripts/setup_env.sh
+    - source $CI_PROJECT_DIR/.setup-scripts/setup_env.sh
 
 .windows_env: &windows_env
   tags:
     - agent_windows_6
   before_script:
-    - call .setup-scripts/windows_setup_env.cmd
+    - call $CI_PROJECT_DIR/.setup-scripts/windows_setup_env.cmd
 
 print_env:
   <<: *linux_env
@@ -76,7 +76,7 @@ linux_deps:
   cache:
     key: "stackstate-agent-integrations-build-cache"
     paths:
-      - venv
+      - $CI_PROJECT_DIR/venv
   script:
     - source $CI_PROJECT_DIR/.setup-scripts/load_deps.sh
   artifacts:
@@ -94,7 +94,7 @@ win_deps:
     paths:
       - venv
   script:
-    - call .setup-scripts/windows_load_env.cmd
+    - call $CI_PROJECT_DIR/.setup-scripts/windows_load_env.cmd
   artifacts:
     paths:
       - venv
@@ -106,11 +106,11 @@ clear-caches:
     policy: push
     key: "stackstate-agent-integrations-build-cache"
     paths:
-      - venv
+      - $CI_PROJECT_DIR/venv
   stage: build
   interruptible: true
   script:
-    - rm -rf venv || true
+    - rm -rf $CI_PROJECT_DIR/venv || true
   allow_failure: true
 
 clear-win-caches:
@@ -119,7 +119,7 @@ clear-win-caches:
     policy: push
     key: "stackstate-agent-integrations-windows-build-cache"
     paths:
-      - venv
+      - $CI_PROJECT_DIR/venv
   stage: build
   interruptible: true
   script:
@@ -139,8 +139,8 @@ clear-win-caches:
       ## Overriding the entrypoint to exclude the /var/run/docker.sock because we also mount it
       entrypoint: ["dockerd-entrypoint.sh", "/usr/local/bin/dockerd", "--host=tcp://0.0.0.0:2375" ]
   script:
-    - source ./.setup-scripts/setup_vsphere_artifactory_publishing.sh
-    - ./.setup-scripts/setup_artifactory_docker.sh
+    - source $CI_PROJECT_DIR/.setup-scripts/setup_vsphere_artifactory_publishing.sh
+    - $CI_PROJECT_DIR/.setup-scripts/setup_artifactory_docker.sh
     - checksdev test --cov ${CHECK}
     - checksdev test ${CHECK} --bench || true
       # [BS] we skip this until https://github.com/PyCQA/pylint/pull/2681/commits/253e5d05e3943d3bc8e4470804a138cb20049548 lands in pylint stable version
@@ -410,7 +410,7 @@ publish-checks-dev:
   stage: publish
   interruptible: true
   script:
-    - source ./.setup-scripts/setup_artifactory_publishing.sh
+    - source $CI_PROJECT_DIR/.setup-scripts/setup_artifactory_publishing.sh
     - export VERSION=`./.setup-scripts/version.sh`
     - echo "__version__ = \"$VERSION\"" > stackstate_checks_dev/stackstate_checks/dev/__about__.py
     - cd stackstate_checks_dev && python setup.py sdist bdist_wheel upload -r local
