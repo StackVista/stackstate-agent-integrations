@@ -111,26 +111,6 @@ win_deps:
       # - if [ -n "$PYTHON3" ]; then checksdev validate py3 ${CHECK}; fi
   interruptible: true
 
-print_artifacts:
-  <<: *linux_env
-  <<: *base_integration_rules
-  stage: test
-  needs:
-    - linux_deps
-  services:
-    - name: docker:19.03.5-dind
-      ## Overriding the entrypoint to exclude the /var/run/docker.sock because we also mount it
-      entrypoint: [ "dockerd-entrypoint.sh", "/usr/local/bin/dockerd", "--host=tcp://0.0.0.0:2375" ]
-  script:
-    - $CI_PROJECT_DIR/.setup-scripts/setup_vsphere_artifactory_publishing.sh
-    - $CI_PROJECT_DIR/.setup-scripts/setup_artifactory_docker.sh
-    - printenv
-    - pip freeze
-    - echo $(pip freeze)
-    - ls venv/lib/python3.6/site-packages || echo 'no site-packages'
-    - checksdev -h || echo 'no checksdev'
-  allow_failure: true
-
 test_stackstate_checks_base:
   <<: *linux_test
   variables:

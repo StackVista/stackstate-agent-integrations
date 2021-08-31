@@ -1,5 +1,6 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
+set -e
 set -x
 
 pip install -U pip setuptools codecov

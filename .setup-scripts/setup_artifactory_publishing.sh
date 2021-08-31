@@ -1,3 +1,8 @@
+#!/bin/bash
+
+set -e
+set -x
+
 ## python artifactory dependency
 mkdir ~/.pip/ && touch ~/.pip/pip.conf
 echo "[global]" > ~/.pip/pip.conf
