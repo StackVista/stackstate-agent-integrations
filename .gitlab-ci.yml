@@ -103,6 +103,7 @@ win_deps:
       ## Overriding the entrypoint to exclude the /var/run/docker.sock because we also mount it
       entrypoint: ["dockerd-entrypoint.sh", "/usr/local/bin/dockerd", "--host=tcp://0.0.0.0:2375" ]
   script:
+    - source $CI_PROJECT_DIR/.setup-scripts/setup_env.sh
     - $CI_PROJECT_DIR/.setup-scripts/setup_vsphere_artifactory_publishing.sh
     - $CI_PROJECT_DIR/.setup-scripts/setup_artifactory_docker.sh
     - checksdev test --cov ${CHECK}

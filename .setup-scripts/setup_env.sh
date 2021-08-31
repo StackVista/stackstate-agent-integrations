@@ -1,7 +1,4 @@
-#!/bin/bash
-
-set -e
-set -x
+#!/usr/bin/env bash
 
 # This file is meant to be sourced
 # This file will pull in deps when a test is ran without the deps job having ran first.
@@ -17,8 +14,6 @@ if [ ! -d $VENV_PATH ]; then
   source $INTEGRATIONS_DIR_TMP/.setup-scripts/load_deps.sh
 else
   source $INTEGRATIONS_DIR_TMP/venv/bin/activate
-  # pip freeze to debug if we are missing any packages in the venv
-  pip freeze
 fi
 
 unset INTEGRATIONS_DIR_TMP
