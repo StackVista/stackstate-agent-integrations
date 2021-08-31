@@ -250,7 +250,7 @@ class AwsTopologyCheck(AgentCheck):
                 for event in events_per_api[api]:
                     processor.process_cloudtrail_event(event, resources_seen)
 
-        agent_proxy.send_parked_events()
+        agent_proxy.send_cached_events()
         self.delete_ids += agent_proxy.delete_ids
 
     def get_flowlog_update(self, instance_info, aws_client):
@@ -280,7 +280,7 @@ class AgentProxy(object):
         self.warnings = {}
         self.lock = threading.Lock()
         self.log = log
-        self.parked_events = []
+        self.cached_events = []
 
     def component(self, location, id, type, data):
         self.components_seen.add(id)
@@ -310,10 +310,12 @@ class AgentProxy(object):
             self.agent.relation(relation["source_id"], relation["target_id"], relation["type"], relation["data"])
         for warning in self.warnings:
             self.agent.warning(warning + " was encountered {} time(s).".format(self.warnings[warning]))
-        self.send_parked_events()
+        self.send_cached_events()
 
-    def send_parked_events(self):
-        for event in self.parked_events:
+    def send_cached_events(self):
+        if len(self.cached_events):
+            self.agent.log.info("Sending %s events: ", len(self.cached_events))
+        for event in self.cached_events:
             self.agent.event(event)
 
     def delete(self, id):

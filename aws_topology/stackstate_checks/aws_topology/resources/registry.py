@@ -69,8 +69,9 @@ class RegisteredResourceCollector(with_metaclass(ResourceRegistry, object)):
         self.agent.relation(source, target, type, data)
 
     def emit_event(self, event):
+        # TODO remove this development log info
         self.agent.log.info(event)
-        self.agent.parked_events.append(event)
+        self.agent.cached_events.append(event)
 
     def process_all(self, filter=None):
         raise NotImplementedError
