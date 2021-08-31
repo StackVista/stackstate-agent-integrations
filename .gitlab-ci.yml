@@ -121,6 +121,7 @@ print_artifacts:
     - printenv
     - pip freeze
     - echo $(pip freeze)
+    - ls venv/lib/python3.6/site-packages || echo 'no site-packages'
     - checksdev -h || echo 'no checksdev'
   allow_failure: true
 
