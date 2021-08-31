@@ -99,7 +99,7 @@ class TestEcs(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertGreater(len(topology[0]["components"]), 0)
         top.assert_component(
             topology[0]["components"], "arn:aws:ecs:eu-west-1:731070500579:cluster/default", "aws.ecs.cluster"
@@ -110,7 +110,7 @@ class TestEcs(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertGreater(len(topology[0]["components"]), 0)
         top.assert_component(
             topology[0]["components"], "arn:aws:ecs:eu-west-1:731070500579:cluster/default", "aws.ecs.cluster"

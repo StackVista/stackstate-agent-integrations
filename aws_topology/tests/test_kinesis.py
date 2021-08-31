@@ -50,7 +50,7 @@ class TestKinesis(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual("stream_1", topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"])
 
@@ -59,7 +59,7 @@ class TestKinesis(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 0)
         self.assertIn("arn:aws:kinesis:eu-west-1:731070500579:stream/TestStream", self.check.delete_ids)
 
@@ -68,7 +68,7 @@ class TestKinesis(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual("stream_1", topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"])
 
@@ -77,7 +77,7 @@ class TestKinesis(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual("stream_1", topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"])
 
@@ -86,7 +86,7 @@ class TestKinesis(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual("stream_1", topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"])
 
@@ -95,7 +95,7 @@ class TestKinesis(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual("stream_1", topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"])
 
@@ -104,7 +104,7 @@ class TestKinesis(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual("stream_1", topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"])
 
@@ -113,7 +113,7 @@ class TestKinesis(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual("stream_1", topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"])
 
@@ -122,7 +122,7 @@ class TestKinesis(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual("stream_1", topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"])
 
@@ -131,7 +131,7 @@ class TestKinesis(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual("stream_1", topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"])
 
@@ -140,6 +140,6 @@ class TestKinesis(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual("stream_1", topology[0]["components"][0]["data"]["StreamDescriptionSummary"]["StreamName"])

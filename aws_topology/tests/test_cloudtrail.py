@@ -228,6 +228,10 @@ class TestCloudtrail(unittest.TestCase):
 
         self.check = AwsTopologyCheck(self.CHECK_NAME, InitConfig(init_config), [instance])
         self.check.last_full_topology = datetime(2021, 5, 1, 0, 0, 0).replace(tzinfo=pytz.utc)
+
+        def ignore_callback(self, *args, **kwargs):
+            return
+        self.check.get_flowlog_update = ignore_callback
         self.mock_object.side_effect = wrapper(self, not_authorized, subdirectory, use_gz, events_file=events_file)
 
     def tearDown(self):
@@ -235,19 +239,29 @@ class TestCloudtrail(unittest.TestCase):
         self.extrapatch.stop()
         self.regpatch.stop()
 
-    def assert_executed_ok(self):
+    def assert_updated_ok(self):
         service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_UPDATE_NAME)
         self.assertGreater(len(service_checks), 0)
         self.assertEqual(service_checks[0].status, AgentCheck.OK, service_checks[0].message)
 
     def test_process_cloudtrail(self):
         self.check.run()
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
 
         components = topology[0]["components"]
 
+        # bucket versioning
+        self.assertIn(
+            {
+                "operation_name": "get_bucket_versioning",
+                "parameters": {
+                    "Bucket": "stackstate-logs-123456789012",
+                },
+            },
+            self.recorder,
+        )
         # lists bucket
         self.assertIn(
             {
@@ -311,7 +325,7 @@ class TestCloudtrail(unittest.TestCase):
     @set_log_bucket_name("somebucketname")
     def test_process_cloudtrail_bucket(self):
         self.check.run()
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertIn(
             {
                 "operation_name": "list_objects_v2",
@@ -323,25 +337,37 @@ class TestCloudtrail(unittest.TestCase):
     @use_subdirectory("missing_bucket")
     def test_process_cloudtrail_no_such_bucket(self):
         self.check.run()
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertIn(lookup_call, self.recorder)
 
     @set_not_authorized("list_objects_v2")
     def test_process_cloudtrail_not_authorized_list(self):
         self.check.run()
-        self.assert_executed_ok()
+        self.assert_updated_ok()
+        self.assertIn(lookup_call, self.recorder)
+
+    @set_not_authorized("get_bucket_versioning")
+    def test_process_cloudtrail_not_authorized_versioning(self):
+        self.check.run()
+        self.assert_updated_ok()
+        self.assertIn(lookup_call, self.recorder)
+
+    @use_subdirectory("versioning_disabled")
+    def test_process_cloudtrail_versioning_disabled(self):
+        self.check.run()
+        self.assert_updated_ok()
         self.assertIn(lookup_call, self.recorder)
 
     @use_subdirectory("wrong_json")
     def test_process_cloudtrail_wrong_json(self):
         self.check.run()
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertNotIn(lookup_call, self.recorder)
 
     @use_subdirectory("incomplete_json")
     def test_process_cloudtrail_incomplete_json(self):
         self.check.run()
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertNotIn(lookup_call, self.recorder)
 
     @use_gz(True)
@@ -350,7 +376,7 @@ class TestCloudtrail(unittest.TestCase):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
 
         components = topology[0]["components"]
 

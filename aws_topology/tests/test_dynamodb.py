@@ -66,7 +66,7 @@ class TestDynamoDB(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual("table_2", topology[0]["components"][0]["data"]["Name"])
 
@@ -75,7 +75,7 @@ class TestDynamoDB(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 0)
         self.assertIn("arn:aws:dynamodb:eu-west-1:731070500579:table/table_2", self.check.delete_ids)
 
@@ -84,7 +84,7 @@ class TestDynamoDB(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual("table_2", topology[0]["components"][0]["data"]["Name"])
 
@@ -93,6 +93,6 @@ class TestDynamoDB(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual("table_2", topology[0]["components"][0]["data"]["Name"])

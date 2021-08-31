@@ -1,4 +1,4 @@
-from six import string_types, integer_types
+from six import ensure_text, string_types, integer_types
 import re
 import hashlib
 import sys
@@ -6,6 +6,18 @@ import json
 from datetime import datetime, date
 from botocore.exceptions import ClientError
 from functools import cmp_to_key
+import socket
+
+try:
+    import ipaddress
+except ImportError:
+    try:
+        from pip._vendor import ipaddress  # type: ignore
+    except ImportError:
+        import ipaddr as ipaddress  # type: ignore
+
+        ipaddress.ip_address = ipaddress.IPAddress  # type: ignore
+        ipaddress.ip_network = ipaddress.IPNetwork  # type: ignore
 
 
 def make_valid_data_internal(data):
@@ -241,3 +253,27 @@ def transformation():
         return inner_function
 
     return decorator
+
+
+def is_private(ip):
+    return ipaddress.ip_address(ensure_text(ip)).is_private
+
+
+def ip_version(ip):
+    return ipaddress.ip_address(ensure_text(ip)).version
+
+
+def ipaddress_to_urn(ip, vpc_id):
+    if is_private(ip):
+        return "urn:vpcip:{}/{}".format(vpc_id, ip)
+    else:
+        return create_host_urn(ip)
+
+
+def get_ipurns_from_hostname(host_name, vpc_id):
+    result = []
+    ai = socket.getaddrinfo(host_name, 0, socket.AF_INET)
+    ips = set(i[4][0] for i in ai)
+    for ip in ips:
+        result.append(ipaddress_to_urn(ip, vpc_id))
+    return result

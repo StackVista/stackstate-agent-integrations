@@ -53,14 +53,12 @@ class AutoscalingCollector(RegisteredResourceCollector):
 
     @transformation()
     def process_tag_event(self, event, seen):
-        ids = []
         tagevent = AutoScalingTagEvent(event, strict=False)
         for tag in tagevent.requestParameters.tags:
             if tag.resourceType == "auto-scaling-group":
                 if tag.resourceId not in seen:
                     self.process_one_auto_scaling_group(tag.resourceId)
-                    ids.append(tag.resourceId)
-        return ids
+                    seen.add(tag.resourceId)
 
     def process_autoscaling_group(self, data):
         output = make_valid_data(data)
