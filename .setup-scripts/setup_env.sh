@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -x
+
 # This file is meant to be sourced
 # This file will pull in deps when a test is ran without the deps job having ran first.
 # This happens when using the ./run_gitlab_local.sh script
@@ -15,6 +17,8 @@ if [ ! -d $VENV_PATH ]; then
   source $INTEGRATIONS_DIR_TMP/.setup-scripts/load_deps.sh
 else
   echo "$VENV_PATH already exists, only activating the venv"
+  ls $INTEGRATIONS_DIR_TMP/venv/bin || echo 'no bin'
+  ls $INTEGRATIONS_DIR_TMP/venv/lib/python3.6/site-packages || echo 'no site-packages'
   source $INTEGRATIONS_DIR_TMP/venv/bin/activate
   pip freeze
   pip -V
@@ -22,3 +26,4 @@ else
 fi
 
 unset INTEGRATIONS_DIR_TMP
+set +x
