@@ -111,6 +111,19 @@ win_deps:
       # - if [ -n "$PYTHON3" ]; then checksdev validate py3 ${CHECK}; fi
   interruptible: true
 
+print_artifacts:
+  <<: *linux_env
+  <<: *base_integration_rules
+  stage: test
+  needs:
+    - linux_deps
+  script:
+    - printenv
+    - pip freeze
+    - echo $(pip freeze)
+    - checksdev -h || echo 'no checksdev'
+  allow_failure: true
+
 test_stackstate_checks_base:
   <<: *linux_test
   variables:
