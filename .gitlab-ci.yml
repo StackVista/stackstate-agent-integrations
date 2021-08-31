@@ -55,7 +55,7 @@ stages:
       - $CI_PROJECT_DIR/venv
     expire_in: 1 week
   before_script:
-    - ls venv/lib/python3.6/site-packages
+    - ls venv/lib/python3.6/site-packages || echo 'no site-packages'
     - source $CI_PROJECT_DIR/.setup-scripts/setup_env.sh
     - pip freeze
 
