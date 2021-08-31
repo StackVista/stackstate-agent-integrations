@@ -53,7 +53,6 @@ stages:
   before_script:
     - source $CI_PROJECT_DIR/.setup-scripts/setup_env.sh
     - pip freeze
-    - ls venv/lib/python3.6/site-packages || echo 'no site-packages'
 
 .windows_env: &windows_env
   tags:

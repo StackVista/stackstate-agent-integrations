@@ -15,11 +15,7 @@ if [ ! -d $VENV_PATH ]; then
   source $INTEGRATIONS_DIR_TMP/.setup-scripts/load_deps.sh
 else
   echo "$VENV_PATH already exists, only activating the venv"
-  pip -v
-  pip -V
   source $INTEGRATIONS_DIR_TMP/venv/bin/activate
-  pip -v
-  pip -V
   checksdev -h
 fi
 
