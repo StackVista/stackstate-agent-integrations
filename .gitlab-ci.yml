@@ -52,7 +52,6 @@ stages:
 .linux_env: &linux_env
   before_script:
     - source $CI_PROJECT_DIR/.setup-scripts/setup_env.sh
-    - pip freeze
 
 .windows_env: &windows_env
   tags:
