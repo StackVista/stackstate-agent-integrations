@@ -50,18 +50,12 @@ stages:
       when: manual
 
 .linux_env: &linux_env
-  artifacts:
-    paths:
-      - $CI_PROJECT_DIR/venv
-    expire_in: 1 week
   before_script:
     - source $CI_PROJECT_DIR/.setup-scripts/setup_env.sh
+    - pip freeze
+    - ls venv/lib/python3.6/site-packages || echo 'no site-packages'
 
 .windows_env: &windows_env
-  artifacts:
-    paths:
-      - $CI_PROJECT_DIR/venv
-    expire_in: 1 week
   tags:
     - agent_windows_6
   before_script:
@@ -83,6 +77,10 @@ linux_deps:
   interruptible: true
   script:
     - source $CI_PROJECT_DIR/.setup-scripts/load_deps.sh
+  artifacts:
+    paths:
+      - venv/
+    expire_in: 1 week
 
 win_deps:
   <<: *windows_env
@@ -91,6 +89,10 @@ win_deps:
   interruptible: true
   script:
     - call .setup-scripts/windows_load_env.cmd
+  artifacts:
+    paths:
+      - venv/
+    expire_in: 1 week
 
 .linux_test: &linux_test
   <<: *linux_env
@@ -103,7 +105,6 @@ win_deps:
       ## Overriding the entrypoint to exclude the /var/run/docker.sock because we also mount it
       entrypoint: ["dockerd-entrypoint.sh", "/usr/local/bin/dockerd", "--host=tcp://0.0.0.0:2375" ]
   script:
-    - source $CI_PROJECT_DIR/.setup-scripts/setup_env.sh
     - $CI_PROJECT_DIR/.setup-scripts/setup_vsphere_artifactory_publishing.sh
     - $CI_PROJECT_DIR/.setup-scripts/setup_artifactory_docker.sh
     - checksdev test --cov ${CHECK}
