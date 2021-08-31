@@ -105,7 +105,6 @@ win_deps:
   script:
     - source $CI_PROJECT_DIR/.setup-scripts/setup_vsphere_artifactory_publishing.sh
     - $CI_PROJECT_DIR/.setup-scripts/setup_artifactory_docker.sh
-    - pip freeze
     - echo $(pip freeze)
     - checksdev test --cov ${CHECK}
     - checksdev test ${CHECK} --bench || true
