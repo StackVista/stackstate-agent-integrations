@@ -51,7 +51,7 @@ stages:
 
 .linux_env: &linux_env
   before_script:
-    - source $CI_PROJECT_DIR/.setup-scripts/setup_env.sh
+    - source .setup-scripts/setup_env.sh
 
 .windows_env: &windows_env
   tags:
@@ -74,7 +74,7 @@ linux_deps:
   stage: build
   interruptible: true
   script:
-    - source $CI_PROJECT_DIR/.setup-scripts/load_deps.sh
+    - source .setup-scripts/load_deps.sh
   artifacts:
     paths:
       - venv/
@@ -103,8 +103,8 @@ win_deps:
       ## Overriding the entrypoint to exclude the /var/run/docker.sock because we also mount it
       entrypoint: ["dockerd-entrypoint.sh", "/usr/local/bin/dockerd", "--host=tcp://0.0.0.0:2375" ]
   script:
-    - $CI_PROJECT_DIR/.setup-scripts/setup_vsphere_artifactory_publishing.sh
-    - $CI_PROJECT_DIR/.setup-scripts/setup_artifactory_docker.sh
+    - .setup-scripts/setup_vsphere_artifactory_publishing.sh
+    - .setup-scripts/setup_artifactory_docker.sh
     - checksdev test --cov ${CHECK}
     - checksdev test ${CHECK} --bench || true
       # [BS] we skip this until https://github.com/PyCQA/pylint/pull/2681/commits/253e5d05e3943d3bc8e4470804a138cb20049548 lands in pylint stable version
@@ -374,7 +374,7 @@ publish-checks-dev:
   stage: publish
   interruptible: true
   script:
-    - source $CI_PROJECT_DIR/.setup-scripts/setup_artifactory_publishing.sh
+    - source .setup-scripts/setup_artifactory_publishing.sh
     - export VERSION=`./.setup-scripts/version.sh`
     - echo "__version__ = \"$VERSION\"" > stackstate_checks_dev/stackstate_checks/dev/__about__.py
     - cd stackstate_checks_dev && python setup.py sdist bdist_wheel upload -r local
