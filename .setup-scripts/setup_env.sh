@@ -14,6 +14,8 @@ if [ ! -d $VENV_PATH ]; then
   source $INTEGRATIONS_DIR_TMP/.setup-scripts/load_deps.sh
 else
   source $INTEGRATIONS_DIR_TMP/venv/bin/activate
+  # see if we have checksdev available, otherwise load_deps.sh
+  checksdev -h || source $INTEGRATIONS_DIR_TMP/.setup-scripts/load_deps.sh
 fi
 
 unset INTEGRATIONS_DIR_TMP

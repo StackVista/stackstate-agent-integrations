@@ -50,18 +50,18 @@ stages:
       when: manual
 
 .linux_env: &linux_env
-  cache:
-    key: "stackstate-agent-integrations-build-cache"
+  artifacts:
     paths:
       - $CI_PROJECT_DIR/venv
+    expire_in: 1 week
   before_script:
     - source $CI_PROJECT_DIR/.setup-scripts/setup_env.sh
 
 .windows_env: &windows_env
-  cache:
-    key: "stackstate-agent-integrations-windows-build-cache"
+  artifacts:
     paths:
       - $CI_PROJECT_DIR/venv
+    expire_in: 1 week
   tags:
     - agent_windows_6
   before_script:
@@ -83,10 +83,6 @@ linux_deps:
   interruptible: true
   script:
     - source $CI_PROJECT_DIR/.setup-scripts/load_deps.sh
-  artifacts:
-    paths:
-      - venv
-    expire_in: 1 week
 
 win_deps:
   <<: *windows_env
@@ -95,38 +91,6 @@ win_deps:
   interruptible: true
   script:
     - call .setup-scripts/windows_load_env.cmd
-  artifacts:
-    paths:
-      - venv
-    expire_in: 1 week
-
-clear-caches:
-  <<: *manual_job_rules
-  cache:
-    policy: push
-    key: "stackstate-agent-integrations-build-cache"
-    paths:
-      - $CI_PROJECT_DIR/venv
-  stage: build
-  interruptible: true
-  script:
-    - rm -rf $CI_PROJECT_DIR/venv || true
-  allow_failure: true
-
-clear-win-caches:
-  <<: *manual_job_rules
-  cache:
-    policy: push
-    key: "stackstate-agent-integrations-windows-build-cache"
-    paths:
-      - $CI_PROJECT_DIR/venv
-  stage: build
-  interruptible: true
-  script:
-    - "if exist %WIN_CI_PROJECT_DIR%\\venv rd /s/q %WIN_CI_PROJECT_DIR%\\venv"
-  tags:
-    - agent_windows_6
-  allow_failure: true
 
 .linux_test: &linux_test
   <<: *linux_env
