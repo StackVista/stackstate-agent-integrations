@@ -55,9 +55,7 @@ stages:
       - $CI_PROJECT_DIR/venv
     expire_in: 1 week
   before_script:
-    - ls venv/lib/python3.6/site-packages || echo 'no site-packages'
     - source $CI_PROJECT_DIR/.setup-scripts/setup_env.sh
-    - pip freeze
 
 .windows_env: &windows_env
   artifacts:
@@ -107,6 +105,7 @@ win_deps:
   script:
     - source $CI_PROJECT_DIR/.setup-scripts/setup_vsphere_artifactory_publishing.sh
     - $CI_PROJECT_DIR/.setup-scripts/setup_artifactory_docker.sh
+    - pip freeze
     - checksdev test --cov ${CHECK}
     - checksdev test ${CHECK} --bench || true
       # [BS] we skip this until https://github.com/PyCQA/pylint/pull/2681/commits/253e5d05e3943d3bc8e4470804a138cb20049548 lands in pylint stable version
