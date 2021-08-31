@@ -13,7 +13,9 @@ if [ ! -d $VENV_PATH ]; then
   source $INTEGRATIONS_DIR_TMP/venv/bin/activate
   source $INTEGRATIONS_DIR_TMP/.setup-scripts/load_deps.sh
 else
+  pip freeze || echo '123'
   source $INTEGRATIONS_DIR_TMP/venv/bin/activate
+  pip freeze
   # see if we have checksdev available, otherwise load_deps.sh
 #  checksdev -h || source $INTEGRATIONS_DIR_TMP/.setup-scripts/load_deps.sh
 fi
