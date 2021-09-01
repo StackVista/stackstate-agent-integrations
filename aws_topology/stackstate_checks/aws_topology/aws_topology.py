@@ -2,7 +2,7 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 from .cloudtrail import CloudtrailCollector
-from .flowlogs import FlowlogCollector
+from .flowlogs import FlowLogCollector
 import logging
 import boto3
 import time
@@ -57,7 +57,8 @@ class AwsTopologyCheck(AgentCheck):
 
     INSTANCE_SCHEMA = InstanceInfo
 
-    def get_account_id(self, instance_info):
+    @staticmethod
+    def get_account_id(instance_info):
         return instance_info.role_arn.split(":")[4]
 
     def get_instance_key(self, instance_info):
@@ -257,7 +258,7 @@ class AwsTopologyCheck(AgentCheck):
         for region in instance_info.regions:
             session = aws_client.get_session(instance_info.role_arn, region)
             location = location_info(self.get_account_id(instance_info), session.region_name)
-            collector = FlowlogCollector(
+            collector = FlowLogCollector(
                 instance_info.log_bucket_name,
                 self.get_account_id(instance_info),
                 session,
@@ -315,7 +316,7 @@ class AgentProxy(object):
         self.delete_ids.append(id)
 
     def warning(self, error, **kwargs):
-        # TODO make a list of max 5 of the resources inpamcted
+        # TODO make a list of max 5 of the resources impacted
         warning = self.warnings.get(error, 0) + 1
         self.warnings[error] = warning
 

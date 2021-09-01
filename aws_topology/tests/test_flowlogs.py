@@ -5,64 +5,18 @@ from mock import patch
 from stackstate_checks.base.stubs import topology as top, aggregator
 from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
 from stackstate_checks.base import AgentCheck
-import botocore
+import botocore.exceptions
+import botocore.response
 import io
-from .conftest import get_params_hash
+from .conftest import get_params_hash, get_bytes_from_file, resource
 from functools import reduce
 from datetime import datetime
 import pytz
 
 
-def relative_path(path):
-    script_dir = os.path.dirname(__file__)
-    return os.path.join(script_dir, path)
-
-
-def resource(path):
-    with open(relative_path(path)) as f:
-        x = json.load(f)
-    return x
-
-
-def get_bytes_from_file(path):
-    return open(relative_path(path), "rb").read()
-
-
-def use_subdirectory(value):
-    def inner(func):
-        func.subdirectory = value
-        return func
-
-    return inner
-
-
-def use_gz(value):
-    def inner(func):
-        func.gz = value
-        return func
-
-    return inner
-
-
-def set_not_authorized(value):
-    def inner(func):
-        func.not_authorized = value
-        return func
-
-    return inner
-
-
-def set_log_bucket_name(value):
-    def inner(func):
-        func.log_bucket_name = value
-        return func
-
-    return inner
-
-
-def wrapper(testinstance, not_authorized, subdirectory, use_gz, events_file=None):
+def wrapper(test_instance, not_authorized, subdirectory, use_gzip, events_file=None):
     api = "flowlogs"
-    instance = testinstance
+    instance = test_instance
 
     def mock_boto_calls(self, *args, **kwargs):
         if args[0] == "AssumeRole":
@@ -73,9 +27,8 @@ def wrapper(testinstance, not_authorized, subdirectory, use_gz, events_file=None
             return {}
         if operation_name in not_authorized:
             raise botocore.exceptions.ClientError({"Error": {"Code": "AccessDenied"}}, operation_name)
-        apidir = api
-        directory = os.path.join("json", apidir, subdirectory)
-        ext = "gz" if use_gz and operation_name == "get_object" else "json"
+        directory = os.path.join("json", api, subdirectory)
+        ext = "gz" if use_gzip and operation_name == "get_object" else "json"
         file_name = "{}/{}_{}.{}".format(directory, operation_name, get_params_hash(self.meta.region_name, args), ext)
         try:
             if ext == "gz":
@@ -103,14 +56,15 @@ def wrapper(testinstance, not_authorized, subdirectory, use_gz, events_file=None
 
 
 class TestFlowLogs(unittest.TestCase):
-
     CHECK_NAME = "aws_topology"
     SERVICE_CHECK_NAME = "aws_topology"
 
-    def get_region(self):
+    @staticmethod
+    def get_region():
         return ["eu-west-1"]
 
-    def get_account_id(self):
+    @staticmethod
+    def get_account_id():
         return "123456789012"
 
     def setUp(self):
@@ -135,9 +89,9 @@ class TestFlowLogs(unittest.TestCase):
         if hasattr(method, "gz"):
             use_gz = method.gz
         self.patcher = patch("botocore.client.BaseClient._make_api_call", autospec=True)
-        self.extrapatch = patch("stackstate_checks.aws_topology.AwsTopologyCheck.must_run_full", return_value=False)
+        self.extra_patch = patch("stackstate_checks.aws_topology.AwsTopologyCheck.must_run_full", return_value=False)
         self.mock_object = self.patcher.start()
-        self.extrapatch.start()
+        self.extra_patch.start()
 
         top.reset()
         aggregator.reset()
@@ -169,14 +123,14 @@ class TestFlowLogs(unittest.TestCase):
 
     def tearDown(self):
         self.patcher.stop()
-        self.extrapatch.stop()
+        self.extra_patch.stop()
 
     def assert_updated_ok(self):
         service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_UPDATE_NAME)
         self.assertGreater(len(service_checks), 0)
         self.assertEqual(service_checks[0].status, AgentCheck.OK, service_checks[0].message)
 
-    def test_process_flowlogs(self):
+    def test_process_flow_logs(self):
         self.check.run()
         self.assert_updated_ok()
         topology = [top.get_snapshot(self.check.check_id)]
@@ -233,10 +187,10 @@ class TestFlowLogs(unittest.TestCase):
             dels,
             [
                 "AWSLogs/120431062118/vpcflowlogs/eu-west-1/2021/04/01/120431062118"
-                + "_vpcflowlogs_eu-west-1_fl-0630869f236e76872_20210401T0000Z_ea4b0f55.log.gz",
+                "_vpcflowlogs_eu-west-1_fl-0630869f236e76872_20210401T0000Z_ea4b0f55.log.gz",
                 "AWSLogs/120431062118/vpcflowlogs/eu-west-1/2021/06/22/120431062118"
-                + "_vpcflowlogs_eu-west-1_fl-0630869f236e76872_20210622T0000Z_ea4b0f55.log.gz",
+                "_vpcflowlogs_eu-west-1_fl-0630869f236e76872_20210622T0000Z_ea4b0f55.log.gz",
             ],
         )
 
-# other tests: custom bucket, no access to bucket, bucket versioning disabled, bucket versioning not accessable
+# other tests: custom bucket, no access to bucket, bucket versioning disabled, bucket versioning not accessible

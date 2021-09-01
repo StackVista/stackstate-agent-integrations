@@ -43,7 +43,7 @@ def connection_identifier(namespace, src, dst):
 def should_process(connection):
     # filter out if any of the network_interfaces starts with "Interface for NAT Gateway" or "ELB app/"
     result = True
-    for id, itf in connection.network_interfaces.items():
+    for _, itf in connection.network_interfaces.items():
         if itf.Description.startswith("Interface for NAT Gateway") or itf.Description.startswith("ELB app/"):
             result = False
     return result
@@ -119,7 +119,7 @@ class Connection(object):
             return 0.0
 
 
-class FlowlogCollector(object):
+class FlowLogCollector(object):
     MAX_S3_DELETES = 999
 
     def __init__(self, bucket_name, account_id, session, location_info, agent, log):
@@ -159,7 +159,7 @@ class FlowlogCollector(object):
         to_delete = []
         files_to_handle = []
         for pg in client.get_paginator("list_objects_v2").paginate(
-            Bucket=bucket_name, Prefix="AWSLogs/{act}/vpcflowlogs/{rgn}/".format(act=self.account_id, rgn=region)
+                Bucket=bucket_name, Prefix="AWSLogs/{act}/vpcflowlogs/{rgn}/".format(act=self.account_id, rgn=region)
         ):
             for itm in pg.get("Contents") or []:
                 # regex extracts datetime y, m, d, h and m from the object name into named groups
@@ -189,15 +189,15 @@ class FlowlogCollector(object):
         for i in range(0, len(files), self.MAX_S3_DELETES):
             try:
                 self.log.info(
-                    "Deleting {} files from S3 bucket {}".format(len(files[i : i + self.MAX_S3_DELETES]), bucket_name)
+                    "Deleting {} files from S3 bucket {}".format(len(files[i: i + self.MAX_S3_DELETES]), bucket_name)
                 )
                 client.delete_objects(
                     Bucket=bucket_name,
-                    Delete={"Objects": files[i : i + self.MAX_S3_DELETES], "Quiet": True},
+                    Delete={"Objects": files[i: i + self.MAX_S3_DELETES], "Quiet": True},
                 )
             except Exception as e:
                 self.log.exception(e)
-                self.agent.warning("FlowlogCollector: Deleting s3 files failed")
+                self.agent.warning("FlowLogCollector: Deleting s3 files failed")
 
     def process_record(self, connections, log, nwitf):
         src_ip = log["srcaddr"]
@@ -261,7 +261,7 @@ class FlowlogCollector(object):
                 lines = iter(data)
                 flds = next(lines).decode("ascii").strip().split(" ")
                 if set(flds) >= set(
-                    ("srcaddr", "dstaddr", "srcport", "dstport", "interface-id", "protocol", "start", "end")
+                        ("srcaddr", "dstaddr", "srcport", "dstport", "interface-id", "protocol", "start", "end")
                 ):
                     for line in lines:
                         line = line.decode("ascii").strip()
@@ -273,7 +273,7 @@ class FlowlogCollector(object):
                         if status != "NODATA" and status != "SKIPDATA" and nwitf:
                             self.process_record(connections, log, nwitf)
                 else:
-                    self.log.warning("Flowlog had unsupported format")
+                    self.log.warning("Flow log had unsupported format")
         return connections
 
     def process_connection(self, id, connection):
