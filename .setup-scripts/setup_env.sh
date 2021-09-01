@@ -20,6 +20,7 @@ else
   ls $INTEGRATIONS_DIR_TMP/venv/bin || echo 'no bin'
   ls $INTEGRATIONS_DIR_TMP/venv/lib/python3.6/site-packages || echo 'no site-packages'
   source $INTEGRATIONS_DIR_TMP/venv/bin/activate
+  more $INTEGRATIONS_DIR_TMP/venv/bin/activate
   pip freeze
   pip -V
   checksdev -h || source $INTEGRATIONS_DIR_TMP/.setup-scripts/load_deps.sh
