@@ -71,7 +71,7 @@ class TestSns(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual("arn:aws:sns:eu-west-1:731070500579:my-topic-1", topology[0]["components"][0]["id"])
 
@@ -80,6 +80,6 @@ class TestSns(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 0)
         self.assertIn("arn:aws:sns:eu-west-1::my-topic-1", self.check.delete_ids)

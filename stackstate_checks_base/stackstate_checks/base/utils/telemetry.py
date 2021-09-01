@@ -498,7 +498,6 @@ class Event(Model):
     `msg_text` the text body of the event
     `timestamp` the epoch timestamp for the event
     `source_type_name` the source type name
-    `priority` specifies the priority of the event ("normal" or "low")
     `host` the name of the host
     `tags` a list of tags to associate with this event
     `alert_type` one of ('error', 'warning', 'success', 'info'), defaults to 'info'
@@ -510,7 +509,6 @@ class Event(Model):
     msg_text = StrictStringType(required=True)
     timestamp = IntType(required=True)
     event_type = StrictStringType(required=True, deserialize_from=['event_type', 'source_type_name'])
-    priority = StrictStringType(required=False, choices=['normal', 'low'])
     host = StrictStringType(required=False)
     tags = ListType(StrictStringType, required=False)
     alert_type = StrictStringType(required=False, choices=['error', 'warning', 'success', 'info'], default="info")

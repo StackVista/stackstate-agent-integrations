@@ -1,0 +1,102 @@
+{
+    "NetworkInterfaces": [
+        {
+            "Attachment": {
+                "AttachTime": "2021-05-17 12:32:21+00:00",
+                "AttachmentId": "eni-attach-03bc499dd34466acc",
+                "DeleteOnTermination": false,
+                "DeviceIndex": 1,
+                "NetworkCardIndex": 0,
+                "InstanceOwnerId": "amazon-rds",
+                "Status": "attached"
+            },
+            "AvailabilityZone": "eu-west-1a",
+            "Description": "RDSNetworkInterface",
+            "Groups": [
+                {
+                    "GroupName": "stackstate-helloworld-serverless-NotificationRdsDatabaseSecurityGroup-1PLXLUNGZ9IGW",
+                    "GroupId": "sg-0dd84dd38dee32836"
+                }
+            ],
+            "InterfaceType": "interface",
+            "Ipv6Addresses": [],
+            "MacAddress": "02:4c:e0:76:e1:5d",
+            "NetworkInterfaceId": "eni-04be3f7132dd24e01",
+            "OwnerId": "120431062118",
+            "PrivateDnsName": "ip-10-16-133-15.eu-west-1.compute.internal",
+            "PrivateIpAddress": "10.16.133.15",
+            "PrivateIpAddresses": [
+                {
+                    "Primary": true,
+                    "PrivateDnsName": "ip-10-16-133-15.eu-west-1.compute.internal",
+                    "PrivateIpAddress": "10.16.133.15"
+                }
+            ],
+            "RequesterId": "amazon-rds",
+            "RequesterManaged": true,
+            "SourceDestCheck": true,
+            "Status": "in-use",
+            "SubnetId": "subnet-01e95a603b578c8f4",
+            "TagSet": [],
+            "VpcId": "vpc-0305206adbbda9918"
+        },
+        {
+            "Association": {
+                "IpOwnerId": "amazon",
+                "PublicDnsName": "ec2-34-254-174-225.eu-west-1.compute.amazonaws.com",
+                "PublicIp": "34.254.174.225"
+            },
+            "Attachment": {
+                "AttachTime": "2021-05-20 15:19:48+00:00",
+                "AttachmentId": "eni-attach-0b880231eea058bbe",
+                "DeleteOnTermination": true,
+                "DeviceIndex": 0,
+                "NetworkCardIndex": 0,
+                "InstanceId": "i-0e5ef5c511849a4be",
+                "InstanceOwnerId": "120431062118",
+                "Status": "attached"
+            },
+            "AvailabilityZone": "eu-west-1a",
+            "Description": "",
+            "Groups": [
+                {
+                    "GroupName": "stackstate-helloworld-serverless-NotificationEc2SecurityGroup-1VBNCW0Q0B65C",
+                    "GroupId": "sg-0415d286f5ea1c866"
+                }
+            ],
+            "InterfaceType": "interface",
+            "Ipv6Addresses": [
+                {
+                    "Ipv6Address": "2a05:d018:6ff:c900:6db:d960:c201:7cd5"
+                }
+            ],
+            "MacAddress": "02:74:a1:d3:f6:d7",
+            "NetworkInterfaceId": "eni-0827481162f048cfd",
+            "OwnerId": "120431062118",
+            "PrivateDnsName": "ip-10-16-5-72.eu-west-1.compute.internal",
+            "PrivateIpAddress": "10.16.5.72",
+            "PrivateIpAddresses": [
+                {
+                    "Association": {
+                        "IpOwnerId": "amazon",
+                        "PublicDnsName": "ec2-34-254-174-225.eu-west-1.compute.amazonaws.com",
+                        "PublicIp": "34.254.174.225"
+                    },
+                    "Primary": true,
+                    "PrivateDnsName": "ip-10-16-5-72.eu-west-1.compute.internal",
+                    "PrivateIpAddress": "10.16.5.72"
+                }
+            ],
+            "RequesterManaged": false,
+            "SourceDestCheck": true,
+            "Status": "in-use",
+            "SubnetId": "subnet-039e22868d44b28c9",
+            "TagSet": [],
+            "VpcId": "vpc-0305206adbbda9918"
+        }
+    ],
+    "ResponseMetadata": {
+        "Parameters": {},
+        "OperationName": "DescribeNetworkInterfaces"
+    }
+}

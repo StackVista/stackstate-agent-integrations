@@ -1,4 +1,4 @@
-image: stackstate/stackstate-agent-integrations-runner:latest
+image: artifactory.stackstate.io/docker-virtual/stackstate/stackstate-agent-integrations-runner:latest
 
 stages:
   - build
@@ -73,15 +73,11 @@ linux_deps:
   <<: *base_job_rules
   stage: build
   interruptible: true
-  cache:
-    key: "stackstate-agent-integrations-build-cache"
-    paths:
-      - venv
   script:
-    - source $CI_PROJECT_DIR/.setup-scripts/load_deps.sh
+    - source .setup-scripts/load_deps.sh
   artifacts:
     paths:
-      - venv
+      - venv/
     expire_in: 1 week
 
 win_deps:
@@ -89,44 +85,12 @@ win_deps:
   <<: *base_job_rules
   stage: build
   interruptible: true
-  cache:
-    key: "stackstate-agent-integrations-windows-build-cache"
-    paths:
-      - venv
   script:
     - call .setup-scripts/windows_load_env.cmd
   artifacts:
     paths:
-      - venv
+      - venv/
     expire_in: 1 week
-
-clear-caches:
-  <<: *manual_job_rules
-  cache:
-    policy: push
-    key: "stackstate-agent-integrations-build-cache"
-    paths:
-      - venv
-  stage: build
-  interruptible: true
-  script:
-    - rm -rf venv || true
-  allow_failure: true
-
-clear-win-caches:
-  <<: *manual_job_rules
-  cache:
-    policy: push
-    key: "stackstate-agent-integrations-windows-build-cache"
-    paths:
-      - venv
-  stage: build
-  interruptible: true
-  script:
-    - "if exist %WIN_CI_PROJECT_DIR%\\venv rd /s/q %WIN_CI_PROJECT_DIR%\\venv"
-  tags:
-    - agent_windows_6
-  allow_failure: true
 
 .linux_test: &linux_test
   <<: *linux_env
@@ -139,8 +103,8 @@ clear-win-caches:
       ## Overriding the entrypoint to exclude the /var/run/docker.sock because we also mount it
       entrypoint: ["dockerd-entrypoint.sh", "/usr/local/bin/dockerd", "--host=tcp://0.0.0.0:2375" ]
   script:
-    - source ./.setup-scripts/setup_vsphere_artifactory_publishing.sh
-    - ./.setup-scripts/setup_artifactory_docker.sh
+    - .setup-scripts/setup_vsphere_artifactory_publishing.sh
+    - .setup-scripts/setup_artifactory_docker.sh
     - checksdev test --cov ${CHECK}
     - checksdev test ${CHECK} --bench || true
       # [BS] we skip this until https://github.com/PyCQA/pylint/pull/2681/commits/253e5d05e3943d3bc8e4470804a138cb20049548 lands in pylint stable version
@@ -410,7 +374,7 @@ publish-checks-dev:
   stage: publish
   interruptible: true
   script:
-    - source ./.setup-scripts/setup_artifactory_publishing.sh
+    - source .setup-scripts/setup_artifactory_publishing.sh
     - export VERSION=`./.setup-scripts/version.sh`
     - echo "__version__ = \"$VERSION\"" > stackstate_checks_dev/stackstate_checks/dev/__about__.py
     - cd stackstate_checks_dev && python setup.py sdist bdist_wheel upload -r local

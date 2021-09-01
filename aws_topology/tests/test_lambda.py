@@ -88,7 +88,7 @@ class TestLambda(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
             "arn:aws:lambda:eu-west-1:731070500579:function:com-stackstate-prod-sam-seed-PutHello-1LUD3ESBOR6EY",
@@ -100,7 +100,7 @@ class TestLambda(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 0)
         self.assertIn("arn:aws:lambda:eu-west-1:731070500579:function:JpkTest", self.check.delete_ids)
 
@@ -109,7 +109,7 @@ class TestLambda(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
             "arn:aws:lambda:eu-west-1:731070500579:function:com-stackstate-prod-sam-seed-PutHello-1LUD3ESBOR6EY",
@@ -121,7 +121,7 @@ class TestLambda(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
             "arn:aws:lambda:eu-west-1:731070500579:function:com-stackstate-prod-sam-seed-PutHello-1LUD3ESBOR6EY",
@@ -133,7 +133,7 @@ class TestLambda(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
             "arn:aws:lambda:eu-west-1:731070500579:function:com-stackstate-prod-sam-seed-PutHello-1LUD3ESBOR6EY",
@@ -145,7 +145,7 @@ class TestLambda(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
             "arn:aws:lambda:eu-west-1:731070500579:function:com-stackstate-prod-sam-seed-PutHello-1LUD3ESBOR6EY",

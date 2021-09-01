@@ -1,0 +1,13 @@
+{
+    "ResponseMetadata": {
+        "Parameters": {
+            "LookupAttributes": [
+                {
+                  "AttributeKey": "ReadOnly",
+                  "AttributeValue": "false"
+                }
+              ]
+        },
+        "OperationName": "LookupEvents"
+    }
+}

@@ -124,31 +124,34 @@ def resource(path):
 
 def wrapper(api, not_authorized, subdirectory, event_name=None, eventbridge_event_name=None):
     def mock_boto_calls(self, *args, **kwargs):
-        if args[0] == "AssumeRole":
+        operation_name = botocore.xform_name(args[0])
+        if operation_name == "assume_role":
             return {"Credentials": {"AccessKeyId": "KEY_ID", "SecretAccessKey": "ACCESS_KEY", "SessionToken": "TOKEN"}}
-        if args[0] == "LookupEvents":
-            if event_name:
+        if event_name:
+            if operation_name == "lookup_events":
                 res = resource("json/" + api + "/cloudtrail/" + event_name + ".json")
                 dt = datetime.utcnow() + timedelta(hours=3)
                 res["eventTime"] = dt.strftime("%Y-%m-%dT%H:%M:%SZ")
                 msg = {"Events": [{"CloudTrailEvent": json.dumps(res)}]}
                 return msg
-            else:
+        if eventbridge_event_name:
+            if operation_name == "lookup_events":
                 return {}
-        operation_name = botocore.xform_name(args[0])
-        if operation_name == "list_objects_v2" and eventbridge_event_name:
-            return {
-                "Contents": [
-                    {
-                        "Key": "AWSLogs/123456789012/EventBridge/eu-west-1"
-                        + "/2021/06/11/05/stackstate-eventbridge-stream-2-2021-06-11-05-18-05-"
-                        + "b7d5fff3-928a-4e63-939b-1a32662b6a63.gz"
-                    }
-                ]
-            }
-        if operation_name == "get_object" and eventbridge_event_name:
-            res = resource("json/" + api + "/cloudtrail/" + eventbridge_event_name + ".json")
-            return {"Body": json.dumps(res)}
+            if operation_name == "get_bucket_versioning":
+                return {"Status": "Enabled"}
+            if operation_name == "list_objects_v2":
+                return {
+                    "Contents": [
+                        {
+                            "Key": "AWSLogs/123456789012/EventBridge/eu-west-1"
+                            + "/2021/06/11/05/stackstate-eventbridge-stream-2-2021-06-11-05-18-05-"
+                            + "b7d5fff3-928a-4e63-939b-1a32662b6a63.gz"
+                        }
+                    ]
+                }
+            if operation_name == "get_object":
+                res = resource("json/" + api + "/cloudtrail/" + eventbridge_event_name + ".json")
+                return {"Body": json.dumps(res)}
         if operation_name in not_authorized:
             # Some APIs return a different error code when there is no permission
             # But there are no docs on which ones do. Here is an array of some known APIs
@@ -253,6 +256,12 @@ class BaseApiTest(unittest.TestCase):
 
         self.check = AwsTopologyCheck(self.CHECK_NAME, InitConfig(init_config), [instance])
         self.check.last_full_topology = datetime(2021, 5, 1, 0, 0, 0).replace(tzinfo=pytz.utc)
+
+        def ignore_callback(self, *args, **kwargs):
+            return
+        self.check.get_flowlog_update = ignore_callback
+        if cloudtrail_event is None and eventbridge_event is None:
+            self.check.get_topology_update = ignore_callback
         self.mock_object.side_effect = wrapper(
             api, not_authorized, subdirectory, event_name=cloudtrail_event, eventbridge_event_name=eventbridge_event
         )

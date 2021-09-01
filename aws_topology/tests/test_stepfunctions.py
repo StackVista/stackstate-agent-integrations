@@ -333,7 +333,7 @@ class TestStepFunctions(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         components = topology[0]["components"]
         self.assertEqual(len(components), 1)
         self.assertEqual(components[0]["id"], "arn:aws:states:eu-west-1:548105126730:stateMachine:MyStateMachine")
@@ -343,7 +343,7 @@ class TestStepFunctions(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(self.check.delete_ids), 1)
         self.assertEqual(self.check.delete_ids[0], "arn:aws:states:eu-west-1:548105126730:stateMachine:MyStateMachine")
 
@@ -352,7 +352,7 @@ class TestStepFunctions(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         components = topology[0]["components"]
         self.assertEqual(len(components), 1)
         self.assertEqual(components[0]["id"], "arn:aws:states:eu-west-1:548105126730:stateMachine:MyStateMachine")
@@ -362,7 +362,7 @@ class TestStepFunctions(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         components = topology[0]["components"]
         self.assertEqual(len(components), 1)
         self.assertEqual(components[0]["id"], "arn:aws:states:eu-west-1:548105126730:activity:Test")
@@ -372,7 +372,7 @@ class TestStepFunctions(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(self.check.delete_ids), 1)
         self.assertEqual(self.check.delete_ids[0], "arn:aws:states:eu-west-1:548105126730:activity:Test")
 
@@ -381,7 +381,7 @@ class TestStepFunctions(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         components = topology[0]["components"]
         self.assertEqual(len(components), 1)
         self.assertEqual(components[0]["id"], "arn:aws:states:eu-west-1:548105126730:activity:TestActivity")
@@ -391,7 +391,7 @@ class TestStepFunctions(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         components = topology[0]["components"]
         self.assertEqual(len(components), 1)
         self.assertEqual(components[0]["id"], "arn:aws:states:eu-west-1:548105126730:activity:TestActivity")
@@ -401,7 +401,7 @@ class TestStepFunctions(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         components = topology[0]["components"]
         self.assertEqual(len(components), 1)
         self.assertEqual(components[0]["id"], "arn:aws:states:eu-west-1:548105126730:stateMachine:MyStateMachine")
@@ -411,7 +411,7 @@ class TestStepFunctions(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         components = topology[0]["components"]
         self.assertEqual(len(components), 1)
         self.assertEqual(components[0]["id"], "arn:aws:states:eu-west-1:548105126730:stateMachine:MyStateMachine")
