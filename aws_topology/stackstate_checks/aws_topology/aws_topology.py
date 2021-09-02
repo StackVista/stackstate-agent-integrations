@@ -204,11 +204,11 @@ class AwsTopologyCheck(AgentCheck):
             session = aws_client.get_session(instance_info.role_arn, region)
             events_per_api = {}
             collector = CloudtrailCollector(
-                instance_info.log_bucket_name,
-                self.get_account_id(instance_info),
-                session,
-                agent_proxy,
-                self.log
+                bucket_name=instance_info.log_bucket_name,
+                account_id=self.get_account_id(instance_info),
+                session=session,
+                agent=agent_proxy,
+                log=self.log
             )
             # collect the events (ordering is most recent event first)
             for event in collector.get_messages(not_before):
@@ -259,14 +259,14 @@ class AwsTopologyCheck(AgentCheck):
             session = aws_client.get_session(instance_info.role_arn, region)
             location = location_info(self.get_account_id(instance_info), session.region_name)
             collector = FlowLogCollector(
-                instance_info.log_bucket_name,
-                self.get_account_id(instance_info),
-                session,
-                location,
-                agent_proxy,
-                self.log
+                bucket_name=instance_info.log_bucket_name,
+                account_id=self.get_account_id(instance_info),
+                session=session,
+                location_info=location,
+                agent=agent_proxy,
+                log=self.log
             )
-            collector.read_flowlog(not_before)
+            collector.read_flow_log(not_before)
 
 
 class AgentProxy(object):
@@ -312,6 +312,10 @@ class AgentProxy(object):
     def event(self, event):
         self.agent.event(event)
 
+    def gauge(self, name, value, tags=None, hostname=None, device_name=None):
+        self.agent.log.info('gauge %s: %s', name, value)
+        self.agent.gauge(self, name, value, tags, hostname, device_name)
+
     def delete(self, id):
         self.delete_ids.append(id)
 
@@ -320,7 +324,8 @@ class AgentProxy(object):
         warning = self.warnings.get(error, 0) + 1
         self.warnings[error] = warning
 
-    def create_arn(self, type, location, resource_id=""):
+    @staticmethod
+    def create_arn(type, location, resource_id=""):
         func = type_arn.get(type)
         if func:
             return func(
