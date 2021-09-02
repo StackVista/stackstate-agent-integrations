@@ -68,7 +68,7 @@ class DynatraceComponent(Model):
     # Host
     esxiHostName = StringType()
     oneAgentCustomHostName = StringType()
-    azureHostNames = StringType()
+    azureHostNames = ListType(StringType(), default=[])
     publicHostName = StringType()
     localHostName = StringType()
 
