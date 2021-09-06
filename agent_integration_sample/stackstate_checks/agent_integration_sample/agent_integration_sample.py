@@ -194,5 +194,4 @@ class AgentIntegrationSampleCheck(AgentCheck):
         self.health.stop_snapshot()
 
         # raw metrics
-        self.raw("raw.metrics", randint(0, 100), ["application:some_application", "region:eu-west-1"],
-                 timestamp=int(time.time()))
+        self.raw("raw.metrics", int(10), tags=["application:some_application", "region:eu-west-1"], timestamp=int(1))

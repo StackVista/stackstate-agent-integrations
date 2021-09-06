@@ -93,6 +93,10 @@ class TestAgentIntegration(unittest.TestCase):
                                               'message': 'msg'}
                                              ])
 
+        aggregator.assert_metric('system.cpu.usage', count=3, tags=["hostname:this-host", "region:eu-west-1"])
+        telemetry.assert_raw_metrics_data("raw.metrics", int(10), ["application:some_application", "region:eu-west-1"],
+                                          int(1))
+
     def test_topology_items_from_config_check(self):
         instance_config = {
            "stackstate-layer": "layer-conf-a",

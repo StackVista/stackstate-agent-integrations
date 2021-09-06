@@ -40,7 +40,7 @@ class TelemetryStub(object):
     def submit_raw_metrics_data(self, check, check_id, name, value, tags, hostname, timestamp):
         self._raw_metrics[name].append(RawMetricStub(name, value, tags, hostname, timestamp))
 
-    def assert_raw_metrics_data(self, check, check_id, name, value, tags, hostname, timestamp):
+    def assert_raw_metrics_data(self, name, value, tags, hostname, timestamp):
         tags = normalize_tags(tags, sort=True)
 
         candidates = []
