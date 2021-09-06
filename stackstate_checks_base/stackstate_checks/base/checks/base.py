@@ -857,6 +857,12 @@ class AgentCheckBase(object):
     def _submit_metric(self, mtype, name, value, tags=None, hostname=None, device_name=None):
         pass
 
+    def _submit_raw_metric(self, name, value, tags=None, hostname=None, device_name=None, timestamp=None):
+        pass
+
+    def raw(self, name, value, tags=None, hostname=None, device_name=None, timestamp=None):
+        self._submit_raw_metric(name, value, tags, hostname, device_name, timestamp)
+
     def gauge(self, name, value, tags=None, hostname=None, device_name=None):
         self._submit_metric(aggregator.GAUGE, name, value, tags=tags, hostname=hostname, device_name=device_name)
 
@@ -1106,6 +1112,18 @@ class __AgentCheckPy3(AgentCheckBase):
 
         aggregator.submit_metric(self, self.check_id, mtype, ensure_unicode(name), value, tags, hostname)
 
+    def _submit_raw_metric(self, name, value, tags=None, hostname=None, device_name=None, timestamp=None):
+        tags = self._normalize_tags_type(tags, device_name, name)
+
+        if timestamp is None:
+            # Ignore raw metric sample without a timestamp
+            return
+
+        if hostname is None:
+            hostname = ''
+
+        telemetry.submit_raw_metrics_data(self, self.check_id, ensure_unicode(name), value, tags, hostname, timestamp)
+
     def service_check(self, name, status, tags=None, hostname=None, message=None):
         tags = self._normalize_tags_type(tags)
         if hostname is None:
@@ -1271,6 +1289,14 @@ class __AgentCheckPy2(AgentCheckBase):
             return
 
         aggregator.submit_metric(self, self.check_id, mtype, ensure_string(name), value, tags, hostname)
+
+    def _submit_raw_metric(self, name, value, tags=None, hostname=None, device_name=None, timestamp=None):
+        tags = self._normalize_tags_type(tags, device_name, name)
+
+        if hostname is None:
+            hostname = b''
+
+        telemetry.submit_raw_metrics_data(self, self.check_id, ensure_unicode(name), value, tags, hostname, timestamp)
 
     def service_check(self, name, status, tags=None, hostname=None, message=None):
         tags = self._normalize_tags_type(tags)

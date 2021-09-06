@@ -6,8 +6,10 @@ from __future__ import division
 from collections import defaultdict, namedtuple
 
 from six import binary_type, iteritems
-
+from .aggregator import normalize_tags
 from ..utils.common import ensure_unicode, to_string
+
+RawMetricStub = namedtuple('RawMetricStub', 'name value tags hostname timestamp')
 
 
 class TelemetryStub(object):
@@ -18,6 +20,48 @@ class TelemetryStub(object):
 
     def __init__(self):
         self._topology_events = []
+        self._raw_metrics = defaultdict(list)
+
+    def raw_metrics(self, name):
+        """
+        Return the metrics received under the given name
+        """
+        return [
+            RawMetricStub(
+                ensure_unicode(stub.name),
+                stub.value,
+                normalize_tags(stub.tags),
+                ensure_unicode(stub.hostname),
+                stub.timestamp,
+            )
+            for stub in self._raw_metrics.get(to_string(name), [])
+        ]
+
+    def submit_raw_metrics_data(self, check, check_id, name, value, tags, hostname, timestamp):
+        tags = normalize_tags(tags, sort=True)
+
+        candidates = []
+        for raw_metric in self.raw_metrics(name):
+            if value is not None and value != raw_metric.value:
+                continue
+
+            if tags and tags != sorted(raw_metric.tags):
+                continue
+
+            if hostname and hostname != raw_metric.hostname:
+                continue
+
+            if timestamp and timestamp != raw_metric.timestamp:
+                continue
+
+            candidates.append(raw_metric)
+
+        if value is not None and candidates:
+            got = sum(m.value for m in candidates)
+            msg = "Expected count value for '{}': {}, got {}".format(name, value, got)
+            assert value == got, msg
+
+        self._topology_events.append(RawMetricStub(name, value, tags, hostname, timestamp))
 
     def submit_topology_event(self, check, check_id, event):
         self._topology_events.append(event)
