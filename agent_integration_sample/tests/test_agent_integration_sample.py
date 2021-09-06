@@ -94,8 +94,11 @@ class TestAgentIntegration(unittest.TestCase):
                                              ])
 
         aggregator.assert_metric('system.cpu.usage', count=3, tags=["hostname:this-host", "region:eu-west-1"])
-        telemetry.assert_raw_metrics_data("raw.metrics", int(10), ["application:some_application", "region:eu-west-1"],
-                                          int(1))
+        telemetry.assert_raw_metrics_data("raw.metrics",
+                                          value=int(10),
+                                          tags=["application:some_application", "region:eu-west-1"],
+                                          hostname="hostname",
+                                          timestamp=int(1))
 
     def test_topology_items_from_config_check(self):
         instance_config = {
