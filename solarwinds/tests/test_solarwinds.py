@@ -59,7 +59,7 @@ def test_get_udt_topology_data(requests_mock, test_instance, solarwinds_check):
     solarwinds_check.run()
     # Make sure we can re-use the topology data later
     global udt_topology_data
-    udt_topology_data = solarwinds_check.get_udt_topology_data()
+    udt_topology_data = solarwinds_check.get_udt_topology_data(where_clause='dummy where clause')
     assert udt_topology_data == load_json_from_file("udt_topology_data.json", "samples")["results"]
 
 

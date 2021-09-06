@@ -66,7 +66,7 @@ class SolarWindsCheck(AgentCheck):
         query_npm = self.swis.query(
             "SELECT N.NodeID, N.Caption, N.IPAddress, N.CustomProperties.{domain}, N.Interfaces.InterfaceID, "
             "N.Interfaces.IfName, "
-            "CASE WHEN N.Interfaces.TypeDescription NOT LIKE '%Virtual%' THEN N.Interfaces.MAC END AS MAC, "
+            "CASE WHEN N.Interfaces.TypeDescription NOT LIKE '%Virtual LAN%' THEN N.Interfaces.MAC END AS MAC, "
             "T.DestInterfaceID, I.MAC AS DestInterfaceMAC, "
             "(SELECT Description FROM Orion.NodeCategories WHERE N.Category = CategoryID) AS NodeCategory, "
             "(SELECT StatusName FROM Orion.StatusInfo WHERE N.Status = StatusId) AS NodeStatus, "
@@ -77,7 +77,10 @@ class SolarWindsCheck(AgentCheck):
             "T.SrcType = 'Orion.NPM.Interfaces' "
             "AND T.DestType = 'Orion.NPM.Interfaces' AND T.LayerType = 'L2' "
             "LEFT JOIN Orion.NPM.Interfaces I ON I.InterfaceID = T.DestInterfaceID "
-            "{where_clause}".format(domain=solarwinds_domain, where_clause=where_clause)
+            "{where_clause} ORDER BY N.Interfaces.TypeDescription DESC".format(domain=solarwinds_domain,
+                                                                               where_clause=where_clause)
+            # Sorting on TypeDescription makes sure the virtual interface types (like Port-Channels) take precedence
+            # when creating relations
         )
         # Assign the query results to a variable
         npm_topology_data = query_npm.get("results")
@@ -149,13 +152,15 @@ class SolarWindsCheck(AgentCheck):
             self.log.debug("Licensed UDT module not detected")
             return False
 
-    def get_udt_topology_data(self):
+    def get_udt_topology_data(self, where_clause):
         self.log.info("Collect UDT connection information")
         # Get unique connections from UDT
         # This shows nodes connected to Switch ports (that may not be monitored inside Orion)
         query_udt_connections = self.swis.query(
-            "SELECT DISTINCT ConnectedTo, ConnectionTypeName, HostName, IPAddress, MACAddress, PortNumber "
-            "FROM Orion.UDT.AllEndpoints WHERE IPAddress IS NOT NULL"
+            "SELECT DISTINCT ConnectedTo, ConnectionTypeName, HostName, E.IPAddress, MACAddress, PortNumber "
+            "FROM Orion.UDT.AllEndpoints E "
+            "LEFT JOIN Orion.Nodes N ON N.NodeID = E.NodeID "
+            "{where_clause}".format(where_clause=where_clause)
         )
         # Assign the query results to a variable
         udt_connections = query_udt_connections["results"]
@@ -238,7 +243,9 @@ class SolarWindsCheck(AgentCheck):
                 "identifiers": node.identifiers,
                 "details_url": node.details_url,
             }
-            self.component(node.identifiers[0], node.component_type, node_component)
+            # Only register nodes that have an IP address
+            if node.ip_address:
+                self.component(node.identifiers[0], node.component_type, node_component)
 
             # Register the interfaces (if any)
             for interface in node.interfaces:
@@ -333,7 +340,7 @@ class SolarWindsCheck(AgentCheck):
 
             # Is UDT installed?
             if self.check_udt_active():
-                udt_topology_data = self.get_udt_topology_data()
+                udt_topology_data = self.get_udt_topology_data(where_clause)
                 # Add UDT topology data to nodes
                 self.add_udt_topology(udt_topology_data, npm_topology)
 
