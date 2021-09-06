@@ -20,13 +20,31 @@ class TelemetryStub(object):
 
     def __init__(self):
         self._topology_events = []
-        self._raw_metrics = []
+        self._raw_metrics = defaultdict(list)
+
+    def raw_metrics(self, name):
+        """
+        Return the metrics received under the given name
+        """
+        return [
+            RawMetricStub(
+                ensure_unicode(stub.name),
+                stub.value,
+                normalize_tags(stub.tags),
+                ensure_unicode(stub.hostname),
+                stub.timestamp,
+            )
+            for stub in self._raw_metrics.get(to_string(name), [])
+        ]
 
     def submit_raw_metrics_data(self, check, check_id, name, value, tags, hostname, timestamp):
+        self._raw_metrics[name].append(RawMetricStub(name, value, tags, hostname, timestamp))
+
+    def assert_raw_metrics_data(self, check, check_id, name, value, tags, hostname, timestamp):
         tags = normalize_tags(tags, sort=True)
 
         candidates = []
-        for raw_metric in self._raw_metrics:
+        for raw_metric in self.raw_metrics(name):
             if value is not None and value != raw_metric.value:
                 continue
 
@@ -45,8 +63,6 @@ class TelemetryStub(object):
             got = sum(m.value for m in candidates)
             msg = "Expected count value for '{}': {}, got {}".format(name, value, got)
             assert value == got, msg
-
-        self._raw_metrics.append(RawMetricStub(name, value, tags, hostname, timestamp))
 
     def submit_topology_event(self, check, check_id, event):
         self._topology_events.append(event)
