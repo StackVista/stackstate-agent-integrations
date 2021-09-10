@@ -100,6 +100,16 @@ class TestZabbix(unittest.TestCase):
                             "groupid": "4",
                             "name": "Zabbix servers"
                         }
+                    ],
+                    "tags": [
+                        {
+                            "tag": "stackstate-layer",
+                            "value": "stackstate"
+                        },
+                        {
+                            "tag": "stackstate-identifier",
+                            "value": "common-identifier"
+                        }
                     ]
                 }
             ],
@@ -221,13 +231,13 @@ class TestZabbix(unittest.TestCase):
 
         component = topo_instances['components'][0]
         expected_identifier = ["urn:host:/stubbed.hostname", "stubbed.hostname", "zabbix01.example.com",
-                               "urn:host:/10.0.0.1"]
+                               "urn:host:/10.0.0.1", "common-identifier"]
         self.assertEqual(component['id'], 'urn:host:/zabbix01.example.com')
         self.assertEqual(component['type'], 'zabbix_host')
         self.assertEqual(component['data']['name'], 'Zabbix server')
         self.assertEqual(component['data']['host_id'], '10084')
         self.assertEqual(component['data']['host'], 'zabbix01.example.com')
-        self.assertEqual(component['data']['layer'], 'Host')
+        self.assertEqual(component['data']['layer'], 'stackstate')
         self.assertEqual(component['data']['domain'], 'Zabbix servers')
         self.assertEqual(component['data']['identifiers'], expected_identifier)
         self.assertEqual(component['data']['environment'], 'Production')
