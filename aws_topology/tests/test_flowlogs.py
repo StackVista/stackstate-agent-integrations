@@ -167,10 +167,8 @@ class TestFlowLogs(unittest.TestCase):
             "remote/vpc-0305206adbbda9918/10.16.133.15/10.16.5.72",
             "flowlog",
             checks={
-                "bytes_sent": 26,
-                "bytes_received": 0,
-                "bytes_sent_per_second": 26.0,
-                "bytes_received_per_second": 0.0
+                "local_address": "10.16.133.15",
+                "remote_address": "10.16.5.72"
             }
         )
 
@@ -192,5 +190,12 @@ class TestFlowLogs(unittest.TestCase):
                 "_vpcflowlogs_eu-west-1_fl-0630869f236e76872_20210622T0000Z_ea4b0f55.log.gz",
             ],
         )
+
+        metric_tags = ['source:local/vpc-0305206adbbda9918/10_16_133_15/10_16_5_72',
+                       'target:local/vpc-0305206adbbda9918/10_16_133_15/10_16_5_72']
+        aggregator.assert_metric('aws.flowlog.bytes_sent', 52.0, tags=metric_tags)
+        aggregator.assert_metric('aws.flowlog.bytes_sent_per_second', 26.0, tags=metric_tags)
+        aggregator.assert_metric('aws.flowlog.bytes_received', 0.0, tags=metric_tags)
+        aggregator.assert_metric('aws.flowlog.bytes_received_per_second', 0.0, tags=metric_tags)
 
 # other tests: custom bucket, no access to bucket, bucket versioning disabled, bucket versioning not accessible
