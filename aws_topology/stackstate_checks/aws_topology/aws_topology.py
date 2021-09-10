@@ -280,10 +280,10 @@ class AgentProxy(object):
         self.lock = threading.Lock()
         self.log = log
 
-    def component(self, location, id, type, data):
+    def component(self, location, id, type, data, streams=None, checks=None):
         self.components_seen.add(id)
         data.update(location.to_primitive())
-        self.agent.component(id, type, correct_tags(capitalize_keys(data)))
+        self.agent.component(id, type, correct_tags(capitalize_keys(data)), streams, checks)
         relations_to_send = []
         with self.lock:
             for i in range(len(self.parked_relations) - 1, -1, -1):
@@ -295,13 +295,19 @@ class AgentProxy(object):
                     self.parked_relations.remove(relation)
                     relations_to_send.append(relation)
         for relation in relations_to_send:
-            self.agent.relation(relation["source_id"], relation["target_id"], relation["type"], relation["data"])
+            self.agent.relation(
+                relation["source_id"], relation["target_id"], relation["type"],
+                relation["data"], relation['streams'], relation['checks']
+            )
 
-    def relation(self, source_id, target_id, type, data):
+    def relation(self, source_id, target_id, type, data, streams=None, checks=None):
         if source_id in self.components_seen and target_id in self.components_seen:
-            self.agent.relation(source_id, target_id, type, data)
+            self.agent.relation(source_id, target_id, type, data, streams, checks)
         else:
-            self.parked_relations.append({"type": type, "source_id": source_id, "target_id": target_id, "data": data})
+            self.parked_relations.append(
+                {"type": type, "source_id": source_id, "target_id": target_id,
+                 "data": data, 'streams': streams, 'checks': checks}
+            )
 
     def finalize_account_topology(self):
         for relation in self.parked_relations:
@@ -313,8 +319,8 @@ class AgentProxy(object):
         self.agent.event(event)
 
     def gauge(self, name, value, tags=None, hostname=None, device_name=None):
-        self.agent.log.info('gauge %s: %s', name, value)
-        self.agent.gauge(self, name, value, tags, hostname, device_name)
+        self.agent.log.info('gauge %s: %s %s', name, value, tags)
+        self.agent.gauge(name, value, tags, hostname, device_name)
 
     def delete(self, id):
         self.delete_ids.append(id)
