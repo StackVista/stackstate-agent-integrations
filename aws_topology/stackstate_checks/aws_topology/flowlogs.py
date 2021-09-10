@@ -4,6 +4,7 @@ from datetime import datetime
 import pytz
 from schematics import Model
 from schematics.types import StringType, ListType, ModelType
+from stackstate_checks.base import MetricStream
 
 from .resources import is_private, ip_version, client_array_operation, make_valid_data, ipaddress_to_urn
 from .utils import get_stream_from_s3body
@@ -215,17 +216,11 @@ class FlowLogCollector(object):
         id = ""
         reverse = None
         if src_ip in network_interface.addresses:
-            # TODO: Bram suggested removal of port, check how often it changes
-            # laddr = "{}:{}".format(src_ip, src_port)
-            # raddr = "{}:{}".format(dst_ip, dst_port)
             private = is_private(dst_ip)
             dir = "out"
             nwitf_update = {src_ip: network_interface}
             id, reverse = connection_identifier(network_interface.VpcId, src_ip, dst_ip)
         elif dst_ip in network_interface.addresses:
-            # TODO: Bram suggested removal of port, check how often it changes
-            # laddr = "{}:{}".format(dst_ip, dst_port)
-            # raddr = "{}:{}".format(src_ip, src_port)
             private = is_private(src_ip)
             dir = "in"
             nwitf_update = {dst_ip: network_interface}
@@ -284,11 +279,7 @@ class FlowLogCollector(object):
             network_interfaces.append(itf.original_data)
         data = {
             "traffic_type": connection.traffic_type,
-            # "bytes_sent": connection.total_bytes_sent,
-            # "bytes_received": connection.total_bytes_received,
             "family": connection.family,
-            # "bytes_sent_per_second": connection.bytes_sent_per_second,
-            # "bytes_received_per_second": connection.bytes_received_per_second,
             "local_address": connection.laddr,
             "remote_address": connection.raddr,
             "log": connection.traffic_log,
@@ -297,38 +288,50 @@ class FlowLogCollector(object):
         data = make_valid_data(data)
 
         # create component for local side
-        ip = connection.laddr.split(":")[0]
-        nwitf = connection.network_interfaces.get(ip, None)
+        lnwitf = connection.network_interfaces.get(connection.laddr, None)
         lcid = "local/{}".format(id)
-        urns = [ipaddress_to_urn(ip, connection.namespace)]
-        if nwitf and nwitf.Association and nwitf.Association.PublicIp:
-            urns.append(ipaddress_to_urn(nwitf.Association.PublicIp, ""))
-        self.agent.component(
-            self.location_info,
-            lcid,
-            "vpc.request",
-            {"URN": urns},
-        )
+        # TODO: STAC-14129 bug workaround, remove lcid_tag when bug is fixed
+        lcid_tag = lcid.replace('.', '_')
+        self.create_dummy_component(connection.laddr, connection.namespace, lcid, lnwitf)
         # remote component for remote side
-        ip = connection.raddr.split(":")[0]
-        nwitf = connection.network_interfaces.get(ip, None)
+        rnwitf = connection.network_interfaces.get(connection.raddr, None)
         rcid = "remote/{}".format(id)
-        urns = [ipaddress_to_urn(ip, connection.namespace)]
-        if nwitf and nwitf.Association and nwitf.Association.PublicIp:
-            urns.append(ipaddress_to_urn(nwitf.Association.PublicIp, ""))
-        self.agent.component(
-            self.location_info,
-            rcid,
-            "vpc.request",
-            {"URN": urns},
-        )
+        # TODO: STAC-14129 bug workaround, remove rcid_tag when bug is fixed
+        rcid_tag = lcid.replace('.', '_')
+        self.create_dummy_component(connection.raddr, connection.namespace, rcid, rnwitf)
         # make relation between the two
+        data.update({'source': lcid_tag, 'target': rcid_tag})
+        # conditions = {'tags.source': lcid_tag, 'tags.target': rcid_tag}
+        # byte_sent_stream = MetricStream('FlowLog Byte Sent', 'aws.flowlog.bytes_sent',
+        #                                 conditions=conditions,
+        #                                 unit_of_measure='Bytes',
+        #                                 aggregation='MEAN',
+        #                                 priority='MEDIUM')
+        # byte_sent_per_sec_stream = MetricStream('FlowLog Byte Sent per Second', 'aws.flowlog.bytes_sent_per_second',
+        #                                         conditions=conditions,
+        #                                         unit_of_measure='Bytes',
+        #                                         aggregation='MEAN',
+        #                                         priority='MEDIUM')
+        # self.agent.relation(lcid, rcid, "flowlog", data, streams=[byte_sent_stream, byte_sent_per_sec_stream])
         self.agent.relation(lcid, rcid, "flowlog", data)
 
         # metrics
-        tags = ['source_id:lcid', 'target_id:rcid']
-        self.agent.gauge('aws.flowlog.bytes_sent', connection.bytes_sent, tags=tags)
-        self.agent.gauge('aws.flowlog.bytes_received', connection.bytes_sent, tags=tags)
+        tags_send = ['source:{}'.format(lcid_tag), 'target:{}'.format(rcid_tag)]
+        self.agent.gauge('aws.flowlog.bytes_sent', connection.bytes_sent, tags=tags_send)
+        self.agent.gauge('aws.flowlog.bytes_sent_per_second', connection.bytes_sent_per_second, tags=tags_send)
+        self.agent.gauge('aws.flowlog.bytes_received', connection.bytes_received, tags=tags_send)
+        self.agent.gauge('aws.flowlog.bytes_received_per_second', connection.bytes_received_per_second, tags=tags_send)
+
+    def create_dummy_component(self, ip, namespace, cid, network_interface):
+        urns = [ipaddress_to_urn(ip, namespace)]
+        if network_interface and network_interface.Association and network_interface.Association.PublicIp:
+            urns.append(ipaddress_to_urn(network_interface.Association.PublicIp, ""))
+        self.agent.component(
+            self.location_info,
+            cid,
+            "vpc.request",
+            {"URN": urns}
+        )
 
     def process_connections(self, connections):
         count = 0
