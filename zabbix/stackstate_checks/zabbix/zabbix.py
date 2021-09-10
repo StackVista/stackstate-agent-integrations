@@ -21,12 +21,13 @@ from stackstate_checks.utils.identifiers import Identifiers
 
 
 class ZabbixHost:
-    def __init__(self, host_id, host, name, host_groups):
+    def __init__(self, host_id, host, name, host_groups, tags):
         assert(type(host_groups == list))
         self.host_id = host_id
         self.host = host
         self.name = name
         self.host_groups = host_groups
+        self.tags = tags
 
     def __repr__(self):
         return self.__str__()
@@ -221,6 +222,7 @@ class ZabbixCheck(AgentCheck):
             'environment': stackstate_environment,
             'host_groups': [host_group.name for host_group in zabbix_host.host_groups],
             'labels': labels,
+            'tags': zabbix_host.tags,
             'instance': instance_url
         }
 
@@ -270,7 +272,8 @@ class ZabbixCheck(AgentCheck):
         self.log.debug("Retrieving hosts.")
         params = {
             "output": ["hostid", "host", "name", "maintenance_status"],
-            "selectGroups": ["groupid", "name"]
+            "selectGroups": ["groupid", "name"],
+            "selectTags": ["tag", "value"]
         }
         response = self.method_request(url, "host.get", auth=auth, params=params)
         for item in response.get("result", []):
@@ -278,6 +281,7 @@ class ZabbixCheck(AgentCheck):
             host = item.get("host", None)
             name = item.get("name", None)
             raw_groups = item.get('groups', [])
+            host_tags = item.get('tags', [])
             maintenance_status = item.get("maintenance_status", "0")
             groups = []
             for raw_group in raw_groups:
@@ -285,8 +289,10 @@ class ZabbixCheck(AgentCheck):
                 host_group_name = raw_group.get('name', None)
                 zabbix_host_group = ZabbixHostGroup(host_group_id, host_group_name)
                 groups.append(zabbix_host_group)
-
-            zabbix_host = ZabbixHost(host_id, host, name, groups)
+            tags = []
+            for tag in host_tags:
+                tags.append("{}:{}".format(tag.get('tag'), tag.get('value')))
+            zabbix_host = ZabbixHost(host_id, host, name, groups, tags)
             if not host_id or not host or not name or len(groups) == 0:
                 self.log.warn("Incomplete ZabbixHost, got: %s" % zabbix_host)
             if maintenance_status == "0":
