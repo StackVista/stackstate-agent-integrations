@@ -301,18 +301,6 @@ class FlowLogCollector(object):
         self.create_dummy_component(connection.raddr, connection.namespace, rcid, rnwitf)
         # make relation between the two
         data.update({'source': lcid_tag, 'target': rcid_tag})
-        # conditions = {'tags.source': lcid_tag, 'tags.target': rcid_tag}
-        # byte_sent_stream = MetricStream('FlowLog Byte Sent', 'aws.flowlog.bytes_sent',
-        #                                 conditions=conditions,
-        #                                 unit_of_measure='Bytes',
-        #                                 aggregation='MEAN',
-        #                                 priority='MEDIUM')
-        # byte_sent_per_sec_stream = MetricStream('FlowLog Byte Sent per Second', 'aws.flowlog.bytes_sent_per_second',
-        #                                         conditions=conditions,
-        #                                         unit_of_measure='Bytes',
-        #                                         aggregation='MEAN',
-        #                                         priority='MEDIUM')
-        # self.agent.relation(lcid, rcid, "flowlog", data, streams=[byte_sent_stream, byte_sent_per_sec_stream])
         self.agent.relation(lcid, rcid, "flowlog", data)
 
         # metrics
