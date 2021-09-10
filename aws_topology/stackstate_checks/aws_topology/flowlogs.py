@@ -4,7 +4,6 @@ from datetime import datetime
 import pytz
 from schematics import Model
 from schematics.types import StringType, ListType, ModelType
-from stackstate_checks.base import MetricStream
 
 from .resources import is_private, ip_version, client_array_operation, make_valid_data, ipaddress_to_urn
 from .utils import get_stream_from_s3body
