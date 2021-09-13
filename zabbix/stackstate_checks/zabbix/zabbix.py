@@ -194,8 +194,6 @@ class ZabbixCheck(AgentCheck):
     def process_host_topology(self, topology_instance, zabbix_host, stackstate_environment):
         external_id = "urn:host:/%s" % zabbix_host.host
         identifiers = list()
-        # get actual hostname from agent
-        # if zabbix is deployed on ec2 instance, it doesn't give any metadata about actual hostname
         identifiers.append(Identifiers.create_host_identifier(zabbix_host.host))
         identifiers.append(zabbix_host.host)
 
