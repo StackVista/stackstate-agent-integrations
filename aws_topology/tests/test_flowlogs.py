@@ -192,7 +192,7 @@ class TestFlowLogs(unittest.TestCase):
         )
 
         metric_tags = ['source:local/vpc-0305206adbbda9918/10_16_133_15/10_16_5_72',
-                       'target:local/vpc-0305206adbbda9918/10_16_133_15/10_16_5_72']
+                       'target:remote/vpc-0305206adbbda9918/10_16_133_15/10_16_5_72']
         aggregator.assert_metric('aws.flowlog.bytes_sent', 52.0, tags=metric_tags)
         aggregator.assert_metric('aws.flowlog.bytes_sent_per_second', 26.0, tags=metric_tags)
         aggregator.assert_metric('aws.flowlog.bytes_received', 0.0, tags=metric_tags)

@@ -296,7 +296,7 @@ class FlowLogCollector(object):
         rnwitf = connection.network_interfaces.get(connection.raddr, None)
         rcid = "remote/{}".format(id)
         # TODO: STAC-14129 bug workaround, remove rcid_tag when bug is fixed
-        rcid_tag = lcid.replace('.', '_')
+        rcid_tag = rcid.replace('.', '_')
         self.create_dummy_component(connection.raddr, connection.namespace, rcid, rnwitf)
         # make relation between the two
         data.update({'source': lcid_tag, 'target': rcid_tag})
