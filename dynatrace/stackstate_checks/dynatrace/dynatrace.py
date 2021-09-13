@@ -1,6 +1,7 @@
 # (C) StackState 2021
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
+import logging
 import time
 from datetime import datetime, timedelta
 
@@ -136,10 +137,15 @@ class DynatraceCheck(AgentCheck):
                 self.log.debug('Creating new empty state with timestamp: %s', empty_state_timestamp)
                 instance_info.state = State({'last_processed_event_timestamp': empty_state_timestamp})
             self.start_snapshot()
-            self._process_topology(instance_info)
+            dynatrace_client = DynatraceClient(instance_info.token,
+                                               instance_info.verify,
+                                               instance_info.cert,
+                                               instance_info.keyfile,
+                                               instance_info.timeout)
+            self._process_topology(dynatrace_client, instance_info)
             self.stop_snapshot()
             # process events is not inside snapshot block as Vishal suggested
-            self._process_events(instance_info)
+            self._process_events(dynatrace_client, instance_info)
             msg = "Dynatrace check processed successfully"
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=instance_info.instance_tags, message=msg)
         except EventLimitReachedException as e:
@@ -152,7 +158,7 @@ class DynatraceCheck(AgentCheck):
                                message=str(e))
 
     @staticmethod
-    def get_custom_device_params(instance_info, next_page_key=None):
+    def get_custom_device_params(custom_device_relative_time, custom_device_fields, next_page_key=None):
         """
         Process the default parameters needed for custom device
         @param
@@ -165,13 +171,14 @@ class DynatraceCheck(AgentCheck):
             params = {'nextPageKey': next_page_key}
         else:
             params = {'entitySelector': 'type("CUSTOM_DEVICE")'}
-            relative_time = {'from': 'now-{}'.format(instance_info.custom_device_relative_time)}
+            relative_time = {'from': 'now-{}'.format(custom_device_relative_time)}
             params.update(relative_time)
-            fields = {'fields': '{}'.format(instance_info.custom_device_fields)}
+            fields = {'fields': '{}'.format(custom_device_fields)}
             params.update(fields)
         return params
 
-    def collect_custom_devices_get_next_key(self, instance_info, endpoint, component_type, next_page_key=None):
+    def collect_custom_devices_get_next_key(self, dynatrace_client, instance_info, endpoint, component_type,
+                                            next_page_key=None):
         """
         Process custom device response & topology and returns the next page key for result
         @param
@@ -182,12 +189,14 @@ class DynatraceCheck(AgentCheck):
         @return
         Returns the next_page_key value from API response
         """
-        params = self.get_custom_device_params(instance_info, next_page_key)
-        response = self._get_dynatrace_json_response(instance_info, endpoint, params)
+        params = self.get_custom_device_params(instance_info.custom_device_relative_time,
+                                               instance_info.custom_device_fields,
+                                               next_page_key)
+        response = dynatrace_client.get_dynatrace_json_response(endpoint, params)
         self._collect_topology(response.get("entities", []), component_type, instance_info)
         return response.get('nextPageKey')
 
-    def process_custom_device_topology(self, instance_info, endpoint, component_type):
+    def process_custom_device_topology(self, dynatrace_client, instance_info, endpoint, component_type):
         """
         Process the custom device topology until next page key is None
         @param
@@ -197,12 +206,14 @@ class DynatraceCheck(AgentCheck):
         @return
         None
         """
-        next_page_key = self.collect_custom_devices_get_next_key(instance_info, endpoint, component_type)
+        next_page_key = self.collect_custom_devices_get_next_key(dynatrace_client, instance_info, endpoint,
+                                                                 component_type)
         while next_page_key:
-            next_page_key = self.collect_custom_devices_get_next_key(instance_info, endpoint, component_type,
+            next_page_key = self.collect_custom_devices_get_next_key(dynatrace_client, instance_info, endpoint,
+                                                                     component_type,
                                                                      next_page_key)
 
-    def _process_topology(self, instance_info):
+    def _process_topology(self, dynatrace_client, instance_info):
         """
         Collects components and relations for each component type from dynatrace smartscape topology API
         and custom devices from Entities API (v2)
@@ -211,12 +222,11 @@ class DynatraceCheck(AgentCheck):
         self.log.debug("Starting the collection of topology")
         for component_type, path in TOPOLOGY_API_ENDPOINTS.items():
             endpoint = self._get_endpoint(instance_info.url, path)
-            params = {"relativeTime": instance_info.relative_time}
             if component_type == "custom-device":
                 # process the custom device topology separately because of pagination
-                self.process_custom_device_topology(instance_info, endpoint, component_type)
+                self.process_custom_device_topology(dynatrace_client, instance_info, endpoint, component_type)
             else:
-                response = self._get_dynatrace_json_response(instance_info, endpoint, params)
+                response = dynatrace_client.get_dynatrace_json_response(endpoint)
                 self._collect_topology(response, component_type, instance_info)
         end_time = datetime.now()
         time_taken = end_time - start_time
@@ -408,12 +418,12 @@ class DynatraceCheck(AgentCheck):
         labels.extend(labels_from_tags)
         return labels
 
-    def _process_events(self, instance_info):
+    def _process_events(self, dynatrace_client, instance_info):
         """
         Wrapper to collect events, filters those events and persist the state
         """
         entities_with_events = []
-        events, events_limit_reached = self._collect_events(instance_info)
+        events, events_limit_reached = self._collect_events(dynatrace_client, instance_info)
         open_events = len([e for e in events if e.get('eventStatus') == 'OPEN'])
         closed_events = len(events) - open_events
         self.log.info("Collected %d events, %d are open and %d are closed.", len(events), open_events, closed_events)
@@ -496,12 +506,13 @@ class DynatraceCheck(AgentCheck):
         else:
             return instance_url
 
-    def _collect_events(self, instance_info):
+    def _collect_events(self, dynatrace_client, instance_info):
         """
         Checks for EventLimitReachedException and process each event API response for next cursor
         until is None or it reach events_process_limit
         """
-        events_response = self._get_events(instance_info, from_time=instance_info.state.last_processed_event_timestamp)
+        events_response = self._get_events(dynatrace_client, instance_info.url,
+                                           from_time=instance_info.state.last_processed_event_timestamp)
         new_events = []
         events_processed = 0
         event_limit_reached = None
@@ -513,9 +524,10 @@ class DynatraceCheck(AgentCheck):
                     dynatrace_event.validate()
                     new_events.append(dynatrace_event)
                     events_processed += 1
-                    self._check_event_limit_exceeded_condition(instance_info, events_processed)
+                    self._check_event_limit_exceeded_condition(instance_info.events_process_limit, events_processed)
                 if events_response.get("nextCursor"):
-                    events_response = self._get_events(instance_info, cursor=events_response.get("nextCursor"))
+                    events_response = self._get_events(dynatrace_client, instance_info.url,
+                                                       cursor=events_response.get("nextCursor"))
                 else:
                     instance_info.state.last_processed_event_timestamp = events_response.get("to")
                     events_response = None
@@ -524,7 +536,7 @@ class DynatraceCheck(AgentCheck):
             event_limit_reached = str(e)
         return new_events, event_limit_reached
 
-    def _get_events(self, instance_info, from_time=None, cursor=None):
+    def _get_events(self, dynatrace_client, url, from_time=None, cursor=None):
         """
         Get events from Dynatrace Event API endpoint
         :param instance_info: object with instance info and its state
@@ -537,19 +549,19 @@ class DynatraceCheck(AgentCheck):
             params['from'] = from_time
         if cursor:
             params['cursor'] = cursor
-        endpoint = instance_info.url + "/api/v1/events"
-        events = self._get_dynatrace_json_response(instance_info, endpoint, params)
+        endpoint = url + "/api/v1/events"
+        events = dynatrace_client.get_dynatrace_json_response(endpoint, params)
         return events
 
     @staticmethod
-    def _check_event_limit_exceeded_condition(instance_info, total_event_count):
+    def _check_event_limit_exceeded_condition(events_process_limit, total_event_count):
         """
         Raises EventLimitReachedException if number of events between subsequent check runs
         exceed the `events_process_limit`
         """
-        if total_event_count >= instance_info.events_process_limit:
+        if total_event_count >= events_process_limit:
             raise EventLimitReachedException("Maximum event limit to process is %s but received total %s events"
-                                             % (instance_info.events_process_limit, total_event_count))
+                                             % (events_process_limit, total_event_count))
 
     def _generate_bootstrap_timestamp(self, days):
         """
@@ -581,14 +593,31 @@ class DynatraceCheck(AgentCheck):
         self.log.debug("Dynatrace URL endpoint %s", endpoint)
         return endpoint
 
-    def _get_dynatrace_json_response(self, instance_info, endpoint, params=None):
-        headers = {"Authorization": "Api-Token %s" % instance_info.token}
+
+class EventLimitReachedException(Exception):
+    """
+    Exception raised when maximum number of event reached
+    """
+    pass
+
+
+class DynatraceClient:
+    def __init__(self, token, verify, cert, keyfile, timeout):
+        self.token = token
+        self.verify = verify
+        self.cert = cert
+        self.keyfile = keyfile
+        self.timeout = timeout
+        self.log = logging.getLogger(__name__)
+
+    def get_dynatrace_json_response(self, endpoint, params=None):
+        headers = {"Authorization": "Api-Token %s" % self.token}
         try:
             with Session() as session:
                 session.headers.update(headers)
-                session.verify = instance_info.verify
-                if instance_info.cert:
-                    session.cert = (instance_info.cert, instance_info.keyfile)
+                session.verify = self.verify
+                if self.cert:
+                    session.cert = (self.cert, self.keyfile)
                 response = session.get(endpoint, params=params)
                 response_json = response.json()
                 if response.status_code != 200:
@@ -601,12 +630,5 @@ class DynatraceCheck(AgentCheck):
                         'Got an unexpected error with status code %s and message: %s' % (response.status_code, msg))
                 return response_json
         except Timeout:
-            msg = "%d seconds timeout" % instance_info.timeout
+            msg = "%d seconds timeout" % self.timeout
             raise Exception("Timeout exception occurred for endpoint %s with message: %s" % (endpoint, msg))
-
-
-class EventLimitReachedException(Exception):
-    """
-    Exception raised when maximum number of event reached
-    """
-    pass
