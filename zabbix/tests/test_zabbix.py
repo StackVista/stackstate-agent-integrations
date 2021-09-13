@@ -86,7 +86,11 @@ class TestZabbix(unittest.TestCase):
         }
 
     @staticmethod
-    def _zabbix_host_response(maintenance_mode="0"):
+    def _zabbix_host_response(maintenance_mode="0", tag=False):
+        tags = []
+        if tag:
+            tags = [{"tag": "stackstate-layer", "value": "stackstate"},
+                    {"tag": "stackstate-identifier", "value": "common-identifier"}]
         return {
             "jsonrpc": "2.0",
             "result": [
@@ -101,16 +105,7 @@ class TestZabbix(unittest.TestCase):
                             "name": "Zabbix servers"
                         }
                     ],
-                    "tags": [
-                        {
-                            "tag": "stackstate-layer",
-                            "value": "stackstate"
-                        },
-                        {
-                            "tag": "stackstate-identifier",
-                            "value": "common-identifier"
-                        }
-                    ]
+                    "tags": tags
                 }
             ],
             "id": 1
@@ -214,7 +209,7 @@ class TestZabbix(unittest.TestCase):
             if name == "apiinfo.version":
                 return self._apiinfo_response()
             elif name == "host.get":
-                return self._zabbix_host_response()
+                return self._zabbix_host_response(tag=True)
             else:
                 self.fail("TEST FAILED on making invalid request")
 
@@ -351,6 +346,7 @@ class TestZabbix(unittest.TestCase):
 
         component = topo_instances['components'][0]
         self.assertEqual(component['data']['domain'], 'Zabbix')
+        self.assertEqual(component['data']['layer'], 'machines')
         labels = component['data']['labels']
         for label in ['zabbix', 'host group:Zabbix servers', 'host group:MyHostGroup']:
             if label not in labels:
