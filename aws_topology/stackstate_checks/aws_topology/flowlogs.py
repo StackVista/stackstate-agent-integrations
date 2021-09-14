@@ -50,7 +50,8 @@ def should_process(connection):
 
 
 class Connection(object):
-    def __init__(self, namespace, family, laddr, raddr, start, end, traffic_type, incoming, byte_count, nwitf, log):
+    def __init__(self, namespace, family, laddr, raddr, start, end, traffic_type, incoming, byte_count,
+                 network_interface, log):
         self.namespace = namespace
         self.laddr = laddr
         self.raddr = raddr
@@ -62,11 +63,11 @@ class Connection(object):
         self.bytes_received = 0
         self.network_interfaces = {}
         self.traffic_log = []  # for debugging purposes
-        self.add_traffic(start, end, traffic_type, incoming, byte_count, nwitf, False, log)
+        self.add_traffic(start, end, traffic_type, incoming, byte_count, network_interface, False, log)
 
-    def add_traffic(self, start, end, traffic_type, incoming, byte_count, nwitf, reverse, log):
-        self.network_interfaces.update(nwitf)
-        _, itf = next(iter(nwitf.items()))
+    def add_traffic(self, start, end, traffic_type, incoming, byte_count, network_interface, reverse, log):
+        self.network_interfaces.update(network_interface)
+        _, itf = next(iter(network_interface.items()))
         self.traffic_log.append("network interface: {} log: {} incoming={} reverse={}".format(
             itf.PrivateIpAddress,
             log,

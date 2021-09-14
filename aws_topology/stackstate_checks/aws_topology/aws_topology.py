@@ -125,7 +125,7 @@ class AwsTopologyCheck(AgentCheck):
         self.start_snapshot()
 
         errors = []
-        agent_proxy = AgentProxy(self, instance_info.role_arn, self.log)
+        agent_proxy = AgentProxy(agent=self, role_name=instance_info.role_arn, log=self.log)
         futures = {}
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             for region in instance_info.regions:
@@ -319,7 +319,7 @@ class AgentProxy(object):
         self.agent.event(event)
 
     def gauge(self, name, value, tags=None, hostname=None, device_name=None):
-        self.agent.log.info('gauge %s: %s %s', name, value, tags)
+        self.agent.log.debug('gauge %s: %s %s', name, value, tags)
         self.agent.gauge(name, value, tags, hostname, device_name)
 
     def delete(self, id):
