@@ -5,6 +5,7 @@ import pytest
 
 from stackstate_checks.base.stubs import aggregator, telemetry, topology
 from stackstate_checks.dynatrace import DynatraceCheck
+from stackstate_checks.dynatrace.dynatrace import DynatraceClient, TIMEOUT
 
 
 @pytest.fixture(scope='session')
@@ -46,3 +47,13 @@ def dynatrace_check(test_instance):
     telemetry.reset()
     topology.reset()
     check.commit_state(None)
+
+
+@pytest.fixture
+def dynatrace_client(test_instance):
+    client = DynatraceClient(token=test_instance.get('token'),
+                             verify=False,
+                             cert=None,
+                             keyfile=None,
+                             timeout=TIMEOUT)
+    return client

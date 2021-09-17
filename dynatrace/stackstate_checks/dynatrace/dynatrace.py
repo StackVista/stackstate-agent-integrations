@@ -221,7 +221,7 @@ class DynatraceCheck(AgentCheck):
         start_time = datetime.now()
         self.log.debug("Starting the collection of topology")
         for component_type, path in TOPOLOGY_API_ENDPOINTS.items():
-            endpoint = self._get_endpoint(instance_info.url, path)
+            endpoint = dynatrace_client.get_endpoint(instance_info.url, path)
             if component_type == "custom-device":
                 # process the custom device topology separately because of pagination
                 self.process_custom_device_topology(dynatrace_client, instance_info, endpoint, component_type)
@@ -580,19 +580,6 @@ class DynatraceCheck(AgentCheck):
         """
         return int(time.time())
 
-    def _get_endpoint(self, url, path):
-        """
-        Creates the API endpoint from the path
-        :param url: the URL from conf.yaml
-        :param path: the rest of the path of the specific dynatrace endpoint
-        :return: the full url of the endpoint
-        """
-        sanitized_url = url[:-1] if url.endswith("/") else url
-        sanitized_path = path[1:] if path.startswith("/") else path
-        endpoint = sanitized_url + "/" + sanitized_path
-        self.log.debug("Dynatrace URL endpoint %s", endpoint)
-        return endpoint
-
 
 class EventLimitReachedException(Exception):
     """
@@ -632,3 +619,16 @@ class DynatraceClient:
         except Timeout:
             msg = "%d seconds timeout" % self.timeout
             raise Exception("Timeout exception occurred for endpoint %s with message: %s" % (endpoint, msg))
+
+    def get_endpoint(self, url, path):
+        """
+        Creates the API endpoint from the path
+        :param url: the URL from conf.yaml
+        :param path: the rest of the path of the specific dynatrace endpoint
+        :return: the full url of the endpoint
+        """
+        sanitized_url = url[:-1] if url.endswith("/") else url
+        sanitized_path = path[1:] if path.startswith("/") else path
+        endpoint = sanitized_url + "/" + sanitized_path
+        self.log.debug("Dynatrace URL endpoint %s", endpoint)
+        return endpoint

@@ -219,13 +219,13 @@ def test_link_to_dynatrace(dynatrace_check, test_instance):
     assert application_url == "https://instance.live.dynatrace.com/#uemapplications/uemappmetrics;uemapplicationId=def"
 
 
-def test_endpoint_generation(dynatrace_check):
+def test_endpoint_generation(dynatrace_client):
     urls = ["https://custom.domain.com/e/abc123", "https://custom.domain.com/e/abc123/"]
     paths = ["api/v1/entity/infrastructure/processes", "/api/v1/entity/infrastructure/processes"]
     expected_url = "https://custom.domain.com/e/abc123/api/v1/entity/infrastructure/processes"
     for url in urls:
         for path in paths:
-            assert dynatrace_check._get_endpoint(url, path) == expected_url
+            assert dynatrace_client.get_endpoint(url, path) == expected_url
 
 
 def test_unicode_in_response_text(dynatrace_check, test_instance):
