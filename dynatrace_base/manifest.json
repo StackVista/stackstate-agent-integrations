@@ -1,0 +1,23 @@
+{
+  "display_name": "Dynatrace_base",
+  "maintainer": "info@stackstate.com",
+  "manifest_version": "1.0.0",
+  "name": "dynatrace_base",
+  "metric_prefix": "dynatrace_base.",
+  "metric_to_check": "",
+  "creates_events": false,
+  "short_description": "",
+  "guid": "b39338e8-b4e8-450c-a038-542227d7ada7",
+  "support": "core",
+  "supported_os": [
+    "linux",
+    "mac_os",
+    "windows"
+  ],
+  "public_title": "StackState-Dynatrace_base Integration",
+  "categories": [
+    ""
+  ],
+  "type": "check",
+  "is_public": false
+}
