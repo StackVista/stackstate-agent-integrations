@@ -4,8 +4,7 @@
 from stackstate_checks.dynatrace_health import DynatraceHealthCheck
 
 
-def test_check(aggregator, instance):
-    check = DynatraceHealthCheck('dynatrace_health', {}, {})
-    check.check(instance)
+def test_check(aggregator, dynatrace_check, test_instance):
+    dynatrace_check.run()
 
     aggregator.assert_all_metrics_covered()

@@ -67,7 +67,7 @@ class InstanceInfo(Model):
 
 
 class DynatraceHealthCheck(AgentCheck):
-    INSTANCE_TYPE = "dynatrace-health"
+    INSTANCE_TYPE = "dynatrace"
     SERVICE_CHECK_NAME = "dynatrace-health"
     INSTANCE_SCHEMA = InstanceInfo
 

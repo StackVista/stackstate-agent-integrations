@@ -29,7 +29,7 @@ def test_no_events(dynatrace_check, test_instance):
         m.get('{}/api/v1/events?from={}'.format(url, timestamp), status_code=200,
               text=read_file('no_events_response.json', 'samples'))
         dynatrace_check.run()
-        aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.OK)
+        aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
         assert len(aggregator.events) == 0
 
 
@@ -45,7 +45,7 @@ def test_events_process_limit(dynatrace_check, test_instance):
         m.get('{}/api/v1/events?from={}'.format(url, timestamp), status_code=200,
               text=read_file('21_events_response.json', 'samples'))
         dynatrace_check.run()
-        aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.WARNING)
+        aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.WARNING)
         assert len(aggregator.events) == test_instance.get("events_process_limit")
 
 
@@ -65,7 +65,7 @@ def test_events_process_limit_with_batches(dynatrace_check, test_instance):
         m.get(url2, status_code=200, text=read_file('events_set2_response.json', 'samples'))
         m.get(url3, status_code=200, text=read_file('events_set3_response.json', 'samples'))
         dynatrace_check.run()
-        aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.WARNING)
+        aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.WARNING)
         assert len(aggregator.events) == test_instance.get('events_process_limit')
 
 
@@ -82,7 +82,8 @@ def test_raise_exception_for_response_code_not_200(dynatrace_check, test_instanc
               status_code=500, text='{"error": {"code": 500, "message": "Simulated error!"}}')
         dynatrace_check.run()
         error_message = 'Got an unexpected error with status code 500 and message: Simulated error!'
-        aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.CRITICAL, message=error_message)
+        aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.CRITICAL,
+                                        message=error_message)
         assert len(aggregator.events) == 0
 
 
@@ -96,7 +97,7 @@ def test_exception_is_propagated_to_service_check(dynatrace_check):
     dynatrace_check._process_topology = mock.MagicMock(return_value=None)
     dynatrace_check.run()
     assert len(aggregator.events) == 0
-    aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.CRITICAL,
+    aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.CRITICAL,
                                     message='Mocked exception occurred')
 
 
@@ -113,7 +114,7 @@ def test_generated_events(dynatrace_check, test_instance):
         m.get('{}/api/v1/events?from={}'.format(url, timestamp), status_code=200,
               text=read_file('9_events_response.json', 'samples'))
         dynatrace_check.run()
-        aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.OK)
+        aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
         assert len(aggregator.events) == 8
         assert len(telemetry._topology_events) == 1
         expected_events = load_json_from_file('expected_events.json', 'samples')
@@ -140,7 +141,7 @@ def test_state_data(state, dynatrace_check, test_instance):
         m.get('{}/api/v1/events?from={}'.format(url, timestamp), status_code=200,
               text=read_file(events_file, 'samples'))
         dynatrace_check.run()
-        aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.OK)
+        aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     mocked_response_data = load_json_from_file(events_file, 'samples')
     new_state = State({'last_processed_event_timestamp': mocked_response_data.get('to')})
     state.assert_state(state_instance, new_state)
@@ -157,7 +158,7 @@ def test_timeout(dynatrace_check, test_instance):
     with requests_mock.Mocker() as m:
         m.get('{}/api/v1/events?from={}'.format(url, timestamp), exc=requests.exceptions.ConnectTimeout)
         dynatrace_check.run()
-        aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.CRITICAL,
+        aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.CRITICAL,
                                         message='Timeout exception occurred for endpoint '
                                                 'https://instance.live.dynatrace.com/api/v1/events with message: '
                                                 '20 seconds timeout')
@@ -171,27 +172,15 @@ def test_simulated_ok_events(dynatrace_check, test_instance):
     url = test_instance['url']
     timestamp = dynatrace_check._generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
     with requests_mock.Mocker() as m:
-        m.get("{}/api/v1/entity/infrastructure/hosts".format(url), status_code=200,
-              text=read_file('host_response.json', 'samples'))
-        m.get("{}/api/v1/entity/applications".format(url), status_code=200,
-              text=read_file('application_response.json', 'samples'))
-        m.get("{}/api/v1/entity/services".format(url), status_code=200,
-              text=read_file('service_response.json', 'samples'))
-        m.get("{}/api/v1/entity/infrastructure/processes".format(url), status_code=200,
-              text=read_file('process_response.json', 'samples'))
-        m.get("{}/api/v1/entity/infrastructure/process-groups".format(url), status_code=200,
-              text=read_file('process-group_response.json', 'samples'))
-        m.get("{}/api/v2/entities".format(url), status_code=200,
-              text=read_file('custom_device_response.json', 'samples'))
         m.get('{}/api/v1/events?from={}'.format(url, timestamp), status_code=200,
               text=read_file('9_events_response.json', 'samples'))
         dynatrace_check.run()
-        aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.OK)
-        assert len(aggregator.events) == 23
+        aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
+        assert len(aggregator.events) == 8
         real_events = [e for e in aggregator.events if 'source:StackState Agent' not in e.get('tags', [])]
         simulated_events = [e for e in aggregator.events if 'source:StackState Agent' in e.get('tags', [])]
         assert len(real_events) == 8
-        assert len(simulated_events) == 15
+        assert len(simulated_events) == 0
         assert len(telemetry._topology_events) == 1
 
 
@@ -224,17 +213,8 @@ def test_unicode_in_response_text(dynatrace_check, test_instance):
     url = test_instance['url']
     timestamp = dynatrace_check._generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
     with requests_mock.Mocker() as m:
-        m.get("{}/api/v1/entity/infrastructure/hosts".format(url), status_code=200,
-              text=read_file('host_response.json', 'samples'))
-        m.get("{}/api/v1/entity/applications".format(url), status_code=200, text='[]')
-        m.get("{}/api/v1/entity/services".format(url), status_code=200, text='[]')
-        m.get("{}/api/v1/entity/infrastructure/processes".format(url), status_code=200, text='[]')
-        m.get("{}/api/v1/entity/infrastructure/process-groups".format(url), status_code=200, text='[]')
-        m.get("{}/api/v2/entities".format(url), status_code=200, text='{"entities":[]}')
         m.get('{}/api/v1/events?from={}'.format(url, timestamp), status_code=200,
               text=read_file('unicode_topology_event_response.json', 'samples'))
         dynatrace_check.run()
-        aggregator.assert_service_check(CHECK_NAME, count=1, status=AgentCheck.OK)
-        unicode_data = topology.get_snapshot('').get('components')[0]['data']['osVersion']
-        assert unicode_data == 'Windows Server 2016 Datacenter 1607, ver. 10.0.14393 with unicode char: '
+        aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
         assert telemetry._topology_events[0]['msg_text'] == 'PROCESS_RESTART on aws-cni™'
