@@ -10,7 +10,7 @@ import requests
 import requests_mock
 
 from stackstate_checks.base import AgentCheck, StateDescriptor
-from stackstate_checks.base.stubs import aggregator, telemetry, topology
+from stackstate_checks.base.stubs import aggregator, telemetry
 from stackstate_checks.base.utils.common import read_file, load_json_from_file
 from stackstate_checks.dynatrace_health.dynatrace_health import State, dynatrace_entities_cache
 
