@@ -1,14 +1,13 @@
 # (C) StackState 2021
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
-import time
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from schematics import Model
 from schematics.types import IntType, URLType, StringType, ListType, BooleanType, ModelType, DictType
 
 from stackstate_checks.base import AgentCheck, StackPackInstance
-from stackstate_checks.dynatrace_base.dynatrance_client import DynatraceClient
+from stackstate_checks.dynatrace.dynatrance_client import DynatraceClient
 from stackstate_checks.utils.identifiers import Identifiers
 
 # Default values
@@ -385,35 +384,6 @@ class DynatraceTopologyCheck(AgentCheck):
         labels_from_tags = self._get_labels_from_dynatrace_tags(dynatrace_component)
         labels.extend(labels_from_tags)
         return labels
-
-    @staticmethod
-    def _timestamp_to_sts_datetime(dynatrace_event):
-        return datetime.fromtimestamp(dynatrace_event.startTime / 1000).strftime("%b %-d, %Y, %H:%M:%S")
-
-    @staticmethod
-    def _link_to_dynatrace(entity_id, instance_url):
-        entity = dynatrace_entities_cache.get(entity_id)
-        if entity:
-            return DYNATRACE_UI_URLS[entity["type"]] % (instance_url, entity_id)
-        else:
-            return instance_url
-
-    def _generate_bootstrap_timestamp(self, days):
-        """
-        Creates timestamp n days in the past from the current moment. It is used in tests too.
-        :param days: how many days in the past
-        :return:
-        """
-        bootstrap_date = datetime.fromtimestamp(self._current_time_seconds()) - timedelta(days=days)
-        return int(bootstrap_date.strftime('%s')) * 1000
-
-    @staticmethod
-    def _current_time_seconds():
-        """
-        This method is mocked for testing. Do not change its behavior
-        :return: current timestamp
-        """
-        return int(time.time())
 
 
 class EventLimitReachedException(Exception):

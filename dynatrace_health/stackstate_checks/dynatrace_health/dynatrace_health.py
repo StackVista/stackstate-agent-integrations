@@ -9,7 +9,7 @@ from schematics.types import IntType, StringType, ListType, DictType, URLType, B
 
 from stackstate_checks.base import StackPackInstance
 from stackstate_checks.checks import AgentCheck
-from stackstate_checks.dynatrace_base.dynatrance_client import DynatraceClient
+from stackstate_checks.dynatrace.dynatrance_client import DynatraceClient
 
 VERIFY_HTTPS = True
 TIMEOUT = 10

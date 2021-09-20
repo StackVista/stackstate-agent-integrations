@@ -10,7 +10,7 @@ HERE = path.dirname(path.abspath(__file__))
 
 # Get version info
 ABOUT = {}
-with open(path.join(HERE, 'stackstate_checks', 'dynatrace_base', '__about__.py')) as f:
+with open(path.join(HERE, 'stackstate_checks', 'dynatrace', '__about__.py')) as f:
     exec(f.read(), ABOUT)
 
 # Get the long description from the README file
@@ -22,12 +22,12 @@ CHECKS_BASE_REQ = 'stackstate-checks-base'
 
 
 setup(
-    name='stackstate-dynatrace_base',
+    name='stackstate-dynatrace',
     version=ABOUT['__version__'],
     description='The Dynatrace_base check',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    keywords='stackstate agent dynatrace_base',
+    keywords='stackstate agent dynatrace client',
 
     # The project's main homepage.
     url='https://github.com/StackVista/stackstate-agent-integrations',
@@ -52,7 +52,7 @@ setup(
     ],
 
     # The package we're going to ship
-    packages=['stackstate_checks.dynatrace_base'],
+    packages=['stackstate_checks.dynatrace'],
 
     # Run-time dependencies
     install_requires=[CHECKS_BASE_REQ],

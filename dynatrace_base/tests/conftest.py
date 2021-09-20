@@ -3,7 +3,7 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import pytest
 
-from stackstate_checks.dynatrace_base.dynatrance_client import DynatraceClient
+from stackstate_checks.dynatrace.dynatrance_client import DynatraceClient
 
 
 @pytest.fixture
