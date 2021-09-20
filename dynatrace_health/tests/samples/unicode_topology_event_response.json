@@ -1,0 +1,24 @@
+{
+  "nextEventStartTms": null,
+  "nextEventId": null,
+  "nextCursor": null,
+  "from": 1613381346297,
+  "to": 1613467746297,
+  "totalEventCount": 1,
+  "events": [
+    {
+      "eventId": 1896559972817125277,
+      "startTime": 1613424360000,
+      "endTime": 1613424370000,
+      "entityId": "PROCESS_GROUP_INSTANCE-C3483A9911DDAC4A",
+      "entityName": "aws-cni™",
+      "impactLevel": "INFRASTRUCTURE",
+      "eventType": "PROCESS_RESTART",
+      "eventStatus": "CLOSED",
+      "severityLevel": "INFO",
+      "tags": [],
+      "id": "1896559972817125277_1613424360000",
+      "source": "builtin"
+    }
+  ]
+}

@@ -1,0 +1,113 @@
+{
+  "nextEventStartTms": 1600873810000,
+  "nextEventId": 4693051395068987000,
+  "nextCursor": "345",
+  "from": 1598283212803,
+  "to": 1600875212803,
+  "totalEventCount": 12,
+  "events": [
+    {
+      "eventId": 2476935386724871000,
+      "startTime": 1600875000000,
+      "endTime": 1600875010000,
+      "entityId": "PROCESS_GROUP_INSTANCE-0C52D42FE2AD313D",
+      "entityName": "AxaEurex_Batch.jar",
+      "impactLevel": "INFRASTRUCTURE",
+      "eventType": "PROCESS_RESTART",
+      "eventStatus": "CLOSED",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "prod"
+        }
+      ],
+      "id": "2476935386724871208_1600875000000",
+      "source": "builtin"
+    },
+    {
+      "eventId": 7577229374478442000,
+      "startTime": 1600875000000,
+      "endTime": 1600875010000,
+      "entityId": "PROCESS_GROUP_INSTANCE-39E189EB637F4477",
+      "entityName": "AGCommandLineSupport.exe",
+      "impactLevel": "INFRASTRUCTURE",
+      "eventType": "PROCESS_RESTART",
+      "eventStatus": "CLOSED",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "prod"
+        }
+      ],
+      "id": "7577229374478442894_1600875000000",
+      "source": "builtin"
+    },
+    {
+      "eventId": -1509535909667188700,
+      "startTime": 1600874980000,
+      "endTime": 1600874990000,
+      "entityId": "PROCESS_GROUP_INSTANCE-FDC86DF925A614C8",
+      "entityName": "Apache Web Server dispatcher",
+      "impactLevel": "INFRASTRUCTURE",
+      "eventType": "DEPLOYMENT_CHANGED_CHANGE",
+      "eventStatus": "CLOSED",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "app-aem"
+        },
+        {
+          "context": "CONTEXTLESS",
+          "key": "comp-aem_publish_dispatcher"
+        },
+        {
+          "context": "CONTEXTLESS",
+          "key": "product-website_and_eforms"
+        },
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "preprod"
+        }
+      ],
+      "id": "-1509535909667188740_1600874980000",
+      "artifact": "/opt/aem/cache/etc with 4 changes.\n/opt/aem/cache/etc.clientlibs/cq/testandtarget/clientlibs/testandtarget/parameters.a16fffacb27c809cfa4be81fe0c78255.js\n",
+      "source": "builtin"
+    },
+    {
+      "eventId": 7799395567706106000,
+      "startTime": 1600874820000,
+      "endTime": -1,
+      "entityId": "SERVICE-9B16B9C5B03836C5",
+      "entityName": "RequestService",
+      "severityLevel": "ERROR",
+      "impactLevel": "SERVICE",
+      "eventType": "FAILURE_RATE_INCREASED",
+      "eventStatus": "OPEN",
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "component",
+          "value": "ant-*"
+        },
+        {
+          "context": "CONTEXTLESS",
+          "key": "k8s-namespace",
+          "value": "schaden-anliegentracking-prod-axa-ch"
+        },
+        {
+          "context": "CONTEXTLESS",
+          "key": "stage",
+          "value": "prod"
+        }
+      ],
+      "id": "7799395567706106116_1600874820000",
+      "affectedRequestsPerMinute": 76.6,
+      "service": "RequestService",
+      "source": "builtin",
+      "serviceMethod": "getRequests"
+    }
+  ]
+}

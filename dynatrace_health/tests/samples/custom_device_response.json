@@ -1,0 +1,36 @@
+{
+  "totalCount": 1,
+  "pageSize": 50,
+  "entities": [
+    {
+      "entityId": "CUSTOM_DEVICE-D3692A3DBB1B6419",
+      "displayName": "coffeeMachine",
+      "properties": {
+        "dnsNames": [
+          "coffee-machine.dynatrace.internal.com"
+        ],
+        "ipAddress": [
+          "10.0.0.1"
+        ]
+      },
+      "tags": [
+        {
+          "context": "CONTEXTLESS",
+          "key": "foo",
+          "value": "bar",
+          "stringRepresentation": "foo:bar"
+        }
+      ],
+      "managementZones": [],
+      "fromRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "CUSTOM_DEVICE_GROUP-06A60E63A8179AAC",
+            "type": "CUSTOM_DEVICE_GROUP"
+          }
+        ]
+      },
+      "toRelationships": {}
+    }
+  ]
+}
