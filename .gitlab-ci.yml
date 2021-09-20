@@ -146,13 +146,30 @@ test_kubernetes:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
 
-test_dynatrace:
+test_dynatrace_base:
   <<: *linux_test
   variables:
-    CHECK: "dynatrace"
+    CHECK: "dynatrace_base"
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
+
+test_dynatrace_topology:
+  <<: *linux_test
+  variables:
+    CHECK: "dynatrace_topology"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
+test_dynatrace_health:
+  <<: *linux_test
+  variables:
+    CHECK: "dynatrace_health"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
 
 test_kubelet:
   <<: *linux_test
