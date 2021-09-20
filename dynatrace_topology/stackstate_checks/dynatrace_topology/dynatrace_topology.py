@@ -81,10 +81,6 @@ class CustomDevice(Model):
     properties = DictType(ListType(StringType), default={})
 
 
-class State(Model):
-    last_processed_event_timestamp = IntType(required=True)
-
-
 class InstanceInfo(Model):
     url = URLType(required=True)
     token = StringType(required=True)
@@ -96,14 +92,13 @@ class InstanceInfo(Model):
     domain = StringType(default=DOMAIN)
     environment = StringType(default=ENVIRONMENT)
     relative_time = StringType(default=RELATIVE_TIME)
-    state = ModelType(State)
     custom_device_fields = StringType(default=CUSTOM_DEVICE_DEFAULT_FIELDS)
     custom_device_relative_time = StringType(default=CUSTOM_DEVICE_DEFAULT_RELATIVE_TIME)
 
 
 class DynatraceTopologyCheck(AgentCheck):
     INSTANCE_TYPE = "dynatrace"
-    SERVICE_CHECK_NAME = "dynatrace"
+    SERVICE_CHECK_NAME = "dynatrace_topology"
     INSTANCE_SCHEMA = InstanceInfo
 
     def get_instance_key(self, instance_info):
@@ -111,11 +106,6 @@ class DynatraceTopologyCheck(AgentCheck):
 
     def check(self, instance_info):
         try:
-            if not instance_info.state:
-                # Create state on the first run
-                empty_state_timestamp = self._generate_bootstrap_timestamp(instance_info.events_boostrap_days)
-                self.log.debug('Creating new empty state with timestamp: %s', empty_state_timestamp)
-                instance_info.state = State({'last_processed_event_timestamp': empty_state_timestamp})
             self.start_snapshot()
             dynatrace_client = DynatraceClient(instance_info.token,
                                                instance_info.verify,

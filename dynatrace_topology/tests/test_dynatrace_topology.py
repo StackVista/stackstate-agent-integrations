@@ -22,15 +22,14 @@ def sort_topology_data(topology_instance):
 @pytest.mark.usefixtures("instance")
 class TestDynatraceTopologyCheck(unittest.TestCase):
     """Basic Test for Dynatrace integration."""
-    CHECK_NAME = 'dynatrace'
-    SERVICE_CHECK_NAME = "dynatrace"
+    SERVICE_CHECK_NAME = "dynatrace_topology"
 
     def setUp(self):
         """
         Initialize and patch the check, i.e.
         """
         config = {}
-        self.check = DynatraceTopologyCheck(self.CHECK_NAME, config, instances=[self.instance])
+        self.check = DynatraceTopologyCheck('dynatrace_test', config, instances=[self.instance])
 
         # this is needed because the topology retains data across tests
         topology.reset()
@@ -162,7 +161,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         self.assertEqual(topo_instance.get("start_snapshot"), True)
         self.assertEqual(topo_instance.get("stop_snapshot"), False)
         # Service Checks should be generated
-        service_checks = aggregator.service_checks("dynatrace")
+        service_checks = aggregator.service_checks("dynatrace_topology")
         self.assertEqual(len(service_checks), 1)
         self.assertEqual(service_checks[0].name, self.SERVICE_CHECK_NAME)
         self.assertEqual(service_checks[0].status, 2)
