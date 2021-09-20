@@ -6,7 +6,7 @@
   "metric_prefix": "dynatrace_base.",
   "metric_to_check": "",
   "creates_events": false,
-  "short_description": "",
+  "short_description": "Dynatrace rest client",
   "guid": "b39338e8-b4e8-450c-a038-542227d7ada7",
   "support": "core",
   "supported_os": [
