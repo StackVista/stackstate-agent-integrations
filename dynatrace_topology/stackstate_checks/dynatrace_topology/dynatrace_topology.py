@@ -29,7 +29,6 @@ TOPOLOGY_API_ENDPOINTS = {
     "custom-device": "api/v2/entities"
 }
 
-
 DynatraceCachedEntity = namedtuple('DynatraceCachedEntity', 'identifier external_id name type')
 
 
@@ -110,7 +109,7 @@ class DynatraceTopologyCheck(AgentCheck):
                                                instance_info.cert,
                                                instance_info.keyfile,
                                                instance_info.timeout)
-            # get topology snapshot
+            # topology snapshot
             self._process_topology(dynatrace_client, instance_info)
             # monitored health snapshot
             self.monitored_health()
@@ -124,19 +123,6 @@ class DynatraceTopologyCheck(AgentCheck):
             self.log.exception(str(e))
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=instance_info.instance_tags,
                                message=str(e))
-
-    def monitored_health(self):
-        # TODO do we need to do this just on the first run?
-        self.health.start_snapshot()
-        for entity in self.dynatrace_entities_cache:
-            self.health.check_state(
-                check_state_id=entity.external_id,
-                name='Dynatrace monitored',
-                health_value=Health.CLEAR,
-                topology_element_identifier=entity.identifier,
-                message='{} is monitored by Dynatrace'.format(entity.name)
-            )
-        self.health.stop_snapshot()
 
     @staticmethod
     def get_custom_device_params(custom_device_relative_time, custom_device_fields, next_page_key=None):
@@ -402,6 +388,22 @@ class DynatraceTopologyCheck(AgentCheck):
         labels_from_tags = self._get_labels_from_dynatrace_tags(dynatrace_component)
         labels.extend(labels_from_tags)
         return labels
+
+    def monitored_health(self):
+        """
+        Generates health snapshot with Dynatrace monitored CLEAR health state for all components.
+        :return: None
+        """
+        self.health.start_snapshot()
+        for entity in self.dynatrace_entities_cache:
+            self.health.check_state(
+                check_state_id=entity.external_id,
+                name='Dynatrace monitored',
+                health_value=Health.CLEAR,
+                topology_element_identifier=entity.identifier,
+                message='{} is monitored by Dynatrace'.format(entity.name)
+            )
+        self.health.stop_snapshot()
 
 
 class EventLimitReachedException(Exception):

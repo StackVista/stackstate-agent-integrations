@@ -6,6 +6,9 @@ from .conftest import set_http_responses
 
 
 def test_health(dynatrace_check, requests_mock, test_instance):
+    """
+    Test if we have Dynatrace monitored health state for each component.
+    """
     set_http_responses(requests_mock, hosts=read_file('host_response.json', 'samples'))
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)

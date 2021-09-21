@@ -5,6 +5,9 @@ from .conftest import set_http_responses
 
 
 def test_tags(dynatrace_check, requests_mock):
+    """
+    Testing do dynatrace tags finish in right places
+    """
     set_http_responses(requests_mock, hosts=read_file('HOST-9106C06F228CEC6B.json', 'samples'))
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
