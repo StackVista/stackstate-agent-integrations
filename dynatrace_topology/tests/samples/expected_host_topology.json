@@ -47,11 +47,11 @@
           "urn:host:/EX01.stackstate.lab",
           "urn:host:/ex01.stackstate.lab"
         ],
-        "instance": "https://ton48129.live.dynatrace.com",
+        "instance": "https://instance.live.dynatrace.com",
         "tags": [
           "HOST-6AAE0F78BCF2E0F4",
           "integration-type:dynatrace",
-          "integration-url:https://ton48129.live.dynatrace.com"
+          "integration-url:https://instance.live.dynatrace.com"
         ]
       },
       "id": "HOST-6AAE0F78BCF2E0F4",
@@ -104,11 +104,11 @@
           "urn:host:/SQL01.stackstate.lab",
           "urn:host:/sql01.stackstate.lab"
         ],
-        "instance": "https://ton48129.live.dynatrace.com",
+        "instance": "https://instance.live.dynatrace.com",
         "tags": [
           "HOST-AA6A5D81A0006807",
           "integration-type:dynatrace",
-          "integration-url:https://ton48129.live.dynatrace.com"
+          "integration-url:https://instance.live.dynatrace.com"
         ]
       },
       "id": "HOST-AA6A5D81A0006807",

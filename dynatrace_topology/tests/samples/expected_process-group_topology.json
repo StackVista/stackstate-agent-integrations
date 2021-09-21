@@ -41,13 +41,13 @@
         "identifiers": [
           "urn:dynatrace:/PROCESS_GROUP-518359807AEC7140"
         ],
-        "instance": "https://ton48129.live.dynatrace.com",
+        "instance": "https://instance.live.dynatrace.com",
         "tags": [
           "CLR:FullCLR:4.8.3928.0",
           "DOTNET:.NET Framework:4.8.3928.0",
           "PROCESS_GROUP-518359807AEC7140",
           "integration-type:dynatrace",
-          "integration-url:https://ton48129.live.dynatrace.com"
+          "integration-url:https://instance.live.dynatrace.com"
         ]
       },
       "id": "PROCESS_GROUP-518359807AEC7140",
@@ -104,14 +104,14 @@
         "identifiers": [
           "urn:dynatrace:/PROCESS_GROUP-647A29F2E878C508"
         ],
-        "instance": "https://ton48129.live.dynatrace.com",
+        "instance": "https://instance.live.dynatrace.com",
         "tags": [
           "ELASTIC_SEARCH",
           "JAVA:OpenJDK:1.8.0_265",
           "NETTY:HTTP Server:4.1.36.Final",
           "PROCESS_GROUP-647A29F2E878C508",
           "integration-type:dynatrace",
-          "integration-url:https://ton48129.live.dynatrace.com"
+          "integration-url:https://instance.live.dynatrace.com"
         ]
       },
       "id": "PROCESS_GROUP-647A29F2E878C508",
@@ -157,14 +157,14 @@
         "identifiers": [
           "urn:dynatrace:/PROCESS_GROUP-3D9D854163F8F07A"
         ],
-        "instance": "https://ton48129.live.dynatrace.com",
+        "instance": "https://instance.live.dynatrace.com",
         "tags": [
           "CLR:FullCLR:4.8.3928.0",
           "DOTNET:.NET Framework:4.8.3928.0",
           "IIS",
           "PROCESS_GROUP-3D9D854163F8F07A",
           "integration-type:dynatrace",
-          "integration-url:https://ton48129.live.dynatrace.com"
+          "integration-url:https://instance.live.dynatrace.com"
         ]
       },
       "id": "PROCESS_GROUP-3D9D854163F8F07A",

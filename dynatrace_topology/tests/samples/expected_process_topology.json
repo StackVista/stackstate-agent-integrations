@@ -12,7 +12,7 @@
         "identifiers": [
           "urn:dynatrace:/PROCESS_GROUP_INSTANCE-F25A8361C6742030"
         ],
-        "instance": "https://ton48129.live.dynatrace.com",
+        "instance": "https://instance.live.dynatrace.com",
         "listenPorts": [
           6681,
           465,
@@ -55,7 +55,7 @@
           "actualMonitoringState:OFF",
           "expectedMonitoringState:OFF",
           "integration-type:dynatrace",
-          "integration-url:https://ton48129.live.dynatrace.com"
+          "integration-url:https://instance.live.dynatrace.com"
         ]
       },
       "id": "PROCESS_GROUP_INSTANCE-F25A8361C6742030",
@@ -81,7 +81,7 @@
         "identifiers": [
           "urn:dynatrace:/PROCESS_GROUP_INSTANCE-3A6855F295757634"
         ],
-        "instance": "https://ton48129.live.dynatrace.com",
+        "instance": "https://instance.live.dynatrace.com",
         "listenPorts": [
           9200,
           9300
@@ -135,7 +135,7 @@
           "actualMonitoringState:ON",
           "expectedMonitoringState:ON",
           "integration-type:dynatrace",
-          "integration-url:https://ton48129.live.dynatrace.com"
+          "integration-url:https://instance.live.dynatrace.com"
         ]
       },
       "id": "PROCESS_GROUP_INSTANCE-3A6855F295757634",
@@ -153,7 +153,7 @@
         "identifiers": [
           "urn:dynatrace:/PROCESS_GROUP_INSTANCE-D87BE1EAFC600996"
         ],
-        "instance": "https://ton48129.live.dynatrace.com",
+        "instance": "https://instance.live.dynatrace.com",
         "listenPorts": [
           80,
           81,
@@ -196,7 +196,7 @@
           "actualMonitoringState:OFF",
           "expectedMonitoringState:ON",
           "integration-type:dynatrace",
-          "integration-url:https://ton48129.live.dynatrace.com"
+          "integration-url:https://instance.live.dynatrace.com"
         ]
       },
       "id": "PROCESS_GROUP_INSTANCE-D87BE1EAFC600996",

@@ -54,11 +54,11 @@
           "actualMonitoringState:OFF",
           "expectedMonitoringState:OFF",
           "integration-type:dynatrace",
-          "integration-url:https://ton48129.live.dynatrace.com"
+          "integration-url:https://instance.live.dynatrace.com"
         ],
         "domain": "dynatrace",
         "environments": ["production"],
-        "instance": "https://ton48129.live.dynatrace.com"
+        "instance": "https://instance.live.dynatrace.com"
       }
     },
     {
@@ -134,11 +134,11 @@
           "actualMonitoringState:ON",
           "expectedMonitoringState:ON",
           "integration-type:dynatrace",
-          "integration-url:https://ton48129.live.dynatrace.com"
+          "integration-url:https://instance.live.dynatrace.com"
         ],
         "domain": "dynatrace",
         "environments": ["production"],
-        "instance": "https://ton48129.live.dynatrace.com"
+        "instance": "https://instance.live.dynatrace.com"
       }
     },
     {
@@ -195,11 +195,11 @@
           "actualMonitoringState:OFF",
           "expectedMonitoringState:ON",
           "integration-type:dynatrace",
-          "integration-url:https://ton48129.live.dynatrace.com"
+          "integration-url:https://instance.live.dynatrace.com"
         ],
         "domain": "dynatrace",
         "environments": ["production"],
-        "instance": "https://ton48129.live.dynatrace.com"
+        "instance": "https://instance.live.dynatrace.com"
       }
     },
     {
@@ -252,11 +252,11 @@
         "tags": [
           "HOST-6AAE0F78BCF2E0F4",
           "integration-type:dynatrace",
-          "integration-url:https://ton48129.live.dynatrace.com"
+          "integration-url:https://instance.live.dynatrace.com"
         ],
         "domain": "dynatrace",
         "environments": ["production"],
-        "instance": "https://ton48129.live.dynatrace.com"
+        "instance": "https://instance.live.dynatrace.com"
       }
     },
     {
@@ -309,11 +309,11 @@
         "tags": [
           "HOST-AA6A5D81A0006807",
           "integration-type:dynatrace",
-          "integration-url:https://ton48129.live.dynatrace.com"
+          "integration-url:https://instance.live.dynatrace.com"
         ],
         "domain": "dynatrace",
         "environments": ["production"],
-        "instance": "https://ton48129.live.dynatrace.com"
+        "instance": "https://instance.live.dynatrace.com"
       }
     },
     {
@@ -349,14 +349,14 @@
           "Mytag",
           "Test",
           "integration-type:dynatrace",
-          "integration-url:https://ton48129.live.dynatrace.com",
+          "integration-url:https://instance.live.dynatrace.com",
           "managementZones:Applications except easyTravel",
           "managementZones:allTypes",
           "managementZones:app name exists"
         ],
         "domain": "dynatrace",
         "environments": ["production"],
-        "instance": "https://ton48129.live.dynatrace.com"
+        "instance": "https://instance.live.dynatrace.com"
       }
     },
     {
@@ -384,13 +384,13 @@
         "tags": [
           "APPLICATION-BBFA55551D507E2B",
           "integration-type:dynatrace",
-          "integration-url:https://ton48129.live.dynatrace.com",
+          "integration-url:https://instance.live.dynatrace.com",
           "managementZones:allTypes",
           "managementZones:easyTravel"
         ],
         "domain": "dynatrace",
         "environments": ["production"],
-        "instance": "https://ton48129.live.dynatrace.com"
+        "instance": "https://instance.live.dynatrace.com"
       }
     },
     {
@@ -420,13 +420,13 @@
           "MOBILE_APPLICATION-752C288D59734C79",
           "easyTravel",
           "integration-type:dynatrace",
-          "integration-url:https://ton48129.live.dynatrace.com",
+          "integration-url:https://instance.live.dynatrace.com",
           "managementZones:easyTravel",
           "portal"
         ],
         "domain": "dynatrace",
         "environments": ["production"],
-        "instance": "https://ton48129.live.dynatrace.com"
+        "instance": "https://instance.live.dynatrace.com"
       }
     },
     {
@@ -475,11 +475,11 @@
           "DOTNET:.NET Framework:4.8.3928.0",
           "PROCESS_GROUP-518359807AEC7140",
           "integration-type:dynatrace",
-          "integration-url:https://ton48129.live.dynatrace.com"
+          "integration-url:https://instance.live.dynatrace.com"
         ],
         "domain": "dynatrace",
         "environments": ["production"],
-        "instance": "https://ton48129.live.dynatrace.com"
+        "instance": "https://instance.live.dynatrace.com"
       }
     },
     {
@@ -539,11 +539,11 @@
           "NETTY:HTTP Server:4.1.36.Final",
           "PROCESS_GROUP-647A29F2E878C508",
           "integration-type:dynatrace",
-          "integration-url:https://ton48129.live.dynatrace.com"
+          "integration-url:https://instance.live.dynatrace.com"
         ],
         "domain": "dynatrace",
         "environments": ["production"],
-        "instance": "https://ton48129.live.dynatrace.com"
+        "instance": "https://instance.live.dynatrace.com"
       }
     },
     {
@@ -592,11 +592,11 @@
           "IIS",
           "PROCESS_GROUP-3D9D854163F8F07A",
           "integration-type:dynatrace",
-          "integration-url:https://ton48129.live.dynatrace.com"
+          "integration-url:https://instance.live.dynatrace.com"
         ],
         "domain": "dynatrace",
         "environments": ["production"],
-        "instance": "https://ton48129.live.dynatrace.com"
+        "instance": "https://instance.live.dynatrace.com"
       }
     },
     {
@@ -630,11 +630,11 @@
           "DOTNET:.NET Framework:4.8.3928.0",
           "SERVICE-923B9ABBC3F9DB68",
           "integration-type:dynatrace",
-          "integration-url:https://ton48129.live.dynatrace.com"
+          "integration-url:https://instance.live.dynatrace.com"
         ],
         "domain": "dynatrace",
         "environments": ["production"],
-        "instance": "https://ton48129.live.dynatrace.com"
+        "instance": "https://instance.live.dynatrace.com"
       }
     },
     {
@@ -669,11 +669,11 @@
           "DOTNET:.NET Framework:4.8.3928.0",
           "SERVICE-8745799105D02C01",
           "integration-type:dynatrace",
-          "integration-url:https://ton48129.live.dynatrace.com"
+          "integration-url:https://instance.live.dynatrace.com"
         ],
         "domain": "dynatrace",
         "environments": ["production"],
-        "instance": "https://ton48129.live.dynatrace.com"
+        "instance": "https://instance.live.dynatrace.com"
       }
     },
     {
@@ -730,11 +730,11 @@
           "WCF:4.8.3928.0",
           "[Kubernetes]namespace:default-with-unicode-char-\u0081",
           "integration-type:dynatrace",
-          "integration-url:https://ton48129.live.dynatrace.com"
+          "integration-url:https://instance.live.dynatrace.com"
         ],
         "domain": "dynatrace",
         "environments": ["production"],
-        "instance": "https://ton48129.live.dynatrace.com"
+        "instance": "https://instance.live.dynatrace.com"
       }
     }
   ],
