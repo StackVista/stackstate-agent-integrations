@@ -1,16 +1,16 @@
 # (C) StackState 2021
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
+from collections import namedtuple
 from datetime import datetime
 
 from schematics import Model
 from schematics.types import IntType, URLType, StringType, ListType, BooleanType, ModelType, DictType
 
-from stackstate_checks.base import AgentCheck, StackPackInstance
+from stackstate_checks.base import AgentCheck, StackPackInstance, HealthStream, HealthStreamUrn, Health
 from stackstate_checks.dynatrace.dynatrance_client import DynatraceClient
 from stackstate_checks.utils.identifiers import Identifiers
 
-# Default values
 VERIFY_HTTPS = True
 TIMEOUT = 10
 RELATIVE_TIME = 'hour'
@@ -29,16 +29,8 @@ TOPOLOGY_API_ENDPOINTS = {
     "custom-device": "api/v2/entities"
 }
 
-DYNATRACE_UI_URLS = {
-    "service": "%s/#newservices/serviceOverview;id=%s",
-    "process-group": "%s/#processgroupdetails;id=%s",
-    "process": "%s/#processdetails;id=%s",
-    "host": "%s/#newhosts/hostdetails;id=%s",
-    "application": "%s/#uemapplications/uemappmetrics;uemapplicationId=%s",
-    "custom-device": "%s/#customdevicegroupdetails/entity;id=%s"
-}
 
-dynatrace_entities_cache = {}
+DynatraceCachedEntity = namedtuple('DynatraceCachedEntity', 'identifier external_id name type')
 
 
 class MonitoringState(Model):
@@ -100,19 +92,28 @@ class DynatraceTopologyCheck(AgentCheck):
     SERVICE_CHECK_NAME = "dynatrace_topology"
     INSTANCE_SCHEMA = InstanceInfo
 
+    def __init__(self, name, init_config, agent_config, instances=None):
+        AgentCheck.__init__(self, name, init_config, agent_config, instances)
+        self.dynatrace_entities_cache = None
+
     def get_instance_key(self, instance_info):
         return StackPackInstance(self.INSTANCE_TYPE, str(instance_info.url))
 
+    def get_health_stream(self, instance):
+        return HealthStream(HealthStreamUrn(self.INSTANCE_TYPE, "dynatrace-monitored"))
+
     def check(self, instance_info):
+        self.dynatrace_entities_cache = []
         try:
-            self.start_snapshot()
             dynatrace_client = DynatraceClient(instance_info.token,
                                                instance_info.verify,
                                                instance_info.cert,
                                                instance_info.keyfile,
                                                instance_info.timeout)
+            # get topology snapshot
             self._process_topology(dynatrace_client, instance_info)
-            self.stop_snapshot()
+            # monitored health snapshot
+            self.monitored_health()
             msg = "Dynatrace check processed successfully"
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=instance_info.instance_tags, message=msg)
         except EventLimitReachedException as e:
@@ -123,6 +124,19 @@ class DynatraceTopologyCheck(AgentCheck):
             self.log.exception(str(e))
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=instance_info.instance_tags,
                                message=str(e))
+
+    def monitored_health(self):
+        # TODO do we need to do this just on the first run?
+        self.health.start_snapshot()
+        for entity in self.dynatrace_entities_cache:
+            self.health.check_state(
+                check_state_id=entity.external_id,
+                name='Dynatrace monitored',
+                health_value=Health.CLEAR,
+                topology_element_identifier=entity.identifier,
+                message='{} is monitored by Dynatrace'.format(entity.name)
+            )
+        self.health.stop_snapshot()
 
     @staticmethod
     def get_custom_device_params(custom_device_relative_time, custom_device_fields, next_page_key=None):
@@ -185,6 +199,7 @@ class DynatraceTopologyCheck(AgentCheck):
         Collects components and relations for each component type from dynatrace smartscape topology API
         and custom devices from Entities API (v2)
         """
+        self.start_snapshot()
         start_time = datetime.now()
         self.log.debug("Starting the collection of topology")
         for component_type, path in TOPOLOGY_API_ENDPOINTS.items():
@@ -197,8 +212,9 @@ class DynatraceTopologyCheck(AgentCheck):
                 self._collect_topology(response, component_type, instance_info)
         end_time = datetime.now()
         time_taken = end_time - start_time
-        self.log.info("Collected %d topology entities.", len(dynatrace_entities_cache))
+        self.log.info("Collected %d topology entities.", len(self.dynatrace_entities_cache))
         self.log.debug("Time taken to collect the topology is: %d seconds" % time_taken.total_seconds())
+        self.stop_snapshot()
 
     @staticmethod
     def process_custom_device_identifiers(custom_device):
@@ -237,6 +253,9 @@ class DynatraceTopologyCheck(AgentCheck):
             data = {}
             external_id = dynatrace_component.entityId
             identifiers = [Identifiers.create_custom_identifier("dynatrace", external_id)]
+            self.dynatrace_entities_cache.append(
+                DynatraceCachedEntity(identifiers[0], external_id, dynatrace_component.displayName, component_type)
+            )
             if component_type == "host":
                 host_identifiers = self._get_host_identifiers(dynatrace_component)
                 identifiers.extend(host_identifiers)
@@ -257,7 +276,6 @@ class DynatraceTopologyCheck(AgentCheck):
             })
             self.component(external_id, component_type, data)
             self._collect_relations(dynatrace_component, external_id, component_type)
-            dynatrace_entities_cache[external_id] = {"name": dynatrace_component.displayName, "type": component_type}
 
     def _collect_relations(self, dynatrace_component, external_id, component_type):
         """

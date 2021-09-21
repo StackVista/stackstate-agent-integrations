@@ -11,6 +11,7 @@ from stackstate_checks.base.stubs import topology, aggregator
 from stackstate_checks.base.utils.common import read_file, load_json_from_file
 
 from stackstate_checks.dynatrace_topology.dynatrace_topology import DynatraceTopologyCheck
+from .conftest import set_http_responses
 
 
 def sort_topology_data(topology_instance):
@@ -29,27 +30,17 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         Initialize and patch the check, i.e.
         """
         config = {}
-        self.check = DynatraceTopologyCheck('dynatrace_test', config, instances=[self.instance])
+        self.check = DynatraceTopologyCheck('dynatrace_test', config, {}, instances=[self.instance])
 
         # this is needed because the topology retains data across tests
         topology.reset()
-
-    @staticmethod
-    def _set_http_responses(m, hosts="[]", apps="[]", svcs="[]", procs="[]", proc_groups="[]", dev='{"entities":[]}'):
-        m.get("/api/v1/entity/infrastructure/hosts", text=hosts)
-        m.get("/api/v1/entity/applications", text=apps)
-        m.get("/api/v1/entity/services", text=svcs)
-        m.get("/api/v1/entity/infrastructure/processes", text=procs)
-        m.get("/api/v1/entity/infrastructure/process-groups", text=proc_groups)
-        m.get("/api/v2/entities", text=dev)
-        m.get("/api/v1/events", text="[]")
 
     @requests_mock.Mocker()
     def test_collect_empty_topology(self, m):
         """
         Testing Dynatrace check should not produce any topology
         """
-        self._set_http_responses(m)
+        set_http_responses(m)
         self.check.url = self.instance.get('url')
         self.check.run()
         test_topology = topology.get_snapshot(self.check.check_id)
@@ -61,7 +52,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         """
         Testing Dynatrace check should collect processes
         """
-        self._set_http_responses(m, procs=read_file("process_response.json", "samples"))
+        set_http_responses(m, processes=read_file("process_response.json", "samples"))
         self.check.url = self.instance.get('url')
         self.check.run()
         test_topology = topology.get_snapshot(self.check.check_id)
@@ -73,7 +64,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         """
         Testing Dynatrace check should collect hosts
         """
-        self._set_http_responses(m, hosts=read_file("host_response.json", "samples"))
+        set_http_responses(m, hosts=read_file("host_response.json", "samples"))
         self.check.url = self.instance.get('url')
         self.check.run()
         test_topology = topology.get_snapshot(self.check.check_id)
@@ -85,7 +76,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         """
         Testing Dynatrace check should collect services and tags coming from Kubernetes
         """
-        self._set_http_responses(m, svcs=read_file("service_response.json", "samples"))
+        set_http_responses(m, services=read_file("service_response.json", "samples"))
         self.check.url = self.instance.get('url')
         self.check.run()
         test_topology = topology.get_snapshot(self.check.check_id)
@@ -111,7 +102,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         """
         Testing Dynatrace check should collect applications and also the tags properly coming from dynatrace
         """
-        self._set_http_responses(m, apps=read_file("application_response.json", "samples"))
+        set_http_responses(m, applications=read_file("application_response.json", "samples"))
         self.check.url = self.instance.get('url')
         self.check.run()
         topo_instances = topology.get_snapshot(self.check.check_id)
@@ -124,7 +115,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         """
         Testing Dynatrace check should collect process-groups
         """
-        self._set_http_responses(m, proc_groups=read_file("process-group_response.json", "samples"))
+        set_http_responses(m, process_groups=read_file("process-group_response.json", "samples"))
         self.check.url = self.instance.get('url')
         self.check.run()
         topo_instances = topology.get_snapshot(self.check.check_id)
@@ -137,7 +128,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         """
         Test to check if relations are collected properly
         """
-        self._set_http_responses(m, hosts=read_file("host_response.json", "samples"))
+        set_http_responses(m, hosts=read_file("host_response.json", "samples"))
         self.check.url = self.instance.get('url')
         self.check.run()
         topo_instances = topology.get_snapshot(self.check.check_id)
@@ -172,13 +163,13 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         Test e2e to collect full topology for all component types from Dynatrace
         :return:
         """
-        self._set_http_responses(m,
-                                 hosts=read_file("host_response.json", "samples"),
-                                 apps=read_file("application_response.json", "samples"),
-                                 svcs=read_file("service_response.json", "samples"),
-                                 procs=read_file("process_response.json", "samples"),
-                                 proc_groups=read_file("process-group_response.json", "samples")
-                                 )
+        set_http_responses(m,
+                           hosts=read_file("host_response.json", "samples"),
+                           applications=read_file("application_response.json", "samples"),
+                           services=read_file("service_response.json", "samples"),
+                           processes=read_file("process_response.json", "samples"),
+                           process_groups=read_file("process-group_response.json", "samples")
+                           )
 
         self.check.url = self.instance.get('url')
         self.check.run()
@@ -202,7 +193,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         """
         Test Dynatrace check should produce custom devices
         """
-        self._set_http_responses(m, dev=read_file("custom_device_response.json", "samples"))
+        set_http_responses(m, entities=read_file("custom_device_response.json", "samples"))
         self.check.url = self.instance.get('url')
         self.check.run()
         topo_instances = topology.get_snapshot(self.check.check_id)
@@ -215,7 +206,7 @@ class TestDynatraceTopologyCheck(unittest.TestCase):
         """
         Test Dynatrace check should produce custom devices with pagination
         """
-        self._set_http_responses(m)
+        set_http_responses(m)
         url = self.instance.get('url')
         first_url = url + "/api/v2/entities?entitySelector=type%28%22CUSTOM_DEVICE%22%29&from=now-1h&fields=%2B" \
                           "fromRelationships%2C%2BtoRelationships%2C%2Btags%2C%2BmanagementZones%2C%2B" \
