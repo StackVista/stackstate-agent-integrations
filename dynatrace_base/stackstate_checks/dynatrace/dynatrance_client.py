@@ -37,6 +37,7 @@ class DynatraceClient:
                 return response_json
         except Timeout:
             msg = "%d seconds timeout" % self.timeout
+            self.log.error(msg)
             raise Exception("Timeout exception occurred for endpoint %s with message: %s" % (endpoint, msg))
 
     def get_endpoint(self, url, path):
