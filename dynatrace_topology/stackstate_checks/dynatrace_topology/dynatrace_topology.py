@@ -91,8 +91,8 @@ class DynatraceTopologyCheck(AgentCheck):
     SERVICE_CHECK_NAME = "dynatrace_topology"
     INSTANCE_SCHEMA = InstanceInfo
 
-    def __init__(self, name, init_config, agent_config, instances=None):
-        AgentCheck.__init__(self, name, init_config, agent_config, instances)
+    def __init__(self, name, init_config, agentConfig, instances=None):
+        AgentCheck.__init__(self, name, init_config, agentConfig, instances)
         self.dynatrace_entities_cache = None
 
     def get_instance_key(self, instance_info):
