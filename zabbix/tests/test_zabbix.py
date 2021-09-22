@@ -86,7 +86,11 @@ class TestZabbix(unittest.TestCase):
         }
 
     @staticmethod
-    def _zabbix_host_response(maintenance_mode="0"):
+    def _zabbix_host_response(maintenance_mode="0", tag=False):
+        tags = []
+        if tag:
+            tags = [{"tag": "stackstate-layer", "value": "stackstate"},
+                    {"tag": "stackstate-identifier", "value": "common-identifier"}]
         return {
             "jsonrpc": "2.0",
             "result": [
@@ -100,7 +104,8 @@ class TestZabbix(unittest.TestCase):
                             "groupid": "4",
                             "name": "Zabbix servers"
                         }
-                    ]
+                    ],
+                    "tags": tags
                 }
             ],
             "id": 1
@@ -204,7 +209,7 @@ class TestZabbix(unittest.TestCase):
             if name == "apiinfo.version":
                 return self._apiinfo_response()
             elif name == "host.get":
-                return self._zabbix_host_response()
+                return self._zabbix_host_response(tag=True)
             else:
                 self.fail("TEST FAILED on making invalid request")
 
@@ -220,13 +225,13 @@ class TestZabbix(unittest.TestCase):
         self.assertEqual(len(topo_instances['relations']), 0)
 
         component = topo_instances['components'][0]
-        expected_identifier = ["urn:host:/zabbix01.example.com", "zabbix01.example.com"]
+        expected_identifier = ["urn:host:/zabbix01.example.com", "zabbix01.example.com", "common-identifier"]
         self.assertEqual(component['id'], 'urn:host:/zabbix01.example.com')
         self.assertEqual(component['type'], 'zabbix_host')
         self.assertEqual(component['data']['name'], 'Zabbix server')
         self.assertEqual(component['data']['host_id'], '10084')
         self.assertEqual(component['data']['host'], 'zabbix01.example.com')
-        self.assertEqual(component['data']['layer'], 'Host')
+        self.assertEqual(component['data']['layer'], 'stackstate')
         self.assertEqual(component['data']['domain'], 'Zabbix servers')
         self.assertEqual(component['data']['identifiers'], expected_identifier)
         self.assertEqual(component['data']['environment'], 'Production')
@@ -340,6 +345,7 @@ class TestZabbix(unittest.TestCase):
 
         component = topo_instances['components'][0]
         self.assertEqual(component['data']['domain'], 'Zabbix')
+        self.assertEqual(component['data']['layer'], 'machines')
         labels = component['data']['labels']
         for label in ['zabbix', 'host group:Zabbix servers', 'host group:MyHostGroup']:
             if label not in labels:
