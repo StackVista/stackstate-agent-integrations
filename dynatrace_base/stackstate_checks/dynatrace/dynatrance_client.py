@@ -8,7 +8,15 @@ from requests import Session, Timeout
 
 
 class DynatraceClient:
-    def __init__(self, token, verify, cert, keyfile, timeout):
+    def __init__(self, token, verify=False, cert=None, keyfile=None, timeout=None):
+        """
+        Client for Dynatrace rest API. It's used by dynatrace_topology and dynatrace_health check.
+        :param token: token from Dynatrace platform which has access to read the API endpoints
+        :param verify: verify the https certificate
+        :param cert: path to certificate file for https verification
+        :param keyfile: path to public key of certificate for https verification
+        :param timeout: request timeout in seconds
+        """
         self.token = token
         self.verify = verify
         self.cert = cert
@@ -17,6 +25,12 @@ class DynatraceClient:
         self.log = logging.getLogger(__name__)
 
     def get_dynatrace_json_response(self, endpoint, params=None):
+        """
+        Gets response from Dynatrace endpoint
+        :param endpoint: Drynatrace API endpoint
+        :param params: request params dictionary
+        :return: dictionary from API json response
+        """
         headers = {"Authorization": "Api-Token %s" % self.token}
         try:
             with Session() as session:
@@ -24,7 +38,7 @@ class DynatraceClient:
                 session.verify = self.verify
                 if self.cert:
                     session.cert = (self.cert, self.keyfile)
-                response = session.get(endpoint, params=params)
+                response = session.get(endpoint, params=params, timeout=self.timeout)
                 response_json = response.json()
                 if response.status_code != 200:
                     if "error" in response_json:

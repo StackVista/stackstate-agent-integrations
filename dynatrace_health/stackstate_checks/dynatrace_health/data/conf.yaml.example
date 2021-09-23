@@ -1,7 +1,7 @@
 init_config:
 
 instances:
-  # collection interval for topology
+  # collection interval for events
   - min_collection_interval: 300
 
     # Base URL of Dynatrace instance
@@ -9,9 +9,9 @@ instances:
     # Managed url example - https://{your-domain}/e/{your-environment-id}
     url: https://test.live.dynatrace.com
 
-    # Api Token from Dynatrace platform which has access to read the topology API
+    # Api Token from Dynatrace platform which has access to read the events API
     # Docs - https://www.dynatrace.com/support/help/dynatrace-api/basics/dynatrace-api-authentication/#generate-a-token
-    # Token and Passwords can always be encrypted using Secret Mangement in Agent V2. Read more on docs link below
+    # Token and Passwords can always be encrypted using Secret Management in Agent V2. Read more on docs link below
     # Docs - https://docs.stackstate.com/configure/security/secrets_management
     token: test_token
 
