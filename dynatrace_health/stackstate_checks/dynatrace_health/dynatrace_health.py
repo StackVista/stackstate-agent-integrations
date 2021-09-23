@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from schematics import Model
 from schematics.types import IntType, StringType, ListType, DictType, URLType, BooleanType, ModelType
 
-from stackstate_checks.base import StackPackInstance
+from stackstate_checks.base import StackPackInstance, HealthStream, HealthStreamUrn, Health, Identifiers
 from stackstate_checks.checks import AgentCheck
 from stackstate_checks.dynatrace.dynatrance_client import DynatraceClient
 
@@ -74,6 +74,9 @@ class DynatraceHealthCheck(AgentCheck):
     def get_instance_key(self, instance_info):
         return StackPackInstance(self.INSTANCE_TYPE, str(instance_info.url))
 
+    def get_health_stream(self, instance):
+        return HealthStream(HealthStreamUrn(self.INSTANCE_TYPE, 'dynatrace-events'))
+
     def check(self, instance_info):
         try:
             if not instance_info.state:
@@ -102,39 +105,42 @@ class DynatraceHealthCheck(AgentCheck):
         """
         Wrapper to collect events, filters those events and persist the state
         """
-        entities_with_events = []
+        severity_levels_that_maps_to_deviating_health_state = ["PERFORMANCE", "RESOURCE_CONTENTION",
+                                                               "MONITORING_UNAVAILABLE", "ERROR"]
+        severity_levels_that_maps_to_critical_health_state = ["AVAILABILITY", "CUSTOM_ALERT"]
         events, events_limit_reached = self._collect_events(dynatrace_client, instance_info)
-        open_events = len([e for e in events if e.get('eventStatus') == 'OPEN'])
-        closed_events = len(events) - open_events
-        self.log.info("Collected %d events, %d are open and %d are closed.", len(events), open_events, closed_events)
-        for event in events:
-            self._create_event(event, instance_info.url)
-            entities_with_events.append(event.entityId)
-        # Simulating OK health state by sending CLOSED events for processed topology entities with no events.
-        simulated_count = 0
-        for entity_id in [e for e in dynatrace_entities_cache.keys() if e not in entities_with_events]:
-            simulated_closed_event = DynatraceEvent(
-                {
-                    "eventId": -1,
-                    "startTime": self._current_time_seconds() * 1000,
-                    "endTime": self._current_time_seconds() * 1000,
-                    "entityId": entity_id,
-                    "entityName": dynatrace_entities_cache[entity_id].get('name'),
-                    "impactLevel": None,
-                    "eventType": "DEFAULT HEALTH",
-                    "eventStatus": "OK",
-                    "tags": [],
-                    "id": -1,
-                    "source": "StackState Agent"
-                }
-            )
-            self._create_event(simulated_closed_event, instance_info.url)
-            simulated_count += 1
-        self.log.info("Created %d events and %d simulated closed events.", len(entities_with_events), simulated_count)
+        open_events = [e for e in events if e.get('eventStatus') == 'OPEN']
+        closed_events = len(events) - len(open_events)
+        self.log.info("Collected %d events, %d are open and %d are closed.", len(events), len(open_events),
+                      closed_events)
+        self.health.start_snapshot()
+        for event in open_events:
+            if event.severityLevel == 'INFO':
+                # Events with a info severity are send as topology events
+                self._create_topology_event(event, instance_info.url)
+            else:
+                # Create health state for other events
+                if event.severityLevel in severity_levels_that_maps_to_deviating_health_state:
+                    health_value = Health.DEVIATING
+                elif event.severityLevel in severity_levels_that_maps_to_critical_health_state:
+                    health_value = Health.CRITICAL
+                else:
+                    health_value = Health.CLEAR
+                identifier = Identifiers.create_custom_identifier("dynatrace", event.entityId)
+                self.health.check_state(
+                    check_state_id=event.entityId,
+                    name='Dynatrace event',
+                    health_value=health_value,
+                    topology_element_identifier=identifier,
+                    message='Event: {} Severity: {} Impact: {} Open Since: {} Source: {}'.format(
+                        event.eventType, event.severityLevel, event.impactLevel, event.startTime, event.source
+                    )
+                )
+        self.health.stop_snapshot()
         if events_limit_reached:
             raise EventLimitReachedException(events_limit_reached)
 
-    def _create_event(self, dynatrace_event, instance_url):
+    def _create_topology_event(self, dynatrace_event, instance_url):
         """
         Create an standard or custom event based on the Dynatrace Severity level
         """
@@ -153,17 +159,14 @@ class DynatraceHealthCheck(AgentCheck):
                 "endTime:%s" % dynatrace_event.endTime,
                 "source:%s" % dynatrace_event.source,
                 "openSince:%s" % self._timestamp_to_sts_datetime(dynatrace_event),
-            ]
-        }
-
-        # Events with a info severity are send as custom events
-        if dynatrace_event.severityLevel == 'INFO':
-            event["context"] = {
+            ],
+            "context": {
                 "source_identifier": "source_identifier_value",
                 "element_identifiers": ["urn:%s" % dynatrace_event.entityId],
                 "source": "dynatrace",
                 "category": "info_event",
                 "data": dynatrace_event.to_primitive(),
+                # TODO: add support for links
                 "source_links": [
                     {
                         "title": "my_event_external_link",
@@ -171,7 +174,7 @@ class DynatraceHealthCheck(AgentCheck):
                     }
                 ]
             }
-
+        }
         self.event(event)
 
     def _collect_events(self, dynatrace_client, instance_info):
@@ -219,6 +222,7 @@ class DynatraceHealthCheck(AgentCheck):
             params['cursor'] = cursor
         endpoint = url + "/api/v1/events"
         events = dynatrace_client.get_dynatrace_json_response(endpoint, params)
+        self.log.debug('Got %s events from %s', len(events.get('events', [])), endpoint)
         return events
 
     @staticmethod

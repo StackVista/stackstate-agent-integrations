@@ -9,11 +9,11 @@
       "severityLevel:INFO",
       "eventType:PROCESS_RESTART",
       "impactLevel:INFRASTRUCTURE",
-      "eventStatus:CLOSED",
+      "eventStatus:OPEN",
       "startTime:1613424360000",
-      "endTime:1613424370000",
+      "endTime:-1",
       "source:builtin",
-      "openSince:Feb 15, 2021, 22:26:00"
+      "openSince:Feb 15, 2021, 21:26:00"
     ],
     "context": {
       "source_identifier": "source_identifier_value",
@@ -25,13 +25,13 @@
       "data": {
         "eventId": 1896559972817125277,
         "startTime": 1613424360000,
-        "endTime": 1613424370000,
+        "endTime": -1,
         "entityId": "PROCESS_GROUP_INSTANCE-C3483A9911DDAC4A",
         "entityName": "aws-cni",
         "severityLevel": "INFO",
         "impactLevel": "INFRASTRUCTURE",
         "eventType": "PROCESS_RESTART",
-        "eventStatus": "CLOSED",
+        "eventStatus": "OPEN",
         "tags": [],
         "id": "1896559972817125277_1613424360000",
         "source": "builtin"

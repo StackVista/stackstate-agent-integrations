@@ -77,37 +77,23 @@
       "source": "builtin"
     },
     {
-      "eventId": 7799395567706106000,
-      "startTime": 1600874820000,
-      "endTime": -1,
-      "entityId": "SERVICE-9B16B9C5B03836C5",
-      "entityName": "RequestService",
-      "severityLevel": "ERROR",
-      "impactLevel": "SERVICE",
-      "eventType": "FAILURE_RATE_INCREASED",
-      "eventStatus": "OPEN",
+      "eventId": 8218347052905427000,
+      "startTime": 1600874880000,
+      "endTime": 1600874890000,
+      "entityId": "PROCESS_GROUP_INSTANCE-6703EC3165BBF22B",
+      "entityName": "ruby",
+      "impactLevel": "INFRASTRUCTURE",
+      "eventType": "PROCESS_RESTART",
+      "eventStatus": "CLOSED",
       "tags": [
         {
           "context": "CONTEXTLESS",
-          "key": "component",
-          "value": "ant-*"
-        },
-        {
-          "context": "CONTEXTLESS",
-          "key": "k8s-namespace",
-          "value": "schaden-anliegentracking-prod-axa-ch"
-        },
-        {
-          "context": "CONTEXTLESS",
           "key": "stage",
-          "value": "prod"
+          "value": "dev"
         }
       ],
-      "id": "7799395567706106116_1600874820000",
-      "affectedRequestsPerMinute": 76.6,
-      "service": "RequestService",
-      "source": "builtin",
-      "serviceMethod": "getRequests"
+      "id": "8218347052905427435_1600874880000",
+      "source": "builtin"
     }
   ]
 }

@@ -2,10 +2,8 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import pytest
-from stackstate_checks.base.stubs import aggregator, topology
 
 from stackstate_checks.dynatrace_health import DynatraceHealthCheck
-from stackstate_checks.stubs import telemetry
 
 
 @pytest.fixture(scope='session')
@@ -17,15 +15,6 @@ def sts_environment():
         "url": "https://ton48129.live.dynatrace.com",
         "token": "some_token"
     }
-
-
-@pytest.fixture(scope="class")
-def instance(request):
-    cfg = {
-        "url": "https://ton48129.live.dynatrace.com",
-        "token": "some_token"
-    }
-    request.cls.instance = cfg
 
 
 @pytest.fixture(scope='class')
@@ -40,10 +29,11 @@ def test_instance():
 
 
 @pytest.fixture
-def dynatrace_check(test_instance):
+def dynatrace_check(test_instance, health, aggregator, telemetry, topology):
     check = DynatraceHealthCheck('dynatrace', {}, instances=[test_instance])
     yield check
     aggregator.reset()
     telemetry.reset()
     topology.reset()
+    health.reset()
     check.commit_state(None)
