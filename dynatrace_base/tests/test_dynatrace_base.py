@@ -28,7 +28,7 @@ def test_raising_exception_on_not_200_status(dynatrace_client, requests_mock, te
 
 def test_status_200(dynatrace_client, requests_mock, test_instance):
     """
-
+    Basic client test.
     """
     endpoint = dynatrace_client.get_endpoint(test_instance.get('url'), 'api/v1/events/')
     requests_mock.get(endpoint, text='{"events": [{"eventId": "123"}]}', status_code=200)
