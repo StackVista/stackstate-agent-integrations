@@ -1,41 +1,13 @@
 # (C) StackState 2021
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
-import json
 
 from stackstate_checks.base import AgentCheck
-from stackstate_checks.base.stubs import topology, aggregator
 from stackstate_checks.base.utils.common import read_file, load_json_from_file
-from .conftest import set_http_responses
+from .conftest import set_http_responses, sort_topology_data, assert_topology
 
 
-def sort_topology_data(topology_instance):
-    """
-    Sort the keys of components and relations, so we can actually match it
-    :param topology_instance: dictionary
-    :return: list of components, list of relations
-    """
-    components = [json.dumps(component, sort_keys=True) for component in topology_instance["components"]]
-    relations = [json.dumps(relation, sort_keys=True) for relation in topology_instance["relations"]]
-    return components, relations
-
-
-def assert_topology(expected_topology, test_topology):
-    """
-    Sort the keys of components and relations, so we can actually match it
-    :param expected_topology: expected topology read from file
-    :param test_topology: topology gathered during test
-    :return: None
-    """
-    components, relations = sort_topology_data(test_topology)
-    expected_components, expected_relations = sort_topology_data(expected_topology)
-    assert components == expected_components
-    assert len(relations) == len(expected_relations)
-    for relation in relations:
-        assert relation in expected_relations
-
-
-def test_collect_empty_topology(requests_mock, dynatrace_check):
+def test_collect_empty_topology(requests_mock, dynatrace_check, topology):
     """
     Testing Dynatrace check should not produce any topology
     """
@@ -46,7 +18,7 @@ def test_collect_empty_topology(requests_mock, dynatrace_check):
     assert len(test_topology['relations']) == 0
 
 
-def test_collect_processes(requests_mock, dynatrace_check):
+def test_collect_processes(requests_mock, dynatrace_check, topology):
     """
     Testing Dynatrace check should collect processes
     """
@@ -57,7 +29,7 @@ def test_collect_processes(requests_mock, dynatrace_check):
     assert_topology(expected_topology, test_topology)
 
 
-def test_collect_hosts(requests_mock, dynatrace_check):
+def test_collect_hosts(requests_mock, dynatrace_check, topology):
     """
     Testing Dynatrace check should collect hosts
     """
@@ -68,7 +40,7 @@ def test_collect_hosts(requests_mock, dynatrace_check):
     assert_topology(expected_topology, test_topology)
 
 
-def test_collect_services(requests_mock, dynatrace_check):
+def test_collect_services(requests_mock, dynatrace_check, topology):
     """
     Testing Dynatrace check should collect services and tags coming from Kubernetes
     """
@@ -79,7 +51,7 @@ def test_collect_services(requests_mock, dynatrace_check):
     assert_topology(expected_topology, test_topology)
 
 
-def test_collect_applications(dynatrace_check, requests_mock):
+def test_collect_applications(dynatrace_check, requests_mock, topology):
     """
     Testing Dynatrace check should collect applications and also the tags properly coming from dynatrace
     """
@@ -90,7 +62,7 @@ def test_collect_applications(dynatrace_check, requests_mock):
     assert_topology(expected_topology, topology_instances)
 
 
-def test_collect_process_groups(dynatrace_check, requests_mock):
+def test_collect_process_groups(dynatrace_check, requests_mock, topology):
     """
     Testing Dynatrace check should collect process-groups
     """
@@ -101,7 +73,7 @@ def test_collect_process_groups(dynatrace_check, requests_mock):
     assert_topology(expected_topology, topology_instances)
 
 
-def test_collect_relations(dynatrace_check, requests_mock):
+def test_collect_relations(dynatrace_check, requests_mock, topology):
     """
     Test to check if relations are collected properly
     """
@@ -116,7 +88,7 @@ def test_collect_relations(dynatrace_check, requests_mock):
     assert relation['type'] in ['isProcessOf', 'runsOn']
 
 
-def test_check_raise_exception(dynatrace_check):
+def test_check_raise_exception(dynatrace_check, topology, aggregator):
     """
     Test to raise a check exception when collecting components and snapshot should be False
     """
@@ -130,7 +102,7 @@ def test_check_raise_exception(dynatrace_check):
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.CRITICAL)
 
 
-def test_full_topology(dynatrace_check, requests_mock):
+def test_full_topology(dynatrace_check, requests_mock, topology):
     """
     Test e2e to collect full topology for all component types from Dynatrace
     """
@@ -157,7 +129,7 @@ def test_full_topology(dynatrace_check, requests_mock):
         assert relation in expected_relations
 
 
-def test_collect_custom_devices(dynatrace_check, requests_mock):
+def test_collect_custom_devices(dynatrace_check, requests_mock, topology):
     """
     Test Dynatrace check should produce custom devices
     """
@@ -168,7 +140,7 @@ def test_collect_custom_devices(dynatrace_check, requests_mock):
     assert_topology(expected_topology, topology_instances)
 
 
-def test_collect_custom_devices_with_pagination(dynatrace_check, requests_mock, test_instance):
+def test_collect_custom_devices_with_pagination(dynatrace_check, requests_mock, test_instance, topology):
     """
     Test Dynatrace check should produce custom devices with pagination
     """

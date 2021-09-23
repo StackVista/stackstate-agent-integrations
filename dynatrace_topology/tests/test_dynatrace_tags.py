@@ -1,10 +1,9 @@
 from stackstate_checks.base import AgentCheck
-from stackstate_checks.base.stubs import aggregator, topology
 from stackstate_checks.base.utils.common import read_file
 from .conftest import set_http_responses
 
 
-def test_tags(dynatrace_check, requests_mock):
+def test_tags(dynatrace_check, requests_mock, aggregator, topology):
     """
     Testing do dynatrace tags finish in right places
     """

@@ -1,11 +1,10 @@
 from stackstate_checks.base import AgentCheck
-from stackstate_checks.base.stubs import aggregator, health
 
 from stackstate_checks.base.utils.common import read_file
 from .conftest import set_http_responses
 
 
-def test_health(dynatrace_check, requests_mock, test_instance):
+def test_health(dynatrace_check, requests_mock, test_instance, aggregator, health):
     """
     Test if we have Dynatrace monitored health state for each component.
     """

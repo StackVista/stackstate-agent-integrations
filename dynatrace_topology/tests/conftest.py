@@ -1,11 +1,11 @@
 # (C) StackState 2021
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
+import json
+
 import pytest
-from stackstate_checks.base.stubs import aggregator, topology, health
 
 from stackstate_checks.dynatrace_topology import DynatraceTopologyCheck
-from stackstate_checks.stubs import telemetry
 
 
 @pytest.fixture(scope='session')
@@ -17,15 +17,6 @@ def sts_environment():
         "url": "https://ton48129.live.dynatrace.com",
         "token": "some_token"
     }
-
-
-@pytest.fixture(scope="class")
-def instance(request):
-    cfg = {
-        "url": "https://ton48129.live.dynatrace.com",
-        "token": "some_token"
-    }
-    request.cls.instance = cfg
 
 
 @pytest.fixture(scope='class')
@@ -40,7 +31,7 @@ def test_instance():
 
 
 @pytest.fixture
-def dynatrace_check(test_instance):
+def dynatrace_check(test_instance, aggregator, telemetry, topology, health):
     check = DynatraceTopologyCheck('dynatrace', {}, {}, instances=[test_instance])
     yield check
     aggregator.reset()
@@ -58,3 +49,29 @@ def set_http_responses(requests_mock, hosts="[]", applications="[]", services="[
     requests_mock.get("/api/v1/entity/infrastructure/processes", text=processes, status_code=200)
     requests_mock.get("/api/v1/entity/infrastructure/process-groups", text=process_groups, status_code=200)
     requests_mock.get("/api/v2/entities", text=entities, status_code=200)
+
+
+def sort_topology_data(topology_instance):
+    """
+    Sort the keys of components and relations, so we can actually match it
+    :param topology_instance: dictionary
+    :return: list of components, list of relations
+    """
+    components = [json.dumps(component, sort_keys=True) for component in topology_instance["components"]]
+    relations = [json.dumps(relation, sort_keys=True) for relation in topology_instance["relations"]]
+    return components, relations
+
+
+def assert_topology(expected_topology, test_topology):
+    """
+    Sort the keys of components and relations, so we can actually match it
+    :param expected_topology: expected topology read from file
+    :param test_topology: topology gathered during test
+    :return: None
+    """
+    components, relations = sort_topology_data(test_topology)
+    expected_components, expected_relations = sort_topology_data(expected_topology)
+    assert components == expected_components
+    assert len(relations) == len(expected_relations)
+    for relation in relations:
+        assert relation in expected_relations
