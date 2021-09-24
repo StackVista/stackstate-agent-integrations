@@ -88,7 +88,7 @@ class InstanceInfo(Model):
 
 class DynatraceTopologyCheck(AgentCheck):
     INSTANCE_TYPE = "dynatrace"
-    SERVICE_CHECK_NAME = "dynatrace_topology"
+    SERVICE_CHECK_NAME = "dynatrace-topology"
     INSTANCE_SCHEMA = InstanceInfo
 
     def __init__(self, name, init_config, agentConfig, instances=None):
