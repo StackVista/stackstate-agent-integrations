@@ -24,7 +24,7 @@ CHECKS_BASE_REQ = 'stackstate-checks-base'
 setup(
     name='stackstate-dynatrace',
     version=ABOUT['__version__'],
-    description='The Dynatrace_base check',
+    description='The Dynatrace base library',
     long_description=long_description,
     long_description_content_type='text/markdown',
     keywords='stackstate agent dynatrace client',
