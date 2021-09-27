@@ -16,18 +16,15 @@ TIMEOUT = 10
 EVENTS_BOOSTRAP_DAYS = 5
 EVENTS_PROCESS_LIMIT = 10000
 RELATIVE_TIME = 'hour'
-ENVIRONMENT = 'production'
-DOMAIN = 'dynatrace'
-
-dynatrace_entities_cache = {}
 
 DYNATRACE_UI_URLS = {
-    "service": "%s/#newservices/serviceOverview;id=%s",
-    "process-group": "%s/#processgroupdetails;id=%s",
-    "process": "%s/#processdetails;id=%s",
-    "host": "%s/#newhosts/hostdetails;id=%s",
-    "application": "%s/#uemapplications/uemappmetrics;uemapplicationId=%s",
-    "custom-device": "%s/#customdevicegroupdetails/entity;id=%s"
+    "SERVICE": "%s/#newservices/serviceOverview;id=%s",
+    "PROCESS_GROUP": "%s/#processgroupdetails;id=%s",
+    "PROCESS_GROUP_INSTANCE": "%s/#processdetails;id=%s",
+    "PROCESS": "%s/#processdetails;id=%s",
+    "HOST": "%s/#newhosts/hostdetails;id=%s",
+    "APPLICATION": "%s/#uemapplications/uemappmetrics;uemapplicationId=%s",
+    "CUSTOM_DEVICE": "%s/#customdevicegroupdetails/entity;id=%s"
 }
 
 
@@ -60,8 +57,6 @@ class InstanceInfo(Model):
     cert = StringType()
     keyfile = StringType()
     timeout = IntType(default=TIMEOUT)
-    domain = StringType(default=DOMAIN)
-    environment = StringType(default=ENVIRONMENT)
     relative_time = StringType(default=RELATIVE_TIME)
     state = ModelType(State)
 
@@ -81,7 +76,7 @@ class DynatraceHealthCheck(AgentCheck):
         try:
             if not instance_info.state:
                 # Create state on the first run
-                empty_state_timestamp = self._generate_bootstrap_timestamp(instance_info.events_boostrap_days)
+                empty_state_timestamp = self.generate_bootstrap_timestamp(instance_info.events_boostrap_days)
                 self.log.debug('Creating new empty state with timestamp: %s', empty_state_timestamp)
                 instance_info.state = State({'last_processed_event_timestamp': empty_state_timestamp})
             dynatrace_client = DynatraceClient(instance_info.token,
@@ -117,7 +112,8 @@ class DynatraceHealthCheck(AgentCheck):
         for event in open_events:
             if event.severityLevel == 'INFO':
                 # Events with a info severity are send as topology events
-                self._create_topology_event(event, instance_info.url)
+                link_to_entity = self.link_to_dynatrace(str(event.entityId), instance_info.url)
+                self._create_topology_event(event, link_to_entity)
             else:
                 # Create health state for other events
                 if event.severityLevel in severity_levels_that_maps_to_deviating_health_state:
@@ -140,12 +136,12 @@ class DynatraceHealthCheck(AgentCheck):
         if events_limit_reached:
             raise EventLimitReachedException(events_limit_reached)
 
-    def _create_topology_event(self, dynatrace_event, instance_url):
+    def _create_topology_event(self, dynatrace_event, link_to_entity):
         """
         Create an standard or custom event based on the Dynatrace Severity level
         """
         event = {
-            "timestamp": self._current_time_seconds(),
+            "timestamp": int(time.time()),
             "source_type_name": "Dynatrace Events",
             "msg_title": "%s on %s" % (dynatrace_event.eventType, dynatrace_event.entityName),
             "msg_text": "%s on %s" % (dynatrace_event.eventType, dynatrace_event.entityName),
@@ -158,7 +154,8 @@ class DynatraceHealthCheck(AgentCheck):
                 "startTime:%s" % dynatrace_event.startTime,
                 "endTime:%s" % dynatrace_event.endTime,
                 "source:%s" % dynatrace_event.source,
-                "openSince:%s" % self._timestamp_to_sts_datetime(dynatrace_event),
+                "openSince:%s" % datetime.fromtimestamp(dynatrace_event.startTime / 1000).strftime(
+                    "%b %-d, %Y, %H:%M:%S"),
             ],
             "context": {
                 "source_identifier": "source_identifier_value",
@@ -166,11 +163,10 @@ class DynatraceHealthCheck(AgentCheck):
                 "source": "dynatrace",
                 "category": "info_event",
                 "data": dynatrace_event.to_primitive(),
-                # TODO: add support for links
                 "source_links": [
                     {
                         "title": "my_event_external_link",
-                        "url": self._link_to_dynatrace(dynatrace_event.entityId, instance_url)
+                        "url": link_to_entity
                     }
                 ]
             }
@@ -220,7 +216,7 @@ class DynatraceHealthCheck(AgentCheck):
             params['from'] = from_time
         if cursor:
             params['cursor'] = cursor
-        endpoint = url + "/api/v1/events"
+        endpoint = dynatrace_client.get_endpoint(url, "/api/v1/events")
         events = dynatrace_client.get_dynatrace_json_response(endpoint, params)
         self.log.debug('Got %s events from %s', len(events.get('events', [])), endpoint)
         return events
@@ -231,38 +227,34 @@ class DynatraceHealthCheck(AgentCheck):
         Raises EventLimitReachedException if number of events between subsequent check runs
         exceed the `events_process_limit`
         """
-        if total_event_count >= events_process_limit:
+        if total_event_count > events_process_limit:
             raise EventLimitReachedException("Maximum event limit to process is %s but received total %s events"
                                              % (events_process_limit, total_event_count))
 
     @staticmethod
-    def _timestamp_to_sts_datetime(dynatrace_event):
-        return datetime.fromtimestamp(dynatrace_event.startTime / 1000).strftime("%b %-d, %Y, %H:%M:%S")
-
-    @staticmethod
-    def _link_to_dynatrace(entity_id, instance_url):
-        entity = dynatrace_entities_cache.get(entity_id)
-        if entity:
-            return DYNATRACE_UI_URLS[entity["type"]] % (instance_url, entity_id)
-        else:
+    def link_to_dynatrace(entity_id, instance_url):
+        """
+        Compose url to dynatrace entity page, if not able return link to Dynatrace instance.
+        :param entity_id: Dynatrace entity identifier
+        :param instance_url: Dynatrace instance url
+        :return: url to Dynatrace entity page.
+        """
+        entity_type = entity_id.split("-")[0]
+        try:
+            url = DYNATRACE_UI_URLS[entity_type] % (instance_url, entity_id)
+            return url
+        except KeyError:
             return instance_url
 
-    def _generate_bootstrap_timestamp(self, days):
+    @staticmethod
+    def generate_bootstrap_timestamp(days):
         """
         Creates timestamp n days in the past from the current moment. It is used in tests too.
         :param days: how many days in the past
         :return:
         """
-        bootstrap_date = datetime.fromtimestamp(self._current_time_seconds()) - timedelta(days=days)
+        bootstrap_date = datetime.fromtimestamp(int(time.time())) - timedelta(days=days)
         return int(bootstrap_date.strftime('%s')) * 1000
-
-    @staticmethod
-    def _current_time_seconds():
-        """
-        This method is mocked for testing. Do not change its behavior
-        :return: current timestamp
-        """
-        return int(time.time())
 
 
 class EventLimitReachedException(Exception):

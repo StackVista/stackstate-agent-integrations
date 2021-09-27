@@ -2,7 +2,7 @@
 
 ## Overview
 
-This check monitors [Dynatrace_health][1] through the StackState Agent.
+This check monitors [Dynatrace][1] Events through the StackState Agent.
 
 ## Setup
 
@@ -21,21 +21,9 @@ need to install anything else on your server.
 
 ## Data Collected
 
-### Metrics
-
-Dynatrace_health does not include any metrics.
-
-### Service Checks
-
-Dynatrace_health does not include any service checks.
-
 ### Events
 
-Dynatrace_health does not include any events.
+Dynatrace_health monitors Dynatrace events and creates health stream from them.
 
-### Topology
-
-Dynatrace_health does not include any topology.
-
-[1]: **LINK_TO_INTEGERATION_SITE**
+[1]: https://www.dynatrace.com/support/help/dynatrace-api/environment-api/events-v1/
 [2]: https://github.com/StackVista/stackstate-agent-integrations/blob/master/dynatrace_health/stackstate_checks/dynatrace_health/data/conf.yaml.example

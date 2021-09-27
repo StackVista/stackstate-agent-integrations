@@ -27,12 +27,6 @@ instances:
     # Timeout for requests. Default value is 10.
     # timeout: 10
 
-    # domain to use for the components. The default is 'dynatrace'.
-    # domain: customer
-
-    # Environment to use for putting the data in. The default is 'production'.
-    # environment: development
-
     # No. of days to start collecting events.
     # events_bootstrap_days: 5  # by default it's 5 days
 
