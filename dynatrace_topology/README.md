@@ -2,7 +2,7 @@
 
 ## Overview
 
-This check monitors [Dynatrace_topology][1] through the StackState Agent.
+This check monitors [Dynatrace][1] through the StackState Agent.
 
 ## Setup
 
@@ -21,21 +21,17 @@ need to install anything else on your server.
 
 ## Data Collected
 
-### Metrics
-
-Dynatrace_topology does not include any metrics.
-
 ### Service Checks
 
-Dynatrace_topology does not include any service checks.
+Dynatrace_topology includes a service check.
 
 ### Events
 
-Dynatrace_topology does not include any events.
+Dynatrace_topology includes topology events.
 
 ### Topology
 
-Dynatrace_topology does not include any topology.
+Dynatrace_topology includes topology.
 
-[1]: **LINK_TO_INTEGERATION_SITE**
+[1]: https://www.dynatrace.com/support/help/dynatrace-api/environment-api/topology-and-smartscape/
 [2]: https://github.com/StackVista/stackstate-agent-integrations/blob/master/dynatrace_topology/stackstate_checks/dynatrace_topology/data/conf.yaml.example

@@ -21,6 +21,10 @@ need to install anything else on your server.
 
 ## Data Collected
 
+### Service Checks
+
+Dynatrace_topology includes a service check.
+
 ### Events
 
 Dynatrace_health monitors Dynatrace events and creates health stream from them.
