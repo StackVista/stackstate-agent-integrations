@@ -207,6 +207,12 @@ def test_link_to_dynatrace(dynatrace_check, test_instance):
                                 'CUSTOM_DEVICE-abc'
 
 
+def test_link_to_dynatrace_unknown_type(dynatrace_check, test_instance):
+    instance_url = test_instance.get('url')
+    process_url = dynatrace_check.link_to_dynatrace('UNKNOWN', instance_url)
+    assert process_url == instance_url
+
+
 @freeze_time('2021-02-16 14:26:24')
 def test_unicode_in_response_text(dynatrace_check, test_instance, requests_mock, aggregator, telemetry):
     timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
