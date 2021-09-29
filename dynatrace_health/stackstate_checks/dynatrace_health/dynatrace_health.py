@@ -206,9 +206,10 @@ class DynatraceHealthCheck(AgentCheck):
     def _get_events(self, dynatrace_client, url, from_time=None, cursor=None):
         """
         Get events from Dynatrace Event API endpoint
-        :param instance_info: object with instance info and its state
+        :param dynatrace_client: dynatrace rest client
+        :param url: dynatrace instance url
         :param from_time: timestamp from which to collect events
-        :param cursor:
+        :param cursor: batch cursor
         :return: Event API endpoint response
         """
         params = {}
