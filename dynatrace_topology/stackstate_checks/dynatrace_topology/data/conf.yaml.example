@@ -41,7 +41,7 @@ instances:
     # https://www.dynatrace.com/support/help/dynatrace-api/environment-api/entity-v2/get-entities-list/#parameters
     # custom_device_relative_time: 1h
 
-    # Fields property from Custom Device which will be used
+    # Which Custom Device property fields will be used.
     # https://www.dynatrace.com/support/help/dynatrace-api/environment-api/entity-v2/get-entities-list/#parameters
     # custom_device_fields: +fromRelationships,+toRelationships,+tags,+managementZones,+properties.dnsNames,+properties.ipAddress
 

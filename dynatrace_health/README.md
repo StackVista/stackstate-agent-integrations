@@ -27,7 +27,7 @@ Dynatrace_topology includes a service check.
 
 ### Events
 
-Dynatrace_health monitors Dynatrace events and creates health stream from them.
+Dynatrace_health monitors Dynatrace events and creates a health stream from them.
 
 [1]: https://www.dynatrace.com/support/help/dynatrace-api/environment-api/events-v1/
 [2]: https://github.com/StackVista/stackstate-agent-integrations/blob/master/dynatrace_health/stackstate_checks/dynatrace_health/data/conf.yaml.example
