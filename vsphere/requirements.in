@@ -1,2 +1,1 @@
-vsphere-automation-sdk==1.0.0
-setuptools<58.0.0; python_version > '3.0'
+git+https://github.com/vmware/vsphere-automation-sdk-python.git#egg=vSphere-Automation-SDK
