@@ -1,1 +1,1 @@
-git+https://github.com/vmware/vsphere-automation-sdk-python.git#egg=vSphere-Automation-SDK
+git+https://github.com/vmware/vsphere-automation-sdk-python.git@4fb7d48#egg=vSphere-Automation-SDK
