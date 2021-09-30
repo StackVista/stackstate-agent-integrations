@@ -53,6 +53,7 @@ coverage.xml
 .pytest_cache/
 .benchmarks/
 stackstate_checks_base/test_data
+stackstate_checks_base/test_data_2
 bin/
 
 # Translations
