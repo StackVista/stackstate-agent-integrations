@@ -103,6 +103,7 @@
         "awsInstanceType": "t3a.xlarge",
         "localHostName": "ip-172-31-30-110.eu-west-1.compute.internal",
         "amiId": "ami-076c188b0006a9c1c",
-        "awsInstanceId": "i-0eee811b00ae31c95"
+        "awsInstanceId": "i-0eee811b00ae31c95",
+        "azureHostNames": []
     }
 ]
