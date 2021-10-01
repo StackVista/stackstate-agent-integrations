@@ -195,7 +195,6 @@ class AgentIntegrationSampleCheck(AgentCheck):
 
         # raw metrics
         self.raw("raw.metrics",
-                 value=int(10),
+                 value=randint(0, 100),
                  tags=["application:some_application", "region:eu-west-1"],
-                 hostname="hostname",
-                 timestamp=int(1))
+                 timestamp=int(time.time()))
