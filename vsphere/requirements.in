@@ -1,2 +1,2 @@
-# When vmware publishes new release with this fixes we'll build it and publish it to artifactory.stackstate.io
-git+https://github.com/vmware/vsphere-automation-sdk-python.git@4fb7d48#egg=vSphere-Automation-SDK
+# TODO: When vmware publishes new release with this fixes we'll build it and publish it to artifactory.stackstate.io
+vsphere-automation-sdk==1.69.0-4fb7d48
