@@ -1,10 +1,11 @@
 binary==1.0.0
 kubernetes==8.0.1
-pyyaml==5.3.1
+pyyaml==5.4.1
 prometheus-client==0.3.0
 protobuf==3.7.0
 pywin32==228; sys_platform == 'win32'
-requests==2.24.0
+requests==2.25.0
+urllib3==1.26.5
 simplejson==3.6.5
 six==1.14.0
 uptime==3.0.1
