@@ -1116,12 +1116,13 @@ class __AgentCheckPy3(AgentCheckBase):
         tags = self._normalize_tags_type(tags, device_name, name)
 
         if timestamp is None:
-            # Ignore raw metric sample without a timestamp
+            self.warning('Raw Metric: Timestamp is invalid')
             return
 
         if hostname is None:
             hostname = ''
 
+        self.log.debug('Raw Metric: Submitting Raw Metric Data')
         telemetry.submit_raw_metrics_data(self, self.check_id, ensure_unicode(name), value, tags, hostname, timestamp)
 
     def service_check(self, name, status, tags=None, hostname=None, message=None):
