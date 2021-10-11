@@ -198,3 +198,8 @@ class AgentIntegrationSampleCheck(AgentCheck):
                  value=randint(0, 100),
                  tags=["application:some_application", "region:eu-west-1"],
                  timestamp=int(time.time()))
+        self.raw("raw.metrics",
+                 hostname="hostname",
+                 value=randint(0, 100),
+                 tags=["application:some_application", "region:eu-west-1"],
+                 timestamp=int(time.time()))
