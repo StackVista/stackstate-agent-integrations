@@ -54,6 +54,8 @@ class TestAgentIntegration(unittest.TestCase):
 
         assert topo_instances == self._read_data('expected_topology_instance.json')
 
+        aggregator.assert_metric('raw.metrics', count=2, hostname="hostname", value=100,
+                                 tags=["application:some_application", "region:eu-west-1"])
         aggregator.assert_metric('system.cpu.usage', count=3, tags=["hostname:this-host", "region:eu-west-1"])
         aggregator.assert_metric('location.availability', count=3, tags=["hostname:this-host", "region:eu-west-1"])
         aggregator.assert_metric('2xx.responses', count=4, tags=["application:some_application", "region:eu-west-1"])
