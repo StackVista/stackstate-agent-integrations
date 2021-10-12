@@ -22,7 +22,7 @@ class TelemetryStub(object):
         self._topology_events = []
         self._raw_metrics = defaultdict(list)
 
-    def raw_metrics(self, name):
+    def metrics(self, name):
         """
         Return the metrics received under the given name
         """
@@ -40,29 +40,32 @@ class TelemetryStub(object):
     def submit_raw_metrics_data(self, check, check_id, name, value, tags, hostname, timestamp):
         self._raw_metrics[name].append(RawMetricStub(name, value, tags, hostname, timestamp))
 
-    def assert_raw_metrics_data(self, name, value, tags, hostname, timestamp):
+    def assert_metric(self, name, value=None, tags=None, count=None, at_least=1,
+                      hostname=None, metric_type=None):
+
         tags = normalize_tags(tags, sort=True)
-
         candidates = []
-        for raw_metric in self.raw_metrics(name):
-            if value is not None and value != raw_metric.value:
+        for metric in self.metrics(name):
+            if value is not None and not metric.name == name and value != metric.value:
                 continue
-
-            if tags and tags != sorted(raw_metric.tags):
+            if tags and tags != sorted(metric.tags):
                 continue
-
-            if hostname and hostname != raw_metric.hostname:
+            if hostname and hostname != metric.hostname:
                 continue
-
-            if timestamp and timestamp != raw_metric.timestamp:
+            if metric_type is not None and metric.name != name:
                 continue
+            candidates.append(metric)
 
-            candidates.append(raw_metric)
-
-        if value is not None and candidates:
+        if value is not None and candidates and all(m.name == name for m in candidates):
             got = sum(m.value for m in candidates)
             msg = "Expected count value for '{}': {}, got {}".format(name, value, got)
             assert value == got, msg
+        if count is not None:
+            msg = "Needed exactly {} candidates for '{}', got {}".format(count, name, len(candidates))
+            assert len(candidates) == count, msg
+        else:
+            msg = "Needed at least {} candidates for '{}', got {}".format(at_least, name, len(candidates))
+            assert len(candidates) >= at_least, msg
 
     def submit_topology_event(self, check, check_id, event):
         self._topology_events.append(event)
