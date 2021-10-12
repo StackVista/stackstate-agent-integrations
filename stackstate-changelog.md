@@ -2,7 +2,7 @@
 
 ## 1.16.0 / 2021-??-??
 
-* [Added] Dynatrace check was split in two checks. Dynatrace topology and health. [(STAC-14104)](https://stackstate.atlassian.net/browse/STAC-14104)
+* [Added] Dynatrace check was split in two checks Dynatrace topology and health. [(STAC-14104)](https://stackstate.atlassian.net/browse/STAC-14104)
 * [Fixed] SolarWinds Create interface components with MAC address and no IP address [(STAC-14057)](https://stackstate.atlassian.net/browse/STAC-14057) 
 * [Added] ServiceNow send Topology Event to StackState before the scheduled Planned Start Date of the Change Request. [(STAC-13256)](https://stackstate.atlassian.net/browse/STAC-13256)
 
