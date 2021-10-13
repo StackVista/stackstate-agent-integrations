@@ -379,6 +379,19 @@ class HealthCheck(AgentCheck):
         return
 
 
+class HealthCheckMainStream(AgentCheck):
+    def __init__(self, stream=HealthStream(HealthStreamUrn("source", "stream_id")), *args, **kwargs):
+        instances = [{'a': 'b'}]
+        self.stream = stream
+        super(HealthCheckMainStream, self).__init__("test", {}, instances)
+
+    def get_health_stream(self, instance):
+        return self.stream
+
+    def check(self, instance):
+        return
+
+
 TEST_STATE = {
     'string': 'string',
     'int': 1,
@@ -1315,6 +1328,15 @@ class TestHealth:
         health.assert_snapshot(check.check_id,
                                check.get_health_stream(None),
                                start_snapshot={'expiry_interval_s': 60, 'repeat_interval_s': 15},
+                               stop_snapshot=None)
+
+    def test_start_snapshot_main_stream(self, health):
+        check = HealthCheckMainStream()
+        check._init_health_api()
+        check.health.start_snapshot()
+        health.assert_snapshot(check.check_id,
+                               check.get_health_stream(None),
+                               start_snapshot={'expiry_interval_s': None, 'repeat_interval_s': 15},
                                stop_snapshot=None)
 
     def test_stop_snapshot(self, health):
