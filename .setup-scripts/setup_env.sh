@@ -18,11 +18,10 @@ if [ ! -d $VENV_PATH ]; then
 else
   echo "$VENV_PATH already exists, only activating the venv"
   ls $INTEGRATIONS_DIR_TMP/venv/bin || echo 'no bin'
-  ls $INTEGRATIONS_DIR_TMP/venv/lib/python3.6/site-packages || echo 'no site-packages'
   source $INTEGRATIONS_DIR_TMP/venv/bin/activate
-  pip freeze
-  pip -V
-  checksdev -h || source $INTEGRATIONS_DIR_TMP/.setup-scripts/load_deps.sh
+  # the reason to set the path because VENV is created in a different path and
+  # while activating the binaries are not found
+  export PATH="$INTEGRATIONS_DIR_TMP/venv/bin:$PATH"
 fi
 
 unset INTEGRATIONS_DIR_TMP
