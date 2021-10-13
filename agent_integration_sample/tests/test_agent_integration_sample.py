@@ -93,9 +93,9 @@ class TestAgentIntegration(unittest.TestCase):
                                               'message': 'msg'}
                                              ])
 
-        telemetry.assert_metric("raw.metrics", count=2, value=20,
-                                tags=["application:some_application", "region:eu-west-1"],
-                                hostname="hostname")
+        telemetry.assert_raw_metrics_data("raw.metrics", count=2, value=20,
+                                          tags=["application:some_application", "region:eu-west-1"],
+                                          hostname="hostname")
 
     def test_topology_items_from_config_check(self):
         instance_config = {
