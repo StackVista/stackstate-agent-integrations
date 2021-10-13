@@ -79,3 +79,4 @@ If you find anything missing in this README please amend it! :)
 [1]: https://github.com/StackVista/stackstate-agent
 [2]: https://docs.stackstate.com/develop/developer-guides/agent_check/how_to_develop_agent_checks
 
+
