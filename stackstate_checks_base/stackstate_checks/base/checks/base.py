@@ -1119,8 +1119,8 @@ class __AgentCheckPy3(AgentCheckBase):
             self.warning('Ignoring raw metric, timestamp is empty')
             return
 
-        if hostname is None:
-            hostname = ''
+        # if hostname is None:
+        #     hostname = ''
 
         telemetry.submit_raw_metrics_data(self, self.check_id, ensure_unicode(name), value, tags, hostname, timestamp)
 

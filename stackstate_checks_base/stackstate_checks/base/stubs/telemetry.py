@@ -22,7 +22,7 @@ class TelemetryStub(object):
         self._topology_events = []
         self._raw_metrics = defaultdict(list)
 
-    def metrics(self, name):
+    def raw_metrics(self, name):
         """
         Return the metrics received under the given name
         """
@@ -40,12 +40,12 @@ class TelemetryStub(object):
     def submit_raw_metrics_data(self, check, check_id, name, value, tags, hostname, timestamp):
         self._raw_metrics[name].append(RawMetricStub(name, value, tags, hostname, timestamp))
 
-    def assert_metric(self, name, value=None, tags=None, count=None, at_least=1,
-                      hostname=None, metric_type=None):
+    def assert_raw_metrics_data(self, name, value=None, tags=None, count=None, at_least=1,
+                                hostname=None, metric_type=None):
 
         tags = normalize_tags(tags, sort=True)
         candidates = []
-        for metric in self.metrics(name):
+        for metric in self.raw_metrics(name):
             if value is not None and not metric.name == name and value != metric.value:
                 continue
             if tags and tags != sorted(metric.tags):
