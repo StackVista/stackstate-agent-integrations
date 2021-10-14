@@ -1,0 +1,23 @@
+{
+  "display_name": "Dynatrace_health",
+  "maintainer": "info@stackstate.com",
+  "manifest_version": "1.0.0",
+  "name": "dynatrace_health",
+  "metric_prefix": "dynatrace_health.",
+  "metric_to_check": "",
+  "creates_events": false,
+  "short_description": "Collects health states and topology events from Dynatrace",
+  "guid": "e6a188de-40d0-4838-95a1-7f39faecf9a1",
+  "support": "core",
+  "supported_os": [
+    "linux",
+    "mac_os",
+    "windows"
+  ],
+  "public_title": "StackState-Dynatrace_health Integration",
+  "categories": [
+    ""
+  ],
+  "type": "check",
+  "is_public": false
+}

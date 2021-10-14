@@ -1,0 +1,80 @@
+{
+  "components": [
+    {
+      "data": {
+        "entityId": "CUSTOM_DEVICE-D3692A3DBB1B6420",
+        "displayName": "Test Device",
+        "properties": {
+          "dnsNames": [
+            "test-machine.dynatrace.internal.com"
+          ],
+          "ipAddress": [
+            "10.0.0.2"
+          ]
+        },
+        "managementZones": [],
+        "domain": "dynatrace",
+        "environments": ["production"],
+        "identifiers": [
+          "urn:dynatrace:/CUSTOM_DEVICE-D3692A3DBB1B6420",
+          "urn:host:/test-machine.dynatrace.internal.com",
+          "urn:host:/10.0.0.2"
+        ],
+        "instance": "https://instance.live.dynatrace.com",
+        "tags": [
+          "CUSTOM_DEVICE-D3692A3DBB1B6420",
+          "foo:bar",
+          "integration-type:dynatrace",
+          "integration-url:https://instance.live.dynatrace.com"
+        ]
+      },
+      "id": "CUSTOM_DEVICE-D3692A3DBB1B6420",
+      "type": "custom-device"
+    },
+    {
+      "data": {
+        "entityId": "CUSTOM_DEVICE-D3692A3DBB1B6419",
+        "displayName": "coffeeMachine",
+        "properties": {
+          "dnsNames": [
+            "coffee-machine.dynatrace.internal.com"
+          ],
+          "ipAddress": [
+            "10.0.0.1"
+          ]
+        },
+        "managementZones": [],
+        "domain": "dynatrace",
+        "environments": ["production"],
+        "identifiers": [
+          "urn:dynatrace:/CUSTOM_DEVICE-D3692A3DBB1B6419",
+          "urn:host:/coffee-machine.dynatrace.internal.com",
+          "urn:host:/10.0.0.1"
+        ],
+        "instance": "https://instance.live.dynatrace.com",
+        "tags": [
+          "CUSTOM_DEVICE-D3692A3DBB1B6419",
+          "foo:bar",
+          "integration-type:dynatrace",
+          "integration-url:https://instance.live.dynatrace.com"
+        ]
+      },
+      "id": "CUSTOM_DEVICE-D3692A3DBB1B6419",
+      "type": "custom-device"
+    }
+  ],
+  "relations": [
+    {
+      "data": {},
+      "source_id": "CUSTOM_DEVICE-D3692A3DBB1B6420",
+      "target_id": "CUSTOM_DEVICE_GROUP-06A60E63A8179AAC",
+      "type": "isInstanceOf"
+    },
+    {
+      "data": {},
+      "source_id": "CUSTOM_DEVICE-D3692A3DBB1B6419",
+      "target_id": "CUSTOM_DEVICE_GROUP-06A60E63A8179AAC",
+      "type": "isInstanceOf"
+    }
+  ]
+}
