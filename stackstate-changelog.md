@@ -2,6 +2,7 @@
 
 ## 1.16.0 / 2021-??-??
 
+* [Fixed] Dropped default expiry value for health checks when using a main stream as expiry is optional in that case. [(STAC-14364)](https://stackstate.atlassian.net/browse/STAC-14364)
 * [Added] Dynatrace check was split in topology and health checks. [(STAC-14104)](https://stackstate.atlassian.net/browse/STAC-14104)
 * [Fixed] SolarWinds Create interface components with MAC address and no IP address [(STAC-14057)](https://stackstate.atlassian.net/browse/STAC-14057) 
 * [Added] ServiceNow send Topology Event to StackState before the scheduled Planned Start Date of the Change Request. [(STAC-13256)](https://stackstate.atlassian.net/browse/STAC-13256)
