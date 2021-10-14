@@ -1,6 +1,6 @@
 init_config:
     # runs every 5 minute
-    min_collection_interval: 300
+    collection_interval: 300
 
 instances:
   - hostip: # SCOM IP address

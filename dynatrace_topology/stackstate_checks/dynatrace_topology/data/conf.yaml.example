@@ -2,7 +2,7 @@ init_config:
 
 instances:
   # collection interval for topology
-  - min_collection_interval: 300
+  - collection_interval: 300
 
     # Base URL of Dynatrace instance
     # SaaS url example - https://{your-environment-id}.live.dynatrace.com
