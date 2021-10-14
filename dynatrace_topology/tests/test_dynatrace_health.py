@@ -22,5 +22,5 @@ def test_health(dynatrace_check, requests_mock, test_instance, aggregator, healt
                                           'message': 'SQL01.stackstate.lab is monitored by Dynatrace',
                                           'name': 'Dynatrace monitored',
                                           'topologyElementIdentifier': 'urn:dynatrace:/HOST-AA6A5D81A0006807'}],
-                           start_snapshot={'expiry_interval_s': 60, 'repeat_interval_s': 15},
+                           start_snapshot={'expiry_interval_s': None, 'repeat_interval_s': 15},
                            stop_snapshot={})

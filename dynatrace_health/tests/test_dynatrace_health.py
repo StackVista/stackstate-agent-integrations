@@ -23,7 +23,7 @@ def test_no_events_means_empty_health_snapshot(dynatrace_check, test_instance, r
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     health.assert_snapshot(dynatrace_check.check_id, dynatrace_check.health.stream,
                            check_states=[],
-                           start_snapshot={'expiry_interval_s': 60, 'repeat_interval_s': 15},
+                           start_snapshot={'expiry_interval_s': None, 'repeat_interval_s': 15},
                            stop_snapshot={})
     assert len(aggregator.events) == 0
 
@@ -56,7 +56,7 @@ def test_events_process_limit(dynatrace_check, test_instance, aggregator, reques
                                                      'Source: builtin',
                                           'name': 'Dynatrace event',
                                           'topologyElementIdentifier': 'urn:dynatrace:/SERVICE-9B16B9C5B03836C5'}],
-                           start_snapshot={'expiry_interval_s': 60, 'repeat_interval_s': 15},
+                           start_snapshot={'expiry_interval_s': None, 'repeat_interval_s': 15},
                            stop_snapshot={})
 
 
@@ -87,7 +87,7 @@ def test_events_process_limit_with_batches(dynatrace_check, test_instance, reque
                                           'name': 'Dynatrace event',
                                           'topologyElementIdentifier': 'urn:dynatrace:/SERVICE-FAA29C9BB1C02F9B'}
                                          ],
-                           start_snapshot={'expiry_interval_s': 60, 'repeat_interval_s': 15},
+                           start_snapshot={'expiry_interval_s': None, 'repeat_interval_s': 15},
                            stop_snapshot={})
 
 
@@ -139,7 +139,7 @@ def test_generated_events(dynatrace_check, test_instance, requests_mock, aggrega
                                                      '1613430060467 Source: builtin',
                                           'name': 'Dynatrace event',
                                           'topologyElementIdentifier': 'urn:dynatrace:/HOST-8F3EDA24EEF51137'}],
-                           start_snapshot={'expiry_interval_s': 60, 'repeat_interval_s': 15},
+                           start_snapshot={'expiry_interval_s': None, 'repeat_interval_s': 15},
                            stop_snapshot={})
     assert len(telemetry._topology_events) == 1
     expected_topology_events = load_json_from_file('expected_topology_events.json', 'samples')
