@@ -14,7 +14,6 @@ import hashlib
 from datetime import datetime, timedelta
 import pytz
 
-
 REGION = "test-region"
 KEY_ID = "1234"
 ACCESS_KEY = "5678"
@@ -122,6 +121,26 @@ def resource(path):
     return x
 
 
+def get_bytes_from_file(path):
+    return open(relative_path(path), "rb").read()
+
+
+def use_gz(value):
+    def inner(func):
+        func.gz = value
+        return func
+
+    return inner
+
+
+def set_log_bucket_name(value):
+    def inner(func):
+        func.log_bucket_name = value
+        return func
+
+    return inner
+
+
 def wrapper(api, not_authorized, subdirectory, event_name=None, eventbridge_event_name=None):
     def mock_boto_calls(self, *args, **kwargs):
         operation_name = botocore.xform_name(args[0])
@@ -144,8 +163,8 @@ def wrapper(api, not_authorized, subdirectory, event_name=None, eventbridge_even
                     "Contents": [
                         {
                             "Key": "AWSLogs/123456789012/EventBridge/eu-west-1"
-                            + "/2021/06/11/05/stackstate-eventbridge-stream-2-2021-06-11-05-18-05-"
-                            + "b7d5fff3-928a-4e63-939b-1a32662b6a63.gz"
+                                   + "/2021/06/11/05/stackstate-eventbridge-stream-2-2021-06-11-05-18-05-"
+                                   + "b7d5fff3-928a-4e63-939b-1a32662b6a63.gz"
                         }
                     ]
                 }
@@ -189,7 +208,6 @@ def wrapper(api, not_authorized, subdirectory, event_name=None, eventbridge_even
 
 
 class BaseApiTest(unittest.TestCase):
-
     CHECK_NAME = "aws_topology"
     SERVICE_CHECK_NAME = "aws_topology"
 
@@ -202,7 +220,8 @@ class BaseApiTest(unittest.TestCase):
     def get_region(self):
         return "eu-west-1"
 
-    def get_filter(self):
+    @staticmethod
+    def get_filter():
         return ""
 
     def setUp(self):
@@ -259,6 +278,7 @@ class BaseApiTest(unittest.TestCase):
 
         def ignore_callback(self, *args, **kwargs):
             return
+
         self.check.get_flowlog_update = ignore_callback
         if cloudtrail_event is None and eventbridge_event is None:
             self.check.get_topology_update = ignore_callback
