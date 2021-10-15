@@ -813,7 +813,8 @@ class TestBaseSanitize:
         }
         assert check.event(event) is None
 
-    @pytest.mark.skipif(sys.platform.startswith('win'), reason='ordered set is erratic error on windows')
+    @pytest.mark.skipif(sys.platform.startswith('win') and sys.version_info < (3, 7),
+                        reason='ordered set causes erratic error failures on windows')
     def test_ensure_string_only_keys(self):
         """
         Testing the functionality of _ensure_string_only_keys, but we're calling _sanitize to deal with multi-tier
