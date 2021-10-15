@@ -1,11 +1,16 @@
 # StackState Agent Integrations v2 releases
 
-## 1.16.0 / 2021-10-??
+## 1.16.0 / 2021-10-15
 
+* [Fixed] Fix the type for azureHostNames attribute of Dynatrace component [(STAC-14048)](https://stackstate.atlassian.net/browse/STAC-14048)
+* [Improved] Custom Devices support for Dynatrace integration [(STAC-13274)](https://stackstate.atlassian.net/browse/STAC-13274)
+* [Fixed] Fixed unwanted merging of hosts on a zabbix instance [(STAC-13977)](https://stackstate.atlassian.net/browse/STAC-13977)
+* [Improved] Support StackState common tags in Zabbix [(STAC-13984)](https://stackstate.atlassian.net/browse/STAC-13984)
 * [Improved] AWS experimental flowlogs support [(STAC-12981)](https://stackstate.atlassian.net/browse/STAC-12981)
 * [Improved] Dynatrace check was split in topology and health checks. [(STAC-14104)](https://stackstate.atlassian.net/browse/STAC-14104)
 * [Fixed] SolarWinds Create interface components with MAC address and no IP address [(STAC-14057)](https://stackstate.atlassian.net/browse/STAC-14057) 
 * [Added] ServiceNow send Topology Event to StackState before the scheduled Planned Start Date of the Change Request. [(STAC-13256)](https://stackstate.atlassian.net/browse/STAC-13256)
+* [Fixed] Cleanup of event payload fields [(STAC-12986)](https://stackstate.atlassian.net/browse/STAC-12986)
 
 ## 1.15.0 / 2021-08-02
 * [Fixed] SolarWinds Component has multiple health statuses. [(STAC-13796)](https://stackstate.atlassian.net/browse/STAC-13796)
