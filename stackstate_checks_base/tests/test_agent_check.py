@@ -3,6 +3,8 @@
 # (C) Datadog, Inc. 2018
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
+import sys
+
 import mock
 import shutil
 from schematics import Model
@@ -811,6 +813,7 @@ class TestBaseSanitize:
         }
         assert check.event(event) is None
 
+    @pytest.mark.skipif(sys.platform.startswith('win'), reason='ordered set is erratic error on windows')
     def test_ensure_string_only_keys(self):
         """
         Testing the functionality of _ensure_string_only_keys, but we're calling _sanitize to deal with multi-tier
