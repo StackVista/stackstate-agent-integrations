@@ -1336,7 +1336,7 @@ class TestHealth:
         check.health.start_snapshot()
         health.assert_snapshot(check.check_id,
                                check.get_health_stream(None),
-                               start_snapshot={'expiry_interval_s': None, 'repeat_interval_s': 15},
+                               start_snapshot={'expiry_interval_s': 0, 'repeat_interval_s': 15},
                                stop_snapshot=None)
 
     def test_stop_snapshot(self, health):
