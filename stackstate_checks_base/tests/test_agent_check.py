@@ -1,24 +1,22 @@
 # -*- coding: utf-8 -*-
 
-# (C) Datadog, Inc. 2018
+# (C) StackState, Inc. 2021
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
+
+import copy
 import sys
 
 import mock
-import shutil
-from schematics import Model
-from schematics.types import IntType, StringType, ModelType
-from schematics.exceptions import ValidationError, ConversionError, DataError
 import pytest
+from schematics import Model
+from schematics.exceptions import ValidationError, ConversionError, DataError
+from schematics.types import IntType, StringType, ModelType
 from six import PY3, text_type
 
-from stackstate_checks.checks import AgentCheck, TopologyInstance, AgentIntegrationInstance,\
+from stackstate_checks.base.stubs.topology import component
+from stackstate_checks.checks import AgentCheck, TopologyInstance, AgentIntegrationInstance, \
     HealthStream, HealthStreamUrn, Health
-from stackstate_checks.base.utils.agent_integration_test_util import AgentIntegrationTestUtil
-from stackstate_checks.base.stubs.topology import component, relation
-import copy
-import re
 
 
 def test_instance():
