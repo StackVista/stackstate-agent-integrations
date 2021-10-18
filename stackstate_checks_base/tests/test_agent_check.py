@@ -367,8 +367,9 @@ class TopologyBrokenCheck(TopologyAutoSnapshotCheck):
 
 
 class HealthCheck(AgentCheck):
-    def __init__(self, stream=HealthStream(HealthStreamUrn("source", "stream_id"), "sub_stream"), *args, **kwargs):
-        instances = [{'a': 'b'}]
+    def __init__(self, stream=HealthStream(HealthStreamUrn("source", "stream_id"), "sub_stream"), instance={'a': 'b'},
+                 *args, **kwargs):
+        instances = [instance]
         self.stream = stream
         super(HealthCheck, self).__init__("test", {}, instances)
 
@@ -1359,3 +1360,21 @@ class TestHealth:
         check = HealthCheck(stream=None)
         check.run()
         assert check.health is None
+
+    def test_legacy_collection_interval(self, health):
+        check = HealthCheck(instance={'min_collection_interval': 30})
+        check._init_health_api()
+        check.health.start_snapshot()
+        health.assert_snapshot(check.check_id,
+                               check.get_health_stream(None),
+                               start_snapshot={'expiry_interval_s': 120, 'repeat_interval_s': 30},
+                               stop_snapshot=None)
+
+    def test_explicit_collection_interval(self, health):
+        check = HealthCheck(instance={'collection_interval': 30})
+        check._init_health_api()
+        check.health.start_snapshot()
+        health.assert_snapshot(check.check_id,
+                               check.get_health_stream(None),
+                               start_snapshot={'expiry_interval_s': 120, 'repeat_interval_s': 30},
+                               stop_snapshot=None)

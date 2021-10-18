@@ -40,7 +40,7 @@ class InstanceConfig(SplunkInstanceConfig):
         if 'default_polling_interval_seconds' in init_config:
             raise CheckException(
                 "deprecated config `init_config.default_polling_interval_seconds` found."
-                " Please use the new init_config.collection_interval.")
+                " Please use the new collection_interval on the instance config.")
 
 
 class Instance(object):

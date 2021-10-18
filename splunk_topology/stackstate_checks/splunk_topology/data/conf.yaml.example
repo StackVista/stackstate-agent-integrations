@@ -14,9 +14,6 @@ init_config:
   # How many results should we request per request to splunk
   default_batch_size: 1000
 
-  # Interval at which to run the check
-  collection_interval: 300
-
   # verify ssl certificate of the connection to Splunk
   default_verify_ssl_certificate: false
 

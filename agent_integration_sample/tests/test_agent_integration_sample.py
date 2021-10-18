@@ -21,8 +21,8 @@ class InstanceInfo():
 instance = {}
 
 CONFIG = {
-    'init_config': {'default_timeout': 10, 'collection_interval': 5},
-    'instances': [{}]
+    'init_config': {'default_timeout': 10},
+    'instances': [{'collection_interval': 5}]
 }
 
 instance_config = InstanceInfo([])

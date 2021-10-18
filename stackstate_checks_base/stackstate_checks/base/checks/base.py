@@ -247,7 +247,9 @@ class AgentCheckBase(object):
         stream_spec = self.get_health_stream(self._get_instance_schema(self.instance))
         if stream_spec:
             # 15 seconds is the default interval (see defaults.DefaultCheckInterval in the core agent)
-            collection_interval = self.instance.get('collection_interval', 15)
+            # Also introducing backwards compatibility with min_collection_interval
+            collection_interval = self.instance.get('collection_interval',
+                                                    self.instance.get('min_collection_interval', 15))
             repeat_interval_seconds = stream_spec.repeat_interval_seconds or collection_interval
             expiry_seconds = stream_spec.expiry_seconds
             # Only apply a default expiration when we are using substreams
