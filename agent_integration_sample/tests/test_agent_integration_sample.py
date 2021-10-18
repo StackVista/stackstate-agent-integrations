@@ -84,7 +84,7 @@ class TestAgentIntegration(unittest.TestCase):
         )
         aggregator.assert_service_check('example.can_connect', self.check.OK)
         health.assert_snapshot(self.check.check_id, self.check.health.stream,
-                               start_snapshot={'expiry_interval_s': 60, 'repeat_interval_s': 15},
+                               start_snapshot={'expiry_interval_s': 0, 'repeat_interval_s': 15},
                                stop_snapshot={},
                                check_states=[{'checkStateId': 'id',
                                               'health': 'CRITICAL',
@@ -92,12 +92,6 @@ class TestAgentIntegration(unittest.TestCase):
                                               'topologyElementIdentifier': 'identifier',
                                               'message': 'msg'}
                                              ])
-
-        telemetry.assert_metric("raw.metrics", count=2, value=20,
-                                tags=["application:some_application", "region:eu-west-1"],
-                                hostname="hostname")
-        telemetry.assert_metric("raw.metrics", count=1, value=30, tags=["no:hostname", "region:eu-west-1"],
-                                hostname="")
 
     def test_topology_items_from_config_check(self):
         instance_config = {

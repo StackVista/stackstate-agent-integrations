@@ -74,9 +74,9 @@ class HealthStream(object):
         :param repeat_interval_seconds: (optional) the interval in which the data will be repeated.
                                         will default to the check instance collection_interval
         :param expiry_seconds: (optional) the time after which health check states will be expired.
-                               by default will be four times the repeat_interval_seconds.
-                               Providing 0 will disable expiry.
-                               Expiry can only be disabled when no substream is specified
+                               Providing 0 will disable expiry, which can only be done when no substream is specified
+                               Expiry is mandatory when specifying a substream,
+                               by default will be four times the repeat_interval_seconds
         """
         self.urn = import_converter(ClassType(HealthStreamUrn, required=True), urn, None)
         self.sub_stream = import_converter(StrictStringType(required=True), sub_stream, None)
