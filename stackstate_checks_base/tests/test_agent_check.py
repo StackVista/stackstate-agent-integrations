@@ -1381,9 +1381,11 @@ class TestHealth:
                                start_snapshot={'expiry_interval_s': 120, 'repeat_interval_s': 30},
                                stop_snapshot=None)
 
-    def test_no_collection_interval(self, health):
+    def test_default_collection_interval(self, health):
         check = HealthCheck(instance={})
-        with pytest.raises(ValueError) as e:
-            check._init_health_api()
-            HealthStream(HealthStreamUrn("source.", "stream_id:"), "sub_stream")
-        assert str(e.value) == "collection_interval should be defined for checks sending health information"
+        check._init_health_api()
+        check.health.start_snapshot()
+        health.assert_snapshot(check.check_id,
+                               check.get_health_stream(None),
+                               start_snapshot={'expiry_interval_s': 160, 'repeat_interval_s': 40},
+                               stop_snapshot=None)
