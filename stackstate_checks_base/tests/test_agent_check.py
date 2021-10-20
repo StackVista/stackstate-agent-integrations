@@ -1363,15 +1363,6 @@ class TestHealth:
         check.run()
         assert check.health is None
 
-    def test_legacy_collection_interval(self, health):
-        check = HealthCheck(instance={'min_collection_interval': 30})
-        check._init_health_api()
-        check.health.start_snapshot()
-        health.assert_snapshot(check.check_id,
-                               check.get_health_stream(None),
-                               start_snapshot={'expiry_interval_s': 120, 'repeat_interval_s': 30},
-                               stop_snapshot=None)
-
     def test_explicit_collection_interval(self, health):
         check = HealthCheck(instance={'collection_interval': 30})
         check._init_health_api()
@@ -1379,13 +1370,4 @@ class TestHealth:
         health.assert_snapshot(check.check_id,
                                check.get_health_stream(None),
                                start_snapshot={'expiry_interval_s': 120, 'repeat_interval_s': 30},
-                               stop_snapshot=None)
-
-    def test_default_collection_interval(self, health):
-        check = HealthCheck(instance={})
-        check._init_health_api()
-        check.health.start_snapshot()
-        health.assert_snapshot(check.check_id,
-                               check.get_health_stream(None),
-                               start_snapshot={'expiry_interval_s': 160, 'repeat_interval_s': 40},
                                stop_snapshot=None)

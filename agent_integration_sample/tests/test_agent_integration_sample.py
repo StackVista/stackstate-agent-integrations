@@ -84,7 +84,7 @@ class TestAgentIntegration(unittest.TestCase):
         )
         aggregator.assert_service_check('example.can_connect', self.check.OK)
         health.assert_snapshot(self.check.check_id, self.check.health.stream,
-                               start_snapshot={'expiry_interval_s': 0, 'repeat_interval_s': 15},
+                               start_snapshot={'expiry_interval_s': 0, 'repeat_interval_s': 30},
                                stop_snapshot={},
                                check_states=[{'checkStateId': 'id',
                                               'health': 'CRITICAL',
@@ -97,7 +97,8 @@ class TestAgentIntegration(unittest.TestCase):
         instance_config = {
            "stackstate-layer": "layer-conf-a",
            "stackstate-environment": "environment-conf-a",
-           "stackstate-domain": "domain-conf-a"
+           "stackstate-domain": "domain-conf-a",
+           "collection_interval": 5
         }
         self.check = AgentIntegrationSampleCheck(self.CHECK_NAME, {}, instances=[instance_config])
         result = self.check.run()
