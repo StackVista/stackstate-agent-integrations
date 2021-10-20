@@ -249,7 +249,9 @@ class AgentCheckBase(object):
             # 15 seconds is the default interval (see defaults.DefaultCheckInterval in the core agent)
             # Also introducing backwards compatibility with min_collection_interval
             collection_interval = self.instance.get('collection_interval',
-                                                    self.instance.get('min_collection_interval', 15))
+                                                    self.instance.get('min_collection_interval', None))
+            if collection_interval is None:
+                raise ValueError("collection_interval should be defined for checks sending health information")
             repeat_interval_seconds = stream_spec.repeat_interval_seconds or collection_interval
             expiry_seconds = stream_spec.expiry_seconds
             # Only apply a default expiration when we are using substreams

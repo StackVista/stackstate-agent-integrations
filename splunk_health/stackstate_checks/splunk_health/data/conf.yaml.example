@@ -31,6 +31,9 @@ init_config:
 instances:
   - url: "https://localhost:8089"
 
+    # Interval when running saved searches
+    collection_interval: 120
+
     # username: "admin" ## deprecated; use basic_auth.username under authentication section
     # password: "admin" ## deprecated; use basic_auth.password under authentication section
 
@@ -63,7 +66,6 @@ instances:
 
     # Determine whether to produce topology in snapshots, defaults to true
     # snapshot: true
-    # collection_interval: 300
     # saved_searches_parallel: 5
 
     # make the agent less strict and allow for saved searches to be failing or missing

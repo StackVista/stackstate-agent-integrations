@@ -9,7 +9,8 @@ def sts_environment():
     return {
         'type': 'csv',
         'health_file': '/home/static_health/health.csv',
-        'delimiter': ','
+        'delimiter': ',',
+        'collection_interval': 15
     }
 
 
@@ -18,6 +19,7 @@ def instance(request):
     cfg = {
         'type': 'csv',
         'health_file': 'health.csv',
-        'delimiter': ','
+        'delimiter': ',',
+        'collection_interval': 15
     }
     request.cls.instance = cfg

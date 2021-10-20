@@ -367,7 +367,9 @@ class TopologyBrokenCheck(TopologyAutoSnapshotCheck):
 
 
 class HealthCheck(AgentCheck):
-    def __init__(self, stream=HealthStream(HealthStreamUrn("source", "stream_id"), "sub_stream"), instance={'a': 'b'},
+    def __init__(self,
+                 stream=HealthStream(HealthStreamUrn("source", "stream_id"), "sub_stream"),
+                 instance={'collection_interval': 15, 'a': 'b'},
                  *args, **kwargs):
         instances = [instance]
         self.stream = stream
@@ -382,7 +384,7 @@ class HealthCheck(AgentCheck):
 
 class HealthCheckMainStream(AgentCheck):
     def __init__(self, stream=HealthStream(HealthStreamUrn("source", "stream_id")), *args, **kwargs):
-        instances = [{'a': 'b'}]
+        instances = [{'collection_interval': 15, 'a': 'b'}]
         self.stream = stream
         super(HealthCheckMainStream, self).__init__("test", {}, instances)
 
@@ -1378,3 +1380,10 @@ class TestHealth:
                                check.get_health_stream(None),
                                start_snapshot={'expiry_interval_s': 120, 'repeat_interval_s': 30},
                                stop_snapshot=None)
+
+    def test_no_collection_interval(self, health):
+        check = HealthCheck(instance={})
+        with pytest.raises(ValueError) as e:
+            check._init_health_api()
+            HealthStream(HealthStreamUrn("source.", "stream_id:"), "sub_stream")
+        assert str(e.value) == "collection_interval should be defined for checks sending health information"
