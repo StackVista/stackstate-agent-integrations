@@ -4,6 +4,7 @@
 
 from stackstate_checks.base import AgentCheck
 from stackstate_checks.base.utils.common import read_file, load_json_from_file
+from stackstate_checks.dynatrace_topology import DynatraceTopologyCheck
 from .conftest import set_http_responses, sort_topology_data, assert_topology
 
 
@@ -156,3 +157,22 @@ def test_collect_custom_devices_with_pagination(dynatrace_check, requests_mock, 
     snapshot = topology.get_snapshot(dynatrace_check.check_id)
     expected_topology = load_json_from_file("expected_custom_device_pagination_full_topology.json", "samples")
     assert_topology(expected_topology, snapshot)
+
+
+def test_relative_time_param(aggregator, requests_mock, test_instance, test_instance_relative_time):
+    # create check with instance that has 'day' relative time setting
+    check = DynatraceTopologyCheck('dynatrace', {}, {}, instances=[test_instance_relative_time])
+    check.run()
+    # no mock calls, so check fails
+    aggregator.assert_service_check(check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.CRITICAL)
+    print(aggregator.service_checks(check.SERVICE_CHECK_NAME)[0].message)
+    assert '?relativeTime=day' in aggregator.service_checks('dynatrace-topology')[0].message
+
+    # create another check with default setting
+    aggregator.reset()
+    another_check = DynatraceTopologyCheck('dynatrace', {}, {}, instances=[test_instance])
+    another_check.run()
+    # no mock calls, so check fails
+    aggregator.assert_service_check(another_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.CRITICAL)
+    print(aggregator.service_checks(another_check.SERVICE_CHECK_NAME)[0].message)
+    assert '?relativeTime=hour' in aggregator.service_checks('dynatrace-topology')[0].message
