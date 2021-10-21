@@ -1,5 +1,9 @@
 # StackState Agent Integrations v2 releases
 
+## 1.16.1 / 2021-10-21
+
+* [Fixed] Added the relative time to all topology API calls [(STAC-14569)](https://stackstate.atlassian.net/browse/STAC-14569)
+
 ## 1.16.0 / 2021-10-15
 
 * [Fixed] Fix the type for azureHostNames attribute of Dynatrace component [(STAC-14048)](https://stackstate.atlassian.net/browse/STAC-14048)
