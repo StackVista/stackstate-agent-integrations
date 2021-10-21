@@ -194,7 +194,8 @@ class DynatraceTopologyCheck(AgentCheck):
                 # process the custom device topology separately because of pagination
                 self.process_custom_device_topology(dynatrace_client, instance_info, endpoint, component_type)
             else:
-                response = dynatrace_client.get_dynatrace_json_response(endpoint)
+                params = {"relativeTime": instance_info.relative_time}
+                response = dynatrace_client.get_dynatrace_json_response(endpoint, params)
                 self._collect_topology(response, component_type, instance_info)
         end_time = datetime.now()
         time_taken = end_time - start_time
