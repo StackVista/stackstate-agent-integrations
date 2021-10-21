@@ -165,7 +165,6 @@ def test_relative_time_param(aggregator, requests_mock, test_instance, test_inst
     check.run()
     # no mock calls, so check fails
     aggregator.assert_service_check(check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.CRITICAL)
-    print(aggregator.service_checks(check.SERVICE_CHECK_NAME)[0].message)
     assert '?relativeTime=day' in aggregator.service_checks('dynatrace-topology')[0].message
 
     # create another check with default setting
@@ -174,5 +173,4 @@ def test_relative_time_param(aggregator, requests_mock, test_instance, test_inst
     another_check.run()
     # no mock calls, so check fails
     aggregator.assert_service_check(another_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.CRITICAL)
-    print(aggregator.service_checks(another_check.SERVICE_CHECK_NAME)[0].message)
     assert '?relativeTime=hour' in aggregator.service_checks('dynatrace-topology')[0].message
