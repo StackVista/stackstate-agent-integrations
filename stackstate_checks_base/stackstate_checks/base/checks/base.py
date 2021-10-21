@@ -250,13 +250,8 @@ class AgentCheckBase(object):
             min_collection_interval = self.instance.get('min_collection_interval', 15)
             repeat_interval_seconds = stream_spec.repeat_interval_seconds or min_collection_interval
             expiry_seconds = stream_spec.expiry_seconds
-            # Only apply a default expiration when we are using substreams
             if expiry_seconds is None:
-                if stream_spec.sub_stream != "":
-                    expiry_seconds = repeat_interval_seconds * 4
-                else:
-                    # Explicitly disable expiry setting it to 0
-                    expiry_seconds = 0
+                expiry_seconds = repeat_interval_seconds * 4
             self.health = HealthApi(self, stream_spec, expiry_seconds, repeat_interval_seconds)
 
     def _check_run_base(self, default_result):
