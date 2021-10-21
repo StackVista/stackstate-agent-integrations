@@ -29,7 +29,7 @@ class LoadBalancer(Model):
 class TargetGroup(Model):
     TargetGroupArn = StringType(required=True)
     TargetGroupName = StringType(default="UNKNOWN")
-    VpcId = StringType(required=True)
+    VpcId = StringType()
     LoadBalancerArns = ListType(StringType(), default=[])
 
 
