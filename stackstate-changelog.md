@@ -2,7 +2,7 @@
 
 ## 1.16.1 / 2021-10-21
 
-* [Fixed] Added the relative time to all topology API calls [(STAC-14569)](https://stackstate.atlassian.net/browse/STAC-14569)
+* [Fixed] Dynatrace - Added `relativeTime` to all topology API calls [(STAC-14569)](https://stackstate.atlassian.net/browse/STAC-14569)
 
 ## 1.16.0 / 2021-10-15
 
