@@ -12,6 +12,7 @@ from stackstate_checks.base.stubs import topology as top, aggregator
 from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
 from stackstate_checks.base import AgentCheck
 import botocore
+from botocore.exceptions import ClientError
 import hashlib
 from datetime import datetime, timedelta
 import pytz
@@ -187,7 +188,7 @@ def wrapper(api, not_authorized, subdirectory, event_name=None, eventbridge_even
                 error_code = "AuthorizationError"
             else:
                 error_code = "AccessDenied"
-            raise botocore.exceptions.ClientError({"Error": {"Code": error_code}}, operation_name)
+            raise ClientError({"Error": {"Code": error_code}}, operation_name)
         apidir = api
         if apidir is None:
             apidir = self._service_model.service_name
@@ -208,7 +209,7 @@ def wrapper(api, not_authorized, subdirectory, event_name=None, eventbridge_even
             raise Exception(error)
         # If an error code is included in the response metadata, raise this instead
         if "Error" in result.get("ResponseMetadata", {}):
-            raise botocore.exceptions.ClientError({"Error": result["ResponseMetadata"]["Error"]}, operation_name)
+            raise ClientError({"Error": result["ResponseMetadata"]["Error"]}, operation_name)
         else:
             return result
 

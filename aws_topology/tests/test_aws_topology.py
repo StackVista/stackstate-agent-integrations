@@ -9,21 +9,7 @@ from botocore.exceptions import ClientError
 from stackstate_checks.base.stubs import topology, aggregator
 from stackstate_checks.base import AgentCheck
 from stackstate_checks.aws_topology import AwsTopologyCheck, InstanceInfo, InitConfig
-
-REGION = "test-region"
-KEY_ID = "1234"
-ACCESS_KEY = "5678"
-ACCOUNT_ID = "123456789012"
-WRONG_ACCOUNT_ID = "987654321012"
-ROLE = "some_role_with_many_characters"
-TOKEN = "ABCDE"
-
-API_RESULTS = {
-    "AssumeRole": {"Credentials": {"AccessKeyId": KEY_ID, "SecretAccessKey": ACCESS_KEY, "SessionToken": TOKEN}},
-    "GetCallerIdentity": {
-        "Account": ACCOUNT_ID,
-    },
-}
+from .conftest import API_RESULTS
 
 
 @pytest.mark.usefixtures("instance")
