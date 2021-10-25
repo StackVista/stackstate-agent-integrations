@@ -90,7 +90,7 @@ class TestStaticCSVHealth(unittest.TestCase):
         assert json.loads(self.check.run())[0]['message'] == 'Health CSV file is empty.'
         # Snapshot will be started but not stopped
         health.assert_snapshot(self.check.check_id, self.check.health.stream,
-                               start_snapshot={'expiry_interval_s': 0, 'repeat_interval_s': 15})
+                               start_snapshot={'expiry_interval_s': 60, 'repeat_interval_s': 15})
 
     @mock.patch('codecs.open',
                 side_effect=lambda location, mode, encoding: MockFileReader(location, {
@@ -99,7 +99,7 @@ class TestStaticCSVHealth(unittest.TestCase):
     def test_health_min_values(self, mock):
         assert self.check.run() == ""
         health.assert_snapshot(self.check.check_id, self.check.health.stream,
-                               start_snapshot={'expiry_interval_s': 0, 'repeat_interval_s': 15},
+                               start_snapshot={'expiry_interval_s': 60, 'repeat_interval_s': 15},
                                stop_snapshot={},
                                check_states=[{'checkStateId': '1',
                                               'health': 'CLEAR',
@@ -119,7 +119,7 @@ class TestStaticCSVHealth(unittest.TestCase):
     def test_health_max_values(self, mock):
         assert self.check.run() == ""
         health.assert_snapshot(self.check.check_id, self.check.health.stream,
-                               start_snapshot={'expiry_interval_s': 0, 'repeat_interval_s': 15},
+                               start_snapshot={'expiry_interval_s': 60, 'repeat_interval_s': 15},
                                stop_snapshot={},
                                check_states=[{'checkStateId': '1',
                                               'health': 'CLEAR',
@@ -139,7 +139,7 @@ class TestStaticCSVHealth(unittest.TestCase):
         assert json.loads(self.check.run())[0]['message'] == 'CSV header check_state_id not found in health csv.'
         # Snapshot will be started but not stopped
         health.assert_snapshot(self.check.check_id, self.check.health.stream,
-                               start_snapshot={'expiry_interval_s': 0, 'repeat_interval_s': 15})
+                               start_snapshot={'expiry_interval_s': 60, 'repeat_interval_s': 15})
 
     @mock.patch('codecs.open', side_effect=lambda location, mode, encoding: MockFileReader(location, {
                 'health.csv': ['check_state_id,no_name,health,topology_element_identifier']}))
@@ -147,7 +147,7 @@ class TestStaticCSVHealth(unittest.TestCase):
         assert json.loads(self.check.run())[0]['message'] == 'CSV header name not found in health csv.'
         # Snapshot will be started but not stopped
         health.assert_snapshot(self.check.check_id, self.check.health.stream,
-                               start_snapshot={'expiry_interval_s': 0, 'repeat_interval_s': 15})
+                               start_snapshot={'expiry_interval_s': 60, 'repeat_interval_s': 15})
 
     @mock.patch('codecs.open', side_effect=lambda location, mode, encoding: MockFileReader(location, {
                 'health.csv': ['check_state_id,name,no_health,topology_element_identifier']}))
@@ -155,7 +155,7 @@ class TestStaticCSVHealth(unittest.TestCase):
         assert json.loads(self.check.run())[0]['message'] == 'CSV header health not found in health csv.'
         # Snapshot will be started but not stopped
         health.assert_snapshot(self.check.check_id, self.check.health.stream,
-                               start_snapshot={'expiry_interval_s': 0, 'repeat_interval_s': 15})
+                               start_snapshot={'expiry_interval_s': 60, 'repeat_interval_s': 15})
 
     @mock.patch('codecs.open', side_effect=lambda location, mode, encoding: MockFileReader(location, {
                 'health.csv': ['check_state_id,name,health,no_topology_element_identifier']}))
@@ -164,7 +164,7 @@ class TestStaticCSVHealth(unittest.TestCase):
                'CSV header topology_element_identifier not found in health csv.'
         # Snapshot will be started but not stopped
         health.assert_snapshot(self.check.check_id, self.check.health.stream,
-                               start_snapshot={'expiry_interval_s': 0, 'repeat_interval_s': 15})
+                               start_snapshot={'expiry_interval_s': 60, 'repeat_interval_s': 15})
 
     @mock.patch('codecs.open', side_effect=lambda location, mode, encoding: MockFileReader(location, {
                 'health.csv': ['check_state_id,name,health,topology_element_identifier', '1,name,blaat,id1']}))
@@ -172,14 +172,14 @@ class TestStaticCSVHealth(unittest.TestCase):
         assert json.loads(self.check.run())[0]['message'] == '["Health value must be clear, deviating or critical"]'
         # Snapshot will be started but not stopped
         health.assert_snapshot(self.check.check_id, self.check.health.stream,
-                               start_snapshot={'expiry_interval_s': 0, 'repeat_interval_s': 15})
+                               start_snapshot={'expiry_interval_s': 60, 'repeat_interval_s': 15})
 
     @mock.patch('codecs.open', side_effect=lambda location, mode, encoding: MockFileReader(location, {
                 'health.csv': ['check_state_id,name,health,topology_element_identifier', '1,name1,clear,id1', '']}))
     def test_handle_empty_line(self, mock):
         assert self.check.run() == ""
         health.assert_snapshot(self.check.check_id, self.check.health.stream,
-                               start_snapshot={'expiry_interval_s': 0, 'repeat_interval_s': 15},
+                               start_snapshot={'expiry_interval_s': 60, 'repeat_interval_s': 15},
                                stop_snapshot={},
                                check_states=[{'checkStateId': '1',
                                               'health': 'CLEAR',
@@ -193,7 +193,7 @@ class TestStaticCSVHealth(unittest.TestCase):
     def test_handle_incomplete_line(self, mock):
         assert self.check.run() == ""
         health.assert_snapshot(self.check.check_id, self.check.health.stream,
-                               start_snapshot={'expiry_interval_s': 0, 'repeat_interval_s': 15},
+                               start_snapshot={'expiry_interval_s': 60, 'repeat_interval_s': 15},
                                stop_snapshot={},
                                check_states=[{'checkStateId': '1',
                                               'health': 'CLEAR',
