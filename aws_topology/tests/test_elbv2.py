@@ -2,7 +2,7 @@ from stackstate_checks.base.stubs import topology as top
 from .conftest import BaseApiTest, set_cloudtrail_event
 
 
-class TestElasticLoadbalancingV2(BaseApiTest):
+class TestElasticLoadBalancingV2(BaseApiTest):
     def get_api(self):
         return "elbv2"
 
