@@ -24,9 +24,16 @@ def test_instance():
     return {
         "url": "https://instance.live.dynatrace.com",
         "token": "some_token",
-        "events_process_limit": 10,
-        "events_boostrap_days": 5,
-        "timeout": 20
+        "timeout": 20,
+    }
+
+
+@pytest.fixture(scope='class')
+def test_instance_relative_time():
+    return {
+        "url": "https://instance.live.dynatrace.com",
+        "token": "some_token",
+        "relative_time": "day",
     }
 
 
