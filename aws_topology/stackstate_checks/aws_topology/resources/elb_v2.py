@@ -264,7 +264,8 @@ class ElbV2Collector(RegisteredResourceCollector):
                     )
 
         self.emit_component(target_group.TargetGroupArn, "target-group", output)
-        self.emit_relation(target_group.TargetGroupArn, target_group.VpcId, "uses-service", {})
+        if target_group.VpcId:
+            self.emit_relation(target_group.TargetGroupArn, target_group.VpcId, "uses-service", {})
 
         for load_balancer_arn in target_group.LoadBalancerArns:
             self.emit_relation(

@@ -24,6 +24,31 @@
         "SubnetId": "subnet-67d82910",
         "ZoneName": "eu-west-1a"
       }]
+    },
+    {
+      "IpAddressType": "ipv4",
+      "VpcId": "vpc-6b25d10e",
+      "LoadBalancerArn": "arn:aws:elasticloadbalancing:eu-west-1:731070500579:loadbalancer/app/mysecondloadbalancer/1234567890abcde0",
+      "State": {
+        "Code": "active"
+      },
+      "DNSName": "mysecondloadbalancer-1234567890.eu-west-1.elb.amazonaws.com",
+      "SecurityGroups": ["sg-193aec7c"],
+      "LoadBalancerName": "mysecondloadbalancer",
+      "CreatedTime": "2018-04-19T09:04:24.250000+00:00",
+      "Scheme": "internet-facing",
+      "Type": "application",
+      "CanonicalHostedZoneId": "Z32O12XQLNTSW2",
+      "AvailabilityZones": [{
+        "SubnetId": "subnet-096c7b4f",
+        "ZoneName": "eu-west-1b"
+      }, {
+        "SubnetId": "subnet-31ff3554",
+        "ZoneName": "eu-west-1c"
+      }, {
+        "SubnetId": "subnet-67d82910",
+        "ZoneName": "eu-west-1a"
+      }]
     }
   ],
   "ResponseMetadata": {
