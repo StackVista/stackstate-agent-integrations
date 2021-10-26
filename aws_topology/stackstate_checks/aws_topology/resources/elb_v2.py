@@ -94,7 +94,9 @@ class ElbV2Collector(RegisteredResourceCollector):
             self.process_load_balancer(LoadBalancerData(load_balancer=data, tags=tags, listeners=listeners))
 
     @set_required_access_v2("elasticloadbalancing:DescribeLoadBalancers")
-    def process_load_balancers(self, load_balancer_arns=[]):
+    def process_load_balancers(self, load_balancer_arns=None):
+        if load_balancer_arns is None:
+            load_balancer_arns = []
         if load_balancer_arns:  # Only pass in LoadBalancerNames if a specific name is needed, otherwise ask for all
             load_balancers = self.collect_load_balancers(LoadBalancerArns=load_balancer_arns)
         else:
