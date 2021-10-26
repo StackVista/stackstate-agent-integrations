@@ -169,7 +169,11 @@ class ElbV2Collector(RegisteredResourceCollector):
             )
 
     @set_required_access_v2("elasticloadbalancing:DescribeTargetGroups")
-    def process_target_groups(self, load_balancers=[], target_group_names=[]):
+    def process_target_groups(self, load_balancers=None, target_group_names=None):
+        if target_group_names is None:
+            target_group_names = []
+        if load_balancers is None:
+            load_balancers = []
         if target_group_names:
             paginator = self.collect_target_groups(TargetGroupArns=target_group_names)
         else:
