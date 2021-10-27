@@ -36,6 +36,7 @@ def test_instance_relative_time():
         "url": "https://instance.live.dynatrace.com",
         "token": "some_token",
         "relative_time": "day",
+        'collection_interval': 15
     }
 
 
