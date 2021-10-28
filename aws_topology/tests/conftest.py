@@ -1,6 +1,8 @@
 # (C) StackState 2021
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
+import logging
+
 import pytest
 import unittest
 import os
@@ -10,6 +12,7 @@ from stackstate_checks.base.stubs import topology as top, aggregator
 from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
 from stackstate_checks.base import AgentCheck
 import botocore
+from botocore.exceptions import ClientError
 import hashlib
 from datetime import datetime, timedelta
 import pytz
@@ -142,6 +145,9 @@ def set_log_bucket_name(value):
 
 
 def wrapper(api, not_authorized, subdirectory, event_name=None, eventbridge_event_name=None):
+    logging.basicConfig(format="%(asctime)s %(levelname)s: %(message)s", datefmt="%d-%m-%Y %H:%M:%S",
+                        level=logging.DEBUG)
+
     def mock_boto_calls(self, *args, **kwargs):
         operation_name = botocore.xform_name(args[0])
         if operation_name == "assume_role":
@@ -182,17 +188,20 @@ def wrapper(api, not_authorized, subdirectory, event_name=None, eventbridge_even
                 error_code = "AuthorizationError"
             else:
                 error_code = "AccessDenied"
-            raise botocore.exceptions.ClientError({"Error": {"Code": error_code}}, operation_name)
+            raise ClientError({"Error": {"Code": error_code}}, operation_name)
         apidir = api
         if apidir is None:
             apidir = self._service_model.service_name
-        directory = os.path.join("json", apidir, subdirectory)
-        file_name = "{}/{}_{}.json".format(directory, operation_name, get_params_hash(self.meta.region_name, args))
+        file_name = os.path.join("json", apidir, subdirectory,
+                                 "{}_{}.json".format(operation_name, get_params_hash(self.meta.region_name, args)))
         try:
             result = resource(file_name)
-            # print('file: ', file_name)
-            # print('args: ', json.dumps(args, indent=2, default=str))
-            # print('meta: ', json.dumps(result["ResponseMetadata"]["Parameters"], indent=2, default=str))
+            logging.debug('file: %s ', file_name)
+            logging.debug('args: %s', json.dumps(args, indent=2, default=str))
+            try:
+                logging.debug('meta: %s', json.dumps(result["ResponseMetadata"]["Parameters"], indent=2, default=str))
+            except KeyError:
+                pass
         except Exception:
             error = "API response file not found for operation: {}\n".format(operation_name)
             error += "Parameters:\n{}\n".format(json.dumps(args[1], indent=2, default=str))
@@ -200,7 +209,7 @@ def wrapper(api, not_authorized, subdirectory, event_name=None, eventbridge_even
             raise Exception(error)
         # If an error code is included in the response metadata, raise this instead
         if "Error" in result.get("ResponseMetadata", {}):
-            raise botocore.exceptions.ClientError({"Error": result["ResponseMetadata"]["Error"]}, operation_name)
+            raise ClientError({"Error": result["ResponseMetadata"]["Error"]}, operation_name)
         else:
             return result
 

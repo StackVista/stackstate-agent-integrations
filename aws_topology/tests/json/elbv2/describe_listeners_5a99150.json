@@ -1,0 +1,25 @@
+{
+  "Listeners": [
+    {
+      "Protocol": "HTTP",
+      "DefaultActions": [
+        {
+          "TargetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:731070500579:targetgroup/mysecondloadbalancer/1234567890abcde0",
+          "Type": "forward"
+        }
+      ],
+      "LoadBalancerArn": "arn:aws:elasticloadbalancing:eu-west-1:731070500579:loadbalancer/app/mysecondloadbalancer/1234567890abcde0",
+      "Port": 80,
+      "ListenerArn": "arn:aws:elasticloadbalancing:eu-west-1:731070500579:listener/app/mysecondloadbalancer/90dd512583d2d7e9/1234567890abcde0"
+    }
+  ],
+  "ResponseMetadata": {
+    "Parameters": {
+      "LoadBalancerArn": "arn:aws:elasticloadbalancing:eu-west-1:731070500579:loadbalancer/app/mysecondloadbalancer/1234567890abcde0"
+    },
+    "OperationName": "DescribeListeners",
+    "Generater": "2021-05-29 07:45:36.660524",
+    "Region": "eu-west-1",
+    "Account": "731070500579"
+  }
+}
