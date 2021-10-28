@@ -29,7 +29,7 @@ class LoadBalancer(Model):
 class TargetGroup(Model):
     TargetGroupArn = StringType(required=True)
     TargetGroupName = StringType(default="UNKNOWN")
-    VpcId = StringType(required=True)
+    VpcId = StringType()
     LoadBalancerArns = ListType(StringType(), default=[])
 
 
@@ -94,7 +94,8 @@ class ElbV2Collector(RegisteredResourceCollector):
             self.process_load_balancer(LoadBalancerData(load_balancer=data, tags=tags, listeners=listeners))
 
     @set_required_access_v2("elasticloadbalancing:DescribeLoadBalancers")
-    def process_load_balancers(self, load_balancer_arns=[]):
+    def process_load_balancers(self, load_balancer_arns=None):
+        load_balancer_arns = [] if load_balancer_arns is None else load_balancer_arns
         if load_balancer_arns:  # Only pass in LoadBalancerNames if a specific name is needed, otherwise ask for all
             load_balancers = self.collect_load_balancers(LoadBalancerArns=load_balancer_arns)
         else:
@@ -167,7 +168,9 @@ class ElbV2Collector(RegisteredResourceCollector):
             )
 
     @set_required_access_v2("elasticloadbalancing:DescribeTargetGroups")
-    def process_target_groups(self, load_balancers=[], target_group_names=[]):
+    def process_target_groups(self, load_balancers=None, target_group_names=None):
+        target_group_names = [] if target_group_names is None else target_group_names
+        load_balancers = [] if load_balancers is None else load_balancers
         if target_group_names:
             paginator = self.collect_target_groups(TargetGroupArns=target_group_names)
         else:
@@ -258,7 +261,8 @@ class ElbV2Collector(RegisteredResourceCollector):
                     )
 
         self.emit_component(target_group.TargetGroupArn, "target-group", output)
-        self.emit_relation(target_group.TargetGroupArn, target_group.VpcId, "uses-service", {})
+        if target_group.VpcId:
+            self.emit_relation(target_group.TargetGroupArn, target_group.VpcId, "uses-service", {})
 
         for load_balancer_arn in target_group.LoadBalancerArns:
             self.emit_relation(

@@ -20,6 +20,26 @@
       "HealthCheckPort": "traffic-port",
       "Port": 80,
       "TargetGroupName": "myfirsttargetgroup"
+    },
+    {
+      "HealthCheckPath": "/",
+      "HealthCheckIntervalSeconds": 30,
+      "Protocol": "HTTP",
+      "HealthCheckTimeoutSeconds": 5,
+      "TargetType": "instance",
+      "HealthCheckProtocol": "HTTP",
+      "LoadBalancerArns": [
+        "arn:aws:elasticloadbalancing:eu-west-1:731070500579:loadbalancer/app/mysecondloadbalancer/1234567890abcde0"
+      ],
+      "UnhealthyThresholdCount": 2,
+      "HealthyThresholdCount": 5,
+      "TargetGroupArn": "arn:aws:elasticloadbalancing:eu-west-1:731070500579:targetgroup/mysecondtargetgroup/1234567890abcde0",
+      "Matcher": {
+        "HttpCode": "200"
+      },
+      "HealthCheckPort": "traffic-port",
+      "Port": 80,
+      "TargetGroupName": "mysecondtargetgroup"
     }
   ],
   "ResponseMetadata": {
