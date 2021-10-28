@@ -14,9 +14,6 @@ init_config:
   # How many results should we request per request to splunk
   default_batch_size: 1000
 
-  # Interval at which to run the check
-  min_collection_interval: 300
-
   # verify ssl certificate of the connection to Splunk
   default_verify_ssl_certificate: false
 
@@ -33,6 +30,9 @@ init_config:
 # It is possible to specify multiple saved_searches on a single instance.
 instances:
   - url: "https://localhost:8089"
+
+    # Interval when running saved searches
+    collection_interval: 120
 
     # username: "admin" ## deprecated; use basic_auth.username under authentication section
     # password: "admin" ## deprecated; use basic_auth.password under authentication section
@@ -66,7 +66,6 @@ instances:
 
     # Determine whether to produce topology in snapshots, defaults to true
     # snapshot: true
-    # min_collection_interval: 300
     # saved_searches_parallel: 5
 
     # make the agent less strict and allow for saved searches to be failing or missing

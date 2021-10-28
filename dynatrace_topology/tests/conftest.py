@@ -15,7 +15,8 @@ def sts_environment():
     #  If you want to run an environment this object can not be empty.
     return {
         "url": "https://ton48129.live.dynatrace.com",
-        "token": "some_token"
+        "token": "some_token",
+        'collection_interval': 15
     }
 
 
@@ -25,6 +26,7 @@ def test_instance():
         "url": "https://instance.live.dynatrace.com",
         "token": "some_token",
         "timeout": 20,
+        'collection_interval': 15
     }
 
 
@@ -34,6 +36,7 @@ def test_instance_relative_time():
         "url": "https://instance.live.dynatrace.com",
         "token": "some_token",
         "relative_time": "day",
+        'collection_interval': 15
     }
 
 

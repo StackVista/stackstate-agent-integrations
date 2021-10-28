@@ -39,7 +39,8 @@ class TestStaticCSVHealth(unittest.TestCase):
     instance = {
         'type': 'csv',
         'health_file': 'health.csv',
-        'delimiter': ','
+        'delimiter': ',',
+        'collection_interval': 15
     }
 
     config = {
@@ -62,7 +63,8 @@ class TestStaticCSVHealth(unittest.TestCase):
     def test_omitted_health_file(self):
         instance = {
             'type': 'csv',
-            'delimiter': ';'
+            'delimiter': ';',
+            'collection_interval': 15
         }
 
         config = {
@@ -77,7 +79,8 @@ class TestStaticCSVHealth(unittest.TestCase):
         instance = {
             'type': 'csv',
             'health_file': '/dev/null',
-            'delimiter': ';'
+            'delimiter': ';',
+            'collection_interval': 15
         }
 
         config = {

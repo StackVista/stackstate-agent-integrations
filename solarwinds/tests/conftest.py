@@ -23,7 +23,7 @@ def test_instance():
         "password": "secret",
         "solarwinds_domain": "StackState_Domain",
         "solarwinds_domain_values": ["Alkmaar Subset"],
-        "min_collection_interval": 30,
+        "collection_interval": 30,
     }
 
 
