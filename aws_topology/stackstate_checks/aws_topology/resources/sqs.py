@@ -14,6 +14,9 @@ import re
 
 
 def create_arn(region=None, resource_id=None, **kwargs):
+    # TODO we need to discuss if we really want to support errors in Stapfuntion definitions STAC-14622
+    if re.match(r'^arn:aws:sqs.+$', resource_id):
+        return resource_id
     if re.match(r"^https:\/\/sqs.[a-z]{2}-([a-z]*-){1,2}\d\.amazonaws\.com\/\d{12}\/.+$", resource_id):
         return arn(
             resource="sqs",
