@@ -2,6 +2,7 @@
 
 ## 1.17.0 / 2021-??-??
 
+* [Improvement] Rename `min_collection_interval` to `collection_interval` to communicate that's the expected run time of the check.[(STAC-14364)] (https://stackstate.atlassian.net/browse/STAC-14364)
 * [Fixed] Dropped default expiry value for health checks when using a main stream as expiry is optional in that case. [(STAC-14364)](https://stackstate.atlassian.net/browse/STAC-14364)
 
 ## 1.16.1 / 2021-10-21

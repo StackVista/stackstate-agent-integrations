@@ -72,7 +72,7 @@ class HealthStream(object):
         :param sub_stream: (optional) an identifier for the sub stream. a sub stream can be used if an individual
                            check instance only synchronizes part of a complete streams' data
         :param repeat_interval_seconds: (optional) the interval in which the data will be repeated.
-                                        will default to the check instance min_collection_interval
+                                        will default to the check instance collection_interval
         :param expiry_seconds: (optional) the time after which health check states will be expired.
                                Providing 0 will disable expiry, which can only be done when no substream is specified
                                Expiry is mandatory when specifying a substream,

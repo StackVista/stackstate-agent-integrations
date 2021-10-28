@@ -9,4 +9,4 @@ instances:
     solarwinds_domain_values:
       - [Custom property value 1]
       - [Custom property value 2]
-    min_collection_interval: 30
+    collection_interval: 30

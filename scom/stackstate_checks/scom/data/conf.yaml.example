@@ -1,6 +1,4 @@
 init_config:
-    # runs every 5 minute
-    min_collection_interval: 300
 
 instances:
   - hostip: # SCOM IP address
@@ -11,3 +9,6 @@ instances:
     integration_mode: powershell # api or powershell
     max_number_of_requests: 10000
     criteria : "(DisplayName LIKE 'All Windows Computers' OR DisplayName LIKE 'Linux%' )"
+    # runs every 5 minute
+    collection_interval: 300
+
