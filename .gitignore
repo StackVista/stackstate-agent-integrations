@@ -116,3 +116,5 @@ wheelhouse/
 # agent integration sample test data
 agent_integration_sample/agent-integration-sample.d
 agent_integration_sample/tests/agent-integration-sample.d
+
+.envrc
