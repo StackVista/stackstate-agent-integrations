@@ -11,6 +11,7 @@ from ..utils.common import ensure_unicode, to_string
 
 RawMetricStub = namedtuple('RawMetricStub', 'name value tags hostname timestamp')
 
+
 class TelemetryStub(object):
     """
     Mainly used for unit testing checks, this stub makes possible to execute
