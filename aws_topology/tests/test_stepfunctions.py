@@ -149,7 +149,7 @@ class TestStepFunctions(BaseApiTest):
         self.assertIn("UNSUPPORTED_ARN-AWS::IAM::", get_id("StepFunctionsIamRole"))
         # top.assert_relation(relations, sfn_id, get_id('StepFunctionsIamRole'))
 
-        # MyStateMachine01 components + relations
+        # MyStateMachine01 that has malformed StepFunction definition
         my_state_machine_01 = 'arn:aws:states:eu-west-1:548105126730:stateMachine:MyStateMachine01'
         top.assert_component(components, my_state_machine_01, 'aws.stepfunction.statemachine')
         top.assert_component(components, my_state_machine_01 + ':state/SNS', 'aws.stepfunction.state')
@@ -171,6 +171,9 @@ class TestStepFunctions(BaseApiTest):
                             'arn:aws:sqs:us-east-1:548105126730:' 
                             'stackstate-main-account-secondary-region-SqsQueue-TCLBC173C8R2',
                             'uses-service')
+        self.assertEqual(self.check.warnings[0],
+                         'SQS URL arn:aws:sqs:eu-west-1:ACCOUNT_NUMBER:SQS_NAME does not match expected regular '
+                         'expression. Expected URL format starting with `https` was encountered 1 time(s).')
 
         self.assertEqual(len(topology[0]["relations"]), 32)
         top.assert_all_checked(components, relations, unchecked_relations=2)
