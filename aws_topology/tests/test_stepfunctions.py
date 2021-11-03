@@ -39,7 +39,6 @@ class AgentMock(object):
 
 
 class TestStepFunctions(BaseApiTest):
-
     CHECK_NAME = "aws_topology"
     SERVICE_CHECK_NAME = "aws_topology"
 
@@ -150,7 +149,33 @@ class TestStepFunctions(BaseApiTest):
         self.assertIn("UNSUPPORTED_ARN-AWS::IAM::", get_id("StepFunctionsIamRole"))
         # top.assert_relation(relations, sfn_id, get_id('StepFunctionsIamRole'))
 
-        self.assertEqual(len(topology[0]["relations"]), 26)
+        # MyStateMachine01 that has malformed StepFunction definition
+        my_state_machine_01 = 'arn:aws:states:eu-west-1:548105126730:stateMachine:MyStateMachine01'
+        top.assert_component(components, my_state_machine_01, 'aws.stepfunction.statemachine')
+        top.assert_component(components, my_state_machine_01 + ':state/SNS', 'aws.stepfunction.state')
+        top.assert_component(components, my_state_machine_01 + ':state/SQS', 'aws.stepfunction.state')
+        top.assert_component(components, my_state_machine_01 + ':state/SQSSecondaryRegion', 'aws.stepfunction.state')
+        top.assert_relation(relations, my_state_machine_01, my_state_machine_01 + ':state/SNS', 'uses-service')
+        top.assert_relation(relations, my_state_machine_01 + ':state/SNS', my_state_machine_01 + ':state/SQS',
+                            'uses-service')
+        top.assert_relation(relations, my_state_machine_01 + ':state/SQS',
+                            my_state_machine_01 + ':state/SQSSecondaryRegion', 'uses-service')
+        top.assert_relation(relations, my_state_machine_01,
+                            'arn:aws:iam::548105126730:role/service-role/StepFunctions-MyStateMachine01-role-7191ec4f',
+                            'uses-service')
+        top.assert_relation(relations, my_state_machine_01 + ':state/SNS',
+                            'arn:aws:sns:eu-west-1:548105126730:'
+                            'stackstate-main-account-main-region-SnsTopic-1WPRYH16ZAL14',
+                            'uses-service')
+        top.assert_relation(relations, my_state_machine_01 + ':state/SQSSecondaryRegion',
+                            'arn:aws:sqs:us-east-1:548105126730:' 
+                            'stackstate-main-account-secondary-region-SqsQueue-TCLBC173C8R2',
+                            'uses-service')
+        self.assertEqual(self.check.warnings[0],
+                         'SQS URL arn:aws:sqs:eu-west-1:ACCOUNT_NUMBER:SQS_NAME does not match expected regular '
+                         'expression. Expected URL format starting with `https` was encountered 1 time(s).')
+
+        self.assertEqual(len(topology[0]["relations"]), 32)
         top.assert_all_checked(components, relations, unchecked_relations=2)
 
     def test_process_stepfunction_branch_state(self):
@@ -293,14 +318,14 @@ class TestStepFunctions(BaseApiTest):
         self.assert_executed_ok()
         components = topology[0]["components"]
         counts = Counter([component["type"] for component in components])
-        self.assertEqual(dict(counts), {"aws.stepfunction.statemachine": 1, "aws.stepfunction.state": 15})
+        self.assertEqual(dict(counts), {"aws.stepfunction.statemachine": 2, "aws.stepfunction.state": 18})
 
     @set_not_authorized("describe_state_machine")
     def test_process_stepfunction_access_describe_state_machine(self):
         self.check.run()
         self.assertIn(
             "Role arn:aws:iam::548105126730:role/RoleName needs states:DescribeStateMachine"
-            + " was encountered 1 time(s).",
+            + " was encountered 2 time(s).",
             self.check.warnings,
         )
         topology = [top.get_snapshot(self.check.check_id)]
@@ -308,14 +333,14 @@ class TestStepFunctions(BaseApiTest):
         self.assert_executed_ok()
         components = topology[0]["components"]
         counts = Counter([component["type"] for component in components])
-        self.assertEqual(dict(counts), {"aws.stepfunction.statemachine": 1, "aws.stepfunction.activity": 1})
+        self.assertEqual(dict(counts), {"aws.stepfunction.statemachine": 2, "aws.stepfunction.activity": 1})
 
     @set_not_authorized("list_tags_for_resource")
     def test_process_stepfunction_access_list_tags_for_resource(self):
         self.check.run()
         self.assertIn(
             "Role arn:aws:iam::548105126730:role/RoleName needs states:ListTagsForResource"
-            + " was encountered 2 time(s).",
+            + " was encountered 3 time(s).",
             self.check.warnings,
         )
         topology = [top.get_snapshot(self.check.check_id)]
@@ -325,7 +350,7 @@ class TestStepFunctions(BaseApiTest):
         counts = Counter([component["type"] for component in components])
         self.assertEqual(
             dict(counts),
-            {"aws.stepfunction.statemachine": 1, "aws.stepfunction.activity": 1, "aws.stepfunction.state": 15},
+            {"aws.stepfunction.statemachine": 2, "aws.stepfunction.activity": 1, "aws.stepfunction.state": 18},
         )
 
     @set_cloudtrail_event("create_state_machine")
