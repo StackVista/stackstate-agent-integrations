@@ -36,7 +36,8 @@ def create_arn(region=None, resource_id=None, **kwargs):
             resource_id=resource_id.rsplit("/", 1)[-1],
         )
     else:
-        raise ValueError("SQS URL {} does not match expected regular expression".format(resource_id))
+        raise ValueError("SQS URL {} does not match expected regular expression. "
+                         "Expected URL format starting with `https`".format(resource_id))
 
 
 QueueData = namedtuple("QueueData", ["queue_url", "queue", "tags"])
