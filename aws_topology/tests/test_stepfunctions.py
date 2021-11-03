@@ -168,7 +168,7 @@ class TestStepFunctions(BaseApiTest):
                             'stackstate-main-account-main-region-SnsTopic-1WPRYH16ZAL14',
                             'uses-service')
         top.assert_relation(relations, my_state_machine_01 + ':state/SQSSecondaryRegion',
-                            'arn:aws:sqs:us-east-1:548105126730:' 
+                            'arn:aws:sqs:us-east-1:548105126730:'
                             'stackstate-main-account-secondary-region-SqsQueue-TCLBC173C8R2',
                             'uses-service')
         self.assertEqual(self.check.warnings[0],
