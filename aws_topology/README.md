@@ -74,5 +74,5 @@ API Gateway Stage
 API Gateway Resource
 API Getaway Method
 
-[1]: **LINK_TO_INTEGERATION_SITE**
+[1]: https://docs.stackstate.com/stackpacks/integrations/aws/aws
 [2]: https://github.com/StackVista/stackstate-agent-integrations/blob/master/aws_topology/stackstate_checks/aws_topology/data/conf.yaml.example

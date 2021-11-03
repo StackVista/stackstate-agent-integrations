@@ -14,5 +14,6 @@ instances:
     # apis_to_run: # Optionally whitelist specific AWS services. It is not recommended to set this; instead rely on IAM permissions.
     #   - ec2
     # log_bucket_name: '' # The S3 bucket that the agent should read events from. This value should only be set in custom implementations.
+    # flowlog_bucket_name: '' # The S3 bucket that the agent should read flowlogs from. This value should only be set in custom implementations.
     # tags:
     #   - foo:bar
