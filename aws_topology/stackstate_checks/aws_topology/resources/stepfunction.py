@@ -300,8 +300,11 @@ class StepFunctionCollector(RegisteredResourceCollector):
             state["IntegrationType"] = "sqs"
             queue_url = parameters.get("QueueUrl")
             if queue_url:
-                queue_arn = self.agent.create_arn("AWS::SQS::Queue", self.location_info, queue_url)
-                self.emit_relation(state_arn, queue_arn, "uses-service", {})  # TODO get the type of action
+                try:
+                    queue_arn = self.agent.create_arn("AWS::SQS::Queue", self.location_info, queue_url)
+                    self.emit_relation(state_arn, queue_arn, "uses-service", {})  # TODO get the type of action
+                except ValueError as e:
+                    self.agent.warning(str(e))
         elif resource.startswith("arn:{}:states:::ecs:".format(partition)):
             # TODO can be full ARN or family:revision
             # TODO NetworkConfiguration also has connection to securitygroups AND subnets

@@ -1,17 +1,27 @@
+import io
 import json
 import os
 import unittest
-from mock import patch
-from stackstate_checks.base.stubs import topology as top, aggregator
-from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
-from stackstate_checks.base import AgentCheck
+from datetime import datetime
+from functools import reduce
+
 import botocore.exceptions
 import botocore.response
-import io
-from .conftest import get_params_hash, get_bytes_from_file, resource
-from functools import reduce
-from datetime import datetime
 import pytz
+from mock import patch
+
+from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
+from stackstate_checks.base import AgentCheck
+from stackstate_checks.base.stubs import topology as top, aggregator
+from .conftest import get_params_hash, get_bytes_from_file, resource
+
+
+def set_flowlog_bucket_name(value):
+    def inner(func):
+        func.flowlog_bucket_name = value
+        return func
+
+    return inner
 
 
 def wrapper(test_instance, not_authorized, subdirectory, use_gzip, events_file=None):
@@ -85,6 +95,9 @@ class TestFlowLogs(unittest.TestCase):
         log_bucket_name = ""
         if hasattr(method, "log_bucket_name"):
             log_bucket_name = method.log_bucket_name
+        flowlog_bucket_name = ""
+        if hasattr(method, 'flowlog_bucket_name'):
+            flowlog_bucket_name = method.flowlog_bucket_name
         use_gz = False
         if hasattr(method, "gz"):
             use_gz = method.gz
@@ -111,6 +124,8 @@ class TestFlowLogs(unittest.TestCase):
         }
         if log_bucket_name:
             instance.update({"log_bucket_name": log_bucket_name})
+        if flowlog_bucket_name:
+            instance.update({'flowlog_bucket_name': flowlog_bucket_name})
         apis = []
         instance.update({"apis_to_run": apis})
 
@@ -197,5 +212,17 @@ class TestFlowLogs(unittest.TestCase):
         aggregator.assert_metric('aws.flowlog.bytes_sent_per_second', 26.0, tags=metric_tags)
         aggregator.assert_metric('aws.flowlog.bytes_received', 0.0, tags=metric_tags)
         aggregator.assert_metric('aws.flowlog.bytes_received_per_second', 0.0, tags=metric_tags)
+
+    @set_flowlog_bucket_name('somebucketname')
+    def test_custom_bucket(self):
+        self.check.run()
+        self.assert_updated_ok()
+        self.assertIn(
+            {
+                "operation_name": "list_objects_v2",
+                "parameters": {"Bucket": "somebucketname", "Prefix": "AWSLogs/123456789012/vpcflowlogs/eu-west-1/"},
+            },
+            self.recorder,
+        )
 
 # other tests: custom bucket, no access to bucket, bucket versioning disabled, bucket versioning not accessible

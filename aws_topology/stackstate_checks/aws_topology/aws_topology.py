@@ -45,6 +45,7 @@ class InstanceInfo(Model):
     arns = DictType(StringType, default={})
     apis_to_run = ListType(StringType)
     log_bucket_name = StringType()
+    flowlog_bucket_name = StringType()
 
 
 class AwsTopologyCheck(AgentCheck):
@@ -259,7 +260,7 @@ class AwsTopologyCheck(AgentCheck):
             session = aws_client.get_session(instance_info.role_arn, region)
             location = location_info(self.get_account_id(instance_info), session.region_name)
             collector = FlowLogCollector(
-                bucket_name=instance_info.log_bucket_name,
+                bucket_name=instance_info.flowlog_bucket_name,
                 account_id=self.get_account_id(instance_info),
                 session=session,
                 location_info=location,
