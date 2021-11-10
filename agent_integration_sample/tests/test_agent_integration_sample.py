@@ -4,13 +4,13 @@
 
 # 3p
 import unittest
+
 import pytest
-import json
-import os
 
 # project
 from stackstate_checks.agent_integration_sample import AgentIntegrationSampleCheck
 from stackstate_checks.base.stubs import topology, aggregator, telemetry, health
+from stackstate_checks.base.utils.common import load_json_from_file
 
 
 class InstanceInfo():
@@ -52,7 +52,7 @@ class TestAgentIntegration(unittest.TestCase):
         self.assertEqual(len(topo_instances['components']), 6)
         self.assertEqual(len(topo_instances['relations']), 3)
 
-        assert topo_instances == self._read_data('expected_topology_instance.json')
+        assert topo_instances == load_json_from_file('expected_topology_instance.json', 'expected')
 
         aggregator.assert_metric('system.cpu.usage', count=3, tags=["hostname:this-host", "region:eu-west-1"])
         aggregator.assert_metric('location.availability', count=3, tags=["hostname:this-host", "region:eu-west-1"])
@@ -62,25 +62,25 @@ class TestAgentIntegration(unittest.TestCase):
         aggregator.assert_event('Http request to {} timed out after {} seconds.'.format('http://localhost', 5.0),
                                 count=1)
         telemetry.assert_topology_event(
-          {
-            "timestamp": int(1),
-            "event_type": "HTTP_TIMEOUT",
-            "source_type_name": "HTTP_TIMEOUT",
-            "msg_title": "URL timeout",
-            "msg_text": "Http request to http://localhost timed out after 5.0 seconds.",
-            "aggregation_key": "instance-request-http://localhost",
-            "context": {
-              "source_identifier": "source_identifier_value",
-              "element_identifiers": ["urn:host:/123"],
-              "source": "source_value",
-              "category": "my_category",
-              "data": {"big_black_hole": "here", "another_thing": 1, "test": {"1": "test"}},
-              "source_links": [
-                {"title": "my_event_external_link", "url": "http://localhost"}
-              ]
-            }
-          },
-          count=1
+            {
+                "timestamp": int(1),
+                "event_type": "HTTP_TIMEOUT",
+                "source_type_name": "HTTP_TIMEOUT",
+                "msg_title": "URL timeout",
+                "msg_text": "Http request to http://localhost timed out after 5.0 seconds.",
+                "aggregation_key": "instance-request-http://localhost",
+                "context": {
+                    "source_identifier": "source_identifier_value",
+                    "element_identifiers": ["urn:host:/123"],
+                    "source": "source_value",
+                    "category": "my_category",
+                    "data": {"big_black_hole": "here", "another_thing": 1, "test": {"1": "test"}},
+                    "source_links": [
+                        {"title": "my_event_external_link", "url": "http://localhost"}
+                    ]
+                }
+            },
+            count=1
         )
         aggregator.assert_service_check('example.can_connect', self.check.OK)
         health.assert_snapshot(self.check.check_id, self.check.health.stream,
@@ -93,22 +93,22 @@ class TestAgentIntegration(unittest.TestCase):
                                               'message': 'msg'}
                                              ])
 
+        telemetry.assert_metric("raw.metrics", count=2, value=20,
+                                tags=["application:some_application", "region:eu-west-1"],
+                                hostname="hostname")
+        telemetry.assert_metric("raw.metrics", count=1, value=30, tags=["no:hostname", "region:eu-west-1"],
+                                hostname="")
+
     def test_topology_items_from_config_check(self):
         instance_config = {
-           "stackstate-layer": "layer-conf-a",
-           "stackstate-environment": "environment-conf-a",
-           "stackstate-domain": "domain-conf-a",
-           "collection_interval": 5
+            "stackstate-layer": "layer-conf-a",
+            "stackstate-environment": "environment-conf-a",
+            "stackstate-domain": "domain-conf-a",
+            "collection_interval": 5
         }
         self.check = AgentIntegrationSampleCheck(self.CHECK_NAME, {}, instances=[instance_config])
         result = self.check.run()
         assert result == ''
         topo_instances = topology.get_snapshot(self.check.check_id)
 
-        assert topo_instances == self._read_data('expected_topology_instance_topology_config.json')
-
-    @staticmethod
-    def _read_data(filename):
-        path_to_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'expected', filename)
-        with open(path_to_file, "r") as f:
-            return json.load(f)
+        assert topo_instances == load_json_from_file('expected_topology_instance_topology_config.json', 'expected')
