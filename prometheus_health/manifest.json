@@ -1,0 +1,23 @@
+{
+  "display_name": "prometheus-health",
+  "maintainer": "rbeckers@stackstate.com",
+  "manifest_version": "1.0.0",
+  "name": "prometheus_health",
+  "metric_prefix": "prometheus_health.",
+  "metric_to_check": "",
+  "creates_events": false,
+  "short_description": "",
+  "guid": "65fdb78d-e817-44de-b549-9167b0f5c97b",
+  "support": "core",
+  "supported_os": [
+    "linux",
+    "mac_os",
+    "windows"
+  ],
+  "public_title": "StackState-prometheus-health Integration",
+  "categories": [
+    ""
+  ],
+  "type": "check",
+  "is_public": false
+}

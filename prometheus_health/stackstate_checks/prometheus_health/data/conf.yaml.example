@@ -1,0 +1,5 @@
+init_config:
+
+instances:
+  - cluster_name: preprod-dev.preprod.stackstate.io
+    url: "http://localhost:9090"
