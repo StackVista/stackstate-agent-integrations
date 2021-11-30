@@ -10,7 +10,7 @@ except ImportError:
     from .base import AgentCheck, TopologyInstance, StackPackInstance, AgentIntegrationInstance,\
         HealthStream, HealthStreamUrn, Health
     from .network import NetworkCheck, Status, EventType
-
+    from .generator import GeneratorAgentCheck, StartSnapshot, StopSnapshot, Component, Relation, ServiceCheck
 __all__ = [
     'AgentCheck',
     'TopologyInstance',
@@ -21,5 +21,11 @@ __all__ = [
     'EventType',
     'HealthStream',
     'HealthStreamUrn',
-    'Health'
+    'Health',
+    'GeneratorAgentCheck',
+    'StartSnapshot',
+    'StopSnapshot',
+    'Component',
+    'Relation',
+    'ServiceCheck'
 ]
