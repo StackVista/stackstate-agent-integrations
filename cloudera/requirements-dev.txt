@@ -1,3 +1,3 @@
 -e ../stackstate_checks_dev
-jsonpickle
+jsonpickle==2.0.0
 mock ; python_version < '3.3'
