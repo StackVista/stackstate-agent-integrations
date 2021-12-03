@@ -138,14 +138,6 @@ test_stackstate_checks_dev:
   tags:
     - sts-k8s-xl-no-docker-runner
 
-test_kubernetes:
-  <<: *linux_test
-  variables:
-    CHECK: "kubernetes"
-    PYTHON3: "true"
-    DOCKER_HOST: tcp://docker:2375/
-    DOCKER_DRIVER: overlay2
-
 test_dynatrace_base:
   <<: *linux_test
   variables:
