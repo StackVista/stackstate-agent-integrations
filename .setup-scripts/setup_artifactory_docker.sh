@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker login -u "$ARTIFACTORY_USER" -p "$ARTIFACTORY_PASSWORD" "$artifactory_url"
+docker login -u "$artifactory_user" -p "$artifactory_password" "$artifactory_url"
