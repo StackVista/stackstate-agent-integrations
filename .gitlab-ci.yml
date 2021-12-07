@@ -1,4 +1,4 @@
-image: artifactory.stackstate.io/docker-virtual/stackstate/stackstate-agent-integrations-runner:latest
+image: artifactory.tooling.stackstate.io/docker-virtual/stackstate/stackstate-agent-integrations-runner:latest
 
 stages:
   - build
