@@ -24,15 +24,15 @@ with open(path.join(HERE, 'README.md'), 'r', encoding='utf-8') as f:
 
 REQUIRES = [
     'coverage<5.0',
-    'mock',
-    'pytest',
+    'mock==4.0.3',
+    'pytest==6.2.5',
     'pytest-benchmark>=3.2.1',
     'pytest-cov>=2.6.1',
-    'pytest-mock',
+    'pytest-mock==3.6.1',
     'requests>=2.20.0',
-    'six',
+    'six==1.14.0',
     'Deprecated==1.2.10',
-    'enum34==1.1.10; python_version < \'3.4\'',
+    "enum34==1.1.10; python_version < '3.4'",
     'schematics==2.1.0'
 ]
 
