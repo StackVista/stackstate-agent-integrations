@@ -1,3 +1,3 @@
 #!/bin/bash
-
-docker login -u "$ARTIFACTORY_USER" -p "$ARTIFACTORY_PASSWORD" artifactory.stackstate.io
+echo "Artifactory PyPI URL: $ARTIFACTORY_URL"
+docker login -u "$artifactory_user" -p "$artifactory_password" "$ARTIFACTORY_URL"

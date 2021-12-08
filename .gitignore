@@ -117,5 +117,8 @@ wheelhouse/
 agent_integration_sample/agent-integration-sample.d
 agent_integration_sample/tests/agent-integration-sample.d
 
+# splunk test data
+splunk_health/splunk.d
+
 .envrc
 *__build/

@@ -16,7 +16,7 @@ gitlab-runner exec docker \
   --cache-s3-access-key $AWS_ACCESS_KEY \
   --cache-s3-secret-key $AWS_SECRET_KEY \
   --docker-volumes /var/run/docker.sock:/var/run/docker.sock \
-  --env ARTIFACTORY_URL=artifactory.stackstate.io/artifactory/api/pypi/pypi-local \
+  --env ARTIFACTORY_URL=artifactory.tooling.stackstate.io/artifactory/api/pypi/pypi-local \
   --env ARTIFACTORY_USER=$ARTIFACTORY_USER \
   --env ARTIFACTORY_PASSWORD=$ARTIFACTORY_PASSWORD \
   "$@"
