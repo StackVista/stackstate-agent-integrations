@@ -196,7 +196,7 @@ test_mysql:
     DOCKER_DRIVER: overlay2
     DOCKER_TLS_CERTDIR: ""
   tags:
-    - sts-k8s-xl-no-docker-runner
+    - sts-k8s-xl-runner
   #  - sts-aws
 
 test_openmetrics:
@@ -238,7 +238,7 @@ test_splunk_health:
     DOCKER_DRIVER: overlay2
     DOCKER_TLS_CERTDIR: ""
   tags:
-    - sts-k8s-xl-runner
+    - sts-k8s-xl-no-docker-runner
 
 test_cloudera:
   <<: *linux_test
