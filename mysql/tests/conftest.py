@@ -25,8 +25,8 @@ def sts_environment(instance_basic):
             'WAIT_FOR_IT_SCRIPT_PATH': _wait_for_it_script(),
         },
         conditions=[
-            WaitFor(connect_master, wait=2),
-            WaitFor(connect_slave, wait=2),
+            WaitFor(connect_master, wait=5),
+            WaitFor(connect_slave, wait=5),
         ],
     ):
         yield instance_basic
