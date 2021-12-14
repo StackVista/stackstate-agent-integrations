@@ -196,8 +196,9 @@ test_mysql:
     DOCKER_DRIVER: overlay2
     DOCKER_TLS_CERTDIR: ""
   tags:
-    - sts-k8s-xl-runner
-  #  - sts-aws
+    #- sts-k8s-xl-runner
+    #- sts-aws
+    - sts-k8s-xl-no-docker-runner
 
 test_openmetrics:
   <<: *linux_test
