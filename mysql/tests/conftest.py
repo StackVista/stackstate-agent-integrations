@@ -28,6 +28,7 @@ def sts_environment(instance_basic):
             WaitFor(connect_master, wait=5),
             WaitFor(connect_slave, wait=5),
         ],
+        sleep=10,
     ):
         yield instance_basic
 
