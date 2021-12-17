@@ -2,6 +2,7 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import os
+import time
 
 import pymysql
 import pytest
@@ -16,6 +17,8 @@ COMPOSE_FILE = '{}.yaml'.format(MYSQL_FLAVOR)
 
 @pytest.fixture(scope='session')
 def sts_environment(instance_basic):
+    # Try to wait a bit before trying to run docker.
+    time.sleep(5)
     with docker_run(
         os.path.join(common.HERE, 'compose', COMPOSE_FILE),
         env_vars={
@@ -25,8 +28,8 @@ def sts_environment(instance_basic):
             'WAIT_FOR_IT_SCRIPT_PATH': _wait_for_it_script(),
         },
         conditions=[
-            WaitFor(connect_master, wait=2),
-            WaitFor(connect_slave, wait=2),
+            WaitFor(connect_master, wait=2, attempts=120),
+            WaitFor(connect_slave, wait=2, attempts=120),
         ],
     ):
         yield instance_basic

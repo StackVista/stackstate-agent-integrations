@@ -1,2 +1,2 @@
 -e ../stackstate_checks_dev
-jsonpickle
+jsonpickle==2.0.0

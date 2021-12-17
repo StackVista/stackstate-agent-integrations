@@ -1,2 +1,2 @@
 -e ../stackstate_checks_dev
-requests_mock
+requests-mock==1.9.3
