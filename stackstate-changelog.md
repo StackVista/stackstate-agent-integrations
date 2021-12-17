@@ -1,6 +1,6 @@
 # StackState Agent Integrations v2 releases
 
-## 1.17.0 / 2021-11-??
+## 1.17.0 / 2021-12-17
 
 * [Improvement] AWS topology check got support for custom FlowLogs S3 bucket. [(STAC-14622)](https://stackstate.atlassian.net/browse/STAC-14622)
 * [Improvement] AWS topology check processes malformed StepFunction definitions. [(STAC-14622)](https://stackstate.atlassian.net/browse/STAC-14622)  
