@@ -5,7 +5,7 @@
 * [Improvement] AWS topology check got support for custom FlowLogs S3 bucket. [(STAC-14622)](https://stackstate.atlassian.net/browse/STAC-14622)
 * [Improvement] AWS topology check processes malformed StepFunction definitions. [(STAC-14622)](https://stackstate.atlassian.net/browse/STAC-14622)  
 * [Fixed] AWS topology check supports Elastic Load Balancer for Application that targets lambda and has no VPC. [(STAC-14546)](https://stackstate.atlassian.net/browse/STAC-14546)
-* [Improvement] Rename `min_collection_interval` to `collection_interval` to communicate that's the expected run time of the check.[(STAC-14364)] (https://stackstate.atlassian.net/browse/STAC-14364)
+* [Improvement] Rename `min_collection_interval` to `collection_interval` to communicate that's the expected run time of the check.[(STAC-14364)](https://stackstate.atlassian.net/browse/STAC-14364)
 * [Fixed] Dropped default expiry value for health checks when using a main stream as expiry is optional in that case. [(STAC-14364)](https://stackstate.atlassian.net/browse/STAC-14364)
 
 ## 1.16.1 / 2021-10-21
