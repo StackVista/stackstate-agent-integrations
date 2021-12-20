@@ -1,5 +1,9 @@
 # StackState Agent Integrations v2 releases
 
+## 1.17.1 / 2021-12-20
+
+*[Added] Add support for Raw Metrics in line with the current v2/v3 api format. [(STAC-12434)](https://stackstate.atlassian.net/browse/STAC-12434)
+
 ## 1.17.0 / 2021-12-17
 
 * [Improvement] AWS topology check got support for custom FlowLogs S3 bucket. [(STAC-14622)](https://stackstate.atlassian.net/browse/STAC-14622)
