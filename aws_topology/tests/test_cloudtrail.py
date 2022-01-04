@@ -6,63 +6,19 @@ from stackstate_checks.base.stubs import topology as top, aggregator
 from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
 from stackstate_checks.base import AgentCheck
 from stackstate_checks.aws_topology.resources import RegisteredResourceCollector
-import botocore
+import botocore.exceptions
+import botocore.response
 from datetime import datetime
 from functools import reduce
 import io
 import pytz
 
-
-def relative_path(path):
-    script_dir = os.path.dirname(__file__)
-    return os.path.join(script_dir, path)
+from .conftest import resource, get_bytes_from_file, set_log_bucket_name, use_subdirectory, set_not_authorized, use_gz
 
 
-def resource(path):
-    with open(relative_path(path)) as f:
-        x = json.load(f)
-    return x
-
-
-def get_bytes_from_file(path):
-    return open(relative_path(path), "rb").read()
-
-
-def use_subdirectory(value):
-    def inner(func):
-        func.subdirectory = value
-        return func
-
-    return inner
-
-
-def use_gz(value):
-    def inner(func):
-        func.gz = value
-        return func
-
-    return inner
-
-
-def set_not_authorized(value):
-    def inner(func):
-        func.not_authorized = value
-        return func
-
-    return inner
-
-
-def set_log_bucket_name(value):
-    def inner(func):
-        func.log_bucket_name = value
-        return func
-
-    return inner
-
-
-def wrapper(testinstance, not_authorized, subdirectory, use_gz, events_file=None):
+def wrapper(test_instance, not_authorized, subdirectory, use_gzip, events_file=None):
     api = "cloudtrail"
-    instance = testinstance
+    instance = test_instance
 
     def mock_boto_calls(self, *args, **kwargs):
         if args[0] == "AssumeRole":
@@ -81,9 +37,8 @@ def wrapper(testinstance, not_authorized, subdirectory, use_gz, events_file=None
             return {}
         if operation_name in not_authorized:
             raise botocore.exceptions.ClientError({"Error": {"Code": "AccessDenied"}}, operation_name)
-        apidir = api
-        directory = os.path.join("json", apidir, subdirectory)
-        ext = "gz" if use_gz and operation_name == "get_object" else "json"
+        directory = os.path.join("json", api, subdirectory)
+        ext = "gz" if use_gzip and operation_name == "get_object" else "json"
         file_name = "{}/{}_{}.{}".format(directory, operation_name, "xxx", ext)
         try:
             if ext == "gz":
@@ -157,14 +112,15 @@ lookup_call = {
 
 
 class TestCloudtrail(unittest.TestCase):
-
     CHECK_NAME = "aws_topology"
     SERVICE_CHECK_NAME = "aws_topology"
 
-    def get_region(self):
+    @staticmethod
+    def get_region():
         return ["eu-west-1"]
 
-    def get_account_id(self):
+    @staticmethod
+    def get_account_id():
         return "123456789012"
 
     def setUp(self):
@@ -228,6 +184,11 @@ class TestCloudtrail(unittest.TestCase):
 
         self.check = AwsTopologyCheck(self.CHECK_NAME, InitConfig(init_config), [instance])
         self.check.last_full_topology = datetime(2021, 5, 1, 0, 0, 0).replace(tzinfo=pytz.utc)
+
+        def ignore_callback(self, *args, **kwargs):
+            return
+
+        self.check.get_flowlog_update = ignore_callback
         self.mock_object.side_effect = wrapper(self, not_authorized, subdirectory, use_gz, events_file=events_file)
 
     def tearDown(self):
@@ -235,19 +196,29 @@ class TestCloudtrail(unittest.TestCase):
         self.extrapatch.stop()
         self.regpatch.stop()
 
-    def assert_executed_ok(self):
+    def assert_updated_ok(self):
         service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_UPDATE_NAME)
         self.assertGreater(len(service_checks), 0)
         self.assertEqual(service_checks[0].status, AgentCheck.OK, service_checks[0].message)
 
     def test_process_cloudtrail(self):
         self.check.run()
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
 
         components = topology[0]["components"]
 
+        # bucket versioning
+        self.assertIn(
+            {
+                "operation_name": "get_bucket_versioning",
+                "parameters": {
+                    "Bucket": "stackstate-logs-123456789012",
+                },
+            },
+            self.recorder,
+        )
         # lists bucket
         self.assertIn(
             {
@@ -268,7 +239,8 @@ class TestCloudtrail(unittest.TestCase):
                 "parameters": {
                     "Bucket": "stackstate-logs-123456789012",
                     "Key": "AWSLogs/123456789012/EventBridge/eu-west-1/2021/06/11/05/"
-                    + "stackstate-eventbridge-stream-2-2021-06-11-05-18-05-b7d5fff3-928a-4e63-939b-1a32662b6a63.gz",
+                           + "stackstate-eventbridge-stream-2-2021-06-11-05-18-05-b7d5fff3-928a-4e63-939b-"
+                             "1a32662b6a63.gz",
                 },
             },
             self.recorder,
@@ -280,7 +252,8 @@ class TestCloudtrail(unittest.TestCase):
                 "parameters": {
                     "Bucket": "stackstate-logs-123456789012",
                     "Key": "AWSLogs/123456789012/EventBridge/eu-west-1/2021/04/01/00/"
-                    + "stackstate-eventbridge-stream-2-2021-04-01-00-00-00-b7d5fff3-928a-4e63-939b-1a32662b6a63.gz",
+                           "stackstate-eventbridge-stream-2-2021-04-01-00-00-00-b7d5fff3-928a-4e63-939b-"
+                           "1a32662b6a63.gz",
                 },
             },
             self.recorder,
@@ -298,9 +271,9 @@ class TestCloudtrail(unittest.TestCase):
             dels,
             [
                 "AWSLogs/123456789012/EventBridge/eu-west-1/2021/04/01/00/"
-                + "stackstate-eventbridge-stream-2-2021-04-01-00-00-00-b7d5fff3-928a-4e63-939b-1a32662b6a63.gz",
+                "stackstate-eventbridge-stream-2-2021-04-01-00-00-00-b7d5fff3-928a-4e63-939b-1a32662b6a63.gz",
                 "AWSLogs/123456789012/EventBridge/eu-west-1/2021/06/11/05/"
-                + "stackstate-eventbridge-stream-2-2021-06-11-05-18-05-b7d5fff3-928a-4e63-939b-1a32662b6a63.gz",
+                "stackstate-eventbridge-stream-2-2021-06-11-05-18-05-b7d5fff3-928a-4e63-939b-1a32662b6a63.gz",
             ],
         )
         # two components in reverse order
@@ -311,7 +284,7 @@ class TestCloudtrail(unittest.TestCase):
     @set_log_bucket_name("somebucketname")
     def test_process_cloudtrail_bucket(self):
         self.check.run()
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertIn(
             {
                 "operation_name": "list_objects_v2",
@@ -323,25 +296,37 @@ class TestCloudtrail(unittest.TestCase):
     @use_subdirectory("missing_bucket")
     def test_process_cloudtrail_no_such_bucket(self):
         self.check.run()
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertIn(lookup_call, self.recorder)
 
     @set_not_authorized("list_objects_v2")
     def test_process_cloudtrail_not_authorized_list(self):
         self.check.run()
-        self.assert_executed_ok()
+        self.assert_updated_ok()
+        self.assertIn(lookup_call, self.recorder)
+
+    @set_not_authorized("get_bucket_versioning")
+    def test_process_cloudtrail_not_authorized_versioning(self):
+        self.check.run()
+        self.assert_updated_ok()
+        self.assertIn(lookup_call, self.recorder)
+
+    @use_subdirectory("versioning_disabled")
+    def test_process_cloudtrail_versioning_disabled(self):
+        self.check.run()
+        self.assert_updated_ok()
         self.assertIn(lookup_call, self.recorder)
 
     @use_subdirectory("wrong_json")
     def test_process_cloudtrail_wrong_json(self):
         self.check.run()
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertNotIn(lookup_call, self.recorder)
 
     @use_subdirectory("incomplete_json")
     def test_process_cloudtrail_incomplete_json(self):
         self.check.run()
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertNotIn(lookup_call, self.recorder)
 
     @use_gz(True)
@@ -350,7 +335,7 @@ class TestCloudtrail(unittest.TestCase):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
 
         components = topology[0]["components"]
 

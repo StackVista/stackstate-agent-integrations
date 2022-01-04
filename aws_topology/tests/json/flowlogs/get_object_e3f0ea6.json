@@ -1,0 +1,10 @@
+{
+    "Body": "version account-id interface-id srcaddr dstaddr srcport dstport protocol packets bytes start end action log-status\n2 120431062118 eni-04be3f7132dd24e01 10.16.133.15 10.16.5.72 5432 60428 6 1 52 1624348073 1624348074 ACCEPT OK",
+    "ResponseMetadata": {
+        "Parameters": {
+            "Bucket": "stackstate-logs-123456789012",
+            "Key": "AWSLogs/120431062118/vpcflowlogs/eu-west-1/2021/06/22/120431062118_vpcflowlogs_eu-west-1_fl-0630869f236e76872_20210622T0000Z_ea4b0f55.log.gz"
+        },
+        "OperationName": "GetObject"
+    }
+}

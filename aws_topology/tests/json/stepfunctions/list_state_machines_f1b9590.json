@@ -5,6 +5,12 @@
       "name": "StepFunctionsStateMachine-wAXvzDJDy4ja",
       "type": "STANDARD",
       "creationDate": "2021-05-10 12:16:45.021000+02:00"
+    },
+    {
+      "stateMachineArn": "arn:aws:states:eu-west-1:548105126730:stateMachine:MyStateMachine01",
+      "name": "MyStateMachine01",
+      "type": "STANDARD",
+      "creationDate": "2021-11-02T12:16:46.146000+01:00"
     }
   ],
   "ResponseMetadata": {

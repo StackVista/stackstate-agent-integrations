@@ -1,4 +1,3 @@
-binary==1.0.0
 boto3==1.17.68
 cm-client==33.0.0
 cryptography==3.3.2; python_version < "3.0"
@@ -9,8 +8,6 @@ deprecated==1.2.10
 enum34==1.1.10; python_version < "3.4"
 flatten-dict==0.2.0
 iso8601==0.1.14
-jaydebeapi==1.1.1
-jpype1==0.7.0
 kubernetes==8.0.1
 orionsdk==0.3.0
 orjson==2.6.1; python_version > '3.0'
@@ -24,13 +21,13 @@ PyJWT==1.7.1
 pymysql==0.9.3
 pytz==2021.1
 pywin32==228; sys_platform == 'win32'
-pyyaml==5.3.1
-requests==2.24.0
+pyyaml==5.4.1
+requests==2.25.0
+urllib3==1.26.5
 requests_ntlm==1.1.0
 schematics==2.1.0
 simplejson==3.6.5
 six==1.14.0
-uptime==3.0.1
 uuid==1.30
-vsphere-automation-sdk==1.0.0
+vsphere-automation-sdk==1.69.0-4fb7d48
 zeep==3.4.0

@@ -8,14 +8,15 @@ from stackstate_checks.aws_topology.resources.utils import (
     transformation,
     set_required_access_v2,
     create_security_group_relations,
+    get_ipurns_from_hostname,
 )
 from stackstate_checks.aws_topology.utils import correct_tags
-
 from datetime import datetime
 import unittest
 from six import string_types
 import sys
 import botocore
+from mock import patch
 
 
 class TestUtils(unittest.TestCase):
@@ -144,3 +145,9 @@ class TestUtils(unittest.TestCase):
         self.assertEqual(correct_tags(data), {"tags": tags, "Tags": {"test": "test"}})
         data = {"Tags": [{"Key": "test", "Value": "test"}]}
         self.assertEqual(correct_tags(data), {"Tags": {"test": "test"}})
+
+    def test_utils_get_ipurns_from_hostname(self):
+        with patch('socket.getaddrinfo', return_value=((0, 0, 0, 0, ['10.1.1.10']),)):
+            self.assertEqual(get_ipurns_from_hostname('test1', 'vpc-123'), ['urn:vpcip:vpc-123/10.1.1.10'])
+        with patch('socket.getaddrinfo', return_value=((0, 0, 0, 0, ['197.128.230.1']),)):
+            self.assertEqual(get_ipurns_from_hostname('test1', 'vpc-123'), ['urn:host:/197.128.230.1'])

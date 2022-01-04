@@ -8,6 +8,7 @@ from .utils import (
     create_hash,
     set_required_access_v2,
     transformation,
+    ipaddress_to_urn
 )
 from .registry import RegisteredResourceCollector
 from schematics import Model
@@ -177,7 +178,7 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         )
 
         output = make_valid_data(data.instance)
-        output["URN"] = [
+        urns = [
             create_host_urn(instance.InstanceId),
             create_resource_arn(
                 "ec2",
@@ -192,13 +193,16 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         output["Tags"].append({"Key": "host", "Value": instance.InstanceId})
         output["Tags"].append({"Key": "instance-id", "Value": instance.InstanceId})
         if instance.PrivateIpAddress:
+            urns.append(ipaddress_to_urn(instance.PrivateIpAddress, instance.VpcId))
             output["Tags"].append({"Key": "private-ip", "Value": instance.PrivateIpAddress})
         if instance.PublicDnsName:
-            output["URN"].append(create_host_urn(instance.PublicDnsName))
+            urns.append(create_host_urn(instance.PublicDnsName))
             output["Tags"].append({"Key": "fqdn", "Value": instance.PublicDnsName})
         if instance.PublicIpAddress:
-            output["URN"].append(create_host_urn(instance.PublicIpAddress))
+            urns.append(create_host_urn(instance.PublicIpAddress))
             output["Tags"].append({"Key": "public-ip", "Value": instance.PublicIpAddress})
+
+        output["URN"] = urns
 
         if data.instance_type:  # Don't run if instance type not found
             instance_type = self.process_instance_type(data.instance_type)
@@ -339,16 +343,22 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
     def process_batch_instances(self, event, seen):
         data = RunInstances(event, strict=False)
         data.validate()
-        instance_ids = [instance.instanceId for instance in data.responseElements.instancesSet.items]
+        instance_ids = [
+            instance.instanceId
+            for instance in data.responseElements.instancesSet.items
+            if instance.instanceId not in seen
+        ]
         self.process_instances(InstanceIds=instance_ids)
-        return instance_ids
+        seen.update(set(instance_ids))
 
     def process_state_notification(self, event, seen):
         instance_id = event.get("instance-id", "")
-        if event.get("state") == "terminated":
-            self.agent.delete(instance_id)
-        else:
-            self.process_instances(InstanceIds=[instance_id])
+        if instance_id not in seen:
+            seen.add(instance_id)
+            if event.get("state") == "terminated":
+                self.agent.delete(instance_id)
+            else:
+                self.process_instances(InstanceIds=[instance_id])
 
     def process_one_instance(self, instance_id):
         self.process_instances(InstanceIds=[instance_id])

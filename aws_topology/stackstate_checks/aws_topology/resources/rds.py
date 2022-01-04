@@ -5,10 +5,11 @@ from .utils import (
     with_dimensions,
     set_required_access_v2,
     transformation,
+    get_ipurns_from_hostname,
 )
 from .registry import RegisteredResourceCollector
 from schematics import Model
-from schematics.types import StringType, ListType, ModelType
+from schematics.types import StringType, ListType, ModelType, IntType
 
 
 def create_cluster_arn(region=None, account_id=None, resource_id=None, **kwargs):
@@ -43,6 +44,7 @@ class InstanceSubnetGroup(Model):
 
 class InstanceEndpoint(Model):
     Address = StringType(required=True)
+    Port = IntType(required=True)
 
 
 class InstanceVpcSecurityGroup(Model):
@@ -106,8 +108,17 @@ class RdsCollector(RegisteredResourceCollector):
         instance_id = instance.DBInstanceIdentifier
         output["Name"] = instance_id
         output["Tags"] = instance.TagList
+        urns = []
         if instance.Endpoint:
-            output["URN"] = ["urn:endpoint:/" + instance.Endpoint.Address]
+            urns.append("urn:endpoint:/" + instance.Endpoint.Address)
+            try:
+                urns += get_ipurns_from_hostname(
+                    instance.Endpoint.Address,
+                    instance.DBSubnetGroup.VpcId
+                )
+            except Exception:
+                self.agent.warning('Failed to resolve RDS endpoint address {}'.format(instance.Endpoint.Address))
+        output["URN"] = urns
         output.update(with_dimensions([{"key": "DBInstanceIdentifier", "value": instance_id}]))
         self.emit_component(instance_arn, "instance", output)
         self.emit_relation(instance_arn, instance.DBSubnetGroup.VpcId, "uses-service", {})

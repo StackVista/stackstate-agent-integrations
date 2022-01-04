@@ -5,6 +5,7 @@ instances:
     health_file: /path/to/health.csv
     delimiter: ';'
 
+    collection_interval: 15
     #tags:
     #  - optional_tag1
     #  - optional_tag2

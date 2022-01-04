@@ -80,6 +80,7 @@ class TestSplunkCheck(unittest.TestCase):
             }
         },
         'saved_searches': [],
+        'collection_interval': 15
     }
 
     instance_key = TopologyInstance("splunk", "http://localhost:8089")
@@ -113,6 +114,7 @@ class TestSplunkCheck(unittest.TestCase):
                 "name": "health",
                 "parameters": {}
             }],
+            'collection_interval': 15
         }
 
         self.check = MockedSplunkHealth(self.CHECK_NAME, {}, {}, [instance])
@@ -146,6 +148,7 @@ class TestSplunkCheck(unittest.TestCase):
                 "name": "incomplete_health",
                 "parameters": {}
             }],
+            'collection_interval': 15
         }
 
         self.check = MockedSplunkHealth(self.CHECK_NAME, {}, {}, [instance])
@@ -166,7 +169,8 @@ class TestSplunkCheck(unittest.TestCase):
             'saved_searches': [{
                 "name": "partially_incomplete_health",
                 "parameters": {}
-            }]
+            }],
+            'collection_interval': 15
         }
 
         self.check = MockedSplunkHealth(self.CHECK_NAME, {}, {}, [instance])
@@ -198,7 +202,8 @@ class TestSplunkCheck(unittest.TestCase):
             'saved_searches': [{
                 "name": "wrong_health",
                 "parameters": {}
-            }]
+            }],
+            'collection_interval': 15
         }
 
         self.check = MockedSplunkHealth(self.CHECK_NAME, {}, {}, [instance])
@@ -230,7 +235,8 @@ class TestSplunkCheck(unittest.TestCase):
             'saved_searches': [{
                 "name": "dispatch_exception",
                 "parameters": {}
-            }]
+            }],
+            'collection_interval': 15
         }
 
         self.check = MockedSplunkHealth(self.CHECK_NAME, {}, {}, [instance])
@@ -253,6 +259,7 @@ class TestSplunkCheck(unittest.TestCase):
                 "parameters": {}
             }],
             'ignore_saved_search_errors': True,
+            'collection_interval': 15
         }
 
         self.check = MockedSplunkHealth(self.CHECK_NAME, {}, {}, [instance])
@@ -272,7 +279,8 @@ class TestSplunkCheck(unittest.TestCase):
             },
             'saved_searches': [{
                 "name": "health"
-            }]
+            }],
+            'collection_interval': 15
         }
 
         self.check = MockedSplunkHealth(self.CHECK_NAME, {}, {}, [instance])
@@ -293,7 +301,8 @@ class TestSplunkCheck(unittest.TestCase):
             },
             'saved_searches': [{
                 "name": "health"
-            }]
+            }],
+            'collection_interval': 15
         }
 
         init_config = {
@@ -320,7 +329,8 @@ class TestSplunkCheck(unittest.TestCase):
                 "parameters": {
                     "respect": "me"
                 }
-            }]
+            }],
+            'collection_interval': 15
         }
 
         init_config = {
@@ -349,6 +359,7 @@ class TestSplunkCheck(unittest.TestCase):
                 }
             },
             'saved_searches': [],
+            'collection_interval': 15
         }
 
         self.check = MockedSplunkHealth(self.CHECK_NAME, {}, {}, [instance])
@@ -369,6 +380,7 @@ class TestSplunkCheck(unittest.TestCase):
                 }
             },
             'saved_searches': [],
+            'collection_interval': 15
         }
 
         self.check = MockedSplunkHealth(self.CHECK_NAME, {}, {}, [instance])

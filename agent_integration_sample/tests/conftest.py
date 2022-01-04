@@ -11,4 +11,4 @@ def sts_environment():
 
 @pytest.fixture(scope="class")
 def instance(request):
-    request.cls.instance = {'url': 'http://localhost'}
+    request.cls.instance = {'url': 'http://localhost', 'collection_interval': 30}

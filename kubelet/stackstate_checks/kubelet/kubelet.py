@@ -11,6 +11,8 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 
 import requests
+# https://github.com/DataDog/datadog-agent/blob/main/docs/dev/checks/builtins/kubeutil.md
+# noinspection PyUnresolvedReferences
 from kubeutil import get_connection_info
 from six import iteritems
 from six.moves.urllib.parse import urljoin

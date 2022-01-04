@@ -246,12 +246,17 @@ class AgentCheckBase(object):
 
         stream_spec = self.get_health_stream(self._get_instance_schema(self.instance))
         if stream_spec:
-            # 15 seconds is the default interval (see defaults.DefaultCheckInterval in the core agent)
-            min_collection_interval = self.instance.get('min_collection_interval', 15)
-            repeat_interval_seconds = stream_spec.repeat_interval_seconds or min_collection_interval
+            # collection_interval should always be set by the agent
+            collection_interval = self.instance['collection_interval']
+            repeat_interval_seconds = stream_spec.repeat_interval_seconds or collection_interval
             expiry_seconds = stream_spec.expiry_seconds
+            # Only apply a default expiration when we are using substreams
             if expiry_seconds is None:
-                expiry_seconds = repeat_interval_seconds * 4
+                if stream_spec.sub_stream != "":
+                    expiry_seconds = repeat_interval_seconds * 4
+                else:
+                    # Explicitly disable expiry setting it to 0
+                    expiry_seconds = 0
             self.health = HealthApi(self, stream_spec, expiry_seconds, repeat_interval_seconds)
 
     def _check_run_base(self, default_result):
@@ -857,6 +862,12 @@ class AgentCheckBase(object):
     def _submit_metric(self, mtype, name, value, tags=None, hostname=None, device_name=None):
         pass
 
+    def _submit_raw_metrics_data(self, name, value, tags=None, hostname=None, device_name=None, timestamp=None):
+        pass
+
+    def raw(self, name, value, tags=None, hostname=None, device_name=None, timestamp=None):
+        self._submit_raw_metrics_data(name, value, tags, hostname, device_name, timestamp)
+
     def gauge(self, name, value, tags=None, hostname=None, device_name=None):
         self._submit_metric(aggregator.GAUGE, name, value, tags=tags, hostname=hostname, device_name=device_name)
 
@@ -1106,6 +1117,18 @@ class __AgentCheckPy3(AgentCheckBase):
 
         aggregator.submit_metric(self, self.check_id, mtype, ensure_unicode(name), value, tags, hostname)
 
+    def _submit_raw_metrics_data(self, name, value, tags=None, hostname=None, device_name=None, timestamp=None):
+        tags = self._normalize_tags_type(tags, device_name, name)
+
+        if timestamp is None:
+            self.warning('Ignoring raw metric, timestamp is empty')
+            return
+
+        if hostname is None:
+            hostname = ''
+
+        telemetry.submit_raw_metrics_data(self, self.check_id, ensure_unicode(name), value, tags, hostname, timestamp)
+
     def service_check(self, name, status, tags=None, hostname=None, message=None):
         tags = self._normalize_tags_type(tags)
         if hostname is None:
@@ -1271,6 +1294,18 @@ class __AgentCheckPy2(AgentCheckBase):
             return
 
         aggregator.submit_metric(self, self.check_id, mtype, ensure_string(name), value, tags, hostname)
+
+    def _submit_raw_metrics_data(self, name, value, tags=None, hostname=None, device_name=None, timestamp=None):
+        tags = self._normalize_tags_type(tags, device_name, name)
+
+        if timestamp is None:
+            self.warning('Ignoring raw metric, timestamp is empty')
+            return
+
+        if hostname is None:
+            hostname = b''
+
+        telemetry.submit_raw_metrics_data(self, self.check_id, ensure_unicode(name), value, tags, hostname, timestamp)
 
     def service_check(self, name, status, tags=None, hostname=None, message=None):
         tags = self._normalize_tags_type(tags)

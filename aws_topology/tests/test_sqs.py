@@ -47,7 +47,7 @@ class TestSqs(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
             "https://sqs.eu-west-1.amazonaws.com/731070500579/STS_stackpack_test",
@@ -59,7 +59,7 @@ class TestSqs(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
             "https://sqs.eu-west-1.amazonaws.com/731070500579/STS_stackpack_test",
@@ -71,7 +71,7 @@ class TestSqs(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
             "https://sqs.eu-west-1.amazonaws.com/731070500579/STS_stackpack_test",
@@ -83,7 +83,7 @@ class TestSqs(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
             "https://sqs.eu-west-1.amazonaws.com/731070500579/STS_stackpack_test",
@@ -95,7 +95,7 @@ class TestSqs(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 0)
         self.assertIn("arn:aws:sqs:eu-west-1:731070500579:DeletedQueue", self.check.delete_ids)
 
@@ -104,7 +104,7 @@ class TestSqs(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 0)
         self.assertEqual(len(self.check.delete_ids), 0)
         # TODO test that an event is emitted

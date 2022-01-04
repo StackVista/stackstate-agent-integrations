@@ -1,22 +1,22 @@
 # -*- coding: utf-8 -*-
 
-# (C) Datadog, Inc. 2018
+# (C) StackState, Inc. 2021
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
+
+import copy
+import sys
+
 import mock
-import shutil
-from schematics import Model
-from schematics.types import IntType, StringType, ModelType
-from schematics.exceptions import ValidationError, ConversionError, DataError
 import pytest
+from schematics import Model
+from schematics.exceptions import ValidationError, ConversionError, DataError
+from schematics.types import IntType, StringType, ModelType
 from six import PY3, text_type
 
-from stackstate_checks.checks import AgentCheck, TopologyInstance, AgentIntegrationInstance,\
+from stackstate_checks.base.stubs.topology import component
+from stackstate_checks.checks import AgentCheck, TopologyInstance, AgentIntegrationInstance, \
     HealthStream, HealthStreamUrn, Health
-from stackstate_checks.base.utils.agent_integration_test_util import AgentIntegrationTestUtil
-from stackstate_checks.base.stubs.topology import component, relation
-import copy
-import re
 
 
 def test_instance():
@@ -367,10 +367,26 @@ class TopologyBrokenCheck(TopologyAutoSnapshotCheck):
 
 
 class HealthCheck(AgentCheck):
-    def __init__(self, stream=HealthStream(HealthStreamUrn("source", "stream_id"), "sub_stream"), *args, **kwargs):
-        instances = [{'a': 'b'}]
+    def __init__(self,
+                 stream=HealthStream(HealthStreamUrn("source", "stream_id"), "sub_stream"),
+                 instance={'collection_interval': 15, 'a': 'b'},
+                 *args, **kwargs):
+        instances = [instance]
         self.stream = stream
         super(HealthCheck, self).__init__("test", {}, instances)
+
+    def get_health_stream(self, instance):
+        return self.stream
+
+    def check(self, instance):
+        return
+
+
+class HealthCheckMainStream(AgentCheck):
+    def __init__(self, stream=HealthStream(HealthStreamUrn("source", "stream_id")), *args, **kwargs):
+        instances = [{'collection_interval': 15, 'a': 'b'}]
+        self.stream = stream
+        super(HealthCheckMainStream, self).__init__("test", {}, instances)
 
     def get_health_stream(self, instance):
         return self.stream
@@ -811,6 +827,8 @@ class TestBaseSanitize:
         }
         assert check.event(event) is None
 
+    @pytest.mark.skipif(sys.platform.startswith('win') and sys.version_info < (3, 7),
+                        reason='ordered set causes erratic error failures on windows')
     def test_ensure_string_only_keys(self):
         """
         Testing the functionality of _ensure_string_only_keys, but we're calling _sanitize to deal with multi-tier
@@ -1317,6 +1335,15 @@ class TestHealth:
                                start_snapshot={'expiry_interval_s': 60, 'repeat_interval_s': 15},
                                stop_snapshot=None)
 
+    def test_start_snapshot_main_stream(self, health):
+        check = HealthCheckMainStream()
+        check._init_health_api()
+        check.health.start_snapshot()
+        health.assert_snapshot(check.check_id,
+                               check.get_health_stream(None),
+                               start_snapshot={'expiry_interval_s': 0, 'repeat_interval_s': 15},
+                               stop_snapshot=None)
+
     def test_stop_snapshot(self, health):
         check = HealthCheck()
         check._init_health_api()
@@ -1335,3 +1362,12 @@ class TestHealth:
         check = HealthCheck(stream=None)
         check.run()
         assert check.health is None
+
+    def test_explicit_collection_interval(self, health):
+        check = HealthCheck(instance={'collection_interval': 30})
+        check._init_health_api()
+        check.health.start_snapshot()
+        health.assert_snapshot(check.check_id,
+                               check.get_health_stream(None),
+                               start_snapshot={'expiry_interval_s': 120, 'repeat_interval_s': 30},
+                               stop_snapshot=None)

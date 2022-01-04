@@ -1,0 +1,50 @@
+init_config:
+
+instances:
+  # collection interval for topology
+  - collection_interval: 300
+
+    # Base URL of Dynatrace instance
+    # SaaS url example - https://{your-environment-id}.live.dynatrace.com
+    # Managed url example - https://{your-domain}/e/{your-environment-id}
+    url: https://test.live.dynatrace.com
+
+    # Api Token from Dynatrace platform which has access to read the topology API
+    # Docs - https://www.dynatrace.com/support/help/dynatrace-api/basics/dynatrace-api-authentication/#generate-a-token
+    # Token and Passwords can always be encrypted using Secret Mangement in Agent V2. Read more on docs link below
+    # Docs - https://docs.stackstate.com/configure/security/secrets_management
+    token: test_token
+
+    # to verify the certificate for https
+    # verify: True  # By default it's True
+
+    # path to certificate file for https verification
+    # cert: /path/to/cert.pem
+
+    # path to public key of certificate for https verification
+    # keyfile: /path/to/key.pem
+
+    # Timeout for requests. Default value is 10.
+    # timeout: 10
+
+    # domain to use for the components. The default is 'dynatrace'.
+    # domain: customer
+
+    # Environment to use for putting the data in. The default is 'production'.
+    # environment: development
+
+    # The relative timeframe for retrieving topology. The default is 'hour'.
+    # Docs - https://www.dynatrace.com/support/help/shortlink/api-applications-get-all#parameters
+    # relative_time: hour
+
+    # The relative timeframe for retrieving custom devices. The default is '1 hour'.
+    # https://www.dynatrace.com/support/help/dynatrace-api/environment-api/entity-v2/get-entities-list/#parameters
+    # custom_device_relative_time: 1h
+
+    # Which Custom Device property fields will be used.
+    # https://www.dynatrace.com/support/help/dynatrace-api/environment-api/entity-v2/get-entities-list/#parameters
+    # custom_device_fields: +fromRelationships,+toRelationships,+tags,+managementZones,+properties.dnsNames,+properties.ipAddress
+
+    # Custom tags which can be used to filter out
+    # tags:
+    #   - foo:bar

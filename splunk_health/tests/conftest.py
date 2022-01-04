@@ -22,7 +22,8 @@ _empty_instance = {
             'password': PASSWORD
         },
     },
-    'saved_searches': []
+    'saved_searches': [],
+    'collection_interval': 15
 }
 
 
@@ -59,7 +60,8 @@ def sts_environment(test_environment):
         },
         'saved_searches': [{
             "name": _make_health_fixture(url, USER, PASSWORD),
-        }]
+        }],
+        'collection_interval': 15
     }
 
 
@@ -76,7 +78,8 @@ def splunk_health_instance():
         },
         'saved_searches': [{
             "name": _make_health_fixture(url, USER, PASSWORD),
-        }]
+        }],
+        'collection_interval': 15
     }
 
 

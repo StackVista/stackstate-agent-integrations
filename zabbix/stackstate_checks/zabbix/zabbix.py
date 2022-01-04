@@ -21,12 +21,13 @@ from stackstate_checks.utils.identifiers import Identifiers
 
 
 class ZabbixHost:
-    def __init__(self, host_id, host, name, host_groups):
+    def __init__(self, host_id, host, name, host_groups, tags):
         assert(type(host_groups == list))
         self.host_id = host_id
         self.host = host
         self.name = name
         self.host_groups = host_groups
+        self.tags = tags
 
     def __repr__(self):
         return self.__str__()
@@ -194,11 +195,7 @@ class ZabbixCheck(AgentCheck):
     def process_host_topology(self, topology_instance, zabbix_host, stackstate_environment):
         external_id = "urn:host:/%s" % zabbix_host.host
         identifiers = list()
-        # get actual hostname from agent
-        # if zabbix is deployed on ec2 instance, it doesn't give any metadata about actual hostname
-        hostname = self.get_hostname()
-        identifiers.append(Identifiers.create_host_identifier(hostname))
-        identifiers.append(hostname)
+        identifiers.append(Identifiers.create_host_identifier(zabbix_host.host))
         identifiers.append(zabbix_host.host)
 
         url = topology_instance.get('url')
@@ -207,20 +204,20 @@ class ZabbixCheck(AgentCheck):
         else:
             instance_url = url.split("/")[0]
         labels = ['zabbix', 'instance_url:%s' % instance_url]
-        identifiers.append(Identifiers.create_host_identifier(instance_url))
         for host_group in zabbix_host.host_groups:
             labels.append('host group:%s' % host_group.name)
         data = {
             'name': zabbix_host.name,
             'host_id': zabbix_host.host_id,
             'host': zabbix_host.host,
-            'layer': 'Host',
+            'layer': 'machines',
             # use host group of component as StackState domain when there is only one host group
             'domain': zabbix_host.host_groups[0].name if len(zabbix_host.host_groups) == 1 else 'Zabbix',
             'identifiers': identifiers,
             'environment': stackstate_environment,
             'host_groups': [host_group.name for host_group in zabbix_host.host_groups],
             'labels': labels,
+            'tags': zabbix_host.tags,
             'instance': instance_url
         }
 
@@ -270,7 +267,8 @@ class ZabbixCheck(AgentCheck):
         self.log.debug("Retrieving hosts.")
         params = {
             "output": ["hostid", "host", "name", "maintenance_status"],
-            "selectGroups": ["groupid", "name"]
+            "selectGroups": ["groupid", "name"],
+            "selectTags": ["tag", "value"]
         }
         response = self.method_request(url, "host.get", auth=auth, params=params)
         for item in response.get("result", []):
@@ -278,6 +276,7 @@ class ZabbixCheck(AgentCheck):
             host = item.get("host", None)
             name = item.get("name", None)
             raw_groups = item.get('groups', [])
+            host_tags = item.get('tags', [])
             maintenance_status = item.get("maintenance_status", "0")
             groups = []
             for raw_group in raw_groups:
@@ -285,8 +284,10 @@ class ZabbixCheck(AgentCheck):
                 host_group_name = raw_group.get('name', None)
                 zabbix_host_group = ZabbixHostGroup(host_group_id, host_group_name)
                 groups.append(zabbix_host_group)
-
-            zabbix_host = ZabbixHost(host_id, host, name, groups)
+            tags = []
+            for tag in host_tags:
+                tags.append("{}:{}".format(tag.get('tag'), tag.get('value')))
+            zabbix_host = ZabbixHost(host_id, host, name, groups, tags)
             if not host_id or not host or not name or len(groups) == 0:
                 self.log.warn("Incomplete ZabbixHost, got: %s" % zabbix_host)
             if maintenance_status == "0":

@@ -1,0 +1,9 @@
+{
+    "Status": "Enabled",
+    "ResponseMetadata": {
+        "Parameters": {
+            "Bucket": "somebucketname"
+        },
+        "OperationName": "GetBucketVersioning"
+    }
+}

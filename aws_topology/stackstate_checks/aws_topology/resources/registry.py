@@ -10,39 +10,36 @@ def dot_reducer(key1, key2):
 
 
 class ResourceRegistry(type):
-
     REGISTRY = {"global": {}, "regional": {}}
     CLOUDTRAIL = {}
 
-    def __new__(cls, name, bases, attrs):
-        new_cls = type.__new__(cls, name, bases, attrs)
+    def __new__(mcs, name, bases, attrs):
+        new_cls = type.__new__(mcs, name, bases, attrs)
         """
-            Here the name of the class is used as key but it could be any class
-            parameter.
+        Here the name of the class is used as key but it could be any class parameter.
         """
         if "??" not in [new_cls.API, new_cls.API_TYPE]:
-            cls.REGISTRY[new_cls.API_TYPE][new_cls.API] = new_cls
+            mcs.REGISTRY[new_cls.API_TYPE][new_cls.API] = new_cls
         if "??" != new_cls.EVENT_SOURCE and new_cls.CLOUDTRAIL_EVENTS is not None:
             key = new_cls.EVENT_SOURCE
             if new_cls.API_VERSION != "??":
                 key = new_cls.API_VERSION + "-" + new_cls.EVENT_SOURCE
             # dual implementation (we will deprecate one soon)
             if isinstance(new_cls.CLOUDTRAIL_EVENTS, dict):
-                cls.CLOUDTRAIL.update({key: new_cls.CLOUDTRAIL_EVENTS})
+                mcs.CLOUDTRAIL.update({key: new_cls.CLOUDTRAIL_EVENTS})
             elif isinstance(new_cls.CLOUDTRAIL_EVENTS, list):
-                cls.CLOUDTRAIL.update({key: {event["event_name"]: new_cls for event in new_cls.CLOUDTRAIL_EVENTS}})
+                mcs.CLOUDTRAIL.update({key: {event["event_name"]: new_cls for event in new_cls.CLOUDTRAIL_EVENTS}})
         return new_cls
 
     @classmethod
-    def get_registry(cls):
-        return dict(cls.REGISTRY)
+    def get_registry(mcs):
+        return dict(mcs.REGISTRY)
 
 
 class RegisteredResourceCollector(with_metaclass(ResourceRegistry, object)):
     """
-    Any class that will inherits from BaseRegisteredClass will be included
-    inside the dict RegistryHolder.REGISTRY, the key being the name of the
-    class and the associated value, the class itself.
+    Any class that will inherits from RegisteredResourceCollector will be included inside the dict
+    ResourceRegistry.REGISTRY, the key being the name of the class and the associated value, the class itself.
     """
 
     API = "??"

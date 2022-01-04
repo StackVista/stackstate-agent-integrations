@@ -1,4 +1,2 @@
 -e ../stackstate_checks_dev
-requests_mock
-parameterized
-pyyaml
+parameterized==0.8.1

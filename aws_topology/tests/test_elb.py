@@ -2,7 +2,7 @@ from stackstate_checks.base.stubs import topology as top, aggregator
 from .conftest import BaseApiTest, set_cloudtrail_event
 
 
-class TestElasticLoadbalancingV2(BaseApiTest):
+class TestClassicElasticLoadBalancing(BaseApiTest):
     def get_api(self):
         return "elb"
 
@@ -60,7 +60,7 @@ class TestElasticLoadbalancingV2(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
             "arn:aws:elasticloadbalancing:eu-west-1:123456789012:loadbalancer/waegh", topology[0]["components"][0]["id"]
@@ -71,7 +71,7 @@ class TestElasticLoadbalancingV2(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 0)
         self.assertIn(
             "arn:aws:elasticloadbalancing:eu-west-1:123456789012:loadbalancer/classic-lb", self.check.delete_ids
@@ -82,7 +82,7 @@ class TestElasticLoadbalancingV2(BaseApiTest):
         self.check.run()
         topology = [top.get_snapshot(self.check.check_id)]
         self.assertEqual(len(topology), 1)
-        self.assert_executed_ok()
+        self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 1)
         self.assertEqual(
             "arn:aws:elasticloadbalancing:eu-west-1:123456789012:loadbalancer/waegh", topology[0]["components"][0]["id"]

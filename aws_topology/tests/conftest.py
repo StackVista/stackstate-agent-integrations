@@ -1,6 +1,8 @@
 # (C) StackState 2021
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
+import logging
+
 import pytest
 import unittest
 import os
@@ -10,10 +12,10 @@ from stackstate_checks.base.stubs import topology as top, aggregator
 from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
 from stackstate_checks.base import AgentCheck
 import botocore
+from botocore.exceptions import ClientError
 import hashlib
 from datetime import datetime, timedelta
 import pytz
-
 
 REGION = "test-region"
 KEY_ID = "1234"
@@ -122,33 +124,59 @@ def resource(path):
     return x
 
 
+def get_bytes_from_file(path):
+    return open(relative_path(path), "rb").read()
+
+
+def use_gz(value):
+    def inner(func):
+        func.gz = value
+        return func
+
+    return inner
+
+
+def set_log_bucket_name(value):
+    def inner(func):
+        func.log_bucket_name = value
+        return func
+
+    return inner
+
+
 def wrapper(api, not_authorized, subdirectory, event_name=None, eventbridge_event_name=None):
+    logging.basicConfig(format="%(asctime)s %(levelname)s: %(message)s", datefmt="%d-%m-%Y %H:%M:%S",
+                        level=logging.DEBUG)
+
     def mock_boto_calls(self, *args, **kwargs):
-        if args[0] == "AssumeRole":
+        operation_name = botocore.xform_name(args[0])
+        if operation_name == "assume_role":
             return {"Credentials": {"AccessKeyId": "KEY_ID", "SecretAccessKey": "ACCESS_KEY", "SessionToken": "TOKEN"}}
-        if args[0] == "LookupEvents":
-            if event_name:
+        if event_name:
+            if operation_name == "lookup_events":
                 res = resource("json/" + api + "/cloudtrail/" + event_name + ".json")
                 dt = datetime.utcnow() + timedelta(hours=3)
                 res["eventTime"] = dt.strftime("%Y-%m-%dT%H:%M:%SZ")
                 msg = {"Events": [{"CloudTrailEvent": json.dumps(res)}]}
                 return msg
-            else:
+        if eventbridge_event_name:
+            if operation_name == "lookup_events":
                 return {}
-        operation_name = botocore.xform_name(args[0])
-        if operation_name == "list_objects_v2" and eventbridge_event_name:
-            return {
-                "Contents": [
-                    {
-                        "Key": "AWSLogs/123456789012/EventBridge/eu-west-1"
-                        + "/2021/06/11/05/stackstate-eventbridge-stream-2-2021-06-11-05-18-05-"
-                        + "b7d5fff3-928a-4e63-939b-1a32662b6a63.gz"
-                    }
-                ]
-            }
-        if operation_name == "get_object" and eventbridge_event_name:
-            res = resource("json/" + api + "/cloudtrail/" + eventbridge_event_name + ".json")
-            return {"Body": json.dumps(res)}
+            if operation_name == "get_bucket_versioning":
+                return {"Status": "Enabled"}
+            if operation_name == "list_objects_v2":
+                return {
+                    "Contents": [
+                        {
+                            "Key": "AWSLogs/123456789012/EventBridge/eu-west-1"
+                                   + "/2021/06/11/05/stackstate-eventbridge-stream-2-2021-06-11-05-18-05-"
+                                   + "b7d5fff3-928a-4e63-939b-1a32662b6a63.gz"
+                        }
+                    ]
+                }
+            if operation_name == "get_object":
+                res = resource("json/" + api + "/cloudtrail/" + eventbridge_event_name + ".json")
+                return {"Body": json.dumps(res)}
         if operation_name in not_authorized:
             # Some APIs return a different error code when there is no permission
             # But there are no docs on which ones do. Here is an array of some known APIs
@@ -160,17 +188,20 @@ def wrapper(api, not_authorized, subdirectory, event_name=None, eventbridge_even
                 error_code = "AuthorizationError"
             else:
                 error_code = "AccessDenied"
-            raise botocore.exceptions.ClientError({"Error": {"Code": error_code}}, operation_name)
+            raise ClientError({"Error": {"Code": error_code}}, operation_name)
         apidir = api
         if apidir is None:
             apidir = self._service_model.service_name
-        directory = os.path.join("json", apidir, subdirectory)
-        file_name = "{}/{}_{}.json".format(directory, operation_name, get_params_hash(self.meta.region_name, args))
+        file_name = os.path.join("json", apidir, subdirectory,
+                                 "{}_{}.json".format(operation_name, get_params_hash(self.meta.region_name, args)))
         try:
             result = resource(file_name)
-            # print('file: ', file_name)
-            # print('args: ', json.dumps(args, indent=2, default=str))
-            # print('meta: ', json.dumps(result["ResponseMetadata"]["Parameters"], indent=2, default=str))
+            logging.debug('file: %s ', file_name)
+            logging.debug('args: %s', json.dumps(args, indent=2, default=str))
+            try:
+                logging.debug('meta: %s', json.dumps(result["ResponseMetadata"]["Parameters"], indent=2, default=str))
+            except KeyError:
+                pass
         except Exception:
             error = "API response file not found for operation: {}\n".format(operation_name)
             error += "Parameters:\n{}\n".format(json.dumps(args[1], indent=2, default=str))
@@ -178,7 +209,7 @@ def wrapper(api, not_authorized, subdirectory, event_name=None, eventbridge_even
             raise Exception(error)
         # If an error code is included in the response metadata, raise this instead
         if "Error" in result.get("ResponseMetadata", {}):
-            raise botocore.exceptions.ClientError({"Error": result["ResponseMetadata"]["Error"]}, operation_name)
+            raise ClientError({"Error": result["ResponseMetadata"]["Error"]}, operation_name)
         else:
             return result
 
@@ -186,7 +217,6 @@ def wrapper(api, not_authorized, subdirectory, event_name=None, eventbridge_even
 
 
 class BaseApiTest(unittest.TestCase):
-
     CHECK_NAME = "aws_topology"
     SERVICE_CHECK_NAME = "aws_topology"
 
@@ -199,7 +229,8 @@ class BaseApiTest(unittest.TestCase):
     def get_region(self):
         return "eu-west-1"
 
-    def get_filter(self):
+    @staticmethod
+    def get_filter():
         return ""
 
     def setUp(self):
@@ -253,6 +284,13 @@ class BaseApiTest(unittest.TestCase):
 
         self.check = AwsTopologyCheck(self.CHECK_NAME, InitConfig(init_config), [instance])
         self.check.last_full_topology = datetime(2021, 5, 1, 0, 0, 0).replace(tzinfo=pytz.utc)
+
+        def ignore_callback(self, *args, **kwargs):
+            return
+
+        self.check.get_flowlog_update = ignore_callback
+        if cloudtrail_event is None and eventbridge_event is None:
+            self.check.get_topology_update = ignore_callback
         self.mock_object.side_effect = wrapper(
             api, not_authorized, subdirectory, event_name=cloudtrail_event, eventbridge_event_name=eventbridge_event
         )
