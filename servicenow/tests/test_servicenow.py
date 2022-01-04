@@ -17,7 +17,7 @@ from six import PY3
 from stackstate_checks.base import AgentIntegrationTestUtil, AgentCheck, TopologyInstance
 from stackstate_checks.base.errors import CheckException
 from stackstate_checks.base.stubs import topology, aggregator, telemetry
-from stackstate_checks.servicenow import ServicenowCheck, InstanceInfo, State
+from stackstate_checks.servicenow import ServiceNowCheck, InstanceInfo, State
 
 
 def mock_collect_process(*args):
@@ -293,7 +293,7 @@ class TestServicenow(unittest.TestCase):
         """
         Initialize and patch the check, i.e.
         """
-        self.check = ServicenowCheck('servicenow', {}, {}, [self.instance])
+        self.check = ServiceNowCheck('servicenow', {}, {}, [self.instance])
         topology.reset()
         aggregator.reset()
         telemetry.reset()
@@ -377,75 +377,6 @@ class TestServicenow(unittest.TestCase):
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 0)
         self.assertEqual(topo_instances['relations'][0]['type'], 'Cools')
-
-    @mock.patch('requests.Session.get')
-    def test_get_json_ok_status(self, mock_req_get):
-        """
-        Test to check the method _get_json with positive response and get a OK service check
-        """
-        url, auth = self._get_url_auth()
-        example = {'key': 'value'}
-        mock_req_get.return_value = mock.MagicMock(status_code=200, text=json.dumps(example))
-        result = self.check._get_json(url, timeout=10, params={}, auth=auth)
-        self.assertEqual(example, result)
-
-    @mock.patch('requests.Session.get')
-    def test_get_json_error_status(self, mock_req_get):
-        """
-        Test for Check Exception if response code is not 200
-        """
-        url, auth = self._get_url_auth()
-        mock_req_get.return_value = mock.MagicMock(status_code=300, text=json.dumps({'key': 'value'}))
-        self.assertRaises(CheckException, self.check._get_json, url, 10, {}, auth)
-
-    @mock.patch('requests.Session.get')
-    def test_get_json_ok_status_with_error_in_response(self, mock_req_get):
-        """
-        Test for situation when we get error in json and request status is OK
-        """
-        url, auth = self._get_url_auth()
-        response_txt = json.dumps({'error': {'message': 'test error'}})
-        mock_req_get.return_value = mock.MagicMock(status_code=200, text=response_txt)
-        self.assertRaises(CheckException, self.check._get_json, url, 10, {}, auth)
-
-    def test_get_sys_class_component_filter_query(self):
-        """
-        Test to check if the method creates the proper param query
-        """
-        sys_class_filter = self.instance.get('include_resource_types')
-        self.assertEqual(len(sys_class_filter), 3)
-        query = self.check._get_sys_class_component_filter_query(sys_class_filter)
-        expected_query = "sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server"
-        self.assertEqual(expected_query, query)
-
-    def test_get_sys_class_component_filter_query_only_one_element(self):
-        """
-        Test to check if the method creates the proper param query for only one element
-        """
-        sys_class_filter = ['cmdb_ci_app_server_java']
-        query = self.check._get_sys_class_component_filter_query(sys_class_filter)
-        expected_query = 'sys_class_nameINcmdb_ci_app_server_java'
-        self.assertEqual(expected_query, query)
-
-    def test_get_sys_class_relation_filter_query(self):
-        """
-        Test to check if the method creates the proper param query
-        """
-        sys_class_filter = self.instance.get('include_resource_types')
-        self.assertEqual(len(sys_class_filter), 3)
-        query = self.check._get_sys_class_relation_filter_query(sys_class_filter)
-        expected_query = 'parent.sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server' \
-                         '^child.sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server'
-        self.assertEqual(expected_query, query)
-
-    def test_get_sys_class_relation_filter_query_only_one_element(self):
-        """
-        Test to check if the method creates the proper param query for only one
-        """
-        sys_class_filter = ['cmdb_ci_app_server_java']
-        query = self.check._get_sys_class_relation_filter_query(sys_class_filter)
-        expected_query = 'parent.sys_class_nameINcmdb_ci_app_server_java^child.sys_class_nameINcmdb_ci_app_server_java'
-        self.assertEqual(expected_query, query)
 
     def test_process_components_with_sys_filter_change(self):
         """
@@ -573,44 +504,9 @@ class TestServicenow(unittest.TestCase):
             }
         ]
         for test in tests:
-            check = ServicenowCheck('servicenow', {}, {}, [test['instance']])
+            check = ServiceNowCheck('servicenow', {}, {}, [test['instance']])
             result = json.loads(check.run())
             self.assertEqual(test['error'], result[0]['message'])
-
-    def test_append_to_sysparm_query(self):
-        """
-        Test append of sysparm_query to params dict and creation of new empty dict if we don't pass one as parameter.
-        """
-        params = self.check._params_append_to_sysparm_query(add_to_query='first_one')
-        self.assertEqual({'sysparm_query': 'first_one'}, params)
-        params = self.check._params_append_to_sysparm_query(params=params, add_to_query='second_one')
-        self.assertEqual({'sysparm_query': 'first_one^second_one'}, params)
-        params = self.check._params_append_to_sysparm_query(add_to_query='')
-        self.assertEqual({}, params)
-
-    def test_json_batch_params(self):
-        """
-        Test json batch params
-        """
-        offset = 10
-        batch_size = 200
-        params = self.check._prepare_json_batch_params(params={}, offset=offset, batch_size=batch_size)
-        self.assertEqual(offset, params.get('sysparm_offset'))
-        self.assertEqual(batch_size, params.get('sysparm_limit'))
-        self.assertEqual('ORDERBYsys_created_on', params.get('sysparm_query'))
-
-    def test_json_batch_adding_param(self):
-        """
-        Test batch path construction adding to sysparm_query
-        """
-        offset = 10
-        batch_size = 200
-        params = self.check._prepare_json_batch_params(params={'sysparm_query': 'company.nameSTARTSWITHaxa'},
-                                                       offset=offset,
-                                                       batch_size=batch_size)
-        self.assertEqual(offset, params.get('sysparm_offset'))
-        self.assertEqual(batch_size, params.get('sysparm_limit'))
-        self.assertEqual('company.nameSTARTSWITHaxa^ORDERBYsys_created_on', params.get('sysparm_query'))
 
     def test_collect_components_returns_no_result(self):
         """Test if collect component returns no result or its not list"""
@@ -644,41 +540,12 @@ class TestServicenow(unittest.TestCase):
         topology_instance = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topology_instance['components']), 5)
 
-    @mock.patch('requests.Session.get')
-    def test_get_json_utf_encoding(self, mock_req_get):
-        """
-        Test to check the method _get_json response with unicode character in name
-        """
-        url, auth = self._get_url_auth()
-        mock_req_get.return_value = mock.MagicMock(status_code=200, text=json.dumps(mock_result_with_utf8))
-        response = self.check._get_json(url, timeout=10, params={}, auth=auth)
-        self.assertEqual(u'Avery® Wizard 2.1 forMicrosoft® Word 2000', response.get('result').get('name'))
-
-    @mock.patch('requests.Session.get')
-    def test_get_json_malformed_json(self, mock_request_get):
-        """
-        Test just malformed json
-        """
-        url, auth = self._get_url_auth()
-        mock_request_get.return_value = mock.MagicMock(status_code=200, text=mock_result_with_malformed_str)
-        self.assertRaises(CheckException, self.check._get_json, url, 10, auth)
-
-    @mock.patch('requests.Session.get')
-    def test_get_json_malformed_json_and_execution_time_exceeded_error(self, mock_request_get):
-        """
-        Test malformed json that sometimes happens with
-        ServiceNow error 'Transaction cancelled: maximum execution time exceeded'
-        """
-        url, auth = self._get_url_auth()
-        mock_request_get.return_value = mock.MagicMock(status_code=200, text=mock_result_malformed_str_with_error_msg)
-        self.assertRaises(CheckException, self.check._get_json, url, 10, auth)
-
     def test_batch_size(self):
         """
         Test max batch size value
         """
         instance = {'user': 'name', 'password': 'secret', 'url': "https://website.com", 'batch_size': 20000}
-        check = ServicenowCheck('servicenow', {}, {}, [instance])
+        check = ServiceNowCheck('servicenow', {}, {}, [instance])
         result = json.loads(check.run())
         self.assertEqual('{"batch_size": ["Int value should be less than or equal to 10000."]}', result[0]['message'])
 
@@ -688,7 +555,7 @@ class TestServicenow(unittest.TestCase):
         Test timeout exception exception gets critical service check
         """
         mock_request_get.side_effect = requests.exceptions.Timeout
-        check = ServicenowCheck('servicenow', {}, {}, [mock_instance])
+        check = ServiceNowCheck('servicenow', {}, {}, [mock_instance])
         check.run()
         service_checks = aggregator.service_checks(self.check.SERVICE_CHECK_NAME)
         self.assertEqual(1, len(service_checks))

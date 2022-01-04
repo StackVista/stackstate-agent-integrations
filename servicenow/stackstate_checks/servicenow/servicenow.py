@@ -2,27 +2,16 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import datetime
-import json
-
-from requests import Session
-
-from stackstate_checks.servicenow import State, InstanceInfo
-from stackstate_checks.servicenow.common import API_SNOW_TABLE_CMDB_CI, API_SNOW_TABLE_CMDB_REL_CI, \
-    API_SNOW_TABLE_CHANGE_REQUEST
-from stackstate_checks.servicenow.models import ChangeRequest, ConfigurationItem, CIRelation
-
-try:
-    json_parse_exception = json.decoder.JSONDecodeError
-except AttributeError:  # Python 2
-    json_parse_exception = ValueError
 
 from schematics.exceptions import DataError
 
 from stackstate_checks.base import AgentCheck, StackPackInstance, Identifiers, to_string
-from stackstate_checks.base.errors import CheckException
+from stackstate_checks.servicenow import State, InstanceInfo
+from stackstate_checks.servicenow.client import ServiceNowClient
+from stackstate_checks.servicenow.models import ChangeRequest, ConfigurationItem, CIRelation
 
 
-class ServicenowCheck(AgentCheck):
+class ServiceNowCheck(AgentCheck):
     INSTANCE_TYPE = "servicenow_cmdb"
     SERVICE_CHECK_NAME = "servicenow.cmdb.topology_information"
     INSTANCE_SCHEMA = InstanceInfo
@@ -41,12 +30,12 @@ class ServicenowCheck(AgentCheck):
                         )
                     }
                 )
-
+            snow_client = ServiceNowClient(instance_info)
             self.start_snapshot()
-            self._process_components(instance_info)
-            self._process_relations(instance_info)
-            self._process_change_requests(instance_info)
-            self._process_planned_change_requests(instance_info)
+            self._process_components(snow_client, instance_info)
+            self._process_relations(snow_client, instance_info)
+            self._process_change_requests(snow_client, instance_info)
+            self._process_planned_change_requests(snow_client, instance_info)
             self.stop_snapshot()
             msg = "ServiceNow CMDB instance detected at %s " % instance_info.url
             tags = ["url:%s" % instance_info.url]
@@ -58,37 +47,8 @@ class ServicenowCheck(AgentCheck):
                 self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, message=msg, tags=instance_info.instance_tags
             )
 
-    def _get_sys_class_component_filter_query(self, sys_class_filter):
-        """
-        Return the sys_parm_query on the basis of sys_class_name filters from configuration
-        :param sys_class_filter: a filter with list of sys_class_name
-        :return: sysparm_query for url or ""
-        """
-        sysparm_query = ""
-        if len(sys_class_filter) > 0:
-            sysparm_query = "sys_class_nameIN%s" % sys_class_filter[0]
-            if len(sys_class_filter[1:]) > 0:
-                sysparm_query = "%s,%s" % (sysparm_query, ",".join(sys_class_filter[1:]))
-        if sysparm_query:
-            self.log.debug('sysparm_query for component: %s', sysparm_query)
-        return sysparm_query
-
-    def _get_sys_class_relation_filter_query(self, sys_class_filter):
-        sysparm_parent_query = ""
-        sysparm_child_query = ""
-        if len(sys_class_filter) > 0:
-            sysparm_parent_query = "parent.sys_class_nameIN%s" % sys_class_filter[0]
-            sysparm_child_query = "^child.sys_class_nameIN%s" % sys_class_filter[0]
-            if len(sys_class_filter[1:]) > 0:
-                sysparm_parent_query = "%s,%s" % (sysparm_parent_query, ",".join(sys_class_filter[1:]))
-                sysparm_child_query = "%s,%s" % (sysparm_child_query, ",".join(sys_class_filter[1:]))
-        sysparm_query = sysparm_parent_query + sysparm_child_query
-        if sysparm_query:
-            self.log.debug('sysparm_query for relation: %s', sysparm_query)
-        return sysparm_query
-
     @staticmethod
-    def select_metadata_field(data, display_value_list):
+    def _select_metadata_field(data, display_value_list):
         """
         Retrieve the proper attribute either `display_value` or `value` from data
         :param data: metadata from servicenow
@@ -108,56 +68,13 @@ class ServicenowCheck(AgentCheck):
 
         return result
 
-    def _batch_collect_components(self, instance_info, offset):
-        """
-        collect components from ServiceNow CMDB's cmdb_ci table
-        (API Doc- https://developer.servicenow.com/app.do#!/rest_api_doc?v=london&id=r_TableAPI-GET)
-
-        :return: dict, raw response from CMDB
-        """
-        auth = (instance_info.user, instance_info.password)
-        cert = (instance_info.cert, instance_info.keyfile)
-        url = instance_info.url + API_SNOW_TABLE_CMDB_CI
-        sys_class_filter_query = self._get_sys_class_component_filter_query(instance_info.include_resource_types)
-        params = self._params_append_to_sysparm_query(add_to_query=sys_class_filter_query)
-        params = self._params_append_to_sysparm_query(add_to_query=instance_info.cmdb_ci_sysparm_query, params=params)
-        params = self._prepare_json_batch_params(params, offset, instance_info.batch_size)
-        return self._get_json(url, instance_info.timeout, params, auth, instance_info.verify_https, cert)
-
-    def _batch_collect(self, collect_function, instance_info):
-        """
-        batch processing of components or relations fetched from CMDB
-        :return: collected components
-        """
-        offset = 0
-        batch_number = 0
-        completed = False
-        collection = []
-
-        while not completed:
-            elements = collect_function(instance_info, offset)
-            if "result" in elements and isinstance(elements["result"], list):
-                number_of_elements_in_current_batch = len(elements.get("result"))
-            else:
-                raise CheckException('Method %s has no result' % collect_function)
-            completed = number_of_elements_in_current_batch < instance_info.batch_size
-            collection.extend(elements['result'])
-            batch_number += 1
-            offset += instance_info.batch_size
-            self.log.info(
-                '%s processed batch no. %d with %d items.',
-                collect_function.__name__, batch_number, number_of_elements_in_current_batch
-            )
-
-        return collection
-
-    def _process_components(self, instance_info):
+    def _process_components(self, client, instance_info):
         """
         Gets SNOW components name, external_id and other identifiers
         :param instance_info:
         :return: None
         """
-        collected_components = self._batch_collect(self._batch_collect_components, instance_info)
+        collected_components = client.collect_components()
 
         for component in collected_components:
             try:
@@ -168,7 +85,7 @@ class ServicenowCheck(AgentCheck):
                                  .format(config_item.sys_id.value, config_item.name.value, e))
                 continue
             data = {}
-            component = self.select_metadata_field(component, instance_info.component_display_value_list)
+            component = self._select_metadata_field(component, instance_info.component_display_value_list)
             identifiers = []
             comp_name = config_item.name.value
             comp_type = config_item.sys_class_name.value
@@ -192,25 +109,11 @@ class ServicenowCheck(AgentCheck):
 
             self.component(external_id, comp_type, data)
 
-    def _batch_collect_relations(self, instance_info, offset):
-        """
-        collect relations between components from cmdb_rel_ci and publish these in batches.
-        """
-        auth = (instance_info.user, instance_info.password)
-        cert = (instance_info.cert, instance_info.keyfile)
-        url = instance_info.url + API_SNOW_TABLE_CMDB_REL_CI
-        sys_class_filter_query = self._get_sys_class_relation_filter_query(instance_info.include_resource_types)
-        params = self._params_append_to_sysparm_query(add_to_query=sys_class_filter_query)
-        params = self._params_append_to_sysparm_query(add_to_query=instance_info.cmdb_rel_ci_sysparm_query,
-                                                      params=params)
-        params = self._prepare_json_batch_params(params, offset, instance_info.batch_size)
-        return self._get_json(url, instance_info.timeout, params, auth, instance_info.verify_https, cert)
-
-    def _process_relations(self, instance_info):
+    def _process_relations(self, client, instance_info):
         """
         process relations
         """
-        collected_relations = self._batch_collect(self._batch_collect_relations, instance_info)
+        collected_relations = client.collect_relations()
         for relation in collected_relations:
             try:
                 ci_relation = CIRelation(relation, strict=False)
@@ -220,7 +123,7 @@ class ServicenowCheck(AgentCheck):
                                  .format(ci_relation.sys_id.value, e))
                 continue
             data = {}
-            relation = self.select_metadata_field(relation, instance_info.relation_display_value_list)
+            relation = self._select_metadata_field(relation, instance_info.relation_display_value_list)
             parent_sys_id = ci_relation.parent.value
             child_sys_id = ci_relation.child.value
             # first part after splitting with :: contains actual relation
@@ -235,50 +138,6 @@ class ServicenowCheck(AgentCheck):
             data.update({"tags": tags})
 
             self.relation(parent_sys_id, child_sys_id, relation_type, data)
-
-    def _collect_change_requests_updates(self, instance_info):
-        """
-        Constructs params for getting new Change Requests (CR) and CRs updated after the last time we queried
-        ServiceNow for them. Last query time is persisted in InstanceInfo.state.latest_sys_updated_on.
-        :param instance_info: instance object
-        :return: dict with servicenow rest api response
-        """
-        reformatted_date = instance_info.state.latest_sys_updated_on.strftime("'%Y-%m-%d', '%H:%M:%S'")
-        sysparm_query = 'sys_updated_on>javascript:gs.dateGenerate(%s)' % reformatted_date
-        self.log.debug('sysparm_query: %s', sysparm_query)
-        return self._collect_change_requests(instance_info, sysparm_query)
-
-    def _collect_planned_change_requests(self, instance_info):
-        """
-        Constructs params for getting planned Change Requests (CR) from ServiceNow.
-        CR can be planned in advance, sometimes by as much as a few months. CRs in ServiceNow have a Planned Start Date
-        field that tracks this. We select CRs with Planned Start Date set for today or tomorrow.
-        :param instance_info: instance object
-        :return: dict with servicenow rest api response
-        """
-        sysparm_query = 'start_dateONToday@javascript:gs.beginningOfToday()@javascript:gs.endOfToday()' \
-                        '^ORstart_dateONTomorrow@javascript:gs.beginningOfTomorrow()@javascript:gs.endOfTomorrow()'
-        self.log.debug('sysparm_query: %s', sysparm_query)
-        return self._collect_change_requests(instance_info, sysparm_query)
-
-    def _collect_change_requests(self, instance_info, sysparm_query):
-        """
-        Prepares ServiceNow call for change request rest api endpoint.
-        :param instance_info: instance object
-        :param sysparm_query: custom params for rest api call
-        :return: dict with servicenow rest api response
-        """
-        params = {
-            'sysparm_display_value': 'all',
-            'sysparm_exclude_reference_link': 'true',
-            'sysparm_limit': instance_info.change_request_process_limit,
-            'sysparm_query': sysparm_query
-        }
-        params = self._params_append_to_sysparm_query(instance_info.change_request_sysparm_query, params)
-        auth = (instance_info.user, instance_info.password)
-        cert = (instance_info.cert, instance_info.keyfile)
-        url = instance_info.url + API_SNOW_TABLE_CHANGE_REQUEST
-        return self._get_json(url, instance_info.timeout, params, auth, instance_info.verify_https, cert)
 
     def _validate_and_filter_change_requests_response(self, response, instance_info):
         """
@@ -312,7 +171,7 @@ class ServicenowCheck(AgentCheck):
                 )
         return change_requests
 
-    def _process_change_requests(self, instance_info):
+    def _process_change_requests(self, client, instance_info):
         """
         Change Requests (CR) need to fit the following criteria to be send to StackState as Topology Event:
         - new CR that is created after last time we queried ServiceNow
@@ -322,7 +181,7 @@ class ServicenowCheck(AgentCheck):
         """
         number_of_new_crs = 0
         self.log.debug('Begin processing change requests.')
-        response_new_crs = self._collect_change_requests_updates(instance_info)
+        response_new_crs = client.collect_change_requests_updates(instance_info.state.latest_sys_updated_on)
         for change_request in self._validate_and_filter_change_requests_response(response_new_crs, instance_info):
             if change_request.sys_updated_on.value > instance_info.state.latest_sys_updated_on:
                 instance_info.state.latest_sys_updated_on = change_request.sys_updated_on.value
@@ -338,7 +197,7 @@ class ServicenowCheck(AgentCheck):
         if number_of_new_crs:
             self.log.info('Created %d new Change Requests events.', number_of_new_crs)
 
-    def _process_planned_change_requests(self, instance_info):
+    def _process_planned_change_requests(self, client, instance_info):
         """
         Planned Change Requests (CR) were created in the past, and they are due today so we resend them 1 hour before
         their Planned Start Date. 1 hour is default value. It can be changed in check config.
@@ -348,7 +207,7 @@ class ServicenowCheck(AgentCheck):
         """
         number_of_planned_crs = 0
         self.log.debug('Begin processing planned change requests.')
-        response_planned_crs = self._collect_planned_change_requests(instance_info)
+        response_planned_crs = client.collect_planned_change_requests()
         for change_request in self._validate_and_filter_change_requests_response(response_planned_crs, instance_info):
             if change_request.custom_planned_start_date:
                 cr = change_request.number.display_value
@@ -421,64 +280,3 @@ class ServicenowCheck(AgentCheck):
             },
             'tags': tags
         })
-
-    def _params_append_to_sysparm_query(self, add_to_query, params=None):
-        if params is None:
-            params = {}
-            self.log.debug('Creating new params dict.')
-        if add_to_query:
-            sysparm_query = params.pop('sysparm_query', '')
-            if sysparm_query:
-                sysparm_query += '^%s' % add_to_query
-            else:
-                sysparm_query = add_to_query
-            params.update({'sysparm_query': sysparm_query})
-        return params
-
-    def _prepare_json_batch_params(self, params, offset, batch_size):
-        params = self._params_append_to_sysparm_query("ORDERBYsys_created_on", params)
-        params.update(
-            {
-                'sysparm_display_value': 'all',
-                'sysparm_offset': offset,
-                'sysparm_limit': batch_size
-            }
-        )
-        return params
-
-    def _get_json(self, url, timeout, params, auth=None, verify=True, cert=None):
-        execution_time_exceeded_error_message = 'Transaction cancelled: maximum execution time exceeded'
-
-        with Session() as session:
-            session.verify = verify
-            if cert:
-                session.cert = cert
-            response = session.get(url, params=params, auth=auth, timeout=timeout)
-
-            if response.status_code != 200:
-                raise CheckException('Got status: %d when hitting %s' % (response.status_code, response.url))
-
-            try:
-                response_json = json.loads(response.text.encode('utf-8'))
-            except UnicodeEncodeError as e:
-                raise CheckException('Encoding error: "%s" in response from url %s' % (e, response.url))
-            except json_parse_exception as e:
-                # Fix for ServiceNow bug: Sometimes there is a response with status 200 and malformed json with
-                # error message 'Transaction cancelled: maximum execution time exceeded'.
-                # We send right error message because ParserError is just side effect error.
-                if execution_time_exceeded_error_message in response.text:
-                    error_msg = 'ServiceNow Error "%s" in response from url %s' % (
-                        execution_time_exceeded_error_message, response.url
-                    )
-                else:
-                    error_msg = 'Json parse error: "%s" in response from url %s' % (e, response.url)
-                raise CheckException(error_msg)
-
-            if response_json.get('error'):
-                raise CheckException('ServiceNow error: "%s" in response from url %s' %
-                                     (response_json['error'].get('message'), response.url))
-
-            if response_json.get('result'):
-                self.log.debug('Got %d results in response', len(response_json['result']))
-
-        return response_json
