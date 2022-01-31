@@ -1,5 +1,9 @@
 # StackState Agent Integrations v2 releases
 
+## 1.17.1 / 2022-01-31
+
+* [Fixed] A dependency for vsphere was updated to a version that is not compatible with the version (3.4.6) of py3 cryptography library, updated to 35.0.0.  
+
 ## 1.17.0 / 2021-12-17
 
 * [Added] Add support for Raw Metrics in line with the current v2/v3 api format. [(STAC-12434)](https://stackstate.atlassian.net/browse/STAC-12434)
