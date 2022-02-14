@@ -29,6 +29,9 @@ TOPOLOGY_API_ENDPOINTS = {
     "custom-device": "api/v2/entities"
 }
 
+SYNTHETICS_API_ENDPOINTS = {
+    "monitor": "api/v1/synthetic/monitors",
+}
 DynatraceCachedEntity = namedtuple('DynatraceCachedEntity', 'identifier external_id name type')
 
 
@@ -180,6 +183,25 @@ class DynatraceTopologyCheck(AgentCheck):
                                                                      component_type,
                                                                      next_page_key)
 
+    def _process_synthetics(self, dynatrace_client, instance_info):
+        """
+        Collects the synthetic checks from dynatrace API
+        """
+        start_time = datetime.now()
+        self.log.debug("Starting the collection of synthetics")
+        for component_type, path in SYNTHETICS_API_ENDPOINTS.items():
+            endpoint = dynatrace_client.get_endpoint(instance_info.url, path)
+            response = dynatrace_client.get_dynatrace_json_response(endpoint)
+            for monitor in response["monitors"]:
+                monitor.update({"displayName": monitor["name"]})
+                if monitor.get("tags") is None:
+                    monitor.update({"tags": []})
+            print(response["monitors"])
+            self._collect_topology(response["monitors"], component_type, instance_info)
+        end_time = datetime.now()
+        time_taken = end_time - start_time
+        self.log.debug("Time taken to collect the synthetics is: %d seconds" % time_taken.total_seconds())
+
     def _process_topology(self, dynatrace_client, instance_info):
         """
         Collects components and relations for each component type from dynatrace smartscape topology API
@@ -201,6 +223,7 @@ class DynatraceTopologyCheck(AgentCheck):
         time_taken = end_time - start_time
         self.log.info("Collected %d topology entities.", len(self.dynatrace_entities_cache))
         self.log.debug("Time taken to collect the topology is: %d seconds" % time_taken.total_seconds())
+        self._process_synthetics(dynatrace_client, instance_info)
         self.stop_snapshot()
 
     @staticmethod
@@ -217,8 +240,9 @@ class DynatraceTopologyCheck(AgentCheck):
         if properties:
             for dns in properties.get('dnsNames', []):
                 identifiers.append(Identifiers.create_host_identifier(dns))
+            # TODO: add config option to gather this data
             for ip in properties.get('ipAddress', []):
-                identifiers.append(Identifiers.create_host_identifier(ip))
+               identifiers.append(Identifiers.create_host_identifier(ip))
         return identifiers
 
     def _collect_topology(self, response, component_type, instance_info):
@@ -283,6 +307,8 @@ class DynatraceTopologyCheck(AgentCheck):
                     if component_type == 'custom-device':
                         target_relation_id = target_id.get('id')
                         self.relation(external_id, target_relation_id, relation_type, {})
+                    elif component_type == 'monitor':
+                        self.relation(target_id, external_id, relation_type, {})
                     else:
                         self.relation(external_id, target_id, relation_type, {})
         for relation_type, relation_value in dynatrace_component.toRelationships.items():
@@ -293,6 +319,8 @@ class DynatraceTopologyCheck(AgentCheck):
                     if component_type == 'custom-device':
                         source_relation_id = source_id.get('id')
                         self.relation(source_relation_id, external_id, relation_type, {})
+                    elif component_type == 'monitor':
+                        self.relation(external_id, source_id, relation_type, {})
                     else:
                         self.relation(source_id, external_id, relation_type, {})
 
