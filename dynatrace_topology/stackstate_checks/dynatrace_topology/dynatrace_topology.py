@@ -87,6 +87,7 @@ class InstanceInfo(Model):
     relative_time = StringType(default=RELATIVE_TIME)
     custom_device_fields = StringType(default=CUSTOM_DEVICE_DEFAULT_FIELDS)
     custom_device_relative_time = StringType(default=CUSTOM_DEVICE_DEFAULT_RELATIVE_TIME)
+    custom_device_ip = BooleanType(default=True)
 
 
 class DynatraceTopologyCheck(AgentCheck):
@@ -196,6 +197,7 @@ class DynatraceTopologyCheck(AgentCheck):
                 monitor.update({"displayName": monitor["name"]})
                 if monitor.get("tags") is None:
                     monitor.update({"tags": []})
+            # TODO: set to debug level log this output
             print(response["monitors"])
             self._collect_topology(response["monitors"], component_type, instance_info)
         end_time = datetime.now()
@@ -227,11 +229,13 @@ class DynatraceTopologyCheck(AgentCheck):
         self.stop_snapshot()
 
     @staticmethod
-    def process_custom_device_identifiers(custom_device):
+    def process_custom_device_identifiers(custom_device, create_identifier_based_on_custom_device_ip):
         """
         Process identifiers for custom devices based on ip address and dns names
         @param
         custom_device: Custom Device element from Dynatrace
+        @param
+       send_custom_device_ip: Custom devices can have same IP. Disable identifier generation based on IP address.
         @return
         Return the set of identifiers
         """
@@ -241,8 +245,9 @@ class DynatraceTopologyCheck(AgentCheck):
             for dns in properties.get('dnsNames', []):
                 identifiers.append(Identifiers.create_host_identifier(dns))
             # TODO: add config option to gather this data
-            for ip in properties.get('ipAddress', []):
-               identifiers.append(Identifiers.create_host_identifier(ip))
+            if create_identifier_based_on_custom_device_ip:
+                for ip in properties.get('ipAddress', []):
+                   identifiers.append(Identifiers.create_host_identifier(ip))
         return identifiers
 
     def _collect_topology(self, response, component_type, instance_info):
@@ -271,7 +276,7 @@ class DynatraceTopologyCheck(AgentCheck):
                 host_identifiers = self._get_host_identifiers(dynatrace_component)
                 identifiers.extend(host_identifiers)
             if component_type == "custom-device":
-                custom_device_identifiers = self.process_custom_device_identifiers(item)
+                custom_device_identifiers = self.process_custom_device_identifiers(item, instance_info.custom_device_ip)
                 identifiers.extend(custom_device_identifiers)
             # derive useful labels from dynatrace tags
             tags = self._get_labels(dynatrace_component)

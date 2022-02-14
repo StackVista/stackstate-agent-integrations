@@ -45,6 +45,10 @@ instances:
     # https://www.dynatrace.com/support/help/dynatrace-api/environment-api/entity-v2/get-entities-list/#parameters
     # custom_device_fields: +fromRelationships,+toRelationships,+tags,+managementZones,+properties.dnsNames,+properties.ipAddress
 
+    # Use IP address for generating Custom Devices identifier. Default value is true.
+    # If there are multiple Custom Devices with same IP, disable identifier generation based on IP to prevent merging.
+    # custom_device_ip: true
+
     # Custom tags which can be used to filter out
     # tags:
     #   - foo:bar
