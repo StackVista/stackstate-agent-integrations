@@ -247,7 +247,7 @@ class DynatraceTopologyCheck(AgentCheck):
             # TODO: add config option to gather this data
             if create_identifier_based_on_custom_device_ip:
                 for ip in properties.get('ipAddress', []):
-                   identifiers.append(Identifiers.create_host_identifier(ip))
+                    identifiers.append(Identifiers.create_host_identifier(ip))
         return identifiers
 
     def _collect_topology(self, response, component_type, instance_info):
