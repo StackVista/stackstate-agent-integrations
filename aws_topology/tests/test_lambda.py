@@ -81,6 +81,13 @@ class TestLambda(BaseApiTest):
             "uses-service",
         )
 
+        # sqs relation goes in different direction hence source and target are not like in other asserts
+        top.assert_relation(
+            relations,
+            'arn:aws:sqs:eu-west-1:731070500579:STS_stackpack_test',
+            'arn:aws:lambda:eu-west-1:714565590525:function:StackState-Publisher',
+            'uses-service'
+        )
         top.assert_all_checked(components, relations)
 
     @set_cloudtrail_event("create_function")
