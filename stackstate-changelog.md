@@ -1,6 +1,6 @@
 # StackState Agent Integrations v2 releases
 
-## 1.18.0 / 2022-02-28
+## 1.18.0 / 2022-03-01
 
 * [Fixed] AWS topology, Swapped the SQS & Lambda relation to show Lambda as a SQS dependency/child not the other way around
 
