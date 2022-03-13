@@ -26,12 +26,10 @@ TOPOLOGY_API_ENDPOINTS = {
     "application": "api/v1/entity/applications",
     "process-group": "api/v1/entity/infrastructure/process-groups",
     "service": "api/v1/entity/services",
-    "custom-device": "api/v2/entities"
+    "custom-device": "api/v2/entities",
+    "monitor": "api/v1/synthetic/monitors"
 }
 
-SYNTHETICS_API_ENDPOINTS = {
-    "monitor": "api/v1/synthetic/monitors",
-}
 DynatraceCachedEntity = namedtuple('DynatraceCachedEntity', 'identifier external_id name type')
 
 
@@ -184,26 +182,6 @@ class DynatraceTopologyCheck(AgentCheck):
                                                                      component_type,
                                                                      next_page_key)
 
-    def _process_synthetics(self, dynatrace_client, instance_info):
-        """
-        Collects the synthetic checks from dynatrace API
-        """
-        start_time = datetime.now()
-        self.log.debug("Starting the collection of synthetics")
-        for component_type, path in SYNTHETICS_API_ENDPOINTS.items():
-            endpoint = dynatrace_client.get_endpoint(instance_info.url, path)
-            response = dynatrace_client.get_dynatrace_json_response(endpoint)
-            for monitor in response["monitors"]:
-                monitor.update({"displayName": monitor["name"]})
-                if monitor.get("tags") is None:
-                    monitor.update({"tags": []})
-            # TODO: set to debug level log this output
-            print(response["monitors"])
-            self._collect_topology(response["monitors"], component_type, instance_info)
-        end_time = datetime.now()
-        time_taken = end_time - start_time
-        self.log.debug("Time taken to collect the synthetics is: %d seconds" % time_taken.total_seconds())
-
     def _process_topology(self, dynatrace_client, instance_info):
         """
         Collects components and relations for each component type from dynatrace smartscape topology API
@@ -220,12 +198,20 @@ class DynatraceTopologyCheck(AgentCheck):
             else:
                 params = {"relativeTime": instance_info.relative_time}
                 response = dynatrace_client.get_dynatrace_json_response(endpoint, params)
-                self._collect_topology(response, component_type, instance_info)
+                if component_type == "monitor":
+                    self.log.debug("Starting the collection of synthetics")
+                    for monitor in response["monitors"]:
+                        monitor.update({"displayName": monitor["name"]})
+                        if monitor.get("tags") is None:
+                            monitor.update({"tags": []})
+                    self.log.debug("Monitors collected : %s" % ["monitors"])
+                    self._collect_topology(response["monitors"], component_type, instance_info)
+                else:
+                    self._collect_topology(response, component_type, instance_info)
         end_time = datetime.now()
         time_taken = end_time - start_time
         self.log.info("Collected %d topology entities.", len(self.dynatrace_entities_cache))
         self.log.debug("Time taken to collect the topology is: %d seconds" % time_taken.total_seconds())
-        self._process_synthetics(dynatrace_client, instance_info)
         self.stop_snapshot()
 
     @staticmethod
