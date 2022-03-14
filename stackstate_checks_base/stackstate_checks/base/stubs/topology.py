@@ -3,12 +3,6 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 from __future__ import division
 
-from collections import defaultdict, namedtuple
-
-from six import binary_type, iteritems
-
-from ..utils.common import ensure_unicode, to_string
-
 from functools import reduce
 
 
@@ -62,7 +56,11 @@ class TopologyStub(object):
         return self._snapshots[check_id]
 
     def assert_snapshot(self, check_id, instance_key,
-                        start_snapshot=False, stop_snapshot=False, components=[], relations=[]):
+                        start_snapshot=False, stop_snapshot=False, components=None, relations=None):
+        if relations is None:
+            relations = []
+        if components is None:
+            components = []
         assert self.get_snapshot(check_id) == {
             "start_snapshot": start_snapshot,
             "stop_snapshot": stop_snapshot,
@@ -76,7 +74,9 @@ class TopologyStub(object):
         self._components_checked = {}
         self._relations_checked = {}
 
-    def assert_component(self, components, id, type, checks={}):
+    def assert_component(self, components, id, type, checks=None):
+        if checks is None:
+            checks = {}
         msg = []
         comp = None
         for component in components:
@@ -101,7 +101,9 @@ class TopologyStub(object):
             assert False, '\n'.join(msg)
         return comp
 
-    def assert_relation(self, relations, source_id, target_id, type, checks={}):
+    def assert_relation(self, relations, source_id, target_id, type, checks=None):
+        if checks is None:
+            checks = {}
         msg = []
         rel = None
         for relation in relations:
