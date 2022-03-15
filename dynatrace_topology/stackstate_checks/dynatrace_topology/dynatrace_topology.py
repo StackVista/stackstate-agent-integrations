@@ -200,12 +200,12 @@ class DynatraceTopologyCheck(AgentCheck):
                 response = dynatrace_client.get_dynatrace_json_response(endpoint, params)
                 if component_type == "monitor":
                     self.log.debug("Starting the collection of synthetics")
-                    for monitor in response["monitors"]:
+                    for monitor in response.get('monitors', []):
                         monitor.update({"displayName": monitor["name"]})
                         if monitor.get("tags") is None:
                             monitor.update({"tags": []})
-                    self.log.debug("Monitors collected : %s" % ["monitors"])
-                    self._collect_topology(response["monitors"], component_type, instance_info)
+                    self.log.debug("Monitors collected : %s" % response.get('monitors', []))
+                    self._collect_topology(response.get('monitors', []), component_type, instance_info)
                 else:
                     self._collect_topology(response, component_type, instance_info)
         end_time = datetime.now()
@@ -230,7 +230,6 @@ class DynatraceTopologyCheck(AgentCheck):
         if properties:
             for dns in properties.get('dnsNames', []):
                 identifiers.append(Identifiers.create_host_identifier(dns))
-            # TODO: add config option to gather this data
             if create_identifier_based_on_custom_device_ip:
                 for ip in properties.get('ipAddress', []):
                     identifiers.append(Identifiers.create_host_identifier(ip))
