@@ -1164,6 +1164,7 @@ expected TopologyInstance, AgentIntegrationInstance or DefaultIntegrationInstanc
                     'type': 'agent-integration-instance'
                 },
             ],
+            'delete_ids': [],
             'instance_key': {
                 'type': 'agent',
                 'url': 'integrations'
