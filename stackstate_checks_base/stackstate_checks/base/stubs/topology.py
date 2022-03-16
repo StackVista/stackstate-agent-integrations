@@ -106,16 +106,16 @@ class TopologyStub(object):
         return comp
 
     @staticmethod
-    def assert_data(checks, item, msg):
+    def assert_data(checks, topology_element, msg):
         """
         Asserts if component or data dictionary has correct values.
         :param checks: checks collection
-        :param item: component or relation to assert
+        :param topology_element: component or relation to assert
         :param msg: for appending error messages
         """
         for key in checks:
             try:
-                value = reduce(dict.__getitem__, ('data.' + key).split('.'), item)
+                value = reduce(dict.__getitem__, ('data.' + key).split('.'), topology_element)
                 if value != checks[key]:
                     msg.append('data {}: {} != {}'.format(key, value, checks[key]))
             except Exception as e:
