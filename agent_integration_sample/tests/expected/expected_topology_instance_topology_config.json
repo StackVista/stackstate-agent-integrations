@@ -443,6 +443,7 @@
          "id":"urn:example:/application:some_application/tags"
       }
    ],
+  "delete_ids": [],
    "instance_key":{
       "url":"integrations",
       "type":"agent"

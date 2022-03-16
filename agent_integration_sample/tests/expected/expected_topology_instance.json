@@ -422,5 +422,6 @@
    "instance_key":{
       "url":"integrations",
       "type":"agent"
-   }
+   },
+  "delete_ids": []
 }
