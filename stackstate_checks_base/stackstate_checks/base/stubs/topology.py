@@ -48,7 +48,7 @@ class TopologyStub(object):
     def submit_component(self, check, check_id, instance_key, id, type, data):
         self._ensure_instance(check_id, instance_key)["components"].append(component(id, type, data))
 
-    def delete(self, check, check_id, instance_key, identifier):
+    def submit_delete(self, check, check_id, instance_key, identifier):
         self._ensure_instance(check_id, instance_key)["delete_ids"].append(delete(identifier))
 
     def submit_relation(self, check, check_id, instance_key, source_id, target_id, type, data):

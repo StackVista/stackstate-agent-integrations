@@ -562,7 +562,7 @@ class AgentCheckBase(object):
         return {"source_id": source, "target_id": target, "type": type, "data": data}
 
     def delete(self, identifier):
-        topology.delete(self, self.check_id, self._get_instance_key_dict(), identifier)
+        topology.submit_delete(self, self.check_id, self._get_instance_key_dict(), identifier)
         return {"identifier": identifier}
 
     def _map_stackstate_tags_and_instance_config(self, data):
