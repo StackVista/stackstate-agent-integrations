@@ -423,5 +423,7 @@
       "url":"integrations",
       "type":"agent"
    },
-  "delete_ids": []
+  "delete_ids": [
+    {"identifier": "urn:example:/application:for_deletion"}
+  ]
 }
