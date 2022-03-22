@@ -49,7 +49,7 @@ class TestAgentIntegration(unittest.TestCase):
         result = self.check.run()
         assert result == ''
         topo_instances = topology.get_snapshot(self.check.check_id)
-        self.assertEqual(len(topo_instances['components']), 6)
+        self.assertEqual(len(topo_instances['components']), 7)
         self.assertEqual(len(topo_instances['relations']), 3)
 
         assert topo_instances == load_json_from_file('expected_topology_instance.json', 'expected')

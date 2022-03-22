@@ -441,6 +441,22 @@
          },
          "type":"Application",
          "id":"urn:example:/application:some_application/tags"
+      },
+      {
+        "data": {
+           "domain": "domain-conf-a",
+           "environment": "Production",
+           "environments": [
+             "environment-conf-a"
+           ],
+           "identifiers": ["another_identifier_for_delete_test_host"],
+           "labels": ["host:delete_test_host", "region:eu-west-1"],
+           "layer": "layer-conf-a",
+           "name": "delete-test-host",
+           "tags": ["integration-type:agent-integration", "integration-url:sample"]
+        },
+        "id": "urn:example:/host:host_for_deletion",
+        "type": "Host"
       }
    ],
    "instance_key":{
@@ -448,6 +464,6 @@
       "type":"agent"
    },
    "delete_ids": [
-     {"identifier": "urn:example:/application:for_deletion"}
+     {"identifier": "urn:example:/host:host_for_deletion"}
    ]
 }
