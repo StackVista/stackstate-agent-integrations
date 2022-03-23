@@ -13,7 +13,7 @@ def test_synthetic_monitor(dynatrace_check, requests_mock, topology, aggregator)
     test_topology = topology.get_snapshot(dynatrace_check.check_id)
     dynatrace_component = test_topology['components'][0]
     assert dynatrace_component['id'] == 'SYNTHETIC_TEST-31C5003C3C6342D0'
-    assert dynatrace_component['type'] == 'monitor'
+    assert dynatrace_component['type'] == 'synthetic-monitor'
     assert dynatrace_component['data']['name'] == 'google.com'
     assert dynatrace_component['data']['entityId'] == 'SYNTHETIC_TEST-31C5003C3C6342D0'
     assert dynatrace_component['data']['type'] == 'BROWSER'

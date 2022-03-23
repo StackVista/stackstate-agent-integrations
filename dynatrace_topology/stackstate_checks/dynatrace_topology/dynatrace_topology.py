@@ -27,7 +27,7 @@ TOPOLOGY_API_ENDPOINTS = {
     "process-group": "api/v1/entity/infrastructure/process-groups",
     "service": "api/v1/entity/services",
     "custom-device": "api/v2/entities",
-    "monitor": "api/v1/synthetic/monitors"
+    "synthetic-monitor": "api/v1/synthetic/monitors"
 }
 
 DynatraceCachedEntity = namedtuple('DynatraceCachedEntity', 'identifier external_id name type')
@@ -198,7 +198,7 @@ class DynatraceTopologyCheck(AgentCheck):
             else:
                 params = {"relativeTime": instance_info.relative_time}
                 response = dynatrace_client.get_dynatrace_json_response(endpoint, params)
-                if component_type == "monitor":
+                if component_type == "synthetic-monitor":
                     self.log.debug("Starting the collection of synthetics")
                     for monitor in response.get('monitors', []):
                         monitor.update({"displayName": monitor["name"]})
