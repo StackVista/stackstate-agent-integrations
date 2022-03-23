@@ -15,7 +15,7 @@ def relation(source_id, target_id, type, data):
 
 
 def delete(identifier):
-    return {"identifier": identifier}
+    return identifier
 
 
 def snapshot(instance_key):

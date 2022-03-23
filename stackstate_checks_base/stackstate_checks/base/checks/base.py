@@ -562,8 +562,9 @@ class AgentCheckBase(object):
         return {"source_id": source, "target_id": target, "type": type, "data": data}
 
     def delete(self, identifier):
+        AgentCheckBase._check_is_string("identifier", identifier)
         topology.submit_delete(self, self.check_id, self._get_instance_key_dict(), identifier)
-        return {"identifier": identifier}
+        return identifier
 
     def _map_stackstate_tags_and_instance_config(self, data):
         # Extract or create the tags and identifier objects

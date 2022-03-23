@@ -464,6 +464,6 @@
       "type":"agent"
    },
    "delete_ids": [
-     {"identifier": "urn:example:/host:host_for_deletion"}
+     "urn:example:/host:host_for_deletion"
    ]
 }
