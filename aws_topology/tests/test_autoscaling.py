@@ -25,9 +25,9 @@ class TestAutoScaling(BaseApiTest):
         relations = topology[0]["relations"]
 
         group_arn = (
-            "arn:aws:autoscaling:eu-west-1:731070500579:"
-            + "autoScalingGroup:e1155c2b-016a-40ad-8cba-2423c349574b:"
-            + "autoScalingGroupName/awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM"
+                "arn:aws:autoscaling:eu-west-1:731070500579:"
+                + "autoScalingGroup:e1155c2b-016a-40ad-8cba-2423c349574b:"
+                + "autoScalingGroupName/awseb-e-gwhbyckyjq-stack-AWSEBAutoScalingGroup-35ZMDUKHPCUM"
         )
 
         comp = top.assert_component(
@@ -78,6 +78,9 @@ class TestAutoScaling(BaseApiTest):
         self.assertIn(
             "elvin-stackstate-tests-main-account-main-region-EcsAutoScalingGroup-VVC5WIJ3AI3K", self.check.delete_ids
         )
+        topology = top.get_snapshot(self.check.check_id)
+        assert topology["delete_ids"] == [
+            "elvin-stackstate-tests-main-account-main-region-EcsAutoScalingGroup-VVC5WIJ3AI3K"]
 
     @set_cloudtrail_event("create_or_update_tags")
     def test_process_autoscaling_create_or_update_tags(self):

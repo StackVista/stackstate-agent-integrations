@@ -59,3 +59,5 @@ class TestRedshift(BaseApiTest):
         self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 0)
         self.assertIn("arn:aws:redshift:eu-west-1:731070500579:cluster:redshift-cluster-1", self.check.delete_ids)
+        topology = top.get_snapshot(self.check.check_id)
+        assert topology["delete_ids"] == ["arn:aws:redshift:eu-west-1:731070500579:cluster:redshift-cluster-1"]

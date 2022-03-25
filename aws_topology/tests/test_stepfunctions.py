@@ -371,6 +371,8 @@ class TestStepFunctions(BaseApiTest):
         self.assert_updated_ok()
         self.assertEqual(len(self.check.delete_ids), 1)
         self.assertEqual(self.check.delete_ids[0], "arn:aws:states:eu-west-1:548105126730:stateMachine:MyStateMachine")
+        topology = top.get_snapshot(self.check.check_id)
+        assert topology["delete_ids"] == ["arn:aws:states:eu-west-1:548105126730:stateMachine:MyStateMachine"]
 
     @set_cloudtrail_event("update_state_machine")
     def test_process_stepfunction_update_state_machine(self):
@@ -400,6 +402,8 @@ class TestStepFunctions(BaseApiTest):
         self.assert_updated_ok()
         self.assertEqual(len(self.check.delete_ids), 1)
         self.assertEqual(self.check.delete_ids[0], "arn:aws:states:eu-west-1:548105126730:activity:Test")
+        topology = top.get_snapshot(self.check.check_id)
+        assert topology["delete_ids"] == ["arn:aws:states:eu-west-1:548105126730:activity:Test"]
 
     @set_cloudtrail_event("tag_activity")
     def test_process_stepfunction_tag_activity(self):
