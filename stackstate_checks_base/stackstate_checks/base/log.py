@@ -8,7 +8,7 @@ import warnings
 try:
     import datadog_agent
 except ImportError:
-    from .stubs import datadog_agent
+    from .stubs.datadog_agent import datadog_agent
 
 from .utils.common import to_string
 from urllib3.exceptions import InsecureRequestWarning

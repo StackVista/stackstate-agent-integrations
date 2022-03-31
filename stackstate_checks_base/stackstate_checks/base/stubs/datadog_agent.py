@@ -4,42 +4,6 @@
 import time
 
 
-def get_hostname():
-    return 'stubbed.hostname'
-
-
-def log(*args, **kwargs):
-    pass
-
-
-def get_config(*args, **kwargs):
-    return ""
-
-
-def warning(msg, *args, **kwargs):
-    pass
-
-
-def error(msg, *args, **kwargs):
-    pass
-
-
-def debug(msg, *args, **kwargs):
-    pass
-
-
-def get_clustername():
-    return 'stubbed-cluster-name'
-
-
-def get_pid():
-    return 1
-
-
-def get_create_time():
-    return int(1234567890)
-
-
 class DatadogAgentStub(object):
     """
     This implements the methods defined by the Agent's
@@ -84,6 +48,27 @@ class DatadogAgentStub(object):
 
     def read_persistent_cache(self, key):
         return self._cache.get(key, '')
+
+    def warning(self, msg, *args, **kwargs):
+        pass
+
+    def error(self, msg, *args, **kwargs):
+        pass
+
+    def debug(self, msg, *args, **kwargs):
+        pass
+
+    @staticmethod
+    def get_clustername():
+        return 'stubbed-cluster-name'
+
+    @staticmethod
+    def get_pid():
+        return 1
+
+    @staticmethod
+    def get_create_time():
+        return int(1234567890)
 
 
 # Use the stub as a singleton

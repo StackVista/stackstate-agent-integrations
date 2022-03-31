@@ -23,7 +23,7 @@ try:
 
     init_logging()
 except ImportError:
-    from ..stubs import datadog_agent
+    from ..stubs.datadog_agent import datadog_agent
     from ..stubs.log import init_logging
 
     init_logging()
@@ -1045,7 +1045,7 @@ class AgentCheckBase(object):
         """Returns the value previously stored with `write_persistent_cache` for the same `key`.
         - **key** (_str_) - The key to retrieve
         """
-        return datadog_agent.datadog_agent.read_persistent_cache(self._persistent_cache_id(key))
+        return datadog_agent.read_persistent_cache(self._persistent_cache_id(key))
 
     def write_persistent_cache(self, key, value):
         # type: (str, str) -> None
@@ -1057,7 +1057,8 @@ class AgentCheckBase(object):
         - **key** (_str_) - Identifier used to build the filename
         - **value** (_str_) - Value to store
         """
-        datadog_agent.datadog_agent.write_persistent_cache(self._persistent_cache_id(key), value)
+        datadog_agent.write_persistent_cache(self._persistent_cache_id(key), value)
+
 
 class __AgentCheckPy3(AgentCheckBase):
     def __init__(self, *args, **kwargs):
