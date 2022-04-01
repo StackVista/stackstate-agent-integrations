@@ -3,7 +3,9 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 
 # project
-from stackstate_checks.base import AgentCheck, AgentIntegrationInstance, MetricStream, MetricHealthChecks,\
+import json
+
+from stackstate_checks.base import AgentCheck, AgentIntegrationInstance, MetricStream, MetricHealthChecks, \
     HealthStream, HealthStreamUrn, Health
 import time
 from random import seed
@@ -55,12 +57,12 @@ class AgentIntegrationSampleCheck(AgentCheck):
                                                              remediation_hint="There is too few activity on this host")
         self.component("urn:example:/host:this_host", "Host",
                        data={
-                            "name": "this-host",
-                            "domain": "Webshop",
-                            "layer": "Machines",
-                            "identifiers": ["another_identifier_for_this_host"],
-                            "labels": ["host:this_host", "region:eu-west-1"],
-                            "environment": "Production"
+                           "name": "this-host",
+                           "domain": "Webshop",
+                           "layer": "Machines",
+                           "identifiers": ["another_identifier_for_this_host"],
+                           "labels": ["host:this_host", "region:eu-west-1"],
+                           "environment": "Production"
                        },
                        streams=[this_host_cpu_usage, this_host_availability],
                        checks=[cpu_max_average_check, cpu_max_last_check, cpu_min_average_check, cpu_min_last_check])
@@ -100,13 +102,13 @@ class AgentIntegrationSampleCheck(AgentCheck):
                                                                               10, 5, 99)
         self.component("urn:example:/application:some_application", "Application",
                        data={
-                            "name": "some-application",
-                            "domain": "Webshop",
-                            "layer": "Applications",
-                            "identifiers": ["another_identifier_for_some_application"],
-                            "labels": ["application:some_application", "region:eu-west-1", "hosted_on:this-host"],
-                            "environment": "Production",
-                            "version": "0.2.0"
+                           "name": "some-application",
+                           "domain": "Webshop",
+                           "layer": "Applications",
+                           "identifiers": ["another_identifier_for_some_application"],
+                           "labels": ["application:some_application", "region:eu-west-1", "hosted_on:this-host"],
+                           "environment": "Production",
+                           "version": "0.2.0"
                        },
                        streams=[some_application_2xx_responses, some_application_5xx_responses],
                        checks=[max_response_ratio_check, max_percentile_response_check, failed_response_ratio_check,
@@ -114,19 +116,19 @@ class AgentIntegrationSampleCheck(AgentCheck):
 
         self.component("urn:example:/application:some_application/tags", "Application",
                        data={
-                            "name": "some-tags",
-                            "domain": "default-domain",
-                            "layer": "default-layer",
-                            "identifiers": ["default-identifiers"],
-                            "labels": ["default:true"],
-                            "environment": "default-environment",
-                            "version": "0.2.0",
-                            "tags": [
-                                "stackstate-layer:tag-layer",
-                                "stackstate-domain:tag-domain",
-                                "stackstate-identifiers:tag-identifiers-a",
-                                "stackstate-identifier:tag-identifier"
-                            ],
+                           "name": "some-tags",
+                           "domain": "default-domain",
+                           "layer": "default-layer",
+                           "identifiers": ["default-identifiers"],
+                           "labels": ["default:true"],
+                           "environment": "default-environment",
+                           "version": "0.2.0",
+                           "tags": [
+                               "stackstate-layer:tag-layer",
+                               "stackstate-domain:tag-domain",
+                               "stackstate-identifiers:tag-identifiers-a",
+                               "stackstate-identifier:tag-identifier"
+                           ],
                        },
                        streams=[some_application_2xx_responses, some_application_5xx_responses],
                        checks=[max_response_ratio_check, max_percentile_response_check, failed_response_ratio_check,
@@ -199,3 +201,17 @@ class AgentIntegrationSampleCheck(AgentCheck):
         self.raw("raw.metrics", hostname="hostname", value=10,
                  tags=["application:some_application", "region:eu-west-1"], timestamp=int(time.time()))
         self.raw("raw.metrics", value=30, tags=["no:hostname", "region:eu-west-1"], timestamp=int(time.time()))
+
+        # test writing and reading from agent persistent cache
+        self.log.info("writing to persistent cache")
+        sample_data = {
+            "name": "some-application",
+            "domain": "Webshop",
+            "layer": "Applications",
+            "identifiers": ["another_identifier_for_some_application"],
+            "labels": ["application:some_application", "region:eu-west-1", "hosted_on:this-host"],
+            "environment": "Production",
+            "version": "0.2.0"
+        }
+        self.write_persistent_cache("test_key", json.dumps(sample_data))
+        assert json.loads(self.read_persistent_cache("test_key")) == sample_data
