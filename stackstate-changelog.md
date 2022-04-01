@@ -1,5 +1,9 @@
 # StackState Agent Integrations v2 releases
 
+## 1.19.0 / 2022-04-xx
+
+* [Improvement] Added support for topology element deletes.
+
 ## 1.18.0 / 2022-03-01
 
 * [Fixed] AWS topology, Swapped the SQS & Lambda relation to show Lambda as a SQS dependency/child not the other way around
