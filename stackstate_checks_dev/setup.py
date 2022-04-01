@@ -80,6 +80,7 @@ setup(
             'in-toto==0.2.3',
             'pip-tools',
             'pylint',
+            'lazy_object_proxy<1.7.0',
             'pyperclip>=1.7.0',
             'PyYAML>=3.13',
             'semver',
