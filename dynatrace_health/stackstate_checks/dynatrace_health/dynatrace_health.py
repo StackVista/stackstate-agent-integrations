@@ -129,7 +129,9 @@ class DynatraceHealthCheck(AgentCheck):
                     health_value=health_value,
                     topology_element_identifier=identifier,
                     message='Event: {} Severity: {} Impact: {} Open Since: {} Source: {}'.format(
-                        event.eventType, event.severityLevel, event.impactLevel, event.startTime, event.source
+                        event.eventType, event.severityLevel, event.impactLevel,
+                        datetime.fromtimestamp(int(event.startTime) / 1000).strftime(
+                            "%b %-d, %Y, %H:%M:%S"), event.source
                     )
                 )
         self.health.stop_snapshot()

@@ -45,14 +45,14 @@ def test_events_process_limit(dynatrace_check, test_instance, aggregator, reques
                            check_states=[{'checkStateId': 'SERVICE-FAA29C9BB1C02F9B',
                                           'health': 'DEVIATING',
                                           'message': 'Event: FAILURE_RATE_INCREASED Severity: ERROR '
-                                                     'Impact: SERVICE Open Since: 1600874700000 '
+                                                     'Impact: SERVICE Open Since: Sep 23, 2020, 15:25:00 '
                                                      'Source: builtin',
                                           'name': 'Dynatrace event',
                                           'topologyElementIdentifier': 'urn:dynatrace:/SERVICE-FAA29C9BB1C02F9B'},
                                          {'checkStateId': 'SERVICE-9B16B9C5B03836C5',
                                           'health': 'DEVIATING',
                                           'message': 'Event: FAILURE_RATE_INCREASED Severity: ERROR '
-                                                     'Impact: SERVICE Open Since: 1600874820000 '
+                                                     'Impact: SERVICE Open Since: Sep 23, 2020, 15:27:00 '
                                                      'Source: builtin',
                                           'name': 'Dynatrace event',
                                           'topologyElementIdentifier': 'urn:dynatrace:/SERVICE-9B16B9C5B03836C5'}],
@@ -82,7 +82,7 @@ def test_events_process_limit_with_batches(dynatrace_check, test_instance, reque
                            check_states=[{'checkStateId': 'SERVICE-FAA29C9BB1C02F9B',
                                           'health': 'DEVIATING',
                                           'message': 'Event: FAILURE_RATE_INCREASED Severity: ERROR '
-                                                     'Impact: SERVICE Open Since: 1600874700000 '
+                                                     'Impact: SERVICE Open Since: Sep 23, 2020, 15:25:00 '
                                                      'Source: builtin',
                                           'name': 'Dynatrace event',
                                           'topologyElementIdentifier': 'urn:dynatrace:/SERVICE-FAA29C9BB1C02F9B'}
@@ -122,21 +122,21 @@ def test_generated_events(dynatrace_check, test_instance, requests_mock, aggrega
                                           'health': 'DEVIATING',
                                           'message': 'Event: CPU_SATURATED Severity: '
                                                      'RESOURCE_CONTENTION Impact: INFRASTRUCTURE Open '
-                                                     'Since: 1613466660000 Source: builtin',
+                                                     'Since: Feb 16, 2021, 09:11:00 Source: builtin',
                                           'name': 'Dynatrace event',
                                           'topologyElementIdentifier': 'urn:dynatrace:/HOST-1E81568BDBFFE7FC'},
                                          {'checkStateId': 'HOST-AA7D1491C9FE6BC4',
                                           'health': 'CRITICAL',
                                           'message': 'Event: CONNECTION_LOST Severity: AVAILABILITY '
                                                      'Impact: INFRASTRUCTURE Open Since: '
-                                                     '1613430060468 Source: builtin',
+                                                     'Feb 15, 2021, 23:01:00 Source: builtin',
                                           'name': 'Dynatrace event',
                                           'topologyElementIdentifier': 'urn:dynatrace:/HOST-AA7D1491C9FE6BC4'},
                                          {'checkStateId': 'HOST-8F3EDA24EEF51137',
                                           'health': 'CRITICAL',
                                           'message': 'Event: CONNECTION_LOST Severity: AVAILABILITY '
                                                      'Impact: INFRASTRUCTURE Open Since: '
-                                                     '1613430060467 Source: builtin',
+                                                     'Feb 15, 2021, 23:01:00 Source: builtin',
                                           'name': 'Dynatrace event',
                                           'topologyElementIdentifier': 'urn:dynatrace:/HOST-8F3EDA24EEF51137'}],
                            start_snapshot={'expiry_interval_s': 0, 'repeat_interval_s': 15},
