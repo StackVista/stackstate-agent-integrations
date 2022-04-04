@@ -297,7 +297,7 @@ class DynatraceTopologyCheck(AgentCheck):
                     if component_type == 'custom-device':
                         target_relation_id = target_id.get('id')
                         self.relation(external_id, target_relation_id, relation_type, {})
-                    elif component_type == 'monitor':
+                    elif component_type == 'synthetic-monitor':
                         self.relation(target_id, external_id, relation_type, {})
                     else:
                         self.relation(external_id, target_id, relation_type, {})
