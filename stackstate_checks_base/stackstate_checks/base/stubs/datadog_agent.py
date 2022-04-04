@@ -6,10 +6,10 @@ import time
 
 class DatadogAgentStub(object):
     """
-    This implements the methods defined by the Agent's
-    [C bindings](https://gitlab.com/stackvista/agent/stackstate-agent/-/blob/master/rtloader/common/builtins/datadog_agent.c)
-    which in turn call the
-    [Go backend](https://gitlab.com/stackvista/agent/stackstate-agent/-/blob/master/pkg/collector/python/datadog_agent.go).
+    This implements the methods defined by the Agent's [C bindings]
+    (https://gitlab.com/stackvista/agent/stackstate-agent/-/blob/master/rtloader/common/builtins/datadog_agent.c)
+    which in turn call the [Go backend]
+    (https://gitlab.com/stackvista/agent/stackstate-agent/-/blob/master/pkg/collector/python/datadog_agent.go).
     It also provides utility methods for test assertions.
     """
 
