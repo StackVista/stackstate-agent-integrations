@@ -14,6 +14,7 @@ from schematics.exceptions import ValidationError, ConversionError, DataError
 from schematics.types import IntType, StringType, ModelType
 from six import PY3, text_type
 
+from stackstate_checks.base.stubs.datadog_agent import datadog_agent
 from stackstate_checks.base.stubs.topology import component
 from stackstate_checks.checks import AgentCheck, TopologyInstance, AgentIntegrationInstance, \
     HealthStream, HealthStreamUrn, Health
@@ -470,7 +471,7 @@ class IdentifierMappingTestAgentCheck(TopologyCheck):
                     }
             }
         ]
-        super(IdentifierMappingTestAgentCheck, self)\
+        super(IdentifierMappingTestAgentCheck, self) \
             .__init__(TopologyInstance("host", "someurl"), "test", {}, instances)
 
     def check(self, instance):
@@ -487,7 +488,7 @@ class NestedIdentifierMappingTestAgentCheck(TopologyCheck):
                     }
             }
         ]
-        super(NestedIdentifierMappingTestAgentCheck, self)\
+        super(NestedIdentifierMappingTestAgentCheck, self) \
             .__init__(TopologyInstance("host", "someurl"), "test", {}, instances)
 
     def check(self, instance):
@@ -590,6 +591,7 @@ class TestTagsAndConfigMapping:
                 No Config + No Data + Default Value, True == Result must be the default value in a Array
             Tags must overwrite configs
         """
+
         def generic_mapping_test(target, origin, default_value=None):
             data = {
                 'tags': ['stackstate-layer:tag-stackstate-layer',
@@ -729,7 +731,7 @@ class TestBaseSanitize:
             with pytest.raises(TypeError) as e:
                 check._ensure_homogeneous_list(list)
 
-            assert str(e.value) == "List: {0}, is not homogeneous, it contains the following types: {1}"\
+            assert str(e.value) == "List: {0}, is not homogeneous, it contains the following types: {1}" \
                 .format(list, expected_types)
 
         # list of ints and strings
@@ -1371,3 +1373,24 @@ class TestHealth:
                                check.get_health_stream(None),
                                start_snapshot={'expiry_interval_s': 120, 'repeat_interval_s': 30},
                                stop_snapshot=None)
+
+
+class TestDataDogPersistentCache:
+
+    def test_write_and_read(self):
+        check = AgentCheck()
+        check.check_id = 'test'
+
+        check.write_persistent_cache('foo', 'bar')
+
+        assert datadog_agent.read_persistent_cache('test_foo') == 'bar'
+        assert check.read_persistent_cache('foo') == 'bar'
+
+    def test_write_empty_value(self):
+        check = AgentCheck()
+        check.check_id = 'test'
+
+        check.write_persistent_cache('foo', '')
+
+        assert datadog_agent.read_persistent_cache('test_foo') == ''
+        assert check.read_persistent_cache('foo') == ''
