@@ -1,5 +1,9 @@
 # StackState Agent Integrations v2 releases
 
+## 1.18.0 / 2022-04-06
+* [Added] Add Dynatrace support for synthetic checks [(STAC-14511)](https://stackstate.atlassian.net/browse/STAC-14511)
+
+
 ## 1.17.1 / 2022-01-31
 
 * [Fixed] A dependency for vsphere was updated to a version that is not compatible with the version (3.4.6) of py3 cryptography library, updated to 35.0.0.  
