@@ -118,8 +118,12 @@ class LambdaCollector(RegisteredResourceCollector):
         event_source.validate()
         if event_source.State == "Enabled":
             output = make_valid_data(data)
+
             # Swapping source/target: StackState models dependencies, not data flow
-            self.emit_relation(event_source.FunctionArn, event_source.EventSourceArn, "uses-service", output)
+            if event_source.EventSourceArn.startswith('arn:aws:sqs'):
+                self.emit_relation(event_source.EventSourceArn, event_source.FunctionArn, "uses-service", output)
+            else:
+                self.emit_relation(event_source.FunctionArn, event_source.EventSourceArn, "uses-service", output)
 
     @transformation()
     def process_function(self, data):
