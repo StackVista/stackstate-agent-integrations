@@ -1,6 +1,6 @@
 # StackState Agent Integrations v2 releases
 
-## 1.19.0 / 2022-04-xx
+## 1.19.0 / 2022-04-08
 
 * [Improvement] Added support for topology element deletes.
 
