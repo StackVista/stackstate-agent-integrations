@@ -190,6 +190,8 @@ class AwsTopologyCheck(AgentCheck):
         agent_proxy.finalize_account_topology()
         self.components_seen = agent_proxy.components_seen
         self.delete_ids += agent_proxy.delete_ids
+        for delete_id in self.delete_ids:
+            self.delete(delete_id)
 
         if len(errors) > 0:
             self.log.warning("Not sending 'stop_snapshot' because one or more APIs returned with exceptions")
@@ -252,6 +254,8 @@ class AwsTopologyCheck(AgentCheck):
                     processor.process_cloudtrail_event(event, resources_seen)
 
         self.delete_ids += agent_proxy.delete_ids
+        for delete_id in self.delete_ids:
+            self.delete(delete_id)
 
     def get_flowlog_update(self, instance_info, aws_client):
         not_before = self.last_full_topology - timedelta(seconds=60*60)

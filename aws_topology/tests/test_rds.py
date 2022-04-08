@@ -122,6 +122,8 @@ class TestRds(BaseApiTest):
         self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 0)
         self.assertIn("arn:aws:rds:eu-west-1:731070500579:cluster:productiondatabasecluster", self.check.delete_ids)
+        topology = top.get_snapshot(self.check.check_id)
+        assert topology["delete_ids"] == ["arn:aws:rds:eu-west-1:731070500579:cluster:productiondatabasecluster"]
 
     @set_cloudtrail_event("create_instance")
     def test_process_rds_create_instance(self):

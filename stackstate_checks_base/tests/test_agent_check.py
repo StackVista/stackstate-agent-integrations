@@ -1164,6 +1164,7 @@ expected TopologyInstance, AgentIntegrationInstance or DefaultIntegrationInstanc
                     'type': 'agent-integration-instance'
                 },
             ],
+            'delete_ids': [],
             'instance_key': {
                 'type': 'agent',
                 'url': 'integrations'
@@ -1241,6 +1242,14 @@ expected TopologyInstance, AgentIntegrationInstance or DefaultIntegrationInstanc
         component = topology.get_snapshot(check.check_id)['components'][0]
         # there should be no identifier mapped for host because field value `x.y.z.url` doesn't exist in data
         assert component["data"].get("identifiers") is None
+
+    def test_delete(self, topology):
+        """
+        Test checks collection component/relation identifier marked for deletion.
+        """
+        check = TopologyCheck()
+        deleted_component = check.delete("my-id")
+        topology.assert_snapshot(check.check_id, check.key, delete_ids=[deleted_component])
 
 
 class TestHealthStreamUrn:

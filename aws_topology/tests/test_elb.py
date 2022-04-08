@@ -76,6 +76,8 @@ class TestClassicElasticLoadBalancing(BaseApiTest):
         self.assertIn(
             "arn:aws:elasticloadbalancing:eu-west-1:123456789012:loadbalancer/classic-lb", self.check.delete_ids
         )
+        topology = top.get_snapshot(self.check.check_id)
+        assert topology["delete_ids"] == ["arn:aws:elasticloadbalancing:eu-west-1:123456789012:loadbalancer/classic-lb"]
 
     @set_cloudtrail_event("register_instances_with_loadbalancer")
     def test_process_elb_register_instances_with_loadbalancer(self):
