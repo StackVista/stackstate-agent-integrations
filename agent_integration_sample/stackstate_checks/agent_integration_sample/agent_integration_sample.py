@@ -199,3 +199,17 @@ class AgentIntegrationSampleCheck(AgentCheck):
         self.raw("raw.metrics", hostname="hostname", value=10,
                  tags=["application:some_application", "region:eu-west-1"], timestamp=int(time.time()))
         self.raw("raw.metrics", value=30, tags=["no:hostname", "region:eu-west-1"], timestamp=int(time.time()))
+
+        # delete topology element
+        delete_component_id = "urn:example:/host:host_for_deletion"
+        self.component(delete_component_id,  "Host",
+                       data={
+                            "name": "delete-test-host",
+                            "domain": "Webshop",
+                            "layer": "Machines",
+                            "identifiers": ["another_identifier_for_delete_test_host"],
+                            "labels": ["host:delete_test_host", "region:eu-west-1"],
+                            "environment": "Production"
+                       },)
+        self.log.info("deleting " + delete_component_id)
+        self.delete(delete_component_id)
