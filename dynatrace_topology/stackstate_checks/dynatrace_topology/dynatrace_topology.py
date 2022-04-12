@@ -26,7 +26,8 @@ TOPOLOGY_API_ENDPOINTS = {
     "application": "api/v1/entity/applications",
     "process-group": "api/v1/entity/infrastructure/process-groups",
     "service": "api/v1/entity/services",
-    "custom-device": "api/v2/entities"
+    "custom-device": "api/v2/entities",
+    "synthetic-monitor": "api/v1/synthetic/monitors"
 }
 
 DynatraceCachedEntity = namedtuple('DynatraceCachedEntity', 'identifier external_id name type')
@@ -84,6 +85,7 @@ class InstanceInfo(Model):
     relative_time = StringType(default=RELATIVE_TIME)
     custom_device_fields = StringType(default=CUSTOM_DEVICE_DEFAULT_FIELDS)
     custom_device_relative_time = StringType(default=CUSTOM_DEVICE_DEFAULT_RELATIVE_TIME)
+    custom_device_ip = BooleanType(default=True)
 
 
 class DynatraceTopologyCheck(AgentCheck):
@@ -196,7 +198,16 @@ class DynatraceTopologyCheck(AgentCheck):
             else:
                 params = {"relativeTime": instance_info.relative_time}
                 response = dynatrace_client.get_dynatrace_json_response(endpoint, params)
-                self._collect_topology(response, component_type, instance_info)
+                if component_type == "synthetic-monitor":
+                    self.log.debug("Starting the collection of synthetics")
+                    for monitor in response.get('monitors', []):
+                        monitor.update({"displayName": monitor["name"]})
+                        if monitor.get("tags") is None:
+                            monitor.update({"tags": []})
+                    self.log.debug("Monitors collected : %s" % response.get('monitors', []))
+                    self._collect_topology(response.get('monitors', []), component_type, instance_info)
+                else:
+                    self._collect_topology(response, component_type, instance_info)
         end_time = datetime.now()
         time_taken = end_time - start_time
         self.log.info("Collected %d topology entities.", len(self.dynatrace_entities_cache))
@@ -204,11 +215,13 @@ class DynatraceTopologyCheck(AgentCheck):
         self.stop_snapshot()
 
     @staticmethod
-    def process_custom_device_identifiers(custom_device):
+    def process_custom_device_identifiers(custom_device, create_identifier_based_on_custom_device_ip):
         """
         Process identifiers for custom devices based on ip address and dns names
         @param
         custom_device: Custom Device element from Dynatrace
+        @param
+       send_custom_device_ip: Custom devices can have same IP. Disable identifier generation based on IP address.
         @return
         Return the set of identifiers
         """
@@ -217,8 +230,9 @@ class DynatraceTopologyCheck(AgentCheck):
         if properties:
             for dns in properties.get('dnsNames', []):
                 identifiers.append(Identifiers.create_host_identifier(dns))
-            for ip in properties.get('ipAddress', []):
-                identifiers.append(Identifiers.create_host_identifier(ip))
+            if create_identifier_based_on_custom_device_ip:
+                for ip in properties.get('ipAddress', []):
+                    identifiers.append(Identifiers.create_host_identifier(ip))
         return identifiers
 
     def _collect_topology(self, response, component_type, instance_info):
@@ -247,7 +261,7 @@ class DynatraceTopologyCheck(AgentCheck):
                 host_identifiers = self._get_host_identifiers(dynatrace_component)
                 identifiers.extend(host_identifiers)
             if component_type == "custom-device":
-                custom_device_identifiers = self.process_custom_device_identifiers(item)
+                custom_device_identifiers = self.process_custom_device_identifiers(item, instance_info.custom_device_ip)
                 identifiers.extend(custom_device_identifiers)
             # derive useful labels from dynatrace tags
             tags = self._get_labels(dynatrace_component)
@@ -283,6 +297,8 @@ class DynatraceTopologyCheck(AgentCheck):
                     if component_type == 'custom-device':
                         target_relation_id = target_id.get('id')
                         self.relation(external_id, target_relation_id, relation_type, {})
+                    elif component_type == 'synthetic-monitor':
+                        self.relation(target_id, external_id, relation_type, {})
                     else:
                         self.relation(external_id, target_id, relation_type, {})
         for relation_type, relation_value in dynatrace_component.toRelationships.items():
@@ -293,6 +309,8 @@ class DynatraceTopologyCheck(AgentCheck):
                     if component_type == 'custom-device':
                         source_relation_id = source_id.get('id')
                         self.relation(source_relation_id, external_id, relation_type, {})
+                    elif component_type == 'monitor':
+                        self.relation(external_id, source_id, relation_type, {})
                     else:
                         self.relation(source_id, external_id, relation_type, {})
 

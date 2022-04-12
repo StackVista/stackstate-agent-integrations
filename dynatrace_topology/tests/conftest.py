@@ -52,13 +52,14 @@ def dynatrace_check(test_instance, aggregator, telemetry, topology, health):
 
 
 def set_http_responses(requests_mock, hosts="[]", applications="[]", services="[]", processes="[]", process_groups="[]",
-                       entities='{"entities": []}'):
+                       entities='{"entities": []}', monitors='{"monitors": []}'):
     requests_mock.get("/api/v1/entity/infrastructure/hosts", text=hosts, status_code=200)
     requests_mock.get("/api/v1/entity/applications", text=applications, status_code=200)
     requests_mock.get("/api/v1/entity/services", text=services, status_code=200)
     requests_mock.get("/api/v1/entity/infrastructure/processes", text=processes, status_code=200)
     requests_mock.get("/api/v1/entity/infrastructure/process-groups", text=process_groups, status_code=200)
     requests_mock.get("/api/v2/entities", text=entities, status_code=200)
+    requests_mock.get("/api/v1/synthetic/monitors", text=monitors, status_code=200)
 
 
 def sort_topology_data(topology_instance):
