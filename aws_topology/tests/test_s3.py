@@ -91,3 +91,5 @@ class TestS3(BaseApiTest):
         self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 0)
         self.assertIn("arn:aws:s3:::binx.io", self.check.delete_ids)
+        topology = top.get_snapshot(self.check.check_id)
+        assert topology["delete_ids"] == ["arn:aws:s3:::binx.io"]
