@@ -57,7 +57,7 @@ instances:
     # do not care about. We have selected a set of metrics
     # that are interesting to monitor for you if false.
     # optional
-    # The configuration flag `all_metrics` will soon be deprecated. Use collection_level instead.
+    # The configuration flag `all_metrics` will be deprecated. Use collection_level instead.
     all_metrics: false # /!\ will generate a lot of metrics
 
     # Event config is a dictionary
