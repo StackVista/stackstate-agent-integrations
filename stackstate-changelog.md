@@ -1,5 +1,9 @@
 # StackState Agent Integrations v2 releases
 
+## 1.20.1 / 2022-xx-xx
+
+* [Fixed] vSphere collection_level setting documentation update [(STAC-14671)](https://stackstate.atlassian.net/browse/STAC-14671)
+
 ## 1.20.0 / 2022-04-12
 * [Added] Add Dynatrace support for synthetic checks [(STAC-14511)](https://stackstate.atlassian.net/browse/STAC-14511)
 
