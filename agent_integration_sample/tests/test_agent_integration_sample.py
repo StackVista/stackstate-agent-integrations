@@ -13,7 +13,7 @@ from stackstate_checks.base.stubs import topology, aggregator, telemetry, health
 from stackstate_checks.base.utils.common import load_json_from_file
 
 
-class InstanceInfo():
+class InstanceInfo:
     def __init__(self, instance_tags):
         self.instance_tags = instance_tags
 
@@ -49,7 +49,7 @@ class TestAgentIntegration(unittest.TestCase):
         result = self.check.run()
         assert result == ''
         topo_instances = topology.get_snapshot(self.check.check_id)
-        self.assertEqual(len(topo_instances['components']), 6)
+        self.assertEqual(len(topo_instances['components']), 7)
         self.assertEqual(len(topo_instances['relations']), 3)
 
         assert topo_instances == load_json_from_file('expected_topology_instance.json', 'expected')

@@ -450,3 +450,5 @@ class TestEC2(BaseApiTest):
             self.check.run()
             self.assert_updated_ok()
             self.assertEqual(self.check.delete_ids, ["i-0f70dba7ea83d6dec"])
+            topology = top.get_snapshot(self.check.check_id)
+            assert topology['delete_ids'] == ["i-0f70dba7ea83d6dec"]
