@@ -110,6 +110,8 @@ class TestLambda(BaseApiTest):
         self.assert_updated_ok()
         self.assertEqual(len(topology[0]["components"]), 0)
         self.assertIn("arn:aws:lambda:eu-west-1:731070500579:function:JpkTest", self.check.delete_ids)
+        topology = top.get_snapshot(self.check.check_id)
+        assert topology["delete_ids"] == ["arn:aws:lambda:eu-west-1:731070500579:function:JpkTest"]
 
     @set_cloudtrail_event("update_function")
     def test_process_lambda_update_function(self):

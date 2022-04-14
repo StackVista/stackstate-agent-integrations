@@ -1,5 +1,12 @@
 # StackState Agent Integrations v2 releases
 
+## 1.20.0 / 2022-04-12
+* [Added] Add Dynatrace support for synthetic checks [(STAC-14511)](https://stackstate.atlassian.net/browse/STAC-14511)
+
+## 1.19.0 / 2022-04-08
+
+* [Improvement] Added support for topology element deletes.
+
 ## 1.18.0 / 2022-03-01
 
 * [Fixed] AWS topology, Swapped the SQS & Lambda relation to show Lambda as a SQS dependency/child not the other way around

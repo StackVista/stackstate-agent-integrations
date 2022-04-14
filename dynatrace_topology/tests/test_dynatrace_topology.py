@@ -8,78 +8,85 @@ from stackstate_checks.dynatrace_topology import DynatraceTopologyCheck
 from .conftest import set_http_responses, sort_topology_data, assert_topology
 
 
-def test_collect_empty_topology(requests_mock, dynatrace_check, topology):
+def test_collect_empty_topology(requests_mock, dynatrace_check, topology, aggregator):
     """
     Testing Dynatrace check should not produce any topology
     """
     set_http_responses(requests_mock)
     dynatrace_check.run()
     test_topology = topology.get_snapshot(dynatrace_check.check_id)
+    aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     assert len(test_topology['components']) == 0
     assert len(test_topology['relations']) == 0
 
 
-def test_collect_processes(requests_mock, dynatrace_check, topology):
+def test_collect_processes(requests_mock, dynatrace_check, topology, aggregator):
     """
     Testing Dynatrace check should collect processes
     """
     set_http_responses(requests_mock, processes=read_file("process_response.json", "samples"))
     dynatrace_check.run()
+    aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     test_topology = topology.get_snapshot(dynatrace_check.check_id)
     expected_topology = load_json_from_file("expected_process_topology.json", "samples")
     assert_topology(expected_topology, test_topology)
 
 
-def test_collect_hosts(requests_mock, dynatrace_check, topology):
+def test_collect_hosts(requests_mock, dynatrace_check, topology, aggregator):
     """
     Testing Dynatrace check should collect hosts
     """
     set_http_responses(requests_mock, hosts=read_file("host_response.json", "samples"))
     dynatrace_check.run()
+    aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     test_topology = topology.get_snapshot(dynatrace_check.check_id)
     expected_topology = load_json_from_file("expected_host_topology.json", "samples")
     assert_topology(expected_topology, test_topology)
 
 
-def test_collect_services(requests_mock, dynatrace_check, topology):
+def test_collect_services(requests_mock, dynatrace_check, topology, aggregator):
     """
     Testing Dynatrace check should collect services and tags coming from Kubernetes
     """
     set_http_responses(requests_mock, services=read_file("service_response.json", "samples"))
     dynatrace_check.run()
+    aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     test_topology = topology.get_snapshot(dynatrace_check.check_id)
     expected_topology = load_json_from_file("expected_service_topology.json", "samples")
     assert_topology(expected_topology, test_topology)
 
 
-def test_collect_applications(dynatrace_check, requests_mock, topology):
+def test_collect_applications(dynatrace_check, requests_mock, topology, aggregator):
     """
     Testing Dynatrace check should collect applications and also the tags properly coming from dynatrace
     """
     set_http_responses(requests_mock, applications=read_file("application_response.json", "samples"))
     dynatrace_check.run()
+    aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     topology_instances = topology.get_snapshot(dynatrace_check.check_id)
     expected_topology = load_json_from_file("expected_application_topology.json", "samples")
     assert_topology(expected_topology, topology_instances)
 
 
-def test_collect_process_groups(dynatrace_check, requests_mock, topology):
+def test_collect_process_groups(dynatrace_check, requests_mock, topology, aggregator):
     """
     Testing Dynatrace check should collect process-groups
     """
     set_http_responses(requests_mock, process_groups=read_file("process-group_response.json", "samples"))
     dynatrace_check.run()
+    aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     topology_instances = topology.get_snapshot(dynatrace_check.check_id)
     expected_topology = load_json_from_file("expected_process-group_topology.json", "samples")
     assert_topology(expected_topology, topology_instances)
 
 
-def test_collect_relations(dynatrace_check, requests_mock, topology):
+def test_collect_relations(dynatrace_check, requests_mock, topology, aggregator):
     """
     Test to check if relations are collected properly
     """
     set_http_responses(requests_mock, hosts=read_file("host_response.json", "samples"))
     dynatrace_check.run()
+    aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     topology_instances = topology.get_snapshot(dynatrace_check.check_id)
     assert len(topology_instances['components']) == 2
     assert len(topology_instances['relations']) == 5
@@ -103,7 +110,7 @@ def test_check_raise_exception(dynatrace_check, topology, aggregator):
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.CRITICAL)
 
 
-def test_full_topology(dynatrace_check, requests_mock, topology):
+def test_full_topology(dynatrace_check, requests_mock, topology, aggregator):
     """
     Test e2e to collect full topology for all component types from Dynatrace
     """
@@ -115,6 +122,7 @@ def test_full_topology(dynatrace_check, requests_mock, topology):
                        process_groups=read_file("process-group_response.json", "samples"))
 
     dynatrace_check.run()
+    aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
 
     expected_topology = load_json_from_file("expected_smartscape_full_topology.json", "samples")
     actual_topology = topology.get_snapshot(dynatrace_check.check_id)
@@ -130,18 +138,20 @@ def test_full_topology(dynatrace_check, requests_mock, topology):
         assert relation in expected_relations
 
 
-def test_collect_custom_devices(dynatrace_check, requests_mock, topology):
+def test_collect_custom_devices(dynatrace_check, requests_mock, topology, aggregator):
     """
     Test Dynatrace check should produce custom devices
     """
     set_http_responses(requests_mock, entities=read_file("custom_device_response.json", "samples"))
     dynatrace_check.run()
+    aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
+
     topology_instances = topology.get_snapshot(dynatrace_check.check_id)
     expected_topology = load_json_from_file("expected_custom_device_topology.json", "samples")
     assert_topology(expected_topology, topology_instances)
 
 
-def test_collect_custom_devices_with_pagination(dynatrace_check, requests_mock, test_instance, topology):
+def test_collect_custom_devices_with_pagination(dynatrace_check, requests_mock, test_instance, topology, aggregator):
     """
     Test Dynatrace check should produce custom devices with pagination
     """
@@ -154,6 +164,7 @@ def test_collect_custom_devices_with_pagination(dynatrace_check, requests_mock, 
     requests_mock.get(first_url, status_code=200, text=read_file("custom_device_response_next_page.json", "samples"))
     requests_mock.get(second_url, status_code=200, text=read_file("custom_device_response.json", "samples"))
     dynatrace_check.run()
+    aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     snapshot = topology.get_snapshot(dynatrace_check.check_id)
     expected_topology = load_json_from_file("expected_custom_device_pagination_full_topology.json", "samples")
     assert_topology(expected_topology, snapshot)
