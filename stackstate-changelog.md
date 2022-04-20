@@ -1,6 +1,6 @@
 # StackState Agent Integrations v2 releases
 
-## 1.20.1 / 2022-04-21
+## 1.20.1 / 2022-04-20
 
 * [Fixed] vSphere collection_level setting documentation update [(STAC-14671)](https://stackstate.atlassian.net/browse/STAC-14671)
 
