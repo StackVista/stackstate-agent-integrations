@@ -829,7 +829,7 @@ class VSphereCheck(AgentCheck):
         if instance.get("all_metrics") is not None and instance.get("collection_level") is not None:
             if log_warning:
                 self.log.warning(
-                    "Using both `all_metrics` and `collection_level` configuration flag."
+                    "Using both `all_metrics` and `collection_level` configuration settings."
                     " `all_metrics` will be ignored."
                 )
             return False
@@ -837,8 +837,8 @@ class VSphereCheck(AgentCheck):
         if instance.get("all_metrics") is not None:
             if log_warning:
                 self.warning(
-                    "The configuration flag `all_metrics` will soon be deprecated. "
-                    "Consider using `collection_level` instead."
+                    "The configuration flag `all_metrics` will be deprecated. "
+                    "Consider using `collection_level` configuration setting instead."
                 )
             return True
 

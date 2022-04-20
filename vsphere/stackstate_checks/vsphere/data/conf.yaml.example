@@ -45,11 +45,19 @@ instances:
     # optional
     # include_only_marked: false
 
+    # Specify the metrics to retrieve using a data collection level (a number between 1 and 4).
+    # Collection levels are described here
+    # https://docs.vmware.com/en/VMware-vSphere/7.0/com.vmware.vsphere.monitoring.doc/GUID-25800DE4-68E5-41CC-82D9-8811E27924BC.html
+    # Default level is 1.
+    # optional
+    # collection_level: 1
+
     # When set to true, this will collect EVERY metric
     # from vCenter, which means a LOT of metrics you probably
     # do not care about. We have selected a set of metrics
-    # that are interesting to monitor for you if false
+    # that are interesting to monitor for you if false.
     # optional
+    # The configuration flag `all_metrics` will be deprecated. Use collection_level instead.
     all_metrics: false # /!\ will generate a lot of metrics
 
     # Event config is a dictionary
