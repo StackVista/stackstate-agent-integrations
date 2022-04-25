@@ -1346,7 +1346,7 @@ class __AgentCheckPy2(AgentCheckBase):
 
         integration_instance = self._get_instance_key()
         tags_bytes = list(map(lambda t: to_string(t), integration_instance.tags()))
-        aggregator.submit_service_check(self, self.check_id, ensure_string(name), status,
+        aggregator.submit_service_check(self, self.check_id, to_string(name), status,
                                         tags + tags_bytes, hostname, message)
 
     def event(self, event):
@@ -1401,7 +1401,6 @@ class __AgentCheckPy2(AgentCheckBase):
 
         if tags is not None:
             for tag in tags:
-                normalized_tag = None
                 if PY3:
                     if not isinstance(tag, str):
                         try:
@@ -1412,6 +1411,8 @@ class __AgentCheckPy2(AgentCheckBase):
                                                                                                         metric_name)
                             )
                             continue
+                    else:
+                        normalized_tag = tag
                 else:
                     normalized_tag = self._to_bytes(tag)
                     if normalized_tag is None:
@@ -1457,8 +1458,10 @@ class __AgentCheckPy2(AgentCheckBase):
 
 
 if PY3:
-    AgentCheck = __AgentCheckPy3
-    del __AgentCheckPy2
+    # AgentCheck = __AgentCheckPy3
+    # del __AgentCheckPy2
+    AgentCheck = __AgentCheckPy2
+    del __AgentCheckPy3
 else:
     AgentCheck = __AgentCheckPy2
     del __AgentCheckPy3
