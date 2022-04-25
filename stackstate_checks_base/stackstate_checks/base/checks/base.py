@@ -1,17 +1,17 @@
 # (C) Datadog, Inc. 2018
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
-import os
 import copy
 import inspect
 import json
 import logging
+import os
 import re
 import traceback
 import unicodedata
 from collections import defaultdict
-from os.path import basename
 from functools import reduce
+from os.path import basename
 
 import yaml
 from six import PY3, iteritems, iterkeys, text_type, string_types, integer_types
@@ -62,7 +62,7 @@ from ..utils.limiter import Limiter
 from ..utils.identifiers import Identifiers
 from ..utils.telemetry import EventStream, MetricStream, ServiceCheckStream, \
     ServiceCheckHealthChecks, Event
-from ..utils.health_api import Health, HealthStream, HealthStreamUrn, HealthCheckData, HealthApi
+from ..utils.health_api import HealthApi
 from ..utils.persistent_state import StateDescriptor, StateManager
 from deprecated.sphinx import deprecated
 
@@ -157,7 +157,7 @@ class TopologyInstance(_TopologyInstanceBase):
 StackPackInstance = TopologyInstance
 
 
-class AgentCheckBase(object):
+class AgentCheck(object):
     """
     The base class for any Agent based integrations
     """
@@ -186,7 +186,10 @@ class AgentCheckBase(object):
     STATE_FIELD_NAME = 'state'
 
     def __init__(self, *args, **kwargs):
-        self.check_id = ''
+        """
+        args: `name`, `init_config`, `agentConfig` (deprecated), `instances`
+        """
+        self.check_id = to_string(b'')
         self.metrics = defaultdict(list)
         self.name = kwargs.get('name', '')
         self.init_config = kwargs.get('init_config', {})
@@ -216,7 +219,7 @@ class AgentCheckBase(object):
         self.hostname = datadog_agent.get_hostname()
 
         # returns the cluster name if the check is running in Kubernetes / OpenShift
-        self.cluster_name = AgentCheckBase.get_cluster_name()
+        self.cluster_name = AgentCheck.get_cluster_name()
 
         self.log = logging.getLogger('{}.{}'.format(__name__, self.name))
         if using_stub_aggregator:
@@ -238,6 +241,35 @@ class AgentCheckBase(object):
 
         # Will be initialized as part of the check, to allow for proper error reporting there if initialization fails
         self.health = None
+
+        self._deprecations = {
+            'increment': [
+                False,
+                "DEPRECATION NOTICE: `AgentCheck.increment`/`AgentCheck.decrement` are deprecated, please use "
+                "`AgentCheck.gauge` or `AgentCheck.count` instead, with a different metric name",
+            ],
+            'device_name': [
+                False,
+                "DEPRECATION NOTICE: `device_name` is deprecated, please use a `device:` "
+                "tag in the `tags` list instead",
+            ],
+            'in_developer_mode': [
+                False,
+                "DEPRECATION NOTICE: `in_developer_mode` is deprecated, please stop using it.",
+            ],
+            'no_proxy': [
+                False,
+                "DEPRECATION NOTICE: The `no_proxy` config option has been renamed "
+                "to `skip_proxy` and will be removed in a future release.",
+            ],
+            'source_type_name': [
+                False,
+                "DEPRECATION NOTICE: The `source_type_name` event parameters has been deprecated "
+                "in favour of `event_type` and will be removed in a future release.",
+            ],
+        }
+
+        self.set_metric_limits()
 
     def _init_health_api(self):
         if self.health is not None:
@@ -372,9 +404,9 @@ class AgentCheckBase(object):
 
     @staticmethod
     def _check_is_string(argumentName, value):
-        AgentCheckBase._check_not_none(argumentName, value)
+        AgentCheck._check_not_none(argumentName, value)
         if not isinstance(value, string_types):
-            AgentCheckBase._raise_unexpected_type(argumentName, value, "string")
+            AgentCheck._raise_unexpected_type(argumentName, value, "string")
 
     @staticmethod
     def _raise_unexpected_type(argumentName, value, expected):
@@ -387,19 +419,19 @@ class AgentCheckBase(object):
             return
         elif isinstance(value, dict):
             for k in value:
-                AgentCheckBase._check_struct_value("{}.{}".format(argumentName, k), value[k])
+                AgentCheck._check_struct_value("{}.{}".format(argumentName, k), value[k])
         elif isinstance(value, list):
             for idx, val in enumerate(value):
-                AgentCheckBase._check_struct_value("{}[{}]".format(argumentName, idx), val)
+                AgentCheck._check_struct_value("{}[{}]".format(argumentName, idx), val)
         else:
-            AgentCheckBase._raise_unexpected_type(argumentName, value, "string, int, dictionary, list or None value")
+            AgentCheck._raise_unexpected_type(argumentName, value, "string, int, dictionary, list or None value")
 
     @staticmethod
     def _check_struct(argumentName, value):
         if isinstance(value, dict):
-            AgentCheckBase._check_struct_value(argumentName, value)
+            AgentCheck._check_struct_value(argumentName, value)
         else:
-            AgentCheckBase._raise_unexpected_type(argumentName, value, "dictionary or None value")
+            AgentCheck._raise_unexpected_type(argumentName, value, "dictionary or None value")
 
     def get_health_stream(self, instance):
         """
@@ -433,12 +465,12 @@ class AgentCheckBase(object):
 
         value = self.get_instance_key(check_instance)
         if value is None:
-            AgentCheckBase._raise_unexpected_type("get_instance_key()", "None", "dictionary")
+            AgentCheck._raise_unexpected_type("get_instance_key()", "None", "dictionary")
         if not isinstance(value, (TopologyInstance, AgentIntegrationInstance, NoIntegrationInstance)):
-            AgentCheckBase._raise_unexpected_type("get_instance_key()",
-                                                  value,
-                                                  "TopologyInstance, AgentIntegrationInstance or "
-                                                  "DefaultIntegrationInstance")
+            AgentCheck._raise_unexpected_type("get_instance_key()",
+                                              value,
+                                              "TopologyInstance, AgentIntegrationInstance or "
+                                              "DefaultIntegrationInstance")
         if not isinstance(value.type, str):
             raise ValueError("Instance requires a 'type' field of type 'string'")
         if not isinstance(value.url, str):
@@ -470,7 +502,16 @@ class AgentCheckBase(object):
         raise NotImplementedError
 
     def warning(self, warning_message):
-        pass
+        warning_message = to_string(warning_message)
+
+        frame = inspect.currentframe().f_back
+        lineno = frame.f_lineno
+        filename = frame.f_code.co_filename
+        # only log the last part of the filename, not the full path
+        filename = basename(filename)
+
+        self.log.warning(warning_message, extra={'_lineno': lineno, '_filename': filename})
+        self.warnings.append(warning_message)
 
     def normalize(self, metric, prefix=None, fix_case=False, extra_disallowed_chars=None):
         """
@@ -534,8 +575,8 @@ class AgentCheckBase(object):
 
     def _map_component_data(self, id, type, integration_instance, data, streams=None, checks=None,
                             add_instance_tags=True):
-        AgentCheckBase._check_is_string("id", id)
-        AgentCheckBase._check_is_string("type", type)
+        AgentCheck._check_is_string("id", id)
+        AgentCheck._check_is_string("type", type)
         if data is None:
             data = {}
         self._check_struct("data", data)
@@ -561,7 +602,7 @@ class AgentCheckBase(object):
         return {"source_id": source, "target_id": target, "type": type, "data": data}
 
     def delete(self, identifier):
-        AgentCheckBase._check_is_string("identifier", identifier)
+        AgentCheck._check_is_string("identifier", identifier)
         topology.submit_delete(self, self.check_id, self._get_instance_key_dict(), identifier)
         return identifier
 
@@ -661,9 +702,9 @@ class AgentCheckBase(object):
         return data
 
     def _map_relation_data(self, source, target, type, data, streams=None, checks=None):
-        AgentCheckBase._check_is_string("source", source)
-        AgentCheckBase._check_is_string("target", target)
-        AgentCheckBase._check_is_string("type", type)
+        AgentCheck._check_is_string("source", source)
+        AgentCheck._check_is_string("target", target)
+        AgentCheck._check_is_string("type", type)
         self._check_struct("data", data)
         if data is None:
             data = {}
@@ -861,13 +902,53 @@ class AgentCheckBase(object):
             _event.validate()
             event = _event
         elif not isinstance(event, Event):
-            AgentCheckBase._raise_unexpected_type("event", event, "Dictionary or Event")
+            AgentCheck._raise_unexpected_type("event", event, "Dictionary or Event")
 
     def _submit_metric(self, mtype, name, value, tags=None, hostname=None, device_name=None):
-        pass
+        if value is None:
+            # ignore metric sample
+            return
+
+        tags = self._normalize_tags_type(tags, device_name, name)
+        if hostname is None:
+            hostname = to_string(b'')
+
+        if self.metric_limiter:
+            if mtype in ONE_PER_CONTEXT_METRIC_TYPES:
+                # Fast path for gauges, rates, monotonic counters, assume one set of tags per call
+                if self.metric_limiter.is_reached():
+                    return
+            else:
+                # Other metric types have a legit use case for several calls per set of tags, track unique sets of tags
+                context = self._context_uid(mtype, name, tags, hostname)
+                if self.metric_limiter.is_reached(context):
+                    return
+
+        try:
+            value = float(value)
+        except ValueError:
+            err_msg = (
+                "Metric: {!r} has non float value: {!r}. "
+                "Only float values can be submitted as metrics.".format(name, value)
+            )
+            if using_stub_aggregator:
+                raise ValueError(err_msg)
+            self.warning(err_msg)
+            return
+
+        aggregator.submit_metric(self, self.check_id, mtype, to_string(name), value, tags, hostname)
 
     def _submit_raw_metrics_data(self, name, value, tags=None, hostname=None, device_name=None, timestamp=None):
-        pass
+        tags = self._normalize_tags_type(tags, device_name, name)
+
+        if timestamp is None:
+            self.warning('Ignoring raw metric, timestamp is empty')
+            return
+
+        if hostname is None:
+            hostname = to_string(b'')
+
+        telemetry.submit_raw_metrics_data(self, self.check_id, ensure_unicode(name), value, tags, hostname, timestamp)
 
     def raw(self, name, value, tags=None, hostname=None, device_name=None, timestamp=None):
         self._submit_raw_metrics_data(name, value, tags, hostname, device_name, timestamp)
@@ -1063,322 +1144,6 @@ class AgentCheckBase(object):
         """
         datadog_agent.write_persistent_cache(self._persistent_cache_id(key), value)
 
-
-class __AgentCheckPy3(AgentCheckBase):
-    def __init__(self, *args, **kwargs):
-        AgentCheckBase.__init__(self, *args, **kwargs)
-        """
-        args: `name`, `init_config`, `agentConfig` (deprecated), `instances`
-        """
-        self._deprecations = {
-            'increment': [
-                False,
-                (
-                    'DEPRECATION NOTICE: `AgentCheck.increment`/`AgentCheck.decrement` are deprecated, please '
-                    'use `AgentCheck.gauge` or `AgentCheck.count` instead, with a different metric name'
-                ),
-            ],
-            'device_name': [
-                False,
-                (
-                    'DEPRECATION NOTICE: `device_name` is deprecated, please use a `device:` '
-                    'tag in the `tags` list instead'
-                ),
-            ],
-            'in_developer_mode': [
-                False,
-                'DEPRECATION NOTICE: `in_developer_mode` is deprecated, please stop using it.',
-            ],
-            'no_proxy': [
-                False,
-                (
-                    'DEPRECATION NOTICE: The `no_proxy` config option has been renamed '
-                    'to `skip_proxy` and will be removed in a future release.'
-                ),
-            ],
-            'source_type_name': [
-                False,
-                "DEPRECATION NOTICE: The `source_type_name` event parameters has been deprecated "
-                "in favour of `event_type` and will be removed in a future release.",
-            ],
-        }
-        self.set_metric_limits()
-
-    # TODO(olivier): implement service_metadata if it's worth it
-    def service_metadata(self, meta_name, value):
-        pass
-
-    def check(self, instance):
-        raise NotImplementedError
-
-    def _submit_metric(self, mtype, name, value, tags=None, hostname=None, device_name=None):
-        if value is None:
-            # ignore metric sample
-            return
-
-        tags = self._normalize_tags_type(tags, device_name, name)
-        if hostname is None:
-            hostname = ''
-
-        if self.metric_limiter:
-            if mtype in ONE_PER_CONTEXT_METRIC_TYPES:
-                # Fast path for gauges, rates, monotonic counters, assume one set of tags per call
-                if self.metric_limiter.is_reached():
-                    return
-            else:
-                # Other metric types have a legit use case for several calls per set of tags, track unique sets of tags
-                context = self._context_uid(mtype, name, tags, hostname)
-                if self.metric_limiter.is_reached(context):
-                    return
-
-        try:
-            value = float(value)
-        except ValueError:
-            err_msg = (
-                'Metric: {} has non float value: {}. Only float values can be submitted as metrics.'.format(name, value)
-            )
-            if using_stub_aggregator:
-                raise ValueError(err_msg)
-            self.warning(err_msg)
-            return
-
-        aggregator.submit_metric(self, self.check_id, mtype, ensure_unicode(name), value, tags, hostname)
-
-    def _submit_raw_metrics_data(self, name, value, tags=None, hostname=None, device_name=None, timestamp=None):
-        tags = self._normalize_tags_type(tags, device_name, name)
-
-        if timestamp is None:
-            self.warning('Ignoring raw metric, timestamp is empty')
-            return
-
-        if hostname is None:
-            hostname = ''
-
-        telemetry.submit_raw_metrics_data(self, self.check_id, ensure_unicode(name), value, tags, hostname, timestamp)
-
-    def service_check(self, name, status, tags=None, hostname=None, message=None):
-        tags = self._normalize_tags_type(tags)
-        if hostname is None:
-            hostname = ''
-        if message is None:
-            message = ''
-        else:
-            message = ensure_unicode(message)
-
-        instance = self._get_instance_key()
-        aggregator.submit_service_check(self, self.check_id, ensure_unicode(name), status, tags + instance.tags(),
-                                        hostname, message)
-
-    def event(self, event):
-        self.validate_event(event)
-
-        # Enforce types of some fields, considerably facilitates handling in go bindings downstream
-        try:
-            event = self._sanitize(event)
-        except (UnicodeError, TypeError):
-            return
-
-        if event.get('tags'):
-            event['tags'] = self._normalize_tags_type(event['tags'])
-        if event.get('timestamp'):
-            event['timestamp'] = int(event['timestamp'])
-        if event.get('aggregation_key'):
-            event['aggregation_key'] = ensure_unicode(event['aggregation_key'])
-        # TODO: This is a workaround as the Go agent doesn't correctly map event_type for normal events. Clean this up
-        if event.get('event_type'):
-            # map event_type as source_type_name for go agent
-            event['source_type_name'] = ensure_unicode(event['event_type'])
-        elif event.get('source_type_name'):
-            self._log_deprecation("source_type_name")
-            # if we have the source_type_name and not an event_type map the source_type_name as the event_type
-            event['event_type'] = ensure_unicode(event['source_type_name'])
-
-        if 'context' in event:
-            telemetry.submit_topology_event(self, self.check_id, event)
-        else:
-            aggregator.submit_event(self, self.check_id, event)
-
-    def _normalize_tags_type(self, tags, device_name=None, metric_name=None):
-        """
-        Normalize tags contents and type:
-        - append `device_name` as `device:` tag
-        - normalize tags type
-        - doesn't mutate the passed list, returns a new list
-        """
-        normalized_tags = []
-
-        if device_name:
-            self._log_deprecation('device_name')
-            normalized_tags.append('device:{}'.format(ensure_unicode(device_name)))
-
-        if tags is not None:
-            for tag in tags:
-                if not isinstance(tag, str):
-                    try:
-                        tag = tag.decode('utf-8')
-                    except UnicodeError:
-                        self.log.warning(
-                            'Error decoding tag `{}` as utf-8 for metric `{}`, ignoring tag'.format(tag, metric_name)
-                        )
-                        continue
-
-                normalized_tags.append(tag)
-
-        return normalized_tags
-
-    def warning(self, warning_message):
-        warning_message = ensure_unicode(warning_message)
-
-        frame = inspect.currentframe().f_back
-        lineno = frame.f_lineno
-        # only log the last part of the filename, not the full path
-        filename = basename(frame.f_code.co_filename)
-
-        self.log.warning(warning_message, extra={'_lineno': lineno, '_filename': filename})
-        self.warnings.append(warning_message)
-
-    def run(self):
-        return self._check_run_base(to_string(b''))
-
-
-class __AgentCheckPy2(AgentCheckBase):
-    """
-    The base class for any Agent based integrations
-    """
-
-    def __init__(self, *args, **kwargs):
-        AgentCheckBase.__init__(self, *args, **kwargs)
-        """
-        args: `name`, `init_config`, `agentConfig` (deprecated), `instances`
-        """
-        self.check_id = to_string(b'')
-
-        self._deprecations = {
-            'increment': [
-                False,
-                "DEPRECATION NOTICE: `AgentCheck.increment`/`AgentCheck.decrement` are deprecated, please use "
-                "`AgentCheck.gauge` or `AgentCheck.count` instead, with a different metric name",
-            ],
-            'device_name': [
-                False,
-                "DEPRECATION NOTICE: `device_name` is deprecated, please use a `device:` "
-                "tag in the `tags` list instead",
-            ],
-            'in_developer_mode': [
-                False,
-                "DEPRECATION NOTICE: `in_developer_mode` is deprecated, please stop using it.",
-            ],
-            'no_proxy': [
-                False,
-                "DEPRECATION NOTICE: The `no_proxy` config option has been renamed "
-                "to `skip_proxy` and will be removed in a future release.",
-            ],
-            'source_type_name': [
-                False,
-                "DEPRECATION NOTICE: The `source_type_name` event parameters has been deprecated "
-                "in favour of `event_type` and will be removed in a future release.",
-            ],
-        }
-
-        self.set_metric_limits()
-
-    # TODO(olivier): implement service_metadata if it's worth it
-    def service_metadata(self, meta_name, value):
-        pass
-
-    def check(self, instance):
-        raise NotImplementedError
-
-    def _submit_metric(self, mtype, name, value, tags=None, hostname=None, device_name=None):
-        if value is None:
-            # ignore metric sample
-            return
-
-        tags = self._normalize_tags_type(tags, device_name, name)
-        if hostname is None:
-            hostname = to_string(b'')
-
-        if self.metric_limiter:
-            if mtype in ONE_PER_CONTEXT_METRIC_TYPES:
-                # Fast path for gauges, rates, monotonic counters, assume one set of tags per call
-                if self.metric_limiter.is_reached():
-                    return
-            else:
-                # Other metric types have a legit use case for several calls per set of tags, track unique sets of tags
-                context = self._context_uid(mtype, name, tags, hostname)
-                if self.metric_limiter.is_reached(context):
-                    return
-
-        try:
-            value = float(value)
-        except ValueError:
-            err_msg = (
-                "Metric: {!r} has non float value: {!r}. "
-                "Only float values can be submitted as metrics.".format(name, value)
-            )
-            if using_stub_aggregator:
-                raise ValueError(err_msg)
-            self.warning(err_msg)
-            return
-
-        aggregator.submit_metric(self, self.check_id, mtype, to_string(name), value, tags, hostname)
-
-    def _submit_raw_metrics_data(self, name, value, tags=None, hostname=None, device_name=None, timestamp=None):
-        tags = self._normalize_tags_type(tags, device_name, name)
-
-        if timestamp is None:
-            self.warning('Ignoring raw metric, timestamp is empty')
-            return
-
-        if hostname is None:
-            hostname = to_string(b'')
-
-        telemetry.submit_raw_metrics_data(self, self.check_id, ensure_unicode(name), value, tags, hostname, timestamp)
-
-    def service_check(self, name, status, tags=None, hostname=None, message=None):
-        tags = self._normalize_tags_type(tags)
-        if hostname is None:
-            hostname = to_string(b'')
-        if message is None:
-            message = to_string(b'')
-        else:
-            message = to_string(message)
-
-        integration_instance = self._get_instance_key()
-        tags_bytes = list(map(lambda t: to_string(t), integration_instance.tags()))
-        aggregator.submit_service_check(self, self.check_id, to_string(name), status,
-                                        tags + tags_bytes, hostname, message)
-
-    def event(self, event):
-        self.validate_event(event)
-        # Enforce types of some fields, considerably facilitates handling in go bindings downstream
-        try:
-            event = self._sanitize(event)
-        except (UnicodeError, TypeError):
-            return
-
-        if event.get('tags'):
-            event['tags'] = self._normalize_tags_type(event['tags'])
-        if event.get('timestamp'):
-            event['timestamp'] = int(event['timestamp'])
-        if event.get('aggregation_key'):
-            event['aggregation_key'] = to_string(event['aggregation_key'])
-        # TODO: This is a workaround as the Go agent doesn't correctly map event_type for normal events. Clean this up
-        if event.get('event_type'):
-            # map event_type as source_type_name for go agent
-            event['source_type_name'] = to_string(event['event_type'])
-        elif event.get('source_type_name'):
-            self._log_deprecation("source_type_name")
-            # if we have the source_type_name and not an event_type map the source_type_name as the event_type
-            event['event_type'] = to_string(event['source_type_name'])
-
-        if 'context' in event:
-            telemetry.submit_topology_event(self, self.check_id, event)
-        else:
-            aggregator.submit_event(self, self.check_id, event)
-
-        return event
-
     def _normalize_tags_type(self, tags, device_name=None, metric_name=None):
         """
         Normalize tags contents and type:
@@ -1441,27 +1206,49 @@ class __AgentCheckPy2(AgentCheckBase):
 
         return data
 
-    def warning(self, warning_message):
-        warning_message = to_string(warning_message)
+    def service_check(self, name, status, tags=None, hostname=None, message=None):
+        tags = self._normalize_tags_type(tags)
+        if hostname is None:
+            hostname = to_string(b'')
+        if message is None:
+            message = to_string(b'')
+        else:
+            message = to_string(message)
 
-        frame = inspect.currentframe().f_back
-        lineno = frame.f_lineno
-        filename = frame.f_code.co_filename
-        # only log the last part of the filename, not the full path
-        filename = basename(filename)
+        integration_instance = self._get_instance_key()
+        tags_bytes = list(map(lambda t: to_string(t), integration_instance.tags()))
+        aggregator.submit_service_check(self, self.check_id, to_string(name), status,
+                                        tags + tags_bytes, hostname, message)
 
-        self.log.warning(warning_message, extra={'_lineno': lineno, '_filename': filename})
-        self.warnings.append(warning_message)
+    def event(self, event):
+        self.validate_event(event)
+        # Enforce types of some fields, considerably facilitates handling in go bindings downstream
+        try:
+            event = self._sanitize(event)
+        except (UnicodeError, TypeError):
+            return
+
+        if event.get('tags'):
+            event['tags'] = self._normalize_tags_type(event['tags'])
+        if event.get('timestamp'):
+            event['timestamp'] = int(event['timestamp'])
+        if event.get('aggregation_key'):
+            event['aggregation_key'] = to_string(event['aggregation_key'])
+        # TODO: This is a workaround as the Go agent doesn't correctly map event_type for normal events. Clean this up
+        if event.get('event_type'):
+            # map event_type as source_type_name for go agent
+            event['source_type_name'] = to_string(event['event_type'])
+        elif event.get('source_type_name'):
+            self._log_deprecation("source_type_name")
+            # if we have the source_type_name and not an event_type map the source_type_name as the event_type
+            event['event_type'] = to_string(event['source_type_name'])
+
+        if 'context' in event:
+            telemetry.submit_topology_event(self, self.check_id, event)
+        else:
+            aggregator.submit_event(self, self.check_id, event)
+
+        return event
 
     def run(self):
         return self._check_run_base(to_string(b''))
-
-
-if PY3:
-    # AgentCheck = __AgentCheckPy3
-    # del __AgentCheckPy2
-    AgentCheck = __AgentCheckPy2
-    del __AgentCheckPy3
-else:
-    AgentCheck = __AgentCheckPy2
-    del __AgentCheckPy3
