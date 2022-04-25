@@ -13,7 +13,6 @@ from collections import defaultdict
 from os.path import basename
 from functools import reduce
 
-
 import yaml
 from six import PY3, iteritems, iterkeys, text_type, string_types, integer_types
 
@@ -1252,7 +1251,7 @@ class __AgentCheckPy2(AgentCheckBase):
         """
         args: `name`, `init_config`, `agentConfig` (deprecated), `instances`
         """
-        self.check_id = b''
+        self.check_id = to_string(b'')
 
         self._deprecations = {
             'increment': [
@@ -1297,7 +1296,7 @@ class __AgentCheckPy2(AgentCheckBase):
 
         tags = self._normalize_tags_type(tags, device_name, name)
         if hostname is None:
-            hostname = b''
+            hostname = to_string(b'')
 
         if self.metric_limiter:
             if mtype in ONE_PER_CONTEXT_METRIC_TYPES:
@@ -1309,19 +1308,20 @@ class __AgentCheckPy2(AgentCheckBase):
                 context = self._context_uid(mtype, name, tags, hostname)
                 if self.metric_limiter.is_reached(context):
                     return
+
         try:
             value = float(value)
         except ValueError:
             err_msg = (
-                "Metric: {} has non float value: {}. "
-                "Only float values can be submitted as metrics.".format(repr(name), repr(value))
+                "Metric: {!r} has non float value: {!r}. "
+                "Only float values can be submitted as metrics.".format(name, value)
             )
             if using_stub_aggregator:
                 raise ValueError(err_msg)
             self.warning(err_msg)
             return
 
-        aggregator.submit_metric(self, self.check_id, mtype, ensure_string(name), value, tags, hostname)
+        aggregator.submit_metric(self, self.check_id, mtype, to_string(name), value, tags, hostname)
 
     def _submit_raw_metrics_data(self, name, value, tags=None, hostname=None, device_name=None, timestamp=None):
         tags = self._normalize_tags_type(tags, device_name, name)
@@ -1331,21 +1331,21 @@ class __AgentCheckPy2(AgentCheckBase):
             return
 
         if hostname is None:
-            hostname = b''
+            hostname = to_string(b'')
 
         telemetry.submit_raw_metrics_data(self, self.check_id, ensure_unicode(name), value, tags, hostname, timestamp)
 
     def service_check(self, name, status, tags=None, hostname=None, message=None):
         tags = self._normalize_tags_type(tags)
         if hostname is None:
-            hostname = b''
+            hostname = to_string(b'')
         if message is None:
-            message = b''
+            message = to_string(b'')
         else:
-            message = ensure_string(message)
+            message = to_string(message)
 
         integration_instance = self._get_instance_key()
-        tags_bytes = list(map(lambda t: ensure_string(t), integration_instance.tags()))
+        tags_bytes = list(map(lambda t: to_string(t), integration_instance.tags()))
         aggregator.submit_service_check(self, self.check_id, ensure_string(name), status,
                                         tags + tags_bytes, hostname, message)
 
@@ -1362,15 +1362,15 @@ class __AgentCheckPy2(AgentCheckBase):
         if event.get('timestamp'):
             event['timestamp'] = int(event['timestamp'])
         if event.get('aggregation_key'):
-            event['aggregation_key'] = ensure_string(event['aggregation_key'])
+            event['aggregation_key'] = to_string(event['aggregation_key'])
         # TODO: This is a workaround as the Go agent doesn't correctly map event_type for normal events. Clean this up
         if event.get('event_type'):
             # map event_type as source_type_name for go agent
-            event['source_type_name'] = ensure_string(event['event_type'])
+            event['source_type_name'] = to_string(event['event_type'])
         elif event.get('source_type_name'):
             self._log_deprecation("source_type_name")
             # if we have the source_type_name and not an event_type map the source_type_name as the event_type
-            event['event_type'] = ensure_string(event['source_type_name'])
+            event['event_type'] = to_string(event['source_type_name'])
 
         if 'context' in event:
             telemetry.submit_topology_event(self, self.check_id, event)
@@ -1392,28 +1392,40 @@ class __AgentCheckPy2(AgentCheckBase):
             device_tag = self._to_bytes("device:{}".format(device_name))
             if device_tag is None:
                 self.log.warning(
-                    'Error encoding device name `{}` to utf-8 for metric `{}`, ignoring tag'.format(
-                        repr(device_name), repr(metric_name)
+                    'Error encoding device name `{!r}` to utf-8 for metric `{!r}`, ignoring tag'.format(
+                        device_name, metric_name
                     )
                 )
             else:
-                normalized_tags.append(device_tag)
+                normalized_tags.append(to_string(device_tag))
 
         if tags is not None:
             for tag in tags:
-                encoded_tag = self._to_bytes(tag)
-                if encoded_tag is None:
-                    self.log.warning(
-                        'Error encoding tag `{}` to utf-8 for metric `{}`, ignoring tag'.format(
-                            repr(tag), repr(metric_name)
+                normalized_tag = None
+                if PY3:
+                    if not isinstance(tag, str):
+                        try:
+                            normalized_tag = tag.decode('utf-8')
+                        except UnicodeError:
+                            self.log.warning(
+                                'Error decoding tag `{}` as utf-8 for metric `{}`, ignoring tag'.format(tag,
+                                                                                                        metric_name)
+                            )
+                            continue
+                else:
+                    normalized_tag = self._to_bytes(tag)
+                    if normalized_tag is None:
+                        self.log.warning(
+                            'Error encoding tag `{!r}` to utf-8 for metric `{!r}`, ignoring tag'.format(tag,
+                                                                                                        metric_name)
                         )
-                    )
-                    continue
-                normalized_tags.append(encoded_tag)
+                        continue
+                normalized_tags.append(normalized_tag)
 
         return normalized_tags
 
-    def _to_bytes(self, data):
+    @staticmethod
+    def _to_bytes(data):
         """
         Normalize a text data to bytes (type `bytes`) so that the go bindings can
         handle it easily.
@@ -1429,7 +1441,7 @@ class __AgentCheckPy2(AgentCheckBase):
         return data
 
     def warning(self, warning_message):
-        warning_message = ensure_string(warning_message)
+        warning_message = to_string(warning_message)
 
         frame = inspect.currentframe().f_back
         lineno = frame.f_lineno
