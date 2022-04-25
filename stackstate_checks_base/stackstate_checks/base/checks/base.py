@@ -1238,7 +1238,7 @@ class __AgentCheckPy3(AgentCheckBase):
         self.warnings.append(warning_message)
 
     def run(self):
-        return self._check_run_base('')
+        return self._check_run_base(to_string(b''))
 
 
 class __AgentCheckPy2(AgentCheckBase):
@@ -1453,7 +1453,7 @@ class __AgentCheckPy2(AgentCheckBase):
         self.warnings.append(warning_message)
 
     def run(self):
-        return self._check_run_base(b'')
+        return self._check_run_base(to_string(b''))
 
 
 if PY3:
