@@ -394,7 +394,8 @@ class AgentCheck(object):
         self._log_deprecation('in_developer_mode')
         return False
 
-    def _context_uid(self, mtype, name, tags=None, hostname=None):
+    @staticmethod
+    def _context_uid(mtype, name, tags=None, hostname=None):
         return '{}-{}-{}-{}'.format(mtype, name, tags if tags is None else hash(frozenset(tags)), hostname)
 
     @staticmethod
@@ -403,35 +404,35 @@ class AgentCheck(object):
             raise ValueError("Got None value for argument {}".format(argument_name))
 
     @staticmethod
-    def _check_is_string(argumentName, value):
-        AgentCheck._check_not_none(argumentName, value)
+    def _check_is_string(argument_name, value):
+        AgentCheck._check_not_none(argument_name, value)
         if not isinstance(value, string_types):
-            AgentCheck._raise_unexpected_type(argumentName, value, "string")
+            AgentCheck._raise_unexpected_type(argument_name, value, "string")
 
     @staticmethod
-    def _raise_unexpected_type(argumentName, value, expected):
-        raise ValueError("Got unexpected {} for argument {}, expected {}".format(type(value), argumentName, expected))
+    def _raise_unexpected_type(argument_name, value, expected):
+        raise ValueError("Got unexpected {} for argument {}, expected {}".format(type(value), argument_name, expected))
 
     @staticmethod
-    def _check_struct_value(argumentName, value):
+    def _check_struct_value(argument_name, value):
         if value is None or isinstance(value, string_types) or isinstance(value, integer_types) or \
                 isinstance(value, float) or isinstance(value, bool):
             return
         elif isinstance(value, dict):
             for k in value:
-                AgentCheck._check_struct_value("{}.{}".format(argumentName, k), value[k])
+                AgentCheck._check_struct_value("{}.{}".format(argument_name, k), value[k])
         elif isinstance(value, list):
             for idx, val in enumerate(value):
-                AgentCheck._check_struct_value("{}[{}]".format(argumentName, idx), val)
+                AgentCheck._check_struct_value("{}[{}]".format(argument_name, idx), val)
         else:
-            AgentCheck._raise_unexpected_type(argumentName, value, "string, int, dictionary, list or None value")
+            AgentCheck._raise_unexpected_type(argument_name, value, "string, int, dictionary, list or None value")
 
     @staticmethod
-    def _check_struct(argumentName, value):
+    def _check_struct(argument_name, value):
         if isinstance(value, dict):
-            AgentCheck._check_struct_value(argumentName, value)
+            AgentCheck._check_struct_value(argument_name, value)
         else:
-            AgentCheck._raise_unexpected_type(argumentName, value, "dictionary or None value")
+            AgentCheck._raise_unexpected_type(argument_name, value, "dictionary or None value")
 
     def get_health_stream(self, instance):
         """
@@ -529,9 +530,9 @@ class AgentCheck(object):
             if prefix is not None:
                 prefix = self.convert_to_underscore_separated(prefix)
         elif extra_disallowed_chars:
-            name = re.sub(br"[,\+\*\-/()\[\]{}\s" + extra_disallowed_chars + br"]", b"_", metric)
+            name = re.sub(br"[,+*\-/()\[\]{}\s" + extra_disallowed_chars + br"]", b"_", metric)
         else:
-            name = re.sub(br"[,\+\*\-/()\[\]{}\s]", b"_", metric)
+            name = re.sub(br"[,+*\-/()\[\]{}\s]", b"_", metric)
         # Eliminate multiple _
         name = re.sub(br"__+", b"_", name)
         # Don't start/end with _
@@ -712,7 +713,8 @@ class AgentCheck(object):
         self._check_struct("data", data)
         return data
 
-    def get_mapping_field_key(self, dictionary, keys, default=None):
+    @staticmethod
+    def get_mapping_field_key(dictionary, keys, default=None):
         return reduce(lambda d, key: d.get(key, default) if isinstance(d, dict) else default, keys.split("."),
                       dictionary)
 
@@ -731,7 +733,8 @@ class AgentCheck(object):
             data["identifiers"] = identifiers
             return data
 
-    def _map_streams_and_checks(self, data, streams, checks):
+    @staticmethod
+    def _map_streams_and_checks(data, streams, checks):
         if streams:
             stream_id = -1
             for stream in streams:
@@ -887,7 +890,8 @@ class AgentCheck(object):
                                  self._map_relation_data(agent_integration_external_id,
                                                          agent_integration_instance_external_id, "has", {}))
 
-    def validate_event(self, event):
+    @staticmethod
+    def validate_event(event):
         """
         Validates the event against the Event schematic model to make sure that all the expected values are provided
         and are the correct type
@@ -1049,7 +1053,8 @@ class AgentCheck(object):
             field = set(encoding_list)
         return field
 
-    def _is_not_empty(self, field):
+    @staticmethod
+    def _is_not_empty(field):
         """
         _is_not_empty checks whether field contains "interesting" or is not None and returns true
         `field` the value to check
@@ -1065,7 +1070,8 @@ class AgentCheck(object):
 
         return False
 
-    def _ensure_string_only_keys(self, dictionary):
+    @staticmethod
+    def _ensure_string_only_keys(dictionary):
         """
         _ensure_string_only_keys checks whether all the keys of a dictionary are strings (and / or text_type).
         StackState only supports dictionaries with string keys. The conversion of text_type will happen in the _sanitize
@@ -1083,7 +1089,8 @@ class AgentCheck(object):
         raise TypeError("Dictionary: {0} contains keys which are not string or {1}: {2}"
                         .format(dictionary, text_type, type_set))
 
-    def _ensure_homogeneous_list(self, list):
+    @staticmethod
+    def _ensure_homogeneous_list(list):
         """
         _ensure_homogeneous_list checks whether all values of a list or set are of the same type. StackState only
         supports homogeneous lists.
@@ -1201,7 +1208,7 @@ class AgentCheck(object):
         if not isinstance(data, bytes):
             try:
                 return data.encode('utf-8')
-            except Exception:
+            except UnicodeError:
                 return None
 
         return data
