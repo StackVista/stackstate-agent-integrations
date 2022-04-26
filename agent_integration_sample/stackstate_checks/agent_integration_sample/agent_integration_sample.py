@@ -228,3 +228,6 @@ class AgentIntegrationSampleCheck(AgentCheck):
         }
         self.write_persistent_cache("test_key", json.dumps(sample_data))
         assert json.loads(self.read_persistent_cache("test_key")) == sample_data
+        self.log.info("try to read key that doesn't exist in persistent cache")
+        cache = self.read_persistent_cache("key_that_is_not_there")
+        self.log.info("empty cache: {} empty cache's type: {}".format(cache, type(cache)))
