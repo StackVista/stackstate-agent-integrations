@@ -12,8 +12,10 @@ import unicodedata
 from collections import defaultdict
 from functools import reduce
 from os.path import basename
+from typing import Any, Dict, Tuple, Sequence, List, Optional, Union, Type, AnyStr
 
 import yaml
+from schematics import Model
 from six import PY3, iteritems, iterkeys, text_type, string_types, integer_types
 
 try:
@@ -186,15 +188,21 @@ class AgentCheck(object):
     STATE_FIELD_NAME = 'state'
 
     def __init__(self, *args, **kwargs):
+        # type: (*Any, **Any) -> None
         """
-        args: `name`, `init_config`, `agentConfig` (deprecated), `instances`
+        - **name** (_str_) - the name of the check
+        - **init_config** (_dict_) - the `init_config` section of the configuration.
+        - **agentConfig** (_dict_) - deprecated
+        - **instance** (_List[dict]_) - a one-element list containing the instance options from the
+                configuration file (a list is used to keep backward compatibility with
+                older versions of the Agent).
         """
         self.check_id = to_string(b'')
-        self.metrics = defaultdict(list)
+        self.metrics = defaultdict(list)  # type: Dict[str, List[str]]
         self.name = kwargs.get('name', '')
         self.init_config = kwargs.get('init_config', {})
         self.agentConfig = kwargs.get('agentConfig', {})
-        self.warnings = []
+        self.warnings = []  # type: List[str]
         self.metric_limiter = None
         self.instances = kwargs.get('instances', [])
 
@@ -229,7 +237,6 @@ class AgentCheck(object):
         if using_stub_telemetry:
             self.log.warning("Using stub telemetry api")
         self.state_manager = StateManager(self.log)
-        self._deprecations = {}
         # Set proxy settings
         self.proxies = self._get_requests_proxy()
         if not self.init_config:
@@ -267,11 +274,12 @@ class AgentCheck(object):
                 "DEPRECATION NOTICE: The `source_type_name` event parameters has been deprecated "
                 "in favour of `event_type` and will be removed in a future release.",
             ],
-        }
+        }  # type: Dict[str, List[Any]]
 
         self.set_metric_limits()
 
     def _init_health_api(self):
+        # type: () -> None
         if self.health is not None:
             return
 
@@ -290,7 +298,12 @@ class AgentCheck(object):
                     expiry_seconds = 0
             self.health = HealthApi(self, stream_spec, expiry_seconds, repeat_interval_seconds)
 
-    def _check_run_base(self, default_result):
+    def run(self):
+        # type: () -> str
+        """
+        Runs check.
+        """
+        default_result = to_string(b'')
         try:
             # start auto snapshot if with_snapshots is set to True
             if self._get_instance_key().with_snapshots:
@@ -337,6 +350,7 @@ class AgentCheck(object):
         return result
 
     def commit_state(self, state, flush=True):
+        # type: (Any, bool) -> None
         """
         commit_state can be used to immediately set (and optionally flush) state in the agent, instead of first
         completing
@@ -345,6 +359,7 @@ class AgentCheck(object):
         self.state_manager.set_state(self._get_state_descriptor(), state, flush)
 
     def set_metric_limits(self):
+        # type: () -> None
         try:
             metric_limit = self.instances[0].get('max_returned_metrics', self.DEFAULT_METRIC_LIMIT)
             # Do not allow to disable limiting if the class has set a non-zero default value
@@ -360,6 +375,7 @@ class AgentCheck(object):
             self.metric_limiter = Limiter(self.name, 'metrics', metric_limit, self.warning)
 
     def _get_state_descriptor(self):
+        # type: () -> StateDescriptor
         integration_instance = self._get_instance_key()
         instance_key = to_string(
             self.normalize("instance.{}.{}".format(integration_instance.type, integration_instance.url),
@@ -370,6 +386,7 @@ class AgentCheck(object):
 
     @staticmethod
     def get_cluster_name():
+        # type: () -> str
         """
         returns the cluster name if the check is running in Kubernetes / OpenShift
         """
@@ -377,6 +394,7 @@ class AgentCheck(object):
 
     @staticmethod
     def get_hostname():
+        # type: () -> str
         """
         returns the hostname
         """
@@ -384,6 +402,7 @@ class AgentCheck(object):
 
     @staticmethod
     def load_config(yaml_str):
+        # type: (str) -> Any
         """
         Convenience wrapper to ease programmatic use of this class from the C API.
         """
@@ -391,30 +410,36 @@ class AgentCheck(object):
 
     @property
     def in_developer_mode(self):
+        # type: () -> bool
         self._log_deprecation('in_developer_mode')
         return False
 
     @staticmethod
     def _context_uid(mtype, name, tags=None, hostname=None):
+        # type: (int, str, Sequence[str], str) -> str
         return '{}-{}-{}-{}'.format(mtype, name, tags if tags is None else hash(frozenset(tags)), hostname)
 
     @staticmethod
     def _check_not_none(argument_name, value):
+        # type: (str, str) -> None
         if value is None:
             raise ValueError("Got None value for argument {}".format(argument_name))
 
     @staticmethod
     def _check_is_string(argument_name, value):
+        # type: (str, str) -> None
         AgentCheck._check_not_none(argument_name, value)
         if not isinstance(value, string_types):
             AgentCheck._raise_unexpected_type(argument_name, value, "string")
 
     @staticmethod
     def _raise_unexpected_type(argument_name, value, expected):
+        # type: (str, Any, str) -> None
         raise ValueError("Got unexpected {} for argument {}, expected {}".format(type(value), argument_name, expected))
 
     @staticmethod
     def _check_struct_value(argument_name, value):
+        # type: (str, Any) -> None
         if value is None or isinstance(value, string_types) or isinstance(value, integer_types) or \
                 isinstance(value, float) or isinstance(value, bool):
             return
@@ -429,12 +454,14 @@ class AgentCheck(object):
 
     @staticmethod
     def _check_struct(argument_name, value):
+        # type: (str, Any) -> None
         if isinstance(value, dict):
             AgentCheck._check_struct_value(argument_name, value)
         else:
             AgentCheck._raise_unexpected_type(argument_name, value, "dictionary or None value")
 
     def get_health_stream(self, instance):
+        # type: (Any) -> None
         """
         Integration checks can override this if they want to be producing a health stream. Defining the will
         enable self.health() calls
@@ -444,24 +471,28 @@ class AgentCheck(object):
         return None
 
     def _get_instance_schema(self, instance):
+        # type: (Dict[str, Any]) -> Union[Model, Dict[str, Any]]
+        """
+        If this check has a instance schema defined, cast it into that type and validate it.
+        """
         check_instance = instance
 
-        # if this check has a instance schema defined, cast it into that type and validate it
         if self.INSTANCE_SCHEMA:
             check_instance = self.INSTANCE_SCHEMA(instance, strict=False)  # strict=False ignores extra fields
             check_instance.validate()
         return check_instance
 
     def get_instance_key(self, instance):
-        """
-        Integration checks can override this based on their needs.
+        # type: (Union[Model, Dict[str, Any]]) -> _TopologyInstanceBase
+        """Integration checks can override this based on their needs.
 
-        :param instance: AgentCheck instance
+        :param: instance: AgentCheck instance
         :return: a class extending _TopologyInstanceBase
         """
         return NoIntegrationInstance()
 
     def _get_instance_key(self):
+        # type: () -> _TopologyInstanceBase
         check_instance = self._get_instance_schema(self.instance)
 
         value = self.get_instance_key(check_instance)
@@ -480,9 +511,11 @@ class AgentCheck(object):
         return value
 
     def _get_instance_key_dict(self):
+        # type: () -> Dict[str, Any]
         return self._get_instance_key().to_dict()
 
     def get_instance_proxy(self, instance, uri, proxies=None):
+        # type: (Union[Model, Dict[str, Any]], str, bool) -> Dict[str, Any]
         proxies = proxies if proxies is not None else self.proxies.copy()
 
         deprecated_skip = instance.get('no_proxy', None)
@@ -500,9 +533,14 @@ class AgentCheck(object):
         pass
 
     def check(self, instance):
+        # type: (Union[Model, Dict[str, Any]]) -> None
         raise NotImplementedError
 
     def warning(self, warning_message):
+        # type: (str) -> None
+        """ Log a warning message and display it in the Agent's status page.
+        - **warning_message** (_str_): the warning message.
+        """
         warning_message = to_string(warning_message)
 
         frame = inspect.currentframe().f_back
@@ -515,12 +553,14 @@ class AgentCheck(object):
         self.warnings.append(warning_message)
 
     def normalize(self, metric, prefix=None, fix_case=False, extra_disallowed_chars=None):
+        # type (AnyStr, AnyStr, bool, Optional[bytes]) -> AnyStr
         """
         Turn a metric into a well-formed metric name
         prefix.b.c
         :param metric The metric name to normalize
         :param prefix A prefix to to add to the normalized name, default None
         :param fix_case A boolean, indicating whether to make sure that the metric name returned is in "snake_case"
+        :param extra_disallowed_chars Custom characters for regex
         """
         if isinstance(metric, text_type):
             metric = unicodedata.normalize('NFKD', metric).encode('ascii', 'ignore')
@@ -530,9 +570,9 @@ class AgentCheck(object):
             if prefix is not None:
                 prefix = self.convert_to_underscore_separated(prefix)
         elif extra_disallowed_chars:
-            name = re.sub(br"[,+*\-/()\[\]{}\s" + extra_disallowed_chars + br"]", b"_", metric)
+            name = re.sub(br"[,\+\*\-/()\[\]{}\s" + extra_disallowed_chars + br"]", b"_", metric)
         else:
-            name = re.sub(br"[,+*\-/()\[\]{}\s]", b"_", metric)
+            name = re.sub(br"[,\+\*\-/()\[\]{}\s]", b"_", metric)
         # Eliminate multiple _
         name = re.sub(br"__+", b"_", name)
         # Don't start/end with _
@@ -553,6 +593,7 @@ class AgentCheck(object):
     DOT_UNDERSCORE_CLEANUP = re.compile(br'_*\._*')
 
     def convert_to_underscore_separated(self, name):
+        # type: (AnyStr) -> bytes
         """
         Convert from CamelCase to camel_case
         And substitute illegal metric characters
@@ -563,19 +604,21 @@ class AgentCheck(object):
         return self.DOT_UNDERSCORE_CLEANUP.sub(br'.', metric_name).strip(b'_')
 
     def component(self, id, type, data, streams=None, checks=None):
+        # type: (str, str, Dict, Optional[List], Optional[List]) -> Optional[Dict[str, Any]]
         integration_instance = self._get_instance_key()
         try:
             fixed_data = self._sanitize(data)
             fixed_streams = self._sanitize(streams)
             fixed_checks = self._sanitize(checks)
         except (UnicodeError, TypeError):
-            return
+            return None
         data = self._map_component_data(id, type, integration_instance, fixed_data, fixed_streams, fixed_checks)
         topology.submit_component(self, self.check_id, self._get_instance_key_dict(), id, type, data)
         return {"id": id, "type": type, "data": data}
 
     def _map_component_data(self, id, type, integration_instance, data, streams=None, checks=None,
                             add_instance_tags=True):
+        # type (str, str, Union[_TopologyInstanceBase, Dict], Dict, Optional[List], Optional[List], bool) -> Dict
         AgentCheck._check_is_string("id", id)
         AgentCheck._check_is_string("type", type)
         if data is None:
@@ -592,22 +635,25 @@ class AgentCheck(object):
         return data
 
     def relation(self, source, target, type, data, streams=None, checks=None):
+        # type: (str, str, str, Dict[str, Any], Optional[List], bool) -> Optional[Dict[str, Any]]
         try:
             fixed_data = self._sanitize(data)
             fixed_streams = self._sanitize(streams)
             fixed_checks = self._sanitize(checks)
         except (UnicodeError, TypeError):
-            return
+            return None
         data = self._map_relation_data(source, target, type, fixed_data, fixed_streams, fixed_checks)
         topology.submit_relation(self, self.check_id, self._get_instance_key_dict(), source, target, type, data)
         return {"source_id": source, "target_id": target, "type": type, "data": data}
 
     def delete(self, identifier):
+        # type: (str) -> str
         AgentCheck._check_is_string("identifier", identifier)
         topology.submit_delete(self, self.check_id, self._get_instance_key_dict(), identifier)
         return identifier
 
     def _map_stackstate_tags_and_instance_config(self, data):
+        # type: (Dict[str, Any]) -> Dict[str, Any]
         # Extract or create the tags and identifier objects
         tags = data.get('tags', [])
         identifiers = data.get("identifiers", [])
@@ -643,9 +689,11 @@ class AgentCheck(object):
 
         return data
 
-    # Regex function used to split a string on commas and/or spaces
     @staticmethod
     def split_on_commas_and_spaces(content):
+        # type: (Any) -> List[str]
+        """Regex function used to split a string on commas and/or spaces.
+        """
         if isinstance(content, str):
             """
                 We are testing the following with the regex block below
@@ -664,11 +712,14 @@ class AgentCheck(object):
         else:
             return []
 
-    # Generic mapping function for tags or config
-    # Attempt to find if the target exists on a tag or config and map that to the origin value
-    # There's a optional default value if required
-    # Value override order: tags < config.yaml
     def _map_config_and_tags(self, data, target, origin, return_array=False, return_direct_value=False, default=None):
+        # type (Dict[str, Any], str, str, bool, bool, str) -> Union[Sequence[str], Dict[str, Any]]
+        """
+        Generic mapping function for tags or config.
+        Attempt to find if the target exists on a tag or config and map that to the origin value.
+        There's an optional default value if required.
+        Value override order: tags < config.yaml
+        """
         # Get the first instance and create a deep copy
         instance = self.instances[0] if self.instances is not None and len(self.instances) else {}
         check_instance = copy.deepcopy(instance)
@@ -703,6 +754,7 @@ class AgentCheck(object):
         return data
 
     def _map_relation_data(self, source, target, type, data, streams=None, checks=None):
+        # type: (str, str, str, Dict[str, Any], Optional[List], Optional[List]) -> Dict[str, Any]
         AgentCheck._check_is_string("source", source)
         AgentCheck._check_is_string("target", target)
         AgentCheck._check_is_string("type", type)
@@ -781,17 +833,19 @@ class AgentCheck(object):
                                         "to disable snapshots use TopologyInstance(type, url, with_snapshots=False) "
                                         "when overriding get_instance_key")
     def start_snapshot(self):
+        # type: () -> None
         topology.submit_start_snapshot(self, self.check_id, self._get_instance_key_dict())
 
     @deprecated(version='2.9.0', reason="Topology Snapshots is enabled by default for all TopologyInstance checks, "
                                         "to disable snapshots use TopologyInstance(type, url, with_snapshots=False) "
                                         "when overriding get_instance_key")
     def stop_snapshot(self):
+        # type: () -> None
         topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key_dict())
 
     def create_integration_instance(self):
+        # type: () -> None
         """
-
         Agent -> Agent Integration -> Agent Integration Instance
         """
         integration_instance = self._get_instance_key()
@@ -892,6 +946,7 @@ class AgentCheck(object):
 
     @staticmethod
     def validate_event(event):
+        # type: (Union[Model, Dict[str, Any]]) -> None
         """
         Validates the event against the Event schematic model to make sure that all the expected values are provided
         and are the correct type
@@ -1214,6 +1269,14 @@ class AgentCheck(object):
         return data
 
     def service_check(self, name, status, tags=None, hostname=None, message=None):
+        # type: (str, int, List[str], str, str) -> None
+        """Send the status of a service.
+        - **name** (_str_) - the name of the service check
+        - **status** (_int_) - a constant describing the service status.
+        - **tags** (_List[str]_) - a list of tags to associate with this service check
+        - **hostname** (_str_) - hostname, do we use this at anywhere?
+        - **message** (_str_) - additional information or a description of why this status occurred.
+        """
         tags = self._normalize_tags_type(tags)
         if hostname is None:
             hostname = to_string(b'')
@@ -1256,6 +1319,3 @@ class AgentCheck(object):
             aggregator.submit_event(self, self.check_id, event)
 
         return event
-
-    def run(self):
-        return self._check_run_base(to_string(b''))
