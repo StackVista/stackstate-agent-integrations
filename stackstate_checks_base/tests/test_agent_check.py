@@ -608,45 +608,44 @@ class TestTagsAndConfigMapping:
             data_without_target.get("tags").remove(target + ":tag-" + target)
 
             # Include instance config in the tests
-            assert check_include_config._map_config_and_tags({}, target, origin) == \
+            assert check_include_config._move_data_with_config_or_tags({}, target, origin) == \
                    {origin: 'instance-' + target}
-            assert check_include_config._map_config_and_tags({}, target, origin, True) == \
+            assert check_include_config._move_data_with_config_or_tags({}, target, origin, True) == \
                    {origin: ['instance-' + target]}
-            assert check_include_config._map_config_and_tags(copy.deepcopy(data), target, origin) == \
+            assert check_include_config._move_data_with_config_or_tags(copy.deepcopy(data), target, origin) == \
                    {origin: 'tag-' + target, 'tags': data_without_target['tags']}
-            assert check_include_config._map_config_and_tags(copy.deepcopy(data), target, origin, True) == \
+            assert check_include_config._move_data_with_config_or_tags(copy.deepcopy(data), target, origin, True) == \
                    {origin: ['tag-' + target], 'tags': data_without_target['tags']}
 
             # Exclude the instance config in the tests
-            assert check_exclude_config._map_config_and_tags({}, target, origin) == {}
-            assert check_exclude_config._map_config_and_tags({}, target, origin, True) == {}
-            assert check_exclude_config._map_config_and_tags(copy.deepcopy(data), target, origin) == \
+            assert check_exclude_config._move_data_with_config_or_tags({}, target, origin) == {}
+            assert check_exclude_config._move_data_with_config_or_tags({}, target, origin, True) == {}
+            assert check_exclude_config._move_data_with_config_or_tags(copy.deepcopy(data), target, origin) == \
                    {origin: 'tag-' + target, 'tags': data_without_target['tags']}
-            assert check_exclude_config._map_config_and_tags(copy.deepcopy(data), target, origin, True) == \
+            assert check_exclude_config._move_data_with_config_or_tags(copy.deepcopy(data), target, origin, True) == \
                    {origin: ['tag-' + target], 'tags': data_without_target['tags']}
 
             # Default Config
-            assert check_exclude_config._map_config_and_tags({}, target, origin, False, False, default_value) == \
+            assert check_exclude_config._move_data_with_config_or_tags({}, target, origin, False, default_value) == \
                    {origin: default_value}
-            assert check_exclude_config._map_config_and_tags({}, target, origin, True, False, default_value) == \
+            assert check_exclude_config._move_data_with_config_or_tags({}, target, origin, True, default_value) == \
                    {origin: [default_value]}
 
             # Return direct value & Return direct value arrays test
-            assert check_exclude_config._map_config_and_tags(copy.deepcopy(data), target, origin, False, True) == \
+            assert check_exclude_config._get_config_or_tag_value(copy.deepcopy(data), target, False) == \
                    'tag-' + target
-            assert check_include_config._map_config_and_tags(copy.deepcopy(data), target, origin, False, True) == \
+            assert check_include_config._get_config_or_tag_value(copy.deepcopy(data), target, False) == \
                    'tag-' + target
-            assert check_exclude_config._map_config_and_tags({}, target, origin, False, True) == \
-                   {}
-            assert check_include_config._map_config_and_tags({}, target, origin, False, True) == \
+            assert check_exclude_config._get_config_or_tag_value({}, target, False) is None
+            assert check_include_config._get_config_or_tag_value({}, target, False) == \
                    'instance-' + target
-            assert check_exclude_config._map_config_and_tags(copy.deepcopy(data), target, origin, True, True) == \
+            assert check_exclude_config._get_config_or_tag_value(copy.deepcopy(data), target, True) == \
                    ['tag-' + target]
-            assert check_include_config._map_config_and_tags(copy.deepcopy(data), target, origin, True, True) == \
+            assert check_include_config._get_config_or_tag_value(copy.deepcopy(data), target, True) == \
                    ['tag-' + target]
-            assert check_exclude_config._map_config_and_tags({}, target, origin, True, True) == \
+            assert check_exclude_config._get_config_or_tag_value({}, target, True) == \
                    []
-            assert check_include_config._map_config_and_tags({}, target, origin, True, True) == \
+            assert check_include_config._get_config_or_tag_value({}, target, True) == \
                    ['instance-' + target]
 
         # We are testing the environment, layer and domain for all the use cases
