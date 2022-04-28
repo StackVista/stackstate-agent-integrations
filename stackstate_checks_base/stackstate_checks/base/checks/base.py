@@ -12,11 +12,14 @@ import unicodedata
 from collections import defaultdict
 from functools import reduce
 from os.path import basename
-from typing import Any, Dict, Tuple, Sequence, List, Optional, Union, Type, AnyStr
+from types import FrameType
+from typing import Any, Dict, Tuple, Sequence, List, Optional, Union, Type, AnyStr, Iterable
 
 import yaml
 from schematics import Model
 from six import PY3, iteritems, iterkeys, text_type, string_types, integer_types
+
+from ..utils.health_api import HealthStream
 
 try:
     import datadog_agent
@@ -203,7 +206,7 @@ class AgentCheck(object):
         self.init_config = kwargs.get('init_config', {})
         self.agentConfig = kwargs.get('agentConfig', {})
         self.warnings = []  # type: List[str]
-        self.metric_limiter = None
+        self.metric_limiter = None  # type: Optional[Limiter]
         self.instances = kwargs.get('instances', [])
 
         if len(args) > 0:
@@ -247,7 +250,7 @@ class AgentCheck(object):
         self.default_integration_http_timeout = float(self.agentConfig.get('default_integration_http_timeout', 9))
 
         # Will be initialized as part of the check, to allow for proper error reporting there if initialization fails
-        self.health = None
+        self.health = None  # type: Optional[HealthApi]
 
         self._deprecations = {
             'increment': [
@@ -281,7 +284,7 @@ class AgentCheck(object):
     def _init_health_api(self):
         # type: () -> None
         if self.health is not None:
-            return
+            return None
 
         stream_spec = self.get_health_stream(self._get_instance_schema(self.instance))
         if stream_spec:
@@ -461,7 +464,7 @@ class AgentCheck(object):
             AgentCheck._raise_unexpected_type(argument_name, value, "dictionary or None value")
 
     def get_health_stream(self, instance):
-        # type: (Any) -> None
+        # type: (Any) -> Optional[HealthStream]
         """
         Integration checks can override this if they want to be producing a health stream. Defining the will
         enable self.health() calls
@@ -543,7 +546,7 @@ class AgentCheck(object):
         """
         warning_message = to_string(warning_message)
 
-        frame = inspect.currentframe().f_back
+        frame = inspect.currentframe().f_back  # type: Optional[FrameType]
         lineno = frame.f_lineno
         filename = frame.f_code.co_filename
         # only log the last part of the filename, not the full path
@@ -553,7 +556,7 @@ class AgentCheck(object):
         self.warnings.append(warning_message)
 
     def normalize(self, metric, prefix=None, fix_case=False, extra_disallowed_chars=None):
-        # type (AnyStr, AnyStr, bool, Optional[bytes]) -> AnyStr
+        # type: (AnyStr, AnyStr, bool, Optional[bytes]) -> AnyStr
         """
         Turn a metric into a well-formed metric name
         prefix.b.c
@@ -585,7 +588,7 @@ class AgentCheck(object):
         if prefix is not None:
             return ensure_string(prefix) + b"." + name
         else:
-            return name
+            return ensure_string(name)
 
     FIRST_CAP_RE = re.compile(br'(.)([A-Z][a-z]+)')
     ALL_CAP_RE = re.compile(br'([a-z0-9])([A-Z])')
@@ -618,7 +621,7 @@ class AgentCheck(object):
 
     def _map_component_data(self, id, type, integration_instance, data, streams=None, checks=None,
                             add_instance_tags=True):
-        # type (str, str, Union[_TopologyInstanceBase, Dict], Dict, Optional[List], Optional[List], bool) -> Dict
+        # TODO type (str, str, Union[_TopologyInstanceBase, Dict], Dict, Optional[List], Optional[List], bool) -> Dict
         AgentCheck._check_is_string("id", id)
         AgentCheck._check_is_string("type", type)
         if data is None:
@@ -713,7 +716,7 @@ class AgentCheck(object):
             return []
 
     def _map_config_and_tags(self, data, target, origin, return_array=False, return_direct_value=False, default=None):
-        # type (Dict[str, Any], str, str, bool, bool, str) -> Union[Sequence[str], Dict[str, Any]]
+        # TODO type (Dict[str, Any], str, str, bool, bool, str) -> Union[Sequence[str], Dict[str, Any]]
         """
         Generic mapping function for tags or config.
         Attempt to find if the target exists on a tag or config and map that to the origin value.
@@ -767,6 +770,7 @@ class AgentCheck(object):
 
     @staticmethod
     def get_mapping_field_key(dictionary, keys, default=None):
+        # type: (Dict[str, Any], str, str) -> Dict[str, Any]
         return reduce(lambda d, key: d.get(key, default) if isinstance(d, dict) else default, keys.split("."),
                       dictionary)
 
@@ -964,6 +968,7 @@ class AgentCheck(object):
             AgentCheck._raise_unexpected_type("event", event, "Dictionary or Event")
 
     def _submit_metric(self, mtype, name, value, tags=None, hostname=None, device_name=None):
+        # type: (int, str, float, Sequence[str], str, str) -> None
         if value is None:
             # ignore metric sample
             return
@@ -998,6 +1003,7 @@ class AgentCheck(object):
         aggregator.submit_metric(self, self.check_id, mtype, to_string(name), value, tags, hostname)
 
     def _submit_raw_metrics_data(self, name, value, tags=None, hostname=None, device_name=None, timestamp=None):
+        # type: (str, float, Sequence[str], str, str, int) -> None
         tags = self._normalize_tags_type(tags, device_name, name)
 
         if timestamp is None:
@@ -1010,36 +1016,120 @@ class AgentCheck(object):
         telemetry.submit_raw_metrics_data(self, self.check_id, ensure_unicode(name), value, tags, hostname, timestamp)
 
     def raw(self, name, value, tags=None, hostname=None, device_name=None, timestamp=None):
+        # type: (str, float, Sequence[str], str, str, int) -> None
         self._submit_raw_metrics_data(name, value, tags, hostname, device_name, timestamp)
 
     def gauge(self, name, value, tags=None, hostname=None, device_name=None):
+        # type: (str, float, Sequence[str], str, str) -> None
+        """Sample a gauge metric.
+
+        **Parameters:**
+
+        - **name** (_str_) - the name of the metric
+        - **value** (_float_) - the value for the metric
+        - **tags** (_List[str]_) - a list of tags to associate with this metric
+        - **hostname** (_str_) - a hostname to associate with this metric. Defaults to the current host.
+        - **device_name** (_str_) - **deprecated** add a tag in the form `device:<device_name>` to the `tags`
+            list instead.
+        """
         self._submit_metric(aggregator.GAUGE, name, value, tags=tags, hostname=hostname, device_name=device_name)
 
     def count(self, name, value, tags=None, hostname=None, device_name=None):
+        # type: (str, float, Sequence[str], str, str) -> None
+        """Sample a raw count metric.
+
+        - **name** (_str_) - the name of the metric
+        - **value** (_float_) - the value for the metric
+        - **tags** (_List[str]_) - a list of tags to associate with this metric
+        - **hostname** (_str_) - a hostname to associate with this metric. Defaults to the current host.
+        - **device_name** (_str_) - **deprecated** add a tag in the form `device:<device_name>` to the `tags`
+            list instead.
+        """
         self._submit_metric(aggregator.COUNT, name, value, tags=tags, hostname=hostname, device_name=device_name)
 
     def monotonic_count(self, name, value, tags=None, hostname=None, device_name=None):
+        # type: (str, float, Sequence[str], str, str) -> None
+        """Sample an increasing counter metric.
+
+        - **name** (_str_) - the name of the metric
+        - **value** (_float_) - the value for the metric
+        - **tags** (_List[str]_) - a list of tags to associate with this metric
+        - **hostname** (_str_) - a hostname to associate with this metric. Defaults to the current host.
+        - **device_name** (_str_) - **deprecated** add a tag in the form `device:<device_name>` to the `tags`
+            list instead.
+        """
         self._submit_metric(aggregator.MONOTONIC_COUNT, name, value, tags=tags, hostname=hostname,
                             device_name=device_name)
 
     def rate(self, name, value, tags=None, hostname=None, device_name=None):
+        # type: (str, float, Sequence[str], str, str) -> None
+        """Sample a point, with the rate calculated at the end of the check.
+
+        - **name** (_str_) - the name of the metric
+        - **value** (_float_) - the value for the metric
+        - **tags** (_List[str]_) - a list of tags to associate with this metric
+        - **hostname** (_str_) - a hostname to associate with this metric. Defaults to the current host.
+        - **device_name** (_str_) - **deprecated** add a tag in the form `device:<device_name>` to the `tags`
+            list instead.
+        """
         self._submit_metric(aggregator.RATE, name, value, tags=tags, hostname=hostname, device_name=device_name)
 
     def histogram(self, name, value, tags=None, hostname=None, device_name=None):
+        # type: (str, float, Sequence[str], str, str) -> None
+        """Sample a histogram metric.
+
+        - **name** (_str_) - the name of the metric
+        - **value** (_float_) - the value for the metric
+        - **tags** (_List[str]_) - a list of tags to associate with this metric
+        - **hostname** (_str_) - a hostname to associate with this metric. Defaults to the current host.
+        - **device_name** (_str_) - **deprecated** add a tag in the form `device:<device_name>` to the `tags`
+            list instead.
+        """
         self._submit_metric(aggregator.HISTOGRAM, name, value, tags=tags, hostname=hostname, device_name=device_name)
 
     def historate(self, name, value, tags=None, hostname=None, device_name=None):
+        # type: (str, float, Sequence[str], str, str) -> None
+        """Sample a histogram based on rate metrics.
+
+        - **name** (_str_) - the name of the metric
+        - **value** (_float_) - the value for the metric
+        - **tags** (_List[str]_) - a list of tags to associate with this metric
+        - **hostname** (_str_) - a hostname to associate with this metric. Defaults to the current host.
+        - **device_name** (_str_) - **deprecated** add a tag in the form `device:<device_name>` to the `tags`
+            list instead.
+        """
         self._submit_metric(aggregator.HISTORATE, name, value, tags=tags, hostname=hostname, device_name=device_name)
 
     def increment(self, name, value=1, tags=None, hostname=None, device_name=None):
+        # type: (str, float, Sequence[str], str, str) -> None
+        """Increment a counter metric.
+
+        - **name** (_str_) - the name of the metric
+        - **value** (_float_) - the value for the metric
+        - **tags** (_List[str]_) - a list of tags to associate with this metric
+        - **hostname** (_str_) - a hostname to associate with this metric. Defaults to the current host.
+        - **device_name** (_str_) - **deprecated** add a tag in the form `device:<device_name>` to the `tags`
+            list instead.
+        """
         self._log_deprecation('increment')
         self._submit_metric(aggregator.COUNTER, name, value, tags=tags, hostname=hostname, device_name=device_name)
 
     def decrement(self, name, value=-1, tags=None, hostname=None, device_name=None):
+        # type: (str, float, Sequence[str], str, str) -> None
+        """Decrement a counter metric.
+
+        - **name** (_str_) - the name of the metric
+        - **value** (_float_) - the value for the metric
+        - **tags** (_List[str]_) - a list of tags to associate with this metric
+        - **hostname** (_str_) - a hostname to associate with this metric. Defaults to the current host.
+        - **device_name** (_str_) - **deprecated** add a tag in the form `device:<device_name>` to the `tags`
+            list instead.
+        """
         self._log_deprecation('increment')
         self._submit_metric(aggregator.COUNTER, name, value, tags=tags, hostname=hostname, device_name=device_name)
 
     def _log_deprecation(self, deprecation_key):
+        # type: (str) -> None
         """
         Logs a deprecation notice at most once per AgentCheck instance, for the pre-defined `deprecation_key`
         """
@@ -1048,6 +1138,7 @@ class AgentCheck(object):
             self._deprecations[deprecation_key][0] = True
 
     def get_warnings(self):
+        # type: () -> List[str]
         """
         Return the list of warnings messages to be displayed in the info page
         """
@@ -1056,6 +1147,7 @@ class AgentCheck(object):
         return warnings
 
     def _get_requests_proxy(self):
+        # type: () -> Dict[str, Any]
         no_proxy_settings = {
             'http': None,
             'https': None,
@@ -1075,6 +1167,7 @@ class AgentCheck(object):
 
     # TODO collect all errors instead of the first one
     def _sanitize(self, field, context=None):
+        # type: (Union[str, Iterable], Optional[str]) -> Union[str, Iterable]
         """
         Fixes encoding and strips empty elements.
         :param field: Field can be of the following types: str, dict, list, set
@@ -1110,6 +1203,7 @@ class AgentCheck(object):
 
     @staticmethod
     def _is_not_empty(field):
+        # type: (Any) -> bool
         """
         _is_not_empty checks whether field contains "interesting" or is not None and returns true
         `field` the value to check
@@ -1127,6 +1221,7 @@ class AgentCheck(object):
 
     @staticmethod
     def _ensure_string_only_keys(dictionary):
+        # type: (Dict[str]) -> None
         """
         _ensure_string_only_keys checks whether all the keys of a dictionary are strings (and / or text_type).
         StackState only supports dictionaries with string keys. The conversion of text_type will happen in the _sanitize
@@ -1139,13 +1234,14 @@ class AgentCheck(object):
         # The conversion of text_type will happen in the _sanitize function using to_string(field).
         # <= is the subset operation on python sets.
         if type_set <= {str, text_type}:
-            return
+            return None
 
         raise TypeError("Dictionary: {0} contains keys which are not string or {1}: {2}"
                         .format(dictionary, text_type, type_set))
 
     @staticmethod
     def _ensure_homogeneous_list(list):
+        # type: (List) -> None
         """
         _ensure_homogeneous_list checks whether all values of a list or set are of the same type. StackState only
         supports homogeneous lists.
@@ -1158,13 +1254,14 @@ class AgentCheck(object):
         # below will not trigger and the list is considered homogeneous. If a different combination exists (str, int)
         # then it fails as expected.
         if type_set == {str, text_type}:
-            return
+            return None
 
         if len(type_set) > 1:
             raise TypeError("List: {0}, is not homogeneous, it contains the following types: {1}"
                             .format(list, type_set))
 
     def get_check_state_path(self):
+        # type: () -> str
         """
         get_check_state_path returns the path where the check state is stored. By default the check configuration
         location will be used. If state_location is set in the check configuration that will be used instead.
@@ -1181,6 +1278,7 @@ class AgentCheck(object):
 
     @staticmethod
     def get_config(key):
+        # type: (str) -> str
         return datadog_agent.get_config(key)
 
     def _persistent_cache_id(self, key):
@@ -1291,6 +1389,9 @@ class AgentCheck(object):
                                         tags + tags_bytes, hostname, message)
 
     def event(self, event):
+        # type (Union[Model, Dict[str, Any]]) -> Optional[Union[Model, Dict[str, Any]]]
+        """Send an event.
+        """
         self.validate_event(event)
         # Enforce types of some fields, considerably facilitates handling in go bindings downstream
         try:
