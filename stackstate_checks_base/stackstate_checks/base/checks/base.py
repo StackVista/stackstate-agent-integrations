@@ -627,7 +627,7 @@ class AgentCheck(object):
 
     def _map_component_data(self, id, type, integration_instance, data, streams=None, checks=None,
                             add_instance_tags=True):
-        # type: (str, str, Union[_TopologyInstanceBase, Dict], Dict, Optional[List], Optional[List], bool) -> Dict
+        # type: (str, str, _TopologyInstanceBase, Dict, Optional[List], Optional[List], bool) -> Dict
         AgentCheck._check_is_string("id", id)
         AgentCheck._check_is_string("type", type)
         if data is None:
@@ -1158,7 +1158,7 @@ class AgentCheck(object):
             'http': None,
             'https': None,
             'no': [],
-        }
+        }  # type: Dict[str, Any]
 
         # First we read the proxy configuration from datadog.conf
         proxies = self.agentConfig.get('proxy', datadog_agent.get_config('proxy'))
@@ -1171,7 +1171,8 @@ class AgentCheck(object):
 
         return proxies if proxies else no_proxy_settings
 
-    Sanitazable = TypeVar('Sanitazable', str, Iterable, Dict, List, Set)
+    Sanitazable = TypeVar('Sanitazable', str, Dict[str, Any], List, Set)
+
     # TODO collect all errors instead of the first one
     def _sanitize(self, field, context=None):
         # type: (Sanitazable, Optional[str]) -> Sanitazable
@@ -1228,7 +1229,7 @@ class AgentCheck(object):
 
     @staticmethod
     def _ensure_string_only_keys(dictionary):
-        # type: (Dict[str]) -> None
+        # type: (Dict[str, Any]) -> None
         """
         _ensure_string_only_keys checks whether all the keys of a dictionary are strings (and / or text_type).
         StackState only supports dictionaries with string keys. The conversion of text_type will happen in the _sanitize
@@ -1382,7 +1383,6 @@ class AgentCheck(object):
         - **hostname** (_str_) - hostname, do we use this at anywhere?
         - **message** (_str_) - additional information or a description of why this status occurred.
         """
-        tags = self._normalize_tags_type(tags)
         if hostname is None:
             hostname = to_string(b'')
         if message is None:
@@ -1391,9 +1391,11 @@ class AgentCheck(object):
             message = to_string(message)
 
         integration_instance = self._get_instance_key()
-        tags_bytes = list(map(lambda t: to_string(t), integration_instance.tags()))
+        tags_bytes = list(map(lambda t: to_string(t), integration_instance.tags()))  # type: List[Union[str, bytes]]
+        all_tags = self._normalize_tags_type(tags) + tags_bytes
+
         aggregator.submit_service_check(self, self.check_id, to_string(name), status,
-                                        tags + tags_bytes, hostname, message)
+                                        all_tags, hostname, message)
 
     def event(self, event):
         # type (Union[Model, Dict[str, Any]]) -> Optional[Union[Model, Dict[str, Any]]]
