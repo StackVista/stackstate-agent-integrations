@@ -12,8 +12,7 @@ import unicodedata
 from collections import defaultdict
 from functools import reduce
 from os.path import basename
-from types import FrameType
-from typing import Any, Set, Dict, Tuple, Sequence, List, Optional, Union, Type, AnyStr, Iterable, TypeVar
+from typing import Any, Set, Dict, Sequence, List, Optional, Union, AnyStr, TypeVar
 
 import yaml
 from schematics import Model
@@ -144,7 +143,7 @@ class AgentIntegrationInstance(_TopologyInstanceBase):
         return ["integration-type:{}".format(self.integration), "integration-url:{}".format(self.name)]
 
     def __eq__(self, other):
-        if (isinstance(other, AgentIntegrationInstance)):
+        if isinstance(other, AgentIntegrationInstance):
             return self.integration == other.integration and self.name == other.name
         return False
 
@@ -161,7 +160,9 @@ class TopologyInstance(_TopologyInstanceBase):
 
 StackPackInstance = TopologyInstance
 
-_Sanitazable = TypeVar('_Sanitazable', str, Dict[str, Any], List, Set)
+_SanitazableType = TypeVar('_SanitazableType', str, Dict[str, Any], List, Set)
+_InstanceType = TypeVar('_InstanceType', Model, Dict[str, Any])
+_EventType = TypeVar('_EventType', Model, Dict[str, Any])
 
 
 class AgentCheck(object):
@@ -466,7 +467,7 @@ class AgentCheck(object):
             AgentCheck._raise_unexpected_type(argument_name, value, "dictionary or None value")
 
     def get_health_stream(self, instance):
-        # type: (Any) -> Optional[HealthStream]
+        # type: (_InstanceType) -> Optional[HealthStream]
         """
         Integration checks can override this if they want to be producing a health stream. Defining the will
         enable self.health() calls
@@ -476,7 +477,7 @@ class AgentCheck(object):
         return None
 
     def _get_instance_schema(self, instance):
-        # type: (Dict[str, Any]) -> Union[Model, Dict[str, Any]]
+        # type: (Dict[str, Any]) -> _InstanceType
         """
         If this check has a instance schema defined, cast it into that type and validate it.
         """
@@ -488,7 +489,7 @@ class AgentCheck(object):
         return check_instance
 
     def get_instance_key(self, instance):
-        # type: (Union[Model, Dict[str, Any]]) -> _TopologyInstanceBase
+        # type: (_InstanceType) -> _TopologyInstanceBase
         """Integration checks can override this based on their needs.
 
         :param: instance: AgentCheck instance
@@ -520,7 +521,7 @@ class AgentCheck(object):
         return self._get_instance_key().to_dict()
 
     def get_instance_proxy(self, instance, uri, proxies=None):
-        # type: (Union[Model, Dict[str, Any]], str, Optional[Dict[str, Any]]) -> Dict[str, Any]
+        # type: (_InstanceType, str, Optional[Dict[str, Any]]) -> Dict[str, Any]
         proxies = proxies if proxies is not None else self.proxies.copy()
 
         deprecated_skip = instance.get('no_proxy', None)
@@ -538,7 +539,7 @@ class AgentCheck(object):
         pass
 
     def check(self, instance):
-        # type: (Union[Model, Dict[str, Any]]) -> None
+        # type: (_InstanceType) -> None
         raise NotImplementedError
 
     def warning(self, warning_message):
@@ -958,7 +959,7 @@ class AgentCheck(object):
 
     @staticmethod
     def validate_event(event):
-        # type: (Union[Model, Dict[str, Any]]) -> None
+        # type: (_EventType) -> None
         """
         Validates the event against the Event schematic model to make sure that all the expected values are provided
         and are the correct type
@@ -1175,7 +1176,7 @@ class AgentCheck(object):
 
     # TODO collect all errors instead of the first one
     def _sanitize(self, field, context=None):
-        # type: (_Sanitazable, Optional[str]) -> _Sanitazable
+        # type: (_SanitazableType, Optional[str]) -> _SanitazableType
         """
         Fixes encoding and strips empty elements.
         :param field: Field can be of the following types: str, dict, list, set
@@ -1279,9 +1280,11 @@ class AgentCheck(object):
         return "{}.d".format(os.path.join(state_location, self.name))
 
     def get_check_config_path(self):
+        # type: () -> str
         return "{}.d".format(os.path.join(self.get_agent_conf_d_path(), self.name))
 
     def get_agent_conf_d_path(self):
+        # type: () -> str
         return self.get_config("confd_path")
 
     @staticmethod
@@ -1398,7 +1401,7 @@ class AgentCheck(object):
                                         all_tags, hostname, message)
 
     def event(self, event):
-        # type (Union[Model, Dict[str, Any]]) -> Optional[Union[Model, Dict[str, Any]]]
+        # type: (Dict[str, Any]) -> Optional[Dict[str, Any]]
         """Send an event.
         """
         self.validate_event(event)
@@ -1406,7 +1409,7 @@ class AgentCheck(object):
         try:
             event = self._sanitize(event)
         except (UnicodeError, TypeError):
-            return
+            return None
 
         if event.get('tags'):
             event['tags'] = self._normalize_tags_type(event['tags'])
