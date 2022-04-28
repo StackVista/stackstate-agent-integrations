@@ -518,7 +518,7 @@ class AgentCheck(object):
         return self._get_instance_key().to_dict()
 
     def get_instance_proxy(self, instance, uri, proxies=None):
-        # type: (Union[Model, Dict[str, Any]], str, bool) -> Dict[str, Any]
+        # type: (Union[Model, Dict[str, Any]], str, Optional[Dict[str, Any]]) -> Dict[str, Any]
         proxies = proxies if proxies is not None else self.proxies.copy()
 
         deprecated_skip = instance.get('no_proxy', None)
@@ -546,36 +546,42 @@ class AgentCheck(object):
         """
         warning_message = to_string(warning_message)
 
-        frame = inspect.currentframe().f_back  # type: Optional[FrameType]
-        lineno = frame.f_lineno
-        filename = frame.f_code.co_filename
-        # only log the last part of the filename, not the full path
-        filename = basename(filename)
+        lineno = None
+        filename = None
+        cur_frame = inspect.currentframe()
+        if cur_frame and cur_frame.f_back:
+            frame = cur_frame.f_back
+            lineno = frame.f_lineno
+            # only log the last part of the filename, not the full path
+            filename = basename(frame.f_code.co_filename)
 
         self.log.warning(warning_message, extra={'_lineno': lineno, '_filename': filename})
         self.warnings.append(warning_message)
 
     def normalize(self, metric, prefix=None, fix_case=False, extra_disallowed_chars=None):
-        # type: (AnyStr, AnyStr, bool, Optional[bytes]) -> AnyStr
+        # type: (AnyStr, AnyStr, bool, Optional[bytes]) -> bytes
         """
         Turn a metric into a well-formed metric name
         prefix.b.c
         :param metric The metric name to normalize
-        :param prefix A prefix to to add to the normalized name, default None
+        :param prefix A prefix to add to the normalized name, default None
         :param fix_case A boolean, indicating whether to make sure that the metric name returned is in "snake_case"
         :param extra_disallowed_chars Custom characters for regex
         """
-        if isinstance(metric, text_type):
-            metric = unicodedata.normalize('NFKD', metric).encode('ascii', 'ignore')
-
-        if fix_case:
-            name = self.convert_to_underscore_separated(metric)
-            if prefix is not None:
-                prefix = self.convert_to_underscore_separated(prefix)
-        elif extra_disallowed_chars:
-            name = re.sub(br"[,\+\*\-/()\[\]{}\s" + extra_disallowed_chars + br"]", b"_", metric)
+        if isinstance(metric, bytes):
+            metricb = metric
         else:
-            name = re.sub(br"[,\+\*\-/()\[\]{}\s]", b"_", metric)
+            metricb = unicodedata.normalize('NFKD', metric).encode('ascii', 'ignore')
+
+        prefixb = ensure_string(prefix)
+        if fix_case:
+            name = self.convert_to_underscore_separated(metricb)
+            if prefix is not None:
+                prefixb = self.convert_to_underscore_separated(prefix)
+        elif extra_disallowed_chars:
+            name = re.sub(br"[,\+\*\-/()\[\]{}\s" + extra_disallowed_chars + br"]", b"_", metricb)
+        else:
+            name = re.sub(br"[,\+\*\-/()\[\]{}\s]", b"_", metricb)
         # Eliminate multiple _
         name = re.sub(br"__+", b"_", name)
         # Don't start/end with _
@@ -585,8 +591,8 @@ class AgentCheck(object):
         name = re.sub(br"\._", b".", name)
         name = re.sub(br"_\.", b".", name)
 
-        if prefix is not None:
-            return ensure_string(prefix) + b"." + name
+        if prefixb is not None:
+            return prefixb + b"." + name
         else:
             return ensure_string(name)
 
@@ -621,7 +627,7 @@ class AgentCheck(object):
 
     def _map_component_data(self, id, type, integration_instance, data, streams=None, checks=None,
                             add_instance_tags=True):
-        # TODO type (str, str, Union[_TopologyInstanceBase, Dict], Dict, Optional[List], Optional[List], bool) -> Dict
+        # type: (str, str, Union[_TopologyInstanceBase, Dict], Dict, Optional[List], Optional[List], bool) -> Dict
         AgentCheck._check_is_string("id", id)
         AgentCheck._check_is_string("type", type)
         if data is None:
@@ -638,7 +644,7 @@ class AgentCheck(object):
         return data
 
     def relation(self, source, target, type, data, streams=None, checks=None):
-        # type: (str, str, str, Dict[str, Any], Optional[List], bool) -> Optional[Dict[str, Any]]
+        # type: (str, str, str, Dict[str, Any], Optional[List], Optional[List]) -> Optional[Dict[str, Any]]
         try:
             fixed_data = self._sanitize(data)
             fixed_streams = self._sanitize(streams)
@@ -716,7 +722,7 @@ class AgentCheck(object):
             return []
 
     def _map_config_and_tags(self, data, target, origin, return_array=False, return_direct_value=False, default=None):
-        # TODO type (Dict[str, Any], str, str, bool, bool, str) -> Union[Sequence[str], Dict[str, Any]]
+        # type: (Dict[str, Any], str, str, bool, bool, str) -> Union[Sequence[str], Dict[str, Any]]
         """
         Generic mapping function for tags or config.
         Attempt to find if the target exists on a tag or config and map that to the origin value.
@@ -1167,7 +1173,7 @@ class AgentCheck(object):
 
     # TODO collect all errors instead of the first one
     def _sanitize(self, field, context=None):
-        # type: (Union[str, Iterable], Optional[str]) -> Union[str, Iterable]
+        # type: (Union[str, Iterable, Dict], Optional[str]) -> Union[str, Iterable, Dict]
         """
         Fixes encoding and strips empty elements.
         :param field: Field can be of the following types: str, dict, list, set
