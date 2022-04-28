@@ -13,7 +13,7 @@ from collections import defaultdict
 from functools import reduce
 from os.path import basename
 from types import FrameType
-from typing import Any, Dict, Tuple, Sequence, List, Optional, Union, Type, AnyStr, Iterable
+from typing import Any, Set, Dict, Tuple, Sequence, List, Optional, Union, Type, AnyStr, Iterable, TypeVar
 
 import yaml
 from schematics import Model
@@ -617,8 +617,8 @@ class AgentCheck(object):
         integration_instance = self._get_instance_key()
         try:
             fixed_data = self._sanitize(data)
-            fixed_streams = self._sanitize(streams)
-            fixed_checks = self._sanitize(checks)
+            fixed_streams = self._sanitize(streams) if streams is not None else None
+            fixed_checks = self._sanitize(checks) if checks is not None else None
         except (UnicodeError, TypeError):
             return None
         data = self._map_component_data(id, type, integration_instance, fixed_data, fixed_streams, fixed_checks)
@@ -1171,9 +1171,10 @@ class AgentCheck(object):
 
         return proxies if proxies else no_proxy_settings
 
+    Sanitazable = TypeVar('Sanitazable', str, Iterable, Dict, List, Set)
     # TODO collect all errors instead of the first one
     def _sanitize(self, field, context=None):
-        # type: (Union[str, Iterable, Dict], Optional[str]) -> Union[str, Iterable, Dict]
+        # type: (Sanitazable, Optional[str]) -> Sanitazable
         """
         Fixes encoding and strips empty elements.
         :param field: Field can be of the following types: str, dict, list, set
