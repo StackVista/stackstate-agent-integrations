@@ -161,6 +161,8 @@ class TopologyInstance(_TopologyInstanceBase):
 
 StackPackInstance = TopologyInstance
 
+_Sanitazable = TypeVar('_Sanitazable', str, Dict[str, Any], List, Set)
+
 
 class AgentCheck(object):
     """
@@ -1171,11 +1173,9 @@ class AgentCheck(object):
 
         return proxies if proxies else no_proxy_settings
 
-    Sanitazable = TypeVar('Sanitazable', str, Dict[str, Any], List, Set)
-
     # TODO collect all errors instead of the first one
     def _sanitize(self, field, context=None):
-        # type: (Sanitazable, Optional[str]) -> Sanitazable
+        # type: (_Sanitazable, Optional[str]) -> _Sanitazable
         """
         Fixes encoding and strips empty elements.
         :param field: Field can be of the following types: str, dict, list, set
