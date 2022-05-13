@@ -954,6 +954,12 @@
       "target_id": "SERVICE-923B9ABBC3F9DB68",
       "type": "calls",
       "data": {}
+    },
+    {
+      "data": {},
+      "source_id": "APPLICATION-EA7C4B59F27D43EB",
+      "target_id": "SYNTHETIC_TEST-31C5003C3C6342D0",
+      "type": "monitors"
     }
   ]
 }

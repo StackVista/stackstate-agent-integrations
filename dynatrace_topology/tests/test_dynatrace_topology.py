@@ -4,7 +4,6 @@
 
 from stackstate_checks.base import AgentCheck
 from stackstate_checks.base.utils.common import read_file, load_json_from_file
-from stackstate_checks.dynatrace_topology import DynatraceTopologyCheck
 from .conftest import set_http_responses, sort_topology_data, assert_topology
 
 
@@ -151,37 +150,17 @@ def test_collect_custom_devices(dynatrace_check, requests_mock, topology, aggreg
     assert_topology(expected_topology, topology_instances)
 
 
-def test_collect_custom_devices_with_pagination(dynatrace_check, requests_mock, test_instance, topology, aggregator):
+def test_applications_to_monitors_relations(requests_mock, dynatrace_check, topology, aggregator):
     """
-    Test Dynatrace check should produce custom devices with pagination
+    Testing Dynatrace check should collect applications and synthetic monitors relationship
     """
-    set_http_responses(requests_mock)
-    url = test_instance.get('url')
-    first_url = url + "/api/v2/entities?entitySelector=type%28%22CUSTOM_DEVICE%22%29&from=now-1h&fields=%2B" \
-                      "fromRelationships%2C%2BtoRelationships%2C%2Btags%2C%2BmanagementZones%2C%2B" \
-                      "properties.dnsNames%2C%2Bproperties.ipAddress"
-    second_url = url + "/api/v2/entities?nextPageKey=nextpageresultkey"
-    requests_mock.get(first_url, status_code=200, text=read_file("custom_device_response_next_page.json", "samples"))
-    requests_mock.get(second_url, status_code=200, text=read_file("custom_device_response.json", "samples"))
+    set_http_responses(requests_mock, applications=read_file("application_response.json", "samples"))
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
-    snapshot = topology.get_snapshot(dynatrace_check.check_id)
-    expected_topology = load_json_from_file("expected_custom_device_pagination_full_topology.json", "samples")
-    assert_topology(expected_topology, snapshot)
+    topology_instances = topology.get_snapshot(dynatrace_check.check_id)
+    relations = topology_instances["relations"]
 
-
-def test_relative_time_param(aggregator, requests_mock, test_instance, test_instance_relative_time):
-    # create check with instance that has 'day' relative time setting
-    check = DynatraceTopologyCheck('dynatrace', {}, {}, instances=[test_instance_relative_time])
-    check.run()
-    # no mock calls, so check fails
-    aggregator.assert_service_check(check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.CRITICAL)
-    assert '?relativeTime=day' in aggregator.service_checks('dynatrace-topology')[0].message
-
-    # create another check with default setting
-    aggregator.reset()
-    another_check = DynatraceTopologyCheck('dynatrace', {}, {}, instances=[test_instance])
-    another_check.run()
-    # no mock calls, so check fails
-    aggregator.assert_service_check(another_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.CRITICAL)
-    assert '?relativeTime=hour' in aggregator.service_checks('dynatrace-topology')[0].message
+    for relation in relations:
+        if relation["type"] == "monitors":
+            assert "APPLICATION" in relation["source_id"]
+            assert "SYNTHETIC_TEST" in relation["target_id"]

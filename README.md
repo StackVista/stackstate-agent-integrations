@@ -65,7 +65,7 @@ then you can run just once the check as you would do with a real agent:
 
     $ checksdev env check <check_name> <env1> [-l DEBUG]
     
-uou can optionally pass a log level parameter, if not passed logging is disabled. 
+You can optionally pass a log level parameter, if not passed logging is disabled. 
 
 ## CI image
 

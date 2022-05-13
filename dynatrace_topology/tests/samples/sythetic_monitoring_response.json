@@ -1,10 +1,16 @@
 {
   "monitors": [
     {
-      "name": "google.com",
+      "name": "BROWSER Check",
       "entityId": "SYNTHETIC_TEST-31C5003C3C6342D0",
       "type": "BROWSER",
       "enabled": true
+    },
+    {
+      "name": "HTTP Check",
+      "entityId": "SYNTHETIC_TEST-3CAB49B393FAE566",
+      "type": "HTTP",
+      "enabled": false
     }
   ]
 }

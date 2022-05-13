@@ -21,7 +21,11 @@
         "SERVICE-FFE4B7A6D72F2CAC"
       ]
     },
-    "toRelationships": {},
+    "toRelationships": {
+        "monitors":[
+          "SYNTHETIC_TEST-31C5003C3C6342D0"
+      ]
+    },
     "applicationType": "DEFAULT",
     "ruleAppliedPattern": "http",
     "managementZones": [
