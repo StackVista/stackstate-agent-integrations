@@ -278,6 +278,36 @@ class DynatraceTopologyCheck(AgentCheck):
             self.component(external_id, component_type, data)
             self._collect_relations(dynatrace_component, external_id, component_type)
 
+    def _set_relations(self, relationship_items, component_id, component_type, is_target_component):
+        """
+        Sets relationships for different component-types
+        :param relationship_items: the component for which relationships need to be extracted and processed
+        :param component_id: the component externalId the for and from relationship will be created
+        :param component_type: the component type
+        :param is_target_component: boolean indicating the diretion of the relationship
+        :return: None
+        """
+        for relation_type, relation_value in relationship_items:
+            # Ignore `isSiteOf` relation since location components are not processed right now
+            if relation_type != "isSiteOf":
+                for relation_id in relation_value:
+                    # Sets the source_id and target_id of the StackState relation depending on if
+                    # it is a incoming or outgoing relationship
+                    source_id = relation_id if is_target_component else component_id
+                    target_id = component_id if is_target_component else relation_id
+
+                    # special case for custom-device because relation value will be a dictionary here
+                    if component_type == 'custom-device':
+                        custom_device_id = relation_id.get('id')
+                        if is_target_component:
+                            self.relation(custom_device_id, component_id, relation_type, {})
+                        else:
+                            self.relation(component_id, custom_device_id, relation_type, {})
+                    elif relation_type == 'monitors':
+                        self.relation(target_id, source_id, relation_type, {})
+                    else:
+                        self.relation(source_id, target_id, relation_type, {})
+
     def _collect_relations(self, dynatrace_component, external_id, component_type):
         """
         Collects relationships from different component-types
@@ -289,30 +319,10 @@ class DynatraceTopologyCheck(AgentCheck):
         # A note on Dynatrace relations terminology:
         # dynatrace_component.fromRelationships are 'outgoing relations', thus 'source components' in StackState
         # dynatrace_component.toRelationships are 'incoming relations', thus 'target components' in StackState
-        for relation_type, relation_value in dynatrace_component.fromRelationships.items():
-            # Ignore `isSiteOf` relation since location components are not processed right now
-            if relation_type != "isSiteOf":
-                for target_id in relation_value:
-                    # special case for custom-device because relation value will be a dictionary here
-                    if component_type == 'custom-device':
-                        target_relation_id = target_id.get('id')
-                        self.relation(external_id, target_relation_id, relation_type, {})
-                    elif relation_type == 'monitors':
-                        self.relation(target_id, external_id, relation_type, {})
-                    else:
-                        self.relation(external_id, target_id, relation_type, {})
-        for relation_type, relation_value in dynatrace_component.toRelationships.items():
-            # Ignore `isSiteOf` relation since location components are not processed right now
-            if relation_type != "isSiteOf":
-                for source_id in relation_value:
-                    # special case for custom-device because relation value will be a dictionary here
-                    if component_type == 'custom-device':
-                        source_relation_id = source_id.get('id')
-                        self.relation(source_relation_id, external_id, relation_type, {})
-                    elif relation_type == 'monitors':
-                        self.relation(external_id, source_id, relation_type, {})
-                    else:
-                        self.relation(source_id, external_id, relation_type, {})
+        self._set_relations(dynatrace_component.fromRelationships.items(), external_id, component_type,
+                            is_target_component=False)
+        self._set_relations(dynatrace_component.toRelationships.items(), external_id, component_type,
+                            is_target_component=True)
 
     def _clean_unsupported_metadata(self, component):
         """
