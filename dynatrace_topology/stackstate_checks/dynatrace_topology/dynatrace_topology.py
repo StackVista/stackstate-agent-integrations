@@ -287,8 +287,8 @@ class DynatraceTopologyCheck(AgentCheck):
         :return: None
         """
         # A note on Dynatrace relations terminology:
-        # dynatrace_component.fromRelationships are 'outgoing relations'
-        # dynatrace_component.toRelationships are 'incoming relations'
+        # dynatrace_component.fromRelationships are 'outgoing relations', thus 'source components' in StackState
+        # dynatrace_component.toRelationships are 'incoming relations', thus 'target components' in StackState
         for relation_type, relation_value in dynatrace_component.fromRelationships.items():
             # Ignore `isSiteOf` relation since location components are not processed right now
             if relation_type != "isSiteOf":
@@ -297,7 +297,7 @@ class DynatraceTopologyCheck(AgentCheck):
                     if component_type == 'custom-device':
                         target_relation_id = target_id.get('id')
                         self.relation(external_id, target_relation_id, relation_type, {})
-                    elif component_type == 'synthetic-monitor':
+                    elif relation_type == 'monitors':
                         self.relation(target_id, external_id, relation_type, {})
                     else:
                         self.relation(external_id, target_id, relation_type, {})
@@ -309,7 +309,7 @@ class DynatraceTopologyCheck(AgentCheck):
                     if component_type == 'custom-device':
                         source_relation_id = source_id.get('id')
                         self.relation(source_relation_id, external_id, relation_type, {})
-                    elif component_type == 'monitor':
+                    elif relation_type == 'monitors':
                         self.relation(external_id, source_id, relation_type, {})
                     else:
                         self.relation(source_id, external_id, relation_type, {})
