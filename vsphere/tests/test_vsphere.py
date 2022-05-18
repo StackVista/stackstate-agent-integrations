@@ -761,7 +761,7 @@ def test_get_topology_items_vms_hosts(vsphere, instance):
             "name": "mocked_vm",
             "parent": mocked_host,
             "runtime.powerState": vim.VirtualMachinePowerState.poweredOn,
-            "config.guestId": "other3xLinux64Guest",
+            "guest.guestId": "other3xLinux64Guest",
             "config.hardware.numCPU": "2"
         },
         mocked_host: {"name": "mocked_host", "parent": None},
@@ -884,7 +884,7 @@ def test_get_topology_items_regex_vms(vsphere, instance):
             "name": "mocked_vm",
             "parent": None,
             "runtime.powerState": vim.VirtualMachinePowerState.poweredOn,
-            "config.guestId": "other3xLinux64Guest",
+            "guest.guestId": "other3xLinux64Guest",
             "config.hardware.numCPU": "2"
         }
     }
@@ -923,7 +923,7 @@ def test_check_vsphere_topology_with_vm_host(instance, topology):
             "name": "mocked_vm",
             "parent": mocked_host,
             "runtime.powerState": vim.VirtualMachinePowerState.poweredOn,
-            "config.guestId": "other3xLinux64Guest",
+            "guest.guestId": "other3xLinux64Guest",
             "config.hardware.numCPU": "2"
         },
         mocked_host: {"name": "mocked_host", "parent": None, "vm": [mocked_vm]},
@@ -1012,7 +1012,7 @@ def test_check_vsphere_full_topology(instance, topology):
             "name": "mocked_vm",
             "parent": mocked_host,
             "runtime.powerState": vim.VirtualMachinePowerState.poweredOn,
-            "config.guestId": "other3xLinux64Guest",
+            "guest.guestId": "other3xLinux64Guest",
             "config.hardware.numCPU": "2"
         },
         mocked_host: {"name": "mocked_host", "parent": None, "vm": [mocked_vm], "childEntity": [mocked_cr]},
@@ -1169,7 +1169,7 @@ def test_get_topology_items_vms_no_unicode(instance, topology):
             "name": "mocked_vm",
             "parent": None,
             "runtime.powerState": vim.VirtualMachinePowerState.poweredOn,
-            "config.guestId": "other3xLinux64Guest",
+            "guest.guestId": "other3xLinux64Guest",
             "config.hardware.numCPU": "2"
         }
     }
@@ -1194,6 +1194,55 @@ def test_get_topology_items_vms_no_unicode(instance, topology):
             assert type(component['data']['name']) is str
             for tag in component['data']['tags']:
                 assert type(tag) is str
+
+
+def test_vm_guestid_and_guestfullname(instance, topology):
+    """
+    Test if VMs collected use guest.guestId/guestFullName instead of config.guestId/guestFullName
+    config.guestId/guestFullName is defined in the VMX (initial/chosen at creation)
+    guest.guestId/guestFullName is provided by VMWare Tools.
+    If VMWare tools is not installed, guest.guestId/guestFullName is set to config.guestId/guestFullName
+    """
+    vsphere_check = VSphereCheck('vsphere', {}, [instance])
+    vsphere_check.vsphere_client_connect = MagicMock()
+    vsphere_check.session = None
+    # get the client
+    client = vsphere_client()
+
+    # list_attached_tags method returns empty list of tags
+    client.tagging.TagAssociation.list_attached_tags = MagicMock(return_value=[])
+
+    # assign the vsphere client object to the vsphere check client object
+    vsphere_check.client = client
+    mocked_vm = MockedMOR(spec="VirtualMachine", _moId="vm-1")
+    mocked_mors_attrs = {
+        mocked_vm: {
+            "name": "mocked_vm",
+            "parent": None,
+            "runtime.powerState": vim.VirtualMachinePowerState.poweredOn,
+            "config.guestId": 'centos64Guest',
+            "config.guestFullName": 'CentOS 4/5 (64-bit)',
+            "guest.guestId": 'centos7_64Guest',
+            "guest.guestFullName": 'CentOS 7 (64-bit)',
+        }
+    }
+    
+    with mock.patch('stackstate_checks.vsphere.vsphere.vmodl'):
+        with mock.patch('stackstate_checks.vsphere.vsphere.connect.SmartConnect') as SmartConnect:
+            SmartConnect.return_value = get_mocked_server()
+            vsphere_check._collect_mors_and_attributes = mock.MagicMock(return_value=mocked_mors_attrs)
+            vsphere_check.collect_topology(instance)
+            snapshot = topology.get_snapshot(vsphere_check.check_id)
+            # only vm component should be created in the snapshot
+            assert len(snapshot['components']) == 1
+            # there should be no relations
+            assert len(snapshot['relations']) == 0
+
+            # assert the collected component has every property as str type
+            component = snapshot['components'][0]
+
+            assert 'guestFullName:CentOS 7 (64-bit)' in component['data']['labels']
+            assert 'guestId:centos7_64Guest' in component['data']['labels']
 
 
 def test_missing_host_conf(instance):
