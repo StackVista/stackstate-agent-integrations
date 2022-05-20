@@ -185,3 +185,19 @@ def test_relative_time_param(aggregator, requests_mock, test_instance, test_inst
     # no mock calls, so check fails
     aggregator.assert_service_check(another_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.CRITICAL)
     assert '?relativeTime=hour' in aggregator.service_checks('dynatrace-topology')[0].message
+
+
+def test_applications_to_monitors_relations(requests_mock, dynatrace_check, topology, aggregator):
+    """
+    Testing Dynatrace check should collect applications and synthetic monitors relationship
+    """
+    set_http_responses(requests_mock, applications=read_file("application_response.json", "samples"))
+    dynatrace_check.run()
+    aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
+    topology_instances = topology.get_snapshot(dynatrace_check.check_id)
+    relations = topology_instances["relations"]
+
+    for relation in relations:
+        if relation["type"] == "monitors":
+            assert "APPLICATION" in relation["source_id"]
+            assert "SYNTHETIC_TEST" in relation["target_id"]
