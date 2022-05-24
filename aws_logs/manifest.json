@@ -1,0 +1,23 @@
+{
+  "display_name": "AWS Logs",
+  "maintainer": "info@stackstate.com",
+  "manifest_version": "1.0.0",
+  "name": "aws_logs",
+  "metric_prefix": "aws_logs.",
+  "metric_to_check": "",
+  "creates_events": false,
+  "short_description": "Processes AWS Logs (EventBridge, VPC FlowLogs)",
+  "guid": "c04c8472-cccb-4e6e-8c49-e39e0b370a09",
+  "support": "core",
+  "supported_os": [
+    "linux",
+    "mac_os",
+    "windows"
+  ],
+  "public_title": "StackState-Aws_logs Integration",
+  "categories": [
+    ""
+  ],
+  "type": "check",
+  "is_public": false
+}
