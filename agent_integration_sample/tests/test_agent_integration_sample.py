@@ -99,6 +99,8 @@ class TestAgentIntegration(unittest.TestCase):
         telemetry.assert_metric("raw.metrics", count=1, value=30, tags=["no:hostname", "region:eu-west-1"],
                                 hostname="")
 
+        # TODO Melcom: Add a test to validate transactional state if possible from the python script
+
     def test_topology_items_from_config_check(self):
         instance_config = {
             "stackstate-layer": "layer-conf-a",

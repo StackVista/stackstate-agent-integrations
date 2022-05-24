@@ -873,6 +873,12 @@ class AgentCheckBase(object):
     def raw(self, name, value, tags=None, hostname=None, device_name=None, timestamp=None):
         self._submit_raw_metrics_data(name, value, tags, hostname, device_name, timestamp)
 
+    def submit_start_transaction(self):
+        pass
+
+    def submit_stop_transaction(self):
+        pass
+
     def gauge(self, name, value, tags=None, hostname=None, device_name=None):
         self._submit_metric(aggregator.GAUGE, name, value, tags=tags, hostname=hostname, device_name=device_name)
 
