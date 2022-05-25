@@ -107,6 +107,6 @@ class TestCheckEndpoints:
             check_endpoints()
 
     def test_success(self):
-        check_endpoints = CheckEndpoints(['https://www.google.com', 'https://www.bing.com'])
+        check_endpoints = CheckEndpoints(['https://www.bing.com'])
 
         check_endpoints()
