@@ -55,7 +55,7 @@ stages:
 
 .windows_env: &windows_env
   tags:
-    - windows_agent7_ps1
+    - agent_windows_6
   before_script:
     - call .setup-scripts/windows_setup_env.cmd
 
@@ -356,7 +356,7 @@ test_solarwinds:
     - checksdev test -c %CHECK%
   interruptible: true
   tags:
-    - windows_agent7_ps1
+    - agent_windows_6
   retry:
     max: 2
     when:
