@@ -1,0 +1,64 @@
+{
+    "start_snapshot":true,
+    "stop_snapshot":true,
+    "instance_key":{
+        "type":"dynatrace",
+        "url":"https://instance.live.dynatrace.com"
+    },
+    "components":[
+        {
+            "id":"SYNTHETIC_TEST-31C5003C3C6342D0",
+            "type":"synthetic-monitor",
+            "data":{
+                "name":"BROWSER Check",
+                "entityId":"SYNTHETIC_TEST-31C5003C3C6342D0",
+                "type":"BROWSER",
+                "enabled":"True",
+                "displayName":"BROWSER Check",
+                "identifiers":[
+                    "urn:dynatrace:/SYNTHETIC_TEST-31C5003C3C6342D0"
+                ],
+                "tags":[
+                    "SYNTHETIC_TEST-31C5003C3C6342D0",
+                    "integration-type:dynatrace",
+                    "integration-url:https://instance.live.dynatrace.com"
+                ],
+                "domain":"dynatrace",
+                "environments":[
+                    "production"
+                ],
+                "instance":"https://instance.live.dynatrace.com"
+            }
+        },
+        {
+            "id":"SYNTHETIC_TEST-3CAB49B393FAE566",
+            "type":"synthetic-monitor",
+            "data":{
+                "name":"HTTP Check",
+                "entityId":"SYNTHETIC_TEST-3CAB49B393FAE566",
+                "type":"HTTP",
+                "enabled":"False",
+                "displayName":"HTTP Check",
+                "identifiers":[
+                    "urn:dynatrace:/SYNTHETIC_TEST-3CAB49B393FAE566"
+                ],
+                "tags":[
+                    "SYNTHETIC_TEST-3CAB49B393FAE566",
+                    "integration-type:dynatrace",
+                    "integration-url:https://instance.live.dynatrace.com"
+                ],
+                "domain":"dynatrace",
+                "environments":[
+                    "production"
+                ],
+                "instance":"https://instance.live.dynatrace.com"
+            }
+        }
+    ],
+    "relations":[
+        
+    ],
+    "delete_ids":[
+        
+    ]
+}
