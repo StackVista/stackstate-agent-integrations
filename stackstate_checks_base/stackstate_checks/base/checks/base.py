@@ -64,6 +64,7 @@ from ..utils.identifiers import Identifiers
 from ..utils.telemetry import EventStream, MetricStream, ServiceCheckStream, \
     ServiceCheckHealthChecks, Event
 from ..utils.health_api import Health, HealthStream, HealthStreamUrn, HealthCheckData, HealthApi
+from ..utils.transactional_api import TransactionApi
 from ..utils.persistent_state import StateDescriptor, StateManager
 from deprecated.sphinx import deprecated
 
@@ -239,6 +240,7 @@ class AgentCheckBase(object):
 
         # Will be initialized as part of the check, to allow for proper error reporting there if initialization fails
         self.health = None
+        self.transaction = None
 
     def _init_health_api(self):
         if self.health is not None:
@@ -259,6 +261,11 @@ class AgentCheckBase(object):
                     expiry_seconds = 0
             self.health = HealthApi(self, stream_spec, expiry_seconds, repeat_interval_seconds)
 
+    def _init_transactional_api(self):
+        if self.transaction is not None:
+            return
+        self.transaction = TransactionApi(self)
+
     def _check_run_base(self, default_result):
         try:
             # start auto snapshot if with_snapshots is set to True
@@ -270,6 +277,9 @@ class AgentCheckBase(object):
 
             # Initialize the health api
             self._init_health_api()
+
+            # Initialize the transactional api
+            self._init_transactional_api()
 
             # create a copy of the check instance, get state if any and add it to the instance object for the check
             instance = self.instances[0]
@@ -871,25 +881,9 @@ class AgentCheckBase(object):
         self.log.info("Unimplemented Raw B")
         pass
 
-    def _start_transaction(self):
-        self.log.info("Unimplemented Start Transaction B")
-        pass
-
-    def _stop_transaction(self):
-        self.log.info("Unimplemented Stop Transaction B")
-        pass
-
     def raw(self, name, value, tags=None, hostname=None, device_name=None, timestamp=None):
         self.log.info("Unimplemented Raw A")
         self._submit_raw_metrics_data(name, value, tags, hostname, device_name, timestamp)
-
-    def start_transaction(self):
-        self.log.info("Unimplemented Start Transaction A")
-        self._start_transaction()
-
-    def stop_transaction(self):
-        self.log.info("Unimplemented Stop Transaction B")
-        self._stop_transaction()
 
     def gauge(self, name, value, tags=None, hostname=None, device_name=None):
         self._submit_metric(aggregator.GAUGE, name, value, tags=tags, hostname=hostname, device_name=device_name)

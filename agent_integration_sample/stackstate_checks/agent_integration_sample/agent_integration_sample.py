@@ -215,6 +215,5 @@ class AgentIntegrationSampleCheck(AgentCheck):
         self.delete(delete_component_id)
 
         # Transactional State
-        self.start_transaction()
-        # TODO Melcom: Do things inbetween the transaction start and stop states
-        self.stop_transaction()
+        self.transaction.start_transaction()
+        self.transaction.stop_transaction()
