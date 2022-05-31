@@ -24,6 +24,18 @@ class TransactionStub(object):
     def stop_transaction(self, check, check_id):
         self._ensure_transaction(check_id)["stopped"] = True
 
+    def get_transaction(self, check_id):
+        return self._transactions[check_id]
+
+    def assert_transaction(self, check_id):
+        assert self.get_transaction(check_id) == {
+            "started": True,
+            "stopped": True
+        }
+
+    def reset(self):
+        self._transactions = {}
+
 
 # Use the stub as a singleton
 transaction = TransactionStub()
