@@ -868,15 +868,29 @@ class AgentCheckBase(object):
         pass
 
     def _submit_raw_metrics_data(self, name, value, tags=None, hostname=None, device_name=None, timestamp=None):
+        self.log.info("Unimplemented Raw B")
+        pass
+
+    def _start_transaction(self):
+        self.log.info("Unimplemented Start Transaction B")
+        pass
+
+    def _stop_transaction(self):
+        self.log.info("Unimplemented Stop Transaction B")
         pass
 
     def raw(self, name, value, tags=None, hostname=None, device_name=None, timestamp=None):
+        self.log.info("Unimplemented Raw A")
         self._submit_raw_metrics_data(name, value, tags, hostname, device_name, timestamp)
 
     def start_transaction(self):
+        self.log.info("Unimplemented Start Transaction A")
+        self._start_transaction()
         pass
 
     def stop_transaction(self):
+        self.log.info("Unimplemented Stop Transaction B")
+        self._stop_transaction()
         pass
 
     def gauge(self, name, value, tags=None, hostname=None, device_name=None):
