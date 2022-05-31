@@ -16,6 +16,6 @@ class TransactionApi(object):
         transaction.start_transaction(self.check,
                                       self.check.check_id)
 
-    def stop_snapshot(self):
+    def stop_transaction(self):
         transaction.stop_transaction(self.check,
                                      self.check.check_id)
