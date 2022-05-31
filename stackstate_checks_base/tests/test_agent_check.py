@@ -14,6 +14,7 @@ from schematics.exceptions import ValidationError, ConversionError, DataError
 from schematics.types import IntType, StringType, ModelType
 from six import PY3, text_type
 
+from stackstate_checks.base.stubs.datadog_agent import datadog_agent
 from stackstate_checks.base.stubs.topology import component
 from stackstate_checks.checks import AgentCheck, TopologyInstance, AgentIntegrationInstance, \
     HealthStream, HealthStreamUrn, Health
@@ -242,8 +243,8 @@ class TestTags:
         check = AgentCheck()
         assert isinstance(check._to_bytes(b"tag:foo"), bytes)
         assert isinstance(check._to_bytes(u"tag:☣"), bytes)
-        in_str = mock.MagicMock(side_effect=Exception)
-        in_str.encode.side_effect = Exception
+        in_str = mock.MagicMock(side_effect=UnicodeError)
+        in_str.encode.side_effect = UnicodeError
         assert check._to_bytes(in_str) is None
 
 
@@ -470,7 +471,7 @@ class IdentifierMappingTestAgentCheck(TopologyCheck):
                     }
             }
         ]
-        super(IdentifierMappingTestAgentCheck, self)\
+        super(IdentifierMappingTestAgentCheck, self) \
             .__init__(TopologyInstance("host", "someurl"), "test", {}, instances)
 
     def check(self, instance):
@@ -487,7 +488,7 @@ class NestedIdentifierMappingTestAgentCheck(TopologyCheck):
                     }
             }
         ]
-        super(NestedIdentifierMappingTestAgentCheck, self)\
+        super(NestedIdentifierMappingTestAgentCheck, self) \
             .__init__(TopologyInstance("host", "someurl"), "test", {}, instances)
 
     def check(self, instance):
@@ -590,6 +591,7 @@ class TestTagsAndConfigMapping:
                 No Config + No Data + Default Value, True == Result must be the default value in a Array
             Tags must overwrite configs
         """
+
         def generic_mapping_test(target, origin, default_value=None):
             data = {
                 'tags': ['stackstate-layer:tag-stackstate-layer',
@@ -606,45 +608,44 @@ class TestTagsAndConfigMapping:
             data_without_target.get("tags").remove(target + ":tag-" + target)
 
             # Include instance config in the tests
-            assert check_include_config._map_config_and_tags({}, target, origin) == \
+            assert check_include_config._move_data_with_config_or_tags({}, target, origin) == \
                    {origin: 'instance-' + target}
-            assert check_include_config._map_config_and_tags({}, target, origin, True) == \
+            assert check_include_config._move_data_with_config_or_tags({}, target, origin, True) == \
                    {origin: ['instance-' + target]}
-            assert check_include_config._map_config_and_tags(copy.deepcopy(data), target, origin) == \
+            assert check_include_config._move_data_with_config_or_tags(copy.deepcopy(data), target, origin) == \
                    {origin: 'tag-' + target, 'tags': data_without_target['tags']}
-            assert check_include_config._map_config_and_tags(copy.deepcopy(data), target, origin, True) == \
+            assert check_include_config._move_data_with_config_or_tags(copy.deepcopy(data), target, origin, True) == \
                    {origin: ['tag-' + target], 'tags': data_without_target['tags']}
 
             # Exclude the instance config in the tests
-            assert check_exclude_config._map_config_and_tags({}, target, origin) == {}
-            assert check_exclude_config._map_config_and_tags({}, target, origin, True) == {}
-            assert check_exclude_config._map_config_and_tags(copy.deepcopy(data), target, origin) == \
+            assert check_exclude_config._move_data_with_config_or_tags({}, target, origin) == {}
+            assert check_exclude_config._move_data_with_config_or_tags({}, target, origin, True) == {}
+            assert check_exclude_config._move_data_with_config_or_tags(copy.deepcopy(data), target, origin) == \
                    {origin: 'tag-' + target, 'tags': data_without_target['tags']}
-            assert check_exclude_config._map_config_and_tags(copy.deepcopy(data), target, origin, True) == \
+            assert check_exclude_config._move_data_with_config_or_tags(copy.deepcopy(data), target, origin, True) == \
                    {origin: ['tag-' + target], 'tags': data_without_target['tags']}
 
             # Default Config
-            assert check_exclude_config._map_config_and_tags({}, target, origin, False, False, default_value) == \
+            assert check_exclude_config._move_data_with_config_or_tags({}, target, origin, False, default_value) == \
                    {origin: default_value}
-            assert check_exclude_config._map_config_and_tags({}, target, origin, True, False, default_value) == \
+            assert check_exclude_config._move_data_with_config_or_tags({}, target, origin, True, default_value) == \
                    {origin: [default_value]}
 
             # Return direct value & Return direct value arrays test
-            assert check_exclude_config._map_config_and_tags(copy.deepcopy(data), target, origin, False, True) == \
+            assert check_exclude_config._get_config_or_tag_value(copy.deepcopy(data), target, False) == \
                    'tag-' + target
-            assert check_include_config._map_config_and_tags(copy.deepcopy(data), target, origin, False, True) == \
+            assert check_include_config._get_config_or_tag_value(copy.deepcopy(data), target, False) == \
                    'tag-' + target
-            assert check_exclude_config._map_config_and_tags({}, target, origin, False, True) == \
-                   {}
-            assert check_include_config._map_config_and_tags({}, target, origin, False, True) == \
+            assert check_exclude_config._get_config_or_tag_value({}, target, False) is None
+            assert check_include_config._get_config_or_tag_value({}, target, False) == \
                    'instance-' + target
-            assert check_exclude_config._map_config_and_tags(copy.deepcopy(data), target, origin, True, True) == \
+            assert check_exclude_config._get_config_or_tag_value(copy.deepcopy(data), target, True) == \
                    ['tag-' + target]
-            assert check_include_config._map_config_and_tags(copy.deepcopy(data), target, origin, True, True) == \
+            assert check_include_config._get_config_or_tag_value(copy.deepcopy(data), target, True) == \
                    ['tag-' + target]
-            assert check_exclude_config._map_config_and_tags({}, target, origin, True, True) == \
+            assert check_exclude_config._get_config_or_tag_value({}, target, True) == \
                    []
-            assert check_include_config._map_config_and_tags({}, target, origin, True, True) == \
+            assert check_include_config._get_config_or_tag_value({}, target, True) == \
                    ['instance-' + target]
 
         # We are testing the environment, layer and domain for all the use cases
@@ -729,7 +730,7 @@ class TestBaseSanitize:
             with pytest.raises(TypeError) as e:
                 check._ensure_homogeneous_list(list)
 
-            assert str(e.value) == "List: {0}, is not homogeneous, it contains the following types: {1}"\
+            assert str(e.value) == "List: {0}, is not homogeneous, it contains the following types: {1}" \
                 .format(list, expected_types)
 
         # list of ints and strings
@@ -1380,3 +1381,24 @@ class TestHealth:
                                check.get_health_stream(None),
                                start_snapshot={'expiry_interval_s': 120, 'repeat_interval_s': 30},
                                stop_snapshot=None)
+
+
+class TestDataDogPersistentCache:
+
+    def test_write_and_read(self):
+        check = AgentCheck()
+        check.check_id = 'test'
+
+        check.write_persistent_cache('foo', 'bar')
+
+        assert datadog_agent.read_persistent_cache('test_foo') == 'bar'
+        assert check.read_persistent_cache('foo') == 'bar'
+
+    def test_write_empty_value(self):
+        check = AgentCheck()
+        check.check_id = 'test'
+
+        check.write_persistent_cache('foo', '')
+
+        assert datadog_agent.read_persistent_cache('test_foo') == ''
+        assert check.read_persistent_cache('foo') == ''
