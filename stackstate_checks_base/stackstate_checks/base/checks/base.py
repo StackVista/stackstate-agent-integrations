@@ -886,12 +886,10 @@ class AgentCheckBase(object):
     def start_transaction(self):
         self.log.info("Unimplemented Start Transaction A")
         self._start_transaction()
-        pass
 
     def stop_transaction(self):
         self.log.info("Unimplemented Stop Transaction B")
         self._stop_transaction()
-        pass
 
     def gauge(self, name, value, tags=None, hostname=None, device_name=None):
         self._submit_metric(aggregator.GAUGE, name, value, tags=tags, hostname=hostname, device_name=device_name)
