@@ -395,6 +395,15 @@ class HealthCheckMainStream(AgentCheck):
         return
 
 
+class TransactionCheck(AgentCheck):
+    def __init__(self, *args, **kwargs):
+        instances = [{}]
+        super(TransactionCheck, self).__init__("test", {}, instances)
+
+    def check(self, instance):
+        return
+
+
 TEST_STATE = {
     'string': 'string',
     'int': 1,
@@ -1291,12 +1300,22 @@ class TestHealthStream:
         assert e.value[0].summary == "Value '' is not int."
 
 
+class TestTransaction:
+    def test_transaction_start_and_stop(self, transaction):
+        check = TransactionCheck()
+        check._init_transactional_api()
+        check.transaction.start_transaction()
+        check.transaction.stop_transaction()
+        transaction.assert_transaction(check.check_id)
+
+
 class TestHealth:
     def test_check_state_max_values(self, health):
         # Max values: fill in as much of the optional fields as possible
         check = HealthCheck()
         check._init_health_api()
         check.health.check_state("check_id", "name", Health.CRITICAL, "identifier", "message")
+
         health.assert_snapshot(check.check_id, check.get_health_stream(None), check_states=[{
             'checkStateId': 'check_id',
             'health': 'CRITICAL',
