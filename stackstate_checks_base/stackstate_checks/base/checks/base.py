@@ -889,11 +889,9 @@ class AgentCheckBase(object):
         pass
 
     def _submit_raw_metrics_data(self, name, value, tags=None, hostname=None, device_name=None, timestamp=None):
-        self.log.info("Unimplemented Raw B")
         pass
 
     def raw(self, name, value, tags=None, hostname=None, device_name=None, timestamp=None):
-        self.log.info("Unimplemented Raw A")
         self._submit_raw_metrics_data(name, value, tags, hostname, device_name, timestamp)
 
     def gauge(self, name, value, tags=None, hostname=None, device_name=None):
