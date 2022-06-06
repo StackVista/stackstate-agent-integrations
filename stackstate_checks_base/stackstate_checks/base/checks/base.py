@@ -1294,7 +1294,10 @@ class AgentCheck(object):
 
     def _persistent_cache_id(self, key):
         # type: (str) -> str
-        return '{}_{}'.format(self.check_id, key)
+        """
+        StackState uses `TopologyInstance.url`. DataDog implementation used `self.check_id`.
+        """
+        return '{}_{}'.format(self._get_instance_key().url, key)
 
     def read_persistent_cache(self, key):
         # type: (str) -> str
@@ -1432,3 +1435,77 @@ class AgentCheck(object):
             aggregator.submit_event(self, self.check_id, event)
 
         return event
+
+
+class AgentStatefulCheck(AgentCheck):
+    PERSISTENT_CACHE_KEY = "check_state"
+
+    def stateful_check(self, instance, state):
+        # type: (_InstanceType, str) -> (str, str)
+        """
+        This method should be implemented for a Stateful Check.
+        Don't try catch errors in stateful check. Error caching and service calls are done in run method.
+
+        - **instance** instance (schema type)
+        - **state** existing state in Json TODO: maybe also schema type for state
+        returns (state, error)
+        """
+        raise NotImplementedError
+
+    def check(self, instance):
+        # type: (_InstanceType) -> None
+        """
+        This method does nothing. Call stateful_check instead of this one.
+        """
+        pass
+
+    def run(self):
+        """
+        Runs stateful check.
+        """
+        default_result = to_string(b'')
+        try:
+            # start auto snapshot if with_snapshots is set to True
+            if self._get_instance_key().with_snapshots:
+                topology.submit_start_snapshot(self, self.check_id, self._get_instance_key_dict())
+
+            # create integration instance components for monitoring purposes
+            self.create_integration_instance()
+
+            # Initialize the health api
+            self._init_health_api()
+
+            # create a copy of the check instance, get state if any and add it to the instance object for the check
+            instance = self.instances[0]
+            check_instance = copy.deepcopy(instance)
+
+            # if this instance has some state then set it to state
+            current_state = self.read_persistent_cache(self.PERSISTENT_CACHE_KEY)
+
+            check_instance = self._get_instance_schema(check_instance)
+            new_state, error = self.stateful_check(check_instance, current_state)
+
+            if error:
+                pass
+                # TODO: do service checks
+            else:
+                # set the state from the check instance
+                self.write_persistent_cache(self.PERSISTENT_CACHE_KEY)
+
+                # stop auto snapshot if with_snapshots is set to True
+                if self._get_instance_key().with_snapshots:
+                    topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key_dict())
+
+            result = default_result
+        except Exception as e:
+            result = json.dumps([
+                {
+                    "message": str(e),
+                    "traceback": traceback.format_exc(),
+                }
+            ])
+        finally:
+            if self.metric_limiter:
+                self.metric_limiter.reset()
+
+        return result

@@ -1386,19 +1386,19 @@ class TestHealth:
 class TestDataDogPersistentCache:
 
     def test_write_and_read(self):
-        check = AgentCheck()
+        check = TopologyCheck()
         check.check_id = 'test'
 
         check.write_persistent_cache('foo', 'bar')
 
-        assert datadog_agent.read_persistent_cache('test_foo') == 'bar'
+        assert datadog_agent.read_persistent_cache(check._persistent_cache_id('foo')) == 'bar'
         assert check.read_persistent_cache('foo') == 'bar'
 
     def test_write_empty_value(self):
-        check = AgentCheck()
+        check = TopologyCheck()
         check.check_id = 'test'
 
         check.write_persistent_cache('foo', '')
 
-        assert datadog_agent.read_persistent_cache('test_foo') == ''
+        assert datadog_agent.read_persistent_cache(check._persistent_cache_id('foo')) == ''
         assert check.read_persistent_cache('foo') == ''
