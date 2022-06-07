@@ -348,6 +348,9 @@ class TopologyCheck(AgentCheck):
     def get_instance_key(self, instance):
         return self.key
 
+    def check(self, instance):
+        pass
+
 
 class TopologyAutoSnapshotCheck(TopologyCheck):
     def __init__(self):
@@ -1387,8 +1390,6 @@ class TestDataDogPersistentCache:
 
     def test_write_and_read(self):
         check = TopologyCheck()
-        check.check_id = 'test'
-
         check.write_persistent_cache('foo', 'bar')
 
         assert datadog_agent.read_persistent_cache(check._persistent_cache_id('foo')) == 'bar'
@@ -1396,9 +1397,12 @@ class TestDataDogPersistentCache:
 
     def test_write_empty_value(self):
         check = TopologyCheck()
-        check.check_id = 'test'
-
         check.write_persistent_cache('foo', '')
 
         assert datadog_agent.read_persistent_cache(check._persistent_cache_id('foo')) == ''
         assert check.read_persistent_cache('foo') == ''
+
+    def test_instance_key_url_sanitization(self):
+        instance_key = TopologyInstance(type="testing", url="https://some-url.org/api?page_size=2&token=abc")
+        check = TopologyCheck(instance_key)
+        assert check._get_instance_key().url_as_filename() == "httpssome-urlorgapipage_size2tokenabc"

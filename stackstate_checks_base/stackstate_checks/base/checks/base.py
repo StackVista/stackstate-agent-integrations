@@ -101,6 +101,11 @@ class _TopologyInstanceBase(object):
     def tags(self):
         return ["integration-type:{}".format(self.type), "integration-url:{}".format(self.url)]
 
+    def url_as_filename(self):
+        """Returns url string sanitized from all characters that would prevent it to be used as a filename"""
+        pattern = r"[^a-zA-Z0-9_-]"
+        return re.sub(pattern, "", self.url)
+
     def __eq__(self, other):
         if not isinstance(other, TopologyInstance):
             return False
@@ -1272,7 +1277,7 @@ class AgentCheck(object):
     def get_check_state_path(self):
         # type: () -> str
         """
-        get_check_state_path returns the path where the check state is stored. By default the check configuration
+        get_check_state_path returns the path where the check state is stored. Bdefault, the check configuration
         location will be used. If state_location is set in the check configuration that will be used instead.
         """
         state_location = self.instance.get("state_location", self.get_agent_conf_d_path())
@@ -1297,7 +1302,7 @@ class AgentCheck(object):
         """
         StackState uses `TopologyInstance.url`. DataDog implementation used `self.check_id`.
         """
-        return '{}_{}'.format(self._get_instance_key().url, key)
+        return '{}_{}'.format(self._get_instance_key().url_as_filename(), key)
 
     def read_persistent_cache(self, key):
         # type: (str) -> str
