@@ -9,7 +9,7 @@ import pytest
 
 # project
 from stackstate_checks.agent_integration_sample import AgentIntegrationSampleCheck
-from stackstate_checks.base.stubs import topology, aggregator, telemetry, health
+from stackstate_checks.base.stubs import topology, aggregator, telemetry, health, transaction
 from stackstate_checks.base.utils.common import load_json_from_file
 
 
@@ -44,6 +44,7 @@ class TestAgentIntegration(unittest.TestCase):
         aggregator.reset()
         health.reset()
         telemetry.reset()
+        transaction.reset()
 
     def test_check(self):
         result = self.check.run()
@@ -98,6 +99,8 @@ class TestAgentIntegration(unittest.TestCase):
                                 hostname="hostname")
         telemetry.assert_metric("raw.metrics", count=1, value=30, tags=["no:hostname", "region:eu-west-1"],
                                 hostname="")
+
+        transaction.assert_transaction(self.check.check_id)
 
     def test_topology_items_from_config_check(self):
         instance_config = {

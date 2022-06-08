@@ -230,3 +230,7 @@ class AgentIntegrationSampleCheck(AgentCheck):
         self.log.info("Read key that doesn't exist in persistent cache")
         cache = self.read_persistent_cache("key_that_is_not_there")
         self.log.debug("empty cache: {} empty cache's type: {}".format(cache, type(cache)))
+
+        # Transactional State
+        self.transaction.start_transaction()
+        self.transaction.stop_transaction()

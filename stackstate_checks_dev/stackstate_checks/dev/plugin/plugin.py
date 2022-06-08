@@ -83,6 +83,23 @@ except ImportError:
         raise ImportError('stackstate-checks-base is not installed!')
 
 
+try:
+    from stackstate_checks.base.stubs import transaction as __transaction
+
+    @pytest.fixture
+    def transaction():
+        """This fixture returns a mocked Agent transaction api with state cleared."""
+        __transaction.reset()
+        return __transaction
+
+except ImportError:
+    __transaction = None
+
+    @pytest.fixture
+    def transaction():
+        raise ImportError('stackstate-checks-base is not installed!')
+
+
 @pytest.fixture(scope='session', autouse=True)
 def sts_environment_runner(request):
     testing_plugin = os.getenv(TESTING_PLUGIN) == 'true'

@@ -14,7 +14,7 @@ from schematics.exceptions import ValidationError, ConversionError, DataError
 from schematics.types import IntType, StringType, ModelType
 from six import PY3, text_type
 
-from stackstate_checks.base.stubs.datadog_agent import datadog_agent
+from stackstate_checks.base.stubs import datadog_agent
 from stackstate_checks.base.stubs.topology import component
 from stackstate_checks.checks import AgentCheck, TopologyInstance, AgentIntegrationInstance, \
     HealthStream, HealthStreamUrn, Health
@@ -332,12 +332,16 @@ class TestLimits():
 
 
 class DefaultInstanceCheck(AgentCheck):
-    pass
+    def check(self, instance):
+        pass
 
 
 class AgentIntegrationInstanceCheck(AgentCheck):
     def get_instance_key(self, instance):
         return AgentIntegrationInstance("test", "integration")
+
+    def check(self, instance):
+        pass
 
 
 class TopologyCheck(AgentCheck):
@@ -397,6 +401,15 @@ class HealthCheckMainStream(AgentCheck):
 
     def check(self, instance):
         return
+
+
+class TransactionCheck(AgentCheck):
+    def __init__(self, *args, **kwargs):
+        instances = [{}]
+        super(TransactionCheck, self).__init__("test", {}, instances)
+
+    def check(self, instance):
+        return None
 
 
 TEST_STATE = {
@@ -1406,3 +1419,13 @@ class TestDataDogPersistentCache:
         instance_key = TopologyInstance(type="testing", url="https://some-url.org/api?page_size=2&token=abc")
         check = TopologyCheck(instance_key)
         assert check._get_instance_key().url_as_filename() == "httpssome-urlorgapipage_size2tokenabc"
+
+
+class TestTransaction:
+
+    def test_transaction_start_and_stop(self, transaction):
+        check = TransactionCheck()
+        check._init_transactional_api()
+        check.transaction.start_transaction()
+        check.transaction.stop_transaction()
+        transaction.assert_transaction(check.check_id)

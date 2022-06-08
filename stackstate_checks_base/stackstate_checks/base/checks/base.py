@@ -26,7 +26,7 @@ try:
 
     init_logging()
 except ImportError:
-    from ..stubs.datadog_agent import datadog_agent
+    from ..stubs import datadog_agent
     from ..stubs.log import init_logging
 
     init_logging()
@@ -58,6 +58,15 @@ except ImportError:
 
     using_stub_telemetry = True
 
+try:
+    import transaction
+
+    using_stub_transaction = False
+except ImportError:
+    from ..stubs import transaction
+
+    using_stub_transaction = True
+
 from ..config import is_affirmative
 from ..constants import ServiceCheck
 from ..utils.common import ensure_string, ensure_unicode, to_string
@@ -67,6 +76,7 @@ from ..utils.identifiers import Identifiers
 from ..utils.telemetry import EventStream, MetricStream, ServiceCheckStream, \
     ServiceCheckHealthChecks, Event
 from ..utils.health_api import HealthApi
+from ..utils.transactional_api import TransactionApi
 from ..utils.persistent_state import StateDescriptor, StateManager
 from deprecated.sphinx import deprecated
 
@@ -247,6 +257,8 @@ class AgentCheck(object):
             self.log.warning("Using stub topology api")
         if using_stub_telemetry:
             self.log.warning("Using stub telemetry api")
+        if using_stub_transaction:
+            self.log.warning("Using stub transactional api")
         self.state_manager = StateManager(self.log)
         # Set proxy settings
         self.proxies = self._get_requests_proxy()
@@ -259,6 +271,7 @@ class AgentCheck(object):
 
         # Will be initialized as part of the check, to allow for proper error reporting there if initialization fails
         self.health = None  # type: Optional[HealthApi]
+        self.transaction = None  # type: Optional[TransactionApi]
 
         self._deprecations = {
             'increment': [
@@ -309,6 +322,12 @@ class AgentCheck(object):
                     expiry_seconds = 0
             self.health = HealthApi(self, stream_spec, expiry_seconds, repeat_interval_seconds)
 
+    def _init_transactional_api(self):
+        # type: () -> None
+        if self.transaction is not None:
+            return None
+        self.transaction = TransactionApi(self)
+
     def run(self):
         # type: () -> str
         """
@@ -325,6 +344,9 @@ class AgentCheck(object):
 
             # Initialize the health api
             self._init_health_api()
+
+            # Initialize the transactional api
+            self._init_transactional_api()
 
             # create a copy of the check instance, get state if any and add it to the instance object for the check
             instance = self.instances[0]
@@ -1449,7 +1471,7 @@ class AgentStatefulCheck(AgentCheck):
         # type: (_InstanceType, str) -> (str, str)
         """
         This method should be implemented for a Stateful Check.
-        Don't try catch errors in stateful check. Error caching and service calls are done in run method.
+        Don't try to catch errors in stateful check. Error caching and service calls are done in run method.
 
         - **instance** instance (schema type)
         - **state** existing state in Json TODO: maybe also schema type for state

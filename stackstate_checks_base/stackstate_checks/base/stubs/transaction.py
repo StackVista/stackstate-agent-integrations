@@ -1,0 +1,42 @@
+# (C) StackState, Inc. 2022
+# All rights reserved
+# Licensed under a 3-clause BSD style license (see LICENSE)
+
+class TransactionStub(object):
+    """
+    Mainly used for unit testing checks, this stub makes possible to execute
+    a check without a running Agent.
+    """
+
+    def __init__(self):
+        self._transactions = {}
+
+    def _ensure_transaction(self, check_id):
+        if check_id not in self._transactions:
+            self._transactions[check_id] = {
+                "started": False,
+                "stopped": False
+            }
+        return self._transactions[check_id]
+
+    def start_transaction(self, check, check_id):
+        self._ensure_transaction(check_id)["started"] = True
+
+    def stop_transaction(self, check, check_id):
+        self._ensure_transaction(check_id)["stopped"] = True
+
+    def get_transaction(self, check_id):
+        return self._transactions[check_id]
+
+    def assert_transaction(self, check_id):
+        assert self.get_transaction(check_id) == {
+            "started": True,
+            "stopped": True
+        }
+
+    def reset(self):
+        self._transactions = {}
+
+
+# Use the stub as a singleton
+transaction = TransactionStub()
