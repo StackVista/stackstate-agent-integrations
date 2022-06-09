@@ -58,15 +58,6 @@ except ImportError:
 
     using_stub_telemetry = True
 
-try:
-    import transaction
-
-    using_stub_transaction = False
-except ImportError:
-    from ..stubs import transaction
-
-    using_stub_transaction = True
-
 from ..config import is_affirmative
 from ..constants import ServiceCheck
 from ..utils.common import ensure_string, ensure_unicode, to_string
@@ -257,8 +248,6 @@ class AgentCheck(object):
             self.log.warning("Using stub topology api")
         if using_stub_telemetry:
             self.log.warning("Using stub telemetry api")
-        if using_stub_transaction:
-            self.log.warning("Using stub transactional api")
         self.state_manager = StateManager(self.log)
         # Set proxy settings
         self.proxies = self._get_requests_proxy()
