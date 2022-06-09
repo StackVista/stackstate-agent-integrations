@@ -1457,14 +1457,14 @@ class AgentStatefulCheck(AgentCheck):
     PERSISTENT_CACHE_KEY = "check_state"
 
     def stateful_check(self, instance, state):
-        # type: (_InstanceType, str) -> (str, str)
+        # type: (_InstanceType, str) -> str
         """
-        This method should be implemented for a Stateful Check.
-        Don't try to catch errors in stateful check. Error caching and service calls are done in run method.
+        This method should be implemented for a Stateful Check. It's called from run method.
+        All Errors raised from stateful_check will be caught and converted to service_call in the run method.
 
         - **instance** instance (schema type)
         - **state** existing state in Json TODO: maybe also schema type for state
-        returns (state, error)
+        returns state
         """
         raise NotImplementedError
 
@@ -1476,6 +1476,7 @@ class AgentStatefulCheck(AgentCheck):
         pass
 
     def run(self):
+        # type: () -> str
         """
         Runs stateful check.
         """
@@ -1496,21 +1497,19 @@ class AgentStatefulCheck(AgentCheck):
             check_instance = copy.deepcopy(instance)
 
             # if this instance has some state then set it to state
+            # TODO: switch to state.get_state
             current_state = self.read_persistent_cache(self.PERSISTENT_CACHE_KEY)
 
             check_instance = self._get_instance_schema(check_instance)
-            new_state, error = self.stateful_check(check_instance, current_state)
+            new_state = self.stateful_check(check_instance, current_state)
 
-            if error:
-                pass
-                # TODO: do service checks
-            else:
-                # set the state from the check instance
-                self.write_persistent_cache(self.PERSISTENT_CACHE_KEY)
+            # set the state from the check instance
+            # TODO: switch to state.set_state
+            self.write_persistent_cache(self.PERSISTENT_CACHE_KEY, new_state)
 
-                # stop auto snapshot if with_snapshots is set to True
-                if self._get_instance_key().with_snapshots:
-                    topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key_dict())
+            # stop auto snapshot if with_snapshots is set to True
+            if self._get_instance_key().with_snapshots:
+                topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key_dict())
 
             result = default_result
         except Exception as e:
@@ -1520,8 +1519,16 @@ class AgentStatefulCheck(AgentCheck):
                     "traceback": traceback.format_exc(),
                 }
             ])
+            # TODO: add critical service check
         finally:
             if self.metric_limiter:
                 self.metric_limiter.reset()
 
         return result
+
+
+class AgentError(Exception):
+    """
+    Agent error that needs to be converted to Critical Service Check
+    """
+    pass
