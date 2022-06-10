@@ -14,6 +14,7 @@ from schematics.exceptions import ValidationError, ConversionError, DataError
 from schematics.types import IntType, StringType, ModelType
 from six import PY3, text_type
 
+from stackstate_checks.base.checks.base import AgentStatefulCheck
 from stackstate_checks.base.stubs import datadog_agent
 from stackstate_checks.base.stubs.topology import component
 from stackstate_checks.checks import AgentCheck, TopologyInstance, AgentIntegrationInstance, \
@@ -401,15 +402,6 @@ class HealthCheckMainStream(AgentCheck):
 
     def check(self, instance):
         return
-
-
-class TransactionCheck(AgentCheck):
-    def __init__(self, *args, **kwargs):
-        instances = [{}]
-        super(TransactionCheck, self).__init__("test", {}, instances)
-
-    def check(self, instance):
-        return None
 
 
 TEST_STATE = {
@@ -1415,17 +1407,3 @@ class TestDataDogPersistentCache:
         assert datadog_agent.read_persistent_cache(check._persistent_cache_id('foo')) == ''
         assert check.read_persistent_cache('foo') == ''
 
-    def test_instance_key_url_sanitization(self):
-        instance_key = TopologyInstance(type="testing", url="https://some-url.org/api?page_size=2&token=abc")
-        check = TopologyCheck(instance_key)
-        assert check._get_instance_key().url_as_filename() == "httpssome-urlorgapipage_size2tokenabc"
-
-
-class TestTransaction:
-
-    def test_transaction_start_and_stop(self, transaction):
-        check = TransactionCheck()
-        check._init_transactional_api()
-        check.transaction.start_transaction()
-        check.transaction.stop_transaction()
-        transaction.assert_transaction(check.check_id)

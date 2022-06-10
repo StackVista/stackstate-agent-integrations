@@ -68,6 +68,7 @@ from ..utils.telemetry import EventStream, MetricStream, ServiceCheckStream, \
     ServiceCheckHealthChecks, Event
 from ..utils.health_api import HealthApi
 from ..utils.transactional_api import TransactionApi
+from ..utils.state_api import StateApi
 from ..utils.persistent_state import StateDescriptor, StateManager
 from deprecated.sphinx import deprecated
 
@@ -101,11 +102,6 @@ class _TopologyInstanceBase(object):
 
     def tags(self):
         return ["integration-type:{}".format(self.type), "integration-url:{}".format(self.url)]
-
-    def url_as_filename(self):
-        """Returns url string sanitized from all characters that would prevent it to be used as a filename"""
-        pattern = r"[^a-zA-Z0-9_-]"
-        return re.sub(pattern, "", self.url)
 
     def __eq__(self, other):
         if not isinstance(other, TopologyInstance):
@@ -260,7 +256,6 @@ class AgentCheck(object):
 
         # Will be initialized as part of the check, to allow for proper error reporting there if initialization fails
         self.health = None  # type: Optional[HealthApi]
-        self.transaction = None  # type: Optional[TransactionApi]
 
         self._deprecations = {
             'increment': [
@@ -311,12 +306,6 @@ class AgentCheck(object):
                     expiry_seconds = 0
             self.health = HealthApi(self, stream_spec, expiry_seconds, repeat_interval_seconds)
 
-    def _init_transactional_api(self):
-        # type: () -> None
-        if self.transaction is not None:
-            return None
-        self.transaction = TransactionApi(self)
-
     def run(self):
         # type: () -> str
         """
@@ -333,9 +322,6 @@ class AgentCheck(object):
 
             # Initialize the health api
             self._init_health_api()
-
-            # Initialize the transactional api
-            self._init_transactional_api()
 
             # create a copy of the check instance, get state if any and add it to the instance object for the check
             instance = self.instances[0]
@@ -1288,7 +1274,7 @@ class AgentCheck(object):
     def get_check_state_path(self):
         # type: () -> str
         """
-        get_check_state_path returns the path where the check state is stored. Bdefault, the check configuration
+        get_check_state_path returns the path where the check state is stored. By default, the check configuration
         location will be used. If state_location is set in the check configuration that will be used instead.
         """
         state_location = self.instance.get("state_location", self.get_agent_conf_d_path())
@@ -1310,10 +1296,7 @@ class AgentCheck(object):
 
     def _persistent_cache_id(self, key):
         # type: (str) -> str
-        """
-        StackState uses `TopologyInstance.url`. DataDog implementation used `self.check_id`.
-        """
-        return '{}_{}'.format(self._get_instance_key().url_as_filename(), key)
+        return '{}_{}'.format(self.check_id, key)
 
     def read_persistent_cache(self, key):
         # type: (str) -> str
@@ -1456,6 +1439,22 @@ class AgentCheck(object):
 class AgentStatefulCheck(AgentCheck):
     PERSISTENT_CACHE_KEY = "check_state"
 
+    def __init__(self, *args, **kwargs):
+        # type: (*Any, **Any) -> None
+        """
+        - **name** (_str_) - the name of the check
+        - **init_config** (_dict_) - the `init_config` section of the configuration.
+        - **agentConfig** (_dict_) - deprecated
+        - **instance** (_List[dict]_) - a one-element list containing the instance options from the
+                configuration file (a list is used to keep backward compatibility with
+                older versions of the Agent).
+        """
+        super(AgentStatefulCheck, self).__init__(*args, **kwargs)
+
+        # Will be initialized as part of the check, to allow for proper error reporting there if initialization fails
+        self.transaction = None  # type: Optional[TransactionApi]
+        self.state = None  # type: Optional[StateApi]
+
     def stateful_check(self, instance, state):
         # type: (_InstanceType, str) -> str
         """
@@ -1464,7 +1463,7 @@ class AgentStatefulCheck(AgentCheck):
 
         - **instance** instance (schema type)
         - **state** existing state in Json TODO: maybe also schema type for state
-        returns state
+        returns new state
         """
         raise NotImplementedError
 
@@ -1491,6 +1490,9 @@ class AgentStatefulCheck(AgentCheck):
 
             # Initialize the health api
             self._init_health_api()
+
+            # Initialize the transactional api
+            self._init_transactional_api()
 
             # create a copy of the check instance, get state if any and add it to the instance object for the check
             instance = self.instances[0]
@@ -1525,6 +1527,32 @@ class AgentStatefulCheck(AgentCheck):
                 self.metric_limiter.reset()
 
         return result
+
+    def _state_id(self, key):
+        # type: (str) -> str
+        """
+        State ID is used for filename where state is stored.
+        It is constructed from sanitized `TopologyInstance.url` and provided key.
+        """
+        return '{}_{}'.format(self._url_as_filename(), key)
+
+    def _url_as_filename(self):
+        # type: () -> str
+        """Returns url string sanitized from all characters that would prevent it to be used as a filename"""
+        pattern = r"[^a-zA-Z0-9_-]"
+        return re.sub(pattern, "", self._get_instance_key().url)
+
+    def _init_state_api(self):
+        # type: () -> None
+        if self.state is not None:
+            return None
+        self.state = StateApi(self)
+
+    def _init_transactional_api(self):
+        # type: () -> None
+        if self.transaction is not None:
+            return None
+        self.transaction = TransactionApi(self)
 
 
 class AgentError(Exception):
