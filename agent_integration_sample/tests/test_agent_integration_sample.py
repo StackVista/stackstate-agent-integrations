@@ -9,7 +9,7 @@ import pytest
 
 # project
 from stackstate_checks.agent_integration_sample import AgentIntegrationSampleCheck
-from stackstate_checks.base.stubs import topology, aggregator, telemetry, health, transaction
+from stackstate_checks.base.stubs import topology, aggregator, telemetry, health
 from stackstate_checks.base.utils.common import load_json_from_file
 
 
@@ -24,8 +24,6 @@ CONFIG = {
     'init_config': {'default_timeout': 10},
     'instances': [{'collection_interval': 5}]
 }
-
-instance_config = InstanceInfo([])
 
 
 @pytest.mark.usefixtures("instance")
@@ -44,7 +42,6 @@ class TestAgentIntegration(unittest.TestCase):
         aggregator.reset()
         health.reset()
         telemetry.reset()
-        transaction.reset()
 
     def test_check(self):
         result = self.check.run()
