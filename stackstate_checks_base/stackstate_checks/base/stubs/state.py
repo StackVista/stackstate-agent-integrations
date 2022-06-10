@@ -14,3 +14,6 @@ class StateStub(object):
 
     def get_state(self, check, check_id, key):
         return self._state.get(key, "")
+
+
+state = StateStub()
