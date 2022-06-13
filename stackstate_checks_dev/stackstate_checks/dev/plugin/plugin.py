@@ -82,6 +82,21 @@ except ImportError:
     def health():
         raise ImportError('stackstate-checks-base is not installed!')
 
+try:
+    from stackstate_checks.base.stubs import state as __state
+
+    @pytest.fixture
+    def state():
+        """This fixture returns a mocked Agent state api with state cleared."""
+        __state.reset()
+        return __state
+
+except ImportError:
+    __state = None
+
+    @pytest.fixture
+    def state():
+        raise ImportError('stackstate-checks-base is not installed!')
 
 try:
     from stackstate_checks.base.stubs import transaction as __transaction

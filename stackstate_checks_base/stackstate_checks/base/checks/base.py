@@ -1455,7 +1455,7 @@ class AgentStatefulCheck(AgentCheck):
         self._state = None  # type: Optional[StateApi]
 
     def stateful_check(self, instance, state):
-        # type: (_InstanceType, str) -> str
+        # type: (_InstanceType, Union[Dict[str, Any], Model]) -> Dict[str, Any]
         """
         This method should be implemented for a Stateful Check. It's called from run method.
         All Errors raised from stateful_check will be caught and converted to service_call in the run method.
@@ -1521,7 +1521,9 @@ class AgentStatefulCheck(AgentCheck):
                     "traceback": traceback.format_exc(),
                 }
             ])
+            self.log.exception(str(e))
             # TODO: add critical service check
+            # self.service_check(self.name, AgentCheck.CRITICAL, tags=instance_info.instance_tags, message=str(e))
         finally:
             if self.metric_limiter:
                 self.metric_limiter.reset()
@@ -1529,9 +1531,14 @@ class AgentStatefulCheck(AgentCheck):
         return result
 
     def set_state(self, new_state):
+        # type: (Union[Dict, Model]) -> None
+        """
+        Set the state
+        """
         self._state.set_state(self.PERSISTENT_CACHE_KEY, new_state)
 
     def get_state(self):
+        # type: () -> Dict[str, Any]
         return self._state.get_state(self.PERSISTENT_CACHE_KEY)
 
     def _init_state_api(self):

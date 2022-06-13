@@ -8,7 +8,7 @@ import pytest
 import os
 import platform
 
-from stackstate_checks.base.utils.common import load_json_from_file
+from stackstate_checks.base.utils.common import load_json_from_file, sanitize_url_as_valid_filename
 from stackstate_checks.utils.common import pattern_filter, round_value, read_file
 from stackstate_checks.utils.limiter import Limiter
 from stackstate_checks.utils.persistent_state import StateManager, StateDescriptor, StateNotPersistedException, \
@@ -235,3 +235,7 @@ class TestCommon:
     def test_load_json_from_same_directory(self):
         dict_from_json = load_json_from_file('test_data_sample.json')
         assert dict_from_json == json.loads(self.SAMPLE_FILE_CONTET)
+
+    def test_url_sanitization_so_it_be_used_as_filename(self):
+        url = "https://example.org/api?query_string=123&another=456"
+        assert sanitize_url_as_valid_filename(url) == "httpsexampleorgapiquery_string123another456"

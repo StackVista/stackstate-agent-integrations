@@ -13,7 +13,10 @@ class StateStub(object):
         self._state[key] = new_state
 
     def get_state(self, check, check_id, key):
-        return self._state.get(key, {})
+        return self._state.get(key, "")
+
+    def reset(self):
+        self._state = {}
 
 
 state = StateStub()

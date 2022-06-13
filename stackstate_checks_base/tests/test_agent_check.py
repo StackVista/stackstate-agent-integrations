@@ -14,7 +14,6 @@ from schematics.exceptions import ValidationError, ConversionError, DataError
 from schematics.types import IntType, StringType, ModelType
 from six import PY3, text_type
 
-from stackstate_checks.base.checks.base import AgentStatefulCheck
 from stackstate_checks.base.stubs import datadog_agent
 from stackstate_checks.base.stubs.topology import component
 from stackstate_checks.checks import AgentCheck, TopologyInstance, AgentIntegrationInstance, \
@@ -981,7 +980,8 @@ class TestTopology:
         # set the previous state and assert the state check function as expected
         previous_state = {'my_old': 'state'}
         check.state_manager.set_state(check._get_state_descriptor(), previous_state)
-        state_manager.assert_state_check(check, expected_pre_run_state=previous_state, expected_post_run_state=previous_state)
+        state_manager.assert_state_check(check, expected_pre_run_state=previous_state,
+                                         expected_post_run_state=previous_state)
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=False)
 
@@ -1406,4 +1406,3 @@ class TestDataDogPersistentCache:
 
         assert datadog_agent.read_persistent_cache(check._persistent_cache_id('foo')) == ''
         assert check.read_persistent_cache('foo') == ''
-

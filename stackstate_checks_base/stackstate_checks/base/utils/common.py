@@ -117,3 +117,12 @@ def _get_path_to_file(filename, extended_path=""):
     path_with_extended_part = os.path.join(os.path.dirname(path_to_callers_file), extended_path)
     path_to_file = os.path.join(path_with_extended_part, filename)
     return path_to_file
+
+
+def sanitize_url_as_valid_filename(url):
+    # type: (str) -> str
+    """
+    Returns url string sanitized from all characters that would prevent it to be used as a filename
+    """
+    pattern = r"[^a-zA-Z0-9_-]"
+    return re.sub(pattern, "", url)
