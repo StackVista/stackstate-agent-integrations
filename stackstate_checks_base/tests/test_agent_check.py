@@ -947,49 +947,49 @@ class TestTopology:
         check.stop_snapshot()
         topology.assert_snapshot(check.check_id, check.key, stop_snapshot=True)
 
-    def test_stateful_check(self, topology, state):
+    def test_stateful_check(self, topology, state_manager):
         check = TopologyStatefulCheck()
-        state.assert_state_check(check, expected_pre_run_state=None, expected_post_run_state=TEST_STATE)
+        state_manager.assert_state_check(check, expected_pre_run_state=None, expected_post_run_state=TEST_STATE)
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
 
-    def test_stateful_check_config_location(self, topology, state):
+    def test_stateful_check_config_location(self, topology, state_manager):
         check = TopologyStatefulCheckStateLocation()
-        state.assert_state_check(check, expected_pre_run_state=None, expected_post_run_state=TEST_STATE)
+        state_manager.assert_state_check(check, expected_pre_run_state=None, expected_post_run_state=TEST_STATE)
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
 
-    def test_stateful_state_descriptor_cleanup_check(self, topology, state):
+    def test_stateful_state_descriptor_cleanup_check(self, topology, state_manager):
         check = TopologyStatefulStateDescriptorCleanupCheck()
         state_descriptor = check._get_state_descriptor()
         assert state_descriptor.instance_key == "instance.mytype.https_some.type.url"
         assert check._get_instance_key_dict() == {'type': 'mytype', 'url': 'https://some.type.url'}
-        state.assert_state_check(check, expected_pre_run_state=None, expected_post_run_state=TEST_STATE)
+        state_manager.assert_state_check(check, expected_pre_run_state=None, expected_post_run_state=TEST_STATE)
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
 
-    def test_clear_stateful_check(self, topology, state):
+    def test_clear_stateful_check(self, topology, state_manager):
         check = TopologyClearStatefulCheck()
         # set the previous state and assert the state check function as expected
         check.state_manager.set_state(check._get_state_descriptor(), TEST_STATE)
-        state.assert_state_check(check, expected_pre_run_state=TEST_STATE, expected_post_run_state=None)
+        state_manager.assert_state_check(check, expected_pre_run_state=TEST_STATE, expected_post_run_state=None)
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
 
-    def test_no_state_change_on_exception_stateful_check(self, topology, state):
+    def test_no_state_change_on_exception_stateful_check(self, topology, state_manager):
         check = TopologyBrokenStatefulCheck()
         # set the previous state and assert the state check function as expected
         previous_state = {'my_old': 'state'}
         check.state_manager.set_state(check._get_state_descriptor(), previous_state)
-        state.assert_state_check(check, expected_pre_run_state=previous_state, expected_post_run_state=previous_state)
+        state_manager.assert_state_check(check, expected_pre_run_state=previous_state, expected_post_run_state=previous_state)
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=False)
 
-    def test_stateful_schema_check(self, topology, state):
+    def test_stateful_schema_check(self, topology, state_manager):
         check = TopologyStatefulSchemaCheck()
         # assert the state check function as expected
-        state.assert_state_check(check, expected_pre_run_state=None,
-                                 expected_post_run_state=StateSchema({'offset': 20}), state_schema=StateSchema)
+        state_manager.assert_state_check(check, expected_pre_run_state=None,
+                                         expected_post_run_state=StateSchema({'offset': 20}), state_schema=StateSchema)
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
 

@@ -29,7 +29,7 @@ class TransactionStub(object):
         self._ensure_transaction(check_id)["stopped"] = True
 
     def get_transaction(self, check_id):
-        return self._transactions[check_id]
+        return self._ensure_transaction(check_id)
 
     def set_transaction_state(self, check, check_id, key, state):
         pass

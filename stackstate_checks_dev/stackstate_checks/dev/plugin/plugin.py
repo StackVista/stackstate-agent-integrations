@@ -229,7 +229,7 @@ def sts_agent_check(request, aggregator):
 
 
 @pytest.fixture
-def state():
+def state_manager():
     logger = logging.getLogger(__name__)
 
     class PersistentStateFixture:

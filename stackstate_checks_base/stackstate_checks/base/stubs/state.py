@@ -9,11 +9,11 @@ class StateStub(object):
     def __init__(self):
         self._state = {}
 
-    def set_state(self, check, check_id, key, state):
-        self._state[key] = state
+    def set_state(self, check, check_id, key, new_state):
+        self._state[key] = new_state
 
     def get_state(self, check, check_id, key):
-        return self._state.get(key, "")
+        return self._state.get(key, {})
 
 
 state = StateStub()

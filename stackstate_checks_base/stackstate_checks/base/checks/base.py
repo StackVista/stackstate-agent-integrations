@@ -527,9 +527,8 @@ class AgentCheck(object):
         proxies = proxies if proxies is not None else self.proxies.copy()
 
         deprecated_skip = instance.get('no_proxy', None)
-        skip = (
-            is_affirmative(instance.get('skip_proxy', not self._use_agent_proxy)) or is_affirmative(deprecated_skip)
-        )
+        skip = (is_affirmative(instance.get('skip_proxy', not self._use_agent_proxy)) or
+                is_affirmative(deprecated_skip))
 
         if deprecated_skip is not None:
             self._log_deprecation('no_proxy')
@@ -1453,7 +1452,7 @@ class AgentStatefulCheck(AgentCheck):
 
         # Will be initialized as part of the check, to allow for proper error reporting there if initialization fails
         self.transaction = None  # type: Optional[TransactionApi]
-        self.state = None  # type: Optional[StateApi]
+        self._state = None  # type: Optional[StateApi]
 
     def stateful_check(self, instance, state):
         # type: (_InstanceType, str) -> str
@@ -1491,6 +1490,9 @@ class AgentStatefulCheck(AgentCheck):
             # Initialize the health api
             self._init_health_api()
 
+            # Initialize the state api
+            self._init_state_api()
+
             # Initialize the transactional api
             self._init_transactional_api()
 
@@ -1499,15 +1501,13 @@ class AgentStatefulCheck(AgentCheck):
             check_instance = copy.deepcopy(instance)
 
             # if this instance has some state then set it to state
-            # TODO: switch to state.get_state
-            current_state = self.read_persistent_cache(self.PERSISTENT_CACHE_KEY)
+            current_state = self.get_state()
 
             check_instance = self._get_instance_schema(check_instance)
             new_state = self.stateful_check(check_instance, current_state)
 
             # set the state from the check instance
-            # TODO: switch to state.set_state
-            self.write_persistent_cache(self.PERSISTENT_CACHE_KEY, new_state)
+            self.set_state(new_state)
 
             # stop auto snapshot if with_snapshots is set to True
             if self._get_instance_key().with_snapshots:
@@ -1528,25 +1528,17 @@ class AgentStatefulCheck(AgentCheck):
 
         return result
 
-    def _state_id(self, key):
-        # type: (str) -> str
-        """
-        State ID is used for filename where state is stored.
-        It is constructed from sanitized `TopologyInstance.url` and provided key.
-        """
-        return '{}_{}'.format(self._url_as_filename(), key)
+    def set_state(self, new_state):
+        self._state.set_state(self.PERSISTENT_CACHE_KEY, new_state)
 
-    def _url_as_filename(self):
-        # type: () -> str
-        """Returns url string sanitized from all characters that would prevent it to be used as a filename"""
-        pattern = r"[^a-zA-Z0-9_-]"
-        return re.sub(pattern, "", self._get_instance_key().url)
+    def get_state(self):
+        return self._state.get_state(self.PERSISTENT_CACHE_KEY)
 
     def _init_state_api(self):
         # type: () -> None
-        if self.state is not None:
+        if self._state is not None:
             return None
-        self.state = StateApi(self)
+        self._state = StateApi(self)
 
     def _init_transactional_api(self):
         # type: () -> None
