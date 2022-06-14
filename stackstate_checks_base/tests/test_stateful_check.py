@@ -30,10 +30,11 @@ class SampleStatefulCheck(AgentStatefulCheck):
 
 
 @pytest.fixture
-def sample_stateful_check(state):
+def sample_stateful_check(state, aggregator):
     check = SampleStatefulCheck('test01', {}, {}, instances=[TEST_INSTANCE])
     yield check
     state.reset()
+    aggregator.reset()
 
 
 class InstanceInfo(Model):
