@@ -218,7 +218,7 @@ class TestZabbix(unittest.TestCase):
         self.check.retrieve_problems = lambda url, auth: []
         self.check.retrieve_events = lambda url, auth, event_ids: []
 
-        self.check.check(self.instance)
+        self.check.run()
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 1)
@@ -263,7 +263,7 @@ class TestZabbix(unittest.TestCase):
         self.check.retrieve_problems = lambda url, auth: []
         self.check.retrieve_events = lambda url, auth, event_ids: []
 
-        self.check.check(self.instance)
+        self.check.run()
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 0)
@@ -288,7 +288,7 @@ class TestZabbix(unittest.TestCase):
         self.check.retrieve_problems = lambda url, auth: []
         self.check.retrieve_events = lambda url, auth, event_ids: []
 
-        self.check.check(self.instance)
+        self.check.run()
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 1)
@@ -333,7 +333,7 @@ class TestZabbix(unittest.TestCase):
         self.check.retrieve_problems = lambda url, auth: []
         self.check.retrieve_events = lambda url, auth, event_ids: []
 
-        self.check.check(self.instance)
+        self.check.run()
 
         topo_instances = topology.get_snapshot(self.check.check_id)
 
@@ -345,7 +345,7 @@ class TestZabbix(unittest.TestCase):
 
         component = topo_instances['components'][0]
         self.assertEqual(component['data']['domain'], 'Zabbix')
-        self.assertEqual(component['data']['layer'], 'machines')
+        self.assertEqual(component['data']['layer'], 'Machines')
         labels = component['data']['labels']
         for label in ['zabbix', 'host group:Zabbix servers', 'host group:MyHostGroup']:
             if label not in labels:
@@ -377,7 +377,7 @@ class TestZabbix(unittest.TestCase):
         self.check.method_request = _mocked_method_request
         self.check.login = lambda url, user, password: "dummyauthtoken"
 
-        self.check.check(self.instance)
+        self.check.run()
 
         events = aggregator.events
 
@@ -415,7 +415,7 @@ class TestZabbix(unittest.TestCase):
         self.check.method_request = _mocked_method_request
         self.check.login = lambda url, user, password: "dummyauthtoken"
 
-        self.check.check(self.instance)
+        self.check.run()
         events = aggregator.events
         self.assertEqual(len(events), 1)
         self.assertEqual(events[0]['source_type_name'], 'Zabbix')
@@ -488,7 +488,7 @@ class TestZabbix(unittest.TestCase):
         self.check.method_request = _mocked_method_request
         self.check.login = lambda url, user, password: "dummyauthtoken"
 
-        self.check.check(self.instance)
+        self.check.run()
         events = aggregator.events
 
         self.assertEqual(len(events), 1)
@@ -512,13 +512,15 @@ class TestZabbix(unittest.TestCase):
         Mocking all the Zabbix functions that talk HTTP via requests.get, excluding the function `check_connection`
         Function check_connection is the first function that talks HTTP.
         """
+        config = {}
+        check = ZabbixCheck(CHECK_NAME, config, instances=[instance_to_use])
         with mock.patch('requests.get') as mock_get:
             with mock.patch('yaml.safe_load'):
-                self.check.login = lambda url, user, password: "dummyauthtoken"
-                self.check.retrieve_hosts = lambda x, y: []
-                self.check.retrieve_problems = lambda url, auth: []
-                self.check.retrieve_events = lambda url, auth, event_ids: []
-                self.check.check(instance_to_use)
+                check.login = lambda url, user, password: "dummyauthtoken"
+                check.retrieve_hosts = lambda x, y: []
+                check.retrieve_problems = lambda url, auth: []
+                check.retrieve_events = lambda url, auth, event_ids: []
+                check.run()
                 mock_get.assert_called_once_with('http://10.0.0.1/zabbix/api_jsonrpc.php',
                                                  json={'params': {}, 'jsonrpc': '2.0', 'method': 'apiinfo.version',
                                                        'id': 1},
@@ -563,7 +565,7 @@ class TestZabbix(unittest.TestCase):
         self.check.method_request = _mocked_method_request
         self.check.login = lambda url, user, password: "dummyauthtoken"
 
-        self.check.check(self.instance)
+        self.check.run()
         events = aggregator.events
         self.assertEqual(len(events), 1)
         tags = events[0]['tags']
@@ -620,7 +622,7 @@ class TestZabbix(unittest.TestCase):
         self.check.method_request = _mocked_method_request
         self.check.login = lambda url, user, password: "dummyauthtoken"
 
-        self.check.check(self.instance)
+        self.check.run()
         events = aggregator.events
         self.assertEqual(len(events), 1)
         tags = events[0]['tags']
@@ -637,7 +639,7 @@ class TestZabbix(unittest.TestCase):
 
         aggregator.reset()
         # second run to revert the acknowledged problem to create the event again
-        self.check.check(self.instance)
+        self.check.run()
         events = aggregator.events
         self.assertEqual(len(events), 1)
         tags = events[0]['tags']

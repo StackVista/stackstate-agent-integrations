@@ -1,7 +1,7 @@
 # (C) StackState 2020
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
-from stackstate_checks.base import AgentCheck, ConfigurationError, StackPackInstance
+from stackstate_checks.base import AgentCheck, ConfigurationError, StackPackInstance, Health, HealthStream, HealthStreamUrn
 from stackstate_checks.base.errors import CheckException
 
 """
@@ -33,9 +33,19 @@ class ZabbixHost:
         return self.__str__()
 
     def __str__(self):
-        return "ZabbixHost(host_id:%s, host:%s, name:%s, host_groups:%s.)" % (self.host_id, self.host, self.name,
-                                                                              self.host_groups)
+        return "ZabbixHost(host_id:%s, host:%s, name:%s, host_groups:%s, tags:%s.).)" % (self.host_id, self.host, self.name,
+                                                                              self.host_groups, self.tags)
 
+class ZabbixRelation:
+    def __init__(self, name):
+        self.name = name
+        self.host = name
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return "ZabbixRelation(name:%s, host:%s)" % (self.name, self.name)
 
 class ZabbixHostGroup:
     def __init__(self, host_group_id, name):
@@ -50,17 +60,18 @@ class ZabbixHostGroup:
 
 
 class ZabbixTrigger:
-    def __init__(self, trigger_id, description, priority):
+    def __init__(self, trigger_id, description, priority, trigger_tags):
         self.trigger_id = trigger_id
         self.description = description
         self.priority = priority  # translates to severity
+        self.trigger_tags = trigger_tags
 
     def __repr__(self):
         return self.__str__()
 
     def __str__(self):
-        return "ZabbixTrigger(trigger_id:%s, description:%s, priority:%s.)" % (self.trigger_id, self.description,
-                                                                               self.priority)
+        return "ZabbixTrigger(trigger_id:%s, description:%s, priority:%s, trigger_tags:%s)" % (self.trigger_id, self.description,
+                                                                               self.priority, self.trigger_tags)
 
 
 class ZabbixEvent:
@@ -69,6 +80,7 @@ class ZabbixEvent:
         self.acknowledged = acknowledged  # 0/1 (not) acknowledged
         self.host_ids = host_ids
         self.trigger = trigger  # ZabbixTrigger
+        
 
     def __repr__(self):
         return self.__str__()
@@ -79,18 +91,19 @@ class ZabbixEvent:
 
 
 class ZabbixProblem:
-    def __init__(self, event_id, acknowledged, trigger_id, severity):
+    def __init__(self, event_id, acknowledged, trigger_id, severity, trigger_tags):
         self.event_id = event_id
         self.acknowledged = acknowledged
         self.trigger_id = trigger_id
         self.severity = severity
+        self.trigger_tags = trigger_tags
 
     def __repr__(self):
         return self.__str__()
 
     def __str__(self):
-        return "ZabbixProblem(event_id:%s, acknowledged:%s, trigger_id:%s, severity:%s)" % \
-               (self.event_id, self.acknowledged, self.trigger_id, self.severity)
+        return "ZabbixProblem(event_id:%s, acknowledged:%s, trigger_id:%s, severity:%s, trigger_tags:%s)" % \
+               (self.event_id, self.acknowledged, self.trigger_id, self.severity, self.trigger_tags)
 
 
 class ZabbixCheck(AgentCheck):
@@ -108,6 +121,12 @@ class ZabbixCheck(AgentCheck):
             raise ConfigurationError('Missing API url in configuration.')
 
         return StackPackInstance(self.INSTANCE_TYPE, instance["url"])
+
+    def get_health_stream(self, instance):
+        if 'url' not in instance:
+            raise ConfigurationError('Missing url in topology instance configuration.')
+        instance_url = instance['url']
+        return HealthStream(HealthStreamUrn(self.INSTANCE_TYPE, instance_url))
 
     def check(self, instance):
         """
@@ -129,6 +148,7 @@ class ZabbixCheck(AgentCheck):
         }
         try:
             self.start_snapshot()
+            self.health.start_snapshot()
             self.check_connection(url)
             auth = self.login(url, instance['user'], instance['password'])
 
@@ -137,18 +157,29 @@ class ZabbixCheck(AgentCheck):
             # Topology, get all hosts
             for zabbix_host in self.retrieve_hosts(url, auth):
                 self.process_host_topology(topology_instance, zabbix_host, stackstate_environment)
-
                 hosts[zabbix_host.host_id] = zabbix_host
 
             # Telemetry, get all problems.
             zabbix_problems = self.retrieve_problems(url, auth)
+            problems_data = {}
+            for problem in zabbix_problems:
+                problem_values = {"trigger_id": problem.trigger_id, "trigger_tags": problem.trigger_tags}
+                problems_data[problem.event_id] = problem_values
 
-            event_ids = list(problem.event_id for problem in zabbix_problems)
-            zabbix_events = [] if len(event_ids) == 0 else self.retrieve_events(url, auth, event_ids)
+            zabbix_events = [] if len(problems_data) == 0 else self.retrieve_events(url, auth, problems_data)
+
+            #Create two list for the normal event sand the events that generates health states in relations
+            relation_events = []
+            component_events = []
+            for zabbix_event in zabbix_events:             
+                if zabbix_event.trigger.trigger_tags:
+                    relation_events.append(zabbix_event) if "relationStatus" in [tag.split(":",1)[0] for tag in zabbix_event.trigger.trigger_tags] else component_events.append(zabbix_event)
+                else:
+                    component_events.append(zabbix_event)            
 
             rolled_up_events_per_host = {}  # host_id -> [ZabbixEvent]
             most_severe_severity_per_host = {}  # host_id -> severity int
-            for zabbix_event in zabbix_events:
+            for zabbix_event in component_events:
                 for host_id in zabbix_event.host_ids:
                     if host_id in rolled_up_events_per_host:
                         rolled_up_events_per_host[host_id].append(zabbix_event)
@@ -157,6 +188,14 @@ class ZabbixCheck(AgentCheck):
                     else:
                         rolled_up_events_per_host[host_id] = [zabbix_event]
                         most_severe_severity_per_host[host_id] = zabbix_event.trigger.priority
+            
+            rolled_up_events_per_relation = {}  # host_id -> [ZabbixEvent]
+            for zabbix_event in relation_events:
+                for host_id in zabbix_event.host_ids:
+                    if host_id in rolled_up_events_per_relation:
+                        rolled_up_events_per_relation[host_id].append(zabbix_event)
+                    else:
+                        rolled_up_events_per_relation[host_id] = [zabbix_event]
 
             self.log.debug('rolled_up_events_per_host:' + str(rolled_up_events_per_host))
             self.log.debug('most_severe_severity_per_host:' + str(most_severe_severity_per_host))
@@ -166,6 +205,33 @@ class ZabbixCheck(AgentCheck):
                 severity = 0
                 triggers = []
 
+                #This implements a logic to add health state to the relations based on the triggers that has labels names "relationStatus"
+                if host_id in rolled_up_events_per_relation:
+                    problem_relations = []
+                    for event_relation_per_host in rolled_up_events_per_relation[host_id]:
+                        relation_triggers = event_relation_per_host.trigger.description
+                        relation_severity = event_relation_per_host.trigger.priority
+                        tags_relation = event_relation_per_host.trigger.trigger_tags
+                        for tag_relation in tags_relation:
+                            if str(tag_relation.split(":",1)[0]) == "relationStatus":
+                                problem_relations.append(str(tag_relation.split(":",1)[1]))
+                                relation_id = str(zabbix_host.name) + "-DEPENDS_ON-" + "urn:host:/" + str(tag_relation.split(":",1)[1])
+                                zabbix_relation = ZabbixRelation(relation_id)
+                                self.health_syncronization(zabbix_relation, relation_severity)             
+                    for tag in zabbix_host.tags:
+                        if str(tag.split(":",1)[0]) == "relationTo" and str(tag.split(":",1)[1]) not in problem_relations:
+                            relation_id = str(zabbix_host.name) + "-DEPENDS_ON-" + "urn:host:/" + str(tag.split(":",1)[1])
+                            zabbix_relation = ZabbixRelation(relation_id)
+                            self.health_syncronization(zabbix_relation, severity = 0)
+                else:
+                    for tag in zabbix_host.tags:
+                            if str(tag.split(":",1)[0]) == "relationTo":
+                                relation_id = str(zabbix_host.name) + "-DEPENDS_ON-" + "urn:host:/" + str(tag.split(":",1)[1])
+                                zabbix_relation = ZabbixRelation(relation_id)
+                                relation_severity = 0
+                                self.health_syncronization(zabbix_relation, relation_severity)
+                
+                #Adding health states to the hosts
                 if host_id in rolled_up_events_per_host:
                     triggers = [event.trigger.description for event in rolled_up_events_per_host[host_id]]
                     severity = most_severe_severity_per_host[host_id]
@@ -184,13 +250,40 @@ class ZabbixCheck(AgentCheck):
                         'triggers:%s' % triggers
                     ]
                 })
+                self.health_syncronization(zabbix_host, severity)
+
             self.stop_snapshot()
+            self.health.stop_snapshot()
             msg = "Zabbix instance detected at %s " % url
             tags = ["url:%s" % url]
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=tags, message=msg)
         except Exception as e:
             self.log.exception(str(e))
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, message=str(e))
+
+    def health_syncronization(self, zabbix_host, severity):
+
+        if severity == 0 or severity == "1":
+            self.health.check_state(
+                check_state_id = zabbix_host.host,
+                name = "Health Check for '{}'".format(zabbix_host.name),
+                health_value = Health.CLEAR,
+                topology_element_identifier = "urn:host:/%s" % zabbix_host.host,
+                message = "Zabbix event on '{}': severity: {}".format(zabbix_host.name, severity))
+        elif severity == "2" or severity == "3":
+            self.health.check_state(
+                check_state_id = zabbix_host.host,
+                name = "Health Check for '{}'".format(zabbix_host.name),
+                health_value = Health.DEVIATING,
+                topology_element_identifier = "urn:host:/%s" % zabbix_host.host,
+                message = "Zabbix event on '{}': severity: {}".format(zabbix_host.name, severity))
+        else: 
+            self.health.check_state(
+                check_state_id = zabbix_host.host,
+                name = "Health Check for '{}'".format(zabbix_host.name),
+                health_value = Health.CRITICAL,
+                topology_element_identifier = "urn:host:/%s" % zabbix_host.host,
+                message = "Zabbix event on '{}': severity: {}".format(zabbix_host.name, severity))
 
     def process_host_topology(self, topology_instance, zabbix_host, stackstate_environment):
         external_id = "urn:host:/%s" % zabbix_host.host
@@ -210,7 +303,7 @@ class ZabbixCheck(AgentCheck):
             'name': zabbix_host.name,
             'host_id': zabbix_host.host_id,
             'host': zabbix_host.host,
-            'layer': 'machines',
+            'layer': 'Machines',
             # use host group of component as StackState domain when there is only one host group
             'domain': zabbix_host.host_groups[0].name if len(zabbix_host.host_groups) == 1 else 'Zabbix',
             'identifiers': identifiers,
@@ -222,8 +315,15 @@ class ZabbixCheck(AgentCheck):
         }
 
         self.component(external_id, "zabbix_host", data=data)
+        # used for creating relations out of a zabbix component in case the specific component
+        # has a tag named "relation"
+        if zabbix_host.tags:
+            for tag in zabbix_host.tags:
+                if tag.split(":",1)[0] == "relationTo":
+                    self.relation(external_id, "urn:host:/" + str(tag.split(":",1)[1]), "DEPENDS_ON", {})
 
-    def retrieve_events(self, url, auth, event_ids):
+    def retrieve_events(self, url, auth, problems_data):
+        event_ids = list(problem for problem in problems_data)
         assert(type(event_ids) == list)
         self.log.debug("Retrieving events for event_ids: %s." % event_ids)
 
@@ -236,7 +336,6 @@ class ZabbixCheck(AgentCheck):
         }
 
         response = self.method_request(url, "event.get", auth=auth, params=params)
-
         events = response.get('result', [])
         for event in events:
             event_id = event.get('eventid', None)
@@ -252,10 +351,10 @@ class ZabbixCheck(AgentCheck):
             trigger_id = trigger.get('triggerid', None)
             trigger_description = trigger.get('description', None)
             trigger_priority = trigger.get('priority', None)
+            trigger_tags = problems_data[event_id].get('trigger_tags', None)
 
-            trigger = ZabbixTrigger(trigger_id, trigger_description, trigger_priority)
+            trigger = ZabbixTrigger(trigger_id, trigger_description, trigger_priority, trigger_tags)
             zabbix_event = ZabbixEvent(event_id, acknowledged, host_ids, trigger)
-
             self.log.debug("Parsed ZabbixEvent: %s." % zabbix_event)
 
             if not trigger_id or not trigger_description or not trigger_priority or not event_id or len(host_ids) == 0:
@@ -271,6 +370,7 @@ class ZabbixCheck(AgentCheck):
             "selectTags": ["tag", "value"]
         }
         response = self.method_request(url, "host.get", auth=auth, params=params)
+
         for item in response.get("result", []):
             host_id = item.get("hostid", None)
             host = item.get("host", None)
@@ -300,7 +400,7 @@ class ZabbixCheck(AgentCheck):
             "object": 0,  # only interested in triggers
             "output": ["severity", "objectid", "acknowledged"]
         }
-        response = self.method_request(url, "problem.get", auth=auth, params=params)
+        response = self.method_request(url, "problem.get", auth=auth, params=params)     
         for item in response.get('result', []):
             event_id = item.get("eventid", None)
             acknowledged = item.get("acknowledged", None)
@@ -309,12 +409,18 @@ class ZabbixCheck(AgentCheck):
 
             # for Zabbix versions <4.0 we need to get the trigger.priority and if priority doesn't exist then
             # either trigger is disabled or doesn't exist
-            priority = self.get_trigger_priority(url, auth, trigger_id)
-            severity = item.get("severity", priority)
+            trigger_properties = self.get_trigger_properties(url, auth, trigger_id)
+            if trigger_properties:
+                priority = trigger_properties.get("priority")
+                severity = item.get("severity", priority)
+                trigger_tags = trigger_properties.get("tags")
+                tags = []
+                for tag in trigger_tags:
+                    tags.append("{}:{}".format(tag.get('tag'), tag.get('value')))
+                
+                zabbix_problem = ZabbixProblem(event_id, acknowledged, trigger_id, severity, tags)
 
-            zabbix_problem = ZabbixProblem(event_id, acknowledged, trigger_id, severity)
-
-            self.log.debug("Parsed ZabbixProblem %s." % zabbix_problem)
+                self.log.debug("Parsed ZabbixProblem %s." % zabbix_problem)
             if not event_id or not trigger_id or not severity:
                 self.log.warn("Incomplete ZabbixProblem, got: %s" % zabbix_problem)
 
@@ -322,18 +428,19 @@ class ZabbixCheck(AgentCheck):
                 # send the problem only in case trigger is enabled and will get the priority always in enabled cases.
                 yield zabbix_problem
 
-    def get_trigger_priority(self, url, auth, trigger_id):
+    def get_trigger_properties(self, url, auth, trigger_id):
         # `monitored` flag make sure we only get enabled triggers
         params = {
             "output": ["priority"],
             "triggerids": [trigger_id],
-            "monitored": True
+            "monitored": True,
+            "selectTags": ["tag", "value"]
         }
         response = self.method_request(url, "trigger.get", auth=auth, params=params)
         trigger = response.get('result')
         # since result is a list so check if it has trigger object then get priority
         if len(trigger) > 0:
-            return trigger[0].get("priority")
+            return trigger[0]
         return None
 
     def check_connection(self, url):

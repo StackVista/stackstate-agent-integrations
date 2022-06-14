@@ -18,6 +18,7 @@ def instance(request):
     cfg = {
         "url": "http://10.0.0.1/zabbix/api_jsonrpc.php",
         "user": "Admin",
-        "password": "zabbix"
+        "password": "zabbix",
+        "collection_interval": 50
     }
     request.cls.instance = cfg
