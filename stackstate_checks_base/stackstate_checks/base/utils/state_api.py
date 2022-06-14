@@ -28,9 +28,7 @@ class StateApi(object):
         """
         Reads state stored as JSON string and returns it as dictionary.
         """
-        current_state = state.get_state(self.check, self.check.check_id, self._state_id(key))
-        if not current_state:
-            current_state = "{}"
+        current_state = state.get_state(self.check, self.check.check_id, self._get_state_key(key))
         return json.loads(current_state)
 
     def set(self, key, new_state):
@@ -47,12 +45,17 @@ class StateApi(object):
                 "Got unexpected {} for new state, expected dictionary or schematics.Model".format(type(state))
             )
         new_state = json.dumps(new_state)
-        state.set_state(self.check, self.check.check_id, self._state_id(key), new_state)
+        state.set_state(self.check, self.check.check_id, self._get_state_key(key), new_state)
 
-    def _state_id(self, key):
+    def _get_state_key(self, key):
         # type: (str) -> str
-        """
-        State ID is used for filename where state is stored.
-        It is constructed from sanitized `TopologyInstance.url` and provided key.
-        """
-        return "{}_{}".format(sanitize_url_as_valid_filename(self.check.instances[0].get("url", "")), key)
+        return generate_state_key(self.check.instances[0].get("url", ""), key)
+
+
+def generate_state_key(instance_url, key):
+    # type: (str, str) -> str
+    """
+    State key is used for a filename of the file where state is stored.
+    It is constructed from sanitized `TopologyInstance.url` and provided key.
+    """
+    return "{}_{}".format(sanitize_url_as_valid_filename(instance_url), key)

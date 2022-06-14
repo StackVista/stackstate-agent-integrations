@@ -1480,7 +1480,6 @@ class AgentStatefulCheck(AgentCheck):
         """
         default_result = to_string(b'')
         instance_tags = None
-        service_check_name = "{}_service_check".format(self.name)
         try:
             # start auto snapshot if with_snapshots is set to True
             if self._get_instance_key().with_snapshots:
@@ -1498,7 +1497,7 @@ class AgentStatefulCheck(AgentCheck):
             instance = self.instances[0]
             check_instance = copy.deepcopy(instance)
             check_instance = self._get_instance_schema(check_instance)
-            instance_tags = check_instance.get(instance_tags, [])
+            instance_tags = check_instance.get("instance_tags", [])
 
             # Stateful check workflow:
             # get current state > call the check > set the state
@@ -1512,7 +1511,7 @@ class AgentStatefulCheck(AgentCheck):
 
             result = default_result
             msg = "{} check was processed successfully".format(self.name)
-            self.service_check(service_check_name, AgentCheck.OK, tags=instance_tags, message=msg)
+            self.service_check(self.name, AgentCheck.OK, tags=instance_tags, message=msg)
         except Exception as e:
             result = json.dumps([
                 {
@@ -1521,7 +1520,7 @@ class AgentStatefulCheck(AgentCheck):
                 }
             ])
             self.log.exception(str(e))
-            self.service_check(service_check_name, AgentCheck.CRITICAL, tags=instance_tags, message=str(e))
+            self.service_check(self.name, AgentCheck.CRITICAL, tags=instance_tags, message=str(e))
         finally:
             if self.metric_limiter:
                 self.metric_limiter.reset()

@@ -1,5 +1,7 @@
 import logging
 
+from .state_api import generate_state_key
+
 try:
     import transaction
 
@@ -18,11 +20,23 @@ class TransactionApi(object):
             self.log.warning("Using stub transactional api")
 
     def start(self):
+        # type: () -> None
+        """
+        Start transaction.
+        """
         transaction.start_transaction(self.check, self.check.check_id)
 
     def stop(self):
+        # type: () -> None
+        """
+        Stop transaction.
+        """
         transaction.stop_transaction(self.check, self.check.check_id)
 
     def set_state(self, key, state):
-        # TODO: construct state key
-        transaction.set_transaction_state(self.check, self.check.check_id, key, state)
+        # type: (str, str) -> None
+        """
+        Sets transactional state.
+        """
+        state_key = generate_state_key(self.check.instances[0].get("url", ""), key)
+        transaction.set_transaction_state(self.check, self.check.check_id, state_key, state)

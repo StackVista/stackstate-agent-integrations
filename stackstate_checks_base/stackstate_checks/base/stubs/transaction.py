@@ -19,7 +19,6 @@ class TransactionStub(object):
         self._state = state
 
     def _ensure_transaction(self, check_id):
-        # TODO: does transaction needs unique ID?
         if check_id not in self._transactions:
             self._transactions[check_id] = {
                 "started": False,
