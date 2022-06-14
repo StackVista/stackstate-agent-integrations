@@ -1479,6 +1479,8 @@ class AgentStatefulCheck(AgentCheck):
         Runs stateful check.
         """
         default_result = to_string(b'')
+        instance_tags = None
+        service_check_name = "{}_service_check".format(self.name)
         try:
             # start auto snapshot if with_snapshots is set to True
             if self._get_instance_key().with_snapshots:
@@ -1499,14 +1501,13 @@ class AgentStatefulCheck(AgentCheck):
             # create a copy of the check instance, get state if any and add it to the instance object for the check
             instance = self.instances[0]
             check_instance = copy.deepcopy(instance)
-
-            # if this instance has some state then set it to state
-            current_state = self.get_state()
-
             check_instance = self._get_instance_schema(check_instance)
-            new_state = self.stateful_check(check_instance, current_state)
+            instance_tags = check_instance.get(instance_tags, [])
 
-            # set the state from the check instance
+            # Stateful check workflow:
+            # get current state > call the check > set the state
+            current_state = self.get_state()
+            new_state = self.stateful_check(check_instance, current_state)
             self.set_state(new_state)
 
             # stop auto snapshot if with_snapshots is set to True
@@ -1514,6 +1515,8 @@ class AgentStatefulCheck(AgentCheck):
                 topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key_dict())
 
             result = default_result
+            msg = "{} check was processed successfully".format(self.name)
+            self.service_check(service_check_name, AgentCheck.OK, tags=instance_tags, message=msg)
         except Exception as e:
             result = json.dumps([
                 {
@@ -1522,8 +1525,7 @@ class AgentStatefulCheck(AgentCheck):
                 }
             ])
             self.log.exception(str(e))
-            # TODO: add critical service check
-            # self.service_check(self.name, AgentCheck.CRITICAL, tags=instance_info.instance_tags, message=str(e))
+            self.service_check(service_check_name, AgentCheck.CRITICAL, tags=instance_tags, message=str(e))
         finally:
             if self.metric_limiter:
                 self.metric_limiter.reset()
@@ -1533,13 +1535,16 @@ class AgentStatefulCheck(AgentCheck):
     def set_state(self, new_state):
         # type: (Union[Dict, Model]) -> None
         """
-        Set the state
+        Set new checks state.
         """
-        self._state.set_state(self.PERSISTENT_CACHE_KEY, new_state)
+        self._state.set(self.PERSISTENT_CACHE_KEY, new_state)
 
     def get_state(self):
         # type: () -> Dict[str, Any]
-        return self._state.get_state(self.PERSISTENT_CACHE_KEY)
+        """
+        Gets existing checks state.
+        """
+        return self._state.get(self.PERSISTENT_CACHE_KEY)
 
     def _init_state_api(self):
         # type: () -> None

@@ -59,6 +59,6 @@ class TestTransaction:
     def test_transaction_start_and_stop(self, transaction):
         check = SampleStatefulCheck('test01', {}, {}, instances=[{}])
         check._init_transactional_api()
-        check.transaction.start_transaction()
-        check.transaction.stop_transaction()
+        check.transaction.start()
+        check.transaction.stop()
         transaction.assert_transaction(check.check_id)

@@ -2,6 +2,9 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 
+from stackstate_checks.base.stubs import state
+
+
 class TransactionStub(object):
     """
     This implements the methods defined by the Agent's [C bindings]
@@ -13,8 +16,10 @@ class TransactionStub(object):
 
     def __init__(self):
         self._transactions = {}
+        self._state = state
 
     def _ensure_transaction(self, check_id):
+        # TODO: does transaction needs unique ID?
         if check_id not in self._transactions:
             self._transactions[check_id] = {
                 "started": False,
@@ -31,18 +36,20 @@ class TransactionStub(object):
     def get_transaction(self, check_id):
         return self._ensure_transaction(check_id)
 
-    def set_transaction_state(self, check, check_id, key, state):
-        pass
-        # TODO: call state_set state if transaction stopped
+    def set_transaction_state(self, check, check_id, key, new_state):
+        if self._is_transaction_completed(check_id):
+            self._state.set(check, check_id, key, new_state)
 
     def assert_transaction(self, check_id):
-        assert self.get_transaction(check_id) == {
-            "started": True,
-            "stopped": True
-        }
+        assert self._is_transaction_completed(check_id) is True
 
     def reset(self):
         self._transactions = {}
+
+    def _is_transaction_completed(self, check_id):
+        if self.get_transaction(check_id)["started"] and self.get_transaction(check_id)["stopped"]:
+            return True
+        return False
 
 
 # Use the stub as a singleton

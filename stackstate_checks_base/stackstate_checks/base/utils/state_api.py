@@ -23,7 +23,7 @@ class StateApi(object):
         if using_stub_state:
             self.log.warning("Using stub state api")
 
-    def get_state(self, key):
+    def get(self, key):
         # type: (str) -> Dict[str, Any]
         """
         Reads state stored as JSON string and returns it as dictionary.
@@ -33,7 +33,7 @@ class StateApi(object):
             current_state = "{}"
         return json.loads(current_state)
 
-    def set_state(self, key, new_state):
+    def set(self, key, new_state):
         # type: (str, Union[Dict[str, Any], Model]) -> None
         """
         Dumps state to JSON string and sets it as a new state.

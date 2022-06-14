@@ -17,11 +17,12 @@ class TransactionApi(object):
         if using_stub_transaction:
             self.log.warning("Using stub transactional api")
 
-    def start_transaction(self):
+    def start(self):
         transaction.start_transaction(self.check, self.check.check_id)
 
-    def stop_transaction(self):
+    def stop(self):
         transaction.stop_transaction(self.check, self.check.check_id)
 
-    def set_transaction_state(self, key, state):
+    def set_state(self, key, state):
+        # TODO: construct state key
         transaction.set_transaction_state(self.check, self.check.check_id, key, state)
