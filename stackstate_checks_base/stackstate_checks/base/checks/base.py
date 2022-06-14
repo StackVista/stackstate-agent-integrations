@@ -1489,13 +1489,9 @@ class AgentStatefulCheck(AgentCheck):
             # create integration instance components for monitoring purposes
             self.create_integration_instance()
 
-            # Initialize the health api
+            # Initialize APIs
             self._init_health_api()
-
-            # Initialize the state api
             self._init_state_api()
-
-            # Initialize the transactional api
             self._init_transactional_api()
 
             # create a copy of the check instance, get state if any and add it to the instance object for the check
