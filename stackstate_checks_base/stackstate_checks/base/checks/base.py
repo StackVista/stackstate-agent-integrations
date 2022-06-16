@@ -100,6 +100,9 @@ class _TopologyInstanceBase(object):
     def to_dict(self):
         return {"type": self.type, "url": self.url}
 
+    def to_string(self):
+        return "{}_{}".format(self.type, self.url)
+
     def tags(self):
         return ["integration-type:{}".format(self.type), "integration-url:{}".format(self.url)]
 

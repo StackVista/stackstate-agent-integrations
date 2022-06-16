@@ -18,8 +18,8 @@ except ImportError:
 
 class StateApi(object):
     def __init__(self, check):
-        self.check = check
-        self.log = logging.getLogger("{}.{}".format(__name__, self.check.name))
+        self.__check = check
+        self.log = logging.getLogger("{}.{}".format(__name__, self.__check.name))
         if using_stub_state:
             self.log.warning("Using stub state api")
 
@@ -28,7 +28,7 @@ class StateApi(object):
         """
         Reads state stored as JSON string and returns it as dictionary.
         """
-        current_state = state.get_state(self.check, self.check.check_id, self._get_state_key(key))
+        current_state = state.get_state(self.__check, self.__check.check_id, self._get_state_key(key))
         return json.loads(current_state)
 
     def set(self, key, new_state):
@@ -45,11 +45,11 @@ class StateApi(object):
                 "Got unexpected {} for new state, expected dictionary or schematics.Model".format(type(state))
             )
         new_state = json.dumps(new_state)
-        state.set_state(self.check, self.check.check_id, self._get_state_key(key), new_state)
+        state.set_state(self.__check, self.__check.check_id, self._get_state_key(key), new_state)
 
     def _get_state_key(self, key):
         # type: (str) -> str
-        return generate_state_key(self.check.instances[0].get("url", ""), key)
+        return generate_state_key(self.__check._get_instance_key().to_string(), key)
 
 
 def generate_state_key(instance_url, key):
