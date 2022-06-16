@@ -216,7 +216,7 @@ class AgentIntegrationSampleCheck(AgentCheck):
         self.delete(delete_component_id)
 
         # test writing and reading from agent persistent cache
-        self.log.info("writing to persistent cache")
+        self.log.info("Writing sample data to persistent cache")
         sample_data = {
             "name": "some-application",
             "domain": "Webshop",
@@ -227,7 +227,6 @@ class AgentIntegrationSampleCheck(AgentCheck):
             "version": "0.2.0"
         }
         self.write_persistent_cache("test_key", json.dumps(sample_data))
-        assert json.loads(self.read_persistent_cache("test_key")) == sample_data
-        self.log.info("try to read key that doesn't exist in persistent cache")
+        self.log.info("Read key that doesn't exist in persistent cache")
         cache = self.read_persistent_cache("key_that_is_not_there")
-        self.log.info("empty cache: {} empty cache's type: {}".format(cache, type(cache)))
+        self.log.debug("empty cache: {} empty cache's type: {}".format(cache, type(cache)))

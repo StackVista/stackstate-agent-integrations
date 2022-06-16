@@ -1,5 +1,13 @@
 # StackState Agent Integrations v2 releases
 
+# 1.21.0 / 2022-06-01
+
+* [Added] Support for using agents persistent cache [(STAC-16162)](https://stackstate.atlassian.net/browse/STAC-16162) 
+
+## 1.20.2 / 2022-05-27
+
+* [Fixed] Fixed an issue where relations with Synthetic Monitors were inverted. [(STAC-16597)](https://stackstate.atlassian.net/browse/STAC-16597)
+
 ## 1.20.1 / 2022-04-20
 
 * [Fixed] vSphere collection_level setting documentation update [(STAC-14671)](https://stackstate.atlassian.net/browse/STAC-14671)
