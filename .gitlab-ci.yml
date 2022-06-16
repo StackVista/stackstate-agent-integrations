@@ -241,6 +241,17 @@ test_splunk_health:
   tags:
     - sts-k8s-xl-no-docker-runner
 
+test_splunk_metric:
+  <<: *linux_test
+  variables:
+    CHECK: "splunk_metric"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+    DOCKER_TLS_CERTDIR: ""
+  tags:
+    - sts-k8s-xl-no-docker-runner
+
 test_cloudera:
   <<: *linux_test
   variables:
