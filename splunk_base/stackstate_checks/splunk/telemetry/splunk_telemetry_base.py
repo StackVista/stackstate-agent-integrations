@@ -7,6 +7,8 @@ from stackstate_checks.splunk.config.splunk_instance_config import time_to_secon
 from stackstate_checks.splunk.saved_search_helper.saved_search_helper import chunks
 
 
+# TODO refactor class to reuse v2 classes
+
 
 class SplunkTelemetryBase(AgentCheck):
     SERVICE_CHECK_NAME = None  # must be set in the subclasses
