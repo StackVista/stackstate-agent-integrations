@@ -8,7 +8,7 @@ try:
     from checks.network_checks import NetworkCheck, Status, EventType
 except ImportError:
     from .base import AgentCheck, TopologyInstance, StackPackInstance, AgentIntegrationInstance
-    from .base_v2 import AgentCheckV2, Stateful, Transactional
+    from .base_v2 import AgentCheckV2, Stateful, Transactional, StatefulAgentCheck, TransactionalAgentCheck
     from ..utils.health_api import HealthStream, HealthStreamUrn, Health
     from .network import NetworkCheck, Status, EventType
 
@@ -26,5 +26,7 @@ __all__ = [
     # Agent Check V2
     'AgentCheckV2',
     'Stateful',
-    'Transactional'
+    'Transactional',
+    'StatefulAgentCheck',
+    'TransactionalAgentCheck'
 ]

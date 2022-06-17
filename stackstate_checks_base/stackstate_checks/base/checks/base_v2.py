@@ -10,6 +10,16 @@ from schematics import Model
 from ..utils.common import to_string
 from ..utils.transactional_api import TransactionApi
 from ..utils.state_api import StateApi
+from ..utils.health_api import HealthApi, HealthStream
+
+try:
+    import topology
+
+    using_stub_topology = False
+except ImportError:
+    from ..stubs import topology
+
+    using_stub_topology = True
 
 _InstanceType = TypeVar('_InstanceType', Model, Dict[str, Any])
 
@@ -24,66 +34,6 @@ class CheckError(Exception):
     def to_string(self):
         # type: () -> str
         return "check error: {}".format(self.message)
-
-
-class AgentCheckV2(AgentCheck):
-
-    def check(self, instance):
-        raise NotImplementedError
-
-    def __init__(self, *args, **kwargs):
-        # type: (*Any, **Any) -> None
-        """
-        - **name** (_str_) - the name of the check
-        - **init_config** (_dict_) - the `init_config` section of the configuration.
-        - **agentConfig** (_dict_) - deprecated
-        - **instance** (_List[dict]_) - a one-element list containing the instance options from the
-                configuration file (a list is used to keep backward compatibility with
-                older versions of the Agent).
-        """
-        super(AgentCheckV2, self).__init__(*args, **kwargs)
-
-    def run(self):
-        # type: () -> str
-        """
-        Runs stateful check.
-        """
-        instance_tags = None
-        try:
-            # create integration instance components for monitoring purposes
-            self.create_integration_instance()
-
-            # Initialize APIs
-            self._init_health_api()
-
-            # create a copy of the check instance, get state if any and add it to the instance object for the check
-            instance = self.instances[0]
-            check_instance = copy.deepcopy(instance)
-            check_instance = self._get_instance_schema(check_instance)
-            instance_tags = check_instance.get("instance_tags", [])
-
-            check_result = self.check(check_instance)
-
-            if check_result:
-                raise check_result
-
-            result = DEFAULT_RESULT
-            msg = "{} check was processed successfully".format(self.name)
-            self.service_check(self.name, AgentCheck.OK, tags=instance_tags, message=msg)
-        except Exception as e:
-            result = json.dumps([
-                {
-                    "message": str(e),
-                    "traceback": traceback.format_exc(),
-                }
-            ])
-            self.log.exception(str(e))
-            self.service_check(self.name, AgentCheck.CRITICAL, tags=instance_tags, message=str(e))
-        finally:
-            if self.metric_limiter:
-                self.metric_limiter.reset()
-
-        return result
 
 
 class CheckMixin(object):
@@ -104,12 +54,60 @@ class CheckMixin(object):
         # Initialize AgentCheck's base class
         super(CheckMixin, self).__init__(*args, **kwargs)
 
-    def check(self, instance):
-        # type: (_InstanceType) -> Optional[CheckError]
-        return CheckError(NotImplementedError)
+    def setup(self):  # type: () -> None
+        raise NotImplementedError
 
 
-class State(CheckMixin):
+class Health(CheckMixin):
+
+    def __init__(self, *args, **kwargs):
+        # type: (*Any, **Any) -> None
+        """
+        - **name** (_str_) - the name of the check
+        - **init_config** (_dict_) - the `init_config` section of the configuration.
+        - **agentConfig** (_dict_) - deprecated
+        - **instance** (_List[dict]_) - a one-element list containing the instance options from the
+                configuration file (a list is used to keep backward compatibility with
+                older versions of the Agent).
+        """
+        # setup default values for _get_instance_schema and instance to make the "compiler" happy. It will be overridden
+        self._get_instance_schema = lambda instance: instance
+        self.instance = None
+        super(Health, self).__init__(*args, **kwargs)
+
+        self.health = None  # type: Optional[HealthApi]
+
+    def get_health_stream(self, instance):
+        # type: (_InstanceType) -> Optional[HealthStream]
+        """
+        Integration checks can override this if they want to be producing a health stream. Defining the will
+        enable self.health() calls
+
+        :return: a class extending HealthStream
+        """
+        return None
+
+    def setup(self):  # type: () -> None
+        if self.health is not None:
+            return None
+
+        stream_spec = self.get_health_stream(self._get_instance_schema(self.instance))
+        if stream_spec:
+            # collection_interval should always be set by the agent
+            collection_interval = self.instance['collection_interval']
+            repeat_interval_seconds = stream_spec.repeat_interval_seconds or collection_interval
+            expiry_seconds = stream_spec.expiry_seconds
+            # Only apply a default expiration when we are using substreams
+            if expiry_seconds is None:
+                if stream_spec.sub_stream != "":
+                    expiry_seconds = repeat_interval_seconds * 4
+                else:
+                    # Explicitly disable expiry setting it to 0
+                    expiry_seconds = 0
+            self.health = HealthApi(self, stream_spec, expiry_seconds, repeat_interval_seconds)
+
+
+class Stateful(CheckMixin):
     PERSISTENT_CACHE_KEY = "check_state"
 
     def __init__(self, *args, **kwargs):
@@ -122,42 +120,162 @@ class State(CheckMixin):
                 configuration file (a list is used to keep backward compatibility with
                 older versions of the Agent).
         """
-        super(State, self).__init__(*args, **kwargs)
-        self._state = None  # type: Optional[StateApi]
+        super(Stateful, self).__init__(*args, **kwargs)
+        self.state = None  # type: Optional[StateApi]
 
     def set_state(self, new_state):
         # type: (Union[Dict, Model]) -> None
         """
         Set new checks state.
         """
-        self._state.set(self.PERSISTENT_CACHE_KEY, new_state)
+        self.state.set(self.PERSISTENT_CACHE_KEY, new_state)
 
     def get_state(self):
         # type: () -> Dict[str, Any]
         """
         Gets existing checks state.
         """
-        return self._state.get(self.PERSISTENT_CACHE_KEY)
+        return self.state.get(self.PERSISTENT_CACHE_KEY)
 
-    def _init_state_api(self):
+    def setup(self):
         # type: () -> None
-        if self._state is not None:
+        if self.state is not None:
             return None
-        self._state = StateApi(self)
-
-    def check(self, instance):
-        raise NotImplementedError
+        self.state = StateApi(self)
 
 
-class Stateful(State):
+class Transactional(Stateful):
     """
-    StateFulMixin registers the Stateful hook to be used by the agent base and the check itself.
+    Transactional registers the transactional hook to be used by the agent base and the check itself.
     """
+    TRANSACTIONAL_PERSISTENT_CACHE_KEY = "transactional_check_state"
+
+    def __init__(self, *args, **kwargs):
+        # type: (*Any, **Any) -> None
+        """
+        - **name** (_str_) - the name of the check
+        - **init_config** (_dict_) - the `init_config` section of the configuration.
+        - **agentConfig** (_dict_) - deprecated
+        - **instance** (_List[dict]_) - a one-element list containing the instance options from the
+                configuration file (a list is used to keep backward compatibility with
+                older versions of the Agent).
+        """
+        # Initialize AgentCheck's base class
+        super(Transactional, self).__init__(*args, **kwargs)
+        self.transaction = None  # type: Optional[TransactionApi]
+
+    def set_state_transactional(self, new_state):
+        # type: (Union[Dict, Model]) -> None
+        """
+        Set new checks state.
+        """
+        self.transaction.set_state(self.TRANSACTIONAL_PERSISTENT_CACHE_KEY, new_state)
+
+    def get_state_transactional(self):
+        # type: () -> Dict[str, Any]
+        """
+        Gets existing checks state.
+        """
+        return self.state.get(self.TRANSACTIONAL_PERSISTENT_CACHE_KEY)
+
+    def setup(self):
+        # type: () -> None
+        super(Transactional, self).setup()
+
+        if self.transaction is not None:
+            return None
+        self.transaction = TransactionApi(self)
+
+
+class AgentCheckV2Base(AgentCheck):
 
     def check(self, instance):
         # type: (_InstanceType) -> Optional[CheckError]
+        raise NotImplementedError
 
-        self._init_state_api()
+    def setup(self):
+        # type: () -> None
+        pass
+
+    def on_success(self):
+        # type: () -> None
+        pass
+
+    def __init__(self, *args, **kwargs):
+        # type: (*Any, **Any) -> None
+        """
+        - **name** (_str_) - the name of the check
+        - **init_config** (_dict_) - the `init_config` section of the configuration.
+        - **agentConfig** (_dict_) - deprecated
+        - **instance** (_List[dict]_) - a one-element list containing the instance options from the
+                configuration file (a list is used to keep backward compatibility with
+                older versions of the Agent).
+        """
+        super(AgentCheckV2Base, self).__init__(*args, **kwargs)
+
+    def run(self):
+        # type: () -> str
+        """
+        Runs stateful check.
+        """
+        instance_tags = None
+        try:
+            # start auto snapshot if with_snapshots is set to True
+            if self._get_instance_key().with_snapshots:
+                topology.submit_start_snapshot(self, self.check_id, self._get_instance_key_dict())
+
+            # create integration instance components for monitoring purposes
+            self.create_integration_instance()
+
+            # Call setup on the mixins
+            self.setup()
+
+            # create a copy of the check instance, get state if any and add it to the instance object for the check
+            instance = self.instances[0]
+            check_instance = copy.deepcopy(instance)
+            check_instance = self._get_instance_schema(check_instance)
+            instance_tags = check_instance.get("instance_tags", [])
+
+            check_result = self.check(check_instance)
+
+            if check_result:
+                raise check_result
+
+            # stop auto snapshot if with_snapshots is set to True
+            if self._get_instance_key().with_snapshots:
+                topology.submit_stop_snapshot(self, self.check_id, self._get_instance_key_dict())
+
+            result = DEFAULT_RESULT
+            msg = "{} check was processed successfully".format(self.name)
+            self.service_check(self.name, AgentCheck.OK, tags=instance_tags, message=msg)
+        except Exception as e:
+            result = json.dumps([
+                {
+                    "message": str(e),
+                    "traceback": traceback.format_exc(),
+                }
+            ])
+            self.log.exception(str(e))
+            self.service_check(self.name, AgentCheck.CRITICAL, tags=instance_tags, message=str(e))
+        finally:
+            if self.metric_limiter:
+                self.metric_limiter.reset()
+
+        return result
+
+
+class AgentCheckV2(Health, AgentCheckV2Base):
+
+    def check(self, instance):
+        # type: (_InstanceType) -> Optional[CheckError]
+        raise NotImplementedError
+
+
+class StatefulAgentCheck(Stateful, AgentCheckV2):
+    def check(self, instance):
+        # type: (_InstanceType) -> Optional[CheckError]
+
+        self.setup()
         # get current state > call the check > set the state
         current_state = self.get_state()
         new_state, check_error = self.stateful_check(instance, current_state)
@@ -182,31 +300,11 @@ class Stateful(State):
         raise NotImplementedError
 
 
-class Transactional(State):
-    """
-    Transactional registers the transactional hook to be used by the agent base and the check itself.
-    """
-    TRANSACTIONAL_PERSISTENT_CACHE_KEY = "transactional_check_state"
-
-    def __init__(self, *args, **kwargs):
-        # type: (*Any, **Any) -> None
-        """
-        - **name** (_str_) - the name of the check
-        - **init_config** (_dict_) - the `init_config` section of the configuration.
-        - **agentConfig** (_dict_) - deprecated
-        - **instance** (_List[dict]_) - a one-element list containing the instance options from the
-                configuration file (a list is used to keep backward compatibility with
-                older versions of the Agent).
-        """
-        # Initialize AgentCheck's base class
-        super(Transactional, self).__init__(*args, **kwargs)
-        self.transaction = None  # type: Optional[TransactionApi]
-
+class TransactionalAgentCheck(Transactional, AgentCheckV2):
     def check(self, instance):
         # type: (_InstanceType) -> Optional[CheckError]
 
-        self._init_state_api()
-        self._init_transactional_api()
+        self.setup()
 
         # get current state > call the check > set the transaction state
         self.transaction.start()
@@ -222,20 +320,6 @@ class Transactional(State):
 
         return
 
-    def set_state_transactional(self, new_state):
-        # type: (Union[Dict, Model]) -> None
-        """
-        Set new checks state.
-        """
-        self.transaction.set_state(self.TRANSACTIONAL_PERSISTENT_CACHE_KEY, new_state)
-
-    def get_state_transactional(self):
-        # type: () -> Dict[str, Any]
-        """
-        Gets existing checks state.
-        """
-        return self._state.get(self.TRANSACTIONAL_PERSISTENT_CACHE_KEY)
-
     def transactional_check(self, instance, state):
         # type: (_InstanceType, Union[Dict[str, Any], Model]) -> (Dict[str, Any], Optional[CheckError])
         """
@@ -247,9 +331,3 @@ class Transactional(State):
         returns new state
         """
         raise NotImplementedError
-
-    def _init_transactional_api(self):
-        # type: () -> None
-        if self.transaction is not None:
-            return None
-        self.transaction = TransactionApi(self)
