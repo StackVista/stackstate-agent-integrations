@@ -1,9 +1,5 @@
 # StackState Agent Integrations v2 releases
 
-# 1.22.0 / 2022-06-15
-
-* [Added] Support for spunk metrics [(STAC-16164)] https://stackstate.atlassian.net/browse/STAC-16164 
-
 # 1.21.0 / 2022-06-01
 
 * [Added] Support for using agents persistent cache [(STAC-16162)](https://stackstate.atlassian.net/browse/STAC-16162) 
