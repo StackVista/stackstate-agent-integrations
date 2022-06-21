@@ -23,7 +23,6 @@ __all__ = [
     'HealthStream',
     'HealthStreamUrn',
     'Health',
-    # Agent Check V2
     'AgentCheckV2',
     'Stateful',
     'Transactional',
