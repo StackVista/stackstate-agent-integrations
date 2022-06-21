@@ -12,11 +12,11 @@ import unicodedata
 from collections import defaultdict
 from functools import reduce
 from os.path import basename
-from typing import Any, Set, Dict, Sequence, List, Optional, Union, AnyStr, TypeVar
 
 import yaml
 from schematics import Model
 from six import PY3, iteritems, iterkeys, text_type, string_types, integer_types
+from typing import Any, Set, Dict, Sequence, List, Optional, Union, AnyStr, TypeVar
 
 from ..utils.health_api import HealthStream
 
@@ -67,8 +67,6 @@ from ..utils.identifiers import Identifiers
 from ..utils.telemetry import EventStream, MetricStream, ServiceCheckStream, \
     ServiceCheckHealthChecks, Event
 from ..utils.health_api import HealthApi
-from ..utils.transactional_api import TransactionApi
-from ..utils.state_api import StateApi
 from ..utils.persistent_state import StateDescriptor, StateManager
 from deprecated.sphinx import deprecated
 

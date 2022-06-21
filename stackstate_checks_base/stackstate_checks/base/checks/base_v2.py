@@ -5,7 +5,7 @@ import traceback
 from schematics import Model
 from typing import Any, Dict, Optional, Union, TypeVar
 
-from base import AgentCheck
+from .base import AgentCheck
 from ..utils.common import to_string
 from ..utils.health_api import HealthApi, HealthStream
 from ..utils.state_api import StateApi
