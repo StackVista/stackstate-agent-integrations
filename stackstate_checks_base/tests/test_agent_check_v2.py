@@ -1448,8 +1448,6 @@ class NormalCheck(AgentCheckV2):
             __init__("test", {}, instances)
 
     def check(self, instance):
-        print 'NormalCheck Run'
-
         return
 
 
@@ -1463,7 +1461,6 @@ class TransactionalCheck(TransactionalAgentCheck):
         return StackPackInstance("test", "transactional")
 
     def transactional_check(self, instance, state):
-        print 'TransactionalCheck Run'
         return state, None
 
 
@@ -1477,7 +1474,6 @@ class StatefulCheck(StatefulAgentCheck):
         return StackPackInstance("test", "stateful")
 
     def stateful_check(self, instance, state):
-        print 'StatefulCheck Run'
 
         state['updated'] = True
 
@@ -1494,7 +1490,6 @@ class TransactionalStateCheck(TransactionalAgentCheck):
         return StackPackInstance("test", "transactional-state")
 
     def transactional_check(self, instance, state):
-        print 'TransactionalStateCheck Run'
 
         state['transactional'] = True
 
