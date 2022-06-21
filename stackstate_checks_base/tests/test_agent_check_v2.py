@@ -170,8 +170,8 @@ class TestServiceChecks:
         check.service_check("testservicecheck", AgentCheckV2.OK, tags=None, message="")
         aggregator.assert_service_check("testservicecheck", status=AgentCheckV2.OK)
 
-        check.service_check("testservicecheckwithhostname", AgentCheckV2.OK, tags=["foo", "bar"], hostname="testhostname",
-                            message="a message")
+        check.service_check("testservicecheckwithhostname", AgentCheckV2.OK, tags=["foo", "bar"],
+                            hostname="testhostname", message="a message")
         aggregator.assert_service_check("testservicecheckwithhostname", status=AgentCheckV2.OK, tags=["foo", "bar"],
                                         hostname="testhostname", message="a message")
 
@@ -1518,7 +1518,7 @@ class TestAgentChecksV2:
 
     def test_transactional_check(self, transaction):
         check = TransactionalCheck()
-        assert check.run() is ""
+        assert check.run() == ""
 
         transaction.assert_transaction(check.check_id)
 
@@ -1535,7 +1535,7 @@ class TestAgentChecksV2:
 
     def test_transactional_state_check(self, transaction, state):
         check = TransactionalStateCheck()
-        assert check.run() is ""
+        assert check.run() == ""
 
         transaction.assert_transaction(check.check_id)
 

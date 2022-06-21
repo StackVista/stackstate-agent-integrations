@@ -1,16 +1,15 @@
-from abc import ABCMeta
-
-from base import AgentCheck
 import copy
 import json
 import traceback
-from typing import Any, Set, Dict, Sequence, List, Optional, Union, AnyStr, TypeVar
-from six import PY3
+
 from schematics import Model
+from typing import Any, Dict, Optional, Union, TypeVar
+
+from base import AgentCheck
 from ..utils.common import to_string
-from ..utils.transactional_api import TransactionApi
-from ..utils.state_api import StateApi
 from ..utils.health_api import HealthApi, HealthStream
+from ..utils.state_api import StateApi
+from ..utils.transactional_api import TransactionApi
 
 try:
     import topology
@@ -38,7 +37,7 @@ class CheckError(Exception):
 
 class CheckMixin(object):
     """
-    CheckMixin is used to register a agent hook to be used by the agent base and the check itself.
+    CheckMixin is used to register an agent hook to be used by the agent base and the check itself.
     """
 
     def __init__(self, *args, **kwargs):
@@ -70,17 +69,15 @@ class Health(CheckMixin):
                 configuration file (a list is used to keep backward compatibility with
                 older versions of the Agent).
         """
-        # setup default values for _get_instance_schema and instance to make the "compiler" happy. It will be overridden
-        self._get_instance_schema = lambda instance: instance
-        self.instance = None
         super(Health, self).__init__(*args, **kwargs)
-
+        # self._get_instance_schema =
+        # self.instance =
         self.health = None  # type: Optional[HealthApi]
 
     def get_health_stream(self, instance):
         # type: (_InstanceType) -> Optional[HealthStream]
         """
-        Integration checks can override this if they want to be producing a health stream. Defining the will
+        Integration checks can override this if they want to be producing a health stream. Defining this will
         enable self.health() calls
 
         :return: a class extending HealthStream
@@ -97,7 +94,7 @@ class Health(CheckMixin):
             collection_interval = self.instance['collection_interval']
             repeat_interval_seconds = stream_spec.repeat_interval_seconds or collection_interval
             expiry_seconds = stream_spec.expiry_seconds
-            # Only apply a default expiration when we are using substreams
+            # Only apply a default expiration when we are using sub_streams
             if expiry_seconds is None:
                 if stream_spec.sub_stream != "":
                     expiry_seconds = repeat_interval_seconds * 4
