@@ -1,3 +1,5 @@
+import sys
+
 from stackstate_checks.base import AgentCheck, TopologyInstance
 from stackstate_checks.base.errors import CheckException
 from stackstate_checks.splunk.client import TokenExpiredException, SplunkClient
@@ -114,6 +116,17 @@ class SplunkTelemetryBase(AgentCheck):
             except Exception as e:
                 self.log.exception(e)
                 yield None
+
+    def _filter_fields(self, data):
+        # We remove default basic fields, default date fields and internal fields that start with "_"
+        return {
+            key: value
+            for key, value in data.iteritems()
+            if self._include_as_tag(key)
+        }
+
+    def _include_as_tag(self, key):
+        return not key.startswith('_') and key not in self.basic_default_fields.union(self.date_default_fields)
 
     def load_state(self, instance):
         state = instance.get(self.STATE_FIELD_NAME)
