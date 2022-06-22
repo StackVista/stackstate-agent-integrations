@@ -1325,13 +1325,12 @@ class SampleStatefulCheckWithSchema(StatefulAgentCheck):
     """
     INSTANCE_TYPE = "stateful_check"
     INSTANCE_SCHEMA = InstanceInfo
+    STATE_SCHEMA = State
 
     def __init__(self, name, init_config, agentConfig, instances=None):
         super(SampleStatefulCheckWithSchema, self).__init__(name, init_config, agentConfig, instances)
 
     def stateful_check(self, instance, state):
-        state = State(state)
-        state.validate()
         state.offset += 10
         return state, None
 
@@ -1399,11 +1398,11 @@ class TestStatefulCheck:
     def test_stateful_check_with_schema(self, sample_stateful_check_with_schema, state, aggregator):
         sample_stateful_check_with_schema.run()
         key = get_test_state_key(sample_stateful_check_with_schema)
-        expected_state = {"offset": 10}
+        expected_state = State({"offset": 10})
         assert sample_stateful_check_with_schema.get_state() == expected_state
         assert state.get_state(sample_stateful_check_with_schema,
                                sample_stateful_check_with_schema.check_id,
-                               key) == json.dumps(expected_state)
+                               key) == json.dumps(expected_state.to_primitive())
         aggregator.assert_service_check(sample_stateful_check_with_schema.name, count=1, status=AgentCheckV2.OK)
 
     def test_stateful_check_with_schema_existing_state(self, sample_stateful_check_with_schema, state, aggregator):
@@ -1417,11 +1416,11 @@ class TestStatefulCheck:
 
         # run the check to alter state
         sample_stateful_check_with_schema.run()
-        expected_state = {"offset": 30}
+        expected_state = State({"offset": 30})
         assert sample_stateful_check_with_schema.get_state() == expected_state
         assert state.get_state(sample_stateful_check_with_schema,
                                sample_stateful_check_with_schema.check_id,
-                               key) == json.dumps(expected_state)
+                               key) == json.dumps(expected_state.to_primitive())
         aggregator.assert_service_check(sample_stateful_check_with_schema.name, count=1, status=AgentCheckV2.OK)
 
     def test_stateful_check_with_invalid_schema(self, sample_stateful_check_with_schema, state, aggregator):

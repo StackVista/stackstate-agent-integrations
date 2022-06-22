@@ -5,6 +5,7 @@ from typing import Union, Dict, Any
 from schematics import Model
 
 from .state_api import generate_state_key
+from .state_common import validate_state
 
 try:
     import transaction
@@ -49,15 +50,5 @@ class TransactionApi(object):
         """
         Dumps transactional state to JSON string and sets it as a new state.
         """
-        if isinstance(new_state, dict):
-            pass
-        elif isinstance(new_state, Model):
-            new_state = new_state.to_primitive()
-        else:
-            raise ValueError(
-                "Got unexpected {} for new state, expected dictionary or schematics.Model".format(type(new_state))
-            )
-        state = json.dumps(new_state)
-
         state_key = generate_state_key(self.__check._get_instance_key().to_string(), key)
-        transaction.set_transaction_state(self.__check, self.__check.check_id, state_key, state)
+        transaction.set_transaction_state(self.__check, self.__check.check_id, state_key, validate_state(new_state))

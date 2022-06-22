@@ -3,7 +3,7 @@ import json
 import traceback
 
 from schematics import Model
-from typing import Any, Dict, Optional, Union, TypeVar
+from typing import Any, Dict, Optional, Union, TypeVar, Type
 
 from .base import AgentCheck
 from ..utils.common import to_string
@@ -105,7 +105,15 @@ class Health(CheckMixin):
 
 
 class Stateful(CheckMixin):
-    PERSISTENT_CACHE_KEY = "check_state"
+    """
+    STATE_SCHEMA allows checks to specify a schematics Schema that is used for the state in self.check
+    """
+    STATE_SCHEMA = None  # type: Type[Model]
+
+    """
+    PERSISTENT_CACHE_KEY is the key that is used for the persistent state
+    """
+    PERSISTENT_CACHE_KEY = "check_state"  # type: str
 
     def __init__(self, *args, **kwargs):
         # type: (*Any, **Any) -> None
@@ -132,7 +140,7 @@ class Stateful(CheckMixin):
         """
         Gets existing checks state.
         """
-        return self.state.get(self.PERSISTENT_CACHE_KEY)
+        return self.state.get(self.PERSISTENT_CACHE_KEY, self.STATE_SCHEMA)
 
     def setup(self):
         # type: () -> None
@@ -145,7 +153,11 @@ class Transactional(Stateful):
     """
     Transactional registers the transactional hook to be used by the agent base and the check itself.
     """
-    TRANSACTIONAL_PERSISTENT_CACHE_KEY = "transactional_check_state"
+
+    """
+    TRANSACTIONAL_PERSISTENT_CACHE_KEY is the key that is used for the transactional persistent state
+    """
+    TRANSACTIONAL_PERSISTENT_CACHE_KEY = "transactional_check_state"  # type: str
 
     def __init__(self, *args, **kwargs):
         # type: (*Any, **Any) -> None
@@ -173,7 +185,7 @@ class Transactional(Stateful):
         """
         Gets existing checks state.
         """
-        return self.state.get(self.TRANSACTIONAL_PERSISTENT_CACHE_KEY)
+        return self.state.get(self.TRANSACTIONAL_PERSISTENT_CACHE_KEY, self.STATE_SCHEMA)
 
     def setup(self):
         # type: () -> None
