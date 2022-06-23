@@ -12,7 +12,7 @@ import sys
 from six import PY3, text_type
 from schematics import Model
 from schematics.exceptions import ValidationError, ConversionError, DataError
-from schematics.types import URLType, ListType, StringType, IntType, ModelType
+from schematics.types import URLType, ListType, StringType, IntType, BooleanType, ModelType
 from stackstate_checks.checks import AgentCheckV2, TransactionalAgentCheck, StatefulAgentCheck, StackPackInstance, \
     TopologyInstance, AgentIntegrationInstance, HealthStream, HealthStreamUrn, Health
 from stackstate_checks.base.stubs import datadog_agent
@@ -1463,6 +1463,15 @@ class TransactionalCheck(TransactionalAgentCheck):
         return state, None
 
 
+class InstanceInfoSchemaCheck(Model):
+    url = URLType(required=True)
+    instance_tags = ListType(StringType, default=[])
+
+
+class StateSchema(Model):
+    updated = BooleanType(default=False)
+
+
 class StatefulCheck(StatefulAgentCheck):
     def __init__(self, key=None, *args, **kwargs):
         instances = [{'a': 'b'}]
@@ -1479,6 +1488,25 @@ class StatefulCheck(StatefulAgentCheck):
         return state, None
 
 
+class StatefulSchemaCheck(StatefulAgentCheck):
+    INSTANCE_SCHEMA = InstanceInfoSchemaCheck
+    STATE_SCHEMA = StateSchema
+
+    def __init__(self, key=None, *args, **kwargs):
+        instances = [{'url': 'https://stateful-check.url'}]
+        super(StatefulSchemaCheck, self). \
+            __init__("test", {}, instances)
+
+    def get_instance_key(self, instance):
+        return StackPackInstance("test", str(instance.url))
+
+    def stateful_check(self, instance, state):
+
+        state.updated = True
+
+        return state, None
+
+
 class TransactionalStateCheck(TransactionalAgentCheck):
     def __init__(self, key=None, *args, **kwargs):
         instances = [{'a': 'b'}]
@@ -1491,6 +1519,30 @@ class TransactionalStateCheck(TransactionalAgentCheck):
     def transactional_check(self, instance, state):
 
         state['transactional'] = True
+
+        self.set_state({"state": "set_state"})
+
+        return state, None
+
+
+class TransactionalStateSchema(Model):
+    updated = BooleanType(default=False)
+
+
+class TransactionalStateSchemaCheck(TransactionalAgentCheck):
+    INSTANCE_SCHEMA = InstanceInfoSchemaCheck
+    STATE_SCHEMA = TransactionalStateSchema
+
+    def __init__(self, key=None, *args, **kwargs):
+        instances = [{'url': 'https://transactional-state-check.url'}]
+        super(TransactionalStateSchemaCheck, self).__init__("test", {}, instances)
+
+    def get_instance_key(self, instance):
+        return StackPackInstance("test", str(instance.url))
+
+    def transactional_check(self, instance, state):
+
+        state.transactional = True
 
         self.set_state({"state": "set_state"})
 
@@ -1526,6 +1578,16 @@ class TestAgentChecksV2:
 
         key = get_test_state_key(check)
         assert state.get_state(check, check.check_id, key) == json.dumps(expected_state)
+
+    def test_stateful_schema_check(self, state):
+        check = StatefulSchemaCheck()
+        check.run()
+
+        expected_state = StateSchema({"updated": True})
+
+        key = get_test_state_key(check)
+        assert check.get_state() == expected_state
+        assert state.get_state(check, check.check_id, key) == json.dumps(expected_state.to_primitive())
 
     def test_transactional_state_check(self, transaction, state):
         check = TransactionalStateCheck()
