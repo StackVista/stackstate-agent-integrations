@@ -3,38 +3,46 @@ from typing import Any, Dict, Optional, Union
 
 from .base import AgentCheckV2
 from .check_error import CheckError
-from .instance_type import InstanceType
+from .types import InstanceType, StateType
 from .mixins import TransactionalMixin
 
 
 class TransactionalAgentCheck(TransactionalMixin, AgentCheckV2):
-    def check(self, instance):
-        # type: (InstanceType) -> Optional[CheckError]
+    """
+    TransactionalAgentCheck is an alias for AgentCheckV2 with TransactionalMixin already mixed in. This is the preferred
+    class to extend when writing a check that needs transactional state behaviour.
+    """
 
-        self.setup()
+    def check(self, instance):  # type: (InstanceType) -> Optional[CheckError]
+        """
+        Check implements the AgentCheckV2 check function and automagically handles the transaction for this check run.
+        @param instance: InstanceType instance of the check implemented by get_instance_key().
+        @return: Optional[CheckError] if an error occurs during the check the exception / error is returned.
+        """
 
         # get current state > call the check > set the transaction state
         self.transaction.start()
-        current_state = self.get_state_transactional()
+        current_state = self.get_transaction_state()
         new_state, check_error = self.transactional_check(instance, current_state)
 
         if check_error:
             self.transaction.discard(check_error.to_string())
             return check_error
 
-        self.set_state_transactional(new_state)
+        self.set_transaction_state(new_state)
         self.transaction.stop()
 
         return
 
     def transactional_check(self, instance, state):
-        # type: (InstanceType, Union[Dict[str, Any], Model]) -> (Dict[str, Any], Optional[CheckError])
+        # type: (InstanceType, StateType) -> (StateType, Optional[CheckError])
         """
-        This method should be implemented for a Stateful Check. It's called from run method.
-        All Errors raised from stateful_check will be caught and converted to service_call in the run method.
+        This method should be implemented for a Transactional Check. It's called from run method.
+        All Errors raised from transactional_check will be caught and converted to service_call in the run method.
 
-        - **instance** instance (schema type)
-        - **state** existing state in Json TODO: maybe also schema type for state
-        returns new state
+        @param instance: InstanceType instance of the check implemented by get_instance_key().
+        @param state: StateType the current state for this check + persistence key.
+        @return: tuple of state: StateType and an optional check error: Optional[CheckError] that is set as the
+        transaction state.
         """
         raise NotImplementedError

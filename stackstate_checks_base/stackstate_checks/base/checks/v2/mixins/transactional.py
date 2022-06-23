@@ -2,12 +2,14 @@ from schematics import Model
 from typing import Any, Dict, Optional, Union
 
 from .stateful import StatefulMixin
+from ..types import StateType
 from ....utils.transactional_api import TransactionApi
 
 
 class TransactionalMixin(StatefulMixin):
     """
-    Transactional registers the transactional hook to be used by the agent base and the check itself.
+    TransactionalMixin extends the Agent Check base with the Transaction API allowing Agent Checks to start making
+    stateful transactions that are persisted when a transaction is successful.
     """
 
     """
@@ -18,36 +20,37 @@ class TransactionalMixin(StatefulMixin):
     def __init__(self, *args, **kwargs):
         # type: (*Any, **Any) -> None
         """
-        - **name** (_str_) - the name of the check
-        - **init_config** (_dict_) - the `init_config` section of the configuration.
-        - **agentConfig** (_dict_) - deprecated
-        - **instance** (_List[dict]_) - a one-element list containing the instance options from the
-                configuration file (a list is used to keep backward compatibility with
-                older versions of the Agent).
+
         """
         # Initialize AgentCheck's base class
         super(TransactionalMixin, self).__init__(*args, **kwargs)
         self.transaction = None  # type: Optional[TransactionApi]
 
-    def set_state_transactional(self, new_state):  # type: (Union[Dict, Model]) -> None
+    def set_transaction_state(self, new_state):  # type: (StateType) -> None
         """
-
-        @param new_state:
+        set_transaction_state uses the TransactionApi to set the transaction state for the
+        TRANSACTIONAL_PERSISTENT_CACHE_KEY with the value of new_state.
+        @param new_state: StateType is the new transaction state to be set
         @return:
         """
         self.transaction.set_state(self.TRANSACTIONAL_PERSISTENT_CACHE_KEY, new_state)
 
-    def get_state_transactional(self):  # type: () -> Dict[str, Any]
+    def get_transaction_state(self):  # type: () -> StateType
         """
+        get_state uses the StateApi to retrieve the state for the TRANSACTIONAL_PERSISTENT_CACHE_KEY.
 
-        @return:
+        If a STATE_SCHEMA is defined the state is cast to the STATE_SCHEMA.
+
+        @return: StateType the state for the TRANSACTIONAL_PERSISTENT_CACHE_KEY. Defaults to empty dictionary or an
+        empty STATE_SCHEMA.
         """
         return self.state.get(self.TRANSACTIONAL_PERSISTENT_CACHE_KEY, self.STATE_SCHEMA)
 
     def setup(self):  # type: () -> None
         """
+        setup is used to initialize the TransactionApi and set the transaction variable to be used in checks.
 
-        @return:
+        @return: None
         """
         super(TransactionalMixin, self).setup()
 
