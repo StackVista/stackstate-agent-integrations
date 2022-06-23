@@ -18,8 +18,11 @@ def snapshot(stream):
 
 class HealthStub(object):
     """
-    Mainly used for unit testing checks, this stub makes possible to execute
-    a check without a running Agent.
+    This implements the methods defined by the Agent's [C bindings]
+    (https://gitlab.com/stackvista/agent/stackstate-agent/-/blob/master/rtloader/common/builtins/health.c)
+    which in turn call the [Go backend]
+    (https://gitlab.com/stackvista/agent/stackstate-agent/-/blob/master/pkg/collector/python/health_api.go).
+    It also provides utility methods for test assertions.
     """
 
     def __init__(self):

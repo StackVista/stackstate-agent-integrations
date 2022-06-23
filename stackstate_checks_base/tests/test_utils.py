@@ -8,7 +8,7 @@ import pytest
 import os
 import platform
 
-from stackstate_checks.base.utils.common import load_json_from_file
+from stackstate_checks.base.utils.common import load_json_from_file, sanitize_url_as_valid_filename
 from stackstate_checks.utils.common import pattern_filter, round_value, read_file
 from stackstate_checks.utils.limiter import Limiter
 from stackstate_checks.utils.persistent_state import StateManager, StateDescriptor, StateNotPersistedException, \
@@ -139,7 +139,7 @@ class TestStorageSchema(Model):
 
 class TestPersistentState:
 
-    def test_exception_state_without_valid_location(self, state):
+    def test_exception_state_without_valid_location(self, state_manager):
         s = {'a': 'b', 'c': 1, 'd': ['e', 'f', 'g'], 'h': {'i': 'j', 'k': True}}
 
         with pytest.raises(DataError) as e:
@@ -149,10 +149,10 @@ class TestPersistentState:
         instance = StateDescriptor("test", "this")
         # set an invalid file_location for this test
         instance.file_location = ""
-        assert state.persistent_state.get_state(instance) is None
+        assert state_manager.persistent_state.get_state(instance) is None
 
         with pytest.raises(StateNotPersistedException) as e:
-            state.persistent_state.set_state(instance, s)
+            state_manager.persistent_state.set_state(instance, s)
         if platform.system() == "Windows":
             if PY3:
                 expected_message = """[WinError 3] The system cannot find the path specified: ''"""
@@ -162,14 +162,14 @@ class TestPersistentState:
         else:
             assert str(e.value) == """[Errno 2] No such file or directory: ''"""
 
-    def test_exception_corrupted_state(self, state):
+    def test_exception_corrupted_state(self, state_manager):
         instance = StateDescriptor("state.with.corrupted.data", ".")
         # write "corrupted" data
         with open(instance.file_location, 'w') as f:
             f.write("{'a': 'b', 'c': 1, 'd':....")
 
         with pytest.raises(StateCorruptedException) as e:
-            state.persistent_state.get_state(instance)
+            state_manager.persistent_state.get_state(instance)
         if PY3:
             assert str(e.value) == """Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"""
         else:
@@ -177,10 +177,10 @@ class TestPersistentState:
 
         os.remove(instance.file_location)
 
-    def test_exception_unsupported_data_type_state(self, state):
+    def test_exception_unsupported_data_type_state(self, state_manager):
         instance = StateDescriptor("state.with.unsupported.data", ".")
         with pytest.raises(ValueError) as e:
-            state.persistent_state.set_state(instance, 123)
+            state_manager.persistent_state.set_state(instance, 123)
         if PY3:
             assert str(e.value) == "Got unexpected <class 'int'> for argument state, expected dictionary " \
                                    "or schematics.Model"
@@ -188,33 +188,33 @@ class TestPersistentState:
             assert str(e.value) == "Got unexpected <type 'int'> for argument state, expected dictionary " \
                                    "or schematics.Model"
 
-    def test_clear_without_flushing_state(self, state):
+    def test_clear_without_flushing_state(self, state_manager):
         s = {'a': 'b', 'c': 1, 'd': ['e', 'f', 'g'], 'h': {'i': 'j', 'k': True}}
         instance = StateDescriptor("state.with.unsupported.data", ".")
-        state.persistent_state.set_state(instance, s, False)
-        assert state.persistent_state.clear(instance) is None
+        state_manager.persistent_state.set_state(instance, s, False)
+        assert state_manager.persistent_state.clear(instance) is None
 
-    def test_state_flushing(self, state):
+    def test_state_flushing(self, state_manager):
         s = {'a': 'b', 'c': 1, 'd': ['e', 'f', 'g'], 'h': {'i': 'j', 'k': True}}
         instance = StateDescriptor("on.disk.state", ".")
-        state.assert_state(instance, s)
+        state_manager.assert_state(instance, s)
 
-    def test_state_flushing_with_schema(self, state):
+    def test_state_flushing_with_schema(self, state_manager):
         s = TestStorageSchema({'offset': 10})
         instance = StateDescriptor("on.disk.state.schema", ".")
-        rs = state.assert_state(instance, s, TestStorageSchema)
+        rs = state_manager.assert_state(instance, s, TestStorageSchema)
         assert rs.offset == s.offset
 
-    def test_state_copy_no_modification_state(self, state):
+    def test_state_copy_no_modification_state(self, state_manager):
         s = TestStorageSchema({'offset': 10})
         instance = StateDescriptor("rollback.state.schema", ".")
-        s = state.assert_state(instance, s, TestStorageSchema, with_clear=False)
+        s = state_manager.assert_state(instance, s, TestStorageSchema, with_clear=False)
 
         # update the state in memory
         s.offset = 30
 
         # assert the state remains unchanged, state should have offset as 10
-        state.assert_state(instance, s, TestStorageSchema)
+        state_manager.assert_state(instance, s, TestStorageSchema)
 
 
 class TestCommon:
@@ -235,3 +235,7 @@ class TestCommon:
     def test_load_json_from_same_directory(self):
         dict_from_json = load_json_from_file('test_data_sample.json')
         assert dict_from_json == json.loads(self.SAMPLE_FILE_CONTET)
+
+    def test_url_sanitization_so_it_be_used_as_filename(self):
+        url = "https://example.org/api?query_string=123&another=456"
+        assert sanitize_url_as_valid_filename(url) == "httpsexampleorgapiquery_string123another456"

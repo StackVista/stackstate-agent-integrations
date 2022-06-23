@@ -1,49 +1,54 @@
 # -*- coding: utf-8 -*-
 
-# (C) StackState, Inc. 2021
+# (C) StackState, Inc. 2022
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
-
 import copy
-import sys
-
+import json
 import mock
 import pytest
+import sys
+
+from six import PY3, text_type
 from schematics import Model
 from schematics.exceptions import ValidationError, ConversionError, DataError
-from schematics.types import IntType, StringType, ModelType
-from six import PY3, text_type
-
+from schematics.types import URLType, ListType, StringType, IntType, BooleanType, ModelType
+from stackstate_checks.checks import AgentCheckV2, TransactionalAgentCheck, StatefulAgentCheck, StackPackInstance, \
+    TopologyInstance, AgentIntegrationInstance, HealthStream, HealthStreamUrn, Health
 from stackstate_checks.base.stubs import datadog_agent
 from stackstate_checks.base.stubs.topology import component
-from stackstate_checks.checks import AgentCheck, TopologyInstance, AgentIntegrationInstance, \
-    HealthStream, HealthStreamUrn, Health
+from stackstate_checks.base.utils.state_api import generate_state_key
+
+
+TEST_INSTANCE = {
+    "url": "https://example.org/api"
+}
 
 
 def test_instance():
     """
     Simply assert the class can be instantiated
     """
-    AgentCheck()
+    AgentCheckV2()
     # rely on default
-    check = AgentCheck()
+    check = AgentCheckV2()
     assert check.init_config == {}
     assert check.instances == []
 
     # pass dict for 'init_config', a list for 'instances'
     init_config = {'foo': 'bar'}
     instances = [{'bar': 'baz'}]
-    check = AgentCheck(init_config=init_config, instances=instances)
+    check = AgentCheckV2(init_config=init_config, instances=instances)
     assert check.init_config == {'foo': 'bar'}
     assert check.instances == [{'bar': 'baz'}]
 
 
 def test_load_config():
-    assert AgentCheck.load_config("raw_foo: bar") == {'raw_foo': 'bar'}
+    assert AgentCheckV2.load_config("raw_foo: bar") == {'raw_foo': 'bar'}
 
 
 def test_log_critical_error():
-    check = AgentCheck()
+    check = AgentCheckV2()
 
     with pytest.raises(NotImplementedError):
         check.log.critical('test')
@@ -51,21 +56,21 @@ def test_log_critical_error():
 
 class TestMetricNormalization:
     def test_default(self):
-        check = AgentCheck()
+        check = AgentCheckV2()
         metric_name = u'Klüft inför på fédéral'
         normalized_metric_name = b'Kluft_infor_pa_federal'
 
         assert check.normalize(metric_name) == normalized_metric_name
 
     def test_fix_case(self):
-        check = AgentCheck()
+        check = AgentCheckV2()
         metric_name = u'Klüft inför på fédéral'
         normalized_metric_name = b'kluft_infor_pa_federal'
 
         assert check.normalize(metric_name, fix_case=True) == normalized_metric_name
 
     def test_prefix(self):
-        check = AgentCheck()
+        check = AgentCheckV2()
         metric_name = u'metric'
         prefix = u'some'
         normalized_metric_name = b'some.metric'
@@ -73,7 +78,7 @@ class TestMetricNormalization:
         assert check.normalize(metric_name, prefix=prefix) == normalized_metric_name
 
     def test_prefix_bytes(self):
-        check = AgentCheck()
+        check = AgentCheckV2()
         metric_name = u'metric'
         prefix = b'some'
         normalized_metric_name = b'some.metric'
@@ -81,7 +86,7 @@ class TestMetricNormalization:
         assert check.normalize(metric_name, prefix=prefix) == normalized_metric_name
 
     def test_prefix_unicode_metric_bytes(self):
-        check = AgentCheck()
+        check = AgentCheckV2()
         metric_name = b'metric'
         prefix = u'some'
         normalized_metric_name = b'some.metric'
@@ -89,21 +94,21 @@ class TestMetricNormalization:
         assert check.normalize(metric_name, prefix=prefix) == normalized_metric_name
 
     def test_underscores_redundant(self):
-        check = AgentCheck()
+        check = AgentCheckV2()
         metric_name = u'a_few__redundant___underscores'
         normalized_metric_name = b'a_few_redundant_underscores'
 
         assert check.normalize(metric_name) == normalized_metric_name
 
     def test_underscores_at_ends(self):
-        check = AgentCheck()
+        check = AgentCheckV2()
         metric_name = u'_some_underscores_'
         normalized_metric_name = b'some_underscores'
 
         assert check.normalize(metric_name) == normalized_metric_name
 
     def test_underscores_and_dots(self):
-        check = AgentCheck()
+        check = AgentCheckV2()
         metric_name = u'some_.dots._and_._underscores'
         normalized_metric_name = b'some.dots.and.underscores'
 
@@ -112,7 +117,7 @@ class TestMetricNormalization:
 
 class TestMetrics:
     def test_non_float_metric(self, aggregator):
-        check = AgentCheck()
+        check = AgentCheckV2()
         metric_name = 'test_metric'
         with pytest.raises(ValueError):
             check.gauge(metric_name, '85k')
@@ -121,7 +126,7 @@ class TestMetrics:
 
 class TestEvents:
     def test_valid_event(self, aggregator):
-        check = AgentCheck()
+        check = AgentCheckV2()
         event = {
             "timestamp": 123456789,
             "event_type": "new.event",
@@ -137,7 +142,7 @@ class TestEvents:
         aggregator.assert_event('test event test event')
 
     def test_topology_event(self, telemetry):
-        check = AgentCheck()
+        check = AgentCheckV2()
         event = {
             "timestamp": 123456789,
             "source_type_name": "new.source.type",
@@ -160,23 +165,23 @@ class TestEvents:
 
 class TestServiceChecks:
     def test_valid_sc(self, aggregator):
-        check = AgentCheck()
+        check = AgentCheckV2()
 
-        check.service_check("testservicecheck", AgentCheck.OK, tags=None, message="")
-        aggregator.assert_service_check("testservicecheck", status=AgentCheck.OK)
+        check.service_check("testservicecheck", AgentCheckV2.OK, tags=None, message="")
+        aggregator.assert_service_check("testservicecheck", status=AgentCheckV2.OK)
 
-        check.service_check("testservicecheckwithhostname", AgentCheck.OK, tags=["foo", "bar"], hostname="testhostname",
-                            message="a message")
-        aggregator.assert_service_check("testservicecheckwithhostname", status=AgentCheck.OK, tags=["foo", "bar"],
+        check.service_check("testservicecheckwithhostname", AgentCheckV2.OK, tags=["foo", "bar"],
+                            hostname="testhostname", message="a message")
+        aggregator.assert_service_check("testservicecheckwithhostname", status=AgentCheckV2.OK, tags=["foo", "bar"],
                                         hostname="testhostname", message="a message")
 
-        check.service_check("testservicecheckwithnonemessage", AgentCheck.OK, message=None)
-        aggregator.assert_service_check("testservicecheckwithnonemessage", status=AgentCheck.OK, )
+        check.service_check("testservicecheckwithnonemessage", AgentCheckV2.OK, message=None)
+        aggregator.assert_service_check("testservicecheckwithnonemessage", status=AgentCheckV2.OK, )
 
 
 class TestTags:
     def test_default_string(self):
-        check = AgentCheck()
+        check = AgentCheckV2()
         tag = 'default:string'
         tags = [tag]
 
@@ -188,7 +193,7 @@ class TestTags:
         assert normalized_tag is tag
 
     def test_bytes_string(self):
-        check = AgentCheck()
+        check = AgentCheckV2()
         tag = b'bytes:string'
         tags = [tag]
 
@@ -204,7 +209,7 @@ class TestTags:
             assert normalized_tag is tag
 
     def test_unicode_string(self):
-        check = AgentCheck()
+        check = AgentCheckV2()
         tag = u'unicode:string'
         tags = [tag]
 
@@ -220,7 +225,7 @@ class TestTags:
             assert normalized_tag == tag.encode('utf-8')
 
     def test_unicode_device_name(self):
-        check = AgentCheck()
+        check = AgentCheckV2()
         tags = []
         device_name = u'unicode_string'
 
@@ -230,7 +235,7 @@ class TestTags:
         assert isinstance(normalized_device_tag, str if PY3 else bytes)
 
     def test_duplicated_device_name(self):
-        check = AgentCheck()
+        check = AgentCheckV2()
         tags = []
         device_name = 'foo'
         check._normalize_tags_type(tags, device_name)
@@ -240,7 +245,7 @@ class TestTags:
     def test__to_bytes(self):
         if PY3:
             pytest.skip('Method only exists on Python 2')
-        check = AgentCheck()
+        check = AgentCheckV2()
         assert isinstance(check._to_bytes(b"tag:foo"), bytes)
         assert isinstance(check._to_bytes(u"tag:☣"), bytes)
         in_str = mock.MagicMock(side_effect=UnicodeError)
@@ -248,7 +253,7 @@ class TestTags:
         assert check._to_bytes(in_str) is None
 
 
-class LimitedCheck(AgentCheck):
+class LimitedCheck(AgentCheckV2):
     DEFAULT_METRIC_LIMIT = 10
 
 
@@ -304,7 +309,7 @@ class TestLimits():
                 "max_returned_metrics": 42,
             }
         ]
-        check = AgentCheck("test", {}, instances)
+        check = AgentCheckV2("test", {}, instances)
         assert check.get_warnings() == []
 
         for i in range(0, 42):
@@ -331,12 +336,12 @@ class TestLimits():
         assert len(aggregator.metrics("metric")) == 10
 
 
-class DefaultInstanceCheck(AgentCheck):
+class DefaultInstanceCheck(AgentCheckV2):
     def check(self, instance):
         pass
 
 
-class AgentIntegrationInstanceCheck(AgentCheck):
+class AgentIntegrationInstanceCheck(AgentCheckV2):
     def get_instance_key(self, instance):
         return AgentIntegrationInstance("test", "integration")
 
@@ -344,7 +349,7 @@ class AgentIntegrationInstanceCheck(AgentCheck):
         pass
 
 
-class TopologyCheck(AgentCheck):
+class TopologyCheck(AgentCheckV2):
     def __init__(self, key=None, *args, **kwargs):
         super(TopologyCheck, self).__init__(*args, **kwargs)
         self.key = key or TopologyInstance("mytype", "someurl")
@@ -374,7 +379,7 @@ class TopologyBrokenCheck(TopologyAutoSnapshotCheck):
         raise Exception("some error in my check")
 
 
-class HealthCheck(AgentCheck):
+class HealthCheck(AgentCheckV2):
     def __init__(self,
                  stream=HealthStream(HealthStreamUrn("source", "stream_id"), "sub_stream"),
                  instance={'collection_interval': 15, 'a': 'b'},
@@ -390,7 +395,7 @@ class HealthCheck(AgentCheck):
         return
 
 
-class HealthCheckMainStream(AgentCheck):
+class HealthCheckMainStream(AgentCheckV2):
     def __init__(self, stream=HealthStream(HealthStreamUrn("source", "stream_id")), *args, **kwargs):
         instances = [{'collection_interval': 15, 'a': 'b'}]
         self.stream = stream
@@ -401,70 +406,6 @@ class HealthCheckMainStream(AgentCheck):
 
     def check(self, instance):
         return
-
-
-TEST_STATE = {
-    'string': 'string',
-    'int': 1,
-    'float': 1.0,
-    'bool': True,
-    'list': ['a', 'b', 'c'],
-    'dict': {'a': 'b'}
-}
-
-
-class TopologyStatefulCheck(TopologyAutoSnapshotCheck):
-    def __init__(self):
-        super(TopologyStatefulCheck, self).__init__()
-
-    @staticmethod
-    def get_agent_conf_d_path():
-        return "./test_data"
-
-    def check(self, instance):
-        instance.update({'state': TEST_STATE})
-
-
-class TopologyStatefulCheckStateLocation(TopologyAutoSnapshotCheck):
-    def __init__(self):
-        instances = [{"state_location": "./test_data_2"}]
-        super(TopologyAutoSnapshotCheck, self) \
-            .__init__(TopologyInstance("mytype", "https://some.type.url", with_snapshots=True), "test", {}, instances)
-
-    def check(self, instance):
-        instance.update({'state': TEST_STATE})
-
-
-class TopologyStatefulStateDescriptorCleanupCheck(TopologyAutoSnapshotCheck):
-    def __init__(self):
-        instances = [{'a': 'b'}]
-        super(TopologyAutoSnapshotCheck, self) \
-            .__init__(TopologyInstance("mytype", "https://some.type.url", with_snapshots=True), "test", {}, instances)
-
-    @staticmethod
-    def get_agent_conf_d_path():
-        return "./test_data"
-
-    def check(self, instance):
-        instance.update({'state': TEST_STATE})
-
-
-class TopologyClearStatefulCheck(TopologyStatefulCheck):
-    def __init__(self):
-        super(TopologyClearStatefulCheck, self).__init__()
-
-    def check(self, instance):
-        instance.update({'state': None})
-
-
-class TopologyBrokenStatefulCheck(TopologyStatefulCheck):
-    def __init__(self):
-        super(TopologyBrokenStatefulCheck, self).__init__()
-
-    def check(self, instance):
-        instance.update({'state': TEST_STATE})
-
-        raise Exception("some error in my check")
 
 
 class IdentifierMappingTestAgentCheck(TopologyCheck):
@@ -500,23 +441,6 @@ class NestedIdentifierMappingTestAgentCheck(TopologyCheck):
 
     def check(self, instance):
         pass
-
-
-class StateSchema(Model):
-    offset = IntType(required=True)
-
-
-class CheckInstanceSchema(Model):
-    a = StringType(required=True)
-    state = ModelType(StateSchema, required=True, default=StateSchema({'offset': 0}))
-
-
-class TopologyStatefulSchemaCheck(TopologyStatefulCheck):
-    INSTANCE_SCHEMA = CheckInstanceSchema
-
-    def check(self, instance):
-        print(instance.a)
-        instance.state.offset = 20
 
 
 class TagsAndConfigMappingAgentCheck(TopologyCheck):
@@ -708,7 +632,7 @@ class TestBaseSanitize:
         Testing the functionality of _ensure_homogeneous_list to ensure that agent checks can only produce homogeneous
         lists
         """
-        check = AgentCheck()
+        check = AgentCheckV2()
 
         # list of ints
         check._ensure_homogeneous_list([1, 2, 3])
@@ -778,7 +702,7 @@ class TestBaseSanitize:
         Testing the functionality of _ensure_homogeneous_list, but we're calling it through the check api to ensure that
         topology and telemetry is not created when the data contains a non-homogeneous list
         """
-        check = AgentCheck()
+        check = AgentCheckV2()
 
         # ensure nothing is created for components with non-homogeneous lists
         data = {"key": "value", "intlist": [1], "emptykey": None, "nestedobject": {"nestedkey": "nestedValue"},
@@ -842,7 +766,7 @@ class TestBaseSanitize:
         Testing the functionality of _ensure_string_only_keys, but we're calling _sanitize to deal with multi-tier
         dictionaries
         """
-        check = AgentCheck()
+        check = AgentCheckV2()
 
         # valid dictionaries
         check._sanitize({'a': 1, 'c': True, 'e': 'f'})
@@ -873,7 +797,7 @@ class TestBaseSanitize:
         Testing the functionality of _ensure_string_only_keys, but we're calling it through the check api to ensure that
         topology and telemetry is not created when a dictionary contains a non-string key
         """
-        check = AgentCheck()
+        check = AgentCheckV2()
         # ensure nothing is created for components with non-string key dicts
         data = {"key": "value", "intlist": [1], "emptykey": None, "nestedobject": {"nestedkey": "nestedValue"},
                 "nonstringkeydict": {'a': 'b', 3: 'c'}}
@@ -945,53 +869,6 @@ class TestTopology:
         check = TopologyCheck()
         check.stop_snapshot()
         topology.assert_snapshot(check.check_id, check.key, stop_snapshot=True)
-
-    def test_stateful_check(self, topology, state_manager):
-        check = TopologyStatefulCheck()
-        state_manager.assert_state_check(check, expected_pre_run_state=None, expected_post_run_state=TEST_STATE)
-        # assert auto snapshotting occurred
-        topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
-
-    def test_stateful_check_config_location(self, topology, state_manager):
-        check = TopologyStatefulCheckStateLocation()
-        state_manager.assert_state_check(check, expected_pre_run_state=None, expected_post_run_state=TEST_STATE)
-        # assert auto snapshotting occurred
-        topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
-
-    def test_stateful_state_descriptor_cleanup_check(self, topology, state_manager):
-        check = TopologyStatefulStateDescriptorCleanupCheck()
-        state_descriptor = check._get_state_descriptor()
-        assert state_descriptor.instance_key == "instance.mytype.https_some.type.url"
-        assert check._get_instance_key_dict() == {'type': 'mytype', 'url': 'https://some.type.url'}
-        state_manager.assert_state_check(check, expected_pre_run_state=None, expected_post_run_state=TEST_STATE)
-        # assert auto snapshotting occurred
-        topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
-
-    def test_clear_stateful_check(self, topology, state_manager):
-        check = TopologyClearStatefulCheck()
-        # set the previous state and assert the state check function as expected
-        check.state_manager.set_state(check._get_state_descriptor(), TEST_STATE)
-        state_manager.assert_state_check(check, expected_pre_run_state=TEST_STATE, expected_post_run_state=None)
-        # assert auto snapshotting occurred
-        topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
-
-    def test_no_state_change_on_exception_stateful_check(self, topology, state_manager):
-        check = TopologyBrokenStatefulCheck()
-        # set the previous state and assert the state check function as expected
-        previous_state = {'my_old': 'state'}
-        check.state_manager.set_state(check._get_state_descriptor(), previous_state)
-        state_manager.assert_state_check(check, expected_pre_run_state=previous_state,
-                                         expected_post_run_state=previous_state)
-        # assert auto snapshotting occurred
-        topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=False)
-
-    def test_stateful_schema_check(self, topology, state_manager):
-        check = TopologyStatefulSchemaCheck()
-        # assert the state check function as expected
-        state_manager.assert_state_check(check, expected_pre_run_state=None,
-                                         expected_post_run_state=StateSchema({'offset': 20}), state_schema=StateSchema)
-        # assert auto snapshotting occurred
-        topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
 
     def test_none_data_ok(self, topology):
         check = TopologyCheck()
@@ -1406,3 +1283,326 @@ class TestDataDogPersistentCache:
 
         assert datadog_agent.read_persistent_cache(check._persistent_cache_id('foo')) == ''
         assert check.read_persistent_cache('foo') == ''
+
+
+class SampleStatefulCheck(StatefulAgentCheck):
+    """
+    This test class is uses dictionaries for instance and state.
+    """
+    INSTANCE_TYPE = "stateful_check"
+
+    def __init__(self, name, init_config, agentConfig, instances=None):
+        super(SampleStatefulCheck, self).__init__(name, init_config, agentConfig, instances)
+
+    def stateful_check(self, instance, state):
+        state["key3"] = "ghi"
+        return state, None
+
+    def get_instance_key(self, instance):
+        return StackPackInstance(self.INSTANCE_TYPE, instance.get("url", ""))
+
+
+@pytest.fixture
+def sample_stateful_check(state, aggregator):
+    check = SampleStatefulCheck('test01', {}, {}, instances=[TEST_INSTANCE])
+    yield check
+    state.reset()
+    aggregator.reset()
+
+
+class InstanceInfo(Model):
+    url = URLType(required=True)
+    instance_tags = ListType(StringType, default=[])
+
+
+class State(Model):
+    offset = IntType(default=0)
+
+
+class SampleStatefulCheckWithSchema(StatefulAgentCheck):
+    """
+    This class uses instance schema and state schema.
+    """
+    INSTANCE_TYPE = "stateful_check"
+    INSTANCE_SCHEMA = InstanceInfo
+    STATE_SCHEMA = State
+
+    def __init__(self, name, init_config, agentConfig, instances=None):
+        super(SampleStatefulCheckWithSchema, self).__init__(name, init_config, agentConfig, instances)
+
+    def stateful_check(self, instance, state):
+        state.offset += 10
+        return state, None
+
+    def get_instance_key(self, instance):
+        return StackPackInstance(self.INSTANCE_TYPE, str(instance.url))
+
+
+@pytest.fixture
+def sample_stateful_check_with_schema(state, aggregator):
+    check = SampleStatefulCheckWithSchema('test02', {}, {}, instances=[TEST_INSTANCE])
+    yield check
+    state.reset()
+    aggregator.reset()
+
+
+class TestStatefulCheck:
+
+    def test_instance_key_generation(self):
+        test_instance = {
+            'url': 'http://example.org/api?query_string=123&another=456'
+        }
+        check = SampleStatefulCheck('test01', {}, {}, [test_instance])
+        check.setup()
+        assert check.state._get_state_key('test_key') == \
+               "stateful_check_httpexampleorgapiquery_string123another456_test_key"
+
+    def test_stateful_check(self, sample_stateful_check, state, aggregator):
+        sample_stateful_check.run()
+
+        key = get_test_state_key(sample_stateful_check)
+        expected_state = {
+            "key3": "ghi"
+        }
+        assert sample_stateful_check.get_state() == expected_state
+        assert state.get_state(sample_stateful_check,
+                               sample_stateful_check.check_id,
+                               key) == json.dumps(expected_state)
+        aggregator.assert_service_check(sample_stateful_check.name, count=1, status=AgentCheckV2.OK)
+
+    def test_stateful_check_state_exists(self, sample_stateful_check, state, aggregator):
+        """
+        State is dictionary in SampleStatefulCheck, so we don't have restrictions to modify state structure.
+        """
+        # setup existing state
+        key = get_test_state_key(sample_stateful_check)
+        existing_state = '{"key1": "abc", "key2": "def"}'
+        state.set_state(sample_stateful_check,
+                        sample_stateful_check.check_id,
+                        key,
+                        existing_state)
+
+        # run check to create new state
+        sample_stateful_check.run()
+        expected_state = {
+            "key1": "abc",
+            "key2": "def",
+            "key3": "ghi"
+        }
+        assert sample_stateful_check.get_state() == expected_state
+        assert state.get_state(sample_stateful_check,
+                               sample_stateful_check.check_id,
+                               key) == json.dumps(expected_state)
+        aggregator.assert_service_check(sample_stateful_check.name, count=1, status=AgentCheckV2.OK)
+
+    def test_stateful_check_with_schema(self, sample_stateful_check_with_schema, state, aggregator):
+        sample_stateful_check_with_schema.run()
+        key = get_test_state_key(sample_stateful_check_with_schema)
+        expected_state = State({"offset": 10})
+        assert sample_stateful_check_with_schema.get_state() == expected_state
+        assert state.get_state(sample_stateful_check_with_schema,
+                               sample_stateful_check_with_schema.check_id,
+                               key) == json.dumps(expected_state.to_primitive())
+        aggregator.assert_service_check(sample_stateful_check_with_schema.name, count=1, status=AgentCheckV2.OK)
+
+    def test_stateful_check_with_schema_existing_state(self, sample_stateful_check_with_schema, state, aggregator):
+        # setup existing state
+        key = get_test_state_key(sample_stateful_check_with_schema)
+        existing_state = '{"offset": 20}'
+        state.set_state(sample_stateful_check_with_schema,
+                        sample_stateful_check_with_schema.check_id,
+                        key,
+                        existing_state)
+
+        # run the check to alter state
+        sample_stateful_check_with_schema.run()
+        expected_state = State({"offset": 30})
+        assert sample_stateful_check_with_schema.get_state() == expected_state
+        assert state.get_state(sample_stateful_check_with_schema,
+                               sample_stateful_check_with_schema.check_id,
+                               key) == json.dumps(expected_state.to_primitive())
+        aggregator.assert_service_check(sample_stateful_check_with_schema.name, count=1, status=AgentCheckV2.OK)
+
+    def test_stateful_check_with_invalid_schema(self, sample_stateful_check_with_schema, state, aggregator):
+        # setup invalid existing state
+        key = get_test_state_key(sample_stateful_check_with_schema)
+        existing_state = '{"key_that_is_not_in_schema": "some_value"}'
+        state.set_state(sample_stateful_check_with_schema,
+                        sample_stateful_check_with_schema.check_id,
+                        key,
+                        existing_state)
+
+        # run the check that should be critical
+        sample_stateful_check_with_schema.run()
+        aggregator.assert_service_check(sample_stateful_check_with_schema.name, count=1, status=AgentCheckV2.CRITICAL)
+        service_check = aggregator.service_checks(sample_stateful_check_with_schema.name)
+        # error should Schema validation error
+        assert service_check[0].message == '{"key_that_is_not_in_schema": "Rogue field"}'
+
+
+class NormalCheck(AgentCheckV2):
+    def __init__(self, *args, **kwargs):
+        instances = [{'a': 'b'}]
+        super(NormalCheck, self).\
+            __init__("test", {}, instances)
+
+    def check(self, instance):
+        return
+
+
+class TransactionalCheck(TransactionalAgentCheck):
+    def __init__(self, key=None, *args, **kwargs):
+        instances = [{'a': 'b'}]
+        super(TransactionalCheck, self). \
+            __init__("test", {}, instances)
+
+    def get_instance_key(self, instance):
+        return StackPackInstance("test", "transactional")
+
+    def transactional_check(self, instance, state):
+        return state, None
+
+
+class InstanceInfoSchemaCheck(Model):
+    url = URLType(required=True)
+    instance_tags = ListType(StringType, default=[])
+
+
+class StateSchema(Model):
+    updated = BooleanType(default=False)
+
+
+class StatefulCheck(StatefulAgentCheck):
+    def __init__(self, key=None, *args, **kwargs):
+        instances = [{'a': 'b'}]
+        super(StatefulCheck, self). \
+            __init__("test", {}, instances)
+
+    def get_instance_key(self, instance):
+        return StackPackInstance("test", "stateful")
+
+    def stateful_check(self, instance, state):
+
+        state['updated'] = True
+
+        return state, None
+
+
+class StatefulSchemaCheck(StatefulAgentCheck):
+    INSTANCE_SCHEMA = InstanceInfoSchemaCheck
+    STATE_SCHEMA = StateSchema
+
+    def __init__(self, key=None, *args, **kwargs):
+        instances = [{'url': 'https://stateful-check.url'}]
+        super(StatefulSchemaCheck, self). \
+            __init__("test", {}, instances)
+
+    def get_instance_key(self, instance):
+        return StackPackInstance("test", str(instance.url))
+
+    def stateful_check(self, instance, state):
+
+        state.updated = True
+
+        return state, None
+
+
+class TransactionalStateCheck(TransactionalAgentCheck):
+    def __init__(self, key=None, *args, **kwargs):
+        instances = [{'a': 'b'}]
+        super(TransactionalStateCheck, self). \
+            __init__("test", {}, instances)
+
+    def get_instance_key(self, instance):
+        return StackPackInstance("test", "transactional-state")
+
+    def transactional_check(self, instance, state):
+
+        state['transactional'] = True
+
+        self.set_state({"state": "set_state"})
+
+        return state, None
+
+
+class TransactionalStateSchema(Model):
+    updated = BooleanType(default=False)
+
+
+class TransactionalStateSchemaCheck(TransactionalAgentCheck):
+    INSTANCE_SCHEMA = InstanceInfoSchemaCheck
+    STATE_SCHEMA = TransactionalStateSchema
+
+    def __init__(self, key=None, *args, **kwargs):
+        instances = [{'url': 'https://transactional-state-check.url'}]
+        super(TransactionalStateSchemaCheck, self).__init__("test", {}, instances)
+
+    def get_instance_key(self, instance):
+        return StackPackInstance("test", str(instance.url))
+
+    def transactional_check(self, instance, state):
+
+        state.transactional = True
+
+        self.set_state({"state": "set_state"})
+
+        return state, None
+
+
+def get_test_state_key(check, key=None):
+    if key is None:
+        key = check.PERSISTENT_CACHE_KEY
+
+    return generate_state_key(check._get_instance_key().to_string(), key)
+
+
+class TestAgentChecksV2:
+
+    def test_normal_check(self):
+        check = NormalCheck()
+        check.run()
+
+    def test_transactional_check(self, transaction):
+        check = TransactionalCheck()
+        assert check.run() == ""
+
+        transaction.assert_transaction(check.check_id)
+
+    def test_stateful_check(self, state):
+        check = StatefulCheck()
+        check.run()
+
+        expected_state = {
+            "updated": True
+        }
+
+        key = get_test_state_key(check)
+        assert state.get_state(check, check.check_id, key) == json.dumps(expected_state)
+
+    def test_stateful_schema_check(self, state):
+        check = StatefulSchemaCheck()
+        check.run()
+
+        expected_state = StateSchema({"updated": True})
+
+        key = get_test_state_key(check)
+        assert check.get_state() == expected_state
+        assert state.get_state(check, check.check_id, key) == json.dumps(expected_state.to_primitive())
+
+    def test_transactional_state_check(self, transaction, state):
+        check = TransactionalStateCheck()
+        assert check.run() == ""
+
+        transaction.assert_transaction(check.check_id)
+
+        expected_transactional_state = {
+            "transactional": True
+        }
+
+        key = get_test_state_key(check, check.TRANSACTIONAL_PERSISTENT_CACHE_KEY)
+        assert state.get_state(check, check.check_id, key) == json.dumps(expected_transactional_state)
+
+        expected_state = {"state": "set_state"}
+
+        key = get_test_state_key(check)
+        assert state.get_state(check, check.check_id, key) == json.dumps(expected_state)

@@ -12,11 +12,11 @@ import unicodedata
 from collections import defaultdict
 from functools import reduce
 from os.path import basename
-from typing import Any, Set, Dict, Sequence, List, Optional, Union, AnyStr, TypeVar
 
 import yaml
 from schematics import Model
 from six import PY3, iteritems, iterkeys, text_type, string_types, integer_types
+from typing import Any, Set, Dict, Sequence, List, Optional, Union, AnyStr, TypeVar
 
 from ..utils.health_api import HealthStream
 
@@ -26,7 +26,7 @@ try:
 
     init_logging()
 except ImportError:
-    from ..stubs.datadog_agent import datadog_agent
+    from ..stubs import datadog_agent
     from ..stubs.log import init_logging
 
     init_logging()
@@ -97,6 +97,9 @@ class _TopologyInstanceBase(object):
 
     def to_dict(self):
         return {"type": self.type, "url": self.url}
+
+    def to_string(self):
+        return "{}_{}".format(self.type, self.url)
 
     def tags(self):
         return ["integration-type:{}".format(self.type), "integration-url:{}".format(self.url)]
@@ -525,9 +528,8 @@ class AgentCheck(object):
         proxies = proxies if proxies is not None else self.proxies.copy()
 
         deprecated_skip = instance.get('no_proxy', None)
-        skip = (
-            is_affirmative(instance.get('skip_proxy', not self._use_agent_proxy)) or is_affirmative(deprecated_skip)
-        )
+        skip = (is_affirmative(instance.get('skip_proxy', not self._use_agent_proxy)) or
+                is_affirmative(deprecated_skip))
 
         if deprecated_skip is not None:
             self._log_deprecation('no_proxy')
@@ -1272,7 +1274,7 @@ class AgentCheck(object):
     def get_check_state_path(self):
         # type: () -> str
         """
-        get_check_state_path returns the path where the check state is stored. By default the check configuration
+        get_check_state_path returns the path where the check state is stored. By default, the check configuration
         location will be used. If state_location is set in the check configuration that will be used instead.
         """
         state_location = self.instance.get("state_location", self.get_agent_conf_d_path())

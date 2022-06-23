@@ -82,6 +82,38 @@ except ImportError:
     def health():
         raise ImportError('stackstate-checks-base is not installed!')
 
+try:
+    from stackstate_checks.base.stubs import state as __state
+
+    @pytest.fixture
+    def state():
+        """This fixture returns a mocked Agent state api with state cleared."""
+        __state.reset()
+        return __state
+
+except ImportError:
+    __state = None
+
+    @pytest.fixture
+    def state():
+        raise ImportError('stackstate-checks-base is not installed!')
+
+try:
+    from stackstate_checks.base.stubs import transaction as __transaction
+
+    @pytest.fixture
+    def transaction():
+        """This fixture returns a mocked Agent transaction api with state cleared."""
+        __transaction.reset()
+        return __transaction
+
+except ImportError:
+    __transaction = None
+
+    @pytest.fixture
+    def transaction():
+        raise ImportError('stackstate-checks-base is not installed!')
+
 
 @pytest.fixture(scope='session', autouse=True)
 def sts_environment_runner(request):
@@ -212,7 +244,7 @@ def sts_agent_check(request, aggregator):
 
 
 @pytest.fixture
-def state():
+def state_manager():
     logger = logging.getLogger(__name__)
 
     class PersistentStateFixture:
