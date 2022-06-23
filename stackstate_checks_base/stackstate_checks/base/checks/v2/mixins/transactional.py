@@ -1,5 +1,4 @@
-from schematics import Model
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional
 
 from .stateful import StatefulMixin
 from ..types import StateType

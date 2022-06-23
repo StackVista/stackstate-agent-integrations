@@ -1,10 +1,9 @@
-from schematics import Model
-from typing import Any, Dict, Optional, Union
+from typing import Optional
 
 from .base import AgentCheckV2
 from .check_error import CheckError
-from .types import InstanceType, StateType
 from .mixins import TransactionalMixin
+from .types import InstanceType, StateType
 
 
 class TransactionalAgentCheck(TransactionalMixin, AgentCheckV2):

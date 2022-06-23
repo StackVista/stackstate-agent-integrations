@@ -1,5 +1,5 @@
 from schematics import Model
-from typing import Any, Optional, Type, Union, Dict
+from typing import Any, Optional
 
 from .mixins import CheckMixin
 from ..types import StateType
