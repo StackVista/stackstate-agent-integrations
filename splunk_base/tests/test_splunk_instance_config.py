@@ -3,17 +3,8 @@ import unittest
 import copy
 
 # project
-from stackstate_checks.splunk.config import AuthType, SplunkInstanceConfig, CommittableState
+from stackstate_checks.splunk.config import AuthType, SplunkInstanceConfig
 from stackstate_checks.base.errors import CheckException
-
-
-class MockedCommittableState(CommittableState):
-    def __init__(self, state):
-        self.state = state
-        self.committed = None
-
-    def commit(self):
-        self.committed = copy.deepcopy(self.state)
 
 
 mock_defaults = {

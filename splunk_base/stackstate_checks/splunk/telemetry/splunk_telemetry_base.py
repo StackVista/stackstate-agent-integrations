@@ -1,35 +1,17 @@
 import sys
 
 from stackstate_checks.base import AgentCheck, TopologyInstance
+from stackstate_checks.base.checks import TransactionalAgentCheck
 from stackstate_checks.base.errors import CheckException
 from stackstate_checks.splunk.client import TokenExpiredException, SplunkClient
-from stackstate_checks.splunk.config import CommittableState
+from stackstate_checks.splunk.config import SplunkPersistedState
 from stackstate_checks.splunk.config.splunk_instance_config import time_to_seconds, take_required_field, \
     SplunkInstanceConfig, SplunkSavedSearch
 from stackstate_checks.splunk.saved_search_helper.saved_search_helper import SavedSearches
+from stackstate_checks.splunk.telemetry.splunk_telemetry import SplunkTelemetryInstance
 
 
-# TODO refactor class to reuse v2 classes
-
-class SplunkTelemetryBaseInstance(object):
-    INSTANCE_TYPE = "splunk"
-
-    def __init__(self, instance, init_config, default_settings):
-        self.instance_config = SplunkInstanceConfig(instance, init_config, default_settings)
-        self.splunk_client = self._build_splunk_client()
-
-        # transform component and relation saved searches to SavedSearch objects
-        saved_searches = [SplunkSavedSearch(self.instance_config, saved_search_instance)
-                          for saved_search_instance in instance.get('saved_searches', [])]
-
-        self.saved_searches = SavedSearches(self.instance_config, self.splunk_client, saved_searches)
-
-    # Hook to allow for mocking
-    def _build_splunk_client(self):
-        return SplunkClient(self.instance_config)
-
-
-class SplunkTelemetryBase(AgentCheck):
+class SplunkTelemetryBase(TransactionalAgentCheck):
     SERVICE_CHECK_NAME = None  # must be set in the subclasses
     basic_default_fields = {'index', 'linecount', 'punct', 'source', 'sourcetype', 'splunk_server', 'timestamp'}
     date_default_fields = {'date_hour', 'date_mday', 'date_minute', 'date_month', 'date_second', 'date_wday',
@@ -42,46 +24,52 @@ class SplunkTelemetryBase(AgentCheck):
         self.instance_data = None
 
     def get_instance_key(self, instance):
-        return TopologyInstance(SplunkTelemetryBaseInstance.INSTANCE_TYPE, instance["url"])
+        return TopologyInstance(SplunkTelemetryInstance.INSTANCE_TYPE, instance["url"])
 
-    # Hook to override instance creation
-    def _build_instance(self, instance):
-        """ Build instance object with default settings. """
+    def get_instance(self, instance, current_time):
         raise NotImplementedError
-        # return SplunkTelemetryBaseInstance(instance, self.init_config, default_settings)
 
-    def check(self, instance):
-        if self.instance_data is None:
-            self.instance_data = self._build_instance(instance)
+    def transactional_check(self, instance, persisted_state, transactional_state):
 
-        committable_state = CommittableState(self.commit_state, self.load_state(instance))
+        current_time = self._current_time_seconds()
+        url = instance["url"]
+        if url not in self.instance_data:
+            self.instance_data[url] = self.get_instance(instance, current_time)
+
+        pstate = SplunkPersistedState(persisted_state)
+
 
         instance = self.instance_data
 
-        self.health.start_snapshot()
-
         try:
-            instance.splunk_client.auth_session(committable_state)
+            instance.splunk_client.auth_session(pstate)
 
             def _service_check(status, tags=None, hostname=None, message=None):
                 self.service_check(self.SERVICE_CHECK_NAME, status, tags, hostname, message)
 
-            def _process_data(saved_search, response):
-                return self._extract_telemetry(saved_search, instance, response)
+            def _process_data(saved_search, response, sent_already):
+                return self._extract_telemetry(saved_search, instance, response, sent_already)
 
-            instance.saved_searches.run_saved_searches(_process_data, _service_check, self.log, committable_state)
+            instance.saved_searches.run_saved_searches(_process_data, _service_check, self.log, pstate)
 
-            self.health.stop_snapshot()
+
+            # If no service checks were produced, everything is ok
+            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK)
+
+            return pstate.state, None
+
         except TokenExpiredException as e:
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=instance.instance_config.tags,
                                message=str(e.message))
             self.log.exception("Splunk metric exception: %s" % str(e))
+            return transactional_state.get_state(), e
         except Exception as e:
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=instance.instance_config.tags,
                                message=str(e))
             self.log.exception("Splunk metric exception: %s" % str(e))
             if not instance.instance_config.ignore_saved_search_errors:
                 raise CheckException("Splunk metric failed with message: %s" % e, None, sys.exc_info()[2])
+            return transactional_state.get_state(), e
 
     def _extract_telemetry(self, saved_search, instance, result, sent_already):
         for data in result["results"]:
@@ -125,11 +113,23 @@ class SplunkTelemetryBase(AgentCheck):
             if self._include_as_tag(key)
         }
 
+    def _current_time_seconds(self):
+        """ This method is mocked for testing. Do not change its behavior """
+        return int(round(time.time()))
+
     def _include_as_tag(self, key):
         return not key.startswith('_') and key not in self.basic_default_fields.union(self.date_default_fields)
 
-    def load_state(self, instance):
-        state = instance.get(self.STATE_FIELD_NAME)
-        if state is None:
-            state = {}
-        return state
+    def _search_key(self, search_name):
+        return "%s_%s" % (SID_KEY_BASE, search_name)
+
+    def get_sid(self, search_name):
+        return self.state.get(self._search_key(search_name))
+
+    def set_sid(self, search_name, sid):
+        self.state[self._search_key(search_name)] = sid
+        self.commit()
+
+    def remove_sid(self, search_name):
+        self.state.pop(self._search_key(search_name), None)
+        self.commit()

@@ -20,19 +20,19 @@ class SavedSearches(object):
         self.searches = list(filter(lambda ss: ss.name is not None, saved_searches))
         self.matches = list(filter(lambda ss: ss.match is not None, saved_searches))
 
-    def run_saved_searches(self, process_data, service_check, log, committable_state):
+    def run_saved_searches(self, process_data, service_check, log, persisted_state):
         new_saved_searches = self.splunk_client.saved_searches()
         self._update_searches(log, new_saved_searches)
         all_success = True
 
         for saved_searches_chunk in chunks(self.searches, self.instance_config.saved_searches_parallel):
-            all_success &= self._dispatch_and_await_search(process_data, service_check, log, committable_state,
+            all_success &= self._dispatch_and_await_search(process_data, service_check, log, persisted_state,
                                                            saved_searches_chunk)
 
         if all_success:
             service_check(AgentCheck.OK)
 
-    def _update_searches(self, log, saved_searches):
+    def _update_searches(self, log, saved_searches):  # same as v1 SavedSearches.update_searches
         """
         Take an existing list of saved searches and update the current state with that list
 
@@ -54,16 +54,16 @@ class SavedSearches(object):
                     self.searches.append(search)
                     break
 
-    def _dispatch_and_await_search(self, process_data, service_check, log, committable_state, saved_searches):
+    def _dispatch_and_await_search(self, process_data, service_check, log, persisted_state, saved_searches):
         start_time = time.time()
 
         # don't dispatch if sids present
         for saved_search in saved_searches:
             try:
-                sid = committable_state.get_sid(saved_search.name)
+                sid = persisted_state.get_sid(saved_search.name)
                 if sid is not None:
                     self.splunk_client.finalize_sid(sid, saved_search)
-                    committable_state.remove_sid(saved_search.name)
+                    persisted_state.remove_sid(saved_search.name)
             except FinalizeException as e:
                 log.exception(
                     "Got an error %s while finalizing the saved search %s" % (e.message, saved_search.name))
@@ -71,7 +71,7 @@ class SavedSearches(object):
                     raise e
                 log.warning("Ignoring finalize exception as ignore_saved_search_errors flag is true.")
 
-        search_ids = [(self._dispatch_saved_search(log, committable_state, saved_search), saved_search)
+        search_ids = [(self._dispatch_saved_search(log, persisted_state, saved_search), saved_search)
                       for saved_search in saved_searches]
 
         all_success = True
@@ -89,6 +89,9 @@ class SavedSearches(object):
         count = 0
         fail_count = 0
 
+        sent_events = saved_search.last_observed_telemetry
+        saved_search.last_observed_telemetry = set()
+
         try:
             responses = self.splunk_client.saved_search_results(search_id, saved_search)
 
@@ -99,7 +102,7 @@ class SavedSearches(object):
                             "Received unhandled message for saved search %s, got: %s" % (saved_search.name, message))
 
                 count += len(response["results"])
-                fail_count += process_data(saved_search, response)
+                fail_count += process_data(saved_search, response, sent_events)
 
             log.debug(
                 "Saved search done: %s in time %d with results %d of which %d failed" % (
@@ -134,7 +137,7 @@ class SavedSearches(object):
 
         return True
 
-    def _dispatch_saved_search(self, log, committable_state, saved_search):
+    def _dispatch_saved_search(self, log, persisted_state, saved_search):
         """
         Initiate a saved search, returning the search id
         :param instance: Instance of the splunk instance
@@ -151,7 +154,7 @@ class SavedSearches(object):
         sid = self.splunk_client.dispatch(saved_search, splunk_app,
                                           self.instance_config.ignore_saved_search_errors,
                                           parameters)
-        committable_state.set_sid(saved_search.name, sid)
+        persisted_state.set_sid(saved_search.name, sid)
         return sid
 
 

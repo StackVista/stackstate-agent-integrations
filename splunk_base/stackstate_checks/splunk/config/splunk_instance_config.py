@@ -10,21 +10,19 @@ AUTH_TOKEN_KEY = "auth_token"
 SID_KEY_BASE = "sid"
 
 
-class CommittableState(object):
+class SplunkPersistedState(object):
     """
     Helper class to abstract away state that can be committed. Exposes data an a commit function
     """
 
-    def __init__(self, commit_function, state):
-        self.state = state
-        self.commit_function = commit_function
+    def __init__(self, persisted_state):
+        self.state = persisted_state
 
     def get_auth_token(self):
         return self.state.get(AUTH_TOKEN_KEY)
 
     def set_auth_token(self, token):
         self.state[AUTH_TOKEN_KEY] = token
-        self.commit()
 
     def _search_key(self, search_name):
         return "%s_%s" % (SID_KEY_BASE, search_name)
@@ -34,14 +32,9 @@ class CommittableState(object):
 
     def set_sid(self, search_name, sid):
         self.state[self._search_key(search_name)] = sid
-        self.commit()
 
     def remove_sid(self, search_name):
         self.state.pop(self._search_key(search_name), None)
-        self.commit()
-
-    def commit(self):
-        self.commit_function(self.state)
 
 
 class AuthType(Enum):

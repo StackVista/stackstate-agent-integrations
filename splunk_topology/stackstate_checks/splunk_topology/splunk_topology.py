@@ -11,7 +11,7 @@ from stackstate_checks.base.errors import CheckException
 from stackstate_checks.splunk.client import TokenExpiredException, SplunkClient
 
 from stackstate_checks.splunk.config.splunk_instance_config import SplunkSavedSearch, SplunkInstanceConfig, \
-    CommittableState, take_optional_field
+    SplunkPersistedState, take_optional_field
 from stackstate_checks.splunk.saved_search_helper import SavedSearches
 
 
@@ -95,7 +95,7 @@ class SplunkTopology(AgentCheck):
         if self.instance_data is None:
             self.instance_data = self._build_instance(instance)
 
-        committable_state = CommittableState(self.commit_state, self.load_state(instance))
+        committable_state = SplunkPersistedState(self.commit_state, self.load_state(instance))
 
         instance = self.instance_data
 
