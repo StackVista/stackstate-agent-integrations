@@ -10,8 +10,7 @@ import datetime
 
 # project
 from stackstate_checks.splunk.client import SplunkClient, FinalizeException, TokenExpiredException
-from stackstate_checks.splunk.config import AuthType
-from test_splunk_instance_config import SplunkPersistedState
+from stackstate_checks.splunk.config import AuthType, SplunkPersistentState
 
 
 class FakeInstanceConfig(object):
@@ -297,7 +296,7 @@ class TestSplunkClient(unittest.TestCase):
         Test token_auth_session when memory token is valid and doesn't need renewal
         """
         # load a token in memory for validation
-        status = SplunkPersistedState({})
+        status = SplunkPersistentState({})
         status.set_auth_token('memorytokenpresent')
         config = FakeInstanceConfig()
         config.auth_type = AuthType.TokenAuth
@@ -323,7 +322,7 @@ class TestSplunkClient(unittest.TestCase):
         """
         new_token = json.loads(mocked_token_create_response()).get('entry')[0].get('content').get('token')
 
-        status = SplunkPersistedState({})
+        status = SplunkPersistentState({})
         config = FakeInstanceConfig()
         config.auth_type = AuthType.TokenAuth
 
@@ -350,7 +349,7 @@ class TestSplunkClient(unittest.TestCase):
         """
         new_token = json.loads(mocked_token_create_response()).get('entry')[0].get('content').get('token')
 
-        status = SplunkPersistedState({})
+        status = SplunkPersistentState({})
         # load a token in memory for validation
         status.set_auth_token('memorytokenpresent')
         config = FakeInstanceConfig()
@@ -375,7 +374,7 @@ class TestSplunkClient(unittest.TestCase):
         """
         Test token_auth_session to throw TokenExpiredException when initial token is expired
         """
-        status = SplunkPersistedState({})
+        status = SplunkPersistentState({})
         config = FakeInstanceConfig()
         config.auth_type = AuthType.TokenAuth
 
@@ -398,7 +397,7 @@ class TestSplunkClient(unittest.TestCase):
         """
         Test token_auth_session to throw TokenExpiredException when memory token is expired
         """
-        status = SplunkPersistedState({})
+        status = SplunkPersistentState({})
         # load a token in memory for validation
         status.set_auth_token('memorytokenpresent')
         config = FakeInstanceConfig()

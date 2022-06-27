@@ -3,9 +3,9 @@ import unittest
 import logging
 
 # project
-from stackstate_checks.splunk.config import SplunkInstanceConfig, SplunkSavedSearch
+from stackstate_checks.splunk.config import SplunkInstanceConfig, SplunkSavedSearch, SplunkPersistentState
 from stackstate_checks.splunk.client import FinalizeException
-from test_splunk_instance_config import SplunkPersistedState, mock_defaults
+from test_splunk_instance_config import mock_defaults
 from stackstate_checks.splunk.saved_search_helper import SavedSearches
 from stackstate_checks.base import AgentCheck
 from stackstate_checks.base.errors import CheckException
@@ -85,7 +85,7 @@ class TestSplunkInstanceConfig(unittest.TestCase):
 
     def setUp(self):
         self.log = logging.getLogger('%s' % __name__)
-        self.committable_state = SplunkPersistedState({})
+        self.committable_state = SplunkPersistentState({})
         self.mock_service_check = MockServiceCheck()
         self.mock_process_data = MockProcessData()
         self.mock_splunk_client = MockSplunkClient()

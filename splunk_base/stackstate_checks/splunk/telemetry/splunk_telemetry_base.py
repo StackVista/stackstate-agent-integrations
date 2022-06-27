@@ -1,13 +1,11 @@
 import sys
 
 from stackstate_checks.base import AgentCheck, TopologyInstance
-from stackstate_checks.base.checks import TransactionalAgentCheck
+from stackstate_checks.base.checks import TransactionalAgentCheck, CheckResponse
 from stackstate_checks.base.errors import CheckException
-from stackstate_checks.splunk.client import TokenExpiredException, SplunkClient
-from stackstate_checks.splunk.config import SplunkPersistedState
-from stackstate_checks.splunk.config.splunk_instance_config import time_to_seconds, take_required_field, \
-    SplunkInstanceConfig, SplunkSavedSearch
-from stackstate_checks.splunk.saved_search_helper.saved_search_helper import SavedSearches
+from stackstate_checks.splunk.client import TokenExpiredException
+from stackstate_checks.splunk.config import SplunkPersistentState
+from stackstate_checks.splunk.config.splunk_instance_config import time_to_seconds, take_required_field
 from stackstate_checks.splunk.telemetry.splunk_telemetry import SplunkTelemetryInstance
 
 
@@ -29,15 +27,14 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
     def get_instance(self, instance, current_time):
         raise NotImplementedError
 
-    def transactional_check(self, instance, persisted_state, transactional_state):
+    def transactional_check(self, instance, transactional_state, persistent_state):
 
         current_time = self._current_time_seconds()
         url = instance["url"]
         if url not in self.instance_data:
             self.instance_data[url] = self.get_instance(instance, current_time)
 
-        pstate = SplunkPersistedState(persisted_state)
-
+        pstate = SplunkPersistentState(persistent_state)
 
         instance = self.instance_data
 
@@ -56,20 +53,26 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
             # If no service checks were produced, everything is ok
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK)
 
-            return pstate.state, None
+            return CheckResponse(transactional_state=transactional_state,
+                                 persistent_state=pstate.state,
+                                 check_error=None)
 
         except TokenExpiredException as e:
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=instance.instance_config.tags,
                                message=str(e.message))
             self.log.exception("Splunk metric exception: %s" % str(e))
-            return transactional_state.get_state(), e
+            return CheckResponse(transactional_state=transactional_state,
+                                 persistent_state=pstate.state,
+                                 check_error=e)
         except Exception as e:
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=instance.instance_config.tags,
                                message=str(e))
             self.log.exception("Splunk metric exception: %s" % str(e))
             if not instance.instance_config.ignore_saved_search_errors:
                 raise CheckException("Splunk metric failed with message: %s" % e, None, sys.exc_info()[2])
-            return transactional_state.get_state(), e
+            return CheckResponse(transactional_state=transactional_state,
+                                 persistent_state=pstate.state,
+                                 check_error=e)
 
     def _extract_telemetry(self, saved_search, instance, result, sent_already):
         for data in result["results"]:
@@ -120,16 +123,3 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
     def _include_as_tag(self, key):
         return not key.startswith('_') and key not in self.basic_default_fields.union(self.date_default_fields)
 
-    def _search_key(self, search_name):
-        return "%s_%s" % (SID_KEY_BASE, search_name)
-
-    def get_sid(self, search_name):
-        return self.state.get(self._search_key(search_name))
-
-    def set_sid(self, search_name, sid):
-        self.state[self._search_key(search_name)] = sid
-        self.commit()
-
-    def remove_sid(self, search_name):
-        self.state.pop(self._search_key(search_name), None)
-        self.commit()

@@ -10,13 +10,13 @@ AUTH_TOKEN_KEY = "auth_token"
 SID_KEY_BASE = "sid"
 
 
-class SplunkPersistedState(object):
+class SplunkPersistentState(object):
     """
     Helper class to abstract away state that can be committed. Exposes data an a commit function
     """
 
-    def __init__(self, persisted_state):
-        self.state = persisted_state
+    def __init__(self, persistent_state):
+        self.state = persistent_state
 
     def get_auth_token(self):
         return self.state.get(AUTH_TOKEN_KEY)
