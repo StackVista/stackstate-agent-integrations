@@ -4,9 +4,8 @@ import traceback
 
 from typing import Any, Optional
 
-from .instance_type import InstanceType
+from .types import InstanceType, CheckResponse
 from .mixins import HealthMixin
-from .check_error import CheckError
 from ..base import AgentCheck
 from ...utils.common import to_string
 
@@ -24,26 +23,34 @@ DEFAULT_RESULT = to_string(b'')
 
 class AgentCheckV2Base(AgentCheck):
     """
-    AgentCheckV2Base
+    AgentCheckV2Base is the base class for V2 of Agent Checks. The key difference being that for V2 checks the check
+    method requires an Optional[CheckError] as a return value and allows the check base to act accordingly given the
+    result of the check run.
     """
 
-    def check(self, instance):  # type: (InstanceType) -> Optional[CheckError]
+    def check(self, instance):  # type: (InstanceType) -> CheckResponse
         """
-        @param instance: InstanceType represents the instance type for this agent check
-        @return: Optional[CheckError] returns an optional CheckError
+        check is the entry point for Agent Checks. This must be overridden.
+
+        @param instance: InstanceType instance of the check implemented by get_instance_key().
+        @return: Optional[CheckError] if an error occurs during the check the exception / error is returned.
         """
         raise NotImplementedError
 
     def setup(self):  # type: () -> None
         """
-
-        @return:
+        setup is an abstract method that can be overridden by check mixins to "setup" the mixin and make it ready for
+        the check runs.
+        @return: None
         """
-
         pass
 
-    def on_success(self):
-        # type: () -> None
+    def on_success(self):  # type: () -> None
+        """
+        on_success is an abstract method that can be overridden by check mixins to perform some actions upon a
+        successful check run.
+        @return: None
+        """
         pass
 
     def __init__(self, *args, **kwargs):
@@ -58,10 +65,12 @@ class AgentCheckV2Base(AgentCheck):
         """
         super(AgentCheckV2Base, self).__init__(*args, **kwargs)
 
-    def run(self):
-        # type: () -> str
+    def run(self):  # type: () -> str
         """
-        Runs stateful check.
+        run is the entrypoint for the StackState Agent when scheduling and running agent checks.
+
+        @return: string representing the result of the check run. If the check was successful run returns an empty
+        string.
         """
         instance_tags = None
         try:
@@ -83,8 +92,11 @@ class AgentCheckV2Base(AgentCheck):
 
             check_result = self.check(check_instance)
 
-            if check_result:
-                raise check_result
+            if check_result and check_result.check_error:
+                raise check_result.check_error
+
+            # Call on_success on the mixins
+            self.on_success()
 
             # stop auto snapshot if with_snapshots is set to True
             if self._get_instance_key().with_snapshots:
@@ -110,7 +122,16 @@ class AgentCheckV2Base(AgentCheck):
 
 
 class AgentCheckV2(HealthMixin, AgentCheckV2Base):
+    """
+    AgentCheckV2 is the AgentCheck base class for all V2 Agent Checks. Checks that extend this must override the check
+    method.
+    """
 
-    def check(self, instance):
-        # type: (InstanceType) -> Optional[CheckError]
+    def check(self, instance):  # type: (InstanceType) -> CheckResponse
+        """
+        check is the entry point for V2 Agent Checks. This must be overridden.
+
+        @param instance: InstanceType instance of the check implemented by get_instance_key().
+        @return: Optional[CheckError] if an error occurs during the check the exception / error is returned.
+        """
         raise NotImplementedError
