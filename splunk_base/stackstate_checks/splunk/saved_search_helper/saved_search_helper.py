@@ -20,10 +20,16 @@ class SavedSearches(object):
         self.searches = list(filter(lambda ss: ss.name is not None, saved_searches))
         self.matches = list(filter(lambda ss: ss.match is not None, saved_searches))
 
-    def run_saved_searches(self, process_data, service_check, log, persisted_state):
+    @staticmethod
+    def _default_update_status(log):
+        log.debug("Called _default_update_status. Noop.")
+
+    def run_saved_searches(self, process_data, service_check, log, persisted_state, update_status=_default_update_status):
         new_saved_searches = self.splunk_client.saved_searches()
         self._update_searches(log, new_saved_searches)
         all_success = True
+
+        update_status(log)  # update transactional state
 
         for saved_searches_chunk in chunks(self.searches, self.instance_config.saved_searches_parallel):
             all_success &= self._dispatch_and_await_search(process_data, service_check, log, persisted_state,

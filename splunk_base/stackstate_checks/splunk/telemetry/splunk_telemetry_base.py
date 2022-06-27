@@ -1,4 +1,5 @@
 import sys
+import time
 
 from stackstate_checks.base import AgentCheck, TopologyInstance
 from stackstate_checks.base.checks import TransactionalAgentCheck, CheckResponse
@@ -47,7 +48,11 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
             def _process_data(saved_search, response, sent_already):
                 return self._extract_telemetry(saved_search, instance, response, sent_already)
 
-            instance.saved_searches.run_saved_searches(_process_data, _service_check, self.log, pstate)
+            def _update_status(log):
+                log.debug("Called SplunkTelemetryBase._update_status")
+                instance.update_status(current_time=current_time, data=transactional_state)
+
+            instance.saved_searches.run_saved_searches(_process_data, _service_check, self.log, pstate, _update_status(self.log))
 
 
             # If no service checks were produced, everything is ok
@@ -99,7 +104,7 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
                 telemetry = saved_search.retrieve_fields(data)
                 event_tags = [
                     "%s:%s" % (key, value)
-                    for key, value in self._filter_fields(data).iteritems()
+                    for key, value in self._filter_fields(data).iteritems()  # TODO what to do with `iteritems`?
                 ]
                 event_tags.extend(instance.tags)
                 telemetry.update({"tags": event_tags, "timestamp": timestamp})
@@ -112,7 +117,7 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
         # We remove default basic fields, default date fields and internal fields that start with "_"
         return {
             key: value
-            for key, value in data.iteritems()
+            for key, value in data.iteritems()  # TODO what to do with `iteritems`?
             if self._include_as_tag(key)
         }
 
