@@ -13,8 +13,9 @@ from six import PY3, text_type
 from schematics import Model
 from schematics.exceptions import ValidationError, ConversionError, DataError
 from schematics.types import URLType, ListType, StringType, IntType, BooleanType, ModelType
+
 from stackstate_checks.checks import AgentCheckV2, TransactionalAgentCheck, StatefulAgentCheck, StackPackInstance, \
-    TopologyInstance, AgentIntegrationInstance, HealthStream, HealthStreamUrn, Health
+    TopologyInstance, AgentIntegrationInstance, HealthStream, HealthStreamUrn, Health, CheckResponse
 from stackstate_checks.base.stubs import datadog_agent
 from stackstate_checks.base.stubs.topology import component
 from stackstate_checks.base.utils.state_api import generate_state_key
@@ -1294,9 +1295,9 @@ class SampleStatefulCheck(StatefulAgentCheck):
     def __init__(self, name, init_config, agentConfig, instances=None):
         super(SampleStatefulCheck, self).__init__(name, init_config, agentConfig, instances)
 
-    def stateful_check(self, instance, state):
-        state["key3"] = "ghi"
-        return state, None
+    def stateful_check(self, instance, persistent_state):
+        persistent_state["key3"] = "ghi"
+        return CheckResponse(persistent_state=persistent_state)
 
     def get_instance_key(self, instance):
         return StackPackInstance(self.INSTANCE_TYPE, instance.get("url", ""))
@@ -1330,9 +1331,9 @@ class SampleStatefulCheckWithSchema(StatefulAgentCheck):
     def __init__(self, name, init_config, agentConfig, instances=None):
         super(SampleStatefulCheckWithSchema, self).__init__(name, init_config, agentConfig, instances)
 
-    def stateful_check(self, instance, state):
-        state.offset += 10
-        return state, None
+    def stateful_check(self, instance, persistent_state):
+        persistent_state.offset += 10
+        return CheckResponse(persistent_state=persistent_state)
 
     def get_instance_key(self, instance):
         return StackPackInstance(self.INSTANCE_TYPE, str(instance.url))
@@ -1447,7 +1448,7 @@ class NormalCheck(AgentCheckV2):
             __init__("test", {}, instances)
 
     def check(self, instance):
-        return
+        return CheckResponse()
 
 
 class TransactionalCheck(TransactionalAgentCheck):
@@ -1459,8 +1460,8 @@ class TransactionalCheck(TransactionalAgentCheck):
     def get_instance_key(self, instance):
         return StackPackInstance("test", "transactional")
 
-    def transactional_check(self, instance, state):
-        return state, None
+    def transactional_check(self, instance, transactional_state, persistent_state):
+        return CheckResponse(transactional_state=transactional_state, persistent_state=persistent_state)
 
 
 class InstanceInfoSchemaCheck(Model):
@@ -1481,11 +1482,11 @@ class StatefulCheck(StatefulAgentCheck):
     def get_instance_key(self, instance):
         return StackPackInstance("test", "stateful")
 
-    def stateful_check(self, instance, state):
+    def stateful_check(self, instance, persistent_state):
 
-        state['updated'] = True
+        persistent_state['updated'] = True
 
-        return state, None
+        return CheckResponse(persistent_state=persistent_state)
 
 
 class StatefulSchemaCheck(StatefulAgentCheck):
@@ -1500,11 +1501,11 @@ class StatefulSchemaCheck(StatefulAgentCheck):
     def get_instance_key(self, instance):
         return StackPackInstance("test", str(instance.url))
 
-    def stateful_check(self, instance, state):
+    def stateful_check(self, instance, persistent_state):
 
-        state.updated = True
+        persistent_state.updated = True
 
-        return state, None
+        return CheckResponse(persistent_state=persistent_state)
 
 
 class TransactionalStateCheck(TransactionalAgentCheck):
@@ -1516,13 +1517,13 @@ class TransactionalStateCheck(TransactionalAgentCheck):
     def get_instance_key(self, instance):
         return StackPackInstance("test", "transactional-state")
 
-    def transactional_check(self, instance, state):
+    def transactional_check(self, instance, persistent_state, transactional_state):
 
-        state['transactional'] = True
+        transactional_state['transactional'] = True
 
-        self.set_state({"state": "set_state"})
+        persistent_state["state"] = "set_state"
 
-        return state, None
+        return CheckResponse(transactional_state=transactional_state, persistent_state=persistent_state)
 
 
 class TransactionalStateSchema(Model):
@@ -1540,13 +1541,13 @@ class TransactionalStateSchemaCheck(TransactionalAgentCheck):
     def get_instance_key(self, instance):
         return StackPackInstance("test", str(instance.url))
 
-    def transactional_check(self, instance, state):
+    def transactional_check(self, instance, transactional_state, persistent_state):
 
-        state.transactional = True
+        transactional_state.transactional = True
 
-        self.set_state({"state": "set_state"})
+        persistent_state["state"] = "set_state"
 
-        return state, None
+        return CheckResponse(transactional_state=transactional_state, persistent_state=persistent_state)
 
 
 def get_test_state_key(check, key=None):

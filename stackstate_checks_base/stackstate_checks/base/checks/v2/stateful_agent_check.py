@@ -1,9 +1,8 @@
 from typing import Optional
 
 from .base import AgentCheckV2
-from .check_error import CheckError
 from .mixins import StatefulMixin
-from .types import InstanceType, StateType
+from .types import InstanceType, StateType, CheckResponse
 
 
 class StatefulAgentCheck(StatefulMixin, AgentCheckV2):
@@ -12,7 +11,7 @@ class StatefulAgentCheck(StatefulMixin, AgentCheckV2):
     class to extend when writing a check that needs stateful behaviour.
     """
 
-    def check(self, instance):  # type: (InstanceType) -> Optional[CheckError]
+    def check(self, instance):  # type: (InstanceType) -> CheckResponse
         """
         Check implements the AgentCheckV2 check function and automagically handles the stateful operations for this
         check run.
@@ -22,17 +21,13 @@ class StatefulAgentCheck(StatefulMixin, AgentCheckV2):
 
         # get current state > call the check > set the state
         current_state = self.get_state()
-        new_state, check_error = self.stateful_check(instance, current_state)
+        check_response = self.stateful_check(instance, current_state)
+        self.set_state(check_response.persistent_state)
 
-        if check_error:
-            return check_error
+        return check_response
 
-        self.set_state(new_state)
-
-        return
-
-    def stateful_check(self, instance, state):
-        # type: (InstanceType, StateType) -> (StateType, Optional[CheckError])
+    def stateful_check(self, instance, persistent_state):
+        # type: (InstanceType, StateType) -> CheckResponse
         """
         This method should be implemented for a Stateful Check. It's called from run method.
         All Errors raised from stateful_check will be caught and converted to service_call in the run method.
@@ -41,7 +36,7 @@ class StatefulAgentCheck(StatefulMixin, AgentCheckV2):
         All Errors raised from stateful_check will be caught and converted to service_call in the run method.
 
         @param instance: InstanceType instance of the check implemented by get_instance_key().
-        @param state: StateType the current state for this check + persistence key.
+        @param persistent_state: StateType the current persistent state for this check + persistence key.
         @return: tuple of state: StateType and an optional check error: Optional[CheckError] that is set as the new
         state.
         """

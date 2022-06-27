@@ -4,9 +4,8 @@ import traceback
 
 from typing import Any, Optional
 
-from .types import InstanceType
+from .types import InstanceType, CheckResponse
 from .mixins import HealthMixin
-from .check_error import CheckError
 from ..base import AgentCheck
 from ...utils.common import to_string
 
@@ -29,7 +28,7 @@ class AgentCheckV2Base(AgentCheck):
     result of the check run.
     """
 
-    def check(self, instance):  # type: (InstanceType) -> Optional[CheckError]
+    def check(self, instance):  # type: (InstanceType) -> CheckResponse
         """
         check is the entry point for Agent Checks. This must be overridden.
 
@@ -93,8 +92,8 @@ class AgentCheckV2Base(AgentCheck):
 
             check_result = self.check(check_instance)
 
-            if check_result:
-                raise check_result
+            if check_result and check_result.check_error:
+                raise check_result.check_error
 
             # Call on_success on the mixins
             self.on_success()
@@ -128,7 +127,7 @@ class AgentCheckV2(HealthMixin, AgentCheckV2Base):
     method.
     """
 
-    def check(self, instance):  # type: (InstanceType) -> Optional[CheckError]
+    def check(self, instance):  # type: (InstanceType) -> CheckResponse
         """
         check is the entry point for V2 Agent Checks. This must be overridden.
 
