@@ -2,11 +2,12 @@
 import json
 import os
 
-from utils.splunk.splunk import time_to_seconds
 from tests.checks.common import AgentCheckTest, Fixtures
 from checks import CheckException, FinalizeException, TokenExpiredException
 
-FIXTURE_DIR = os.path.join(os.path.dirname(__file__), 'tests/ci')
+from stackstate_checks.splunk.config.splunk_instance_config import time_to_seconds
+
+FIXTURE_DIR = os.path.join(os.path.dirname(__file__), 'ci')
 
 
 def _mocked_saved_searches(*args, **kwargs):
