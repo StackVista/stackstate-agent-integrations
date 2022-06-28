@@ -39,6 +39,7 @@ class HealthMixin(CheckMixin):
 
         @return: None
         """
+        super(HealthMixin, self).setup()
 
         if self.health is not None:
             return None

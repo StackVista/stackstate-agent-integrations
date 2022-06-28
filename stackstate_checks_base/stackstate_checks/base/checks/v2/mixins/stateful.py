@@ -58,6 +58,8 @@ class StatefulMixin(CheckMixin):
 
         @return: None
         """
+        super(StatefulMixin, self).setup()
+
         if self.state is not None:
             return None
         self.state = StateApi(self)

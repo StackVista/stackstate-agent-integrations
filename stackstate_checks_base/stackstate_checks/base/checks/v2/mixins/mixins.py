@@ -24,4 +24,4 @@ class CheckMixin(object):
         setup must be overridden by the CheckMixin's to initialize their functionality for the check runs.
         @return:None
         """
-        raise NotImplementedError
+        pass
