@@ -32,9 +32,6 @@ class StatefulAgentCheck(StatefulMixin, AgentCheckV2):
         This method should be implemented for a Stateful Check. It's called from run method.
         All Errors raised from stateful_check will be caught and converted to service_call in the run method.
 
-        This method should be implemented for a Stateful Check. It's called from run method.
-        All Errors raised from stateful_check will be caught and converted to service_call in the run method.
-
         @param instance: InstanceType instance of the check implemented by get_instance_key().
         @param persistent_state: StateType the current persistent state for this check + persistence key.
         @return: tuple of state: StateType and an optional check error: Optional[CheckError] that is set as the new

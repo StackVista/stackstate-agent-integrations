@@ -30,7 +30,6 @@ def test_instance():
     """
     Simply assert the class can be instantiated
     """
-    AgentCheckV2()
     # rely on default
     check = AgentCheckV2()
     assert check.init_config == {}
