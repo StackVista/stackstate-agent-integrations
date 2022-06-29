@@ -55,7 +55,7 @@ stages:
 
 .windows_env: &windows_env
   tags:
-    - agent_windows_6
+    - windows_agent7_ps1
   before_script:
     - call .setup-scripts/windows_setup_env.cmd
 
