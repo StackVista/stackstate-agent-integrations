@@ -1,6 +1,5 @@
 # stdlib
 import unittest
-import copy
 
 # project
 from stackstate_checks.splunk.config import AuthType, SplunkInstanceConfig

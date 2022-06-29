@@ -337,7 +337,6 @@ class TestSplunkClient(unittest.TestCase):
         self.assertEqual(expected_header, "Bearer {}".format(new_token))
         # persistence data will have new updated token
         self.assertEqual(status.get_auth_token(), new_token)
-        self.assertEqual(status.committed, status.state)
 
     @mock.patch('stackstate_checks.splunk.client.splunk_client.jwt.decode',
                 return_value={"exp": 1591797915, "iat": 1584021915, "aud": "stackstate"})
@@ -366,7 +365,6 @@ class TestSplunkClient(unittest.TestCase):
         self.assertEqual(expected_header, "Bearer {}".format(new_token))
         # persistence data will have new token as well
         self.assertEqual(status.get_auth_token(), new_token)
-        self.assertEqual(status.committed, status.state)
 
     @mock.patch('stackstate_checks.splunk.client.splunk_client.jwt.decode',
                 return_value={"exp": 1591797915, "iat": 1584021915, "aud": "stackstate"})

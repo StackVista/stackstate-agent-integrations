@@ -54,7 +54,6 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
 
             instance.saved_searches.run_saved_searches(_process_data, _service_check, self.log, pstate, _update_status)
 
-
             # If no service checks were produced, everything is ok
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK)
 
@@ -81,7 +80,8 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
 
     def _extract_telemetry(self, saved_search, instance, result, sent_already):
         for data in result["results"]:
-            # We need a unique identifier for splunk events, according to https://answers.splunk.com/answers/334613/is-there-a-unique-event-id-for-each-event-in-the-i.html
+            # We need a unique identifier for splunk events, according to
+            # https://answers.splunk.com/answers/334613/is-there-a-unique-event-id-for-each-event-in-the-i.html
             # this can be (server, index, _cd)
 
             try:
@@ -127,4 +127,3 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
 
     def _include_as_tag(self, key):
         return not key.startswith('_') and key not in self.basic_default_fields.union(self.date_default_fields)
-

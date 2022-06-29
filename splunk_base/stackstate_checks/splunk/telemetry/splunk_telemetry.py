@@ -7,7 +7,8 @@ class SplunkTelemetrySavedSearch(SplunkSavedSearch):
     def __init__(self, instance_config, saved_search_instance):
         super(SplunkTelemetrySavedSearch, self).__init__(instance_config, saved_search_instance)
 
-        self.unique_key_fields = saved_search_instance.get('unique_key_fields', instance_config.default_unique_key_fields)
+        self.unique_key_fields = saved_search_instance.get('unique_key_fields',
+                                                           instance_config.default_unique_key_fields)
 
         self.config = {
             field_name: saved_search_instance.get(field_name, instance_config.get_or_default("default_" + field_name))
@@ -21,7 +22,8 @@ class SplunkTelemetrySavedSearch(SplunkSavedSearch):
         # Any value above zero signifies until what time we recovered.
         self.last_recover_latest_time_epoch_seconds = 0
 
-        # We keep track of the events that were reported for the last timestamp, to deduplicate them when we get a new query
+        # We keep track of the events that were reported for the last timestamp, to deduplicate them when
+        # we get a new query
         self.last_observed_telemetry = set()
 
     def get_status(self):
@@ -32,12 +34,14 @@ class SplunkTelemetrySavedSearch(SplunkSavedSearch):
             # If there is not catching up to do, the status is as far as the last event time
             return self.last_observed_timestamp, False
         else:
-            # If we are still catching up, we got as far as the last finish time. We report as inclusive bound (hence the -1)
+            # If we are still catching up, we got as far as the last finish time. We report as
+            # inclusive bound (hence the -1)
             return self.last_recover_latest_time_epoch_seconds - 1, True
 
 
 class SplunkTelemetryInstance(object):
     INSTANCE_TYPE = "splunk"
+
     def __init__(self, current_time, instance, instance_config, saved_searches):
         self.instance_config = instance_config
 
@@ -46,11 +50,14 @@ class SplunkTelemetryInstance(object):
             instance['saved_searches'] = []
 
         self.saved_searches = saved_searches
-        self.saved_searches_parallel = int(instance.get('saved_searches_parallel', self.instance_config.get_or_default('default_saved_searches_parallel')))
+        self.saved_searches_parallel = int(instance.get('saved_searches_parallel', self.instance_config.get_or_default(
+            'default_saved_searches_parallel')))
         self.tags = instance.get('tags', [])
-        self.initial_delay_seconds = int(instance.get('initial_delay_seconds', self.instance_config.get_or_default('default_initial_delay_seconds')))
+        self.initial_delay_seconds = int(
+            instance.get('initial_delay_seconds', self.instance_config.get_or_default('default_initial_delay_seconds')))
         self.launch_time_seconds = current_time
-        self.unique_key_fields = instance.get('unique_key_fields', self.instance_config.get_or_default('default_unique_key_fields'))
+        self.unique_key_fields = instance.get('unique_key_fields',
+                                              self.instance_config.get_or_default('default_unique_key_fields'))
 
     def initial_time_done(self, current_time_seconds):
         return current_time_seconds >= self.launch_time_seconds + self.initial_delay_seconds
@@ -81,8 +88,11 @@ class SplunkTelemetryInstance(object):
             # Do we need to recover?
             last_committed = self.get_search_data(data, saved_search.name)
             if last_committed is None:  # Is this the first time we start?
-                saved_search.last_observed_timestamp = current_time - saved_search.config['initial_history_time_seconds']
+                saved_search.last_observed_timestamp = current_time - saved_search.config[
+                    'initial_history_time_seconds']
             else:  # Continue running or restarting, add one to not duplicate the last events.
                 saved_search.last_observed_timestamp = last_committed + 1
-                if current_time - saved_search.last_observed_timestamp > saved_search.config['max_restart_history_seconds']:
-                    saved_search.last_observed_timestamp = current_time - saved_search.config['max_restart_history_seconds']
+                if current_time - saved_search.last_observed_timestamp > saved_search.config[
+                        'max_restart_history_seconds']:
+                    saved_search.last_observed_timestamp = current_time - saved_search.config[
+                        'max_restart_history_seconds']
