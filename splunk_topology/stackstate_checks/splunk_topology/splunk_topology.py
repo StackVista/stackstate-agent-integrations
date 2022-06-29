@@ -108,7 +108,7 @@ class SplunkTopology(AgentCheck):
             def _service_check(status, tags=None, hostname=None, message=None):
                 self.service_check(self.SERVICE_CHECK_NAME, status, tags, hostname, message)
 
-            def _process_data(saved_search, response):
+            def _process_data(saved_search, response, sent_already):
                 if saved_search.element_type == "component":
                     return self._extract_components(instance, response)
                 elif saved_search.element_type == "relation":

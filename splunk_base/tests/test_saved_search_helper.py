@@ -74,7 +74,7 @@ class MockProcessData(object):
         self.results = []
         self.ret_val = 0
 
-        def _process_data(saved_search, response):
+        def _process_data(saved_search, response, sent_already):
             self.results.append(response)
             return self.ret_val
 

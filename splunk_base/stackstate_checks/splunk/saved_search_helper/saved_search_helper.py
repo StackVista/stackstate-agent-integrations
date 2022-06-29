@@ -20,16 +20,13 @@ class SavedSearches(object):
         self.searches = list(filter(lambda ss: ss.name is not None, saved_searches))
         self.matches = list(filter(lambda ss: ss.match is not None, saved_searches))
 
-    @staticmethod
-    def _default_update_status(log):
-        log.debug("Called _default_update_status. Noop.")
-
-    def run_saved_searches(self, process_data, service_check, log, persisted_state, update_status=_default_update_status):
+    def run_saved_searches(self, process_data, service_check, log, persisted_state, update_status=None):
         new_saved_searches = self.splunk_client.saved_searches()
         self._update_searches(log, new_saved_searches)
         all_success = True
 
-        update_status(log)  # update transactional state
+        if callable(update_status):
+            update_status()  # update transactional state
 
         for saved_searches_chunk in chunks(self.searches, self.instance_config.saved_searches_parallel):
             all_success &= self._dispatch_and_await_search(process_data, service_check, log, persisted_state,
@@ -95,8 +92,10 @@ class SavedSearches(object):
         count = 0
         fail_count = 0
 
-        sent_events = saved_search.last_observed_telemetry
-        saved_search.last_observed_telemetry = set()
+        sent_events = set()
+        if hasattr(saved_search, 'last_observed_telemetry'):
+            sent_events = saved_search.last_observed_telemetry
+            saved_search.last_observed_telemetry = set()
 
         try:
             responses = self.splunk_client.saved_search_results(search_id, saved_search)
