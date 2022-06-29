@@ -102,9 +102,11 @@ class SplunkHealth(StatefulAgentCheck):
             self.log.exception("Splunk health exception: %s" % str(e))
             if not instance.instance_config.ignore_saved_search_errors:
                 # raise CheckException("Splunk health failed with message: %s" % e, None, sys.exc_info()[2])
-                return CheckResponse(persistent_state=pstate.state, check_error=CheckException("Splunk health failed with message: %s" % e, None, sys.exc_info()[2]))
+                return CheckResponse(persistent_state=pstate.state,
+                                     check_error=CheckException("Splunk health failed with message: %s" % e, None,
+                                                                sys.exc_info()[2])
+                                     )
             return CheckResponse(persistent_state=pstate.state)
-
 
     def _extract_health(self, instance, result):
         fail_count = 0
