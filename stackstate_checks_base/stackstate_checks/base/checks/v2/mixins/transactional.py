@@ -18,7 +18,7 @@ class TransactionalMixin(StatefulMixin):
     TRANSACTIONAL_PERSISTENT_CACHE_KEY = "transactional_check_state"  # type: str
 
     """
-    TRANSACTIONAL_STATE_SCHEMA allows checks to specify a schematics Schema that is used for the transactional state in 
+    TRANSACTIONAL_STATE_SCHEMA allows checks to specify a schematics Schema that is used for the transactional state in
     self.check.
     """
     TRANSACTIONAL_STATE_SCHEMA = None  # type: Optional[Model]
