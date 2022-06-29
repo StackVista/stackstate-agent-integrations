@@ -1,3 +1,4 @@
+from schematics import Model
 from typing import Any, Optional
 
 from .stateful import StatefulMixin
@@ -15,6 +16,12 @@ class TransactionalMixin(StatefulMixin):
     TRANSACTIONAL_PERSISTENT_CACHE_KEY is the key that is used for the transactional persistent state
     """
     TRANSACTIONAL_PERSISTENT_CACHE_KEY = "transactional_check_state"  # type: str
+
+    """
+    TRANSACTIONAL_STATE_SCHEMA allows checks to specify a schematics Schema that is used for the transactional state in
+    self.check.
+    """
+    TRANSACTIONAL_STATE_SCHEMA = None  # type: Optional[Model]
 
     def __init__(self, *args, **kwargs):
         # type: (*Any, **Any) -> None
@@ -38,12 +45,12 @@ class TransactionalMixin(StatefulMixin):
         """
         get_state uses the StateApi to retrieve the state for the TRANSACTIONAL_PERSISTENT_CACHE_KEY.
 
-        If a STATE_SCHEMA is defined the state is cast to the STATE_SCHEMA.
+        If a TRANSACTIONAL_STATE_SCHEMA is defined the state is cast to the TRANSACTIONAL_STATE_SCHEMA.
 
         @return: StateType the state for the TRANSACTIONAL_PERSISTENT_CACHE_KEY. Defaults to empty dictionary or an
-        empty STATE_SCHEMA.
+        "empty" TRANSACTIONAL_STATE_SCHEMA.
         """
-        return self.state.get(self.TRANSACTIONAL_PERSISTENT_CACHE_KEY, self.STATE_SCHEMA)
+        return self.state.get(self.TRANSACTIONAL_PERSISTENT_CACHE_KEY, self.TRANSACTIONAL_STATE_SCHEMA)
 
     def setup(self):  # type: () -> None
         """

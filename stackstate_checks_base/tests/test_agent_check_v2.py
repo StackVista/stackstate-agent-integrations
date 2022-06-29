@@ -1532,7 +1532,8 @@ class TransactionalStateSchema(Model):
 
 class TransactionalStateSchemaCheck(TransactionalAgentCheck):
     INSTANCE_SCHEMA = InstanceInfoSchemaCheck
-    STATE_SCHEMA = TransactionalStateSchema
+    STATE_SCHEMA = StateSchema
+    TRANSACTIONAL_STATE_SCHEMA = TransactionalStateSchema
 
     def __init__(self, key=None, *args, **kwargs):
         instances = [{'url': 'https://transactional-state-check.url'}]
@@ -1545,7 +1546,7 @@ class TransactionalStateSchemaCheck(TransactionalAgentCheck):
 
         transactional_state.transactional = True
 
-        persistent_state["state"] = "set_state"
+        persistent_state.updated = True
 
         return CheckResponse(transactional_state=transactional_state, persistent_state=persistent_state)
 
