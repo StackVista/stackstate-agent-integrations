@@ -7,9 +7,9 @@
 import sys
 
 from stackstate_checks.base import AgentCheck, TopologyInstance
+from stackstate_checks.base.checks import StatefulAgentCheck, CheckResponse
 from stackstate_checks.base.errors import CheckException
 from stackstate_checks.splunk.client import TokenExpiredException, SplunkClient
-
 from stackstate_checks.splunk.config.splunk_instance_config import SplunkSavedSearch, SplunkInstanceConfig, \
     SplunkPersistentState, take_optional_field
 from stackstate_checks.splunk.saved_search_helper import SavedSearches
@@ -75,7 +75,7 @@ class Instance(object):
         return SplunkClient(self.instance_config)
 
 
-class SplunkTopology(AgentCheck):
+class SplunkTopology(StatefulAgentCheck):
     SERVICE_CHECK_NAME = "splunk.topology_information"
     EXCLUDE_FIELDS = set(['_raw', '_indextime', '_cd', '_serial', '_sourcetype', '_bkt', '_si'])
 
@@ -91,11 +91,11 @@ class SplunkTopology(AgentCheck):
     def _build_instance(self, instance):
         return Instance(instance, self.init_config)
 
-    def check(self, instance):
+    def stateful_check(self, instance, persistent_state):
         if self.instance_data is None:
             self.instance_data = self._build_instance(instance)
 
-        committable_state = SplunkPersistentState(self.commit_state, self.load_state(instance))
+        pstate = SplunkPersistentState(persistent_state)
 
         instance = self.instance_data
 
@@ -103,7 +103,7 @@ class SplunkTopology(AgentCheck):
             self.start_snapshot()
 
         try:
-            instance.splunk_client.auth_session(committable_state)
+            instance.splunk_client.auth_session(pstate)
 
             def _service_check(status, tags=None, hostname=None, message=None):
                 self.service_check(self.SERVICE_CHECK_NAME, status, tags, hostname, message)
@@ -114,7 +114,7 @@ class SplunkTopology(AgentCheck):
                 elif saved_search.element_type == "relation":
                     return self._extract_relations(instance, response)
 
-            instance.saved_searches.run_saved_searches(_process_data, _service_check, self.log, committable_state)
+            instance.saved_searches.run_saved_searches(_process_data, _service_check, self.log, pstate)
 
             if instance.snapshot:
                 self.stop_snapshot()
@@ -122,12 +122,17 @@ class SplunkTopology(AgentCheck):
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=instance.instance_config.tags,
                                message=str(e.message))
             self.log.exception("Splunk topology exception: %s" % str(e))
+            return CheckResponse(persistent_state=pstate.state)
         except Exception as e:
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=instance.instance_config.tags,
                                message=str(e))
             self.log.exception("Splunk topology exception: %s" % str(e))
             if not instance.instance_config.ignore_saved_search_errors:
-                raise CheckException("Splunk topology failed with message: %s" % e, None, sys.exc_info()[2])
+                return CheckResponse(persistent_state=pstate.state,
+                                     check_error=CheckException("Splunk health failed with message: %s" % e, None,
+                                                                sys.exc_info()[2])
+                                     )
+        return CheckResponse(persistent_state=pstate.state)
 
     def _extract_components(self, instance, result):
         fail_count = 0

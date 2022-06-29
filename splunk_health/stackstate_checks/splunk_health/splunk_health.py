@@ -90,12 +90,10 @@ class SplunkHealth(StatefulAgentCheck):
             instance.saved_searches.run_saved_searches(_process_data, _service_check, self.log, pstate)
 
             self.health.stop_snapshot()
-            return CheckResponse(persistent_state=pstate.state)
         except TokenExpiredException as e:
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=instance.instance_config.tags,
                                message=str(e.message))
             self.log.exception("Splunk health exception: %s" % str(e))
-            return CheckResponse(persistent_state=pstate.state)
         except Exception as e:
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=instance.instance_config.tags,
                                message=str(e))
@@ -106,7 +104,7 @@ class SplunkHealth(StatefulAgentCheck):
                                      check_error=CheckException("Splunk health failed with message: %s" % e, None,
                                                                 sys.exc_info()[2])
                                      )
-            return CheckResponse(persistent_state=pstate.state)
+        return CheckResponse(persistent_state=pstate.state)
 
     def _extract_health(self, instance, result):
         fail_count = 0
