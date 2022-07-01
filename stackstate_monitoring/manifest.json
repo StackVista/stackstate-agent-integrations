@@ -1,6 +1,6 @@
 {
   "display_name": "stackstate-monitoring",
-  "maintainer": "asingh@stackstate.com",
+  "maintainer": "aksingh",
   "manifest_version": "1.0.0",
   "name": "stackstate_monitoring",
   "metric_prefix": "stackstate_monitoring.",
