@@ -5,6 +5,10 @@ stages:
   - test
   - publish
 
+variables:
+  CONDA_ENV: "stackstate-agent-integrations-py-3"
+  PYTHON_VERSION: 3
+
 .rules:
   - &pull_requests
     if: $CI_EXTERNAL_PULL_REQUEST_IID
@@ -55,9 +59,12 @@ stages:
 
 .windows_env: &windows_env
   tags:
-    - agent_windows_6
+    - windows_agent7_ps1
   before_script:
-    - call .setup-scripts/windows_setup_env.cmd
+    - Import-Module C:\tools\miniconda3\shell\condabin\conda-hook.ps1
+    - ./.setup-scripts/conda_env.ps1 $CONDA_ENV $PYTHON_VERSION
+    - conda activate $CONDA_ENV
+    - python -m pip install .\stackstate_checks_dev[cli]
 
 print_env:
   <<: *linux_env
@@ -86,7 +93,8 @@ win_deps:
   stage: build
   interruptible: true
   script:
-    - call .setup-scripts/windows_load_env.cmd
+    - conda activate $CONDA_ENV
+    - python -m pip install .\stackstate_checks_dev[cli]
   artifacts:
     paths:
       - venv/
@@ -353,6 +361,7 @@ test_solarwinds:
   needs:
     - win_deps
   script:
+    - conda activate $CONDA_ENV
     - checksdev test -c %CHECK%
   interruptible: true
   tags:
