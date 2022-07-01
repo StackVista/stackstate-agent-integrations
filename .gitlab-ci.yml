@@ -365,7 +365,7 @@ test_solarwinds:
     - checksdev test -c %CHECK%
   interruptible: true
   tags:
-    - agent_windows_6
+    - windows_agent7_ps1
   retry:
     max: 2
     when:
