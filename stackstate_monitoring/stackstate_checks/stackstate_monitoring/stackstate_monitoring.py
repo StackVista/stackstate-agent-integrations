@@ -22,6 +22,7 @@ components = {
         "type": "user",
         "name": "User",
         "depends_on": lambda: [
+            {"component": components["router-service"], "as": relationshipsMapping["caller"]},
             {"component": components["web-ui-service"], "as": relationshipsMapping["user"]},
         ],
     },
@@ -31,8 +32,7 @@ components = {
         "type": "cli",
         "name": "CLI",
         "depends_on": lambda: [
-            {"component": components["api-service"], "as": relationshipsMapping["caller"]},
-            {"component": components["receiver-service"], "as": relationshipsMapping["caller"]},
+            {"component": components["router-service"], "as": relationshipsMapping["caller"]},
         ],
     },
 
@@ -56,7 +56,7 @@ components = {
         "name": "Web UI", 
         "external_identifier": "urn:kubernetes:/{cluster_name}:{namespace}:service/stackstate-ui", 
         "depends_on": lambda: [
-            {"component": components["api-service"], "as": relationshipsMapping["caller"]},
+            {"component": components["router-service"], "as": relationshipsMapping["caller"]},
         ],
     },
     "view-health-service": {
@@ -130,6 +130,7 @@ components = {
         "name": "Topology Sync",
         "external_identifier": "urn:kubernetes:/{cluster_name}:{namespace}:service/stackstate-sync",
         "depends_on": lambda: [
+            {"component": components["topology-message-broker"], "as": relationshipsMapping["consumer"]},
             {"component": components["internal-events-message-broker"], "as": relationshipsMapping["producer"]},
             {"component": components["topology-events-message-broker"], "as": relationshipsMapping["producer"]},
             {"component": components["stackgraph-storage"], "as": relationshipsMapping["user"]},
@@ -150,6 +151,7 @@ components = {
         "name": "Receiver", 
         "external_identifier": "urn:kubernetes:/{cluster_name}:{namespace}:service/stackstate-receiver",
         "depends_on": lambda: [
+            {"component": components["topology-message-broker"], "as": relationshipsMapping["producer"]},
             {"component": components["internal-events-message-broker"], "as": relationshipsMapping["producer"]},
             {"component": components["topology-events-message-broker"], "as": relationshipsMapping["producer"]},
             {"component": components["traces-message-broker"], "as": relationshipsMapping["producer"]},
@@ -174,7 +176,7 @@ components = {
         "id": "spotlight",
         "type": "service",
         "name": "AAD", 
-        "external_identifier": "urn:kubernetes:/{cluster_name}:{namespace}:service/anomaly-detection-spotlight-manager",
+        "external_identifier": "urn:kubernetes:/{cluster_name}:{namespace}:service/stackstate-anomaly-detection-spotlight-manager",
         "depends_on": lambda: [
             {"component": components["api-service"], "as": relationshipsMapping["user"]},
         ],
@@ -184,6 +186,10 @@ components = {
         "type": "service",
         "name": "Router", 
         "external_identifier": "urn:kubernetes:/{cluster_name}:{namespace}:service/stackstate-router",
+        "depends_on": lambda: [
+            {"component": components["receiver-service"], "as": relationshipsMapping["caller"]},
+            {"component": components["api-service"], "as": relationshipsMapping["caller"]},
+        ],
     },
     "event-handler-service": {
         "id": "event-handlers",
@@ -245,7 +251,7 @@ components = {
     "message-broker-storage": {
         "id": "message_broker",
         "type": "storage",
-        "name": "Message Broker",
+        "name": "Kafka",
         "external_identifier": "urn:kubernetes:/{cluster_name}:{namespace}:service/stackstate-kafka",
     },
 
