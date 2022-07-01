@@ -1,0 +1,23 @@
+{
+  "display_name": "stackstate-monitoring",
+  "maintainer": "asingh@stackstate.com",
+  "manifest_version": "1.0.0",
+  "name": "stackstate_monitoring",
+  "metric_prefix": "stackstate_monitoring.",
+  "metric_to_check": "",
+  "creates_events": false,
+  "short_description": "",
+  "guid": "740de9d7-d8f7-4c4e-907a-77f286d233e9",
+  "support": "core",
+  "supported_os": [
+    "linux",
+    "mac_os",
+    "windows"
+  ],
+  "public_title": "StackState-stackstate-monitoring Integration",
+  "categories": [
+    ""
+  ],
+  "type": "check",
+  "is_public": false
+}
