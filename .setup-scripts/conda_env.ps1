@@ -5,8 +5,8 @@ if ($pythonVersion -eq '3') {
 }
 $env_name = conda env list | grep $envName | awk '{print $1}'
 if (($env_name -ne $null) -and ($env_name -eq  $envName)) {
-  Write-Output "Virtual Environment '$envName' already exists, removing it for now. Revert later"
-  conda env remove -n $envName
+  Write-Output "Virtual Environment '$envName' already exists"
+  return
 }
 $DD_PIP_VERSION = '20.3.4'
 $DD_SETUPTOOLS_VERSION = '44.1.1'
