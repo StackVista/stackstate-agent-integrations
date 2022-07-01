@@ -6,8 +6,8 @@ stages:
   - publish
 
 variables:
-  CONDA_ENV: "stackstate-agent-integrations-py-3"
-  PYTHON_VERSION: 3
+  CONDA_ENV: "stackstate-agent-integrations-py-2"
+  PYTHON_VERSION: 2.7.18
 
 .rules:
   - &pull_requests
