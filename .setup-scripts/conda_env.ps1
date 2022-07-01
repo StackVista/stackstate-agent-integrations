@@ -8,7 +8,7 @@ if (($env_name -ne $null) -and ($env_name -eq  $envName)) {
   Write-Output "Virtual Environment '$envName' already exists, removing it for now. Revert later"
   conda env remove -n $envName
 }
-$DD_PIP_VERSION = '22.1.2'
+$DD_PIP_VERSION = '21.3.1'
 $DD_SETUPTOOLS_VERSION = '44.1.1'
 conda create -n $envName python python=$pythonVersion -y
 conda activate $envName
