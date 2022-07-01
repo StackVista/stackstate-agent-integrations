@@ -64,7 +64,7 @@ variables:
     - Import-Module C:\tools\miniconda3\shell\condabin\conda-hook.ps1
     - ./.setup-scripts/conda_env.ps1 $CONDA_ENV $PYTHON_VERSION
     - conda activate $CONDA_ENV
-    - pip install .\stackstate_checks_dev[cli]
+    - python -m pip install .\stackstate_checks_dev[cli]
 
 print_env:
   <<: *linux_env
