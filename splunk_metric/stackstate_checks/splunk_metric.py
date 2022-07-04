@@ -33,7 +33,8 @@ class MetricSavedSearch(SplunkTelemetrySavedSearch):
             required_base_fields.append('metric')
 
         self.required_fields = {
-            field_name: saved_search_instance.get(name_in_config, instance_config.get_or_default("default_"+name_in_config))
+            field_name: saved_search_instance.get(name_in_config,
+                                                  instance_config.get_or_default("default_" + name_in_config))
             for field_name in required_base_fields
             for name_in_config in [MetricSavedSearch.field_name_in_config.get(field_name, field_name)]
         }
@@ -73,10 +74,9 @@ class SplunkMetric(SplunkTelemetryBase):
         if instance['saved_searches'] is not None:
             saved_searches = instance['saved_searches']
 
-        metric_saved_searches = SavedSearches(instance_config=metric_instance_config,
-                                              splunk_client=SplunkClient(metric_instance_config),
-                                              saved_searches=[
-            MetricSavedSearch(metric_instance_config, saved_search_instance)
-            for saved_search_instance in saved_searches
-        ])
-        return SplunkTelemetryInstance(current_time, instance, metric_instance_config, metric_saved_searches)
+        # method to be overwritten by SplunkMetric and SplunkEvent
+        def _create_saved_search(instance_config, saved_search_instance):
+            return MetricSavedSearch(instance_config, saved_search_instance)
+
+        return SplunkTelemetryInstance(current_time, instance, metric_instance_config,
+                                       _create_saved_search)

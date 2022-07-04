@@ -1,5 +1,6 @@
 from stackstate_checks.splunk.client import SplunkClient
 from stackstate_checks.splunk.config import SplunkSavedSearch
+from stackstate_checks.splunk.saved_search_helper import SavedSearches
 
 
 class SplunkTelemetrySavedSearch(SplunkSavedSearch):
@@ -43,7 +44,7 @@ class SplunkTelemetrySavedSearch(SplunkSavedSearch):
 class SplunkTelemetryInstance(object):
     INSTANCE_TYPE = "splunk"
 
-    def __init__(self, current_time, instance, instance_config, saved_searches):
+    def __init__(self, current_time, instance, instance_config, create_saved_search):
         self.instance_config = instance_config
         self.splunk_client = self._build_splunk_client()
 
@@ -51,7 +52,13 @@ class SplunkTelemetryInstance(object):
         if not isinstance(instance['saved_searches'], list):
             instance['saved_searches'] = []
 
-        self.saved_searches = saved_searches
+        self.saved_searches = SavedSearches(instance_config,
+                                            self.splunk_client,
+                                            [
+                                                create_saved_search(instance_config, saved_search_instance)
+                                                for saved_search_instance in instance['saved_searches']
+                                            ])
+
         self.saved_searches_parallel = int(instance.get('saved_searches_parallel', self.instance_config.get_or_default(
             'default_saved_searches_parallel')))
         self.tags = instance.get('tags', [])
@@ -99,6 +106,6 @@ class SplunkTelemetryInstance(object):
             else:  # Continue running or restarting, add one to not duplicate the last events.
                 saved_search.last_observed_timestamp = last_committed + 1
                 if current_time - saved_search.last_observed_timestamp > saved_search.config[
-                        'max_restart_history_seconds']:
+                    'max_restart_history_seconds']:
                     saved_search.last_observed_timestamp = current_time - saved_search.config[
                         'max_restart_history_seconds']

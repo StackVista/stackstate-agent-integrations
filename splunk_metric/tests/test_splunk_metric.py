@@ -117,13 +117,9 @@ class TestSplunkErrorResponse(unittest.TestCase):
     def test_checks(self):
         self.maxDiff = None
 
-        assert self.check.run() == ''
+        assert self.check.run() != ''
 
-        service_checks = aggregator.service_checks(self.CHECK_NAME)
-        self.assertEqual(service_checks[0].status, 0)
-        # TODO aggregator.assert_service_check()
-        # self.assertEquals(len(self.service_checks), 2)
-        # self.assertEquals(self.service_checks[1]['status'], 2, "service check should have status AgentCheck.CRITICAL")
+        aggregator.assert_service_check(self.CHECK_NAME, 2)
 
 
 class TestSplunkMetric(object):
