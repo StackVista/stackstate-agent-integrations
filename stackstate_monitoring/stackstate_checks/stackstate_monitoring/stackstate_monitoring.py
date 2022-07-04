@@ -3,6 +3,11 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 from stackstate_checks.base import AgentCheck, TopologyInstance
 
+TAG_STS_CAUSALITY = "sts-causality"
+TAG_STS_OBSERVABILITY = "sts-observability"
+TAG_STS_DATA_INGESTION = "sts-data-ingestion"
+TAG_STS_AAD = "sts-aad"
+
 relationshipsMapping = {
     "consumer": "consumes from",
     "producer": "produces to",
@@ -42,6 +47,7 @@ components = {
         "id": "api",
         "type": "service",
         "name": "API",
+        "tags": {TAG_STS_CAUSALITY: None, TAG_STS_OBSERVABILITY: None},
         "external_identifier": "urn:kubernetes:/{cluster_name}:{namespace}:service/stackstate-api-headless",
         "depends_on": lambda: [
             {"component": components["internal-events-message-broker"], "as": relationshipsMapping["producer"]},
@@ -53,7 +59,8 @@ components = {
     "web-ui-service": {
         "id": "ui",
         "type": "service",
-        "name": "Web UI", 
+        "name": "Web UI",
+        "tags": {TAG_STS_CAUSALITY: None, TAG_STS_OBSERVABILITY: None},
         "external_identifier": "urn:kubernetes:/{cluster_name}:{namespace}:service/stackstate-ui", 
         "depends_on": lambda: [
             {"component": components["router-service"], "as": relationshipsMapping["caller"]},
@@ -62,7 +69,8 @@ components = {
     "view-health-service": {
         "id": "view-health",
         "type": "service",
-        "name": "View Health", 
+        "name": "View Health",
+        "tags": {TAG_STS_CAUSALITY: None},
         "external_identifier": "urn:kubernetes:/{cluster_name}:{namespace}:service/stackstate-view-health",
         "depends_on": lambda: [
             {"component": components["internal-events-message-broker"], "as": relationshipsMapping["producer-consumer"]},
@@ -72,7 +80,8 @@ components = {
     "checks-service": {
         "id": "checks",
         "type": "service",
-        "name": "Checks", 
+        "name": "Checks",
+        "tags": {TAG_STS_OBSERVABILITY: None},
         "external_identifier": "urn:kubernetes:/{cluster_name}:{namespace}:service/stackstate-checks",
         "depends_on": lambda: [
             {"component": components["internal-events-message-broker"], "as": relationshipsMapping["producer"]},
@@ -83,7 +92,8 @@ components = {
     "monitors-service": {
         "id": "monitors",
         "type": "service",
-        "name": "Monitors", 
+        "name": "Monitors",
+        "tags": {TAG_STS_CAUSALITY: None},
         "external_identifier": "urn:kubernetes:/{cluster_name}:{namespace}:service/stackstate-checks",
         "depends_on": lambda: [
             {"component": components["internal-events-message-broker"], "as": relationshipsMapping["producer"]},
@@ -95,7 +105,8 @@ components = {
     "correlate-service": {
         "id": "correlate",
         "type": "service",
-        "name": "Correlate", 
+        "name": "Correlate",
+        "tags": {TAG_STS_DATA_INGESTION: None},
         "external_identifier": "urn:kubernetes:/{cluster_name}:{namespace}:service/stackstate-correlate", 
         "depends_on": lambda: [
             {"component": components["traces-message-broker"], "as": relationshipsMapping["consumer"]},
@@ -106,7 +117,8 @@ components = {
     "state-service": {
         "id" : "state",
         "type": "service",
-        "name": "State", 
+        "name": "State",
+        "tags": {TAG_STS_CAUSALITY: None},
         "external_identifier": "urn:kubernetes:/{cluster_name}:{namespace}:service/stackstate-state",
         "depends_on": lambda: [
             {"component": components["internal-events-message-broker"], "as": relationshipsMapping["producer"]},
@@ -117,7 +129,8 @@ components = {
     "problem-producer-service": {
         "id" : "problem-producer",
         "type": "service",
-        "name": "Problem Producer", 
+        "name": "Problem Producer",
+        "tags": {TAG_STS_CAUSALITY: None},
         "external_identifier": "urn:kubernetes:/{cluster_name}:{namespace}:service/stackstate-problem-producer",
         "depends_on": lambda: [
             {"component": components["internal-events-message-broker"], "as": relationshipsMapping["producer"]},
@@ -128,6 +141,7 @@ components = {
         "id": "sync",
         "type": "service",
         "name": "Topology Sync",
+        "tags": {TAG_STS_CAUSALITY: None},
         "external_identifier": "urn:kubernetes:/{cluster_name}:{namespace}:service/stackstate-sync",
         "depends_on": lambda: [
             {"component": components["topology-message-broker"], "as": relationshipsMapping["consumer"]},
@@ -139,7 +153,8 @@ components = {
     "topology-slicing-service": {
         "id": "slicing",
         "type": "service",
-        "name": "Topology Slicing", 
+        "name": "Topology Slicing",
+        "tags": {TAG_STS_CAUSALITY: None},
         "external_identifier": "urn:kubernetes:/{cluster_name}:{namespace}:service/stackstate-slicing",
         "depends_on": lambda: [
             {"component": components["stackgraph-storage"], "as": relationshipsMapping["user"]},
@@ -148,7 +163,8 @@ components = {
     "receiver-service": {
         "id": "receiver",
         "type": "service",
-        "name": "Receiver", 
+        "name": "Receiver",
+        "tags": {TAG_STS_DATA_INGESTION: None},
         "external_identifier": "urn:kubernetes:/{cluster_name}:{namespace}:service/stackstate-receiver",
         "depends_on": lambda: [
             {"component": components["topology-message-broker"], "as": relationshipsMapping["producer"]},
@@ -164,7 +180,8 @@ components = {
     "health-sync-service": {
         "id": "health-sync",
         "type": "service",
-        "name": "Health Sync", 
+        "name": "Health Sync",
+        "tags": {TAG_STS_CAUSALITY: None}, 
         "external_identifier": "urn:kubernetes:/{cluster_name}:{namespace}:service/stackstate-health-sync",
         "depends_on": lambda: [
             {"component": components["internal-events-message-broker"], "as": relationshipsMapping["producer"]},
@@ -175,7 +192,8 @@ components = {
     "aad-service": {
         "id": "spotlight",
         "type": "service",
-        "name": "AAD", 
+        "name": "AAD",
+        "tags": {TAG_STS_AAD: None}, 
         "external_identifier": "urn:kubernetes:/{cluster_name}:{namespace}:service/stackstate-anomaly-detection-spotlight-manager",
         "depends_on": lambda: [
             {"component": components["api-service"], "as": relationshipsMapping["user"]},
@@ -184,7 +202,8 @@ components = {
     "router-service": {
         "id": "router",
         "type": "service",
-        "name": "Router", 
+        "name": "Router",
+        "tags": {TAG_STS_OBSERVABILITY: None},
         "external_identifier": "urn:kubernetes:/{cluster_name}:{namespace}:service/stackstate-router",
         "depends_on": lambda: [
             {"component": components["receiver-service"], "as": relationshipsMapping["caller"]},
@@ -194,7 +213,8 @@ components = {
     "event-handler-service": {
         "id": "event-handlers",
         "type": "service",
-        "name": "Event Handlers", 
+        "name": "Event Handlers",
+        "tags": {TAG_STS_CAUSALITY: None},
         "external_identifier": "urn:kubernetes:/{cluster_name}:{namespace}:service/stackstate-view-health", 
         "depends_on": lambda: [
             {"component": components["internal-events-message-broker"], "as": relationshipsMapping["consumer"]},
@@ -204,7 +224,8 @@ components = {
     "e2es-service": {
         "id": "e2es",
         "type": "service",
-        "name": "Events to ES", 
+        "name": "Events to ES",
+        "tags": {TAG_STS_OBSERVABILITY: None},
         "external_identifier": "urn:kubernetes:/{cluster_name}:{namespace}:service/stackstate-e2es",
         "depends_on": lambda: [
             {"component": components["internal-events-message-broker"], "as": relationshipsMapping["consumer"]},
@@ -216,7 +237,8 @@ components = {
     "mm2es-service": {
         "id": "mm2es",
         "type": "service",
-        "name": "Multi Metrics to ES", 
+        "name": "Multi Metrics to ES",
+        "tags": {TAG_STS_OBSERVABILITY: None}, 
         "external_identifier": "urn:kubernetes:/{cluster_name}:{namespace}:service/stackstate-mm2es",
         "depends_on": lambda: [
             {"component": components["metrics-message-broker"], "as": relationshipsMapping["consumer"]},
@@ -226,7 +248,8 @@ components = {
     "trace2es-service": {
         "id": "trace2es",
         "type": "service",
-        "name": "Traces to ES", 
+        "name": "Traces to ES",
+        "tags": {TAG_STS_OBSERVABILITY: None},
         "external_identifier": "urn:kubernetes:/{cluster_name}:{namespace}:service/stackstate-trace2es", 
         "depends_on": lambda: [
             {"component": components["traces-message-broker"], "as": relationshipsMapping["consumer"]},
@@ -240,18 +263,21 @@ components = {
         "id": "stackgraph",
         "type": "storage",
         "name": "StackGraph",
+        "tags": {TAG_STS_CAUSALITY: None},
         "external_identifier": "urn:kubernetes:/{cluster_name}:{namespace}:service/stackstate-hbase-hbase-master",
     },
     "elasticsearch-storage": {
         "id": "elasticsearch",
         "type": "storage",
         "name": "ElasticSearch",
+        "tags": {TAG_STS_OBSERVABILITY: None},
         "external_identifier": "urn:kubernetes:/{cluster_name}:{namespace}:service/stackstate-elasticsearch-master",
     },
     "message-broker-storage": {
         "id": "message_broker",
         "type": "storage",
         "name": "Kafka",
+        "tags": {TAG_STS_CAUSALITY: None, TAG_STS_OBSERVABILITY: None},
         "external_identifier": "urn:kubernetes:/{cluster_name}:{namespace}:service/stackstate-kafka",
     },
 
@@ -347,7 +373,12 @@ class StackstateMonitoringCheck(AgentCheck):
         return tags
     
     def tags_to_labels(self, tags): 
-        return [key + ':' + value for key, value in tags.items()]
+        labels = []
+        for key, value in tags.items():
+            if value is None: labels.append(key)
+            else: labels.append(key + ':' + value)
+        
+        return labels
     
     def add_component(self, component, cluster_name, namespace):
         tags = self.make_tags(component, cluster_name, namespace)
