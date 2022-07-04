@@ -1,13 +1,21 @@
 # stdlib
 import json
 import os
+import unittest
 
-from tests.checks.common import AgentCheckTest, Fixtures
-from checks import CheckException, FinalizeException, TokenExpiredException
-
+from stackstate_checks.base.errors import CheckException
+from stackstate_checks.splunk.client import TokenExpiredException
 from stackstate_checks.splunk.config.splunk_instance_config import time_to_seconds
+from stackstate_checks.splunk.telemetry.splunk_telemetry import SplunkTelemetryInstance
+from stackstate_checks.splunk_metric import SplunkMetric
+from stackstate_checks.base.stubs import telemetry, aggregator
 
-FIXTURE_DIR = os.path.join(os.path.dirname(__file__), 'ci')
+FIXTURE_DIR = os.path.join(os.path.dirname(__file__), 'ci', 'fixtures')
+
+
+def load_fixture(fixture_file):
+    with open(os.path.join(FIXTURE_DIR, fixture_file)) as f:
+        return json.loads(f.read())
 
 
 def _mocked_saved_searches(*args, **kwargs):
@@ -33,51 +41,92 @@ def _mocked_auth_session(instance_config):
     return "sessionKey1"
 
 
-class TestSplunkErrorResponse(AgentCheckTest):
+class MockSplunkClient(object):
+    def __init__(self):
+        self._dispatch_parameters = None
+        self.invalid_token = False
+
+    def auth_session(self, committable_state):
+        if self.invalid_token:
+            raise TokenExpiredException("Current in use authentication token is expired. Please provide a valid "
+                                        "token in the YAML and restart the Agent")
+        return
+
+    def saved_searches(self):
+        return []
+
+    def saved_search_results(self, search_id, saved_search):
+        if search_id == "exception":
+            raise CheckException("maximum retries reached for saved search " + str(search_id))
+        # sid is set to saved search name
+        return [load_fixture("%s.json" % search_id)]
+
+    def dispatch(self, saved_search, splunk_app, ignore_saved_search_errors, parameters):
+        if saved_search.name == "dispatch_exception":
+            raise Exception("BOOM")
+        self._dispatch_parameters = parameters
+        return saved_search.name
+
+    def finalize_sid(self, search_id, saved_search):
+        return
+
+
+class MockedSplunkTelemetryInstance(SplunkTelemetryInstance):
+    def __init__(self, current_time, instance, instance_config, saved_searches):
+        super(MockedSplunkTelemetryInstance, self).__init__(current_time, instance, instance_config, saved_searches)
+
+
+class MockedSplunkMetric(SplunkMetric):
+    def __init__(self, name, init_config, agent_config, instances=None):
+        super(MockedSplunkMetric, self).__init__(name, init_config, agent_config, instances)
+        # self.saved_searches = instances[0]['saved_searches']
+
+    # def get_instance(self, instance, current_time):
+    #     return MockedSplunkTelemetryInstance(0, instance, self.init_config)
+
+
+class TestSplunkErrorResponse(unittest.TestCase):
     """
     Splunk metric check should handle a FATAL message response
     """
     CHECK_NAME = 'splunk_metric'
+    instance = {
+        'url': 'http://localhost:8089',
+        'authentication': {
+            'basic_auth': {
+                'username': "admin",
+                'password': "admin"
+            }
+        },
+        'saved_searches': [{
+            "name": "error",
+            "parameters": {}
+        }],
+        'tags': []
+    }
+
+    def setUp(self):
+        """
+        Initialize and patch the check, i.e.
+        """
+        self.check = MockedSplunkMetric(self.CHECK_NAME, {}, {}, [self.instance])
+        telemetry.reset()
+        aggregator.reset()
+        self.check.commit_state(None)
 
     def test_checks(self):
         self.maxDiff = None
 
-        config = {
-            'init_config': {},
-            'instances': [
-                {
-                    'url': 'http://localhost:8089',
-                    'authentication': {
-                        'basic_auth': {
-                            'username': "admin",
-                            'password': "admin"
-                        }
-                    },
-                    'saved_searches': [{
-                        "name": "error",
-                        "parameters": {}
-                    }],
-                    'tags': []
-                }
-            ]
-        }
+        assert self.check.run() == ''
 
-        thrown = False
-        try:
-            self.run_check(config, mocks={
-                '_auth_session': _mocked_auth_session,
-                '_dispatch_saved_search': _mocked_dispatch_saved_search,
-                '_saved_searches': _mocked_saved_searches
-            })
-        except CheckException:
-            thrown = True
-        self.assertTrue(thrown, "Retrieving FATAL message from Splunk should throw.")
-
-        self.assertEquals(len(self.service_checks), 2)
-        self.assertEquals(self.service_checks[1]['status'], 2, "service check should have status AgentCheck.CRITICAL")
+        service_checks = aggregator.service_checks(self.CHECK_NAME)
+        self.assertEqual(service_checks[0].status, 0)
+        # TODO aggregator.assert_service_check()
+        # self.assertEquals(len(self.service_checks), 2)
+        # self.assertEquals(self.service_checks[1]['status'], 2, "service check should have status AgentCheck.CRITICAL")
 
 
-class TestSplunkMetric(AgentCheckTest):
+class TestSplunkMetric(object):
     """
         Splunk metric check should handle already available search ids
     """
@@ -161,7 +210,7 @@ class TestSplunkMetric(AgentCheckTest):
         self.tear_down(instance.get('url'), "minimal_metrics")
 
 
-class TestSplunkEmptyMetrics(AgentCheckTest):
+class TestSplunkEmptyMetrics(object):
     """
     Splunk metric check should process empty response correctly
     """
@@ -198,7 +247,7 @@ class TestSplunkEmptyMetrics(AgentCheckTest):
         self.assertEqual(len(current_check_metrics), 0)
 
 
-class TestSplunkMinimalMetrics(AgentCheckTest):
+class TestSplunkMinimalMetrics(object):
     """
     Splunk metrics check should process minimal response correctly
     """
@@ -247,7 +296,7 @@ class TestSplunkMinimalMetrics(AgentCheckTest):
             tags=[])
 
 
-class TestSplunkPartiallyIncompleteMetrics(AgentCheckTest):
+class TestSplunkPartiallyIncompleteMetrics(object):
     """
     Splunk metrics check should process continue when at least 1 datapoint was ok
     """
@@ -295,7 +344,8 @@ class TestSplunkPartiallyIncompleteMetrics(AgentCheckTest):
         self.assertEquals(self.service_checks[0]['message'],
                           "1 telemetry records failed to process when running saved search 'partially_incomplete_metrics'")
 
-class TestSplunkFullMetrics(AgentCheckTest):
+
+class TestSplunkFullMetrics(object):
     """
     Splunk metric check should process full response correctly
     """
@@ -353,7 +403,7 @@ class TestSplunkFullMetrics(AgentCheckTest):
             ])
 
 
-class TestSplunkAlternativeFieldsMetrics(AgentCheckTest):
+class TestSplunkAlternativeFieldsMetrics(object):
     """
     Splunk metrics check should be able to have configurable value fields
     """
@@ -404,7 +454,7 @@ class TestSplunkAlternativeFieldsMetrics(AgentCheckTest):
             tags=[])
 
 
-class TestSplunkFixedMetricNAme(AgentCheckTest):
+class TestSplunkFixedMetricNAme(object):
     """
     Splunk metrics check should be able to have a fixed check name
     """
@@ -455,7 +505,7 @@ class TestSplunkFixedMetricNAme(AgentCheckTest):
             tags=["mymetric:metric_name"])
 
 
-class TestSplunkWarningOnMissingFields(AgentCheckTest):
+class TestSplunkWarningOnMissingFields(object):
     """
     Splunk metric check should produce a service check upon a missing value or metric name field
     """
@@ -491,10 +541,11 @@ class TestSplunkWarningOnMissingFields(AgentCheckTest):
             '_saved_searches': _mocked_saved_searches
         })
 
-        self.assertEquals(self.service_checks[0]['status'], 1, "service check should have status AgentCheck.WARNING when fields are missing")
+        self.assertEquals(self.service_checks[0]['status'], 1,
+                          "service check should have status AgentCheck.WARNING when fields are missing")
 
 
-class TestSplunkSameDataMetrics(AgentCheckTest):
+class TestSplunkSameDataMetrics(object):
     """
     Splunk metrics check should process metrics with the same data
     """
@@ -543,7 +594,7 @@ class TestSplunkSameDataMetrics(AgentCheckTest):
             tags=[])
 
 
-class TestSplunkEarliestTimeAndDuplicates(AgentCheckTest):
+class TestSplunkEarliestTimeAndDuplicates(object):
     """
     Splunk metric check should poll batches responses
     """
@@ -638,7 +689,7 @@ class TestSplunkEarliestTimeAndDuplicates(AgentCheckTest):
         self.assertEquals(self.service_checks[1]['status'], 2, "service check should have status AgentCheck.CRITICAL")
 
 
-class TestSplunkDelayFirstTime(AgentCheckTest):
+class TestSplunkDelayFirstTime(object):
     """
     Splunk metric check should only start polling after the specified time
     """
@@ -698,7 +749,7 @@ class TestSplunkDelayFirstTime(AgentCheckTest):
         self.assertEqual(len(self.metrics), 2)
 
 
-class TestSplunkContinueAfterRestart(AgentCheckTest):
+class TestSplunkContinueAfterRestart(object):
     """
     Splunk metric check should continue where it left off after restart
     """
@@ -777,21 +828,23 @@ class TestSplunkContinueAfterRestart(AgentCheckTest):
         # Restart check and recover data
         test_data["time"] = time_to_seconds('2017-03-08T01:00:05.000000+0000')
         for slice_num in range(0, 12):
-            test_data["earliest_time"] = '2017-03-08T00:%s:01.000000+0000' % (str(slice_num*5).zfill(2))
+            test_data["earliest_time"] = '2017-03-08T00:%s:01.000000+0000' % (str(slice_num * 5).zfill(2))
             test_data["latest_time"] = '2017-03-08T00:%s:01.000000+0000' % (str((slice_num + 1) * 5).zfill(2))
             if slice_num == 11:
                 test_data["latest_time"] = '2017-03-08T01:00:01.000000+0000'
             self.run_check(config, mocks=test_mocks, force_reload=slice_num == 0)
-            self.assertTrue(self.continue_after_commit, "As long as we are not done with history, the check should continue")
+            self.assertTrue(self.continue_after_commit,
+                            "As long as we are not done with history, the check should continue")
 
         # Now continue with real-time polling (earliest time taken from last event or last restart chunk)
         test_data["earliest_time"] = '2017-03-08T01:00:01.000000+0000'
         test_data["latest_time"] = None
         self.run_check(config, mocks=test_mocks)
-        self.assertFalse(self.continue_after_commit, "As long as we are not done with history, the check should continue")
+        self.assertFalse(self.continue_after_commit,
+                         "As long as we are not done with history, the check should continue")
 
 
-class TestSplunkQueryInitialHistory(AgentCheckTest):
+class TestSplunkQueryInitialHistory(object):
     """
     Splunk metric check should continue where it left off after restart
     """
@@ -863,17 +916,19 @@ class TestSplunkQueryInitialHistory(AgentCheckTest):
             test_data["earliest_time"] = '2017-03-08T%s:00:00.000000+0000' % (str(slice_num).zfill(2))
             test_data["latest_time"] = '2017-03-08T%s:00:00.000000+0000' % (str(slice_num + 1).zfill(2))
             self.run_check(config, mocks=test_mocks)
-            self.assertTrue(self.continue_after_commit, "As long as we are not done with history, the check should continue")
+            self.assertTrue(self.continue_after_commit,
+                            "As long as we are not done with history, the check should continue")
 
         # Now continue with real-time polling (earliest time taken from last event)
         test_data["earliest_time"] = '2017-03-08T23:00:00.000000+0000'
         test_data["latest_time"] = None
         self.run_check(config, mocks=test_mocks)
         self.assertEqual(len(self.metrics), 2)
-        self.assertFalse(self.continue_after_commit, "As long as we are not done with history, the check should continue")
+        self.assertFalse(self.continue_after_commit,
+                         "As long as we are not done with history, the check should continue")
 
 
-class TestSplunkMaxRestartTime(AgentCheckTest):
+class TestSplunkMaxRestartTime(object):
     """
     Splunk metric check should use the max restart time parameter
     """
@@ -945,7 +1000,7 @@ class TestSplunkMaxRestartTime(AgentCheckTest):
         self.run_check(config, mocks=test_mocks, force_reload=True)
 
 
-class TestSplunkKeepTimeOnFailure(AgentCheckTest):
+class TestSplunkKeepTimeOnFailure(object):
     """
     Splunk metric check should keep the same start time when commit fails.
     """
@@ -1012,7 +1067,7 @@ class TestSplunkKeepTimeOnFailure(AgentCheckTest):
         self.run_check(config, mocks=test_mocks)
 
 
-class TestSplunkAdvanceTimeOnSuccess(AgentCheckTest):
+class TestSplunkAdvanceTimeOnSuccess(object):
     """
     Splunk metric check should advance the start time when commit succeeds
     """
@@ -1078,7 +1133,7 @@ class TestSplunkAdvanceTimeOnSuccess(AgentCheckTest):
         self.run_check(config, mocks=test_mocks)
 
 
-class TestSplunkWildcardSearches(AgentCheckTest):
+class TestSplunkWildcardSearches(object):
     """
     Splunk metric check should process minimal response correctly
     """
@@ -1136,7 +1191,7 @@ class TestSplunkWildcardSearches(AgentCheckTest):
         self.assertEqual(len(self.metrics), 0)
 
 
-class TestSplunkSavedSearchesError(AgentCheckTest):
+class TestSplunkSavedSearchesError(object):
     """
     Splunk metric check should have a service check failure when getting an exception from saved searches
     """
@@ -1179,7 +1234,7 @@ class TestSplunkSavedSearchesError(AgentCheckTest):
         self.assertEquals(self.service_checks[0]['status'], 2, "service check should have status AgentCheck.CRITICAL")
 
 
-class TestSplunkSavedSearchesIgnoreError(AgentCheckTest):
+class TestSplunkSavedSearchesIgnoreError(object):
     """
     Splunk metric check should ignore exception when getting an exception from saved searches
     """
@@ -1223,7 +1278,7 @@ class TestSplunkSavedSearchesIgnoreError(AgentCheckTest):
         self.assertEquals(self.service_checks[0]['status'], 2, "service check should have status AgentCheck.CRITICAL")
 
 
-class TestSplunkMetricIndividualDispatchFailures(AgentCheckTest):
+class TestSplunkMetricIndividualDispatchFailures(object):
     """
     Splunk metric check shouldn't fail if individual failures occur when dispatching Splunk searches
     """
@@ -1296,9 +1351,11 @@ class TestSplunkMetricIndividualDispatchFailures(AgentCheckTest):
 
         self.assertEqual(len(self.service_checks), 1)
         self.assertEquals(self.service_checks[0]['status'], 1, "service check should have status AgentCheck.WARNING")
-        self.assertEquals(self.service_checks[0]['message'], "Failed to dispatch saved search 'full_metrics' due to: BOOM")
+        self.assertEquals(self.service_checks[0]['message'],
+                          "Failed to dispatch saved search 'full_metrics' due to: BOOM")
 
-class TestSplunkMetricIndividualSearchFailures(AgentCheckTest):
+
+class TestSplunkMetricIndividualSearchFailures(object):
     """
     Splunk metric check shouldn't fail if individual failures occur when executing Splunk searches
     """
@@ -1375,7 +1432,7 @@ class TestSplunkMetricIndividualSearchFailures(AgentCheckTest):
                           "Failed to execute dispatched search 'full_metrics' with id full_metrics due to: BOOM")
 
 
-class TestSplunkMetricSearchFullFailure(AgentCheckTest):
+class TestSplunkMetricSearchFullFailure(object):
     """
     Splunk metric check should fail when all saved searches fail
     """
@@ -1431,7 +1488,7 @@ class TestSplunkMetricSearchFullFailure(AgentCheckTest):
         self.assertTrue(thrown, "All saved searches should fail and an exception should've been thrown")
 
 
-class TestSplunkMetricRespectParallelDispatches(AgentCheckTest):
+class TestSplunkMetricRespectParallelDispatches(object):
     CHECK_NAME = 'splunk_metric'
 
     def test_checks(self):
@@ -1465,7 +1522,9 @@ class TestSplunkMetricRespectParallelDispatches(AgentCheckTest):
         self.expected_sid_increment = 1
 
         def _mock_dispatch_and_await_search(instance, saved_searches):
-            self.assertLessEqual(len(saved_searches), saved_searches_parallel, "Did not respect the configured saved_searches_parallel setting, got value: %i" % len(saved_searches))
+            self.assertLessEqual(len(saved_searches), saved_searches_parallel,
+                                 "Did not respect the configured saved_searches_parallel setting, got value: %i" % len(
+                                     saved_searches))
 
             for saved_search in saved_searches:
                 result = saved_search.name
@@ -1482,7 +1541,8 @@ class TestSplunkMetricRespectParallelDispatches(AgentCheckTest):
             '_saved_searches': _mocked_saved_searches
         })
 
-class TestSplunkSelectiveFieldsForIdentification(AgentCheckTest):
+
+class TestSplunkSelectiveFieldsForIdentification(object):
     """
     Splunk metrics check should process metrics where the unique identifier is set to a selective number of fields
     """
@@ -1543,7 +1603,7 @@ class TestSplunkSelectiveFieldsForIdentification(AgentCheckTest):
         self.assertEqual(len(self.metrics), 0)
 
 
-class TestSplunkAllFieldsForIdentification(AgentCheckTest):
+class TestSplunkAllFieldsForIdentification(object):
     """
     Splunk metrics check should process metrics where the unique identifier is set to all fields in a record
     """
@@ -1591,7 +1651,6 @@ class TestSplunkAllFieldsForIdentification(AgentCheckTest):
             time=1923825600,
             value=2,
             tags=[])
-
 
         # shouldn't resend the metrics
         self.run_check(config, mocks={
@@ -1642,7 +1701,6 @@ class TestSplunkAllFieldsForIdentification(AgentCheckTest):
             time=1923825600,
             value=2,
             tags=[])
-
 
         # shouldn't resend the metrics
         self.run_check(config, mocks={
@@ -1703,7 +1761,6 @@ class TestSplunkAllFieldsForIdentification(AgentCheckTest):
             value=2,
             tags=[])
 
-
         # shouldn't resend the metrics
         self.run_check(config, mocks={
             '_auth_session': _mocked_auth_session,
@@ -1716,7 +1773,7 @@ class TestSplunkAllFieldsForIdentification(AgentCheckTest):
         self.assertEqual(len(self.metrics), 0)
 
 
-class TestSplunkDefaults(AgentCheckTest):
+class TestSplunkDefaults(object):
     CHECK_NAME = 'splunk_metric'
 
     def test_default_parameters(self):
@@ -1746,7 +1803,8 @@ class TestSplunkDefaults(AgentCheckTest):
 
         def _mocked_auth_session_to_check_instance_config(instance):
             for saved_search in instance.saved_searches.searches:
-                self.assertEqual(saved_search.parameters, expected_default_parameters, msg="Unexpected default parameters for saved search: %s" % saved_search.name)
+                self.assertEqual(saved_search.parameters, expected_default_parameters,
+                                 msg="Unexpected default parameters for saved search: %s" % saved_search.name)
             return "sessionKey1"
 
         self.run_check(config, mocks={
@@ -1757,7 +1815,6 @@ class TestSplunkDefaults(AgentCheckTest):
         })
 
         self.assertEqual(len(self.metrics), 2)
-
 
     def test_non_default_parameters(self):
         """
@@ -1790,7 +1847,8 @@ class TestSplunkDefaults(AgentCheckTest):
 
         def _mocked_auth_session_to_check_instance_config(instance):
             for saved_search in instance.saved_searches.searches:
-                self.assertEqual(saved_search.parameters, expected_default_parameters, msg="Unexpected non-default parameters for saved search: %s" % saved_search.name)
+                self.assertEqual(saved_search.parameters, expected_default_parameters,
+                                 msg="Unexpected non-default parameters for saved search: %s" % saved_search.name)
             return "sessionKey1"
 
         self.run_check(config, mocks={
@@ -1801,7 +1859,6 @@ class TestSplunkDefaults(AgentCheckTest):
         })
 
         self.assertEqual(len(self.metrics), 2)
-
 
     def test_overwrite_default_parameters(self):
         """
@@ -1837,7 +1894,8 @@ class TestSplunkDefaults(AgentCheckTest):
 
         def _mocked_auth_session_to_check_instance_config(instance):
             for saved_search in instance.saved_searches.searches:
-                self.assertEqual(saved_search.parameters, expected_default_parameters, msg="Unexpected overwritten default parameters for saved search: %s" % saved_search.name)
+                self.assertEqual(saved_search.parameters, expected_default_parameters,
+                                 msg="Unexpected overwritten default parameters for saved search: %s" % saved_search.name)
             return "sessionKey1"
 
         self.run_check(config, mocks={
@@ -1850,7 +1908,7 @@ class TestSplunkDefaults(AgentCheckTest):
         self.assertEqual(len(self.metrics), 2)
 
 
-class TestSplunkConfigMaxQueryChunkSecHistory(AgentCheckTest):
+class TestSplunkConfigMaxQueryChunkSecHistory(object):
     """
     Splunk metric check should use the max query chunk sec in past mode
     """
@@ -1933,7 +1991,8 @@ class TestSplunkConfigMaxQueryChunkSecHistory(AgentCheckTest):
         # make sure the window is of max_query_chunk_seconds and last_observed_time_stamp is dispatch latest time -1
         self.assertEqual(last_observed_timestamp, time_to_seconds('2017-03-08T11:04:59.000000+0000'))
 
-class TestSplunkConfigMaxQueryChunkSecLive(AgentCheckTest):
+
+class TestSplunkConfigMaxQueryChunkSecLive(object):
     """
     Splunk metric check should use the max query chunk sec in live mode
     """
@@ -2003,8 +2062,7 @@ class TestSplunkConfigMaxQueryChunkSecLive(AgentCheckTest):
         self.assertEqual(last_observed_timestamp, time_to_seconds('2017-03-08T12:00:00.000000+0000'))
 
 
-class TestSplunkMetricsWithTokenAuth(AgentCheckTest):
-
+class TestSplunkMetricsWithTokenAuth(object):
     CHECK_NAME = 'splunk_metric'
 
     def test_checks_with_valid_token(self):

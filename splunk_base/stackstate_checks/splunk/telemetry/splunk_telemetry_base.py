@@ -1,5 +1,6 @@
 import sys
 import time
+import traceback
 
 from stackstate_checks.base import AgentCheck, TopologyInstance
 from stackstate_checks.base.checks import TransactionalAgentCheck, CheckResponse
@@ -17,10 +18,10 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
                            'date_year', 'date_zone', 'timestartpos', 'timeendpos'}
     TIME_FMT = "%Y-%m-%dT%H:%M:%S.%f%z"
 
-    def __init__(self, name, init_config, agentConfig, instances=None):
-        super(SplunkTelemetryBase, self).__init__(name, init_config, agentConfig, instances)
+    def __init__(self, name, init_config, agent_config, instances=None):
+        super(SplunkTelemetryBase, self).__init__(name, init_config, agent_config, instances)
         # Data to keep over check runs
-        self.instance_data = None
+        self.instance_data = dict()
 
     def get_instance_key(self, instance):
         return TopologyInstance(SplunkTelemetryInstance.INSTANCE_TYPE, instance["url"])
@@ -33,7 +34,7 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
         current_time = self._current_time_seconds()
         url = instance["url"]
         if url not in self.instance_data:
-            self.instance_data[url] = self.get_instance(instance, current_time)
+            self.instance_data = self.get_instance(instance, current_time)
 
         pstate = SplunkPersistentState(persistent_state)
 
@@ -56,27 +57,23 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
 
             # If no service checks were produced, everything is ok
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK)
-
-            return CheckResponse(transactional_state=transactional_state,
-                                 persistent_state=pstate.state,
-                                 check_error=None)
-
         except TokenExpiredException as e:
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=instance.instance_config.tags,
                                message=str(e.message))
             self.log.exception("Splunk metric exception: %s" % str(e))
-            return CheckResponse(transactional_state=transactional_state,
-                                 persistent_state=pstate.state,
-                                 check_error=e)
         except Exception as e:
+            print(traceback.print_exc())
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=instance.instance_config.tags,
                                message=str(e))
             self.log.exception("Splunk metric exception: %s" % str(e))
             if not instance.instance_config.ignore_saved_search_errors:
-                raise CheckException("Splunk metric failed with message: %s" % e, None, sys.exc_info()[2])
-            return CheckResponse(transactional_state=transactional_state,
-                                 persistent_state=pstate.state,
-                                 check_error=e)
+                return CheckResponse(transactional_state=transactional_state,
+                                     persistent_state=pstate.state,
+                                     check_error=CheckException("Splunk metric failed with message: %s" % e, None, sys.exc_info()[2]))
+
+        return CheckResponse(transactional_state=transactional_state,
+                             persistent_state=pstate.state,
+                             check_error=None)
 
     def _extract_telemetry(self, saved_search, instance, result, sent_already):
         for data in result["results"]:

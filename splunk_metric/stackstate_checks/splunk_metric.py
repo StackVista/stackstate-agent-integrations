@@ -3,6 +3,7 @@
 """
 
 # 3rd party
+from stackstate_checks.splunk.client import SplunkClient
 from stackstate_checks.splunk.config.splunk_instance_config import SplunkTelemetryInstanceConfig
 from stackstate_checks.splunk.saved_search_helper import SavedSearches
 from stackstate_checks.splunk.telemetry.splunk_telemetry import SplunkTelemetrySavedSearch, SplunkTelemetryInstance
@@ -41,8 +42,8 @@ class MetricSavedSearch(SplunkTelemetrySavedSearch):
 class SplunkMetric(SplunkTelemetryBase):
     SERVICE_CHECK_NAME = "splunk.metric_information"
 
-    def __init__(self, name, init_config, agentConfig, instances=None):
-        super(SplunkMetric, self).__init__(name, init_config, agentConfig, "splunk_metric", instances)
+    def __init__(self, name, init_config, agent_config, instances=None):
+        super(SplunkMetric, self).__init__(name, init_config, agent_config, instances)
 
     def _apply(self, metric, value, **kwargs):
         self.raw(metric, float(value), **kwargs)
@@ -72,7 +73,9 @@ class SplunkMetric(SplunkTelemetryBase):
         if instance['saved_searches'] is not None:
             saved_searches = instance['saved_searches']
 
-        metric_saved_searches = SavedSearches([
+        metric_saved_searches = SavedSearches(instance_config=metric_instance_config,
+                                              splunk_client=SplunkClient(metric_instance_config),
+                                              saved_searches=[
             MetricSavedSearch(metric_instance_config, saved_search_instance)
             for saved_search_instance in saved_searches
         ])

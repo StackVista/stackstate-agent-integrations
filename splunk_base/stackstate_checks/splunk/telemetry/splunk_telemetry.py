@@ -1,3 +1,4 @@
+from stackstate_checks.splunk.client import SplunkClient
 from stackstate_checks.splunk.config import SplunkSavedSearch
 
 
@@ -44,6 +45,7 @@ class SplunkTelemetryInstance(object):
 
     def __init__(self, current_time, instance, instance_config, saved_searches):
         self.instance_config = instance_config
+        self.splunk_client = self._build_splunk_client()
 
         # no saved searches may be configured
         if not isinstance(instance['saved_searches'], list):
@@ -58,6 +60,10 @@ class SplunkTelemetryInstance(object):
         self.launch_time_seconds = current_time
         self.unique_key_fields = instance.get('unique_key_fields',
                                               self.instance_config.get_or_default('default_unique_key_fields'))
+
+    # Hook to allow for mocking
+    def _build_splunk_client(self):
+        return SplunkClient(self.instance_config)
 
     def initial_time_done(self, current_time_seconds):
         return current_time_seconds >= self.launch_time_seconds + self.initial_delay_seconds
