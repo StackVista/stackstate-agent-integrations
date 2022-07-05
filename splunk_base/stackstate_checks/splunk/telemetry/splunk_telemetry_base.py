@@ -69,7 +69,11 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
             if not instance.instance_config.ignore_saved_search_errors:
                 return CheckResponse(transactional_state=transactional_state,
                                      persistent_state=pstate.state,
-                                     check_error=CheckException("Splunk metric failed with message: %s" % e, None, sys.exc_info()[2]))
+                                     check_error=CheckException(
+                                         "Splunk metric failed with message: %s" % e,
+                                         None,
+                                         sys.exc_info()[2]
+                                     ))
 
         return CheckResponse(transactional_state=transactional_state,
                              persistent_state=pstate.state,
