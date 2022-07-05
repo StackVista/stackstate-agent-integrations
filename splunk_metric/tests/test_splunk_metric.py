@@ -41,7 +41,7 @@ def _mocked_auth_session(instance_config):
     return "sessionKey1"
 
 
-class MockSplunkClient(object):
+class MockedSplunkClient(object):
     def __init__(self):
         self._dispatch_parameters = None
         self.invalid_token = False
@@ -75,15 +75,18 @@ class MockedSplunkTelemetryInstance(SplunkTelemetryInstance):
     def __init__(self, current_time, instance, instance_config, saved_searches):
         super(MockedSplunkTelemetryInstance, self).__init__(current_time, instance, instance_config, saved_searches)
 
+    # Hook to allow for mocking
+    def _build_splunk_client(self):
+        return MockedSplunkClient()
+
 
 class MockedSplunkMetric(SplunkMetric):
     def __init__(self, name, init_config, agent_config, instances=None):
         super(MockedSplunkMetric, self).__init__(name, init_config, agent_config, instances)
-        # self.saved_searches = instances[0]['saved_searches']
 
-    # def get_instance(self, instance, current_time):
-    #     return MockedSplunkTelemetryInstance(0, instance, self.init_config)
-
+    def create_instance(self, _create_saved_search, current_time, instance, metric_instance_config):
+        return MockedSplunkTelemetryInstance(current_time, instance, metric_instance_config,
+                                       _create_saved_search)
 
 class TestSplunkErrorResponse(unittest.TestCase):
     """
