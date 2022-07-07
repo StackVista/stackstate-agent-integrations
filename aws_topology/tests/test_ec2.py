@@ -452,3 +452,35 @@ class TestEC2(BaseApiTest):
             self.assertEqual(self.check.delete_ids, ["i-0f70dba7ea83d6dec"])
             topology = top.get_snapshot(self.check.check_id)
             assert topology['delete_ids'] == ["i-0f70dba7ea83d6dec"]
+
+    @set_filter("xxx")
+    @set_eventbridge_event("authorize_security_group_ingress")
+    def test_process_authorize_security_group_ingress(self):
+        with patch("stackstate_checks.aws_topology.AwsTopologyCheck.must_run_full", return_value=False):
+            self.check.run()
+            topology = [top.get_snapshot(self.check.check_id)]
+            self.assertEqual(len(topology), 1)
+            self.assert_updated_ok()
+            components = topology[0]["components"]
+            top.assert_component(
+                components,
+                "sg-033d49addc8e52b58",
+                "aws.ec2.security-group",
+                checks={"GroupId": "sg-033d49addc8e52b58"},
+            )
+
+    @set_filter("xxx")
+    @set_eventbridge_event("revoke_security_group_ingress")
+    def test_process_authorize_security_group_ingress(self):
+        with patch("stackstate_checks.aws_topology.AwsTopologyCheck.must_run_full", return_value=False):
+            self.check.run()
+            topology = [top.get_snapshot(self.check.check_id)]
+            self.assertEqual(len(topology), 1)
+            self.assert_updated_ok()
+            components = topology[0]["components"]
+            top.assert_component(
+                components,
+                "sg-033d49addc8e52b58",
+                "aws.ec2.security-group",
+                checks={"GroupId": "sg-033d49addc8e52b58"},
+            )

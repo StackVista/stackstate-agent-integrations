@@ -14,7 +14,6 @@ from .registry import RegisteredResourceCollector
 from schematics import Model
 from schematics.types import StringType, ModelType, ListType, BooleanType
 
-
 InstanceData = namedtuple("InstanceData", ["instance", "instance_type"])
 
 
@@ -127,22 +126,22 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
 
     def collect_instances(self, **kwargs):
         for reservation in client_array_operation(
-            self.client,
-            "describe_instances",
-            "Reservations",
-            Filters=[
-                {
-                    "Name": "instance-state-code",  # Don't return terminated instances
-                    "Values": [
-                        "0",  # pending
-                        "16",  # running
-                        "32",  # shutting-down
-                        "64",  # stopping
-                        "80",  # stopped
-                    ],
-                }
-            ],
-            **kwargs
+                self.client,
+                "describe_instances",
+                "Reservations",
+                Filters=[
+                    {
+                        "Name": "instance-state-code",  # Don't return terminated instances
+                        "Values": [
+                            "0",  # pending
+                            "16",  # running
+                            "32",  # shutting-down
+                            "64",  # stopping
+                            "80",  # stopped
+                        ],
+                    }
+                ],
+                **kwargs
         ):
             for instance_data in reservation.get("Instances", []):
                 yield self.collect_instance(instance_data)
@@ -219,13 +218,16 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
 
         self.emit_component(instance.InstanceId, "instance", output)
 
-    def collect_security_groups(self):
-        for security_group in client_array_operation(self.client, "describe_security_groups", "SecurityGroups"):
+    def collect_security_groups(self, **kwargs):
+        for security_group in client_array_operation(self.client,
+                                                     "describe_security_groups",
+                                                     "SecurityGroups",
+                                                     **kwargs):
             yield security_group
 
     @set_required_access_v2("ec2:DescribeSecurityGroups")
-    def process_security_groups(self):
-        for security_group_data in self.collect_security_groups():
+    def process_security_groups(self, **kwargs):
+        for security_group_data in self.collect_security_groups(**kwargs):
             self.process_security_group(security_group_data)
 
     @transformation()
@@ -316,10 +318,10 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
 
     def collect_vpn_gateways(self):
         for vpn_gateway in client_array_operation(
-            self.client,
-            "describe_vpn_gateways",
-            "VpnGateways",
-            Filters=[{"Name": "state", "Values": ["pending", "available"]}],
+                self.client,
+                "describe_vpn_gateways",
+                "VpnGateways",
+                Filters=[{"Name": "state", "Values": ["pending", "available"]}],
         ):
             yield vpn_gateway
 
@@ -363,6 +365,9 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
     def process_one_instance(self, instance_id):
         self.process_instances(InstanceIds=[instance_id])
 
+    def process_one_security_group(self, security_group_id):
+        self.process_security_groups(GroupIds=[security_group_id])
+
     EVENT_SOURCE = "ec2.amazonaws.com"
     CLOUDTRAIL_EVENTS = [
         {"event_name": "RunInstances", "processor": process_batch_instances},
@@ -376,5 +381,15 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
             "event_name": "ModifyInstanceAttribute",
             "path": "requestParameters.instanceId",
             "processor": process_one_instance,
+        },
+        {
+            "event_name": "RevokeSecurityGroupIngress",
+            "path": "requestParameters.groupId",
+            "processor": process_one_security_group,
+        },
+        {
+            "event_name": "AuthorizeSecurityGroupIngress",
+            "path": "requestParameters.groupId",
+            "processor": process_one_security_group,
         },
     ]
