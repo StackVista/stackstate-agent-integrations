@@ -471,7 +471,7 @@ class TestEC2(BaseApiTest):
 
     @set_filter("xxx")
     @set_eventbridge_event("revoke_security_group_ingress")
-    def test_process_authorize_security_group_ingress(self):
+    def test_process_revoke_security_group_ingress(self):
         with patch("stackstate_checks.aws_topology.AwsTopologyCheck.must_run_full", return_value=False):
             self.check.run()
             topology = [top.get_snapshot(self.check.check_id)]
