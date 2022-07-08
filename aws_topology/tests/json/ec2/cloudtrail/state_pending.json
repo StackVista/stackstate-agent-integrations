@@ -4,7 +4,7 @@
   "detail-type": "EC2 Instance State-change Notification",
   "source": "aws.ec2",
   "account": "120431062118",
-  "time": "2022-06-15T06:37:33Z",
+  "time": "2021-06-15T06:37:33Z",
   "region": "eu-west-1",
   "resources": [
     "arn:aws:ec2:eu-west-1:120431062118:instance/i-1234567890123456"
