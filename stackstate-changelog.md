@@ -2,7 +2,7 @@
 
 # 1.21.1 / 2022-07-08
 
-* [Added] Added processing AWS Security Group Ingress changes triggered by EventBridge event. 
+* [Added] Added processing AWS Security Group Ingress changes triggered by EventBridge event. [(STAC-17006)](https://stackstate.atlassian.net/browse/STAC-17006)
 
 # 1.21.0 / 2022-06-01
 
