@@ -1,5 +1,9 @@
 # StackState Agent Integrations v2 releases
 
+# 1.21.1 / 2022-07-??
+
+* [Added] Added processing AWS Security Group changes triggered by EventBridge event. 
+
 # 1.21.0 / 2022-06-01
 
 * [Added] Support for using agents persistent cache [(STAC-16162)](https://stackstate.atlassian.net/browse/STAC-16162) 
