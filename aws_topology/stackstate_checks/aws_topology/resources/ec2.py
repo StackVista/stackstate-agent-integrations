@@ -317,12 +317,11 @@ class Ec2InstanceCollector(RegisteredResourceCollector):
         self.emit_relation(subnet.SubnetId, subnet.VpcId, "uses-service", {})
 
     def collect_vpn_gateways(self):
-        for vpn_gateway in client_array_operation(
-                self.client,
-                "describe_vpn_gateways",
-                "VpnGateways",
-                Filters=[{"Name": "state", "Values": ["pending", "available"]}],
-        ):
+        for vpn_gateway in client_array_operation(self.client,
+                                                  "describe_vpn_gateways",
+                                                  "VpnGateways",
+                                                  Filters=[{"Name": "state", "Values": ["pending", "available"]}]
+                                                  ):
             yield vpn_gateway
 
     @set_required_access_v2("ec2:DescribeVpnGateways")
