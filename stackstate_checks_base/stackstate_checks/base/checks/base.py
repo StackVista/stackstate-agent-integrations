@@ -316,7 +316,7 @@ class AgentCheck(object):
                 topology.submit_start_snapshot(self, self.check_id, self._get_instance_key_dict())
 
             # create integration instance components for monitoring purposes
-            self.create_integration_instance()
+            # self.create_integration_instance()
 
             # Initialize the health api
             self._init_health_api()
