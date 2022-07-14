@@ -12,6 +12,10 @@ except AttributeError:  # Python 2
     JSONParseException = ValueError
 
 
+def convert_datetime_to_timestamp(original_datetime):
+    return (original_datetime - datetime.fromtimestamp(0).replace(tzinfo=pytz.utc)).total_seconds()
+
+
 class CloudtrailCollector(object):
     MAX_S3_DELETES = 999
 
@@ -81,7 +85,7 @@ class CloudtrailCollector(object):
         client = self.session.client("cloudtrail")
         # collect the events (ordering is most recent event first)
         self.log.info("Start collecting EventBridge events from CloudTrail history (can have 15 minutes delay)")
-        not_before_timestamp = (not_before - datetime.fromtimestamp(0).replace(tzinfo=pytz.utc)).total_seconds()
+        not_before_timestamp = convert_datetime_to_timestamp(not_before)
         self.log.debug("Not before: %s timestamp: %s", not_before, not_before_timestamp)
         for pg in client.get_paginator("lookup_events").paginate(
             LookupAttributes=[{"AttributeKey": "ReadOnly", "AttributeValue": "false"}],
