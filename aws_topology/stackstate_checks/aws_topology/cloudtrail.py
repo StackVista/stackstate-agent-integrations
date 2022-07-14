@@ -81,8 +81,11 @@ class CloudtrailCollector(object):
         client = self.session.client("cloudtrail")
         # collect the events (ordering is most recent event first)
         self.log.info("Start collecting EventBridge events from CloudTrail history (can have 15 minutes delay)")
+        not_before_timestamp = (not_before - datetime.fromtimestamp(0).replace(tzinfo=pytz.utc)).total_seconds()
+        self.log.debug("Not before: %s timestamp: %s", not_before, not_before_timestamp)
         for pg in client.get_paginator("lookup_events").paginate(
             LookupAttributes=[{"AttributeKey": "ReadOnly", "AttributeValue": "false"}],
+            StartTime=not_before_timestamp,
         ):
             for itm in pg.get("Events") or []:
                 rec = json.loads(itm["CloudTrailEvent"])

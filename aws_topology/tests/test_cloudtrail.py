@@ -107,7 +107,10 @@ class CollectorMock(RegisteredResourceCollector):
 
 lookup_call = {
     "operation_name": "lookup_events",
-    "parameters": {"LookupAttributes": [{"AttributeKey": "ReadOnly", "AttributeValue": "false"}]},
+    "parameters": {
+        "LookupAttributes": [{"AttributeKey": "ReadOnly", "AttributeValue": "false"}],
+        "StartTime": 1619823600.0
+    },
 }
 
 
