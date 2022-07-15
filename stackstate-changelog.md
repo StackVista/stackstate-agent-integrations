@@ -1,6 +1,6 @@
 # StackState Agent Integrations v2 releases
 
-# 1.21.2 / 2022-07-??
+# 1.21.2 / 2022-07-15
 
 * [Fixed] Fixed CloudTrail history retrieval fallback when there is no CloudTrail S3 bucket available. [STAC-17058](https://stackstate.atlassian.net/browse/STAC-17058)
 
