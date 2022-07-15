@@ -1,5 +1,10 @@
 # StackState Agent Integrations v2 releases
 
+# 1.21.2 / 2022-07-15
+
+* [Fixed] Fixed CloudTrail history retrieval fallback when there is no CloudTrail S3 bucket available. [STAC-17058](https://stackstate.atlassian.net/browse/STAC-17058)
+
+
 # 1.21.1 / 2022-07-08
 
 * [Added] Added processing AWS Security Group Ingress changes triggered by EventBridge event. [(STAC-17006)](https://stackstate.atlassian.net/browse/STAC-17006)

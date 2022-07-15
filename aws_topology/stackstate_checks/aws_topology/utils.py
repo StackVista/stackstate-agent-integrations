@@ -1,11 +1,12 @@
 import gzip
 import io
+from datetime import datetime
+
+import botocore
+import pytz
 from schematics import Model
 from schematics.types import StringType, ModelType
-from datetime import datetime
-import pytz
 from six import PY2, string_types
-import botocore
 
 
 class Location(Model):
