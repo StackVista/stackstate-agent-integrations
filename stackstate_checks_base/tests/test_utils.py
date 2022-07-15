@@ -247,10 +247,10 @@ class TestTime:
     def test_get_time_since_epoch(self):
         sample_time = datetime.datetime(year=2021, month=5, day=1, hour=00, minute=00, second=00,
                                         tzinfo=pytz.timezone("UTC"))
-        assert get_time_since_epoch(sample_time) == 1619827200.0
+        assert get_time_since_epoch(sample_time) == 1619827200
 
     def test_time_conversions(self):
         str_datetime_utc = "2016-06-27T14:26:30.000+00:00"
-        time_in_seconds = 1467037590.0
+        time_in_seconds = 1467037590
         assert time_to_seconds(str_datetime_utc) == time_in_seconds
         assert get_utc_time(time_in_seconds) == iso8601.parse_date(str_datetime_utc)
