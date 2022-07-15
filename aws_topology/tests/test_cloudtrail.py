@@ -1,20 +1,19 @@
+import io
 import json
 import os
 import unittest
-from mock import patch
-
-from stackstate_checks.aws_topology.cloudtrail import convert_datetime_to_timestamp
-from stackstate_checks.base.stubs import topology as top, aggregator
-from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
-from stackstate_checks.base import AgentCheck
-from stackstate_checks.aws_topology.resources import RegisteredResourceCollector
-import botocore.exceptions
-import botocore.response
 from datetime import datetime
 from functools import reduce
-import io
-import pytz
 
+import botocore.exceptions
+import botocore.response
+import pytz
+from mock import patch
+
+from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
+from stackstate_checks.aws_topology.resources import RegisteredResourceCollector
+from stackstate_checks.base import AgentCheck
+from stackstate_checks.base.stubs import topology as top, aggregator
 from .conftest import resource, get_bytes_from_file, set_log_bucket_name, use_subdirectory, set_not_authorized, use_gz
 
 
@@ -111,7 +110,7 @@ lookup_call = {
     "operation_name": "lookup_events",
     "parameters": {
         "LookupAttributes": [{"AttributeKey": "ReadOnly", "AttributeValue": "false"}],
-        "StartTime": 1619823600.0
+        "StartTime": 1619827200.0
     },
 }
 
@@ -349,8 +348,3 @@ class TestCloudtrail(unittest.TestCase):
         self.assertEqual(len(components), 2)
         self.assertEqual(components[0]["id"], "arn:aws:lambda:eu-west-1:120431062118:function:stackstate-topo-cron:1")
         self.assertEqual(components[1]["id"], "arn:aws:lambda:eu-west-1:120431062118:function:stackstate-topo-cron")
-
-    def test_convert_time(self):
-        # 2021-05-01 00:00:00+00:00
-        original_datetime = datetime(year=2021, month=5, day=1, hour=00, minute=00, second=00, tzinfo=pytz.utc)
-        assert convert_datetime_to_timestamp(original_datetime) == 1619823600.0

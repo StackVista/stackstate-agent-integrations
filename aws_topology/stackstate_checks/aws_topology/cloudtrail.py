@@ -1,19 +1,17 @@
 import json
+import re
+from datetime import datetime
+
 import dateutil.parser
 import pytz
-from datetime import datetime
-import re
-from .utils import get_stream_from_s3body
 
+from stackstate_checks.base.utils.time import get_time_since_epoch
+from .utils import get_stream_from_s3body
 
 try:
     JSONParseException = json.decoder.JSONDecodeError
 except AttributeError:  # Python 2
     JSONParseException = ValueError
-
-
-def convert_datetime_to_timestamp(original_datetime):
-    return (original_datetime - datetime.fromtimestamp(0).replace(tzinfo=pytz.utc)).total_seconds()
 
 
 class CloudtrailCollector(object):
@@ -57,7 +55,7 @@ class CloudtrailCollector(object):
         to_delete = []
         files_to_handle = []
         for pg in client.get_paginator("list_objects_v2").paginate(
-            Bucket=bucket_name, Prefix="AWSLogs/{act}/EventBridge/{rgn}/".format(act=self.account_id, rgn=region)
+                Bucket=bucket_name, Prefix="AWSLogs/{act}/EventBridge/{rgn}/".format(act=self.account_id, rgn=region)
         ):
             contents = pg.get("Contents") or []
             self.log.info("Found {} objects in the S3 bucket".format(len(contents)))
@@ -85,11 +83,11 @@ class CloudtrailCollector(object):
         client = self.session.client("cloudtrail")
         # collect the events (ordering is most recent event first)
         self.log.info("Start collecting EventBridge events from CloudTrail history (can have 15 minutes delay)")
-        not_before_timestamp = convert_datetime_to_timestamp(not_before)
+        not_before_timestamp = get_time_since_epoch(not_before)
         self.log.debug("Not before: %s timestamp: %s", not_before, not_before_timestamp)
         for pg in client.get_paginator("lookup_events").paginate(
-            LookupAttributes=[{"AttributeKey": "ReadOnly", "AttributeValue": "false"}],
-            StartTime=not_before_timestamp,
+                LookupAttributes=[{"AttributeKey": "ReadOnly", "AttributeValue": "false"}],
+                StartTime=not_before_timestamp,
         ):
             for itm in pg.get("Events") or []:
                 rec = json.loads(itm["CloudTrailEvent"])
@@ -101,11 +99,11 @@ class CloudtrailCollector(object):
         for i in range(0, len(files), self.MAX_S3_DELETES):
             try:
                 self.log.info(
-                    "Deleting {} files from S3 bucket {}".format(len(files[i : i + self.MAX_S3_DELETES]), bucket_name)
+                    "Deleting {} files from S3 bucket {}".format(len(files[i: i + self.MAX_S3_DELETES]), bucket_name)
                 )
                 client.delete_objects(
                     Bucket=bucket_name,
-                    Delete={"Objects": files[i : i + self.MAX_S3_DELETES], "Quiet": True},
+                    Delete={"Objects": files[i: i + self.MAX_S3_DELETES], "Quiet": True},
                 )
             except Exception as e:
                 self.log.exception(e)
