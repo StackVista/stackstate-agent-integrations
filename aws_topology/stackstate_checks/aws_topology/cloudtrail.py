@@ -55,7 +55,7 @@ class CloudtrailCollector(object):
         to_delete = []
         files_to_handle = []
         for pg in client.get_paginator("list_objects_v2").paginate(
-                Bucket=bucket_name, Prefix="AWSLogs/{act}/EventBridge/{rgn}/".format(act=self.account_id, rgn=region)
+            Bucket=bucket_name, Prefix="AWSLogs/{act}/EventBridge/{rgn}/".format(act=self.account_id, rgn=region)
         ):
             contents = pg.get("Contents") or []
             self.log.info("Found {} objects in the S3 bucket".format(len(contents)))
