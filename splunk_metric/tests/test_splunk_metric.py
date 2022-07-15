@@ -3,6 +3,7 @@ import json
 import os
 import unittest
 
+from stackstate_checks.base import AgentCheck
 from stackstate_checks.base.errors import CheckException
 from stackstate_checks.splunk.client import TokenExpiredException
 from stackstate_checks.splunk.config.splunk_instance_config import time_to_seconds
@@ -122,7 +123,7 @@ class TestSplunkErrorResponse(unittest.TestCase):
 
         assert self.check.run() != ''
 
-        aggregator.assert_service_check(self.CHECK_NAME, 2)
+        aggregator.assert_service_check(self.CHECK_NAME, AgentCheck.CRITICAL)
 
 
 class TestSplunkMetric(object):
