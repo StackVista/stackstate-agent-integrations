@@ -1,6 +1,7 @@
 # (C) Datadog, Inc. 2018
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
+import datetime
 import json
 from decimal import ROUND_HALF_DOWN, ROUND_HALF_UP
 
@@ -8,7 +9,11 @@ import pytest
 import os
 import platform
 
+import pytz
+from iso8601 import iso8601
+
 from stackstate_checks.base.utils.common import load_json_from_file, sanitize_url_as_valid_filename
+from stackstate_checks.base.utils.time import get_time_since_epoch, time_to_seconds, get_utc_time
 from stackstate_checks.utils.common import pattern_filter, round_value, read_file
 from stackstate_checks.utils.limiter import Limiter
 from stackstate_checks.utils.persistent_state import StateManager, StateDescriptor, StateNotPersistedException, \
@@ -239,3 +244,17 @@ class TestCommon:
     def test_url_sanitization_so_it_be_used_as_filename(self):
         url = "https://example.org/api?query_string=123&another=456"
         assert sanitize_url_as_valid_filename(url) == "httpsexampleorgapiquery_string123another456"
+
+
+class TestTime:
+
+    def test_get_time_since_epoch(self):
+        sample_time = datetime.datetime(year=2021, month=5, day=1, hour=00, minute=00, second=00,
+                                        tzinfo=pytz.timezone("UTC"))
+        assert get_time_since_epoch(sample_time) == 1619827200
+
+    def test_time_conversions(self):
+        str_datetime_utc = "2016-06-27T14:26:30.000+00:00"
+        time_in_seconds = 1467037590
+        assert time_to_seconds(str_datetime_utc) == time_in_seconds
+        assert get_utc_time(time_in_seconds) == iso8601.parse_date(str_datetime_utc)

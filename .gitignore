@@ -122,3 +122,6 @@ splunk_health/splunk.d
 
 .envrc
 *__build/
+
+# mypy cache
+.mypy_cache

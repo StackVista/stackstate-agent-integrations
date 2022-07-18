@@ -1,18 +1,19 @@
+import io
 import json
 import os
 import unittest
-from mock import patch
-from stackstate_checks.base.stubs import topology as top, aggregator
-from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
-from stackstate_checks.base import AgentCheck
-from stackstate_checks.aws_topology.resources import RegisteredResourceCollector
-import botocore.exceptions
-import botocore.response
 from datetime import datetime
 from functools import reduce
-import io
-import pytz
 
+import botocore.exceptions
+import botocore.response
+import pytz
+from mock import patch
+
+from stackstate_checks.aws_topology import AwsTopologyCheck, InitConfig
+from stackstate_checks.aws_topology.resources import RegisteredResourceCollector
+from stackstate_checks.base import AgentCheck
+from stackstate_checks.base.stubs import topology as top, aggregator
 from .conftest import resource, get_bytes_from_file, set_log_bucket_name, use_subdirectory, set_not_authorized, use_gz
 
 
@@ -107,7 +108,10 @@ class CollectorMock(RegisteredResourceCollector):
 
 lookup_call = {
     "operation_name": "lookup_events",
-    "parameters": {"LookupAttributes": [{"AttributeKey": "ReadOnly", "AttributeValue": "false"}]},
+    "parameters": {
+        "LookupAttributes": [{"AttributeKey": "ReadOnly", "AttributeValue": "false"}],
+        "StartTime": 1619827200.0
+    },
 }
 
 
