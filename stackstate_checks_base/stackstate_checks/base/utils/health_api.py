@@ -100,7 +100,7 @@ class HealthCheckData(Model):
     message = StrictStringType(required=False)
 
 
-class HealthApiCommon:
+class HealthApiCommon(object):
     def __init__(self, *args, **kwargs):
         """
         HealthApiCommon initializes the Common Health API Functionality and passes the args and kwargs to the super init

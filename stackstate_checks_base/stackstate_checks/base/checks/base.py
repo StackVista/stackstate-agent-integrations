@@ -168,7 +168,7 @@ _InstanceType = TypeVar('_InstanceType', Model, Dict[str, Any])
 _EventType = TypeVar('_EventType', Model, Dict[str, Any])
 
 
-class AgentCheck(HealthApiCommon, object):
+class AgentCheck(HealthApiCommon):
     """
     The base class for any Agent based integrations
     """
