@@ -18,7 +18,7 @@ from schematics import Model
 from six import PY3, iteritems, iterkeys, text_type, string_types, integer_types
 from typing import Any, Set, Dict, Sequence, List, Optional, Union, AnyStr, TypeVar
 
-from ..utils.health_api import HealthStream
+from ..utils.health_api import HealthApiCommon
 
 try:
     import datadog_agent
@@ -168,7 +168,7 @@ _InstanceType = TypeVar('_InstanceType', Model, Dict[str, Any])
 _EventType = TypeVar('_EventType', Model, Dict[str, Any])
 
 
-class AgentCheck(object):
+class AgentCheck(HealthApiCommon):
     """
     The base class for any Agent based integrations
     """
@@ -286,26 +286,6 @@ class AgentCheck(object):
         }  # type: Dict[str, List[Any]]
 
         self.set_metric_limits()
-
-    def _init_health_api(self):
-        # type: () -> None
-        if self.health is not None:
-            return None
-
-        stream_spec = self.get_health_stream(self._get_instance_schema(self.instance))
-        if stream_spec:
-            # collection_interval should always be set by the agent
-            collection_interval = self.instance['collection_interval']
-            repeat_interval_seconds = stream_spec.repeat_interval_seconds or collection_interval
-            expiry_seconds = stream_spec.expiry_seconds
-            # Only apply a default expiration when we are using substreams
-            if expiry_seconds is None:
-                if stream_spec.sub_stream != "":
-                    expiry_seconds = repeat_interval_seconds * 4
-                else:
-                    # Explicitly disable expiry setting it to 0
-                    expiry_seconds = 0
-            self.health = HealthApi(self, stream_spec, expiry_seconds, repeat_interval_seconds)
 
     def run(self):
         # type: () -> str
@@ -468,16 +448,6 @@ class AgentCheck(object):
             AgentCheck._check_struct_value(argument_name, value)
         else:
             AgentCheck._raise_unexpected_type(argument_name, value, "dictionary or None value")
-
-    def get_health_stream(self, instance):
-        # type: (_InstanceType) -> Optional[HealthStream]
-        """
-        Integration checks can override this if they want to be producing a health stream. Defining the will
-        enable self.health() calls
-
-        :return: a class extending HealthStream
-        """
-        return None
 
     def _get_instance_schema(self, instance):
         # type: (Dict[str, Any]) -> _InstanceType
