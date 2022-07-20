@@ -1,20 +1,20 @@
 {
-  "display_name": "Agent_integration_sample_transactional",
+  "display_name": "Agent_v2_integration_transactional_sample",
   "maintainer": "info@stackstate.com",
   "short_description": "sample_agent_integration",
   "manifest_version": "1.0.0",
-  "name": "agent_integration_sample_transactional",
-  "metric_prefix": "agent_integration_sample_transactional.",
+  "name": "agent_v2_integration_transactional_sample",
+  "metric_prefix": "agent_v2_integration_transactional_sample.",
   "metric_to_check": "",
   "creates_events": false,
-  "guid": "c8c6156e-a9e0-4935-8606-e6af166102be",
+  "guid": "c18c05c3-8ef4-4841-9793-de92f4ef9d8f\n",
   "support": "core",
   "supported_os": [
     "linux",
     "mac_os",
     "windows"
   ],
-  "public_title": "StackState-Agent_integration_sample_transactional Integration",
+  "public_title": "StackState-Agent_v2_integration_transactional_sample Integration",
   "categories": [
     ""
   ],

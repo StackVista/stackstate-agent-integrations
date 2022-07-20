@@ -116,8 +116,10 @@ wheelhouse/
 # agent integration sample test data
 agent_integration_sample/agent-integration-sample.d
 agent_integration_sample/tests/agent-integration-sample.d
-agent_integration_sample_transactional/agent-integration-sample-transactional.d
-agent_integration_sample_transactional/tests/agent-integration-sample-transactional.d
+agent_v2_integration_sample/agent-v2-integration-sample.d
+agent_v2_integration_sample/tests/agent-v2-integration-sample.d
+agent_v2_integration_transactional_sample/agent-v2-integration-transactional-sample.d
+agent_v2_integration_transactional_sample/tests/agent-v2-integration-transactional-sample.d
 
 # splunk test data
 splunk_health/splunk.d

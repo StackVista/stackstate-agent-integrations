@@ -10,7 +10,7 @@ HERE = path.dirname(path.abspath(__file__))
 
 # Get version info
 ABOUT = {}
-with open(path.join(HERE, 'stackstate_checks', 'agent_integration_sample_transactional', '__about__.py')) as f:
+with open(path.join(HERE, 'stackstate_checks', 'agent_v2_integration_transactional_sample', '__about__.py')) as f:
     exec(f.read(), ABOUT)
 
 # Get the long description from the README file
@@ -22,12 +22,12 @@ CHECKS_BASE_REQ = 'stackstate-checks-base'
 
 
 setup(
-    name='stackstate-agent_integration_sample_transactional',
+    name='stackstate-agent_v2_integration_transactional_sample',
     version=ABOUT['__version__'],
-    description='The Agent_integration_sample_transactional check',
+    description='The Agent_v2_integration_transactional_sample check',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    keywords='stackstate agent agent_integration_sample_transactional check',
+    keywords='stackstate agent agent_v2_integration_transactional_sample check',
 
     # The project's main homepage.
     url='https://github.com/StackVista/stackstate-agent-integrations',
@@ -52,7 +52,7 @@ setup(
     ],
 
     # The package we're going to ship
-    packages=['stackstate_checks.agent_integration_sample_transactional'],
+    packages=['stackstate_checks.agent_v2_integration_transactional_sample'],
 
     # Run-time dependencies
     install_requires=[CHECKS_BASE_REQ],

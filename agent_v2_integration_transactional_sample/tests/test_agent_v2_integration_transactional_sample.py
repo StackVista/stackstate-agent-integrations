@@ -8,7 +8,7 @@ import unittest
 import pytest
 
 # project
-from stackstate_checks.agent_integration_sample_transactional import AgentIntegrationSampleTransactionalCheck
+from stackstate_checks.agent_v2_integration_transactional_sample import AgentV2IntegrationTransactionalSampleCheck
 from stackstate_checks.base.stubs import topology, aggregator, telemetry, health
 from stackstate_checks.base.utils.common import load_json_from_file
 
@@ -29,14 +29,14 @@ CONFIG = {
 @pytest.mark.usefixtures("instance")
 class TestAgentIntegration(unittest.TestCase):
     """Basic Test for servicenow integration."""
-    CHECK_NAME = 'agent-integration-sample-transactional'
+    CHECK_NAME = 'agent-v2-integration-sample'
 
     def setUp(self):
         """
         Initialize and patch the check, i.e.
         """
         config = {}
-        self.check = AgentIntegrationSampleTransactionalCheck(self.CHECK_NAME, config, instances=[self.instance])
+        self.check = AgentV2IntegrationTransactionalSampleCheck(self.CHECK_NAME, config, instances=[self.instance])
         # TODO this is needed because the topology retains data across tests
         topology.reset()
         aggregator.reset()
@@ -56,7 +56,7 @@ class TestAgentIntegration(unittest.TestCase):
         aggregator.assert_metric('location.availability', count=3, tags=["hostname:this-host", "region:eu-west-1"])
         aggregator.assert_metric('2xx.responses', count=4, tags=["application:some_application", "region:eu-west-1"])
         aggregator.assert_metric('5xx.responses', count=4, tags=["application:some_application", "region:eu-west-1"])
-        aggregator.assert_metric('check_runs', count=1, tags=["integration:agent_integration_sample_transactional"])
+        aggregator.assert_metric('check_runs', count=1, tags=["integration:agent_v2_integration_transactional_sample"])
         aggregator.assert_event('Http request to {} timed out after {} seconds.'.format('http://localhost', 5.0),
                                 count=1)
         telemetry.assert_topology_event(
@@ -104,7 +104,7 @@ class TestAgentIntegration(unittest.TestCase):
             "stackstate-domain": "domain-conf-a",
             "collection_interval": 5
         }
-        self.check = AgentIntegrationSampleTransactionalCheck(self.CHECK_NAME, {}, instances=[instance_config])
+        self.check = AgentV2IntegrationTransactionalSampleCheck(self.CHECK_NAME, {}, instances=[instance_config])
         result = self.check.run()
         assert result == ''
         topo_instances = topology.get_snapshot(self.check.check_id)

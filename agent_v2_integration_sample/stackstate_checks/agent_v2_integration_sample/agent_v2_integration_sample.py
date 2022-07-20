@@ -4,7 +4,8 @@
 
 import json
 
-from stackstate_checks.base import AgentCheck, AgentIntegrationInstance, MetricStream, MetricHealthChecks, \
+from stackstate_checks.base.checks.v2.base import AgentCheckV2
+from stackstate_checks.base import AgentIntegrationInstance, MetricStream, MetricHealthChecks, \
     HealthStream, HealthStreamUrn, Health
 import time
 from random import seed
@@ -13,7 +14,7 @@ from random import randint
 seed(1)
 
 
-class AgentIntegrationSampleTransactionalCheck(AgentCheck):
+class AgentV2IntegrationSampleCheck(AgentCheckV2):
     def get_health_stream(self, instance):
         return HealthStream(HealthStreamUrn("integration-sample", "sample"))
 
@@ -22,7 +23,7 @@ class AgentIntegrationSampleTransactionalCheck(AgentCheck):
 
     def check(self, instance):
         # gets the value of the `url` property
-        instance_url = instance.get('url', 'agent-integration-sample-transactional')
+        instance_url = instance.get('url', 'agent-v2-integration-sample')
         # gets the value of the `default_timeout` property or defaults to 5
         default_timeout = self.init_config.get('default_timeout', 5)
         # gets the value of the `timeout` property or defaults `default_timeout` and casts it to a float data type
@@ -181,13 +182,13 @@ class AgentIntegrationSampleTransactionalCheck(AgentCheck):
         })
 
         # some logic here to test our connection and if successful:
-        self.service_check("example.can_connect", AgentCheck.OK, tags=["instance_url:%s" % instance_url])
+        self.service_check("example.can_connect", AgentCheckV2.OK, tags=["instance_url:%s" % instance_url])
 
         # produce current state as a count metric for assertions
         state = instance.get('state', {'run_count': 0})
         state['run_count'] = state['run_count'] + 1
         instance.update({'state': state})
-        self.count("check_runs", state['run_count'], tags=["integration:agent_integration_sample_transactional"])
+        self.count("check_runs", state['run_count'], tags=["integration:agent_v2_integration_sample"])
 
         # produce health snapshot
         self.health.start_snapshot()
@@ -203,15 +204,15 @@ class AgentIntegrationSampleTransactionalCheck(AgentCheck):
 
         # delete topology element
         delete_component_id = "urn:example:/host:host_for_deletion"
-        self.component(delete_component_id,  "Host",
+        self.component(delete_component_id, "Host",
                        data={
-                            "name": "delete-test-host",
-                            "domain": "Webshop",
-                            "layer": "Machines",
-                            "identifiers": ["another_identifier_for_delete_test_host"],
-                            "labels": ["host:delete_test_host", "region:eu-west-1"],
-                            "environment": "Production"
-                       },)
+                           "name": "delete-test-host",
+                           "domain": "Webshop",
+                           "layer": "Machines",
+                           "identifiers": ["another_identifier_for_delete_test_host"],
+                           "labels": ["host:delete_test_host", "region:eu-west-1"],
+                           "environment": "Production"
+                       }, )
         self.log.info("deleting " + delete_component_id)
         self.delete(delete_component_id)
 
