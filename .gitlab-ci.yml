@@ -289,6 +289,14 @@ test_agent_integration_sample:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
 
+test_agent_integration_sample_transactional:
+  <<: *linux_test
+  variables:
+    CHECK: "agent_integration_sample_transactional"
+    PYTHON3: "true"
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
 test_vsphere:
   <<: *linux_test
   variables:
