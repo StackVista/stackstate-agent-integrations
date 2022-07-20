@@ -7,7 +7,7 @@
   "metric_prefix": "agent_integration_sample_transactional.",
   "metric_to_check": "",
   "creates_events": false,
-  "guid": "8017609c-a1bb-4a2e-85f5-d013b00af9c7",
+  "guid": "c8c6156e-a9e0-4935-8606-e6af166102be",
   "support": "core",
   "supported_os": [
     "linux",
