@@ -96,8 +96,8 @@ class TransactionStub(TransactionStubAsserts):
         transactions_steps_state = self._ensure_transaction_steps(check_id)
 
         return transactions_steps_state["started"] is True and \
-               transactions_steps_state["stopped"] is True and \
-               transactions_steps_state["discarded"] is False
+            transactions_steps_state["stopped"] is True and \
+            transactions_steps_state["discarded"] is False
 
 
 # Use the stub as a singleton

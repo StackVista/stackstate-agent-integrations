@@ -1567,7 +1567,7 @@ class TestAgentChecksV2:
         check = TransactionalCheck()
         assert check.run() == ""
 
-        transaction.assert_completed_transaction(check.check_id, True)
+        transaction.assert_completed_transaction(check.check_id)
 
     def test_stateful_check(self, state):
         check = StatefulCheck()
@@ -1594,11 +1594,9 @@ class TestAgentChecksV2:
         check = TransactionalStateCheck()
         assert check.run() == ""
 
-        transaction.assert_completed_transaction(check.check_id, True)
+        transaction.assert_completed_transaction(check.check_id)
 
-        expected_transactional_state = {
-            "transactional": True
-        }
+        expected_transactional_state = {}
 
         key = get_test_state_key(check, check.TRANSACTIONAL_PERSISTENT_CACHE_KEY)
         assert state.get_state(check, check.check_id, key) == json.dumps(expected_transactional_state)
