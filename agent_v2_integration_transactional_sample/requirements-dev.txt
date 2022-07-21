@@ -1,1 +1,2 @@
 -e ../stackstate_checks_dev
+-e ../agent_v2_integration_sample

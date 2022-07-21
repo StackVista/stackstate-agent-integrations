@@ -5,7 +5,21 @@
 from .state import state
 
 
-class TransactionStub(object):
+class TransactionStubAsserts(object):
+    def assert_completed_transaction(self, check_id, assert_bool):
+        assert self._is_transaction_completed(check_id) is assert_bool
+
+    def assert_discarded_transaction(self, check_id, assert_bool):
+        assert self._transactions[check_id].discarded is assert_bool
+
+    def assert_started_transaction(self, check_id, assert_bool):
+        assert self._transactions[check_id].started is assert_bool
+
+    def assert_stopped_transaction(self, check_id, assert_bool):
+        assert self._transactions[check_id].stopped is assert_bool
+
+
+class TransactionStub(TransactionStubAsserts):
     """
     This implements the methods defined by the Agent's [C bindings]
     (https://gitlab.com/stackvista/agent/stackstate-agent/-/blob/master/rtloader/common/builtins/transaction.c)
@@ -43,9 +57,6 @@ class TransactionStub(object):
     def set_transaction_state(self, check, check_id, key, new_state):
         if not self._is_transaction_completed(check_id):
             self._state.set_state(check, check_id, key, new_state)
-
-    def assert_transaction(self, check_id):
-        assert self._is_transaction_completed(check_id) is True
 
     def reset(self):
         self._transactions = {}

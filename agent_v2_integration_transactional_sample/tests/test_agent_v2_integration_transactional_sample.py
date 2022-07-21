@@ -9,7 +9,7 @@ import pytest
 
 # project
 from stackstate_checks.agent_v2_integration_transactional_sample import AgentV2IntegrationTransactionalSampleCheck
-from stackstate_checks.base.stubs import topology, aggregator, telemetry, health
+from stackstate_checks.base.stubs import topology, aggregator, telemetry, health, transaction
 from stackstate_checks.base.utils.common import load_json_from_file
 
 
@@ -29,7 +29,7 @@ CONFIG = {
 @pytest.mark.usefixtures("instance")
 class TestAgentIntegration(unittest.TestCase):
     """Basic Test for servicenow integration."""
-    CHECK_NAME = 'agent-v2-integration-sample'
+    CHECK_NAME = 'agent-v2-integration-transactional-sample'
 
     def setUp(self):
         """
@@ -96,6 +96,12 @@ class TestAgentIntegration(unittest.TestCase):
                                 hostname="hostname")
         telemetry.assert_metric("raw.metrics", count=1, value=30, tags=["no:hostname", "region:eu-west-1"],
                                 hostname="")
+
+        # Testing for a successful transaction
+        transaction.assert_completed_transaction(self.check.check_id, True)
+        transaction.assert_started_transaction(self.check.check_id, True)
+        transaction.assert_stopped_transaction(self.check.check_id, True)
+        transaction.assert_discarded_transaction(self.check.check_id, False)
 
     def test_topology_items_from_config_check(self):
         instance_config = {

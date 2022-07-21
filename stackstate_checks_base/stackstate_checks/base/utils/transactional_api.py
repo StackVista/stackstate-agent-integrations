@@ -26,6 +26,7 @@ class TransactionApi(object):
 
     def start(self):
         # type: () -> None
+        print("TransactionApi: Start")
         """
         Start transaction.
         """
@@ -33,6 +34,7 @@ class TransactionApi(object):
 
     def stop(self):
         # type: () -> None
+        print("TransactionApi: Stop")
         """
         Stop transaction.
         """
@@ -40,6 +42,7 @@ class TransactionApi(object):
 
     def discard(self, discard_reason):
         # type (str) -> None
+        print("TransactionApi: Discard")
         """
         Discard the current transaction.
         """
@@ -47,6 +50,7 @@ class TransactionApi(object):
 
     def set_state(self, key, new_state):
         # type: (str, Union[Dict[str, Any], Model]) -> None
+        print("TransactionApi: Set State")
         """
         Dumps transactional state to JSON string and sets it as a new state.
         """

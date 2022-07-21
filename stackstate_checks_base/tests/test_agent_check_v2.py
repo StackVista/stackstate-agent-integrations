@@ -1567,7 +1567,7 @@ class TestAgentChecksV2:
         check = TransactionalCheck()
         assert check.run() == ""
 
-        transaction.assert_transaction(check.check_id)
+        transaction.assert_completed_transaction(check.check_id, True)
 
     def test_stateful_check(self, state):
         check = StatefulCheck()
@@ -1594,7 +1594,7 @@ class TestAgentChecksV2:
         check = TransactionalStateCheck()
         assert check.run() == ""
 
-        transaction.assert_transaction(check.check_id)
+        transaction.assert_completed_transaction(check.check_id, True)
 
         expected_transactional_state = {
             "transactional": True

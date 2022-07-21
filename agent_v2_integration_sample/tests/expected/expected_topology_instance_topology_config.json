@@ -4,15 +4,15 @@
       {
          "source_id":"urn:stackstate-agent:/stubbed.hostname",
          "type":"runs",
-         "target_id":"urn:agent-integration:/stubbed.hostname:agent-integration",
+         "target_id":"urn:agent-integration:/stubbed.hostname:agent-v2-integration",
          "data":{
 
          }
       },
       {
-         "source_id":"urn:agent-integration:/stubbed.hostname:agent-integration",
+         "source_id":"urn:agent-integration:/stubbed.hostname:agent-v2-integration",
          "type":"has",
-         "target_id":"urn:agent-integration-instance:/stubbed.hostname:agent-integration:sample",
+         "target_id":"urn:agent-integration-instance:/stubbed.hostname:agent-v2-integration:sample",
          "data":{
 
          }
@@ -52,7 +52,7 @@
       {
          "data":{
             "layer":"layer-conf-a",
-            "name":"stubbed.hostname:agent-integration",
+            "name":"stubbed.hostname:agent-v2-integration",
             "service_checks":[
                {
                   "stream_id":-1,
@@ -62,7 +62,7 @@
                         "key":"host"
                      },
                      {
-                        "value":"agent-integration",
+                        "value":"agent-v2-integration",
                         "key":"tags.integration-type"
                      }
                   ],
@@ -70,7 +70,7 @@
                }
             ],
             "hostname":"stubbed.hostname",
-            "integration":"agent-integration",
+            "integration":"agent-v2-integration",
             "environments":[
                "environment-conf-a"
             ],
@@ -85,16 +85,16 @@
             ],
             "tags":[
                "hostname:stubbed.hostname",
-               "integration-type:agent-integration"
+               "integration-type:agent-v2-integration"
             ]
          },
          "type":"agent-integration",
-         "id":"urn:agent-integration:/stubbed.hostname:agent-integration"
+         "id":"urn:agent-integration:/stubbed.hostname:agent-v2-integration"
       },
       {
          "data":{
             "layer":"layer-conf-a",
-            "name":"agent-integration:sample",
+            "name":"agent-v2-integration:sample",
             "service_checks":[
                {
                   "stream_id":-1,
@@ -104,7 +104,7 @@
                         "key":"host"
                      },
                      {
-                        "value":"agent-integration",
+                        "value":"agent-v2-integration",
                         "key":"tags.integration-type"
                      },
                      {
@@ -116,7 +116,7 @@
                }
             ],
             "hostname":"stubbed.hostname",
-            "integration":"agent-integration",
+            "integration":"agent-v2-integration",
             "environments":[
                "environment-conf-a"
             ],
@@ -131,12 +131,12 @@
             ],
             "tags":[
                "hostname:stubbed.hostname",
-               "integration-type:agent-integration",
+               "integration-type:agent-v2-integration",
                "integration-url:sample"
             ]
          },
          "type":"agent-integration-instance",
-         "id":"urn:agent-integration-instance:/stubbed.hostname:agent-integration:sample"
+         "id":"urn:agent-integration-instance:/stubbed.hostname:agent-v2-integration:sample"
       },
       {
          "data":{
@@ -184,7 +184,7 @@
             ],
             "name":"this-host",
             "tags":[
-               "integration-type:agent-integration",
+               "integration-type:agent-v2-integration",
                "integration-url:sample"
             ],
             "labels":[
@@ -284,7 +284,7 @@
             ],
             "name":"some-application",
             "tags":[
-               "integration-type:agent-integration",
+               "integration-type:agent-v2-integration",
                "integration-url:sample"
             ],
             "labels":[
@@ -344,7 +344,7 @@
          "data":{
             "domain":"tag-domain",
             "tags":[
-               "integration-type:agent-integration",
+               "integration-type:agent-v2-integration",
                "integration-url:sample"
             ],
             "labels":[
@@ -453,7 +453,7 @@
            "labels": ["host:delete_test_host", "region:eu-west-1"],
            "layer": "layer-conf-a",
            "name": "delete-test-host",
-           "tags": ["integration-type:agent-integration", "integration-url:sample"]
+           "tags": ["integration-type:agent-v2-integration", "integration-url:sample"]
         },
         "id": "urn:example:/host:host_for_deletion",
         "type": "Host"
