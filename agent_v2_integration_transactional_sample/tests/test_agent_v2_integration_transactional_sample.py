@@ -9,7 +9,7 @@ import pytest
 
 # project
 from stackstate_checks.agent_v2_integration_transactional_sample import AgentV2IntegrationTransactionalSampleCheck
-from stackstate_checks.base.stubs import topology, aggregator, telemetry, health, transaction
+from stackstate_checks.base.stubs import topology, aggregator, telemetry, health, transaction, state
 from stackstate_checks.base.utils.common import load_json_from_file
 
 
@@ -31,17 +31,22 @@ class TestAgentIntegration(unittest.TestCase):
     """Basic Test for servicenow integration."""
     CHECK_NAME = 'agent-v2-integration-transactional-sample'
 
+    @staticmethod
+    def reset_without_transaction_and_state():
+        topology.reset()
+        aggregator.reset()
+        health.reset()
+        telemetry.reset()
+
     def setUp(self):
         """
         Initialize and patch the check, i.e.
         """
         config = {}
         self.check = AgentV2IntegrationTransactionalSampleCheck(self.CHECK_NAME, config, instances=[self.instance])
-        # TODO this is needed because the topology retains data across tests
-        topology.reset()
-        aggregator.reset()
-        health.reset()
-        telemetry.reset()
+        self.reset_without_transaction_and_state()
+        state.reset()
+        transaction.reset()
 
     def test_check(self):
         result = self.check.run()
@@ -97,11 +102,34 @@ class TestAgentIntegration(unittest.TestCase):
         telemetry.assert_metric("raw.metrics", count=1, value=30, tags=["no:hostname", "region:eu-west-1"],
                                 hostname="")
 
-        # Testing for a successful transaction
-        transaction.assert_completed_transaction(self.check.check_id, True)
-        transaction.assert_started_transaction(self.check.check_id, True)
-        transaction.assert_stopped_transaction(self.check.check_id, True)
-        transaction.assert_discarded_transaction(self.check.check_id, False)
+        # Testing for a successful transaction after the 1st check execution
+        transaction.assert_transaction_success(self.check.check_id)
+        transaction.assert_started_transaction(self.check.check_id)
+        transaction.assert_stopped_transaction(self.check.check_id)
+        transaction.assert_discarded_transaction(self.check.check_id)
+        transaction.assert_completed_transaction(self.check.check_id)
+
+        # Testing for transaction state after the 1st check execution
+        transaction.assert_transaction_state(self.check,
+                                             self.check.check_id,
+                                             expected_key="transactional_counter",
+                                             expected_value=1)
+
+        # Testing for persistent state after the 1st check execution
+        state.assert_state(self.check, expected_key="persistent_counter", expected_value=1)
+
+        # Run the check for a second time to test persistent and transactional state
+        self.check.run()
+
+        # Testing for transaction state after the 2nd check execution
+        transaction.assert_transaction_state(self.check,
+                                             self.check.check_id,
+                                             expected_key="transactional_counter",
+                                             expected_value=1)
+
+        # Testing for a persistent state after the 2nd check execution
+        # Expecting the previous value set after the 1st execution to increase
+        state.assert_state(self.check, expected_key="persistent_counter", expected_value=2)
 
     def test_topology_items_from_config_check(self):
         instance_config = {

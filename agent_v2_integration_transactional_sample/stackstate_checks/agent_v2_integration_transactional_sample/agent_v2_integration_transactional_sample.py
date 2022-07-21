@@ -20,4 +20,14 @@ class AgentV2IntegrationTransactionalSampleCheck(TransactionalAgentCheck):
 
     def transactional_check(self, instance, transactional_state, persistent_state):
         agent_v2_integration_base(self, instance, "agent-v2-integration-transactional-sample")
+
+        # Add a counter into the persistent state that updates with +1 per check run
+        persistent_counter = persistent_state.get("persistent_counter")
+        persistent_state["persistent_counter"] = 1 if persistent_counter is None else persistent_counter + 1
+
+        # Add a counter into the transactional state that updates with +1 per successful check run
+        # If the run fails then you will receive the previous transactional state
+        transactional_counter = transactional_state.get("transactional_counter")
+        transactional_state["transactional_counter"] = 1 if transactional_counter is None else transactional_counter + 1
+
         return CheckResponse(transactional_state=transactional_state, persistent_state=persistent_state)

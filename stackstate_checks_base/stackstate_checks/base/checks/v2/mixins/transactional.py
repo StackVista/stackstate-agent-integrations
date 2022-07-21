@@ -53,7 +53,6 @@ class TransactionalMixin(StatefulMixin):
         return self.state.get(self.TRANSACTIONAL_PERSISTENT_CACHE_KEY, self.TRANSACTIONAL_STATE_SCHEMA)
 
     def setup(self):  # type: () -> None
-        print("Setup Transactional State")
         """
         setup is used to initialize the TransactionApi and set the transaction variable to be used in checks.
 
