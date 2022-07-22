@@ -1,4 +1,19 @@
-class StateStub(object):
+import json
+
+from stackstate_checks.base.utils.state_common import generate_state_key
+
+
+class TransactionStubAsserts(object):
+    def assert_state(self, check, expected_key, expected_value):
+        # Generate the persistent key to be used in retrieving the saved persistent state
+        persistent_state_key = generate_state_key(check._get_instance_key().to_string(), check.PERSISTENT_CACHE_KEY)
+        # Use the key to retrieve the persistent state and parse the dict to be tested
+        persistent_state_dict = json.loads(self.get_state(check, check.check_id, persistent_state_key))
+
+        assert persistent_state_dict.get(expected_key) == expected_value
+
+
+class StateStub(TransactionStubAsserts):
     """
     This implements the methods defined by the Agent's [C bindings]
     (https://gitlab.com/stackvista/agent/stackstate-agent/-/blob/master/rtloader/common/builtins/state.c)

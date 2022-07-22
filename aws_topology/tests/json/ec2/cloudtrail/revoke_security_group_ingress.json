@@ -1,0 +1,93 @@
+{
+  "version": "0",
+  "id": "0ce22ff9-238f-5d7d-8bed-44596238f535",
+  "detail-type": "AWS API Call via CloudTrail",
+  "source": "aws.ec2",
+  "account": "672574731473",
+  "time": "2022-07-07T11:27:59Z",
+  "region": "eu-west-1",
+  "resources": [],
+  "detail": {
+    "eventVersion": "1.08",
+    "userIdentity": {
+      "type": "AssumedRole",
+      "principalId": "AROAZZGET6TI73ZSJQKFO:botocore-session-1657193277",
+      "arn": "arn:aws:sts::672574731473:assumed-role/Administrator/botocore-session-1657193277",
+      "accountId": "672574731473",
+      "accessKeyId": "ASIAZZGET6TIR5S3TZ4V",
+      "sessionContext": {
+        "sessionIssuer": {
+          "type": "Role",
+          "principalId": "AROAZZGET6TI73ZSJQKFO",
+          "arn": "arn:aws:iam::672574731473:role/Administrator",
+          "accountId": "672574731473",
+          "userName": "Administrator"
+        },
+        "webIdFederationData": {},
+        "attributes": {
+          "creationDate": "2022-07-07T11:27:58Z",
+          "mfaAuthenticated": "false"
+        }
+      }
+    },
+    "eventTime": "2022-07-07T11:27:59Z",
+    "eventSource": "ec2.amazonaws.com",
+    "eventName": "RevokeSecurityGroupIngress",
+    "awsRegion": "eu-west-1",
+    "sourceIPAddress": "188.252.196.128",
+    "userAgent": "aws-cli/2.7.12 Python/3.10.5 Darwin/21.5.0 source/x86_64 prompt/off command/ec2.revoke-security-group-ingress",
+    "requestParameters": {
+      "groupId": "sg-0b988ee42c42e1f05",
+      "ipPermissions": {
+        "items": [
+          {
+            "ipProtocol": "tcp",
+            "fromPort": 80,
+            "toPort": 80,
+            "groups": {},
+            "ipRanges": {
+              "items": [
+                {
+                  "cidrIp": "0.0.0.0/0"
+                }
+              ]
+            },
+            "ipv6Ranges": {},
+            "prefixListIds": {}
+          },
+          {
+            "ipProtocol": "tcp",
+            "fromPort": 443,
+            "toPort": 443,
+            "groups": {},
+            "ipRanges": {
+              "items": [
+                {
+                  "cidrIp": "0.0.0.0/0"
+                }
+              ]
+            },
+            "ipv6Ranges": {},
+            "prefixListIds": {}
+          }
+        ]
+      }
+    },
+    "responseElements": {
+      "requestId": "216ef42a-1139-4dad-b51c-2ebe6dafc91d",
+      "_return": true
+    },
+    "requestID": "216ef42a-1139-4dad-b51c-2ebe6dafc91d",
+    "eventID": "51613984-44da-43bc-ac1d-c8115a53a6fb",
+    "readOnly": false,
+    "eventType": "AwsApiCall",
+    "managementEvent": true,
+    "recipientAccountId": "672574731473",
+    "eventCategory": "Management",
+    "tlsDetails": {
+      "tlsVersion": "TLSv1.2",
+      "cipherSuite": "ECDHE-RSA-AES128-GCM-SHA256",
+      "clientProvidedHostHeader": "ec2.eu-west-1.amazonaws.com"
+    }
+  }
+}

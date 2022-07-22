@@ -2,10 +2,37 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 
-from .state import state
+import json
+
+from stackstate_checks.base.utils.state_common import generate_state_key
 
 
-class TransactionStub(object):
+class TransactionStubAsserts(object):
+    def assert_transaction_success(self, check_id):
+        assert self._transaction_completed_successfully(check_id) is True
+
+    def assert_started_transaction(self, check_id):
+        assert self._ensure_transaction_steps(check_id)["started"] is True
+
+    def assert_stopped_transaction(self, check_id):
+        assert self._ensure_transaction_steps(check_id)["stopped"] is True
+
+    def assert_discarded_transaction(self, check_id):
+        assert self._ensure_transaction_steps(check_id)["discarded"] is False
+
+    def assert_completed_transaction(self, check_id):
+        assert self._ensure_transaction_steps(check_id)["started"] is True and \
+               self._ensure_transaction_steps(check_id)["stopped"] is True
+
+    def assert_transaction_state(self, check, check_id, expected_key, expected_value):
+        transaction_state_key = generate_state_key(check._get_instance_key().to_string(),
+                                                   check.TRANSACTIONAL_PERSISTENT_CACHE_KEY)
+        transaction_state_dict = json.loads(self._ensure_transaction_state(check_id)[transaction_state_key])
+
+        assert transaction_state_dict.get(expected_key) is expected_value
+
+
+class TransactionStub(TransactionStubAsserts):
     """
     This implements the methods defined by the Agent's [C bindings]
     (https://gitlab.com/stackvista/agent/stackstate-agent/-/blob/master/rtloader/common/builtins/transaction.c)
@@ -15,45 +42,62 @@ class TransactionStub(object):
     """
 
     def __init__(self):
+        # The values captured in the transactional state
         self._transactions = {}
-        self._state = state
-
-    def _ensure_transaction(self, check_id):
-        if check_id not in self._transactions:
-            self._transactions[check_id] = {
-                "started": False,
-                "discarded": False,
-                "stopped": False
-            }
-        return self._transactions[check_id]
-
-    def start_transaction(self, check, check_id):
-        self._ensure_transaction(check_id)["started"] = True
-
-    def stop_transaction(self, check, check_id):
-        self._ensure_transaction(check_id)["stopped"] = True
-
-    def discard_transaction(self, check, check_id, discard_reason):
-        self._ensure_transaction(check_id)["discarded"] = True
-        self._ensure_transaction(check_id)["discard_reason"] = discard_reason
-
-    def get_transaction(self, check_id):
-        return self._ensure_transaction(check_id)
-
-    def set_transaction_state(self, check, check_id, key, new_state):
-        if not self._is_transaction_completed(check_id):
-            self._state.set_state(check, check_id, key, new_state)
-
-    def assert_transaction(self, check_id):
-        assert self._is_transaction_completed(check_id) is True
+        # Steps that the transactional state followed for example start, stopped etc
+        self._transaction_steps = {}
+        # Allows to reset to the same state object
+        self._init_transaction_steps = {
+            "started": False,
+            "discarded": False,
+            "stopped": False,
+            "discard_reason": None
+        }
 
     def reset(self):
         self._transactions = {}
+        self._transaction_steps = self._init_transaction_steps
 
-    def _is_transaction_completed(self, check_id):
-        if self.get_transaction(check_id)["started"] and self.get_transaction(check_id)["stopped"]:
-            return True
-        return False
+    # Make sure that the transaction steps exists for the check_id if not set the _init_transaction_steps default
+    def _ensure_transaction_steps(self, check_id):
+        if check_id not in self._transaction_steps:
+            self._transaction_steps[check_id] = self._init_transaction_steps
+        return self._transaction_steps[check_id]
+
+    # Make sure that the transaction state exists for the check_id if not create an empty {} state
+    def _ensure_transaction_state(self, check_id):
+        if check_id not in self._transactions:
+            self._transactions[check_id] = {}
+        return self._transactions[check_id]
+
+    # Monitor when a transaction started
+    def start_transaction(self, check, check_id):
+        self._ensure_transaction_steps(check_id)["started"] = True
+
+    # Monitor when a transaction stopped
+    def stop_transaction(self, check, check_id):
+        self._ensure_transaction_steps(check_id)["stopped"] = True
+
+    # Monitor when if a transaction was discarded
+    def discard_transaction(self, check, check_id, discard_reason):
+        self._ensure_transaction_steps(check_id)["discarded"] = True
+        self._ensure_transaction_steps(check_id)["discard_reason"] = discard_reason
+
+    # Return the current state transaction value
+    def get_transaction(self, check_id):
+        return self._ensure_transaction_state(check_id)
+
+    # Set a new value for the transactional state
+    def set_transaction_state(self, check, check_id, key, new_state):
+        if not self._transaction_completed_successfully(check_id):
+            self._ensure_transaction_state(check_id)[key] = new_state
+
+    def _transaction_completed_successfully(self, check_id):
+        transactions_steps_state = self._ensure_transaction_steps(check_id)
+
+        return transactions_steps_state["started"] is True and \
+            transactions_steps_state["stopped"] is True and \
+            transactions_steps_state["discarded"] is False
 
 
 # Use the stub as a singleton
