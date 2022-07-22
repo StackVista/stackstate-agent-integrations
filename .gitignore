@@ -118,6 +118,8 @@ agent_integration_sample/agent-integration-sample.d
 agent_integration_sample/tests/agent-integration-sample.d
 agent_v2_integration_sample/agent-v2-integration-sample.d
 agent_v2_integration_sample/tests/agent-v2-integration-sample.d
+agent_v2_integration_stateful_sample/agent-v2-integration-stateful-sample.d
+agent_v2_integration_stateful_sample/tests/agent-v2-integration-stateful-sample.d
 agent_v2_integration_transactional_sample/agent-v2-integration-transactional-sample.d
 agent_v2_integration_transactional_sample/tests/agent-v2-integration-transactional-sample.d
 
