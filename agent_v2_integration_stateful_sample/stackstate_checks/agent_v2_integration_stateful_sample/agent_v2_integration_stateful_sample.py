@@ -23,7 +23,7 @@ class AgentIntegrationSampleStatefulCheck(StatefulAgentCheck):
 
         agent_v2_integration_base(self, instance, "agent-v2-integration-stateful-sample")
 
-        # Persistent state updates after each check is run
+        # Add counter in persistent state that updates after each check is run
 
         prstate_count = persistent_state.get("prstate_count")
         persistent_state["prstate_count"] = 1 if prstate_count is None else prstate_count + 1
