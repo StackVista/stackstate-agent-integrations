@@ -103,14 +103,14 @@ class TestStatefulAgentV2Integration(unittest.TestCase):
                                 hostname="")
 
         # Testing for persistent state after the 1st check execution
-        state.assert_state(self.check, expected_key="prstate_count", expected_value=1)
+        state.assert_state(self.check, expected_key="persistent_counter", expected_value=1)
 
         # Run the check for a second time to test persistent state
         self.check.run()
 
         # Testing for a persistent state after the 2nd check execution
         # Expecting the previous value set after the 1st execution to increase
-        state.assert_state(self.check, expected_key="prstate_count", expected_value=2)
+        state.assert_state(self.check, expected_key="persistent_counter", expected_value=2)
 
     def test_topology_items_from_config_check(self):
         instance_config = {

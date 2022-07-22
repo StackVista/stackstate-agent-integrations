@@ -25,7 +25,7 @@ class AgentIntegrationSampleStatefulCheck(StatefulAgentCheck):
 
         # Add counter in persistent state that updates after each check is run
 
-        prstate_count = persistent_state.get("prstate_count")
-        persistent_state["prstate_count"] = 1 if prstate_count is None else prstate_count + 1
+        persistent_counter = persistent_state.get("persistent_counter")
+        persistent_state["persistent_counter"] = 1 if persistent_counter is None else persistent_counter + 1
 
         return CheckResponse(persistent_state=persistent_state)
