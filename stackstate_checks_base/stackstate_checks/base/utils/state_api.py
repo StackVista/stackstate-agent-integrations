@@ -32,6 +32,11 @@ class StateApi(object):
         """
         current_state = state.get_state(self.__check, self.__check.check_id, self._get_state_key(key))
 
+        # If for any reason the retrieved state is None we can default to an unmarshal-able object
+        if current_state is None:
+            return {}
+
+        # If we did in fact receive a value back we can then attempt to unmarshal it
         try:
             if not schema:
                 return json.loads(current_state)
@@ -41,7 +46,7 @@ class StateApi(object):
                 schema_state.validate()
                 return schema_state
         except TypeError as e:
-            self.log.debug("""Unable to unmarshal the latest persistent state,
+            self.log.error("""Unable to unmarshal the latest persistent state,
                               Saved state may be in the incorrect format: {}""".format(current_state))
             raise Exception(e)
 
