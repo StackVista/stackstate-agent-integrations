@@ -7,32 +7,7 @@ import json
 from stackstate_checks.base.utils.state_common import generate_state_key
 
 
-class TransactionStubAsserts(object):
-    def assert_transaction_success(self, check_id):
-        assert self._transaction_completed_successfully(check_id) is True
-
-    def assert_started_transaction(self, check_id):
-        assert self._ensure_transaction_steps(check_id)["started"] is True
-
-    def assert_stopped_transaction(self, check_id):
-        assert self._ensure_transaction_steps(check_id)["stopped"] is True
-
-    def assert_discarded_transaction(self, check_id):
-        assert self._ensure_transaction_steps(check_id)["discarded"] is False
-
-    def assert_completed_transaction(self, check_id):
-        assert self._ensure_transaction_steps(check_id)["started"] is True and \
-               self._ensure_transaction_steps(check_id)["stopped"] is True
-
-    def assert_transaction_state(self, check, check_id, expected_key, expected_value):
-        transaction_state_key = generate_state_key(check._get_instance_key().to_string(),
-                                                   check.TRANSACTIONAL_PERSISTENT_CACHE_KEY)
-        transaction_state_dict = json.loads(self._ensure_transaction_state(check_id)[transaction_state_key])
-
-        assert transaction_state_dict.get(expected_key) is expected_value
-
-
-class TransactionStub(TransactionStubAsserts):
+class TransactionStub(object):
     """
     This implements the methods defined by the Agent's [C bindings]
     (https://gitlab.com/stackvista/agent/stackstate-agent/-/blob/master/rtloader/common/builtins/transaction.c)
@@ -98,6 +73,29 @@ class TransactionStub(TransactionStubAsserts):
         return transactions_steps_state["started"] is True and \
             transactions_steps_state["stopped"] is True and \
             transactions_steps_state["discarded"] is False
+
+    def assert_transaction_success(self, check_id):
+        assert self._transaction_completed_successfully(check_id) is True
+
+    def assert_started_transaction(self, check_id):
+        assert self._ensure_transaction_steps(check_id)["started"] is True
+
+    def assert_stopped_transaction(self, check_id):
+        assert self._ensure_transaction_steps(check_id)["stopped"] is True
+
+    def assert_discarded_transaction(self, check_id):
+        assert self._ensure_transaction_steps(check_id)["discarded"] is False
+
+    def assert_completed_transaction(self, check_id):
+        assert self._ensure_transaction_steps(check_id)["started"] is True and \
+               self._ensure_transaction_steps(check_id)["stopped"] is True
+
+    def assert_transaction_state(self, check, check_id, expected_key, expected_value):
+        transaction_state_key = generate_state_key(check._get_instance_key().to_string(),
+                                                   check.TRANSACTIONAL_PERSISTENT_CACHE_KEY)
+        transaction_state_dict = json.loads(self._ensure_transaction_state(check_id)[transaction_state_key])
+
+        assert transaction_state_dict.get(expected_key) is expected_value
 
 
 # Use the stub as a singleton
