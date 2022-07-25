@@ -8,9 +8,11 @@ from stackstate_checks.base.checks.v2.stateful_agent_check import StatefulAgentC
 from stackstate_checks.base import AgentIntegrationInstance, MetricStream, MetricHealthChecks, \
     HealthStream, HealthStreamUrn, Health
 from stackstate_checks.checks import CheckResponse
-import time
 from random import seed
 from random import randint
+
+import time
+import json
 
 seed(1)
 
