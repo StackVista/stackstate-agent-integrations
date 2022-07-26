@@ -14,6 +14,19 @@ from random import randint
 seed(1)
 
 
+class AgentV2IntegrationSampleCheck(AgentCheckV2):
+    def get_health_stream(self, instance):
+        return HealthStream(HealthStreamUrn("agent-v2-integration-sample", "sample"))
+
+    def get_instance_key(self, instance):
+        return AgentIntegrationInstance("agent-v2-integration", "sample")
+
+    def check(self, instance):
+        agent_v2_integration_base(self, instance, "agent-v2-integration-sample")
+
+
+# Agent V2 Integration base that can be reused in the agent_v2_integration_stateful_sample and
+# agent_v2_integration_transactional_sample base classes to retest the same functionality in the new base classes
 def agent_v2_integration_base(self, instance, agent_v2_base_identifier):
     # gets the value of the `url` property
     instance_url = instance.get('url', agent_v2_base_identifier)
@@ -224,14 +237,3 @@ def agent_v2_integration_base(self, instance, agent_v2_base_identifier):
     self.log.info("Read key that doesn't exist in persistent cache")
     cache = self.read_persistent_cache("key_that_is_not_there")
     self.log.debug("empty cache: {} empty cache's type: {}".format(cache, type(cache)))
-
-
-class AgentV2IntegrationSampleCheck(AgentCheckV2):
-    def get_health_stream(self, instance):
-        return HealthStream(HealthStreamUrn("agent-v2-integration-sample", "sample"))
-
-    def get_instance_key(self, instance):
-        return AgentIntegrationInstance("agent-v2-integration", "sample")
-
-    def check(self, instance):
-        agent_v2_integration_base(self, instance, "agent-v2-integration-sample")

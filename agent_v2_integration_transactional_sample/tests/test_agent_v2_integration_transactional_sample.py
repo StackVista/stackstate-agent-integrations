@@ -104,9 +104,9 @@ class TestAgentIntegration(unittest.TestCase):
 
         # Testing for a successful transaction after the 1st check execution
         transaction.assert_transaction_success(self.check.check_id)
-        transaction.assert_started_transaction(self.check.check_id)
-        transaction.assert_stopped_transaction(self.check.check_id)
-        transaction.assert_discarded_transaction(self.check.check_id)
+        transaction.assert_started_transaction(self.check.check_id, False)
+        transaction.assert_stopped_transaction(self.check.check_id, True)
+        transaction.assert_discarded_transaction(self.check.check_id, False)
         transaction.assert_completed_transaction(self.check.check_id)
 
         # Testing for transaction state after the 1st check execution

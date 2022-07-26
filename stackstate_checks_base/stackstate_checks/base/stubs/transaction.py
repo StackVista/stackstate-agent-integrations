@@ -48,9 +48,11 @@ class TransactionStub(object):
     # Monitor when a transaction started
     def start_transaction(self, check, check_id):
         self._ensure_transaction_steps(check_id)["started"] = True
+        self._ensure_transaction_steps(check_id)["stopped"] = False
 
     # Monitor when a transaction stopped
     def stop_transaction(self, check, check_id):
+        self._ensure_transaction_steps(check_id)["started"] = False
         self._ensure_transaction_steps(check_id)["stopped"] = True
 
     # Monitor when if a transaction was discarded
@@ -60,34 +62,40 @@ class TransactionStub(object):
 
     # Return the current state transaction value
     def get_transaction(self, check_id):
+        print("Get Transaction")
         return self._ensure_transaction_state(check_id)
 
     # Set a new value for the transactional state
     def set_transaction_state(self, check, check_id, key, new_state):
+        print("Set New Transaction")
+        print(key)
+        print(new_state)
+        print("")
+
         if not self._transaction_completed_successfully(check_id):
             self._ensure_transaction_state(check_id)[key] = new_state
 
     def _transaction_completed_successfully(self, check_id):
         transactions_steps_state = self._ensure_transaction_steps(check_id)
 
-        return transactions_steps_state["started"] is True and \
+        return transactions_steps_state["started"] is False and \
             transactions_steps_state["stopped"] is True and \
             transactions_steps_state["discarded"] is False
 
     def assert_transaction_success(self, check_id):
         assert self._transaction_completed_successfully(check_id) is True
 
-    def assert_started_transaction(self, check_id):
-        assert self._ensure_transaction_steps(check_id)["started"] is True
+    def assert_started_transaction(self, check_id, expected):
+        assert self._ensure_transaction_steps(check_id)["started"] is expected
 
-    def assert_stopped_transaction(self, check_id):
-        assert self._ensure_transaction_steps(check_id)["stopped"] is True
+    def assert_stopped_transaction(self, check_id, expected):
+        assert self._ensure_transaction_steps(check_id)["stopped"] is expected
 
-    def assert_discarded_transaction(self, check_id):
-        assert self._ensure_transaction_steps(check_id)["discarded"] is False
+    def assert_discarded_transaction(self, check_id, expected):
+        assert self._ensure_transaction_steps(check_id)["discarded"] is expected
 
     def assert_completed_transaction(self, check_id):
-        assert self._ensure_transaction_steps(check_id)["started"] is True and \
+        assert self._ensure_transaction_steps(check_id)["started"] is False and \
                self._ensure_transaction_steps(check_id)["stopped"] is True
 
     def assert_transaction_state(self, check, check_id, expected_key, expected_value):
