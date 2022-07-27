@@ -112,7 +112,7 @@ class TestAgentIntegration(unittest.TestCase):
         # Testing for transaction state after the 1st check execution
         transaction.assert_transaction_state(self.check,
                                              self.check.check_id,
-                                             expected_key="transactional_counter",
+                                             expected_key="transaction_counter",
                                              expected_value=1)
 
         # Testing for persistent state after the 1st check execution
@@ -124,8 +124,8 @@ class TestAgentIntegration(unittest.TestCase):
         # Testing for transaction state after the 2nd check execution
         transaction.assert_transaction_state(self.check,
                                              self.check.check_id,
-                                             expected_key="transactional_counter",
-                                             expected_value=1)
+                                             expected_key="transaction_counter",
+                                             expected_value=2)
 
         # Testing for a persistent state after the 2nd check execution
         # Expecting the previous value set after the 1st execution to increase

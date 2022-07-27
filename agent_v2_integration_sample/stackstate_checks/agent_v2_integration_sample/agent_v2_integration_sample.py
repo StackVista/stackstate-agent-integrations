@@ -233,7 +233,26 @@ def agent_v2_integration_base(self, instance, agent_v2_base_identifier):
         "environment": "Production",
         "version": "0.2.0"
     }
-    self.write_persistent_cache("test_key", json.dumps(sample_data))
+
+    # Testing read_persistent cache from previous run cycle
+    cache_from_previous_run = self.read_persistent_cache("prev_write_persistent_cache")
+    if cache_from_previous_run is not None and cache_from_previous_run != "":
+        self.log.info("Found cache from a previous runs write_persistent_cache")
+        self.log.info(cache_from_previous_run)
+        self.write_persistent_cache("prev_write_persistent_cache", int(cache_from_previous_run) + 1)
+    else:
+        # Write into the persistent cache for the next cycle
+        self.write_persistent_cache("prev_write_persistent_cache", str(1))
+
+    # Read a non-existing persistent cache key
     self.log.info("Read key that doesn't exist in persistent cache")
-    cache = self.read_persistent_cache("key_that_is_not_there")
-    self.log.debug("empty cache: {} empty cache's type: {}".format(cache, type(cache)))
+    cache_for_non_existent_value = self.read_persistent_cache("key_that_is_not_there")
+    self.log.info("empty cache: {} empty cache's type: {}".format(cache_for_non_existent_value,
+                                                                  type(cache_for_non_existent_value)))
+
+    # Test writing and reading from the cache in the same cycle
+    self.write_persistent_cache("test_key", json.dumps(sample_data))
+    cache_value = self.read_persistent_cache("test_key")
+    if cache_value is not None and cache_value != "":
+        self.log.info("Successful read cache from write in the same check execution cycle")
+        self.log.info(cache_value)

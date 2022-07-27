@@ -62,16 +62,10 @@ class TransactionStub(object):
 
     # Return the current state transaction value
     def get_transaction(self, check_id):
-        print("Get Transaction")
         return self._ensure_transaction_state(check_id)
 
     # Set a new value for the transactional state
     def set_transaction_state(self, check, check_id, key, new_state):
-        print("Set New Transaction")
-        print(key)
-        print(new_state)
-        print("")
-
         if not self._transaction_completed_successfully(check_id):
             self._ensure_transaction_state(check_id)[key] = new_state
 
