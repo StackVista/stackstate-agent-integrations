@@ -15,12 +15,15 @@ class StateStub(object):
         self._state = {}
 
     def set_state(self, check, check_id, key, new_state):
+        print("Using stub state for setting state")
         self._state[key] = new_state
 
     def get_state(self, check, check_id, key):
+        print("Using stub state for getting state")
         return self._state.get(key, "{}")
 
     def reset(self):
+        print("Resetting stub state")
         self._state = {}
 
     def assert_state(self, check, expected_key, expected_value):
