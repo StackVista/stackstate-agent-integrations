@@ -29,9 +29,12 @@ class AgentIntegrationSampleStatefulCheck(StatefulAgentCheck):
 # base classes to retest the same functionality in the new base classes
 def agent_v2_integration_stateful_base(self, persistent_state):
     self.log.info("Read or Write the 'persistent_counter' for this cycle.")
+    self.log.info("Persistent State Received:")
+    self.log.info(persistent_state)
 
     # Find the persistent state counter
     persistent_counter = persistent_state.get("persistent_counter")
+    self.log.info("Found the 'persistent_counter' state: " + str(persistent_counter))
 
     # If the value exists then lets increase the value, if it does not the let's set a default
     if persistent_counter is not None and isinstance(persistent_counter, int):

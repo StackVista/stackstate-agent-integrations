@@ -237,8 +237,7 @@ def agent_v2_integration_base(self, instance, agent_v2_base_identifier):
     # Testing read_persistent cache from previous run cycle
     cache_from_previous_run = self.read_persistent_cache("prev_write_persistent_cache")
     if cache_from_previous_run is not None and cache_from_previous_run != "":
-        self.log.info("Found cache from a previous runs write_persistent_cache")
-        self.log.info(cache_from_previous_run)
+        self.log.info("Found cache from a previous runs write_persistent_cache: " + str(cache_from_previous_run))
         self.write_persistent_cache("prev_write_persistent_cache", str(int(cache_from_previous_run) + 1))
     else:
         # Write into the persistent cache for the next cycle
