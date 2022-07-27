@@ -30,28 +30,18 @@ class StateApi(object):
         """
         Reads state stored as JSON string and returns it as dictionary.
         """
-        self.log.info("State API: Getting state for key: " + key)
-        self.log.info("State API: Getting state for state key: " + self._get_state_key(key))
-        self.log.info("State API: Getting state for check id: " + self.__check.check_id)
-
         current_state = state.get_state(self.__check, self.__check.check_id, self._get_state_key(key))
-
-        self.log.info("State API: Retrieve state before unmarshalling the string: ")
-        self.log.info(current_state)
 
         # If for any reason the retrieved state is None we can default to an unmarshal-able object
         if current_state is None:
-            self.log.info("State API: Current State is None")
             return {}
 
         # If we did in fact receive a value back we can then attempt to unmarshal it
         try:
             if not schema:
-                self.log.info("State API: Json Load State Value")
                 return json.loads(current_state)
 
             if current_state and schema:
-                self.log.info("State API: Schematic Json Load State Value")
                 schema_state = schema(json.loads(current_state))
                 schema_state.validate()
                 return schema_state
