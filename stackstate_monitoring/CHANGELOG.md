@@ -1,0 +1,2 @@
+# CHANGELOG - stackstate-monitoring
+
