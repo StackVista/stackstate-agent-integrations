@@ -408,7 +408,6 @@ class TestSplunkInstanceConfig(unittest.TestCase):
         searches.run_saved_searches(self.mock_process_data.function, self.mock_service_check.function, self.log,
                                     self.committable_state)
 
-        assert self.mock_service_check.results == [
-                                                   [AgentCheck.WARNING, [], None,
+        assert self.mock_service_check.results == [[AgentCheck.WARNING, [], None,
                                                     "All result of saved search 'search1' contained incomplete data"],
                                                    [AgentCheck.WARNING, [], None, "'broken_sid'"]]

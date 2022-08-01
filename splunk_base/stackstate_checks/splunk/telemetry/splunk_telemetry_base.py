@@ -55,7 +55,7 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
 
             instance.saved_searches.run_saved_searches(_process_data, _service_check, self.log, pstate, _update_status)
 
-            transactional_state = instance.get_status() # TODO verify!
+            transactional_state = instance.get_status()  # TODO verify!
 
             # If no service checks were produced, everything is ok
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK)

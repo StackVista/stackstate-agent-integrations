@@ -15,6 +15,7 @@
   "metric_prefix": "splunk_metric.",
   "metric_to_check": "splunk_metric.connections",
   "name": "splunk_metric",
+  "process_signatures": [],
   "public_title": "StackState-Splunk Metric Integration",
   "short_description": "Retrieve metrics from splunk saved searches.",
   "support": "core",

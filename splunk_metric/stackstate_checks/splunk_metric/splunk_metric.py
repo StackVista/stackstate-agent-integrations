@@ -3,9 +3,9 @@
 """
 
 # 3rd party
-from stackstate_checks.splunk.client import SplunkClient
+# from stackstate_checks.splunk.client import SplunkClient
 from stackstate_checks.splunk.config.splunk_instance_config import SplunkTelemetryInstanceConfig
-from stackstate_checks.splunk.saved_search_helper import SavedSearches
+# from stackstate_checks.splunk.saved_search_helper import SavedSearches
 from stackstate_checks.splunk.telemetry.splunk_telemetry import SplunkTelemetrySavedSearch, SplunkTelemetryInstance
 from stackstate_checks.splunk.telemetry.splunk_telemetry_base import SplunkTelemetryBase
 
@@ -70,9 +70,9 @@ class SplunkMetric(SplunkTelemetryBase):
                 "dispatch.now": True
             }
         })
-        saved_searches = []
-        if instance['saved_searches'] is not None:
-            saved_searches = instance['saved_searches']
+        # saved_searches = []
+        # if instance['saved_searches'] is not None:
+        #     saved_searches = instance['saved_searches']
 
         # method to be overwritten by SplunkMetric and SplunkEvent
         def _create_saved_search(instance_config, saved_search_instance):
