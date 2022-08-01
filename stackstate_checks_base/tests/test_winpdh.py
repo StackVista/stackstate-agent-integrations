@@ -3,7 +3,7 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 
 import pytest
-from stackstate_checks.stubs.datadog_agent import datadog_agent as logger
+from stackstate_checks.stubs import datadog_agent as logger
 from collections import defaultdict
 from stackstate_checks.stubs import aggregator
 

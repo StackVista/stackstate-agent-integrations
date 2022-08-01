@@ -14,7 +14,7 @@ from schematics.exceptions import ValidationError, ConversionError, DataError
 from schematics.types import IntType, StringType, ModelType
 from six import PY3, text_type
 
-from stackstate_checks.base.stubs.datadog_agent import datadog_agent
+from stackstate_checks.base.stubs import datadog_agent
 from stackstate_checks.base.stubs.topology import component
 from stackstate_checks.checks import AgentCheck, TopologyInstance, AgentIntegrationInstance, \
     HealthStream, HealthStreamUrn, Health
@@ -332,12 +332,16 @@ class TestLimits():
 
 
 class DefaultInstanceCheck(AgentCheck):
-    pass
+    def check(self, instance):
+        pass
 
 
 class AgentIntegrationInstanceCheck(AgentCheck):
     def get_instance_key(self, instance):
         return AgentIntegrationInstance("test", "integration")
+
+    def check(self, instance):
+        pass
 
 
 class TopologyCheck(AgentCheck):
@@ -347,6 +351,9 @@ class TopologyCheck(AgentCheck):
 
     def get_instance_key(self, instance):
         return self.key
+
+    def check(self, instance):
+        pass
 
 
 class TopologyAutoSnapshotCheck(TopologyCheck):
@@ -939,49 +946,50 @@ class TestTopology:
         check.stop_snapshot()
         topology.assert_snapshot(check.check_id, check.key, stop_snapshot=True)
 
-    def test_stateful_check(self, topology, state):
+    def test_stateful_check(self, topology, state_manager):
         check = TopologyStatefulCheck()
-        state.assert_state_check(check, expected_pre_run_state=None, expected_post_run_state=TEST_STATE)
+        state_manager.assert_state_check(check, expected_pre_run_state=None, expected_post_run_state=TEST_STATE)
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
 
-    def test_stateful_check_config_location(self, topology, state):
+    def test_stateful_check_config_location(self, topology, state_manager):
         check = TopologyStatefulCheckStateLocation()
-        state.assert_state_check(check, expected_pre_run_state=None, expected_post_run_state=TEST_STATE)
+        state_manager.assert_state_check(check, expected_pre_run_state=None, expected_post_run_state=TEST_STATE)
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
 
-    def test_stateful_state_descriptor_cleanup_check(self, topology, state):
+    def test_stateful_state_descriptor_cleanup_check(self, topology, state_manager):
         check = TopologyStatefulStateDescriptorCleanupCheck()
         state_descriptor = check._get_state_descriptor()
         assert state_descriptor.instance_key == "instance.mytype.https_some.type.url"
         assert check._get_instance_key_dict() == {'type': 'mytype', 'url': 'https://some.type.url'}
-        state.assert_state_check(check, expected_pre_run_state=None, expected_post_run_state=TEST_STATE)
+        state_manager.assert_state_check(check, expected_pre_run_state=None, expected_post_run_state=TEST_STATE)
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
 
-    def test_clear_stateful_check(self, topology, state):
+    def test_clear_stateful_check(self, topology, state_manager):
         check = TopologyClearStatefulCheck()
         # set the previous state and assert the state check function as expected
         check.state_manager.set_state(check._get_state_descriptor(), TEST_STATE)
-        state.assert_state_check(check, expected_pre_run_state=TEST_STATE, expected_post_run_state=None)
+        state_manager.assert_state_check(check, expected_pre_run_state=TEST_STATE, expected_post_run_state=None)
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
 
-    def test_no_state_change_on_exception_stateful_check(self, topology, state):
+    def test_no_state_change_on_exception_stateful_check(self, topology, state_manager):
         check = TopologyBrokenStatefulCheck()
         # set the previous state and assert the state check function as expected
         previous_state = {'my_old': 'state'}
         check.state_manager.set_state(check._get_state_descriptor(), previous_state)
-        state.assert_state_check(check, expected_pre_run_state=previous_state, expected_post_run_state=previous_state)
+        state_manager.assert_state_check(check, expected_pre_run_state=previous_state,
+                                         expected_post_run_state=previous_state)
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=False)
 
-    def test_stateful_schema_check(self, topology, state):
+    def test_stateful_schema_check(self, topology, state_manager):
         check = TopologyStatefulSchemaCheck()
         # assert the state check function as expected
-        state.assert_state_check(check, expected_pre_run_state=None,
-                                 expected_post_run_state=StateSchema({'offset': 20}), state_schema=StateSchema)
+        state_manager.assert_state_check(check, expected_pre_run_state=None,
+                                         expected_post_run_state=StateSchema({'offset': 20}), state_schema=StateSchema)
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
 
@@ -1386,19 +1394,15 @@ class TestHealth:
 class TestDataDogPersistentCache:
 
     def test_write_and_read(self):
-        check = AgentCheck()
-        check.check_id = 'test'
-
+        check = TopologyCheck()
         check.write_persistent_cache('foo', 'bar')
 
-        assert datadog_agent.read_persistent_cache('test_foo') == 'bar'
+        assert datadog_agent.read_persistent_cache(check._persistent_cache_id('foo')) == 'bar'
         assert check.read_persistent_cache('foo') == 'bar'
 
     def test_write_empty_value(self):
-        check = AgentCheck()
-        check.check_id = 'test'
-
+        check = TopologyCheck()
         check.write_persistent_cache('foo', '')
 
-        assert datadog_agent.read_persistent_cache('test_foo') == ''
+        assert datadog_agent.read_persistent_cache(check._persistent_cache_id('foo')) == ''
         assert check.read_persistent_cache('foo') == ''

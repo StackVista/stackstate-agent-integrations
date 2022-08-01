@@ -5,7 +5,7 @@
 try:
     import datadog_agent
 except ImportError:
-    from ...stubs.datadog_agent import datadog_agent
+    from ...stubs import datadog_agent
 
 from .. import AgentCheck
 from .record import ElectionRecord

@@ -14,10 +14,6 @@ def relation(source_id, target_id, type, data):
     return {"source_id": source_id, "target_id": target_id, "type": type, "data": data}
 
 
-def delete(identifier):
-    return identifier
-
-
 def snapshot(instance_key):
     return {"start_snapshot": False, "stop_snapshot": False,
             "instance_key": instance_key, "components": [], "relations": [], "delete_ids": []}
@@ -30,8 +26,11 @@ def get_relation_id(relation):
 
 class TopologyStub(object):
     """
-    Mainly used for unit testing checks, this stub makes possible to execute
-    a check without a running Agent.
+    This implements the methods defined by the Agent's [C bindings]
+    (https://gitlab.com/stackvista/agent/stackstate-agent/-/blob/master/rtloader/common/builtins/topology.c)
+    which in turn call the [Go backend]
+    (https://gitlab.com/stackvista/agent/stackstate-agent/-/blob/master/pkg/collector/python/topology_api.go).
+    It also provides utility methods for test assertions.
     """
 
     def __init__(self):
@@ -49,7 +48,7 @@ class TopologyStub(object):
         self._ensure_instance(check_id, instance_key)["components"].append(component(id, type, data))
 
     def submit_delete(self, check, check_id, instance_key, identifier):
-        self._ensure_instance(check_id, instance_key)["delete_ids"].append(delete(identifier))
+        self._ensure_instance(check_id, instance_key)["delete_ids"].append(identifier)
 
     def submit_relation(self, check, check_id, instance_key, source_id, target_id, type, data):
         self._ensure_instance(check_id, instance_key)["relations"].append(relation(source_id, target_id, type, data))

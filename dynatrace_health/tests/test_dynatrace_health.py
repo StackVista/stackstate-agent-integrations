@@ -148,13 +148,13 @@ def test_generated_events(dynatrace_check, test_instance, requests_mock, aggrega
 
 
 @freeze_time('2021-02-16 14:26:24')
-def test_state_data(state, dynatrace_check, test_instance, requests_mock, aggregator):
+def test_state_data(state_manager, dynatrace_check, test_instance, requests_mock, aggregator):
     """
     Check is the right timestamp is writen to the state
     """
     timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
     state_instance = StateDescriptor("instance.dynatrace_health.https_instance.live.dynatrace.com", "dynatrace.d")
-    state.assert_state(state_instance, None)
+    state_manager.assert_state(state_instance, None)
     events_file = 'no_events_response.json'
     requests_mock.get('{}/api/v1/events?from={}'.format(test_instance['url'], timestamp), status_code=200,
                       text=read_file(events_file, 'samples'))
@@ -162,7 +162,7 @@ def test_state_data(state, dynatrace_check, test_instance, requests_mock, aggreg
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     mocked_response_data = load_json_from_file(events_file, 'samples')
     new_state = State({'last_processed_event_timestamp': mocked_response_data.get('to')})
-    state.assert_state(state_instance, new_state)
+    state_manager.assert_state(state_instance, new_state)
 
 
 @freeze_time('2021-02-16 14:26:24')

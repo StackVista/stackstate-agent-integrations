@@ -12,13 +12,13 @@ import unicodedata
 from collections import defaultdict
 from functools import reduce
 from os.path import basename
-from typing import Any, Set, Dict, Sequence, List, Optional, Union, AnyStr, TypeVar
 
 import yaml
 from schematics import Model
 from six import PY3, iteritems, iterkeys, text_type, string_types, integer_types
+from typing import Any, Set, Dict, Sequence, List, Optional, Union, AnyStr, TypeVar
 
-from ..utils.health_api import HealthStream
+from ..utils.health_api import HealthApiCommon
 
 try:
     import datadog_agent
@@ -26,7 +26,7 @@ try:
 
     init_logging()
 except ImportError:
-    from ..stubs.datadog_agent import datadog_agent
+    from ..stubs import datadog_agent
     from ..stubs.log import init_logging
 
     init_logging()
@@ -98,6 +98,9 @@ class _TopologyInstanceBase(object):
     def to_dict(self):
         return {"type": self.type, "url": self.url}
 
+    def to_string(self):
+        return "{}_{}".format(self.type, self.url)
+
     def tags(self):
         return ["integration-type:{}".format(self.type), "integration-url:{}".format(self.url)]
 
@@ -165,7 +168,7 @@ _InstanceType = TypeVar('_InstanceType', Model, Dict[str, Any])
 _EventType = TypeVar('_EventType', Model, Dict[str, Any])
 
 
-class AgentCheck(object):
+class AgentCheck(HealthApiCommon):
     """
     The base class for any Agent based integrations
     """
@@ -283,26 +286,6 @@ class AgentCheck(object):
         }  # type: Dict[str, List[Any]]
 
         self.set_metric_limits()
-
-    def _init_health_api(self):
-        # type: () -> None
-        if self.health is not None:
-            return None
-
-        stream_spec = self.get_health_stream(self._get_instance_schema(self.instance))
-        if stream_spec:
-            # collection_interval should always be set by the agent
-            collection_interval = self.instance['collection_interval']
-            repeat_interval_seconds = stream_spec.repeat_interval_seconds or collection_interval
-            expiry_seconds = stream_spec.expiry_seconds
-            # Only apply a default expiration when we are using substreams
-            if expiry_seconds is None:
-                if stream_spec.sub_stream != "":
-                    expiry_seconds = repeat_interval_seconds * 4
-                else:
-                    # Explicitly disable expiry setting it to 0
-                    expiry_seconds = 0
-            self.health = HealthApi(self, stream_spec, expiry_seconds, repeat_interval_seconds)
 
     def run(self):
         # type: () -> str
@@ -466,16 +449,6 @@ class AgentCheck(object):
         else:
             AgentCheck._raise_unexpected_type(argument_name, value, "dictionary or None value")
 
-    def get_health_stream(self, instance):
-        # type: (_InstanceType) -> Optional[HealthStream]
-        """
-        Integration checks can override this if they want to be producing a health stream. Defining the will
-        enable self.health() calls
-
-        :return: a class extending HealthStream
-        """
-        return None
-
     def _get_instance_schema(self, instance):
         # type: (Dict[str, Any]) -> _InstanceType
         """
@@ -525,9 +498,8 @@ class AgentCheck(object):
         proxies = proxies if proxies is not None else self.proxies.copy()
 
         deprecated_skip = instance.get('no_proxy', None)
-        skip = (
-            is_affirmative(instance.get('skip_proxy', not self._use_agent_proxy)) or is_affirmative(deprecated_skip)
-        )
+        skip = (is_affirmative(instance.get('skip_proxy', not self._use_agent_proxy)) or
+                is_affirmative(deprecated_skip))
 
         if deprecated_skip is not None:
             self._log_deprecation('no_proxy')
@@ -1272,7 +1244,7 @@ class AgentCheck(object):
     def get_check_state_path(self):
         # type: () -> str
         """
-        get_check_state_path returns the path where the check state is stored. By default the check configuration
+        get_check_state_path returns the path where the check state is stored. By default, the check configuration
         location will be used. If state_location is set in the check configuration that will be used instead.
         """
         state_location = self.instance.get("state_location", self.get_agent_conf_d_path())

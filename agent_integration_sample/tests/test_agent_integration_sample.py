@@ -25,8 +25,6 @@ CONFIG = {
     'instances': [{'collection_interval': 5}]
 }
 
-instance_config = InstanceInfo([])
-
 
 @pytest.mark.usefixtures("instance")
 class TestAgentIntegration(unittest.TestCase):
