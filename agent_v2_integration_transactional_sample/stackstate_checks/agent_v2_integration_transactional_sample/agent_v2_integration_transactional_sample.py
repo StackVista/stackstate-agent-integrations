@@ -14,8 +14,6 @@ seed(1)
 
 
 class AgentV2IntegrationTransactionalSampleCheck(TransactionalAgentCheck):
-    test = 0
-
     def get_health_stream(self, instance):
         return HealthStream(HealthStreamUrn("agent-v2-integration-transactional-sample", "sample"))
 
@@ -23,9 +21,6 @@ class AgentV2IntegrationTransactionalSampleCheck(TransactionalAgentCheck):
         return AgentIntegrationInstance("agent-v2-integration-transactional", "sample")
 
     def transactional_check(self, instance, transactional_state, persistent_state):
-        self.test = self.test + 1
-        self.log.info("Test value is increase to: " + str(self.test))
-
         agent_v2_integration_base(self, instance, "agent-v2-integration-transactional-sample")
         persistent_state = agent_v2_integration_stateful_base(self, persistent_state)
 
