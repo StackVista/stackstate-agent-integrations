@@ -1,0 +1,23 @@
+{
+  "display_name": "Agent_v2_integration_sample",
+  "maintainer": "info@stackstate.com",
+  "short_description": "sample_agent_integration",
+  "manifest_version": "1.0.0",
+  "name": "agent_v2_integration_sample",
+  "metric_prefix": "agent_v2_integration_sample.",
+  "metric_to_check": "",
+  "creates_events": false,
+  "guid": "c18c05c3-8ef4-4841-9793-de92f4ef9d8f",
+  "support": "core",
+  "supported_os": [
+    "linux",
+    "mac_os",
+    "windows"
+  ],
+  "public_title": "StackState-Agent_v2_integration_sample Integration",
+  "categories": [
+    ""
+  ],
+  "type": "check",
+  "is_public": false
+}

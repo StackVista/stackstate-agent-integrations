@@ -1,8 +1,23 @@
 # StackState Agent Integrations v2 releases
 
-# 1.22.0 / 2022-06-15
+# 1.23.0 / ????-??-??
 
 * [Added] Support for spunk metrics [(STAC-16164)] https://stackstate.atlassian.net/browse/STAC-16164 
+
+# 1.22.0 / 2022-08-01
+
+* [Added] Added an Agent v2 Base Class. [STAC-16162](https://stackstate.atlassian.net/browse/STAC-16162)
+* [Added] Added an Agent v2 Stateful Base Class. [STAC-16579](https://stackstate.atlassian.net/browse/STAC-16579)
+* [Added] Added an Agent v2 Transactional Base Class. [STAC-13620](https://stackstate.atlassian.net/browse/STAC-13620)
+* [Added] Agent Sample Integration Check for Agent v2 Base. [STAC-17164](https://stackstate.atlassian.net/browse/STAC-17164)
+
+# 1.21.2 / 2022-07-15
+
+* [Fixed] Fixed CloudTrail history retrieval fallback when there is no CloudTrail S3 bucket available. [STAC-17058](https://stackstate.atlassian.net/browse/STAC-17058)
+
+# 1.21.1 / 2022-07-08
+
+* [Added] Added processing AWS Security Group Ingress changes triggered by EventBridge event. [(STAC-17006)](https://stackstate.atlassian.net/browse/STAC-17006)
 
 # 1.21.0 / 2022-06-01
 

@@ -1,4 +1,5 @@
 import urllib
+from typing import Any, Dict, Optional, TypeVar
 from enum import Enum
 from schematics import Model
 from schematics.exceptions import ValidationError
@@ -15,6 +16,8 @@ except ImportError:
     from ..stubs import health
 
     using_stub_health = True
+
+_InstanceType = TypeVar('_InstanceType', Model, Dict[str, Any])
 
 
 class Health(Enum):
@@ -95,6 +98,49 @@ class HealthCheckData(Model):
     health = HealthType(required=True)
     topologyElementIdentifier = StrictStringType(required=True)
     message = StrictStringType(required=False)
+
+
+class HealthApiCommon(object):
+    def __init__(self, *args, **kwargs):
+        """
+        HealthApiCommon initializes the Common Health API Functionality and passes the args and kwargs to the super init
+
+        @param args: *Any
+        @param kwargs: **Any
+        """
+        super(HealthApiCommon, self).__init__(*args, **kwargs)
+
+        self.health = None  # type: Optional[HealthApi]
+
+    def get_health_stream(self, instance):
+        # type: (_InstanceType) -> Optional[HealthStream]
+        """
+        Integration checks can override this if they want to be producing a health stream. Defining the will
+        enable self.health() calls
+
+        :return: a class extending HealthStream
+        """
+        return None
+
+    def _init_health_api(self):
+        # type: () -> None
+        if self.health is not None:
+            return None
+
+        stream_spec = self.get_health_stream(self._get_instance_schema(self.instance))
+        if stream_spec:
+            # collection_interval should always be set by the agent
+            collection_interval = self.instance['collection_interval']
+            repeat_interval_seconds = stream_spec.repeat_interval_seconds or collection_interval
+            expiry_seconds = stream_spec.expiry_seconds
+            # Only apply a default expiration when we are using substreams
+            if expiry_seconds is None:
+                if stream_spec.sub_stream != "":
+                    expiry_seconds = repeat_interval_seconds * 4
+                else:
+                    # Explicitly disable expiry setting it to 0
+                    expiry_seconds = 0
+            self.health = HealthApi(self, stream_spec, expiry_seconds, repeat_interval_seconds)
 
 
 class HealthApi(object):
