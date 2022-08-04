@@ -14,4 +14,22 @@ def sts_environment():
 
 @pytest.fixture
 def instance():
-    return {}
+    return {
+        'url': 'http://localhost:8089',
+        'authentication': {
+            'basic_auth': {
+                'username': "admin",
+                'password': "admin"
+            }
+        },
+        'saved_searches': [],
+        'tags': []
+    }
+
+
+@pytest.fixture
+def saved_searches_error(instance):
+    instance['saved_searches'] = [{
+        "name": "error",
+        "parameters": {}
+    }]
