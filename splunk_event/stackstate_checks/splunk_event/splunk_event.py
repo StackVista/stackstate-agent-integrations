@@ -3,7 +3,6 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 
 from stackstate_checks.splunk.config.splunk_instance_config import SplunkTelemetryInstanceConfig
-from stackstate_checks.splunk.saved_search_helper import SavedSearches
 from stackstate_checks.splunk.telemetry.splunk_telemetry import SplunkTelemetrySavedSearch, SplunkTelemetryInstance
 from stackstate_checks.splunk.telemetry.splunk_telemetry_base import SplunkTelemetryBase
 
@@ -57,13 +56,11 @@ class SplunkEvent(SplunkTelemetryBase):
             }
         })
 
-        saved_searches_instance = []
-        if instance['saved_searches'] is not None:
-            saved_searches_instance = instance['saved_searches']
+        def _create_saved_search(instance_config, saved_search_instance):
+            return EventSavedSearch(instance_config, saved_search_instance)
 
-        return self._build_instance(instance, current_time, metric_instance_config,
-                                    EventSavedSearch(metric_instance_config, saved_searches_instance))
+        return self._build_instance(current_time, instance, metric_instance_config, _create_saved_search)
 
     # Hook to override instance creation
-    def _build_instance(self, instance, current_time, metric_instance_config, saved_search):
-        return SplunkTelemetryInstance(current_time, instance, metric_instance_config, saved_search)
+    def _build_instance(self, current_time, instance, metric_instance_config, _create_saved_search):
+        return SplunkTelemetryInstance(current_time, instance, metric_instance_config, _create_saved_search)

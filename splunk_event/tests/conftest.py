@@ -10,26 +10,3 @@ def sts_environment():
     # The start command places this as a `conf.yaml` in the `conf.d/mycheck/` directory.
     # If you want to run an environment this object can not be empty.
     return {"key": "value"}
-
-
-@pytest.fixture
-def instance():
-    return {
-        'url': 'http://localhost:8089',
-        'authentication': {
-            'basic_auth': {
-                'username': "admin",
-                'password': "admin"
-            }
-        },
-        'saved_searches': [],
-        'tags': []
-    }
-
-
-@pytest.fixture
-def saved_searches_error(instance):
-    instance['saved_searches'] = [{
-        "name": "error",
-        "parameters": {}
-    }]

@@ -91,8 +91,8 @@ class SplunkTelemetryInstance(object):
 
     def get_search_data(self, data, search):
         instance_key = self.instance_config.base_url
-        if instance_key in data.data and search in data.data[instance_key]:
-            return data.data[instance_key][search]
+        if instance_key in data and search in data[instance_key]:
+            return data[instance_key][search]
         else:
             return None
 
@@ -106,6 +106,6 @@ class SplunkTelemetryInstance(object):
             else:  # Continue running or restarting, add one to not duplicate the last events.
                 saved_search.last_observed_timestamp = last_committed + 1
                 if current_time - saved_search.last_observed_timestamp > saved_search.config[
-                        'max_restart_history_seconds']:
+                    'max_restart_history_seconds']:
                     saved_search.last_observed_timestamp = current_time - saved_search.config[
                         'max_restart_history_seconds']

@@ -150,7 +150,7 @@ class SplunkSavedSearch(object):
         if self.critical_fields:
             retrieved_data.update({
                 field: take_required_field(field_column, data)
-                for field, field_column in self.critical_fields.iteritems()
+                for field, field_column in self.critical_fields.items()
             })
 
         # Required fields - catch exceptions if missing a field
@@ -158,7 +158,7 @@ class SplunkSavedSearch(object):
             if self.required_fields:
                 retrieved_data.update({
                     field: take_required_field(field_column, data)
-                    for field, field_column in self.required_fields.iteritems()
+                    for field, field_column in self.required_fields.items()
                 })
         except CheckException as e:
             raise LookupError(e)  # drop this item, but continue with next
@@ -167,7 +167,7 @@ class SplunkSavedSearch(object):
         if self.optional_fields:
             retrieved_data.update({
                 field: take_optional_field(field_column, data)
-                for field, field_column in self.optional_fields.iteritems()
+                for field, field_column in self.optional_fields.items()
             })
 
         # Fixed fields
