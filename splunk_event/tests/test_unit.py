@@ -14,7 +14,9 @@ CHECK_NAME = "splunk_event"
 
 def test_splunk_error_response(mocked_splunk_event, instance, saved_searches_error, aggregator):
     """Splunk event check should handle a FATAL message response."""
-    assert mocked_splunk_event.run() == "", "Check run result shouldn't return error message."
+    run_result = mocked_splunk_event.run()
+    first_error = "Splunk metric failed with message: Received FATAL exception from Splunk"
+    assert first_error in run_result, "Check run result should return error message."
     aggregator.assert_service_check(MockedSplunkEvent.SERVICE_CHECK_NAME,
                                     status=MockedSplunkEvent.CRITICAL,
                                     count=1)
@@ -22,7 +24,8 @@ def test_splunk_error_response(mocked_splunk_event, instance, saved_searches_err
 
 def test_splunk_empty_events(mocked_splunk_event, instance, saved_searches_empty, aggregator):
     """Splunk event check should process empty response correctly."""
-    assert mocked_splunk_event.run() == "", "Check run result shouldn't return error message."
+    run_result = mocked_splunk_event.run()
+    assert run_result == "", "Check run result shouldn't return error message."
     aggregator.assert_service_check(MockedSplunkEvent.SERVICE_CHECK_NAME,
                                     status=MockedSplunkEvent.OK,
                                     count=2)
@@ -30,11 +33,12 @@ def test_splunk_empty_events(mocked_splunk_event, instance, saved_searches_empty
 
 def test_splunk_minimal_events(mocked_splunk_event, instance, saved_searches_minimal_events, aggregator):
     """Splunk event check should process minimal response correctly."""
-    assert mocked_splunk_event.run() == "", "Check run result shouldn't return error message."
+    run_result = mocked_splunk_event.run()
+    assert "This field is required" in run_result, "Check run result should return error message."
     aggregator.assert_service_check(MockedSplunkEvent.SERVICE_CHECK_NAME,
                                     status=MockedSplunkEvent.CRITICAL,
                                     count=1)
-    assert len(aggregator.events) == 2, "There should be two events processed."
+    assert len(aggregator.events) == 0, "There should be no events processed."
 
 
 def test_splunk_full_events(mocked_splunk_event, instance, saved_searches_full_events, aggregator):

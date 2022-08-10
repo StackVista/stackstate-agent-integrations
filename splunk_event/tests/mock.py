@@ -32,6 +32,8 @@ class MockSplunkClient(object):
         if search_id == "exception":
             raise CheckException("maximum retries reached for saved search " + str(search_id))
         # sid is set to saved search name
+        if search_id == "error":
+            raise CheckException("Received FATAL exception from Splunk, got: " + str(search_id))
         return [load_fixture("%s.json" % search_id)]
 
     def dispatch(self, saved_search, splunk_app, ignore_saved_search_errors, parameters):
