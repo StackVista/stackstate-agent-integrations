@@ -1,181 +1,81 @@
 # (C) StackState 2022
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
-import json
-import os
-import unittest
 
 import pytest
 
-from stackstate_checks.base import AgentCheck
-from stackstate_checks.base.errors import CheckException
-from stackstate_checks.base.stubs import aggregator, state, transaction
-from stackstate_checks.splunk.client import TokenExpiredException
-from stackstate_checks.splunk.telemetry.splunk_telemetry import SplunkTelemetryInstance
-from stackstate_checks.splunk_event.splunk_event import SplunkEvent
+from .mock import MockedSplunkEvent
 
 # Mark the entire module as tests of type `unit`
 pytestmark = pytest.mark.unit
 
-FIXTURE_DIR = os.path.join(os.path.dirname(__file__), 'ci', 'fixtures')
+CHECK_NAME = "splunk_event"
 
 
-def load_fixture(fixture_file):
-    with open(os.path.join(FIXTURE_DIR, fixture_file)) as f:
-        return json.loads(f.read())
-
-
-class MockSplunkClient(object):
-    def __init__(self):
-        self._dispatch_parameters = None
-        self.invalid_token = False
-
-    def auth_session(self, committable_state):
-        if self.invalid_token:
-            raise TokenExpiredException("Current in use authentication token is expired. Please provide a valid "
-                                        "token in the YAML and restart the Agent")
-        return
-
-    def saved_searches(self):
-        return []
-
-    def saved_search_results(self, search_id, saved_search):
-        if search_id == "exception":
-            raise CheckException("maximum retries reached for saved search " + str(search_id))
-        # sid is set to saved search name
-        return [load_fixture("%s.json" % search_id)]
-
-    def dispatch(self, saved_search, splunk_app, ignore_saved_search_errors, parameters):
-        if saved_search.name == "dispatch_exception":
-            raise Exception("BOOM")
-        self._dispatch_parameters = parameters
-        return saved_search.name
-
-    def finalize_sid(self, search_id, saved_search):
-        return
-
-
-class MockedInstance(SplunkTelemetryInstance):
-    def __init__(self, *args, **kwargs):
-        super(MockedInstance, self).__init__(*args, **kwargs)
-
-    def _build_splunk_client(self):
-        return MockSplunkClient()
-
-
-class MockedSplunkEvent(SplunkEvent):
-    def __init__(self, *args, **kwargs):
-        super(MockedSplunkEvent, self).__init__(*args, **kwargs)
-
-    def _build_instance(self, current_time, instance, metric_instance_config, _create_saved_search):
-        return MockedInstance(current_time, instance, metric_instance_config, _create_saved_search)
-
-
-class TestSplunk(unittest.TestCase):
-    CHECK_NAME = "splunk_event"
-    instance = {
-        'url': 'http://localhost:8089',
-        'authentication': {
-            'basic_auth': {
-                'username': "admin",
-                'password': "admin"
-            }
-        },
-        'saved_searches': [],
-        'tags': []
-    }
-
-    def tearDown(self) -> None:
-        aggregator.reset()
-        state.reset()
-        transaction.reset()
-
-
-class TestSplunkErrorResponse(TestSplunk):
+def test_splunk_error_response(mocked_splunk_event, instance, saved_searches_error, aggregator):
     """Splunk event check should handle a FATAL message response."""
-    instance = {
-        'url': 'http://localhost:8089',
-        'authentication': {
-            'basic_auth': {
-                'username': "admin",
-                'password': "admin"
-            }
-        },
-        'saved_searches': [{
-            "name": "error",
-            "parameters": {}
-        }],
-        'tags': []
-    }
-
-    def test_checks(self):
-        check = MockedSplunkEvent(self.CHECK_NAME, {}, {}, [self.instance])
-        self.assertEqual(check.run(), "", "Check run result shouldn't return error message.")
-        service_checks = aggregator.service_checks(SplunkEvent.SERVICE_CHECK_NAME)
-        self.assertEqual(AgentCheck.CRITICAL, service_checks[0].status, "Handle a FATAL message response.")
+    assert mocked_splunk_event.run() == "", "Check run result shouldn't return error message."
+    aggregator.assert_service_check(MockedSplunkEvent.SERVICE_CHECK_NAME,
+                                    status=MockedSplunkEvent.CRITICAL,
+                                    count=1)
 
 
-class TestSplunkEmptyEvents(TestSplunk):
+def test_splunk_empty_events(mocked_splunk_event, instance, saved_searches_empty, aggregator):
     """Splunk event check should process empty response correctly."""
-    instance = {
-        'url': 'http://localhost:8089',
-        'authentication': {
-            'basic_auth': {
-                'username': "admin",
-                'password': "admin"
-            }
-        },
-        'saved_searches': [{
-            "name": "empty",
-            "parameters": {}
-        }],
-        'tags': []
-
-    }
-
-    def test_checks(self):
-        check = MockedSplunkEvent(self.CHECK_NAME, {}, {}, [self.instance])
-        self.assertEqual(check.run(), "", "Check run result shouldn't return error message.")
-        service_checks = aggregator.service_checks(SplunkEvent.SERVICE_CHECK_NAME)
-        self.assertEqual(AgentCheck.OK, service_checks[0].status, "Processing empty response.")
-        self.assertEqual([], aggregator.events)
+    assert mocked_splunk_event.run() == "", "Check run result shouldn't return error message."
+    aggregator.assert_service_check(MockedSplunkEvent.SERVICE_CHECK_NAME,
+                                    status=MockedSplunkEvent.OK,
+                                    count=2)
 
 
-class TestSplunkMinimalEvents(TestSplunk):
+def test_splunk_minimal_events(mocked_splunk_event, instance, saved_searches_minimal_events, aggregator):
     """Splunk event check should process minimal response correctly."""
+    assert mocked_splunk_event.run() == "", "Check run result shouldn't return error message."
+    aggregator.assert_service_check(MockedSplunkEvent.SERVICE_CHECK_NAME,
+                                    status=MockedSplunkEvent.CRITICAL,
+                                    count=1)
+    assert len(aggregator.events) == 2, "There should be two events processed."
 
-    instance = {
-        'url': 'http://localhost:13001',
-        'authentication': {
-            'basic_auth': {
-                'username': "admin",
-                'password': "admin"
-            }
-        },
-        'saved_searches': [{
-            "name": "minimal_events",
-            "parameters": {}
-        }],
-        'tags': []
+
+def test_splunk_full_events(mocked_splunk_event, instance, saved_searches_full_events, aggregator):
+    """Splunk event check should process full response correctly."""
+    assert mocked_splunk_event.run() == "", "Check run result shouldn't return error message."
+    aggregator.assert_service_check(MockedSplunkEvent.SERVICE_CHECK_NAME,
+                                    status=MockedSplunkEvent.OK,
+                                    count=2)
+
+    assert len(aggregator.events) == 2, "There should be two events processed."
+
+    first_event_data = {
+        'event_type': "some_type",
+        'timestamp': 1488997796.0,
+        'msg_title': "some_title",
+        'source_type_name': 'some_type', }
+    first_event_tags = [
+        "VMName:SWNC7R049",
+        "alarm_name:Virtual machine CPU usage",
+        'from:grey',
+        "full_formatted_message:Alarm 'Virtual machine CPU usage' on SWNC7R049 changed from Gray to Green",
+        "host:172.17.0.1",
+        "key:19964908",
+        "to:green",
+        "checktag:checktagvalue"]
+    aggregator.assert_event(msg_text="some_text", count=1, tags=first_event_tags, **first_event_data)
+
+    second_event_data = {
+        'event_type': "some_type",
+        'timestamp': 1488997797.0,
+        'msg_title': "some_title",
+        'source_type_name': 'some_type',
     }
-
-    def test_checks(self):
-        check = MockedSplunkEvent(self.CHECK_NAME, {}, {}, [self.instance])
-        self.assertEqual(check.run(), "", "Check run result shouldn't return error message.")
-        self.assertEqual(2, len(aggregator.events), "There should be two events processed.")
-        self.assertEqual(aggregator.events[0], {
-            'event_type': None,
-            'tags': [],
-            'timestamp': 1488974400.0,
-            'msg_title': None,
-            'msg_text': None,
-            'source_type_name': None
-        })
-        self.assertEqual(aggregator.events[1], {
-            'event_type': None,
-            'tags': [],
-            'timestamp': 1488974400.0,
-            'msg_title': None,
-            'msg_text': None,
-            'source_type_name': None
-        })
+    second_event_tags = [
+        "VMName:SWNC7R049",
+        "alarm_name:Virtual machine memory usage",
+        'from:grey',
+        "full_formatted_message:Alarm 'Virtual machine memory usage' on SWNC7R049 changed from Gray to Green",
+        "host:172.17.0.1",
+        "key:19964909",
+        "to:green",
+        "checktag:checktagvalue",
+    ]
+    aggregator.assert_event(msg_text="some_text", count=1, tags=second_event_tags, **second_event_data)
