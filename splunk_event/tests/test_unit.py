@@ -9,7 +9,7 @@ import pytest
 
 from stackstate_checks.base import AgentCheck
 from stackstate_checks.base.errors import CheckException
-from stackstate_checks.base.stubs import aggregator
+from stackstate_checks.base.stubs import aggregator, state, transaction
 from stackstate_checks.splunk.client import TokenExpiredException
 from stackstate_checks.splunk.telemetry.splunk_telemetry import SplunkTelemetryInstance
 from stackstate_checks.splunk_event.splunk_event import SplunkEvent
@@ -85,13 +85,10 @@ class TestSplunk(unittest.TestCase):
         'tags': []
     }
 
-    def Setup(self):
-        """
-        Initialize and patch the check, i.e.
-        """
-        self.check = MockedSplunkEvent(self.CHECK_NAME, {}, {}, [self.instance])
+    def tearDown(self) -> None:
         aggregator.reset()
-        self.check.set_state({})
+        state.reset()
+        transaction.reset()
 
 
 class TestSplunkErrorResponse(TestSplunk):
