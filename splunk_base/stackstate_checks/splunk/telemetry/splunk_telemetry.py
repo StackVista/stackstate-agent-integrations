@@ -28,7 +28,6 @@ class SplunkTelemetrySavedSearch(SplunkSavedSearch):
         self.last_observed_telemetry = set()
 
     def get_status(self):
-        print("get_status A")
         """
         :return: Return a tuple of the last time until which the query was ran, and whether this was based on history
         """
@@ -74,7 +73,6 @@ class SplunkTelemetryInstance(object):
         return current_time_seconds >= self.launch_time_seconds + self.initial_delay_seconds
 
     def get_status(self):
-        print("get_status B")
         """
         :return: Aggregate the status for saved searches and report whether there were historical queries among it.
         """

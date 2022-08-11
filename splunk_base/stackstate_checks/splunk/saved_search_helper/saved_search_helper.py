@@ -6,6 +6,7 @@ from six import PY3
 from stackstate_checks.base.errors import CheckException
 from stackstate_checks.base import AgentCheck
 from stackstate_checks.splunk.client import FinalizeException
+from stackstate_checks.splunk.config.splunk_instance_config import get_utc_time
 
 
 class SavedSearches(object):
@@ -38,7 +39,6 @@ class SavedSearches(object):
     def _update_searches(self, log, saved_searches):  # same as v1 SavedSearches.update_searches
         """
         Take an existing list of saved searches and update the current state with that list
-
         :param saved_searches: List of strings with names of observed saved searches
         """
         # Drop missing matches
@@ -101,7 +101,7 @@ class SavedSearches(object):
             responses = self.splunk_client.saved_search_results(search_id, saved_search)
 
             for response in responses:
-                for message in response['messages']:
+                for message in response.get('messages', []):
                     if message['type'] != "FATAL" and message['type'] != "INFO":
                         log.info(
                             "Received unhandled message for saved search %s, got: %s" % (saved_search.name, message))
@@ -129,7 +129,7 @@ class SavedSearches(object):
                 log.error("Received Check exception while processing saved search " + saved_search.name)
                 raise e
             log.warning(
-                "Check exception occured %s while processing saved search name %s" % (str(e), saved_search.name))
+                "Check exception occurred %s while processing saved search name %s" % (str(e), saved_search.name))
             service_check(AgentCheck.WARNING, tags=self.instance_config.tags, message=str(e))
             return False
         except Exception as e:
@@ -145,7 +145,6 @@ class SavedSearches(object):
     def _dispatch_saved_search(self, log, persisted_state, saved_search):
         """
         Initiate a saved search, returning the search id
-        :param instance: Instance of the splunk instance
         :param saved_search: SavedSearch to dispatch
         :return: search id
         """
@@ -163,11 +162,58 @@ class SavedSearches(object):
         return sid
 
 
-def chunks(list, n):
-    """Yield successive n-sized chunks from l."""
+class SavedSearchesTelemetry(SavedSearches):
+    TIME_FMT = "%Y-%m-%dT%H:%M:%S.%f%z"
+
+    def _dispatch_saved_search(self, log, persisted_state, saved_search):
+        parameters = saved_search.parameters
+        # json output_mode is mandatory for response parsing
+        parameters["output_mode"] = "json"
+
+        earliest_epoch_datetime = get_utc_time(saved_search.last_observed_timestamp)
+
+        splunk_app = saved_search.app
+        parameters["dispatch.time_format"] = self.TIME_FMT
+        parameters["dispatch.earliest_time"] = earliest_epoch_datetime.strftime(self.TIME_FMT)
+
+        if "dispatch.latest_time" in parameters:
+            del parameters["dispatch.latest_time"]
+
+        # Always observe the last time for data and use max query chunk seconds
+        latest_time_epoch = saved_search.last_observed_timestamp + saved_search.config['max_query_chunk_seconds']
+        current_time = self._current_time_seconds()
+
+        if latest_time_epoch >= current_time:
+            log.info("Caught up with old splunk data for saved search %s since %s" % (
+                saved_search.name, parameters["dispatch.earliest_time"]))
+            saved_search.last_recover_latest_time_epoch_seconds = None
+        else:
+            saved_search.last_recover_latest_time_epoch_seconds = latest_time_epoch
+            latest_epoch_datetime = get_utc_time(latest_time_epoch)
+            parameters["dispatch.latest_time"] = latest_epoch_datetime.strftime(self.TIME_FMT)
+            log.info("Catching up with old splunk data for saved search %s from %s to %s " % (
+                saved_search.name, parameters["dispatch.earliest_time"], parameters["dispatch.latest_time"]))
+
+        log.debug(
+            "Dispatching saved search: %s starting at %s." % (saved_search.name, parameters["dispatch.earliest_time"]))
+
+        sid = self.splunk_client.dispatch(saved_search, splunk_app,
+                                          self.instance_config.ignore_saved_search_errors,
+                                          parameters)
+        persisted_state.set_sid(saved_search.name, sid)
+        return sid
+
+    @staticmethod
+    def _current_time_seconds():
+        """ This method is mocked for testing. Do not change its behavior """
+        return int(round(time.time()))
+
+
+def chunks(original_list, n):
+    """Yield successive n-sized chunks from list."""
     if PY3:
-        for i in range(0, len(list), n):
-            yield list[i:i + n]
+        for i in range(0, len(original_list), n):
+            yield original_list[i:i + n]
     else:
-        for i in xrange(0, len(list), n):  # noqa: F821
-            yield list[i:i + n]
+        for i in xrange(0, len(original_list), n):  # noqa: F821
+            yield original_list[i:i + n]

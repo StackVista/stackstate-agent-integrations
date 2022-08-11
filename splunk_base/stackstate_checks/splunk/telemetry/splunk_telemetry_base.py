@@ -55,15 +55,13 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
                 return fail_count
 
             def _update_status():
+                self.log.debug("Called SplunkTelemetryBase._update_status")
                 instance.update_status(current_time=current_time, data=transactional_state)
 
             instance.saved_searches.run_saved_searches(_process_data, _service_check, self.log, splunk_persistent_state,
                                                        _update_status)
-            transactional_state, _ = instance.get_status()
 
-            print("Setting Transactional State ======>")
-            print(transactional_state)
-            print("<===== Setting Transactional State")
+            transactional_state, _ = instance.get_status()  # TODO verify!
 
             # If no service checks were produced, everything is ok
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK)
@@ -86,11 +84,11 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
                                      ))
 
         return CheckResponse(transactional_state=transactional_state,
-                             persistent_state=persistent_state,
+                             persistent_state=splunk_persistent_state.state,
                              check_error=None)
 
     def _extract_telemetry(self, saved_search, instance, result, sent_already):
-        for data in result["results"]:
+        for data in result.get("results", []):
             # We need a unique identifier for splunk events, according to
             # https://answers.splunk.com/answers/334613/is-there-a-unique-event-id-for-each-event-in-the-i.html
             # this can be (server, index, _cd)
@@ -115,7 +113,7 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
                 telemetry = saved_search.retrieve_fields(data)
                 event_tags = [
                     "%s:%s" % (key, value)
-                    for key, value in self._filter_fields(data).iteritems()  # TODO what to do with `iteritems`?
+                    for key, value in self._filter_fields(data).items()
                 ]
                 event_tags.extend(instance.tags)
                 telemetry.update({"tags": event_tags, "timestamp": timestamp})
@@ -128,7 +126,7 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
         # We remove default basic fields, default date fields and internal fields that start with "_"
         return {
             key: value
-            for key, value in data.iteritems()  # TODO what to do with `iteritems`?
+            for key, value in data.items()
             if self._include_as_tag(key)
         }
 

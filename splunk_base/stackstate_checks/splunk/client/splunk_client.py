@@ -1,6 +1,8 @@
-import time
-import requests
 import logging
+import time
+
+import requests
+import urllib3
 from six import PY3
 
 if PY3:
@@ -11,19 +13,20 @@ else:
 import jwt
 import datetime
 
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
+from urllib3.exceptions import InsecureRequestWarning
 from requests.exceptions import HTTPError, ConnectionError, Timeout
 from stackstate_checks.base.errors import CheckException
 from stackstate_checks.splunk.config import AuthType
 from stackstate_checks.base.checks import StatefulMixin
 
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+urllib3.disable_warnings(InsecureRequestWarning)
 
 
 class FinalizeException(Exception):
     """
        A custom exception for the finalize_sid method
     """
+
     def __init__(self, code, message):
         self.code = code
         self.message = message
@@ -175,7 +178,7 @@ class SplunkClient(StatefulMixin):
         :param count: the maximum number of elements expecting to be returned by the API call
         :return: raw json response from splunk
         """
-        search_path = '/servicesNS/-/-/search/jobs/%s/results?output_mode=json&offset=%s&count=%s' %\
+        search_path = '/servicesNS/-/-/search/jobs/%s/results?output_mode=json&offset=%s&count=%s' % \
                       (search_id, offset, count)
         response = self._do_get(search_path,
                                 saved_search.request_timeout_seconds,
@@ -234,7 +237,7 @@ class SplunkClient(StatefulMixin):
         :return: the sid of the saved search
         """
         splunk_user = self._get_dispatch_user()
-        dispatch_path = '/servicesNS/%s/%s/saved/searches/%s/dispatch' %\
+        dispatch_path = '/servicesNS/%s/%s/saved/searches/%s/dispatch' % \
                         (splunk_user, splunk_app, quote(saved_search.name))
         response_body = self._do_post(dispatch_path,
                                       parameters,
