@@ -69,3 +69,11 @@ def saved_searches_full_events(instance):
         "parameters": {}
     }]
     instance['tags'] = ["checktag:checktagvalue"]
+
+
+@pytest.fixture
+def saved_searches_partially_incomplete_events(instance):
+    instance['saved_searches'] = [{
+        "name": "partially_incomplete_events",
+        "parameters": {}
+    }]

@@ -41,6 +41,17 @@ def test_splunk_minimal_events(mocked_splunk_event, instance, saved_searches_min
     assert len(aggregator.events) == 0, "There should be no events processed."
 
 
+def test_splunk_partially_incomplete_events(mocked_splunk_event, instance, saved_searches_partially_incomplete_events,
+                                            aggregator):
+    """Splunk event check should continue processing even when some events are not complete."""
+    run_result = mocked_splunk_event.run()
+    assert "This field is required" in run_result, "Check run result should return error message."
+    aggregator.assert_service_check(MockedSplunkEvent.SERVICE_CHECK_NAME,
+                                    status=MockedSplunkEvent.CRITICAL,
+                                    count=1)
+    assert len(aggregator.events) == 0, "There should be no events processed."
+
+
 def test_splunk_full_events(mocked_splunk_event, instance, saved_searches_full_events, aggregator):
     """Splunk event check should process full response correctly."""
     assert mocked_splunk_event.run() == "", "Check run result shouldn't return error message."
