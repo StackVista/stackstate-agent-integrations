@@ -1,6 +1,6 @@
 from stackstate_checks.splunk.client import SplunkClient
 from stackstate_checks.splunk.config import SplunkSavedSearch
-from stackstate_checks.splunk.saved_search_helper import SavedSearches
+from stackstate_checks.splunk.saved_search_helper import SavedSearchesTelemetry
 
 
 class SplunkTelemetrySavedSearch(SplunkSavedSearch):
@@ -52,12 +52,11 @@ class SplunkTelemetryInstance(object):
         if not isinstance(instance['saved_searches'], list):
             instance['saved_searches'] = []
 
-        self.saved_searches = SavedSearches(instance_config,
-                                            self.splunk_client,
-                                            [
-                                                create_saved_search(instance_config, saved_search_instance)
-                                                for saved_search_instance in instance['saved_searches']
-                                            ])
+        self.saved_searches = SavedSearchesTelemetry(instance_config,
+                                                     self.splunk_client,
+                                                     [create_saved_search(instance_config, saved_search_instance)
+                                                      for saved_search_instance in instance['saved_searches']]
+                                                     )
 
         self.saved_searches_parallel = int(instance.get('saved_searches_parallel', self.instance_config.get_or_default(
             'default_saved_searches_parallel')))

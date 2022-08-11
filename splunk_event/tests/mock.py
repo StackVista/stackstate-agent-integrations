@@ -14,7 +14,7 @@ def load_fixture(fixture_file):
         return json.loads(f.read())
 
 
-class MockSplunkClient(object):
+class MockedSplunkClient(object):
     def __init__(self):
         self._dispatch_parameters = None
         self.invalid_token = False
@@ -51,7 +51,7 @@ class MockedInstance(SplunkTelemetryInstance):
         super(MockedInstance, self).__init__(*args, **kwargs)
 
     def _build_splunk_client(self):
-        return MockSplunkClient()
+        return MockedSplunkClient()
 
 
 class MockedSplunkEvent(SplunkEvent):

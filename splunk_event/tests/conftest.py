@@ -3,7 +3,8 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import pytest
 
-from .mock import MockedSplunkEvent
+from stackstate_checks.base.errors import CheckException
+from .mock import MockedSplunkEvent, MockedSplunkClient
 
 
 @pytest.fixture(scope='session')
@@ -30,7 +31,7 @@ def instance():
 
 
 @pytest.fixture
-def mocked_splunk_event(instance, aggregator, state, transaction):
+def mocked_check(instance, aggregator, state, transaction):
     check = MockedSplunkEvent("splunk_event", {}, {}, [instance])
     yield check
     aggregator.reset()
@@ -39,7 +40,7 @@ def mocked_splunk_event(instance, aggregator, state, transaction):
 
 
 @pytest.fixture
-def saved_searches_error(instance):
+def fatal_error(instance):
     instance['saved_searches'] = [{
         "name": "error",
         "parameters": {}
@@ -47,7 +48,7 @@ def saved_searches_error(instance):
 
 
 @pytest.fixture
-def saved_searches_empty(instance):
+def empty_result(instance):
     instance['saved_searches'] = [{
         "name": "empty",
         "parameters": {}
@@ -55,7 +56,7 @@ def saved_searches_empty(instance):
 
 
 @pytest.fixture
-def saved_searches_minimal_events(instance):
+def minimal_events(instance):
     instance['saved_searches'] = [{
         "name": "minimal_events",
         "parameters": {}
@@ -63,7 +64,7 @@ def saved_searches_minimal_events(instance):
 
 
 @pytest.fixture
-def saved_searches_full_events(instance):
+def full_events(instance):
     instance['saved_searches'] = [{
         "name": "full_events",
         "parameters": {}
@@ -72,8 +73,47 @@ def saved_searches_full_events(instance):
 
 
 @pytest.fixture
-def saved_searches_partially_incomplete_events(instance):
+def partially_incomplete_events(instance):
     instance['saved_searches'] = [{
         "name": "partially_incomplete_events",
         "parameters": {}
     }]
+
+
+@pytest.fixture(scope="function")
+def earliest_time_and_duplicates(instance, monkeypatch):
+    instance['saved_searches'] = [{
+        "name": "poll",
+        "parameters": {},
+        "batch_size": 2
+    }]
+    instance['tags'] = ["checktag:checktagvalue"]
+
+    test_data = {
+        "expected_searches": ["poll"],
+        "sid": "",
+        "time": 0,
+        "earliest_time": "",
+        "throw": False
+    }
+
+    def _mocked_current_time_seconds():
+        return test_data["time"]
+
+    def _mocked_dispatch(saved_search, splunk_app, ignore_saved_search_errors, parameters):
+        if test_data["throw"]:
+            raise CheckException("Is broke it")
+        earliest_time = parameters['dispatch.earliest_time']
+        if test_data["earliest_time"] != "":
+            assert earliest_time == test_data["earliest_time"]
+
+        ignore_saved_search_flag = ignore_saved_search_errors
+        # make sure to ignore search flag is always false
+        assert ignore_saved_search_flag is False
+
+        return test_data["sid"]
+
+    monkeypatch.setattr(MockedSplunkClient, "dispatch", _mocked_dispatch)
+    monkeypatch.setattr(MockedSplunkEvent, "_current_time_seconds", _mocked_current_time_seconds)
+
+
