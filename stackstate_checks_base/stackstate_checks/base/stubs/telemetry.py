@@ -91,6 +91,7 @@ class TelemetryStub(object):
         Set the stub to its initial state
         """
         self._topology_events = []
+        self._raw_metrics = defaultdict(list)
 
 
 # Use the stub as a singleton

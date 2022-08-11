@@ -115,5 +115,3 @@ def earliest_time_and_duplicates(instance, monkeypatch):
 
     monkeypatch.setattr(MockedSplunkClient, "dispatch", _mocked_dispatch)
     monkeypatch.setattr(MockedSplunkEvent, "_current_time_seconds", _mocked_current_time_seconds)
-
-
