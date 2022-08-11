@@ -15,6 +15,7 @@ from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from requests.exceptions import HTTPError, ConnectionError, Timeout
 from stackstate_checks.base.errors import CheckException
 from stackstate_checks.splunk.config import AuthType
+from stackstate_checks.base.checks import StatefulMixin
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
@@ -38,12 +39,13 @@ class TokenExpiredException(Exception):
         self.code = code
 
 
-class SplunkClient(object):
+class SplunkClient(StatefulMixin):
 
-    def __init__(self, instance_config):
+    def __init__(self, instance_config, *args, **kwargs):
         self.instance_config = instance_config
         self.log = logging.getLogger('%s' % __name__)
         self.requests_session = requests.session()
+        super().__init__(*args, **kwargs)
 
     def auth_session(self, committable_state):
         if self.instance_config.auth_type == AuthType.BasicAuth:

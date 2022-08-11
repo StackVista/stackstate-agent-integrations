@@ -106,7 +106,7 @@ class SavedSearches(object):
                         log.info(
                             "Received unhandled message for saved search %s, got: %s" % (saved_search.name, message))
 
-                count += len(response["results"])
+                count += len(response.get("results", []))
                 fail_count += process_data(saved_search, response, sent_events)
 
             log.debug(

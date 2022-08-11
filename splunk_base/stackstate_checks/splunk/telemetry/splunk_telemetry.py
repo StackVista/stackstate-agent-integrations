@@ -1,6 +1,5 @@
 from stackstate_checks.splunk.client import SplunkClient
 from stackstate_checks.splunk.config import SplunkSavedSearch
-from stackstate_checks.splunk.saved_search_helper import SavedSearches
 
 
 class SplunkTelemetrySavedSearch(SplunkSavedSearch):
@@ -29,6 +28,7 @@ class SplunkTelemetrySavedSearch(SplunkSavedSearch):
         self.last_observed_telemetry = set()
 
     def get_status(self):
+        print("get_status A")
         """
         :return: Return a tuple of the last time until which the query was ran, and whether this was based on history
         """
@@ -44,7 +44,7 @@ class SplunkTelemetrySavedSearch(SplunkSavedSearch):
 class SplunkTelemetryInstance(object):
     INSTANCE_TYPE = "splunk"
 
-    def __init__(self, current_time, instance, instance_config, create_saved_search):
+    def __init__(self, current_time, instance, instance_config, create_saved_search, saved_search_helper):
         self.instance_config = instance_config
         self.splunk_client = self._build_splunk_client()
 
@@ -52,9 +52,7 @@ class SplunkTelemetryInstance(object):
         if not isinstance(instance['saved_searches'], list):
             instance['saved_searches'] = []
 
-        self.saved_searches = SavedSearches(instance_config,
-                                            self.splunk_client,
-                                            [
+        self.saved_searches = saved_search_helper(instance_config, self.splunk_client, [
                                                 create_saved_search(instance_config, saved_search_instance)
                                                 for saved_search_instance in instance['saved_searches']
                                             ])
@@ -76,6 +74,7 @@ class SplunkTelemetryInstance(object):
         return current_time_seconds >= self.launch_time_seconds + self.initial_delay_seconds
 
     def get_status(self):
+        print("get_status B")
         """
         :return: Aggregate the status for saved searches and report whether there were historical queries among it.
         """
@@ -91,8 +90,8 @@ class SplunkTelemetryInstance(object):
 
     def get_search_data(self, data, search):
         instance_key = self.instance_config.base_url
-        if instance_key in data.data and search in data.data[instance_key]:
-            return data.data[instance_key][search]
+        if instance_key in data and search in data[instance_key]:
+            return data[instance_key][search]
         else:
             return None
 

@@ -8,6 +8,7 @@ from stackstate_checks.splunk.config.splunk_instance_config import SplunkTelemet
 # from stackstate_checks.splunk.saved_search_helper import SavedSearches
 from stackstate_checks.splunk.telemetry.splunk_telemetry import SplunkTelemetrySavedSearch, SplunkTelemetryInstance
 from stackstate_checks.splunk.telemetry.splunk_telemetry_base import SplunkTelemetryBase
+from stackstate_checks.splunk.saved_search_helper import SavedSearches
 
 
 class MetricSavedSearch(SplunkTelemetrySavedSearch):
@@ -70,16 +71,13 @@ class SplunkMetric(SplunkTelemetryBase):
                 "dispatch.now": True
             }
         })
-        # saved_searches = []
-        # if instance['saved_searches'] is not None:
-        #     saved_searches = instance['saved_searches']
 
         # method to be overwritten by SplunkMetric and SplunkEvent
         def _create_saved_search(instance_config, saved_search_instance):
             return MetricSavedSearch(instance_config, saved_search_instance)
 
-        return self.create_instance(_create_saved_search, current_time, instance, metric_instance_config)
+        return self._build_instance(current_time, instance, metric_instance_config, _create_saved_search)
 
-    def create_instance(self, current_time, instance, metric_instance_config, _create_saved_search):
+    def _build_instance(self, current_time, instance, metric_instance_config, _create_saved_search):
         return SplunkTelemetryInstance(current_time, instance, metric_instance_config,
-                                       _create_saved_search)
+                                       _create_saved_search, SavedSearches)

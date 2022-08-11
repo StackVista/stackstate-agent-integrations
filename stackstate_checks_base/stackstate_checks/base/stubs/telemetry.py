@@ -43,8 +43,11 @@ class TelemetryStub(object):
     def submit_raw_metrics_data(self, check, check_id, name, value, tags, hostname, timestamp):
         self._raw_metrics[name].append(RawMetricStub(name, value, tags, hostname, timestamp))
 
+    def assert_total_metrics(self, value):
+        assert len(self._raw_metrics) == value
+
     def assert_metric(self, name, value=None, tags=None, count=None, at_least=1,
-                      hostname=None, metric_type=None):
+                      hostname=None, metric_type=None, timestamp=None):
 
         tags = normalize_tags(tags, sort=True)
         candidates = []
@@ -56,6 +59,8 @@ class TelemetryStub(object):
             if hostname and hostname != metric.hostname:
                 continue
             if metric_type is not None and metric.name != name:
+                continue
+            if timestamp and timestamp != metric.timestamp:
                 continue
             candidates.append(metric)
 
@@ -91,6 +96,7 @@ class TelemetryStub(object):
         Set the stub to its initial state
         """
         self._topology_events = []
+        self._raw_metrics = defaultdict(list)
 
 
 # Use the stub as a singleton

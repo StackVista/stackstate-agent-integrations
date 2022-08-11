@@ -30,32 +30,40 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
         raise NotImplementedError
 
     def transactional_check(self, instance, transactional_state, persistent_state):
-
         current_time = self._current_time_seconds()
         url = instance["url"]
         if url not in self.instance_data:
             self.instance_data = self.get_instance(instance, current_time)
 
-        pstate = SplunkPersistentState(persistent_state)
+        splunk_persistent_state = SplunkPersistentState(persistent_state)
 
         instance = self.instance_data
 
         try:
-            instance.splunk_client.auth_session(pstate)
+            instance.splunk_client.auth_session(splunk_persistent_state)
 
             def _service_check(status, tags=None, hostname=None, message=None):
                 self.service_check(self.SERVICE_CHECK_NAME, status, tags, hostname, message)
 
             def _process_data(saved_search, response, sent_already):
-                return self._extract_telemetry(saved_search, instance, response, sent_already)
+                fail_count = 0
+                for data_point in self._extract_telemetry(saved_search, instance, response, sent_already):
+                    if data_point is None:
+                        fail_count += 1
+                    else:
+                        self._apply(**data_point)
+                return fail_count
 
             def _update_status():
-                self.log.debug("Called SplunkTelemetryBase._update_status")
                 instance.update_status(current_time=current_time, data=transactional_state)
 
-            instance.saved_searches.run_saved_searches(_process_data, _service_check, self.log, pstate, _update_status)
+            instance.saved_searches.run_saved_searches(_process_data, _service_check, self.log, splunk_persistent_state,
+                                                       _update_status)
+            transactional_state, _ = instance.get_status()
 
-            transactional_state = instance.get_status()  # TODO verify!
+            print("Setting Transactional State ======>")
+            print(transactional_state)
+            print("<===== Setting Transactional State")
 
             # If no service checks were produced, everything is ok
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK)
@@ -70,7 +78,7 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
             self.log.exception("Splunk metric exception: %s" % str(e))
             if not instance.instance_config.ignore_saved_search_errors:
                 return CheckResponse(transactional_state=transactional_state,
-                                     persistent_state=pstate.state,
+                                     persistent_state=splunk_persistent_state.state,
                                      check_error=CheckException(
                                          "Splunk metric failed with message: %s" % e,
                                          None,
@@ -78,7 +86,7 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
                                      ))
 
         return CheckResponse(transactional_state=transactional_state,
-                             persistent_state=pstate.state,
+                             persistent_state=persistent_state,
                              check_error=None)
 
     def _extract_telemetry(self, saved_search, instance, result, sent_already):
@@ -130,3 +138,7 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
 
     def _include_as_tag(self, key):
         return not key.startswith('_') and key not in self.basic_default_fields.union(self.date_default_fields)
+
+    def _apply(self, **kwargs):
+        """ How the telemetry info should be sent by the check, e.g., as event, guage, etc. """
+        raise NotImplementedError
