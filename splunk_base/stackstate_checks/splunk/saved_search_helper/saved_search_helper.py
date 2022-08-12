@@ -1,10 +1,11 @@
-import re
 import copy
+import re
 import time
 
 from six import PY3
-from stackstate_checks.base.errors import CheckException
+
 from stackstate_checks.base import AgentCheck
+from stackstate_checks.base.errors import CheckException
 from stackstate_checks.splunk.client import FinalizeException
 from stackstate_checks.splunk.config.splunk_instance_config import get_utc_time
 
@@ -164,6 +165,59 @@ class SavedSearches(object):
 
 class SavedSearchesTelemetry(SavedSearches):
     TIME_FMT = "%Y-%m-%dT%H:%M:%S.%f%z"
+
+    def run_saved_searches(self, process_data, service_check, log, persisted_state, update_status=None):
+        new_saved_searches = self.splunk_client.saved_searches()
+        self._update_searches(log, new_saved_searches)
+
+        if callable(update_status):
+            update_status()  # update transactional state
+
+        executed_searches = False
+        for saved_searches_chunk in chunks(self.searches, self.instance_config.saved_searches_parallel):
+            executed_searches |= self._dispatch_and_await_search(process_data, service_check, log, persisted_state,
+                                                                 saved_searches_chunk)
+
+        if len(self.searches) != 0 and not executed_searches:
+            raise CheckException("No saved search was successfully executed.")
+
+        service_check(AgentCheck.OK)
+
+    def _dispatch_and_await_search(self, process_data, service_check, log, persisted_state, saved_searches):
+        start_time = self._current_time_seconds()
+        search_ids = []
+
+        for saved_search in saved_searches:
+            try:
+                sid = persisted_state.get_sid(saved_search.name)
+                if sid is not None:
+                    self.splunk_client.finalize_sid(sid, saved_search)
+                    persisted_state.remove_sid(saved_search.name)
+                sid = self._dispatch_saved_search(log, persisted_state, saved_search)
+                persisted_state.set_sid(saved_search.name, sid)
+                search_ids.append((sid, saved_search))
+            except FinalizeException as e:
+                log.exception(
+                    "Got an error %s while finalizing the saved search %s" % (e.message, saved_search.name))
+                if not self.instance_config.ignore_saved_search_errors:
+                    raise e
+                log.warning("Ignoring the finalize exception as ignore_saved_search_errors flag is true")
+            except Exception as e:
+                log.warning("Failed to dispatch saved search '%s' due to: %s" % (saved_search.name, e))
+
+        executed_searches = False
+        for (sid, saved_search) in search_ids:
+            try:
+                log.debug("Processing saved search: %s." % saved_search.name)
+                count = self._process_saved_search(process_data, service_check, log, sid, saved_search, start_time)
+                duration = self._current_time_seconds() - start_time
+                log.debug("Save search done: %s in time %d with results %d" % (saved_search.name, duration, count))
+                executed_searches = True
+            except Exception as e:
+                log.warning("Failed to execute dispatched search '%s' with id %s due to: %s" %
+                            (saved_search.name, sid, e))
+
+        return executed_searches
 
     def _dispatch_saved_search(self, log, persisted_state, saved_search):
         parameters = saved_search.parameters

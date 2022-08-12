@@ -67,8 +67,8 @@ class TransactionStub(object):
         transactions_steps_state = self._ensure_transaction_steps(check_id)
 
         return transactions_steps_state["started"] is False and \
-            transactions_steps_state["stopped"] is True and \
-            transactions_steps_state["discarded"] is False
+               transactions_steps_state["stopped"] is True and \
+               transactions_steps_state["discarded"] is False
 
     def assert_transaction_success(self, check_id):
         assert self._transaction_completed_successfully(check_id) is True
