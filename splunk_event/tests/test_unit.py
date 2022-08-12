@@ -15,8 +15,8 @@ CHECK_NAME = "splunk_event"
 def test_splunk_error_response(mocked_check, instance, fatal_error, aggregator):
     """Splunk event check should handle a FATAL message response."""
     run_result = mocked_check.run()
-    first_error = "Splunk metric failed with message: Received FATAL exception from Splunk"
-    assert first_error in run_result, "Check run result should return error message."
+    assert "Splunk metric failed with message: No saved search was successfully" \
+           in run_result, "Check run result should return error message."
     aggregator.assert_service_check(MockedSplunkEvent.SERVICE_CHECK_NAME,
                                     status=MockedSplunkEvent.CRITICAL,
                                     count=1)
@@ -35,7 +35,8 @@ def test_splunk_minimal_events(mocked_check, instance, minimal_events, aggregato
     """Splunk event check should process minimal response correctly."""
     # TODO: does this test make sense?
     run_result = mocked_check.run()
-    assert "This field is required" in run_result, "Check run result should return error message."
+    assert "Splunk metric failed with message: No saved search was successfully" \
+           in run_result, "Check run result should return error message."
     aggregator.assert_service_check(MockedSplunkEvent.SERVICE_CHECK_NAME,
                                     status=MockedSplunkEvent.CRITICAL,
                                     count=1)
@@ -47,7 +48,8 @@ def test_splunk_partially_incomplete_events(mocked_check, instance, partially_in
     """Splunk event check should continue processing even when some events are not complete."""
     # TODO: does this test make sense?
     run_result = mocked_check.run()
-    assert "This field is required" in run_result, "Check run result should return error message."
+    assert "Splunk metric failed with message: No saved search was successfully executed" \
+           in run_result, "Check run result should return error message."
     aggregator.assert_service_check(MockedSplunkEvent.SERVICE_CHECK_NAME,
                                     status=MockedSplunkEvent.CRITICAL,
                                     count=1)
@@ -96,9 +98,7 @@ def test_splunk_full_events(mocked_check, instance, full_events, aggregator, sta
         "checktag:checktagvalue",
     ]
     aggregator.assert_event(msg_text="some_text", count=1, tags=second_event_tags, **second_event_data)
-    print(state._state)
-    print(transaction._transactions)
 
 
 def test_splunk_earliest_time_and_duplicates():
-    pass
+    assert 1 == 2
