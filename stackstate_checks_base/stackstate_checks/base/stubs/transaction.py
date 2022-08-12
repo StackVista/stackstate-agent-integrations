@@ -21,22 +21,20 @@ class TransactionStub(object):
         self._transactions = {}
         # Steps that the transactional state followed for example start, stopped etc
         self._transaction_steps = {}
-        # Allows to reset to the same state object
-        self._init_transaction_steps = {
-            "started": False,
-            "discarded": False,
-            "stopped": False,
-            "discard_reason": None
-        }
 
     def reset(self):
         self._transactions = {}
-        self._transaction_steps = self._init_transaction_steps
+        self._transaction_steps = {}
 
     # Make sure that the transaction steps exists for the check_id if not set the _init_transaction_steps default
     def _ensure_transaction_steps(self, check_id):
         if check_id not in self._transaction_steps:
-            self._transaction_steps[check_id] = self._init_transaction_steps
+            self._transaction_steps[check_id] = {
+                "started": False,
+                "discarded": False,
+                "stopped": False,
+                "discard_reason": None
+            }
         return self._transaction_steps[check_id]
 
     # Make sure that the transaction state exists for the check_id if not create an empty {} state
@@ -58,11 +56,7 @@ class TransactionStub(object):
     # Monitor when if a transaction was discarded
     def discard_transaction(self, check, check_id, discard_reason):
         self._ensure_transaction_steps(check_id)["discarded"] = True
-        self._ensure_transaction_steps(check_id)["discard_reason"] = discard_reason
-
-    # Return the current state transaction value
-    def get_transaction(self, check_id):
-        return self._ensure_transaction_state(check_id)
+        self._ensure_transaction_steps(check_id)["discard_reason"] = str(discard_reason)
 
     # Set a new value for the transactional state
     def set_transaction_state(self, check, check_id, key, new_state):
@@ -87,6 +81,9 @@ class TransactionStub(object):
 
     def assert_discarded_transaction(self, check_id, expected):
         assert self._ensure_transaction_steps(check_id)["discarded"] is expected
+
+    def assert_discarded_transaction_reason(self, check_id, expected):
+        assert self._ensure_transaction_steps(check_id)["discard_reason"] is expected
 
     def assert_completed_transaction(self, check_id):
         assert self._ensure_transaction_steps(check_id)["started"] is False and \

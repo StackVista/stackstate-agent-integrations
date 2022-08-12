@@ -170,6 +170,8 @@ class SplunkClient(StatefulMixin):
         return [entry["name"] for entry in response.json()["entry"]]
 
     def _search_chunk(self, saved_search, search_id, offset, count):
+        self.log.debug("Running function: _search_chunk")
+
         """
         Retrieves the results of an already running splunk search, identified by the given search id.
         :param saved_search: current SavedSearch being processed
@@ -202,6 +204,8 @@ class SplunkClient(StatefulMixin):
         return response.json()
 
     def saved_search_results(self, search_id, saved_search):
+        self.log.debug("Running function: saved_search_results")
+
         """
         Perform a saved search, returns a list of responses that were received
         """
@@ -229,6 +233,7 @@ class SplunkClient(StatefulMixin):
             return self.instance_config.name
 
     def dispatch(self, saved_search, splunk_app, ignore_saved_search_errors, parameters):
+        self.log.debug("Running function: dispatch")
         """
         :param saved_search: The saved search to dispatch
         :param splunk_user: Splunk user that dispatches the saved search
@@ -246,6 +251,7 @@ class SplunkClient(StatefulMixin):
         return response_body.get("sid")
 
     def finalize_sid(self, search_id, saved_search):
+        self.log.debug("Running function: finalize_sid")
         """
         :param search_id: The saved search id to finish
         :param saved_search: The saved search to finish

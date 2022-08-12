@@ -1525,6 +1525,21 @@ class TransactionalStateCheck(TransactionalAgentCheck):
         return CheckResponse(transactional_state=transactional_state, persistent_state=persistent_state)
 
 
+class TransactionalStateDiscardCheck(TransactionalAgentCheck):
+    def __init__(self, key=None, *args, **kwargs):
+        instances = [{'a': 'b'}]
+        super(TransactionalStateDiscardCheck, self). \
+            __init__("test", {}, instances)
+
+    def get_instance_key(self, instance):
+        return StackPackInstance("test", "transactional-state")
+
+    def transactional_check(self, instance, persistent_state, transactional_state):
+        return CheckResponse(transactional_state=transactional_state,
+                             persistent_state=persistent_state,
+                             check_error=Exception("Something Went Wrong"))
+
+
 class TransactionalStateSchema(Model):
     updated = BooleanType(default=False)
 
@@ -1605,3 +1620,18 @@ class TestAgentChecksV2:
 
         key = get_test_state_key(check)
         assert state.get_state(check, check.check_id, key) == json.dumps(expected_state)
+
+    def test_transactional_state_check_discard(self, transaction, state):
+        check = TransactionalStateDiscardCheck()
+        assert check.run() != ""
+
+        transaction.assert_discarded_transaction_reason(check.check_id, 'Something Went Wrong')
+
+        # Reset State to make sure it does not persist between runs
+        state.reset()
+        transaction.reset()
+
+        check_alt = TransactionalStateCheck()
+        assert check_alt.run() == ""
+
+        transaction.assert_discarded_transaction_reason(check_alt.check_id, None)

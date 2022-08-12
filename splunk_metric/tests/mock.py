@@ -9,24 +9,28 @@ from stackstate_checks.base.errors import CheckException
 from stackstate_checks.splunk_metric.splunk_metric import SplunkMetric
 from stackstate_checks.splunk.telemetry.splunk_telemetry import SplunkTelemetryInstance
 from stackstate_checks.splunk.client import SplunkClient
-from stackstate_checks.splunk.saved_search_helper import SavedSearches
+from stackstate_checks.splunk.saved_search_helper import SavedSearchesTelemetry
 from stackstate_checks.base.utils.common import read_file
 from stackstate_checks.splunk.config.splunk_instance_config_models import SplunkConfigInstance
 
 
 def mock_auth_session(committable_state):  # type: (str) -> str
+    print("Calling Mock Function: mock_auth_session")
     return "sessionKey1"
 
 
 def mock_finalize_sid(search_id, saved_search):  # type: (str, any) -> None
+    print("Calling Mock Function: mock_finalize_sid")
     return None
 
 
 def mock_saved_searches():  # type: () -> list
+    print("Calling Mock Function: mock_saved_searches")
     return []
 
 
 def mock_search(search_id, saved_search):  # type: (str, any) -> list[str]
+    print("Calling Mock Function: mock_search")
     if search_id == "exception":
         raise CheckException("maximum retries reached for saved search " + str(saved_search.name))
 
@@ -38,17 +42,18 @@ def mock_search(search_id, saved_search):  # type: (str, any) -> list[str]
 
 
 def mock_dispatch_saved_search(log, persisted_state, saved_search):
+    print("Calling Mock Function: mock_dispatch_saved_search")
     return log.name
 
 
-class MockedSavedSearches(SavedSearches):
+class MockedSavedSearchesTelemetry(SavedSearchesTelemetry):
     mocks = dict()
 
     def __init__(self, instance_config, splunk_client, saved_searches):
         if "_dispatch_saved_search" in self.mocks:
             self._dispatch_saved_search = self.mocks.get("_dispatch_saved_search")
 
-        super(MockedSavedSearches, self).__init__(instance_config, splunk_client, saved_searches)
+        super(MockedSavedSearchesTelemetry, self).__init__(instance_config, splunk_client, saved_searches)
 
 
 class MockSplunkClient(SplunkClient):
@@ -74,6 +79,7 @@ class MockSplunkTelemetryInstance(SplunkTelemetryInstance):
     mocks = dict()
 
     def _build_splunk_client(self):  # type: () -> MockSplunkClient
+        print("Calling Mock Function: mock_dispatch_saved_search")
         mock_splunk_client = MockSplunkClient
         mock_splunk_client.mocks = self.mocks
 
@@ -96,7 +102,7 @@ class MockSplunkMetric(SplunkMetric):
 
     def _build_instance(self, current_time, instance, metric_instance_config, _create_saved_search):
         # type: (int, SplunkConfigInstance, any, any) -> MockSplunkTelemetryInstance
-        mocked_saved_search = MockedSavedSearches
+        mocked_saved_search = MockedSavedSearchesTelemetry
         mocked_saved_search.mocks = self.mocks
 
         mocked_splink_telemetry_instance = MockSplunkTelemetryInstance

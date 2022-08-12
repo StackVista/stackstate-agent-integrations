@@ -5,37 +5,31 @@
 import pytest
 import logging
 
+from typing import Type, Tuple
 from .common import HOST, PORT, USER, PASSWORD
-from stackstate_checks.base.stubs import telemetry, aggregator, topology, transaction, state
 from .mock import MockSplunkMetric, mock_auth_session, mock_saved_searches, mock_search, \
     mock_finalize_sid, mock_dispatch_saved_search
 from stackstate_checks.splunk.config.splunk_instance_config_models import SplunkConfigInstance, \
     SplunkConfigSavedSearch, SplunkConfig
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def get_logger():  # type: () -> logging.Logger
     return logging.getLogger('{}.{}'.format(__name__, "metric-check-name"))
 
 
-@pytest.fixture
+@pytest.fixture(scope="class")
 def splunk_config():  # type: () -> SplunkConfig
     splunk_config = SplunkConfig({
         'init_config': {},
         'instances': []
     })
 
-    yield splunk_config
-
-    telemetry.reset()
-    aggregator.reset()
-    topology.reset()
-    transaction.reset()
-    state.reset()
+    return splunk_config
 
 
-@pytest.fixture
-def splunk_instance_config():  # type: () -> SplunkConfigInstance
+@pytest.fixture(scope="class")
+def splunk_instance():  # type: () -> SplunkConfigInstance
     splunk_config = SplunkConfigInstance({
         'url': 'http://%s:%s' % (HOST, PORT),
         'authentication': {
@@ -49,115 +43,94 @@ def splunk_instance_config():  # type: () -> SplunkConfigInstance
     return splunk_config
 
 
-def get_splunk_client(splunk_config, splunk_config_instance, mocks):
-    # type: (SplunkConfig, SplunkConfigInstance, dict) -> MockSplunkMetric
-    splunk_config.instances.append(splunk_config_instance)
-    splunk_config.validate()
-    splunk_client = MockSplunkMetric("metric-check-name", splunk_config.init_config, {}, splunk_config.instances, mocks)
+@pytest.fixture
+def mock_splunk_metric(telemetry, aggregator, topology, transaction, state):
+    # type: (any, any, any, any, any) -> Type[MockSplunkMetric]
 
-    return splunk_client
+    # Bring back the splunk mock metrics
+    yield MockSplunkMetric
+
+    # Clean the singleton states that could have been used
+    telemetry.reset()
+    aggregator.reset()
+    topology.reset()
+    transaction.reset()
+    state.reset()
 
 
 @pytest.fixture
-def splunk_metric(splunk_config, splunk_instance_config):
-    # type: (SplunkConfig, SplunkConfigInstance) -> MockSplunkMetric
+def splunk_error_response_check(splunk_config, splunk_instance, mock_splunk_metric):
+    # type: (SplunkConfig, SplunkConfigInstance, Type[MockSplunkMetric]) -> MockSplunkMetric
 
-    splunk_instance_config.tags = ['mytag', 'mytag2']
-    splunk_instance_config.saved_searches = [
-        SplunkConfigSavedSearch({
-            "name": "minimal_metrics",
-            "parameters": {}
-        })
-    ]
+    splunk_instance.tags = []  # Splunk Config Tags
 
-    return get_splunk_client(splunk_config, splunk_instance_config, {
-        'auth_session': mock_auth_session,
-        'saved_searches': mock_saved_searches,
-        'saved_search_results': mock_search,
-        '_dispatch_saved_search': mock_dispatch_saved_search,
-    })
-
-
-@pytest.fixture
-def splunk_config_max_query_chunk_sec_live(splunk_config, splunk_instance_config):
-    # type: (SplunkConfig, SplunkConfigInstance) -> str
-
-    splunk_instance_config.tags = ['checktag:checktagvalue']
-    splunk_instance_config.saved_searches = [
-        SplunkConfigSavedSearch({
-            "name": "metrics",
-            "parameters": {},
-            'max_query_chunk_seconds': 300,
-            'unique_key_fields': None
-        })
-    ]
-
-    splunk_config.init_config = {
-        'default_restart_history_time_seconds': 3600,
-        'default_max_query_chunk_seconds': 300,
-        'unique_key_fields': None
-    }
-
-    test_data = {
-        "time": 0,
-        "earliest_time": ""
-    }
-
-    def _mocked_current_time_seconds():
-        return test_data["time"]
-
-    def _mock_dispatch_saved_search(*args, **kwargs):
-        # if test_data["earliest_time"] != "":
-        #     self.assertEquals(earliest_time, test_data["earliest_time"])
-
-        return "minimal_metrics"
-
-    check = get_splunk_client(splunk_config, splunk_instance_config, {
-        'auth_session': mock_auth_session,
-        'saved_searches': mock_saved_searches,
-        'saved_search_results': mock_search,
-        '_dispatch_saved_search': _mock_dispatch_saved_search,
-        # '_current_time_seconds': _mocked_current_time_seconds
-    })
-    check.check_id = "metric-check-id"
-    return check.run()
-
-
-@pytest.fixture
-def splunk_error_response(splunk_config, splunk_instance_config):
-    # type: (SplunkConfig, SplunkConfigInstance) -> MockSplunkMetric
-
-    splunk_instance_config.tags = []
-    splunk_instance_config.saved_searches = [
+    splunk_instance.saved_searches = [  # Splunk Saved Searches
         SplunkConfigSavedSearch({
             "name": "error",
             "parameters": {}
         })
     ]
 
-    return get_splunk_client(splunk_config, splunk_instance_config, {
+    splunk_config.instances.append(splunk_instance)
+    splunk_config.validate()
+
+    check = mock_splunk_metric("metric-check-name", splunk_config.init_config, {}, splunk_config.instances, {
         'auth_session': mock_auth_session,
         '_dispatch_saved_search': mock_dispatch_saved_search,
         'saved_searches': mock_saved_searches,
     })
 
+    return check
 
-@pytest.fixture
-def splunk_minimal_metrics(splunk_config, splunk_instance_config):
-    # type: (SplunkConfig, SplunkConfigInstance) -> MockSplunkMetric
 
-    splunk_instance_config.tags = []
-    splunk_instance_config.saved_searches = [
+@pytest.fixture(scope="function")
+def splunk_metric_check(splunk_config, splunk_instance, mock_splunk_metric):
+    # type: (SplunkConfig, SplunkConfigInstance, Type[MockSplunkMetric]) -> MockSplunkMetric
+
+    splunk_instance.tags = ['mytag', 'mytag2']  # Splunk Config Tags
+
+    splunk_instance.saved_searches = [  # Splunk Saved Searches
         SplunkConfigSavedSearch({
             "name": "minimal_metrics",
             "parameters": {}
         })
     ]
 
-    return get_splunk_client(splunk_config, splunk_instance_config, {
+    splunk_config.instances.append(splunk_instance)
+    splunk_config.validate()
+
+    check = mock_splunk_metric("metric-check-name", splunk_config.init_config, {}, splunk_config.instances, {
         'auth_session': mock_auth_session,
         'saved_searches': mock_saved_searches,
         'saved_search_results': mock_search,
-        'finalize_sid': mock_finalize_sid,
         '_dispatch_saved_search': mock_dispatch_saved_search,
     })
+
+    return check
+
+
+@pytest.fixture(scope="function")
+def splunk_metric_check_second_run(splunk_config, splunk_instance, mock_splunk_metric):
+    # type: (SplunkConfig, SplunkConfigInstance, Type[MockSplunkMetric]) -> MockSplunkMetric
+
+    splunk_instance.tags = ['mytag', 'mytag2']  # Splunk Config Tags
+
+    splunk_instance.saved_searches = [  # Splunk Saved Searches
+        SplunkConfigSavedSearch({
+            "name": "minimal_metrics",
+            "parameters": {}
+        })
+    ]
+
+    splunk_config.instances.append(splunk_instance)
+    splunk_config.validate()
+
+    check = mock_splunk_metric("metric-check-name", splunk_config.init_config, {}, splunk_config.instances, {
+        'auth_session': mock_auth_session,
+        'saved_searches': mock_saved_searches,
+        'saved_search_results': mock_search,
+        '_dispatch_saved_search': mock_dispatch_saved_search,
+        'finalize_sid': mock_finalize_sid,
+    })
+
+    return check
