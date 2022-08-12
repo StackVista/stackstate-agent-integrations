@@ -9,8 +9,6 @@ from .mock import MockedSplunkEvent
 # Mark the entire module as tests of type `unit`
 pytestmark = pytest.mark.unit
 
-CHECK_NAME = "splunk_event"
-
 
 def test_splunk_error_response(mocked_check, instance, fatal_error, caplog, aggregator):
     """Splunk event check should handle a FATAL message response."""
