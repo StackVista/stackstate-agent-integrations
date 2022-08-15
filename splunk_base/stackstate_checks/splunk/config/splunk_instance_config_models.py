@@ -22,6 +22,28 @@ class SplunkConfigSavedSearch(PickleModel):
     unique_key_fields = ListType(StringType)
 
 
+class SplunkConfigSavedSearchWithBatch(PickleModel):
+    name = StringType(required=True)
+    parameters = DictType(StringType, required=True)
+    batch_size = IntType()
+    max_query_chunk_seconds = IntType()
+    unique_key_fields = ListType(StringType)
+
+
+class SplunkConfigSavedSearchAlternativeFields(PickleModel):
+    name = StringType(required=True)
+    parameters = DictType(StringType, required=True)
+    metric_name_field = StringType()
+    metric_value_field = StringType()
+
+
+class SplunkConfigSavedSearchAlternativeFields2(PickleModel):
+    name = StringType(required=True)
+    parameters = DictType(StringType, required=True)
+    metric_name = StringType()
+    metric_value_field = StringType()
+
+
 class SplunkConfigBasicAuthStructure(PickleModel):
     username = StringType(required=True)
     password = StringType(required=True)
@@ -34,7 +56,10 @@ class SplunkConfigBasicAuth(PickleModel):
 class SplunkConfigInstance(PickleModel):
     url = StringType(required=True)
     authentication = PolyModelType([SplunkConfigBasicAuth], required=True)
-    saved_searches = ListType(PolyModelType(SplunkConfigSavedSearch), required=True)
+    saved_searches = ListType(PolyModelType([SplunkConfigSavedSearch, SplunkConfigSavedSearchAlternativeFields,
+                                             SplunkConfigSavedSearchAlternativeFields2,
+                                             SplunkConfigSavedSearchWithBatch]),
+                              required=True)
     tags = ListType(StringType, required=True)
 
 

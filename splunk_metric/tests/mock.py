@@ -12,25 +12,31 @@ from stackstate_checks.splunk.client import SplunkClient
 from stackstate_checks.splunk.saved_search_helper import SavedSearchesTelemetry
 from stackstate_checks.base.utils.common import read_file
 from stackstate_checks.splunk.config.splunk_instance_config_models import SplunkConfigInstance
+from stackstate_checks.splunk.client.splunk_client import FinalizeException
 
 
 def mock_auth_session(committable_state):  # type: (str) -> str
-    print("Calling Mock Function: mock_auth_session")
+    print("Running Mock: mock_auth_session")
     return "sessionKey1"
 
 
 def mock_finalize_sid(search_id, saved_search):  # type: (str, any) -> None
-    print("Calling Mock Function: mock_finalize_sid")
+    print("Running Mock: mock_finalize_sid")
     return None
 
 
+def mock_finalize_sid_exception(*args, **kwargs):
+    print("Running Mock: mock_finalize_sid_exception")
+    raise FinalizeException(None, "Error occured")
+
+
 def mock_saved_searches():  # type: () -> list
-    print("Calling Mock Function: mock_saved_searches")
+    print("Running Mock: mock_saved_searches")
     return []
 
 
 def mock_search(search_id, saved_search):  # type: (str, any) -> list[str]
-    print("Calling Mock Function: mock_search")
+    print("Running Mock: mock_search")
     if search_id == "exception":
         raise CheckException("maximum retries reached for saved search " + str(saved_search.name))
 
@@ -41,8 +47,22 @@ def mock_search(search_id, saved_search):  # type: (str, any) -> list[str]
     return [file_content_unmarshalled]
 
 
+def mock_polling_search(*args, **kwargs):  # type: (any, any) -> list[str]
+    print("Running Mock: mock_polling_search")
+
+    sid = args[0]
+    count = args[1].batch_size
+
+    fixture_dir = os.path.join(os.path.dirname(__file__), 'ci', 'fixtures')
+    file_content = read_file("batch_%s_seq_%s.json" % (sid, count), fixture_dir)
+    file_content_unmarshalled = json.loads(file_content)
+
+    return file_content_unmarshalled
+
+
 def mock_dispatch_saved_search(log, persisted_state, saved_search):
-    print("Calling Mock Function: mock_dispatch_saved_search")
+    print("Running Mock: mock_dispatch_saved_search")
+
     return log.name
 
 
@@ -66,6 +86,9 @@ class MockSplunkClient(SplunkClient):
         if "finalize_sid" in self.mocks:
             self.finalize_sid = self.mocks.get("finalize_sid")
 
+        if "dispatch" in self.mocks:
+            self.finalize_sid = self.mocks.get("dispatch")
+
         if "saved_searches" in self.mocks:
             self.saved_searches = self.mocks.get("saved_searches")
 
@@ -79,7 +102,6 @@ class MockSplunkTelemetryInstance(SplunkTelemetryInstance):
     mocks = dict()
 
     def _build_splunk_client(self):  # type: () -> MockSplunkClient
-        print("Calling Mock Function: mock_dispatch_saved_search")
         mock_splunk_client = MockSplunkClient
         mock_splunk_client.mocks = self.mocks
 
@@ -95,8 +117,8 @@ class MockSplunkMetric(SplunkMetric):
         else:
             self.mocks = mocks
 
-        if "_current_time_seconds" in self.mocks:
-            self._current_time_seconds = self.mocks.get("_current_time_seconds")
+        if "current_time_seconds" in self.mocks:
+            self._current_time_seconds = self.mocks.get("current_time_seconds")
 
         super(MockSplunkMetric, self).__init__(name, init_config, agent_config, instances)
 

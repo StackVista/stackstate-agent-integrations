@@ -43,9 +43,6 @@ class TelemetryStub(object):
     def submit_raw_metrics_data(self, check, check_id, name, value, tags, hostname, timestamp):
         self._raw_metrics[name].append(RawMetricStub(name, value, tags, hostname, timestamp))
 
-    def assert_total_metrics(self, value):
-        assert len(self._raw_metrics) == value
-
     def assert_metric(self, name, value=None, tags=None, count=None, at_least=1,
                       hostname=None, metric_type=None, timestamp=None):
 
