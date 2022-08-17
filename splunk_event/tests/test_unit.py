@@ -4,6 +4,7 @@
 
 import pytest
 
+from stackstate_checks.splunk_event import SplunkEvent
 from .mock import MockedSplunkEvent
 
 # Mark the entire module as tests of type `unit`
@@ -100,5 +101,9 @@ def test_splunk_full_events(mocked_check, instance, full_events, aggregator, sta
     aggregator.assert_event(msg_text="some_text", count=1, tags=second_event_tags, **second_event_data)
 
 
-def test_splunk_earliest_time_and_duplicates():
-    assert 1 == 2
+def test_splunk_earliest_time_and_duplicates(splunk_event_check, aggregator):
+    check_result = splunk_event_check.run()
+    assert check_result == ''
+    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME,
+                                    status=SplunkEvent.OK,
+                                    count=2)
