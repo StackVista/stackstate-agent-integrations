@@ -2,6 +2,7 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import json
+from typing import Dict
 
 import pytest
 from requests_mock import Mocker
@@ -20,9 +21,7 @@ def test_splunk_error_response(splunk_event_check, requests_mock, caplog, aggreg
     assert "Splunk metric failed with message: No saved search was successfully" \
            in run_result, "Check run result should return error message."
     assert "FATAL exception from Splunk" in caplog.text, "Splunk sends FATAL message."
-    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME,
-                                    status=SplunkEvent.CRITICAL,
-                                    count=1)
+    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.CRITICAL, count=1)
     assert len(aggregator.events) == 0, "There should be no events processed."
 
 
@@ -31,9 +30,7 @@ def test_splunk_empty_events(splunk_event_check, requests_mock, aggregator):
     _setup_request_mocks(requests_mock, response_file="empty_response.json")
     run_result = splunk_event_check.run()
     assert run_result == "", "Check run result shouldn't return error message."
-    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME,
-                                    status=SplunkEvent.OK,
-                                    count=2)
+    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=2)
     assert len(aggregator.events) == 0, "There should be no events."
 
 
@@ -42,10 +39,12 @@ def test_splunk_minimal_events(splunk_event_check, requests_mock, caplog, aggreg
     _setup_request_mocks(requests_mock, response_file="minimal_events_response.json")
     run_result = splunk_event_check.run()
     assert run_result == "", "Check run result shouldn't return error message."
-    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME,
-                                    status=SplunkEvent.OK,
-                                    count=2)
+    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=2)
     assert len(aggregator.events) == 2, "There should be two events processed."
+    expected_events = load_json_from_file("minimal_events_expected.json", "ci/fixtures")
+    for event in expected_events:
+        aggregator.assert_event(msg_text=event["msg_text"], count=2, tags=event["tags"],
+                                **_extract_title_and_type_from_event(event))
 
 
 def test_splunk_partially_incomplete_events(splunk_event_check, requests_mock, caplog, aggregator):
@@ -53,10 +52,12 @@ def test_splunk_partially_incomplete_events(splunk_event_check, requests_mock, c
     _setup_request_mocks(requests_mock, response_file="partially_incomplete_events_response.json")
     run_result = splunk_event_check.run()
     assert run_result == "", "Check run result shouldn't return error message."
-    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME,
-                                    status=SplunkEvent.OK,
-                                    count=2)
+    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=2)
     assert len(aggregator.events) == 1, "There should be one event processed."
+    expected_events = load_json_from_file("partially_incomplete_events_expected.json", "ci/fixtures")
+    for event in expected_events:
+        aggregator.assert_event(msg_text=event["msg_text"], count=1, tags=event["tags"],
+                                **_extract_title_and_type_from_event(event))
 
 
 def test_splunk_full_events(splunk_event_check, requests_mock, aggregator):
@@ -64,30 +65,26 @@ def test_splunk_full_events(splunk_event_check, requests_mock, aggregator):
     _setup_request_mocks(requests_mock, response_file="full_events_response.json")
     run_result = splunk_event_check.run()
     assert run_result == "", "Check run result shouldn't return error message."
-    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME,
-                                    status=SplunkEvent.OK,
-                                    count=2)
+    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=2)
 
     assert len(aggregator.events) == 2, "There should be two events processed."
-    events = load_json_from_file("full_events_expected.json", "ci/fixtures")
-    for event in events:
-        data = {"msg_title": event["msg_title"], "event_type": event["event_type"]}
-        aggregator.assert_event(msg_text=event["msg_text"], count=1, tags=event["tags"], **data)
+    expected_events = load_json_from_file("full_events_expected.json", "ci/fixtures")
+    for event in expected_events:
+        aggregator.assert_event(msg_text=event["msg_text"], count=1, tags=event["tags"],
+                                **_extract_title_and_type_from_event(event))
 
 
 def test_splunk_default_integration_events(splunk_event_check, aggregator, requests_mock):
     """Run Splunk event check for saved search `test_events` that is used for integration tests."""
-    _setup_request_mocks(requests_mock, "test_events_response.json")
+    _setup_request_mocks(requests_mock, response_file="test_events_response.json")
     check_result = splunk_event_check.run()
     assert check_result == '', "No errors when running Splunk check."
-    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME,
-                                    status=SplunkEvent.OK,
-                                    count=2)
+    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=2)
     assert len(aggregator.events) == 4, "There should be four events processed."
-    events = load_json_from_file("test_events_expected.json", "ci/fixtures")
-    for event in events:
-        data = {"msg_title": event["msg_title"], "event_type": event["event_type"]}
-        aggregator.assert_event(msg_text=event["msg_text"], count=1, tags=event["tags"], **data)
+    expected_events = load_json_from_file("test_events_expected.json", "ci/fixtures")
+    for event in expected_events:
+        aggregator.assert_event(msg_text=event["msg_text"], count=1, tags=event["tags"],
+                                **_extract_title_and_type_from_event(event))
 
 
 def _setup_request_mocks(requests_mock, response_file):
@@ -126,3 +123,9 @@ def _setup_request_mocks(requests_mock, response_file):
         status_code=200,
         text=read_file(response_file, "ci/fixtures")
     )
+
+
+def _extract_title_and_type_from_event(event):
+    # type: (Dict) -> Dict
+    """Extracts event title and type. Method call aggregator.assert_event needs event fields as **kwargs parameter."""
+    return {"msg_title": event["msg_title"], "event_type": event["event_type"]}
