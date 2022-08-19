@@ -2,6 +2,7 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import os
+from typing import Dict
 
 import pytest
 import requests
@@ -28,7 +29,7 @@ _empty_instance = {
 }
 
 
-def connect_to_splunk():
+def _connect_to_splunk():
     SplunkClient(SplunkInstanceConfig(_empty_instance, {}, default_settings)).auth_session({})
 
 
@@ -39,7 +40,7 @@ def test_environment():
     """
     with docker_run(
             os.path.join(HERE, 'compose', 'docker-compose.yaml'),
-            conditions=[WaitFor(connect_to_splunk)],
+            conditions=[WaitFor(_connect_to_splunk)],
     ):
         yield True
 
@@ -150,3 +151,9 @@ def unit_test_instance():
         ],
         'tags': []
     }
+
+
+def extract_title_and_type_from_event(event):
+    # type: (Dict) -> Dict
+    """Extracts event title and type. Method call aggregator.assert_event needs event fields as **kwargs parameter."""
+    return {"msg_title": event["msg_title"], "event_type": event["event_type"]}

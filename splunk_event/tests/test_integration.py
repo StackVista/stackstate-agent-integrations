@@ -1,6 +1,9 @@
 import pytest
+
+from stackstate_checks.base.utils.common import load_json_from_file
 from stackstate_checks.splunk_event.splunk_event import SplunkEvent
 from stackstate_checks.dev import WaitFor
+from .conftest import extract_title_and_type_from_event
 
 
 @pytest.mark.integration
@@ -9,15 +12,8 @@ def test_event_search(aggregator, integration_test_instance, test_environment):
 
     def run_and_check():
         assert check.run() == ''
-        first_event_data = {
-            'event_type': "generic_splunk_event",
-            'timestamp': 1488997796.0,
-            'msg_title': "generic_splunk_event",
-            'source_type_name': 'generic_splunk_event'}
-        first_event_tags = [
-            "hostname:host01",
-            "status:OK",
-            "checktag:checktagvalue"]
-        aggregator.assert_event(msg_text="Generic splunk event", count=1, tags=first_event_tags, **first_event_data)
+        for event in load_json_from_file("test_events_expected.json", "ci/fixtures"):
+            aggregator.assert_event(msg_text=event["msg_text"], count=1, tags=event["tags"],
+                                    **extract_title_and_type_from_event(event))
 
     assert WaitFor(run_and_check, attempts=10)() is True

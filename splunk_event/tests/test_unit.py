@@ -2,13 +2,13 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import json
-from typing import Dict
 
 import pytest
 from requests_mock import Mocker
 
 from stackstate_checks.base.utils.common import load_json_from_file, read_file
 from stackstate_checks.splunk_event import SplunkEvent
+from .conftest import extract_title_and_type_from_event
 
 # Mark the entire module as tests of type `unit`
 pytestmark = pytest.mark.unit
@@ -43,7 +43,7 @@ def test_splunk_minimal_events(splunk_event_check, requests_mock, caplog, aggreg
     assert len(aggregator.events) == 2, "There should be two events processed."
     for event in load_json_from_file("minimal_events_expected.json", "ci/fixtures"):
         aggregator.assert_event(msg_text=event["msg_text"], count=2, tags=event["tags"],
-                                **_extract_title_and_type_from_event(event))
+                                **extract_title_and_type_from_event(event))
 
 
 def test_splunk_partially_incomplete_events(splunk_event_check, requests_mock, caplog, aggregator):
@@ -55,7 +55,7 @@ def test_splunk_partially_incomplete_events(splunk_event_check, requests_mock, c
     assert len(aggregator.events) == 1, "There should be one event processed."
     for event in load_json_from_file("partially_incomplete_events_expected.json", "ci/fixtures"):
         aggregator.assert_event(msg_text=event["msg_text"], count=1, tags=event["tags"],
-                                **_extract_title_and_type_from_event(event))
+                                **extract_title_and_type_from_event(event))
 
 
 def test_splunk_full_events(splunk_event_check, requests_mock, aggregator):
@@ -68,7 +68,7 @@ def test_splunk_full_events(splunk_event_check, requests_mock, aggregator):
     assert len(aggregator.events) == 2, "There should be two events processed."
     for event in load_json_from_file("full_events_expected.json", "ci/fixtures"):
         aggregator.assert_event(msg_text=event["msg_text"], count=1, tags=event["tags"],
-                                **_extract_title_and_type_from_event(event))
+                                **extract_title_and_type_from_event(event))
 
 
 def test_splunk_default_integration_events(splunk_event_check, aggregator, requests_mock):
@@ -80,7 +80,7 @@ def test_splunk_default_integration_events(splunk_event_check, aggregator, reque
     assert len(aggregator.events) == 4, "There should be four events processed."
     for event in load_json_from_file("test_events_expected.json", "ci/fixtures"):
         aggregator.assert_event(msg_text=event["msg_text"], count=1, tags=event["tags"],
-                                **_extract_title_and_type_from_event(event))
+                                **extract_title_and_type_from_event(event))
 
 
 def _setup_request_mocks(requests_mock, response_file):
@@ -119,9 +119,3 @@ def _setup_request_mocks(requests_mock, response_file):
         status_code=200,
         text=read_file(response_file, "ci/fixtures")
     )
-
-
-def _extract_title_and_type_from_event(event):
-    # type: (Dict) -> Dict
-    """Extracts event title and type. Method call aggregator.assert_event needs event fields as **kwargs parameter."""
-    return {"msg_title": event["msg_title"], "event_type": event["event_type"]}
