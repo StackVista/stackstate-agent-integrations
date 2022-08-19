@@ -41,8 +41,7 @@ def test_splunk_minimal_events(splunk_event_check, requests_mock, caplog, aggreg
     assert run_result == "", "Check run result shouldn't return error message."
     aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=2)
     assert len(aggregator.events) == 2, "There should be two events processed."
-    expected_events = load_json_from_file("minimal_events_expected.json", "ci/fixtures")
-    for event in expected_events:
+    for event in load_json_from_file("minimal_events_expected.json", "ci/fixtures"):
         aggregator.assert_event(msg_text=event["msg_text"], count=2, tags=event["tags"],
                                 **_extract_title_and_type_from_event(event))
 
@@ -54,8 +53,7 @@ def test_splunk_partially_incomplete_events(splunk_event_check, requests_mock, c
     assert run_result == "", "Check run result shouldn't return error message."
     aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=2)
     assert len(aggregator.events) == 1, "There should be one event processed."
-    expected_events = load_json_from_file("partially_incomplete_events_expected.json", "ci/fixtures")
-    for event in expected_events:
+    for event in load_json_from_file("partially_incomplete_events_expected.json", "ci/fixtures"):
         aggregator.assert_event(msg_text=event["msg_text"], count=1, tags=event["tags"],
                                 **_extract_title_and_type_from_event(event))
 
@@ -68,8 +66,7 @@ def test_splunk_full_events(splunk_event_check, requests_mock, aggregator):
     aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=2)
 
     assert len(aggregator.events) == 2, "There should be two events processed."
-    expected_events = load_json_from_file("full_events_expected.json", "ci/fixtures")
-    for event in expected_events:
+    for event in load_json_from_file("full_events_expected.json", "ci/fixtures"):
         aggregator.assert_event(msg_text=event["msg_text"], count=1, tags=event["tags"],
                                 **_extract_title_and_type_from_event(event))
 
@@ -81,8 +78,7 @@ def test_splunk_default_integration_events(splunk_event_check, aggregator, reque
     assert check_result == '', "No errors when running Splunk check."
     aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=2)
     assert len(aggregator.events) == 4, "There should be four events processed."
-    expected_events = load_json_from_file("test_events_expected.json", "ci/fixtures")
-    for event in expected_events:
+    for event in load_json_from_file("test_events_expected.json", "ci/fixtures"):
         aggregator.assert_event(msg_text=event["msg_text"], count=1, tags=event["tags"],
                                 **_extract_title_and_type_from_event(event))
 
