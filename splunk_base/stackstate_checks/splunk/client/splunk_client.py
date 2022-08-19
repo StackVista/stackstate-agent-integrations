@@ -50,7 +50,7 @@ class SplunkClient(StatefulMixin):
         self.requests_session = requests.session()
         super().__init__(*args, **kwargs)
 
-    def auth_session(self, committable_state):
+    def auth_session(self, committable_state, instance=None):
         if self.instance_config.auth_type == AuthType.BasicAuth:
             self.log.debug("Using user/password based authentication mechanism")
             self._basic_auth()

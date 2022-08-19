@@ -3,7 +3,7 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 
 from schematics.models import Model
-from schematics.types import StringType, ListType, DictType, PolyModelType, IntType
+from schematics.types import StringType, ListType, DictType, PolyModelType, IntType, BooleanType, BaseType, ModelType
 
 
 # Allow copy.deepcopy to work on the schematic models
@@ -15,33 +15,39 @@ class PickleModel(Model):
         self.__init__(kwargs)
 
 
-class SplunkConfigSavedSearch(PickleModel):
+class SplunkConfigSavedSearchDefault(PickleModel):
     name = StringType(required=True)
-    parameters = DictType(StringType, required=True)
-    max_query_chunk_seconds = IntType()
-    unique_key_fields = ListType(StringType)
+    parameters = DictType(BaseType, default={"force_dispatch": True, "dispatch.now": True})
+    request_timeout_seconds = IntType(default=5)
+    search_max_retry_count = IntType(default=3)
+    search_seconds_between_retries = IntType(default=1)
+    verify_ssl_certificate = BooleanType(default=False)
+    batch_size = IntType(default=1000)
+    saved_searches_parallel = IntType(default=3)
+    initial_history_time_seconds = IntType(default=0)
+    max_restart_history_seconds = IntType(default=86400)
+    max_query_time_range = IntType(default=3600)  # ???
+    max_query_chunk_seconds = IntType(default=300)
+    initial_delay_seconds = IntType(default=0)
+    unique_key_fields = ListType(StringType, default=["_bkt", "_cd"])
+    app = StringType(default="search")
 
 
-class SplunkConfigSavedSearchWithBatch(PickleModel):
-    name = StringType(required=True)
-    parameters = DictType(StringType, required=True)
-    batch_size = IntType()
-    max_query_chunk_seconds = IntType()
-    unique_key_fields = ListType(StringType)
-
-
-class SplunkConfigSavedSearchAlternativeFields(PickleModel):
-    name = StringType(required=True)
-    parameters = DictType(StringType, required=True)
+class SplunkConfigSavedSearchAlternativeFields(SplunkConfigSavedSearchDefault):
     metric_name_field = StringType()
     metric_value_field = StringType()
 
 
-class SplunkConfigSavedSearchAlternativeFields2(PickleModel):
-    name = StringType(required=True)
-    parameters = DictType(StringType, required=True)
+class SplunkConfigSavedSearchAlternativeFields2(SplunkConfigSavedSearchDefault):
     metric_name = StringType()
     metric_value_field = StringType()
+
+
+class SplunkConfigTokenAuthStructure(PickleModel):
+    name = StringType()
+    audience = StringType()
+    initial_token = StringType(required=True)
+    renewal_days = IntType(required=True)
 
 
 class SplunkConfigBasicAuthStructure(PickleModel):
@@ -49,26 +55,19 @@ class SplunkConfigBasicAuthStructure(PickleModel):
     password = StringType(required=True)
 
 
-class SplunkConfigBasicAuth(PickleModel):
-    basic_auth = PolyModelType(SplunkConfigBasicAuthStructure, required=True)
+class SplunkConfigAuthentication(PickleModel):
+    token_auth = ModelType(SplunkConfigTokenAuthStructure)
+    basic_auth = ModelType(SplunkConfigBasicAuthStructure)
 
 
 class SplunkConfigInstance(PickleModel):
     url = StringType(required=True)
-    authentication = PolyModelType([SplunkConfigBasicAuth], required=True)
-    saved_searches = ListType(PolyModelType([SplunkConfigSavedSearch, SplunkConfigSavedSearchAlternativeFields,
-                                             SplunkConfigSavedSearchAlternativeFields2,
-                                             SplunkConfigSavedSearchWithBatch]),
-                              required=True)
     tags = ListType(StringType, required=True)
-
-
-class SplunkInitConfig(PickleModel):
-    default_restart_history_time_seconds = IntType()
-    default_max_query_chunk_seconds = IntType()
-    unique_key_fields = ListType(StringType)
+    authentication = ModelType(SplunkConfigAuthentication, required=True)
+    saved_searches = ListType(PolyModelType([SplunkConfigSavedSearchDefault, SplunkConfigSavedSearchAlternativeFields,
+                                             SplunkConfigSavedSearchAlternativeFields2]), required=True)
 
 
 class SplunkConfig(PickleModel):
-    init_config = PolyModelType(SplunkInitConfig)
-    instances = ListType(PolyModelType(SplunkConfigInstance), required=True)
+    init_config = DictType(BaseType)
+    instances = ListType(ModelType(SplunkConfigInstance), required=True)

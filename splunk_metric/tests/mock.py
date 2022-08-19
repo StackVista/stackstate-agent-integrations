@@ -5,6 +5,7 @@
 import os
 import json
 
+from stackstate_checks.splunk.client import TokenExpiredException
 from stackstate_checks.base.errors import CheckException
 from stackstate_checks.splunk_metric.splunk_metric import SplunkMetric
 from stackstate_checks.splunk.telemetry.splunk_telemetry import SplunkTelemetryInstance
@@ -15,7 +16,7 @@ from stackstate_checks.splunk.config.splunk_instance_config_models import Splunk
 from stackstate_checks.splunk.client.splunk_client import FinalizeException
 
 
-def mock_auth_session(committable_state):  # type: (str) -> str
+def mock_auth_session(committable_state, instance):  # type: (str) -> str
     print("Running Mock: mock_auth_session")
     return "sessionKey1"
 
@@ -27,12 +28,18 @@ def mock_finalize_sid(search_id, saved_search):  # type: (str, any) -> None
 
 def mock_finalize_sid_exception(*args, **kwargs):
     print("Running Mock: mock_finalize_sid_exception")
-    raise FinalizeException(None, "Error occured")
+    raise FinalizeException(None, "Error occurred")
 
 
 def mock_saved_searches():  # type: () -> list
     print("Running Mock: mock_saved_searches")
     return []
+
+
+def mock_token_auth_session(committable_state):  # type: (str) -> None
+    print("Running Mock: mock_token_auth_session")
+    raise TokenExpiredException("Current in use authentication token is expired. Please provide a valid "
+                                "token in the YAML and restart the Agent")
 
 
 def mock_search(search_id, saved_search):  # type: (str, any) -> list[str]
@@ -80,14 +87,20 @@ class MockSplunkClient(SplunkClient):
     mocks = dict()
 
     def __init__(self, instance_config, *args, **kwargs):
+        if "_current_time_seconds" in self.mocks:
+            self._current_time_seconds = self.mocks.get("_current_time_seconds")
+
         if "auth_session" in self.mocks:
             self.auth_session = self.mocks.get("auth_session")
+
+        if "_token_auth_session" in self.mocks:
+            self._token_auth_session = self.mocks.get("_token_auth_session")
 
         if "finalize_sid" in self.mocks:
             self.finalize_sid = self.mocks.get("finalize_sid")
 
         if "dispatch" in self.mocks:
-            self.finalize_sid = self.mocks.get("dispatch")
+            self.dispatch = self.mocks.get("dispatch")
 
         if "saved_searches" in self.mocks:
             self.saved_searches = self.mocks.get("saved_searches")
@@ -117,8 +130,8 @@ class MockSplunkMetric(SplunkMetric):
         else:
             self.mocks = mocks
 
-        if "current_time_seconds" in self.mocks:
-            self._current_time_seconds = self.mocks.get("current_time_seconds")
+        if "_current_time_seconds" in self.mocks:
+            self._current_time_seconds = self.mocks.get("_current_time_seconds")
 
         super(MockSplunkMetric, self).__init__(name, init_config, agent_config, instances)
 

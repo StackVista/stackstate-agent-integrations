@@ -3,8 +3,7 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 from stackstate_checks.splunk.config.splunk_instance_config import SplunkSavedSearch, AuthType, SplunkInstanceConfig,\
     SplunkPersistentState
-from stackstate_checks.splunk.config.splunk_instance_config_models import SplunkConfig, SplunkConfigInstance, \
-    SplunkConfigBasicAuth, SplunkConfigBasicAuthStructure, SplunkConfigSavedSearch
+from stackstate_checks.splunk.config.splunk_instance_config_models import SplunkConfig, SplunkConfigInstance
 
 __all__ = [
     'SplunkSavedSearch',
@@ -12,8 +11,5 @@ __all__ = [
     'SplunkInstanceConfig',
     'SplunkPersistentState',
     'SplunkConfig',
-    'SplunkConfigInstance',
-    'SplunkConfigBasicAuth',
-    'SplunkConfigBasicAuthStructure',
-    'SplunkConfigSavedSearch'
+    'SplunkConfigInstance'
 ]

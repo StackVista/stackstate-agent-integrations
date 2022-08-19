@@ -23,6 +23,9 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
         # Data to keep over check runs
         self.instance_data = dict()
 
+        self.collect_ok = True  # TODO: Melcom - Verify
+        self.continue_after_commit = True  # TODO: Melcom - Verify
+
     def get_instance_key(self, instance):
         return TopologyInstance(SplunkTelemetryInstance.INSTANCE_TYPE, instance["url"])
 
@@ -32,6 +35,7 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
     def transactional_check(self, instance, transactional_state, persistent_state):
         current_time = self._current_time_seconds()
         url = instance["url"]
+
         if url not in self.instance_data:
             self.instance_data = self.get_instance(instance, current_time)
 
@@ -39,8 +43,17 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
 
         instance = self.instance_data
 
+        # Skip the splunk check if the initial time has not passed
+        if not instance.initial_time_done(current_time):
+            self.log.debug("Skipping splunk metric/event instance %s, waiting for initial time to expire" % url)
+
+            # Return the original transactional state and persistent state
+            return CheckResponse(transactional_state=transactional_state,
+                                 persistent_state=persistent_state,
+                                 check_error=None)
+
         try:
-            instance.splunk_client.auth_session(splunk_persistent_state)
+            instance.splunk_client.auth_session(splunk_persistent_state, instance)
 
             def _service_check(status, tags=None, hostname=None, message=None):
                 self.service_check(self.SERVICE_CHECK_NAME, status, tags, hostname, message)
@@ -61,7 +74,13 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
             instance.saved_searches.run_saved_searches(_process_data, _service_check, self.log, splunk_persistent_state,
                                                        _update_status)
 
-            transactional_state, _ = instance.get_status()  # TODO verify!
+            # Continue Process
+            transactional_state, continue_after_commit = instance.get_status()  # TODO verify!
+
+            if self.collect_ok:  # TODO: Melcom - Verify
+                self.continue_after_commit = continue_after_commit  # TODO: Melcom - Verify
+            else:
+                print("Possible failure force here ????")  # TODO: Melcom - Verify
 
             # If no service checks were produced, everything is ok
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK)
