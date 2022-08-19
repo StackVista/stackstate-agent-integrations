@@ -21,7 +21,7 @@ default_settings = {
     'default_max_restart_history_seconds': 86400,
     'default_max_query_chunk_seconds': 300,
     'default_initial_delay_seconds': 0,
-    'default_unique_key_fields': ["_bkt", "_cd"],
+    'default_unique_key_fields': ["_time"],
     'default_app': "search",
     'default_parameters': {
         "force_dispatch": True,
@@ -52,8 +52,16 @@ class SplunkEvent(SplunkTelemetryBase):
         self.TRANSACTIONAL_PERSISTENT_CACHE_KEY = "splunk_event"
         super(SplunkEvent, self).__init__(name, init_config, agentConfig, instances)
 
-    def _apply(self, **kwargs):
-        self.event(kwargs)
+    def _apply(self, **event_data):
+        # msg_title, msg_text, event_type are required for event in Agent v2 to be created
+        generic_event_text = "generic_splunk_event"
+        if not event_data.get("msg_title"):
+            event_data["msg_title"] = generic_event_text
+        if not event_data.get("msg_text"):
+            event_data["msg_text"] = generic_event_text
+        if not event_data.get("event_type"):
+            event_data["event_type"] = generic_event_text
+        self.event(event_data)
 
     def get_instance(self, instance, current_time):
         metric_instance_config = SplunkTelemetryInstanceConfig(instance, self.init_config, default_settings)

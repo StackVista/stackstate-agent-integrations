@@ -4,8 +4,8 @@ from stackstate_checks.dev import WaitFor
 
 
 @pytest.mark.integration
-def test_event_search(aggregator, splunk_event_instance, test_environment):
-    check = SplunkEvent("splunk", {}, {}, [splunk_event_instance])
+def test_event_search(aggregator, integration_test_instance, test_environment):
+    check = SplunkEvent("splunk", {}, {}, [integration_test_instance])
 
     def run_and_check():
         assert check.run() == ''

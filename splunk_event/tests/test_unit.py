@@ -1,109 +1,128 @@
 # (C) StackState 2022
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
+import json
 
 import pytest
+from requests_mock import Mocker
 
+from stackstate_checks.base.utils.common import load_json_from_file, read_file
 from stackstate_checks.splunk_event import SplunkEvent
-from .mock import MockedSplunkEvent
 
 # Mark the entire module as tests of type `unit`
 pytestmark = pytest.mark.unit
 
 
-def test_splunk_error_response(mocked_check, instance, fatal_error, caplog, aggregator):
+def test_splunk_error_response(splunk_event_check, requests_mock, caplog, aggregator):
     """Splunk event check should handle a FATAL message response."""
-    run_result = mocked_check.run()
+    _setup_request_mocks(requests_mock, response_file="error_response.json")
+    run_result = splunk_event_check.run()
     assert "Splunk metric failed with message: No saved search was successfully" \
            in run_result, "Check run result should return error message."
-    assert "FATAL exception from Splunk" in caplog.text
-    aggregator.assert_service_check(MockedSplunkEvent.SERVICE_CHECK_NAME,
-                                    status=MockedSplunkEvent.CRITICAL,
+    assert "FATAL exception from Splunk" in caplog.text, "Splunk sends FATAL message."
+    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME,
+                                    status=SplunkEvent.CRITICAL,
                                     count=1)
+    assert len(aggregator.events) == 0, "There should be no events processed."
 
 
-def test_splunk_empty_events(mocked_check, instance, empty_result, aggregator):
+def test_splunk_empty_events(splunk_event_check, requests_mock, aggregator):
     """Splunk event check should process empty response correctly."""
-    run_result = mocked_check.run()
+    _setup_request_mocks(requests_mock, response_file="empty_response.json")
+    run_result = splunk_event_check.run()
     assert run_result == "", "Check run result shouldn't return error message."
-    aggregator.assert_service_check(MockedSplunkEvent.SERVICE_CHECK_NAME,
-                                    status=MockedSplunkEvent.OK,
-                                    count=2)
-
-
-def test_splunk_minimal_events(mocked_check, instance, minimal_events, caplog, aggregator):
-    """Splunk event check should process minimal response correctly."""
-    # TODO: does this test make sense?
-    run_result = mocked_check.run()
-    assert "Splunk metric failed with message: No saved search was successfully" \
-           in run_result, "Check run result should return error message."
-    assert '"msg_title": ["This field is required."]' in caplog.text
-    aggregator.assert_service_check(MockedSplunkEvent.SERVICE_CHECK_NAME,
-                                    status=MockedSplunkEvent.CRITICAL,
-                                    count=1)
-    assert len(aggregator.events) == 0, "There should be no events processed."
-
-
-def test_splunk_partially_incomplete_events(mocked_check, instance, partially_incomplete_events, caplog, aggregator):
-    """Splunk event check should continue processing even when some events are not complete."""
-    # TODO: does this test make sense?
-    run_result = mocked_check.run()
-    assert "Splunk metric failed with message: No saved search was successfully executed" \
-           in run_result, "Check run result should return error message."
-    assert '"msg_title": ["This field is required."]' in caplog.text
-    aggregator.assert_service_check(MockedSplunkEvent.SERVICE_CHECK_NAME,
-                                    status=MockedSplunkEvent.CRITICAL,
-                                    count=1)
-    assert len(aggregator.events) == 0, "There should be no events processed."
-
-
-def test_splunk_full_events(mocked_check, instance, full_events, aggregator, state, transaction):
-    """Splunk event check should process full response correctly."""
-    assert mocked_check.run() == "", "Check run result shouldn't return error message."
-    aggregator.assert_service_check(MockedSplunkEvent.SERVICE_CHECK_NAME,
-                                    status=MockedSplunkEvent.OK,
-                                    count=2)
-
-    assert len(aggregator.events) == 2, "There should be two events processed."
-
-    first_event_data = {
-        'event_type': "some_type",
-        'timestamp': 1488997796.0,
-        'msg_title': "some_title",
-        'source_type_name': 'some_type', }
-    first_event_tags = [
-        "VMName:SWNC7R049",
-        "alarm_name:Virtual machine CPU usage",
-        'from:grey',
-        "full_formatted_message:Alarm 'Virtual machine CPU usage' on SWNC7R049 changed from Gray to Green",
-        "host:172.17.0.1",
-        "key:19964908",
-        "to:green",
-        "checktag:checktagvalue"]
-    aggregator.assert_event(msg_text="some_text", count=1, tags=first_event_tags, **first_event_data)
-
-    second_event_data = {
-        'event_type': "some_type",
-        'timestamp': 1488997797.0,
-        'msg_title': "some_title",
-        'source_type_name': 'some_type',
-    }
-    second_event_tags = [
-        "VMName:SWNC7R049",
-        "alarm_name:Virtual machine memory usage",
-        'from:grey',
-        "full_formatted_message:Alarm 'Virtual machine memory usage' on SWNC7R049 changed from Gray to Green",
-        "host:172.17.0.1",
-        "key:19964909",
-        "to:green",
-        "checktag:checktagvalue",
-    ]
-    aggregator.assert_event(msg_text="some_text", count=1, tags=second_event_tags, **second_event_data)
-
-
-def test_splunk_earliest_time_and_duplicates(splunk_event_check, aggregator):
-    check_result = splunk_event_check.run()
-    assert check_result == ''
     aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME,
                                     status=SplunkEvent.OK,
                                     count=2)
+    assert len(aggregator.events) == 0, "There should be no events."
+
+
+def test_splunk_minimal_events(splunk_event_check, requests_mock, caplog, aggregator):
+    """Splunk event check should process minimal response correctly."""
+    _setup_request_mocks(requests_mock, response_file="minimal_events_response.json")
+    run_result = splunk_event_check.run()
+    assert run_result == "", "Check run result shouldn't return error message."
+    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME,
+                                    status=SplunkEvent.OK,
+                                    count=2)
+    assert len(aggregator.events) == 2, "There should be two events processed."
+
+
+def test_splunk_partially_incomplete_events(splunk_event_check, requests_mock, caplog, aggregator):
+    """Splunk event check should continue processing even when some events are not complete."""
+    _setup_request_mocks(requests_mock, response_file="partially_incomplete_events_response.json")
+    run_result = splunk_event_check.run()
+    assert run_result == "", "Check run result shouldn't return error message."
+    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME,
+                                    status=SplunkEvent.OK,
+                                    count=2)
+    assert len(aggregator.events) == 1, "There should be one event processed."
+
+
+def test_splunk_full_events(splunk_event_check, requests_mock, aggregator):
+    """Splunk event check should process full response correctly."""
+    _setup_request_mocks(requests_mock, response_file="full_events_response.json")
+    run_result = splunk_event_check.run()
+    assert run_result == "", "Check run result shouldn't return error message."
+    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME,
+                                    status=SplunkEvent.OK,
+                                    count=2)
+
+    assert len(aggregator.events) == 2, "There should be two events processed."
+    events = load_json_from_file("full_events_expected.json", "ci/fixtures")
+    for event in events:
+        data = {"msg_title": event["msg_title"], "event_type": event["event_type"]}
+        aggregator.assert_event(msg_text=event["msg_text"], count=1, tags=event["tags"], **data)
+
+
+def test_splunk_default_integration_events(splunk_event_check, aggregator, requests_mock):
+    """Run Splunk event check for saved search `test_events` that is used for integration tests."""
+    _setup_request_mocks(requests_mock, "test_events_response.json")
+    check_result = splunk_event_check.run()
+    assert check_result == '', "No errors when running Splunk check."
+    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME,
+                                    status=SplunkEvent.OK,
+                                    count=2)
+    assert len(aggregator.events) == 4, "There should be four events processed."
+    events = load_json_from_file("test_events_expected.json", "ci/fixtures")
+    for event in events:
+        data = {"msg_title": event["msg_title"], "event_type": event["event_type"]}
+        aggregator.assert_event(msg_text=event["msg_text"], count=1, tags=event["tags"], **data)
+
+
+def _setup_request_mocks(requests_mock, response_file):
+    # type: (Mocker, str) -> None
+    """
+    Splunk client request flow: Basic authentication > List saved searches > Dispatch search > Get search results
+    """
+    # Basic authentication
+    requests_mock.post(
+        url="http://localhost:8089/services/auth/login?output_mode=json",
+        status_code=200,
+        text=json.dumps({"sessionKey": "testSessionKey123", "message": "", "code": ""})
+    )
+    # List saved searches
+    requests_mock.get(
+        url="http://localhost:8089/services/saved/searches?output_mode=json&count=-1",
+        status_code=200,
+        text=json.dumps(
+            {"entry": [{"name": "Errors in the last 24 hours"},
+                       {"name": "Errors in the last hour"},
+                       {"name": "test_events"}],
+             "paging": {"total": 3, "perPage": 18446744073709552000, "offset": 0},
+             "messages": []}
+        )
+    )
+    # Dispatch search and get job's sid
+    requests_mock.post(
+        url="http://localhost:8089/servicesNS/admin/search/saved/searches/test_events/dispatch",
+        status_code=201,
+        text=json.dumps({"sid": "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3"})
+    )
+    # Get search results for job
+    requests_mock.get(
+        url="http://localhost:8089/servicesNS/-/-/search/jobs/"
+            "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/results?output_mode=json&offset=0&count=1000",
+        status_code=200,
+        text=read_file(response_file, "ci/fixtures")
+    )
