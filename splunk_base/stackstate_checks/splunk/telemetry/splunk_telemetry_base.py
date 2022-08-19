@@ -21,7 +21,7 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
     def __init__(self, name, init_config, agent_config, instances=None):
         super(SplunkTelemetryBase, self).__init__(name, init_config, agent_config, instances)
         # Data to keep over check runs
-        self.instance_data = dict()
+        self.instance_data = None
 
         self.collect_ok = True  # TODO: Melcom - Verify
         self.continue_after_commit = True  # TODO: Melcom - Verify
@@ -33,10 +33,9 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
         raise NotImplementedError
 
     def transactional_check(self, instance, transactional_state, persistent_state):
-        current_time = self._current_time_seconds()
-        url = instance["url"]
 
-        if url not in self.instance_data:
+        current_time = self._current_time_seconds()
+        if not self.instance_data:
             self.instance_data = self.get_instance(instance, current_time)
 
         splunk_persistent_state = SplunkPersistentState(persistent_state)

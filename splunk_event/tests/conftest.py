@@ -1,38 +1,132 @@
 # (C) StackState 2022
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
-import pytest
+import os
+from typing import Dict
 
-from stackstate_checks.base.errors import CheckException
-from .mock import MockedSplunkEvent, MockedSplunkClient
+import pytest
+import requests
+
+from stackstate_checks.dev import docker_run, WaitFor
+from stackstate_checks.splunk.client import SplunkClient
+from stackstate_checks.splunk.config import SplunkInstanceConfig
+from stackstate_checks.splunk_event import SplunkEvent
+from stackstate_checks.splunk_event.splunk_event import default_settings
+from .common import HOST, PORT, USER, PASSWORD
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+
+_empty_instance = {
+    'url': 'http://%s:%s' % (HOST, PORT),
+    'authentication': {
+        'basic_auth': {
+            'username': USER,
+            'password': PASSWORD
+        },
+    },
+    'saved_searches': [],
+    'collection_interval': 15
+}
+
+
+def _connect_to_splunk():
+    SplunkClient(SplunkInstanceConfig(_empty_instance, {}, default_settings)).auth_session({})
 
 
 @pytest.fixture(scope='session')
-def sts_environment():
-    # This conf instance is used when running `checksdev env start mycheck myenv`.
-    # The start command places this as a `conf.yaml` in the `conf.d/mycheck/` directory.
-    # If you want to run an environment this object can not be empty.
-    return {"key": "value"}
+def test_environment():
+    """
+    Start a standalone splunk server requiring authentication.
+    """
+    with docker_run(
+            os.path.join(HERE, 'compose', 'docker-compose.yaml'),
+            conditions=[WaitFor(_connect_to_splunk)],
+    ):
+        yield True
 
 
-@pytest.fixture
-def instance():
-    return {
-        'url': 'http://localhost:8089',
+# this fixture is used for checksdev env start
+@pytest.fixture(scope='session')
+def sts_environment(test_environment):
+    """
+    This fixture is used for checksdev env start.
+    """
+    url = 'http://%s:%s' % (HOST, PORT)
+    yield {
+        'url': url,
         'authentication': {
             'basic_auth': {
-                'username': "admin",
-                'password': "admin"
-            }
+                'username': USER,
+                'password': PASSWORD
+            },
         },
-        'saved_searches': [],
-        'tags': []
+        'saved_searches': [{
+            "name": _make_event_fixture(url, USER, PASSWORD),
+        }],
+        'collection_interval': 15
     }
 
 
 @pytest.fixture
-def mocked_check(instance, aggregator, state, transaction):
-    check = MockedSplunkEvent("splunk_event", {}, {}, [instance])
+def integration_test_instance():
+    url = 'http://%s:%s' % (HOST, PORT)
+    return {
+        'url': url,
+        'authentication': {
+            'basic_auth': {
+                'username': USER,
+                'password': PASSWORD
+            },
+        },
+        'saved_searches': [{
+            "name": _make_event_fixture(url, USER, PASSWORD),
+        }],
+        'collection_interval': 15
+    }
+
+
+def _make_event_fixture(url, user, password):
+    # type: (str, str, str) -> str
+    """
+    Send requests to a Splunk instance for creating `test_events` search.
+    The Splunk started with Docker Compose command when we run integration tests.
+    """
+    search_name = 'test_events'
+    source_type = "sts_test_data"
+
+    # Delete first to avoid 409 in case of tearing down the `checksdev env stop`
+    requests.delete("%s/services/saved/searches/%s" % (url, search_name), auth=(user, password))
+
+    requests.post("%s/services/saved/searches" % url,
+                  data={"name": search_name,
+                        "search": 'sourcetype="sts_test_data" '
+                                  '| eval status = upper(status) '
+                                  '| search status=critical OR status=error OR status=warning OR status=ok '
+                                  '| table _time _bkt _cd host status description'},
+                  auth=(user, password)).raise_for_status()
+    requests.post("%s/services/receivers/simple" % url,
+                  params={"host": "host01", "sourcetype": source_type},
+                  json={"status": "OK", "description": "host01 test ok event"},
+                  auth=(user, password)).raise_for_status()
+    requests.post("%s/services/receivers/simple" % url,
+                  params={"host": "host02", "sourcetype": source_type},
+                  json={"status": "CRITICAL", "description": "host02 test critical event"},
+                  auth=(user, password)).raise_for_status(),
+    requests.post("%s/services/receivers/simple" % url,
+                  params={"host": "host03", "sourcetype": source_type},
+                  json={"status": "error", "description": "host03 test error event"},
+                  auth=(user, password)).raise_for_status(),
+    requests.post("%s/services/receivers/simple" % url,
+                  params={"host": "host04", "sourcetype": source_type},
+                  json={"status": "warning", "description": "host04 test warning event"},
+                  auth=(user, password)).raise_for_status()
+
+    return search_name
+
+
+@pytest.fixture
+def splunk_event_check(unit_test_instance, aggregator, state, transaction):
+    check = SplunkEvent("splunk", {}, {}, [unit_test_instance])
     yield check
     aggregator.reset()
     state.reset()
@@ -40,78 +134,26 @@ def mocked_check(instance, aggregator, state, transaction):
 
 
 @pytest.fixture
-def fatal_error(instance):
-    instance['saved_searches'] = [{
-        "name": "error",
-        "parameters": {}
-    }]
-
-
-@pytest.fixture
-def empty_result(instance):
-    instance['saved_searches'] = [{
-        "name": "empty",
-        "parameters": {}
-    }]
-
-
-@pytest.fixture
-def minimal_events(instance):
-    instance['saved_searches'] = [{
-        "name": "minimal_events",
-        "parameters": {}
-    }]
-
-
-@pytest.fixture
-def full_events(instance):
-    instance['saved_searches'] = [{
-        "name": "full_events",
-        "parameters": {}
-    }]
-    instance['tags'] = ["checktag:checktagvalue"]
-
-
-@pytest.fixture
-def partially_incomplete_events(instance):
-    instance['saved_searches'] = [{
-        "name": "partially_incomplete_events",
-        "parameters": {}
-    }]
-
-
-@pytest.fixture(scope="function")
-def earliest_time_and_duplicates(instance, monkeypatch):
-    instance['saved_searches'] = [{
-        "name": "poll",
-        "parameters": {},
-        "batch_size": 2
-    }]
-    instance['tags'] = ["checktag:checktagvalue"]
-
-    test_data = {
-        "expected_searches": ["poll"],
-        "sid": "",
-        "time": 0,
-        "earliest_time": "",
-        "throw": False
+def unit_test_instance():
+    return {
+        'url': 'http://localhost:8089',
+        'authentication': {
+            'basic_auth': {
+                'username': "admin",
+                'password': "admin12345"
+            }
+        },
+        'saved_searches': [
+            {
+                "name": "test_events",
+                "parameters": {},
+            }
+        ],
+        'tags': []
     }
 
-    def _mocked_current_time_seconds():
-        return test_data["time"]
 
-    def _mocked_dispatch(saved_search, splunk_app, ignore_saved_search_errors, parameters):
-        if test_data["throw"]:
-            raise CheckException("Is broke it")
-        earliest_time = parameters['dispatch.earliest_time']
-        if test_data["earliest_time"] != "":
-            assert earliest_time == test_data["earliest_time"]
-
-        ignore_saved_search_flag = ignore_saved_search_errors
-        # make sure to ignore search flag is always false
-        assert ignore_saved_search_flag is False
-
-        return test_data["sid"]
-
-    monkeypatch.setattr(MockedSplunkClient, "dispatch", _mocked_dispatch)
-    monkeypatch.setattr(MockedSplunkEvent, "_current_time_seconds", _mocked_current_time_seconds)
+def extract_title_and_type_from_event(event):
+    # type: (Dict) -> Dict
+    """Extracts event title and type. Method call aggregator.assert_event needs event fields as **kwargs parameter."""
+    return {"msg_title": event["msg_title"], "event_type": event["event_type"]}

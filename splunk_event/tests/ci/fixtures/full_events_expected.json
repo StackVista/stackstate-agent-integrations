@@ -1,0 +1,34 @@
+[
+  {
+    "event_type": "some_type",
+    "source_type_name": "some_type",
+    "msg_title": "some_title",
+    "msg_text": "some_text",
+    "tags": [
+      "VMName:SWNC7R049",
+      "alarm_name:Virtual machine CPU usage",
+      "from:grey",
+      "full_formatted_message:Alarm 'Virtual machine CPU usage' on SWNC7R049 changed from Gray to Green",
+      "host:172.17.0.1",
+      "key:19964908",
+      "to:green"
+    ],
+    "timestamp": 1488997796
+  },
+  {
+    "event_type": "some_type",
+    "source_type_name": "some_type",
+    "msg_title": "some_title",
+    "msg_text": "some_text",
+    "tags": [
+      "VMName:SWNC7R049",
+      "alarm_name:Virtual machine memory usage",
+      "from:grey",
+      "full_formatted_message:Alarm 'Virtual machine memory usage' on SWNC7R049 changed from Gray to Green",
+      "host:172.17.0.1",
+      "key:19964909",
+      "to:green"
+    ],
+    "timestamp": 1488997797
+  }
+]
