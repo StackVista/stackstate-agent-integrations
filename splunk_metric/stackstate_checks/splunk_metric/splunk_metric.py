@@ -42,6 +42,7 @@ class MetricSavedSearch(SplunkTelemetrySavedSearch):
 
 
 class SplunkMetric(SplunkTelemetryBase):
+    CHECK_NAME = "splunk.metric_information"
     SERVICE_CHECK_NAME = "splunk.metric_information"
 
     def __init__(self, name, init_config, agent_config, instances=None):

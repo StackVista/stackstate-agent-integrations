@@ -68,12 +68,12 @@ class SplunkInstanceConfig(object):
             authentication = instance["authentication"]
             if 'token_auth' in authentication and authentication.token_auth is not None:
                 token_auth = authentication["token_auth"]
-                if 'name' not in token_auth:
+                if 'name' not in token_auth or token_auth['name'] is None:
                     raise CheckException('Instance missing "authentication.token_auth.name" value')
-                if 'initial_token' not in token_auth:
+                if 'initial_token' not in token_auth or token_auth['initial_token'] is None:
                     raise CheckException('Instance missing "authentication.token_auth.initial_token" '
                                          'value')
-                if 'audience' not in token_auth:
+                if 'audience' not in token_auth or token_auth['audience'] is None:
                     raise CheckException('Instance missing "authentication.token_auth.audience" value')
                 self.auth_type = AuthType.TokenAuth
                 self.audience = token_auth.get("audience")
@@ -83,9 +83,9 @@ class SplunkInstanceConfig(object):
                 self.renewal_days = token_auth.get("renewal_days", 10)
             elif 'basic_auth' in authentication and authentication.basic_auth is not None:
                 basic_auth = authentication["basic_auth"]
-                if 'username' not in basic_auth:
+                if 'username' not in basic_auth or basic_auth['username'] is None:
                     raise CheckException('Instance missing "authentication.basic_auth.username" value')
-                if 'password' not in basic_auth:
+                if 'password' not in basic_auth or basic_auth['password'] is None:
                     raise CheckException('Instance missing "authentication.basic_auth.password" value')
                 self.auth_type = AuthType.BasicAuth
                 self.username = basic_auth.get("username")
@@ -117,10 +117,10 @@ class SplunkInstanceConfig(object):
 
 class SplunkSavedSearch(object):
     def __init__(self, instance_config, saved_search_instance):
-        if "name" in saved_search_instance:
+        if "name" in saved_search_instance and saved_search_instance["name"] is not None:
             self.name = saved_search_instance['name']
             self.match = None
-        elif "match" in saved_search_instance:
+        elif "match" in saved_search_instance and saved_search_instance["match"] is not None:
             self.match = saved_search_instance['match']
             self.name = None
         else:

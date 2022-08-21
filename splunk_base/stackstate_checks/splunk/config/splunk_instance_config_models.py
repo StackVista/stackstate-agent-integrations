@@ -16,7 +16,8 @@ class PickleModel(Model):
 
 
 class SplunkConfigSavedSearchDefault(PickleModel):
-    name = StringType(required=True)
+    name = StringType(default=None)
+    match = StringType(default=None)
     parameters = DictType(BaseType, default={"force_dispatch": True, "dispatch.now": True})
     request_timeout_seconds = IntType(default=5)
     search_max_retry_count = IntType(default=3)
@@ -64,6 +65,8 @@ class SplunkConfigInstance(PickleModel):
     url = StringType(required=True)
     tags = ListType(StringType, required=True)
     authentication = ModelType(SplunkConfigAuthentication, required=True)
+    saved_searches_parallel = IntType(default=3)
+    ignore_saved_search_errors = BooleanType(default=False)
     saved_searches = ListType(PolyModelType([SplunkConfigSavedSearchDefault, SplunkConfigSavedSearchAlternativeFields,
                                              SplunkConfigSavedSearchAlternativeFields2]), required=True)
 

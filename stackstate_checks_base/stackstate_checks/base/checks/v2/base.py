@@ -106,6 +106,7 @@ class AgentCheckV2Base(AgentCheck):
             msg = "{} check was processed successfully".format(self.name)
             self.service_check(self.name, AgentCheck.OK, tags=instance_tags, message=msg)
         except Exception as e:
+            self.log.debug("AgentCheckV2Base Base Exception")
             result = json.dumps([
                 {
                     "message": str(e),
@@ -113,6 +114,7 @@ class AgentCheckV2Base(AgentCheck):
                 }
             ])
             self.log.exception(str(e))
+            self.log.debug("Creating AgentCheck.CRITICAL service check")
             self.service_check(self.name, AgentCheck.CRITICAL, tags=instance_tags, message=str(e))
         finally:
             if self.metric_limiter:

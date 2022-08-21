@@ -44,7 +44,7 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
 
         # Skip the splunk check if the initial time has not passed
         if not instance.initial_time_done(current_time):
-            self.log.debug("Skipping splunk metric/event instance %s, waiting for initial time to expire" % url)
+            self.log.debug("Skipping splunk metric/event instance %s, waiting for initial time to expire")
 
             # Return the original transactional state and persistent state
             return CheckResponse(transactional_state=transactional_state,
