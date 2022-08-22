@@ -641,7 +641,7 @@ def continue_after_restart(splunk_config, splunk_instance_basic_auth, mock_splun
     return check, test_data
 
 
-# TODO:
+# Busy
 @pytest.fixture
 def query_initial_history(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, mock_splunk_metric):
     # type: (logging.Logger, Mocker, SplunkConfig, SplunkConfigInstance, Type[MockSplunkMetric]) -> Tuple[MockSplunkMetric, dict[str, any]]
