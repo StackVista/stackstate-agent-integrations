@@ -326,30 +326,32 @@ def full_metrics(splunk_config, splunk_instance_basic_auth, mock_splunk_metric):
 
 
 @pytest.fixture
-def alternative_fields_metrics(splunk_config, splunk_instance_basic_auth, mock_splunk_metric):
-    # type: (SplunkConfig, SplunkConfigInstance, Type[MockSplunkMetric]) -> MockSplunkMetric
+def alternative_fields_metrics(get_logger, requests_mock, splunk_config, splunk_instance_basic_auth, splunk_metric):
+    # type: (logging.Logger, Mocker, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+    splunk_config_name = 'alternative_fields_metrics'
 
-    splunk_instance_basic_auth.tags = []  # Splunk Config Tags
+    # Mock the HTTP Requests
+    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
 
-    splunk_instance_basic_auth.saved_searches = [  # Splunk Saved Searches
+    # Set the splunk saved searches
+    splunk_instance_basic_auth.saved_searches = [
         SplunkConfigSavedSearchAlternativeFields({
-            "name": "alternative_fields_metrics",
+            "name": splunk_config_name,
             "metric_name_field": "mymetric",
             "metric_value_field": "myvalue"
         })
     ]
 
+    # Add the splunk instance into the config instances
     splunk_config.instances.append(splunk_instance_basic_auth)
+
+    # Validate the config, authentication and saved_search data we are sending
     splunk_config.validate()
 
-    check = mock_splunk_metric("metric-check-name", splunk_config.init_config, {}, splunk_config.instances, {
-        'auth_session': mock_auth_session,
-        '_dispatch_saved_search': mock_dispatch_saved_search,
-        'saved_search_results': mock_search,
-        'saved_searches': mock_saved_searches,
-    })
+    check = splunk_metric("metric-check-name", splunk_config.init_config, {}, splunk_config.instances)
 
-    check.check_id = "splunk_alternative_fields_metrics"
+    # We set the check id to the current function name to prevent a blank check id
+    check.check_id = inspect.stack()[0][3]
 
     return check
 
