@@ -17,24 +17,26 @@ from stackstate_checks.splunk_event import SplunkEvent
 from stackstate_checks.splunk_event.splunk_event import default_settings
 from .common import HOST, PORT, USER, PASSWORD
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-
-_empty_instance = {
-    'url': 'http://%s:%s' % (HOST, PORT),
-    'authentication': {
-        'basic_auth': {
-            'username': USER,
-            'password': PASSWORD
-        },
-    },
-    'saved_searches': [],
-    'collection_interval': 15
-}
-
 
 def _connect_to_splunk():
     # type: () -> None
-    SplunkClient(SplunkInstanceConfig(_empty_instance, {}, default_settings)).auth_session({})
+    SplunkClient(
+        SplunkInstanceConfig(
+            {
+                'url': 'http://%s:%s' % (HOST, PORT),
+                'authentication': {
+                    'basic_auth': {
+                        'username': USER,
+                        'password': PASSWORD
+                    },
+                },
+                'saved_searches': [],
+                'collection_interval': 15
+            },
+            {},
+            default_settings
+        )
+    ).auth_session({})
 
 
 @pytest.fixture(scope='session')
@@ -44,7 +46,7 @@ def test_environment():
     Start a standalone splunk server requiring authentication.
     """
     with docker_run(
-            os.path.join(HERE, 'compose', 'docker-compose.yaml'),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'compose', 'docker-compose.yaml'),
             conditions=[WaitFor(_connect_to_splunk)],
     ):
         yield True
