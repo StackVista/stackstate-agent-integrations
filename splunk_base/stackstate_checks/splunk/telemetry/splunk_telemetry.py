@@ -1,5 +1,8 @@
+import logging
+
 from stackstate_checks.splunk.client import SplunkClient
 from stackstate_checks.splunk.config import SplunkSavedSearch
+from stackstate_checks.base import TopologyInstance
 
 
 class SplunkTelemetrySavedSearch(SplunkSavedSearch):
@@ -31,9 +34,11 @@ class SplunkTelemetrySavedSearch(SplunkSavedSearch):
         """
         :return: Return a tuple of the last time until which the query was ran, and whether this was based on history
         """
-        print("self.last_recover_latest_time_epoch_seconds", self.last_recover_latest_time_epoch_seconds)
-        print("self.last_observed_timestamp", self.last_observed_timestamp)
-        print("------------------------------------------")
+        log = logging.getLogger('{}.{}'.format(__name__, "metric-check-name"))
+        log.debug("------------------------------------------")
+        log.debug("self.last_recover_latest_time_epoch_seconds: %s" % str(self.last_recover_latest_time_epoch_seconds))
+        log.debug("self.last_observed_timestamp: %s" % str(self.last_observed_timestamp))
+        log.debug("------------------------------------------")
 
         if self.last_recover_latest_time_epoch_seconds is None:
             # If there is not catching up to do, the status is as far as the last event time
@@ -91,7 +96,8 @@ class SplunkTelemetryInstance(object):
         return status_dict, has_history
 
     def get_search_data(self, data, search):
-        instance_key = self.instance_config.base_url
+        instance_key = TopologyInstance(SplunkTelemetryInstance.INSTANCE_TYPE, self.instance_config.base_url).to_string()
+
         if instance_key in data and search in data[instance_key]:
             return data[instance_key][search]
         else:
