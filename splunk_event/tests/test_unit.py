@@ -202,7 +202,7 @@ def _job_results_mock(requests_mock, response_file, job_results_url=None):
 
 
 def _finalize_search_job_mock(requests_mock):
-    "http://localhost:8089/services/search/jobs/admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/control?output_mode=json"
+    # type: (Mocker) -> None
     requests_mock.post(url="http://localhost:8089/services/search/jobs/"
                            "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/control?output_mode=json",
                        status_code=200,
