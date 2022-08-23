@@ -566,7 +566,7 @@ def continue_after_restart(requests_mock, get_logger, splunk_config, splunk_inst
 
     # Mock the HTTP Requests
     _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
-                   finalize_search_id=splunk_config_name)
+                   finalize_search_id="stackstate_checks.base.checks.base.metric-check-name")
 
     # Set the splunk tags
     splunk_instance_basic_auth.tags = ["checktag:checktagvalue"]
@@ -599,6 +599,7 @@ def continue_after_restart(requests_mock, get_logger, splunk_config, splunk_inst
         "latest_time": None
     }
 
+    # Mocking this forces a _dispatch_saved_search event without this is does not run
     def mock_dispatch_saved_search_dispatch(*args, **kwargs):
         # TODO: Melcom
         # earliest_time = args[5]['dispatch.earliest_time']
@@ -611,8 +612,7 @@ def continue_after_restart(requests_mock, get_logger, splunk_config, splunk_inst
         #     self.assertTrue('dispatch.latest_time' not in args[5])
         # elif test_data["latest_time"] != "":
         #     self.assertEquals(args[5]['dispatch.latest_time'], test_data["latest_time"])
-
-        return "empty"
+        return splunk_config_name
 
     check = mock_splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances, {
         'dispatch': mock_dispatch_saved_search_dispatch,

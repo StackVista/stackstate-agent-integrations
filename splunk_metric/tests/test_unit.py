@@ -297,26 +297,29 @@ def test_continue_after_restart(continue_after_restart, telemetry, aggregator):
             check_response = check.run()
 
             assert check_response == '', "The check run cycle SHOULD NOT produce a error"
-
             assert check.continue_after_commit is True
 
-            # service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
-            # telemetry.assert_total_metrics(0)
-            # assert len(service_checks) == 3
-            # assert service_checks[0].status == AgentCheck.OK
+            telemetry.assert_total_metrics(0)
 
-        # telemetry.reset()
-        # aggregator.reset()
-        #
-        # # Now continue with real-time polling (the earliest time taken from last event or last restart chunk)
-        # test_data["earliest_time"] = '2017-03-08T01:00:01.000000+0000'
-        # test_data["latest_time"] = None
-        #
-        # check_response = check.run()
-        #
-        # assert check_response == '', "The check run cycle SHOULD NOT produce a error"
-        # assert check.continue_after_commit is False, \
-        #     "As long as we are not done with history, the check should continue"
+            service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
+
+            assert len(service_checks) == 3
+            assert service_checks[0].status == AgentCheck.OK
+
+        telemetry.reset()
+        aggregator.reset()
+
+        print(">>>>>>>> ---------- <<<<<<<<<")
+
+        # Now continue with real-time polling (the earliest time taken from last event or last restart chunk)
+        test_data["earliest_time"] = '2017-03-08T01:00:01.000000+0000'
+        test_data["latest_time"] = None
+
+        check_response = check.run()
+
+        assert check_response == '', "The check run cycle SHOULD NOT produce a error"
+        assert check.continue_after_commit is False, \
+            "As long as we are not done with history, the check should continue"
 
 
 # TODO: Melcom - Contains a error

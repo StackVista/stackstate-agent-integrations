@@ -3,12 +3,10 @@
 """
 
 # 3rd party
-# from stackstate_checks.splunk.client import SplunkClient
 from stackstate_checks.splunk.config.splunk_instance_config import SplunkTelemetryInstanceConfig
-# from stackstate_checks.splunk.saved_search_helper import SavedSearches
 from stackstate_checks.splunk.telemetry.splunk_telemetry import SplunkTelemetrySavedSearch, SplunkTelemetryInstance
 from stackstate_checks.splunk.telemetry.splunk_telemetry_base import SplunkTelemetryBase
-from stackstate_checks.splunk.saved_search_helper import SavedSearches
+from stackstate_checks.splunk.saved_search_helper import SavedSearchesTelemetry
 
 
 class MetricSavedSearch(SplunkTelemetrySavedSearch):
@@ -81,4 +79,4 @@ class SplunkMetric(SplunkTelemetryBase):
 
     def _build_instance(self, current_time, instance, metric_instance_config, _create_saved_search):
         return SplunkTelemetryInstance(current_time, instance, metric_instance_config,
-                                       _create_saved_search, SavedSearches)
+                                       _create_saved_search, SavedSearchesTelemetry)
