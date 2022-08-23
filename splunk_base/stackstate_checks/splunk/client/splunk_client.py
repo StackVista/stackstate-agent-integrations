@@ -210,7 +210,7 @@ class SplunkClient(object):
         while nr_of_results is None or nr_of_results == saved_search.batch_size:
             response = self._search_chunk(saved_search, search_id, offset, saved_search.batch_size)
             # received a message?
-            for message in response['messages']:
+            for message in response.get('messages', []):
                 if message['type'] == "FATAL":
                     raise CheckException("Received FATAL exception from Splunk, got: " + message['text'])
 
@@ -248,7 +248,7 @@ class SplunkClient(object):
         :param search_id: The saved search id to finish
         :param saved_search: The saved search to finish
         """
-        finish_path = '/services/search/jobs/%s/control' % (search_id)
+        finish_path = '/services/search/jobs/%s/control?output_mode=json' % search_id
         payload = "action=finalize"
         try:
             res = self._do_post(finish_path,

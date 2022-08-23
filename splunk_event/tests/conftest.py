@@ -2,11 +2,14 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import os
-from typing import Dict
+from typing import Dict, Generator
 
 import pytest
 import requests
 
+from stackstate_checks.base.stubs.aggregator import AggregatorStub
+from stackstate_checks.base.stubs.state import StateStub
+from stackstate_checks.base.stubs.transaction import TransactionStub
 from stackstate_checks.dev import docker_run, WaitFor
 from stackstate_checks.splunk.client import SplunkClient
 from stackstate_checks.splunk.config import SplunkInstanceConfig
@@ -30,11 +33,13 @@ _empty_instance = {
 
 
 def _connect_to_splunk():
+    # type: () -> None
     SplunkClient(SplunkInstanceConfig(_empty_instance, {}, default_settings)).auth_session({})
 
 
 @pytest.fixture(scope='session')
 def test_environment():
+    # type: () -> Generator
     """
     Start a standalone splunk server requiring authentication.
     """
@@ -48,6 +53,7 @@ def test_environment():
 # this fixture is used for checksdev env start
 @pytest.fixture(scope='session')
 def sts_environment(test_environment):
+    # type: (Generator) -> Dict
     """
     This fixture is used for checksdev env start.
     """
@@ -69,6 +75,7 @@ def sts_environment(test_environment):
 
 @pytest.fixture
 def integration_test_instance():
+    # type: () -> Dict
     url = 'http://%s:%s' % (HOST, PORT)
     return {
         'url': url,
@@ -126,6 +133,7 @@ def _make_event_fixture(url, user, password):
 
 @pytest.fixture
 def splunk_event_check(unit_test_instance, aggregator, state, transaction):
+    # type: (Dict, AggregatorStub, StateStub, TransactionStub) -> SplunkEvent
     check = SplunkEvent("splunk", {}, {}, [unit_test_instance])
     yield check
     aggregator.reset()
@@ -135,22 +143,29 @@ def splunk_event_check(unit_test_instance, aggregator, state, transaction):
 
 @pytest.fixture
 def unit_test_instance():
+    # type: () -> Dict
     return {
-        'url': 'http://localhost:8089',
-        'authentication': {
-            'basic_auth': {
-                'username': "admin",
-                'password': "admin12345"
+        "url": "http://localhost:8089",
+        "authentication": {
+            "basic_auth": {
+                "username": "admin",
+                "password": "admin12345"
             }
         },
-        'saved_searches': [
+        "saved_searches": [
             {
                 "name": "test_events",
                 "parameters": {},
             }
         ],
-        'tags': []
+        "tags": []
     }
+
+
+@pytest.fixture
+def batch_size_2(unit_test_instance):
+    # type: (Dict) -> None
+    unit_test_instance["saved_searches"][0]["batch_size"] = 2
 
 
 def extract_title_and_type_from_event(event):
