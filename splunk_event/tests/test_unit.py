@@ -16,8 +16,23 @@ from .conftest import extract_title_and_type_from_event
 pytestmark = pytest.mark.unit
 
 
+def test_splunk_default_integration_events(splunk_event_check, aggregator, requests_mock):
+    """
+    Run Splunk event check for saved search `test_events` that is used for integration tests.
+    """
+    _common_requests_mocks(requests_mock)
+    _job_results_mock(requests_mock, response_file="test_events_response.json")
+    check_result = splunk_event_check.run()
+    assert check_result == "", "No errors when running Splunk check."
+    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=2)
+    assert len(aggregator.events) == 4, "There should be four events processed."
+    for event in load_json_from_file("test_events_expected.json", "ci/fixtures"):
+        aggregator.assert_event(msg_text=event["msg_text"], count=1, tags=event["tags"],
+                                **extract_title_and_type_from_event(event))
+
+
 def test_splunk_error_response(splunk_event_check, requests_mock, caplog, aggregator):
-    """Splunk event check should handle a FATAL message response."""
+    """ Splunk event check should handle a FATAL message response. """
     _common_requests_mocks(requests_mock)
     _job_results_mock(requests_mock, response_file="error_response.json")
     run_result = splunk_event_check.run()
@@ -29,7 +44,7 @@ def test_splunk_error_response(splunk_event_check, requests_mock, caplog, aggreg
 
 
 def test_splunk_empty_events(splunk_event_check, requests_mock, aggregator):
-    """Splunk event check should process empty response correctly."""
+    """ Splunk event check should process empty response correctly. """
     _common_requests_mocks(requests_mock)
     _job_results_mock(requests_mock, response_file="empty_response.json")
     run_result = splunk_event_check.run()
@@ -39,7 +54,7 @@ def test_splunk_empty_events(splunk_event_check, requests_mock, aggregator):
 
 
 def test_splunk_minimal_events(splunk_event_check, requests_mock, caplog, aggregator):
-    """Splunk event check should process minimal response correctly."""
+    """ Splunk event check should process minimal response correctly. """
     _common_requests_mocks(requests_mock)
     _job_results_mock(requests_mock, response_file="minimal_events_response.json")
     run_result = splunk_event_check.run()
@@ -52,7 +67,9 @@ def test_splunk_minimal_events(splunk_event_check, requests_mock, caplog, aggreg
 
 
 def test_splunk_partially_incomplete_events(splunk_event_check, requests_mock, caplog, aggregator):
-    """Splunk event check should continue processing even when some events are not complete."""
+    """
+    Splunk event check should continue processing even when some events are not complete.
+    """
     _common_requests_mocks(requests_mock)
     _job_results_mock(requests_mock, response_file="partially_incomplete_events_response.json")
     run_result = splunk_event_check.run()
@@ -65,7 +82,9 @@ def test_splunk_partially_incomplete_events(splunk_event_check, requests_mock, c
 
 
 def test_splunk_full_events(splunk_event_check, requests_mock, aggregator):
-    """Splunk event check should process full response correctly."""
+    """
+    Splunk event check should process full response correctly.
+    """
     _common_requests_mocks(requests_mock)
     _job_results_mock(requests_mock, response_file="full_events_response.json")
     run_result = splunk_event_check.run()
@@ -78,20 +97,10 @@ def test_splunk_full_events(splunk_event_check, requests_mock, aggregator):
                                 **extract_title_and_type_from_event(event))
 
 
-def test_splunk_default_integration_events(splunk_event_check, aggregator, requests_mock):
-    """Run Splunk event check for saved search `test_events` that is used for integration tests."""
-    _common_requests_mocks(requests_mock)
-    _job_results_mock(requests_mock, response_file="test_events_response.json")
-    check_result = splunk_event_check.run()
-    assert check_result == "", "No errors when running Splunk check."
-    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=2)
-    assert len(aggregator.events) == 4, "There should be four events processed."
-    for event in load_json_from_file("test_events_expected.json", "ci/fixtures"):
-        aggregator.assert_event(msg_text=event["msg_text"], count=1, tags=event["tags"],
-                                **extract_title_and_type_from_event(event))
-
-
 def test_splunk_earliest_time_and_duplicates(splunk_event_check, requests_mock, batch_size_2, aggregator, caplog):
+    """
+    Splunk event check should poll batches responses.
+    """
     # Initial run
     with freeze_time("2017-03-08 18:29:59"):
         _common_requests_mocks(requests_mock)
@@ -106,7 +115,7 @@ def test_splunk_earliest_time_and_duplicates(splunk_event_check, requests_mock, 
                                           "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/results?"
                                           "output_mode=json&offset=2&count=2")
         _job_results_mock(requests_mock,
-                          response_file="batch_poll1_3_response.json",
+                          response_file="batch_last_response.json",
                           job_results_url="http://localhost:8089/servicesNS/-/-/search/jobs/"
                                           "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/results?"
                                           "output_mode=json&offset=4&count=2")
@@ -127,7 +136,7 @@ def test_splunk_earliest_time_and_duplicates(splunk_event_check, requests_mock, 
                                           "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/results?"
                                           "output_mode=json&offset=0&count=2")
         _job_results_mock(requests_mock,
-                          response_file="batch_poll2_2_response.json",
+                          response_file="batch_last_response.json",
                           job_results_url="http://localhost:8089/servicesNS/-/-/search/jobs/"
                                           "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/results?"
                                           "output_mode=json&offset=2&count=2")
@@ -155,6 +164,9 @@ def test_splunk_earliest_time_and_duplicates(splunk_event_check, requests_mock, 
 
 
 def test_splunk_delay_first_time(splunk_event_check, requests_mock, initial_delay_60_seconds, aggregator):
+    """
+    Splunk event check should only start polling after the specified time.
+    """
     _common_requests_mocks(requests_mock)
     _job_results_mock(requests_mock, response_file="minimal_events_response.json")
     with freeze_time("2022-08-23 12:00:01"):
@@ -171,6 +183,30 @@ def test_splunk_delay_first_time(splunk_event_check, requests_mock, initial_dela
         assert len(aggregator.events) == 2
 
 
+def test_splunk_deduplicate_events_in_the_same_run(splunk_event_check, requests_mock, batch_size_2, aggregator):
+    """
+    Splunk event check should deduplicate events.
+    """
+    _common_requests_mocks(requests_mock)
+    _job_results_mock(
+        requests_mock,
+        response_file="batch_no_dup_response.json",
+        job_results_url="http://localhost:8089/servicesNS/-/-/search/jobs/"
+                        "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/results?"
+                        "output_mode=json&offset=0&count=2")
+    _job_results_mock(
+        requests_mock,
+        response_file="batch_last_response.json",
+        job_results_url="http://localhost:8089/servicesNS/-/-/search/jobs/"
+                        "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/results?"
+                        "output_mode=json&offset=2&count=2")
+    check_result = splunk_event_check.run()
+    assert check_result == "", "No errors when running Splunk check."
+    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=2)
+    assert len(aggregator.events) == 2, "There should be two events processed."
+    assert [e["event_type"] for e in aggregator.events] == ["1", "2"]
+
+
 def _common_requests_mocks(requests_mock):
     # type: (Mocker) -> None
     """
@@ -181,7 +217,7 @@ def _common_requests_mocks(requests_mock):
     requests_mock.post(
         url="http://localhost:8089/services/auth/login?output_mode=json",
         status_code=200,
-        text=json.dumps({"sessionKey": "testSessionKey123", "message": "", "code": ""})
+        text='{"sessionKey": "testSessionKey123", "message": "", "code": ""}'
     )
     # List saved searches
     requests_mock.get(
@@ -199,7 +235,7 @@ def _common_requests_mocks(requests_mock):
     requests_mock.post(
         url="http://localhost:8089/servicesNS/admin/search/saved/searches/test_events/dispatch",
         status_code=201,
-        text=json.dumps({"sid": "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3"})
+        text='{"sid": "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3"}'
     )
 
 
@@ -219,7 +255,9 @@ def _job_results_mock(requests_mock, response_file, job_results_url=None):
 
 def _finalize_search_job_mock(requests_mock):
     # type: (Mocker) -> None
-    requests_mock.post(url="http://localhost:8089/services/search/jobs/"
-                           "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/control?output_mode=json",
-                       status_code=200,
-                       text='{"messages":[{"type":"INFO","text":"Search job finalized."}]}')
+    requests_mock.post(
+        url="http://localhost:8089/services/search/jobs/"
+            "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/control?output_mode=json",
+        status_code=200,
+        text='{"messages":[{"type":"INFO","text":"Search job finalized."}]}'
+    )
