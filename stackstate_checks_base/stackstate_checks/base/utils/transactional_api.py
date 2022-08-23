@@ -9,10 +9,12 @@ from .state_common import validate_state
 
 try:
     import transaction
+    import state
 
     using_stub_transaction = False
 except ImportError:
     from ..stubs import transaction
+    from ..stubs import state
 
     using_stub_transaction = True
 
@@ -52,3 +54,10 @@ class TransactionApi(object):
         """
         state_key = generate_state_key(self.__check._get_instance_key().to_string(), key)
         transaction.set_transaction_state(self.__check, self.__check.check_id, state_key, validate_state(new_state))
+
+        # Stub only functionality
+        # Because transactional state does not have a get and uses the StateApi to get its state in the next run
+        # we need to set this same behaviour over here for testing
+        # To do this we will set State from this transaction
+        if using_stub_transaction:
+            state.set_state(self.__check, self.__check.check_id, state_key, json.dumps(new_state))
