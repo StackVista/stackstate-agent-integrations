@@ -23,8 +23,9 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
         # Data to keep over check runs
         self.instance_data = None
 
-        self.collect_ok = True  # TODO: Melcom - Verify
-        self.continue_after_commit = True  # TODO: Melcom - Verify
+        # TODO: Melcom - Verify These Might Be Old Functionality That Is Not Required
+        self.collect_ok = True
+        self.continue_after_commit = True
 
     def get_instance_key(self, instance):
         return TopologyInstance(SplunkTelemetryInstance.INSTANCE_TYPE, instance["url"])

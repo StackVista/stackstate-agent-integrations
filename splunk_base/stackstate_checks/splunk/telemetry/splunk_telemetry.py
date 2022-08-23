@@ -31,6 +31,10 @@ class SplunkTelemetrySavedSearch(SplunkSavedSearch):
         """
         :return: Return a tuple of the last time until which the query was ran, and whether this was based on history
         """
+        print("self.last_recover_latest_time_epoch_seconds", self.last_recover_latest_time_epoch_seconds)
+        print("self.last_observed_timestamp", self.last_observed_timestamp)
+        print("------------------------------------------")
+
         if self.last_recover_latest_time_epoch_seconds is None:
             # If there is not catching up to do, the status is as far as the last event time
             return self.last_observed_timestamp, False
