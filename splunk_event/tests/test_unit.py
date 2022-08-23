@@ -92,10 +92,9 @@ def test_splunk_default_integration_events(splunk_event_check, aggregator, reque
 
 
 def test_splunk_earliest_time_and_duplicates(splunk_event_check, requests_mock, batch_size_2, aggregator, caplog):
-    _common_requests_mocks(requests_mock)
-
     # Initial run
-    with freeze_time('2017-03-08 18:29:59'):
+    with freeze_time("2017-03-08 18:29:59"):
+        _common_requests_mocks(requests_mock)
         _job_results_mock(requests_mock,
                           response_file="batch_poll1_1_response.json",
                           job_results_url="http://localhost:8089/servicesNS/-/-/search/jobs/"
@@ -117,11 +116,11 @@ def test_splunk_earliest_time_and_duplicates(splunk_event_check, requests_mock, 
         assert len(aggregator.events) == 4, "There should be four events processed."
         assert [e['event_type'] for e in aggregator.events] == ['0_1', '0_2', '1_1', '1_2']
 
-    # TODO: check state and transactions
-    aggregator.reset()
+        # TODO: check state and transactions
+        aggregator.reset()
 
     # Respect earliest_time
-    with freeze_time('2017-03-08 18:30:00'):
+    with freeze_time("2017-03-08 18:30:00"):
         _job_results_mock(requests_mock,
                           response_file="batch_poll2_1_response.json",
                           job_results_url="http://localhost:8089/servicesNS/-/-/search/jobs/"
@@ -138,21 +137,38 @@ def test_splunk_earliest_time_and_duplicates(splunk_event_check, requests_mock, 
         assert len(aggregator.events) == 1, "There should be one event processed."
         assert [e['event_type'] for e in aggregator.events] == ['2_1']
 
-    # TODO: check state and transactions
-    aggregator.reset()
+        # TODO: check state and transactions
+        aggregator.reset()
 
-    # Throw exception during search
-    _job_results_mock(requests_mock,
-                      response_file="error_response.json",
-                      job_results_url="http://localhost:8089/servicesNS/-/-/search/jobs/"
-                                      "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/results?"
-                                      "output_mode=json&offset=0&count=2")
-    run_result_03 = splunk_event_check.run()
-    assert "Splunk metric failed with message: No saved search was successfully" \
-           in run_result_03, "Check run result should return error message."
-    assert "FATAL exception from Splunk" in caplog.text, "Splunk sends FATAL message."
-    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.CRITICAL, count=1)
-    assert len(aggregator.events) == 0, "There should be no events processed."
+        # Throw exception during search
+        _job_results_mock(requests_mock,
+                          response_file="error_response.json",
+                          job_results_url="http://localhost:8089/servicesNS/-/-/search/jobs/"
+                                          "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/results?"
+                                          "output_mode=json&offset=0&count=2")
+        run_result_03 = splunk_event_check.run()
+        assert "Splunk metric failed with message: No saved search was successfully" \
+               in run_result_03, "Check run result should return error message."
+        assert "FATAL exception from Splunk" in caplog.text, "Splunk sends FATAL message."
+        aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.CRITICAL, count=1)
+        assert len(aggregator.events) == 0, "There should be no events processed."
+
+
+def test_splunk_delay_first_time(splunk_event_check, requests_mock, initial_delay_60_seconds, aggregator):
+    _common_requests_mocks(requests_mock)
+    _job_results_mock(requests_mock, response_file="minimal_events_response.json")
+    with freeze_time("2022-08-23 12:00:01"):
+        assert splunk_event_check.run() == ''
+        assert len(aggregator.events) == 0
+
+    with freeze_time("2022-08-23 12:00:30"):
+        assert splunk_event_check.run() == ''
+        assert len(aggregator.events) == 0
+
+    # TODO: Check why 2022-08-23 12:00:62 throws an offset error
+    with freeze_time("2022-08-23 12:10:00"):
+        assert splunk_event_check.run() == ''
+        assert len(aggregator.events) == 2
 
 
 def _common_requests_mocks(requests_mock):
