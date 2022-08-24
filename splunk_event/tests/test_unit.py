@@ -32,7 +32,9 @@ def test_splunk_default_integration_events(splunk_event_check, aggregator, reque
 
 
 def test_splunk_error_response(splunk_event_check, requests_mock, caplog, aggregator):
-    """ Splunk event check should handle a FATAL message response. """
+    """
+    Splunk event check should handle a FATAL message response.
+    """
     _common_requests_mocks(requests_mock)
     _job_results_mock(requests_mock, response_file="error_response.json")
     run_result = splunk_event_check.run()
@@ -44,7 +46,9 @@ def test_splunk_error_response(splunk_event_check, requests_mock, caplog, aggreg
 
 
 def test_splunk_empty_events(splunk_event_check, requests_mock, aggregator):
-    """ Splunk event check should process empty response correctly. """
+    """
+    Splunk event check should process empty response correctly.
+    """
     _common_requests_mocks(requests_mock)
     _job_results_mock(requests_mock, response_file="empty_response.json")
     run_result = splunk_event_check.run()
@@ -54,7 +58,9 @@ def test_splunk_empty_events(splunk_event_check, requests_mock, aggregator):
 
 
 def test_splunk_minimal_events(splunk_event_check, requests_mock, caplog, aggregator):
-    """ Splunk event check should process minimal response correctly. """
+    """
+    Splunk event check should process minimal response correctly.
+    """
     _common_requests_mocks(requests_mock)
     _job_results_mock(requests_mock, response_file="minimal_events_response.json")
     run_result = splunk_event_check.run()
