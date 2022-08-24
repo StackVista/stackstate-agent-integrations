@@ -35,14 +35,14 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
         if not self.splunk_telemetry_instance:
             self.splunk_telemetry_instance = self.get_instance(instance, current_time)
 
-        splunk_persistent_state = SplunkPersistentState(persistent_state)
-
         if not self.splunk_telemetry_instance.initial_time_done(current_time):
             self.log.debug("Skipping splunk metric/event instance %s, waiting for initial time"
                            " to expire" % instance.get("url"))
             return CheckResponse(transactional_state=transactional_state,
-                                 persistent_state=splunk_persistent_state.state,
+                                 persistent_state=persistent_state,
                                  check_error=None)
+
+        splunk_persistent_state = SplunkPersistentState(persistent_state)
 
         try:
             self.splunk_telemetry_instance.splunk_client.auth_session(splunk_persistent_state)

@@ -131,9 +131,6 @@ def test_splunk_earliest_time_and_duplicates(splunk_event_check, requests_mock, 
         assert len(aggregator.events) == 4, "There should be four events processed."
         assert [e['event_type'] for e in aggregator.events] == ['0_1', '0_2', '1_1', '1_2']
 
-        # TODO: check state and transactions
-        aggregator.reset()
-
     # Respect earliest_time
     with freeze_time("2017-03-08 18:30:00"):
         _job_results_mock(requests_mock,
@@ -149,11 +146,8 @@ def test_splunk_earliest_time_and_duplicates(splunk_event_check, requests_mock, 
         _finalize_search_job_mock(requests_mock)
         run_result_02 = splunk_event_check.run()
         assert run_result_02 == "", "No errors when running Splunk check."
-        assert len(aggregator.events) == 1, "There should be one event processed."
-        assert [e['event_type'] for e in aggregator.events] == ['2_1']
-
-        # TODO: check state and transactions
-        aggregator.reset()
+        assert len(aggregator.events) == 5, "There should be one event processed."
+        assert [e['event_type'] for e in aggregator.events] == ['0_1', '0_2', '1_1', '1_2', '2_1']
 
         # Throw exception during search
         _job_results_mock(requests_mock,
@@ -166,7 +160,10 @@ def test_splunk_earliest_time_and_duplicates(splunk_event_check, requests_mock, 
                in run_result_03, "Check run result should return error message."
         assert "FATAL exception from Splunk" in caplog.text, "Splunk sends FATAL message."
         aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.CRITICAL, count=1)
-        assert len(aggregator.events) == 0, "There should be no events processed."
+        assert len(aggregator.events) == 5, "There should be one event processed."
+        assert [e['event_type'] for e in aggregator.events] == ['0_1', '0_2', '1_1', '1_2', '2_1']
+
+        # TODO: check state and transactions
 
 
 def test_splunk_delay_first_time(splunk_event_check, requests_mock, initial_delay_60_seconds, aggregator):
@@ -183,8 +180,7 @@ def test_splunk_delay_first_time(splunk_event_check, requests_mock, initial_dela
         assert splunk_event_check.run() == ''
         assert len(aggregator.events) == 0
 
-    # TODO: Check why 2022-08-23 12:00:62 throws an offset error
-    with freeze_time("2022-08-23 12:10:00"):
+    with freeze_time("2022-08-23 12:01:02"):
         assert splunk_event_check.run() == ''
         assert len(aggregator.events) == 2
 
