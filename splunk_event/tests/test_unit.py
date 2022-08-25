@@ -2,8 +2,9 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import json
-from typing import Optional
+from typing import Optional, List
 
+import freezegun
 import pytest
 from freezegun import freeze_time
 from requests_mock import Mocker
@@ -103,50 +104,32 @@ def test_splunk_full_events(splunk_event_check, requests_mock, aggregator):
                                 **extract_title_and_type_from_event(event))
 
 
-def test_splunk_earliest_time_and_duplicates(splunk_event_check, requests_mock, batch_size_2, aggregator, caplog):
+@freezegun.freeze_time("2017-03-08 18:29:56")
+def test_splunk_earliest_time_and_duplicates(splunk_event_check, requests_mock, batch_size_2, aggregator, caplog,
+                                             state, transaction):
     """
     Splunk event check should poll batches responses.
     """
     # Initial run
-    with freeze_time("2017-03-08 18:29:59"):
-        _common_requests_mocks(requests_mock)
-        _job_results_mock(requests_mock,
-                          response_file="batch_poll1_1_response.json",
-                          job_results_url="http://localhost:8089/servicesNS/-/-/search/jobs/"
-                                          "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/results?"
-                                          "output_mode=json&offset=0&count=2")
-        _job_results_mock(requests_mock,
-                          response_file="batch_poll1_2_response.json",
-                          job_results_url="http://localhost:8089/servicesNS/-/-/search/jobs/"
-                                          "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/results?"
-                                          "output_mode=json&offset=2&count=2")
-        _job_results_mock(requests_mock,
-                          response_file="batch_last_response.json",
-                          job_results_url="http://localhost:8089/servicesNS/-/-/search/jobs/"
-                                          "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/results?"
-                                          "output_mode=json&offset=4&count=2")
-        run_result_01 = splunk_event_check.run()
-        assert run_result_01 == "", "No errors when running Splunk check."
-        aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=2)
-        assert len(aggregator.events) == 4, "There should be four events processed."
-        assert [e['event_type'] for e in aggregator.events] == ['0_1', '0_2', '1_1', '1_2']
+    _common_requests_mocks(requests_mock)
+    initial_run_response_files = [
+        "batch_poll1_1_response.json", "batch_poll1_2_response.json", "batch_last_response.json"
+    ]
+    _batch_job_results_mock(requests_mock, initial_run_response_files, 2)
+    run_result_01 = splunk_event_check.run()
+    assert run_result_01 == "", "No errors when running Splunk check."
+    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=2)
+    assert len(aggregator.events) == 4, "There should be four events processed."
+    assert [e['event_type'] for e in aggregator.events] == ['0_1', '0_2', '1_1', '1_2']
 
     # Respect earliest_time
-    with freeze_time("2017-03-08 18:30:00"):
-        _job_results_mock(requests_mock,
-                          response_file="batch_poll2_1_response.json",
-                          job_results_url="http://localhost:8089/servicesNS/-/-/search/jobs/"
-                                          "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/results?"
-                                          "output_mode=json&offset=0&count=2")
-        _job_results_mock(requests_mock,
-                          response_file="batch_last_response.json",
-                          job_results_url="http://localhost:8089/servicesNS/-/-/search/jobs/"
-                                          "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/results?"
-                                          "output_mode=json&offset=2&count=2")
-        _finalize_search_job_mock(requests_mock)
+    with freeze_time("2017-03-08 18:59:00"):
+        next_run_response_files = ["batch_poll2_1_response.json", "batch_last_response.json"]
+        _batch_job_results_mock(requests_mock, next_run_response_files, 2)
+        _search_job_finalized_mock(requests_mock)
         run_result_02 = splunk_event_check.run()
         assert run_result_02 == "", "No errors when running Splunk check."
-        assert len(aggregator.events) == 5, "There should be one event processed."
+        assert len(aggregator.events) == 5, "There should be five event processed."
         assert [e['event_type'] for e in aggregator.events] == ['0_1', '0_2', '1_1', '1_2', '2_1']
 
         # Throw exception during search
@@ -160,7 +143,7 @@ def test_splunk_earliest_time_and_duplicates(splunk_event_check, requests_mock, 
                in run_result_03, "Check run result should return error message."
         assert "FATAL exception from Splunk" in caplog.text, "Splunk sends FATAL message."
         aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.CRITICAL, count=1)
-        assert len(aggregator.events) == 5, "There should be one event processed."
+        assert len(aggregator.events) == 5, "There still should be five event processed."
         assert [e['event_type'] for e in aggregator.events] == ['0_1', '0_2', '1_1', '1_2', '2_1']
 
         # TODO: check state and transactions
@@ -190,23 +173,20 @@ def test_splunk_deduplicate_events_in_the_same_run(splunk_event_check, requests_
     Splunk event check should deduplicate events.
     """
     _common_requests_mocks(requests_mock)
-    _job_results_mock(
-        requests_mock,
-        response_file="batch_no_dup_response.json",
-        job_results_url="http://localhost:8089/servicesNS/-/-/search/jobs/"
-                        "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/results?"
-                        "output_mode=json&offset=0&count=2")
-    _job_results_mock(
-        requests_mock,
-        response_file="batch_last_response.json",
-        job_results_url="http://localhost:8089/servicesNS/-/-/search/jobs/"
-                        "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/results?"
-                        "output_mode=json&offset=2&count=2")
+    response_files = ["batch_no_dup_response.json", "batch_last_response.json"]
+    _batch_job_results_mock(requests_mock, response_files, 2)
     check_result = splunk_event_check.run()
     assert check_result == "", "No errors when running Splunk check."
     aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=2)
     assert len(aggregator.events) == 2, "There should be two events processed."
     assert [e["event_type"] for e in aggregator.events] == ["1", "2"]
+
+
+def test_splunk_continue_after_restart(splunk_event_check, restart_config, restart_instance, requests_mock, aggregator):
+    """
+    Splunk event check should continue where it left off after restart.
+    """
+    _common_requests_mocks(requests_mock)
 
 
 def _common_requests_mocks(requests_mock):
@@ -247,15 +227,15 @@ def _job_results_mock(requests_mock, response_file, job_results_url=None):
     Splunk client request flow: Basic authentication > List saved searches > Dispatch search > Get search job results
     Here we mock last request for getting job result.
     """
+    default_job_results_url = "http://localhost:8089/servicesNS/-/-/search/jobs/" \
+                              "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/results?" \
+                              "output_mode=json&offset=0&count=1000"
     if not job_results_url:
-        # this is the default value
-        job_results_url = "http://localhost:8089/servicesNS/-/-/search/jobs/" \
-                          "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/results?" \
-                          "output_mode=json&offset=0&count=1000"
+        job_results_url = default_job_results_url
     requests_mock.get(url=job_results_url, status_code=200, text=read_file(response_file, "ci/fixtures"))
 
 
-def _finalize_search_job_mock(requests_mock):
+def _search_job_finalized_mock(requests_mock):
     # type: (Mocker) -> None
     requests_mock.post(
         url="http://localhost:8089/services/search/jobs/"
@@ -263,3 +243,12 @@ def _finalize_search_job_mock(requests_mock):
         status_code=200,
         text='{"messages":[{"type":"INFO","text":"Search job finalized."}]}'
     )
+
+
+def _batch_job_results_mock(requests_mock, response_files, batch_size):
+    # type: (Mocker, List, int) -> None
+    for i, response_file in enumerate(response_files):
+        url = "http://localhost:8089/servicesNS/-/-/search/jobs/" \
+              "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/results?output_mode=json&offset={}&count={}" \
+            .format(i * batch_size, batch_size)
+        _job_results_mock(requests_mock, response_file, url)

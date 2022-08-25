@@ -137,6 +137,7 @@ def _make_event_fixture(url, user, password):
 def splunk_event_check(unit_test_instance, unit_test_config, aggregator, state, transaction):
     # type: (Dict, Dict, AggregatorStub, StateStub, TransactionStub) -> SplunkEvent
     check = SplunkEvent("splunk", unit_test_config, {}, [unit_test_instance])
+    check.check_id = "splunk_test_id"
     yield check
     aggregator.reset()
     state.reset()
@@ -179,6 +180,18 @@ def batch_size_2(unit_test_instance):
 def initial_delay_60_seconds(unit_test_config):
     # type: (Dict) -> None
     unit_test_config["default_initial_delay_seconds"] = 60
+
+
+@pytest.fixture
+def restart_config(unit_test_config):
+    unit_test_config["default_max_restart_history_seconds"] = 86400
+    unit_test_config["default_max_query_time_range"] = 3600
+
+
+@pytest.fixture
+def restart_instance(unit_test_instance):
+    unit_test_instance["saved_searches"][0]["max_restart_history_seconds"] = 86400
+    unit_test_instance["saved_searches"][0]["max_query_time_range"] = 3600
 
 
 def extract_title_and_type_from_event(event):
