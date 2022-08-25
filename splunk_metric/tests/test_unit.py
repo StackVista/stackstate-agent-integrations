@@ -1,17 +1,16 @@
 # (C) StackState 2021
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
-import time
-
-# TODO: TestSplunkQueryInitialHistory
-
+import json
 import pytest
 
+from datetime import datetime
 from freezegun import freeze_time
 from stackstate_checks.base import AgentCheck
 from stackstate_checks.base.utils.state_common import generate_state_key
 from stackstate_checks.splunk.config.splunk_instance_config import time_to_seconds
-from .conftest import continue_after_restart, max_restart_time, earliest_time_and_duplicates, metric_check
+from .conftest import continue_after_restart, max_restart_time, earliest_time_and_duplicates, metric_check, \
+    max_query_chunk_sec_history_check
 
 
 @pytest.mark.unit
@@ -25,8 +24,8 @@ def test_error_response(error_response_check, telemetry, aggregator):
 
     telemetry.assert_total_metrics(0)
 
-    assert len(service_checks) == 2
-    assert service_checks[0].status == AgentCheck.CRITICAL, "service check should have status AgentCheck.CRITICAL"
+    assert len(service_checks) == 3
+    assert service_checks[1].status == AgentCheck.CRITICAL, "service check should have status AgentCheck.CRITICAL"
 
 
 @pytest.mark.unit
@@ -140,7 +139,7 @@ def test_full_metrics(full_metrics, telemetry, aggregator):
                 'checktag:checktagvalue'], hostname='', timestamp=1488997797.0)
 
 
-# TODO: Melcom - Error - Missing 'value' field in result data
+# TODO: Tanja
 @pytest.mark.unit
 def test_alternative_fields_metrics(alternative_fields_metrics, telemetry, aggregator):
     check = alternative_fields_metrics
@@ -151,7 +150,7 @@ def test_alternative_fields_metrics(alternative_fields_metrics, telemetry, aggre
     # telemetry.assert_metric("metric_name", count=2, value=3.0, tags=[], hostname='', timestamp=1488974400.0)
 
 
-# TODO: Melcom - Error - Missing 'value' field in result data
+# TODO: Tanja
 @pytest.mark.unit
 def test_fixed_metric_name(fixed_metric_name, telemetry, aggregator):
     check = fixed_metric_name
@@ -163,7 +162,7 @@ def test_fixed_metric_name(fixed_metric_name, telemetry, aggregator):
                             timestamp=1488974400.0)
 
 
-# TODO: Melcom - Error - Missing 'value' field in result data
+# TODO: Tanja
 @pytest.mark.unit
 def test_warning_on_missing_fields(warning_on_missing_fields, telemetry, aggregator):
     check = warning_on_missing_fields
@@ -331,7 +330,6 @@ def test_continue_after_restart(requests_mock, get_logger, splunk_config, splunk
             "As long as we are not done with history, the check should continue"
 
 
-# TODO: Melcom - Contains a error
 @pytest.mark.unit
 @freeze_time("2017-03-09T00:00:00.000000+0000")
 def test_query_initial_history(query_initial_history, telemetry, aggregator):
@@ -346,6 +344,8 @@ def test_query_initial_history(query_initial_history, telemetry, aggregator):
         assert check_response == '', "The check run cycle SHOULD NOT produce an error"
         assert check.continue_after_commit is True, "As long as we are not done with history, the check should continue"
 
+    telemetry.reset()
+
     # Now continue with real-time polling (earliest time taken from last event)
     test_data["earliest_time"] = '2017-03-08T23:00:00.000000+0000'
     test_data["latest_time"] = None
@@ -354,14 +354,14 @@ def test_query_initial_history(query_initial_history, telemetry, aggregator):
     assert check_response == '', "The check run cycle SHOULD NOT produce an error"
 
     telemetry.assert_total_metrics(2)
-    assert check.continue_after_commit is True, "As long as we are not done with history, the check should continue"
+    assert check.continue_after_commit is False, "As long as we are not done with history, the check should continue"
 
 
-# TODO: Melcom - Broken
+# Done
 @pytest.mark.unit
 def test_max_restart_time(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, mock_splunk_metric,
                           telemetry, aggregator):
-    with freeze_time("2017-03-09T00:00:00.000000+0000"):
+    with freeze_time("2017-03-08T00:00:00.000000+0000"):
         # Instead of a pyfixture we are importing this check to allow a force_reload behaviour
         check, test_data = max_restart_time(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
                                             mock_splunk_metric)
@@ -372,6 +372,9 @@ def test_max_restart_time(requests_mock, get_logger, splunk_config, splunk_insta
 
         assert check_response == '', "The check run cycle SHOULD NOT produce a error"
         telemetry.assert_total_metrics(0)
+
+    telemetry.reset()
+    aggregator.reset()
 
     with freeze_time("2017-03-08T12:00:00.000000+0000"):
         # Instead of a pyfixture we are importing this check to allow a force_reload behaviour
@@ -473,7 +476,6 @@ def test_saved_searches_ignore_error(saved_searches_ignore_error, telemetry, agg
     assert service_checks[0].message == "Boom"
 
 
-# TODO: Melcom - There is no metric error for the BOOM
 @pytest.mark.unit
 def test_individual_dispatch_failures(individual_dispatch_failures, telemetry, aggregator):
     check = individual_dispatch_failures
@@ -486,14 +488,13 @@ def test_individual_dispatch_failures(individual_dispatch_failures, telemetry, a
 
     service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
 
-    assert len(service_checks) == 3
+    assert len(service_checks) == 4
 
     assert service_checks[0].status == AgentCheck.WARNING
     assert service_checks[0].message == \
-           "Failed to execute dispatched search 'full_metrics' with id full_metrics due to: BOOM"
+           "BOOM"
 
 
-# TODO: Melcom - There is no metric error for the BOOM
 @pytest.mark.unit
 def test_individual_search_failures(individual_search_failures, telemetry, aggregator):
     check = individual_search_failures
@@ -506,11 +507,11 @@ def test_individual_search_failures(individual_search_failures, telemetry, aggre
 
     service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
 
-    assert len(service_checks) == 3
+    assert len(service_checks) == 4
 
     assert service_checks[0].status == AgentCheck.WARNING
     assert service_checks[0].message == \
-           "Failed to execute dispatched search 'full_metrics' with id full_metrics due to: BOOM"
+           "Received FATAL exception from Splunk, got: Invalid offset."
 
 
 # Done
@@ -665,13 +666,13 @@ def test_overwrite_default_parameters(overwrite_default_parameters_check, teleme
     telemetry.assert_total_metrics(2)
 
 
-# Done
-# TODO: Melcom - The last_observed_timestamp does not match what the original tests has and matches the actual file
 @pytest.mark.unit
-def test_max_query_chunk_sec_history(max_query_chunk_sec_history_check, telemetry):
-    check, test_data = max_query_chunk_sec_history_check
-
+def test_max_query_chunk_sec_history(get_logger, requests_mock, splunk_config, splunk_instance_basic_auth,
+                                      mock_splunk_metric, telemetry, state, transaction):
     with freeze_time("2017-03-09T00:00:00.000000+0000"):
+        check, test_data = max_query_chunk_sec_history_check(get_logger, requests_mock, splunk_config,
+                                                             splunk_instance_basic_auth, mock_splunk_metric)
+
         test_data["earliest_time"] = '2017-03-08T00:00:00.000000+0000'
 
         check_response = check.run()
@@ -679,18 +680,40 @@ def test_max_query_chunk_sec_history(max_query_chunk_sec_history_check, telemetr
 
         telemetry.assert_total_metrics(1)
 
-        last_observed_timestamp = telemetry.metrics("metric_name")[0].timestamp
+        # Get the latest transaction value to check the last observed timestamp
+        key = generate_state_key(check._get_instance_key().to_string(),
+                                             check.TRANSACTIONAL_PERSISTENT_CACHE_KEY)
+        state_value = state.get_state(check, check.check_id, key)
+        transactional_state = json.loads(state_value)
+
+        last_observed_timestamp = transactional_state.get("metrics")
+
+        # make sure the window is of max_query_chunk_seconds and last_observed_time_stamp is dispatch latest time - 1
         assert last_observed_timestamp == time_to_seconds('2017-03-08T00:04:59.000000+0000')
 
-    with freeze_time("2017-03-08T12:00:00.000000+0000"):
-        test_data["earliest_time"] = '2017-03-08T11:00:00.000000+0000'
-        check_response = check.run()
+    telemetry.reset()
 
+    with freeze_time("2017-03-08T12:00:00.000000+0000"):
+        # Reload Check
+        check, test_data = max_query_chunk_sec_history_check(get_logger, requests_mock, splunk_config,
+                                                             splunk_instance_basic_auth, mock_splunk_metric)
+
+        test_data["earliest_time"] = '2017-03-08T11:00:00.000000+0000'
+
+        check_response = check.run()
         assert check_response == '', "The check run cycle SHOULD NOT produce a error."
 
         telemetry.assert_total_metrics(2)
 
-        last_observed_timestamp = telemetry.metrics("metric_name")[0].timestamp
+        # Get the latest transaction value to check the last observed timestamp
+        key = generate_state_key(check._get_instance_key().to_string(),
+                                             check.TRANSACTIONAL_PERSISTENT_CACHE_KEY)
+        state_value = state.get_state(check, check.check_id, key)
+        transactional_state = json.loads(state_value)
+
+        last_observed_timestamp = transactional_state.get("metrics")
+
+        # make sure the window is of max_query_chunk_seconds and last_observed_time_stamp is dispatch latest time - 1
         assert last_observed_timestamp == time_to_seconds('2017-03-08T11:04:59.000000+0000')
 
 

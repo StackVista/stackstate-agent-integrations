@@ -223,50 +223,59 @@ def _request_mock_get_save_searches(requests_mock, logger):
     )
 
 
-def _request_mock_get_search_alternative(requests_mock, request_id, logger):
+def _request_mock_get_search_alternative(requests_mock, request_id, logger, force_failure=False):
     url = "http://%s:%s/servicesNS/-/-/search/jobs/%s/results?output_mode=json&offset=0&count=1000" \
           % (HOST, PORT, request_id)
     logger.debug("Mocking GET request URL for Search with Alternative Request Id: %s" % url)
 
     if request_id is not None:
-        try:
-            # Get search results for job
-            requests_mock.get(
-                url=url,
-                status_code=200,
-                text=read_file("%s.json" % request_id, "ci/fixtures")
-            )
-        except FileNotFoundError:
-            return []
+        if force_failure is True:
+            _force_request_get_error(requests_mock, url)
+        else:
+            try:
+                # Get search results for job
+                requests_mock.get(
+                    url=url,
+                    status_code=200,
+                    text=read_file("%s.json" % request_id, "ci/fixtures")
+                )
+            except FileNotFoundError:
+                return []
 
 
-def _request_mock_get_search(requests_mock, request_id, logger):
+def _request_mock_get_search(requests_mock, request_id, logger, force_failure=False):
     url = "http://%s:%s/servicesNS/-/-/search/jobs/" \
           "stackstate_checks.base.checks.base.metric-check-name/results?output_mode=json&offset=0&count=1000" \
           % (HOST, PORT)
     logger.debug("Mocking GET request URL for Search: %s" % url)
 
     if request_id is not None:
-        try:
-            # Get search results for job
-            requests_mock.get(
-                url=url,
-                status_code=200,
-                text=read_file("%s.json" % request_id, "ci/fixtures")
-            )
-        except FileNotFoundError:
-            return []
+        if force_failure is True:
+            _force_request_get_error(requests_mock, url)
+        else:
+            try:
+                # Get search results for job
+                requests_mock.get(
+                    url=url,
+                    status_code=200,
+                    text=read_file("%s.json" % request_id, "ci/fixtures")
+                )
+            except FileNotFoundError:
+                return []
 
 
-def _request_mock_post_dispatch_saved_search(requests_mock, request_id, logger, audience):
+def _request_mock_post_dispatch_saved_search(requests_mock, request_id, logger, audience, force_failure=False):
     url = "http://%s:%s/servicesNS/%s/search/saved/searches/%s/dispatch" % (HOST, PORT, audience, request_id)
     logger.debug("Mocking POST request URL for Dispatch Saved Search: %s" % url)
 
-    requests_mock.post(
-        url=url,
-        status_code=201,
-        text=json.dumps({"sid": "stackstate_checks.base.checks.base.metric-check-name"})
-    )
+    if force_failure is True:
+        _force_request_post_error(requests_mock, url)
+    else:
+        requests_mock.post(
+            url=url,
+            status_code=201,
+            text=json.dumps({"sid": request_id})
+        )
 
 
 # TODO: Melcom - Fix this mock response
@@ -277,19 +286,46 @@ def _request_mock_post_finalize_sid(requests_mock, logger, finalize_search_id):
     requests_mock.post(
         url=url,
         status_code=200,
-        text=json.dumps({"sid": "stackstate_checks.base.checks.base.metric-check-name"})
+        text=json.dumps({"sid": finalize_search_id})
     )
 
 
-def _requests_mock(requests_mock, request_id, audience, logger, finalize_search_id=None, ignore_search=False):
+def _force_request_get_error(requests_mock, url):
+    print("FORCE FAILURE ON URL: %s" % url)
+    try:
+        # Get search results for job
+        requests_mock.get(
+            url=url,
+            status_code=200,
+            text=read_file("error_response.json", "ci/fixtures")
+        )
+    except FileNotFoundError:
+        return []
+
+
+def _force_request_post_error(requests_mock, url):
+    print("FORCE FAILURE ON URL: %s" % url)
+    try:
+        # Get search results for job
+        requests_mock.post(
+            url=url,
+            status_code=200,
+            text=read_file("error_response.json", "ci/fixtures")
+        )
+    except FileNotFoundError:
+        return []
+
+
+def _requests_mock(requests_mock, request_id, audience, logger, finalize_search_id=None, ignore_search=False,
+                   force_search_failure=False, force_dispatch_search_failure=False):
     _request_mock_post_token_authentication(requests_mock, logger)
     _request_mock_post_basic_authentication(requests_mock, logger)
     _request_mock_get_save_searches(requests_mock, logger)
-    _request_mock_post_dispatch_saved_search(requests_mock, request_id, logger, audience)
+    _request_mock_post_dispatch_saved_search(requests_mock, request_id, logger, audience, force_dispatch_search_failure)
 
     if ignore_search is not True:
-        _request_mock_get_search(requests_mock, request_id, logger)
-        _request_mock_get_search_alternative(requests_mock, request_id, logger)
+        _request_mock_get_search(requests_mock, request_id, logger, force_search_failure)
+        _request_mock_get_search_alternative(requests_mock, request_id, logger, force_search_failure)
 
     if finalize_search_id:
         _request_mock_post_finalize_sid(requests_mock, logger, finalize_search_id)

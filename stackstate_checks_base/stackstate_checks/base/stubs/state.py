@@ -15,7 +15,7 @@ class StateStub(object):
         self._state = {}
 
     def set_state(self, check, check_id, key, new_state):
-        print("Using stub state for setting state")
+        print("Using stub state for setting state, Setting State:")
         self._state[key] = new_state
 
     def get_state(self, check, check_id, key):

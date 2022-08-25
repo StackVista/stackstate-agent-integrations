@@ -23,15 +23,16 @@ class SplunkConfigSavedSearchDefault(PickleModel):
     search_max_retry_count = IntType(default=3)
     search_seconds_between_retries = IntType(default=1)
     verify_ssl_certificate = BooleanType(default=False)
+    max_initial_history_seconds = IntType(default=86400)
+    max_query_chunk_seconds = IntType(default=300)
+    unique_key_fields = ListType(StringType, default=["_bkt", "_cd"])
+    app = StringType(default="search")
     batch_size = IntType(default=1000)
     saved_searches_parallel = IntType(default=3)
     initial_history_time_seconds = IntType(default=0)
     max_restart_history_seconds = IntType(default=86400)
-    max_query_time_range = IntType(default=3600)  # ???
-    max_query_chunk_seconds = IntType(default=300)
+    max_query_time_range = IntType(default=3600)
     initial_delay_seconds = IntType(default=0)
-    unique_key_fields = ListType(StringType, default=["_bkt", "_cd"])
-    app = StringType(default="search")
 
 
 class SplunkConfigSavedSearchAlternativeFields(SplunkConfigSavedSearchDefault):
