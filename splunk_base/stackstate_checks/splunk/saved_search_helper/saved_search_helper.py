@@ -1,6 +1,7 @@
 import copy
 import re
 import time
+import datetime
 
 from six import PY3
 
@@ -234,19 +235,25 @@ class SavedSearchesTelemetry(SavedSearches):
         if "dispatch.latest_time" in parameters:
             del parameters["dispatch.latest_time"]
 
+        last_observe = saved_search.last_observed_timestamp
+
         # Always observe the last time for data and use max query chunk seconds
         latest_time_epoch = saved_search.last_observed_timestamp + saved_search.config['max_query_chunk_seconds']
         current_time = self._current_time_seconds()
 
+        last_observe_formatted = datetime.datetime.fromtimestamp(last_observe)
+        latest_time_formatted = datetime.datetime.fromtimestamp(latest_time_epoch)
+        current_time_formatted = datetime.datetime.fromtimestamp(current_time)
+
         if latest_time_epoch >= current_time:
-            log.info("Caught up with old splunk data for saved search %s since %s" % (
+            log.info("[CONTINUE] Caught up with old splunk data for saved search %s since %s" % (
                 saved_search.name, parameters["dispatch.earliest_time"]))
             saved_search.last_recover_latest_time_epoch_seconds = None
         else:
             saved_search.last_recover_latest_time_epoch_seconds = latest_time_epoch
             latest_epoch_datetime = get_utc_time(latest_time_epoch)
             parameters["dispatch.latest_time"] = latest_epoch_datetime.strftime(self.TIME_FMT)
-            log.info("Catching up with old splunk data for saved search %s from %s to %s " % (
+            log.info("[CATCH_UP] Catching up with old splunk data for saved search %s from %s to %s " % (
                 saved_search.name, parameters["dispatch.earliest_time"], parameters["dispatch.latest_time"]))
 
         log.debug(

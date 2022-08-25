@@ -255,6 +255,7 @@ class SplunkClient(StatefulMixin):
                                       parameters,
                                       saved_search.request_timeout_seconds,
                                       ignore_saved_search_errors).json()
+
         return response_body.get("sid")
 
     def finalize_sid(self, search_id, saved_search):

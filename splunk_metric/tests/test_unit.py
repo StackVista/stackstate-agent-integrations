@@ -11,7 +11,7 @@ from freezegun import freeze_time
 from stackstate_checks.base import AgentCheck
 from stackstate_checks.base.utils.state_common import generate_state_key
 from stackstate_checks.splunk.config.splunk_instance_config import time_to_seconds
-from .conftest import continue_after_restart
+from .conftest import continue_after_restart, max_restart_time, earliest_time_and_duplicates, metric_check
 
 
 @pytest.mark.unit
@@ -25,15 +25,14 @@ def test_error_response(error_response_check, telemetry, aggregator):
 
     telemetry.assert_total_metrics(0)
 
-    assert len(service_checks) == 1  # TODO: Melcom - Verify this changed from 2 to 1
+    assert len(service_checks) == 2
     assert service_checks[0].status == AgentCheck.CRITICAL, "service check should have status AgentCheck.CRITICAL"
 
 
 @pytest.mark.unit
-def test_metric_check(metric_check_first_run, metric_check_second_run,
-                             metric_check_third_run, transaction, state):
-
-    check = metric_check_first_run
+def test_metric_check(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, mock_splunk_metric,
+                      transaction, state):
+    check = metric_check(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, mock_splunk_metric)
     check_response = check.run()
     assert check_response == '', "The check run should not return a error"
 
@@ -45,7 +44,8 @@ def test_metric_check(metric_check_first_run, metric_check_second_run,
     transaction.assert_stopped_transaction(check.check_id, True)
     transaction.assert_discarded_transaction(check.check_id, False)
 
-    check = metric_check_second_run
+    check = metric_check(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, mock_splunk_metric,
+                         patch_finalize_sid=True)
     check_response = check.run()
     assert check_response == '', "The check run should not return a error"
 
@@ -60,7 +60,8 @@ def test_metric_check(metric_check_first_run, metric_check_second_run,
     assert first_transaction == second_transaction
     assert first_state == second_state
 
-    check = metric_check_third_run
+    check = metric_check(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, mock_splunk_metric,
+                         patch_finalize_sid=True, force_finalize_sid_exception=True)
     check_response = check.run()
     assert check_response != '', "The check run should return a error"
 
@@ -112,7 +113,7 @@ def test_partially_incomplete_metrics(partially_incomplete_metrics, telemetry, a
 
     service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
 
-    assert len(service_checks) == 3  # TODO: Melcom - Verify this changed from 1 to 3 - 2 of 3 is empty messages
+    assert len(service_checks) == 3
     assert service_checks[0].status == AgentCheck.WARNING
     assert service_checks[0].message == \
            "The saved search 'partially_incomplete_metrics' contained 1 incomplete records"
@@ -190,15 +191,14 @@ def test_same_data_metrics(same_data_metrics, telemetry, aggregator):
 
 
 @pytest.mark.unit
-def test_earliest_time_and_duplicates(earliest_time_and_duplicates_first_run,
-                                             earliest_time_and_duplicates_second_run,
-                                             earliest_time_and_duplicates_third_run,
-                                             telemetry, aggregator):
+@freeze_time("2017-03-08T18:29:59.000000+0000")
+def test_earliest_time_and_duplicates(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
+                                      mock_splunk_metric, telemetry, aggregator):
     # Initial run
-    check, test_data = earliest_time_and_duplicates_first_run
+    check, test_data = earliest_time_and_duplicates(requests_mock, get_logger, splunk_config,
+                                                    splunk_instance_basic_auth, mock_splunk_metric)
 
     test_data["sid"] = "poll"
-    test_data["time"] = time_to_seconds("2017-03-08T18:29:59.000000+0000")
     check_response = check.run()
 
     assert check_response == '', "The check run cycle should not produce a error"
@@ -210,11 +210,12 @@ def test_earliest_time_and_duplicates(earliest_time_and_duplicates_first_run,
     telemetry.assert_metric("name", count=1, value=12.0, tags=[], hostname='', timestamp=1488997797.0)
     telemetry.assert_metric("name", count=1, value=21.0, tags=[], hostname='', timestamp=1488997798.0)
     telemetry.assert_metric("name", count=1, value=22.0, tags=[], hostname='', timestamp=1488997799.0)
-    telemetry.reset()  # TODO: Melcom - Is a reset correct for the next run
-    aggregator.reset()  # TODO: Melcom - Is a reset correct for the next run
+    telemetry.reset()
+    aggregator.reset()
 
     # Respect earliest_time
-    check, test_data = earliest_time_and_duplicates_second_run
+    check, test_data = earliest_time_and_duplicates(requests_mock, get_logger, splunk_config,
+                                                    splunk_instance_basic_auth, mock_splunk_metric)
 
     test_data["sid"] = "poll1"
     test_data["earliest_time"] = '2017-03-08T18:30:00.000000+0000'
@@ -227,11 +228,12 @@ def test_earliest_time_and_duplicates(earliest_time_and_duplicates_first_run,
     telemetry.assert_metric("name", count=2, value=53.0, tags=[], hostname='')
     telemetry.assert_metric("name", count=1, value=22.0, tags=[], hostname='', timestamp=1488997799.0)
     telemetry.assert_metric("name", count=1, value=31.0, tags=[], hostname='', timestamp=1488997800.0)
-    telemetry.reset()  # TODO: Melcom - Is a reset correct for the next run
-    aggregator.reset()  # TODO: Melcom - Is a reset correct for the next run
+    telemetry.reset()
+    aggregator.reset()
 
     # Throw exception during search
-    check, test_data = earliest_time_and_duplicates_third_run
+    check, test_data = earliest_time_and_duplicates(requests_mock, get_logger, splunk_config,
+                                                    splunk_instance_basic_auth, mock_splunk_metric)
 
     test_data["throw"] = True
     check_response = check.run()
@@ -271,8 +273,11 @@ def test_delayed_start(delayed_start, telemetry, aggregator):
 
 # Busy
 @pytest.mark.unit
-def test_continue_after_restart(continue_after_restart, telemetry, aggregator):
-    check, test_data = continue_after_restart
+def test_continue_after_restart(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, mock_splunk_metric,
+                                telemetry, aggregator):
+    # Instead of a pyfixture we are importing this check to allow a force_reload behaviour
+    check, test_data = continue_after_restart(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
+                                              mock_splunk_metric)
 
     with freeze_time("2017-03-08T00:00:00.000000+0000"):
         # Initial run with initial time
@@ -286,8 +291,14 @@ def test_continue_after_restart(continue_after_restart, telemetry, aggregator):
 
     with freeze_time("2017-03-08T01:00:05.000000+0000"):
         for slice_num in range(0, 12):
+            # Reset stub data to not persist between runs
             telemetry.reset()
             aggregator.reset()
+
+            # Instead of a pyfixture we are importing this check to allow a force_reload behaviour
+            check, test_data = continue_after_restart(requests_mock, get_logger, splunk_config,
+                                                      splunk_instance_basic_auth,
+                                                      mock_splunk_metric)
 
             test_data["earliest_time"] = '2017-03-08T00:%s:01.000000+0000' % (str(slice_num * 5).zfill(2))
             test_data["latest_time"] = '2017-03-08T00:%s:01.000000+0000' % (str((slice_num + 1) * 5).zfill(2))
@@ -295,8 +306,8 @@ def test_continue_after_restart(continue_after_restart, telemetry, aggregator):
                 test_data["latest_time"] = '2017-03-08T01:00:01.000000+0000'
 
             check_response = check.run()
-
             assert check_response == '', "The check run cycle SHOULD NOT produce a error"
+
             assert check.continue_after_commit is True
 
             telemetry.assert_total_metrics(0)
@@ -309,15 +320,13 @@ def test_continue_after_restart(continue_after_restart, telemetry, aggregator):
         telemetry.reset()
         aggregator.reset()
 
-        print(">>>>>>>> ---------- <<<<<<<<<")
-
-        # Now continue with real-time polling (the earliest time taken from last event or last restart chunk)
+        # # Now continue with real-time polling (the earliest time taken from last event or last restart chunk)
         test_data["earliest_time"] = '2017-03-08T01:00:01.000000+0000'
         test_data["latest_time"] = None
 
         check_response = check.run()
+        assert check_response == '', "The check run cycle SHOULD NOT produce an error"
 
-        assert check_response == '', "The check run cycle SHOULD NOT produce a error"
         assert check.continue_after_commit is False, \
             "As long as we are not done with history, the check should continue"
 
@@ -332,33 +341,46 @@ def test_query_initial_history(query_initial_history, telemetry, aggregator):
     for slice_num in range(0, 23):
         test_data["earliest_time"] = '2017-03-08T%s:00:00.000000+0000' % (str(slice_num).zfill(2))
         test_data["latest_time"] = '2017-03-08T%s:00:00.000000+0000' % (str(slice_num + 1).zfill(2))
-        check.run()
+        check_response = check.run()
+
+        assert check_response == '', "The check run cycle SHOULD NOT produce an error"
         assert check.continue_after_commit is True, "As long as we are not done with history, the check should continue"
 
     # Now continue with real-time polling (earliest time taken from last event)
     test_data["earliest_time"] = '2017-03-08T23:00:00.000000+0000'
     test_data["latest_time"] = None
-    check.run()
+
+    check_response = check.run()
+    assert check_response == '', "The check run cycle SHOULD NOT produce an error"
 
     telemetry.assert_total_metrics(2)
     assert check.continue_after_commit is True, "As long as we are not done with history, the check should continue"
 
 
-# Done
+# TODO: Melcom - Broken
 @pytest.mark.unit
-def test_max_restart_time(max_restart_time, telemetry, aggregator):
-    check, test_data = max_restart_time
-
+def test_max_restart_time(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, mock_splunk_metric,
+                          telemetry, aggregator):
     with freeze_time("2017-03-09T00:00:00.000000+0000"):
+        # Instead of a pyfixture we are importing this check to allow a force_reload behaviour
+        check, test_data = max_restart_time(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
+                                            mock_splunk_metric)
+
         test_data["earliest_time"] = '2017-03-08T00:00:00.000000+0000'
+
         check_response = check.run()
 
         assert check_response == '', "The check run cycle SHOULD NOT produce a error"
         telemetry.assert_total_metrics(0)
 
     with freeze_time("2017-03-08T12:00:00.000000+0000"):
+        # Instead of a pyfixture we are importing this check to allow a force_reload behaviour
+        check, test_data = max_restart_time(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
+                                            mock_splunk_metric)
+
         test_data["earliest_time"] = '2017-03-08T11:00:00.000000+0000'
         test_data["latest_time"] = '2017-03-08T11:00:00.000000+0000'
+
         check_response = check.run()
 
         assert check_response == '', "The check run cycle SHOULD NOT produce a error"
@@ -673,7 +695,6 @@ def test_max_query_chunk_sec_history(max_query_chunk_sec_history_check, telemetr
 
 
 # Done
-# TODO: Melcom - Last Time Assert Does Not Match
 @pytest.mark.unit
 @freeze_time("2017-03-08T11:58:00.000000+0000")
 def test_max_query_chunk_sec_live(max_query_chunk_sec_live_check, telemetry, aggregator):
@@ -682,7 +703,7 @@ def test_max_query_chunk_sec_live(max_query_chunk_sec_live_check, telemetry, agg
     check_response = check.run()
     assert check_response == '', "The check run cycle SHOULD NOT produce a error."
 
-    telemetry.assert_total_metrics(1)
+    telemetry.assert_total_metrics(2)
 
     last_observed_timestamp = telemetry.metrics("metric_name")[0].timestamp
     assert last_observed_timestamp == time_to_seconds('2017-03-08T12:00:00.000000+0000')

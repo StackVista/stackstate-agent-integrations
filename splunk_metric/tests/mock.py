@@ -229,12 +229,15 @@ def _request_mock_get_search_alternative(requests_mock, request_id, logger):
     logger.debug("Mocking GET request URL for Search with Alternative Request Id: %s" % url)
 
     if request_id is not None:
-        # Get search results for job
-        requests_mock.get(
-            url=url,
-            status_code=200,
-            text=read_file("%s.json" % request_id, "ci/fixtures")
-        )
+        try:
+            # Get search results for job
+            requests_mock.get(
+                url=url,
+                status_code=200,
+                text=read_file("%s.json" % request_id, "ci/fixtures")
+            )
+        except FileNotFoundError:
+            return []
 
 
 def _request_mock_get_search(requests_mock, request_id, logger):
@@ -244,12 +247,15 @@ def _request_mock_get_search(requests_mock, request_id, logger):
     logger.debug("Mocking GET request URL for Search: %s" % url)
 
     if request_id is not None:
-        # Get search results for job
-        requests_mock.get(
-            url=url,
-            status_code=200,
-            text=read_file("%s.json" % request_id, "ci/fixtures")
-        )
+        try:
+            # Get search results for job
+            requests_mock.get(
+                url=url,
+                status_code=200,
+                text=read_file("%s.json" % request_id, "ci/fixtures")
+            )
+        except FileNotFoundError:
+            return []
 
 
 def _request_mock_post_dispatch_saved_search(requests_mock, request_id, logger, audience):

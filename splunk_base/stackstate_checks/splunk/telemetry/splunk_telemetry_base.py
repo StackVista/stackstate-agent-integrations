@@ -80,7 +80,7 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
             if self.collect_ok:  # TODO: Melcom - Verify
                 self.continue_after_commit = continue_after_commit  # TODO: Melcom - Verify
             else:
-                print("Possible failure force here ????")  # TODO: Melcom - Verify
+                self.log.debug("Possible failure force here ????")  # TODO: Melcom - Verify
 
             # If no service checks were produced, everything is ok
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK)
