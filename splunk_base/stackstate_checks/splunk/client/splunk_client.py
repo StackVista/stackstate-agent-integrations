@@ -229,8 +229,8 @@ class SplunkClient(object):
     def dispatch(self, saved_search, splunk_app, ignore_saved_search_errors, parameters):
         """
         :param saved_search: The saved search to dispatch
-        :param splunk_user: Splunk user that dispatches the saved search
         :param splunk_app: Splunk App under which the saved search is located
+        :param ignore_saved_search_errors: Ignore saved search errors
         :param parameters: Parameters of the saved search
         :return: the sid of the saved search
         """
