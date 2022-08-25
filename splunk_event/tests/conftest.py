@@ -1,15 +1,18 @@
 # (C) StackState 2022
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
+import json
 import os
-from typing import Dict, Generator
+from typing import Dict, Generator, Optional, List
 
 import pytest
 import requests
+from requests_mock import Mocker
 
 from stackstate_checks.base.stubs.aggregator import AggregatorStub
 from stackstate_checks.base.stubs.state import StateStub
 from stackstate_checks.base.stubs.transaction import TransactionStub
+from stackstate_checks.base.utils.common import read_file
 from stackstate_checks.dev import docker_run, WaitFor
 from stackstate_checks.splunk.client import SplunkClient
 from stackstate_checks.splunk.config import SplunkInstanceConfig
@@ -167,6 +170,7 @@ def unit_test_instance():
 
 @pytest.fixture
 def unit_test_config():
+    # type: () -> Dict
     return {}
 
 
@@ -183,18 +187,121 @@ def initial_delay_60_seconds(unit_test_config):
 
 
 @pytest.fixture
-def restart_config(unit_test_config):
+def restart_history_86400(unit_test_config, unit_test_instance):
+    # type: (Dict, Dict) -> None
     unit_test_config["default_max_restart_history_seconds"] = 86400
     unit_test_config["default_max_query_time_range"] = 3600
+    unit_test_instance["saved_searches"][0]["max_restart_history_seconds"] = 86400
+    unit_test_instance["saved_searches"][0]["max_query_time_range"] = 3600
 
 
 @pytest.fixture
-def restart_instance(unit_test_instance):
-    unit_test_instance["saved_searches"][0]["max_restart_history_seconds"] = 86400
+def restart_history_3600(unit_test_config, unit_test_instance):
+    # type: (Dict, Dict) -> None
+    unit_test_config["default_max_restart_history_seconds"] = 3600
+    unit_test_config["default_max_query_time_range"] = 3600
+    unit_test_instance["saved_searches"][0]["max_restart_history_seconds"] = 3600
     unit_test_instance["saved_searches"][0]["max_query_time_range"] = 3600
+
+
+@pytest.fixture
+def wildcard_saved_search(unit_test_instance):
+    # type: (Dict) -> None
+    unit_test_instance["saved_searches"][0]["match"] = "even*"
 
 
 def extract_title_and_type_from_event(event):
     # type: (Dict) -> Dict
     """Extracts event title and type. Method call aggregator.assert_event needs event fields as **kwargs parameter."""
     return {"msg_title": event["msg_title"], "event_type": event["event_type"]}
+
+
+def common_requests_mocks(requests_mock):
+    # type: (Mocker) -> None
+    """
+    Splunk client request flow: Basic authentication > List saved searches > Dispatch search > Get search results
+    Here we mock first three requests.
+    """
+    basic_auth_mock(requests_mock)
+    list_saved_searches_mock(requests_mock)
+    dispatch_search_mock(requests_mock)
+
+
+def dispatch_search_mock(requests_mock):
+    # type: (Mocker) -> None
+    """
+    Dispatch search and get job's sid.
+    """
+    requests_mock.post(
+        url="http://localhost:8089/servicesNS/admin/search/saved/searches/test_events/dispatch",
+        status_code=201,
+        text='{"sid": "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3"}'
+    )
+
+
+def list_saved_searches_mock(requests_mock):
+    # type: (Mocker) -> None
+    """
+    List saved searches.
+    """
+    requests_mock.get(
+        url="http://localhost:8089/services/saved/searches?output_mode=json&count=-1",
+        status_code=200,
+        text=json.dumps(
+            {"entry": [{"name": "Errors in the last 24 hours"},
+                       {"name": "Errors in the last hour"},
+                       {"name": "test_events"}],
+             "paging": {"total": 3, "perPage": 18446744073709552000, "offset": 0},
+             "messages": []}
+        )
+    )
+
+
+def basic_auth_mock(requests_mock):
+    # type: (Mocker) -> None
+    """
+    Basic authentication.
+    """
+    requests_mock.post(
+        url="http://localhost:8089/services/auth/login?output_mode=json",
+        status_code=200,
+        text='{"sessionKey": "testSessionKey123", "message": "", "code": ""}'
+    )
+
+
+def job_results_mock(requests_mock, response_file, job_results_url=None):
+    # type: (Mocker, str, Optional[str, None]) -> None
+    """
+    Request for getting job result.
+    """
+    default_job_results_url = "http://localhost:8089/servicesNS/-/-/search/jobs/" \
+                              "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/results?" \
+                              "output_mode=json&offset=0&count=1000"
+    if not job_results_url:
+        job_results_url = default_job_results_url
+    requests_mock.get(url=job_results_url, status_code=200, text=read_file(response_file, "ci/fixtures"))
+
+
+def search_job_finalized_mock(requests_mock):
+    # type: (Mocker) -> None
+    """
+    Finalize search job.
+    """
+    requests_mock.post(
+        url="http://localhost:8089/services/search/jobs/"
+            "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/control?output_mode=json",
+        status_code=200,
+        text='{"messages":[{"type":"INFO","text":"Search job finalized."}]}'
+    )
+
+
+def batch_job_results_mock(requests_mock, response_files, batch_size):
+    # type: (Mocker, List, int) -> None
+    """
+    Iterates through response files list and sets up requests_mock for each.
+    """
+    for i, response_file in enumerate(response_files):
+        url = "http://localhost:8089/servicesNS/-/-/search/jobs/" \
+              "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/results?output_mode=json&offset={}&count={}" \
+            .format(i * batch_size, batch_size)
+        job_results_mock(requests_mock, response_file, url)
