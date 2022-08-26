@@ -215,6 +215,23 @@ def ignore_saved_search_errors(unit_test_instance):
     unit_test_instance["ignore_saved_search_errors"] = True
 
 
+@pytest.fixture
+def multiple_saved_searches(unit_test_instance):
+    unit_test_instance["saved_searches_parallel"] = 2
+    unit_test_instance["saved_searches"] = [
+        {"name": "savedsearch1", "parameters": {}},
+        {"name": "savedsearch2", "parameters": {}},
+        {"name": "savedsearch3", "parameters": {}},
+        {"name": "savedsearch4", "parameters": {}},
+        {"name": "savedsearch5", "parameters": {}}
+    ]
+
+
+@pytest.fixture
+def selective_events(unit_test_instance):
+    unit_test_instance["saved_searches"][0]["unique_key_fields"] = ["uid1", "uid2"]
+
+
 def extract_title_and_type_from_event(event):
     # type: (Dict) -> Dict
     """Extracts event title and type. Method call aggregator.assert_event needs event fields as **kwargs parameter."""
@@ -315,10 +332,22 @@ def batch_job_results_mock(requests_mock, response_files, batch_size):
 def saved_searches_error_mock(requests_mock):
     # type: (Mocker) -> None
     """
-    List saved searches.
+    Explode with 400 when listing saved searches.
     """
     requests_mock.get(
         url="http://localhost:8089/services/saved/searches?output_mode=json&count=-1",
+        status_code=400,
+        text='{"messages":[{"type":"ERROR","text":"Error raised for testing!"}]}'
+    )
+
+
+def dispatch_error_mock(requests_mock):
+    # type: (Mocker) -> None
+    """
+    Explode with 400 when trying to dispatch search.
+    """
+    requests_mock.get(
+        url="http://localhost:8089/servicesNS/admin/search/saved/searches/test_events/dispatch",
         status_code=400,
         text='{"messages":[{"type":"ERROR","text":"Error raised for testing!"}]}'
     )

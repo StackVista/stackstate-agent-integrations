@@ -1,7 +1,7 @@
 # (C) StackState 2022
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
-from typing import Dict, Optional
+from typing import Dict
 
 import freezegun
 import pytest
@@ -10,9 +10,11 @@ from freezegun import freeze_time
 from stackstate_checks.base.utils.common import load_json_from_file
 from stackstate_checks.splunk.client import SplunkClient
 from stackstate_checks.splunk.config.splunk_instance_config import time_to_seconds
+from stackstate_checks.splunk.saved_search_helper import SavedSearchesTelemetry
 from stackstate_checks.splunk_event import SplunkEvent
 from .conftest import extract_title_and_type_from_event, common_requests_mocks, list_saved_searches_mock, \
-    basic_auth_mock, job_results_mock, search_job_finalized_mock, batch_job_results_mock, saved_searches_error_mock
+    basic_auth_mock, job_results_mock, search_job_finalized_mock, batch_job_results_mock, saved_searches_error_mock, \
+    dispatch_error_mock
 
 # Mark the entire module as tests of type `unit`
 pytestmark = pytest.mark.unit
@@ -137,24 +139,24 @@ def test_splunk_full_events(splunk_event_check, requests_mock, aggregator):
                                 **extract_title_and_type_from_event(event))
 
 
-@freezegun.freeze_time("2017-03-08 18:29:59")
 def test_splunk_earliest_time_and_duplicates(splunk_event_check, requests_mock, batch_size_2, aggregator):
     """
     Splunk event check should poll batches responses.
     """
-    # Initial run
-    common_requests_mocks(requests_mock)
-    initial_run_response_files = [
-        "batch_poll1_1_response.json", "batch_poll1_2_response.json", "batch_last_response.json"
-    ]
-    batch_job_results_mock(requests_mock, initial_run_response_files, 2)
-    run_result_01 = splunk_event_check.run()
-    assert run_result_01 == "", "No errors when running Splunk check."
-    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=2)
-    assert len(aggregator.events) == 4, "There should be four events processed."
-    assert [e['event_type'] for e in aggregator.events] == ['0_1', '0_2', '1_1', '1_2']
+    with freeze_time("2017-03-08 18:29:59"):
+        # Initial run
+        common_requests_mocks(requests_mock)
+        initial_run_response_files = [
+            "batch_poll1_1_response.json", "batch_poll1_2_response.json", "batch_last_response.json"
+        ]
+        batch_job_results_mock(requests_mock, initial_run_response_files, 2)
+        run_result_01 = splunk_event_check.run()
+        assert run_result_01 == "", "No errors when running Splunk check."
+        aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=2)
+        assert len(aggregator.events) == 4, "There should be four events processed."
+        assert [e['event_type'] for e in aggregator.events] == ['0_1', '0_2', '1_1', '1_2']
 
-    assert splunk_event_check.get_state() == {'test_events': time_to_seconds("2017-03-08T18:29:59")}
+        assert splunk_event_check.get_state() == {'test_events': time_to_seconds("2017-03-08T18:29:59")}
 
     # Respect earliest_time
     with freeze_time("2017-03-08 18:30:00"):
@@ -211,20 +213,20 @@ def test_splunk_deduplicate_events_in_the_same_run(splunk_event_check, requests_
     assert [e["event_type"] for e in aggregator.events] == ["1", "2"]
 
 
-@freezegun.freeze_time("2017-03-08 00:00:00")
 def test_splunk_continue_after_restart(splunk_event_check, restart_history_86400, requests_mock, aggregator,
                                        monkeypatch):
     """
     Splunk event check should continue where it left off after restart.
     """
-    _setup_client_with_mocked_dispatch(monkeypatch, requests_mock, "empty_response.json")
+    with freeze_time("2017-03-08 00:00:00"):
+        _setup_client_with_mocked_dispatch(monkeypatch, requests_mock, "empty_response.json")
 
-    # Initial run with initial time
-    test_data["earliest_time"] = "2017-03-08T00:00:00.000000+0000"
-    check_result = splunk_event_check.run()
-    assert check_result == "", "No errors when running Splunk check."
-    assert len(aggregator.events) == 0
-    assert splunk_event_check.get_state() == {'test_events': time_to_seconds("2017-03-08T00:00:00")}
+        # Initial run with initial time
+        test_data["earliest_time"] = "2017-03-08T00:00:00.000000+0000"
+        check_result = splunk_event_check.run()
+        assert check_result == "", "No errors when running Splunk check."
+        assert len(aggregator.events) == 0
+        assert splunk_event_check.get_state() == {'test_events': time_to_seconds("2017-03-08T00:00:00")}
 
     # Restart check and recover data
     with freezegun.freeze_time("2017-03-08 01:00:05.000000"):
@@ -363,5 +365,113 @@ def test_splunk_saved_searches_ignore_error(requests_mock, splunk_event_check, a
     basic_auth_mock(requests_mock)
     saved_searches_error_mock(requests_mock)
     run_result = splunk_event_check.run()
+    job_results_mock(requests_mock, response_file="empty_response.json")
     assert run_result == ""
     aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.CRITICAL, count=1)
+
+
+def test_splunk_event_respect_parallel_dispatches(requests_mock, monkeypatch, multiple_saved_searches,
+                                                  splunk_event_check):
+    expected_sid_increment = 1
+
+    def _mock_dispatch_and_await_search(self, process_data, service_check, log, persisted_state, saved_searches):
+        saved_searches_parallel = 2
+        n = len(saved_searches)
+        assert n <= saved_searches_parallel, "Did not respect configured saved_searches_parallel setting, got: %i" % n
+        for saved_search in saved_searches:
+            result = saved_search.name
+            assert result == "savedsearch%i" % self.expected_sid_increment
+            self.expected_sid_increment += 1
+        return True
+
+    basic_auth_mock(requests_mock)
+    list_saved_searches_mock(requests_mock)
+    monkeypatch.setattr(SavedSearchesTelemetry, "_dispatch_and_await_search", _mock_dispatch_and_await_search)
+    monkeypatch.setattr(SavedSearchesTelemetry, "expected_sid_increment", expected_sid_increment, raising=False)
+
+    run_result = splunk_event_check.run()
+    assert run_result == ""
+
+
+def test_splunk_selective_fields_for_identification(requests_mock, splunk_event_check, aggregator, selective_events):
+    """
+    Splunk event check should process events where the unique identifier is set to a selective number of fields.
+    """
+    common_requests_mocks(requests_mock)
+    job_results_mock(requests_mock, response_file="identification_fields_selective_events_response.json")
+    check_result = splunk_event_check.run()
+    assert check_result == "", "No errors when running Splunk check."
+    assert len(aggregator.events) == 2, "There should be four events processed."
+    for event in load_json_from_file("identification_fields_selective_events_expected.json", "ci/fixtures"):
+        aggregator.assert_event(msg_text=event["msg_text"], count=1, tags=event["tags"],
+                                **extract_title_and_type_from_event(event))
+
+
+def test_splunk_all_fields_for_identification(requests_mock, splunk_event_check, aggregator):
+    """
+    Splunk event check should process events where the unique identifier is set to all fields in a record.
+    """
+    common_requests_mocks(requests_mock)
+    job_results_mock(requests_mock, response_file="identification_fields_all_events_response.json")
+    run1_result = splunk_event_check.run()
+    assert run1_result == "", "No errors when running Splunk check."
+    assert len(aggregator.events) == 2, "There should be two events processed."
+    for event in load_json_from_file("identification_fields_all_events_expected.json", "ci/fixtures"):
+        aggregator.assert_event(msg_text=event["msg_text"], count=1, tags=event["tags"],
+                                **extract_title_and_type_from_event(event))
+    # shouldn't resend events
+    run2_result = splunk_event_check.run()
+    assert run2_result == "", "No errors when running Splunk check."
+    assert len(aggregator.events) == 2, "There should be two events processed."
+
+
+def test_splunk_event_individual_dispatch_failures(requests_mock, splunk_event_check, aggregator):
+    """
+    Splunk event check shouldn't fail if individual failures occur when dispatching Splunk searches.
+    """
+    # TODO: implement multiple searches
+    common_requests_mocks(requests_mock)
+    job_results_mock(requests_mock, response_file="minimal_events_response.json")
+    run1_result = splunk_event_check.run()
+    assert run1_result == "", "No errors when running Splunk check."
+    assert len(aggregator.events) == 2, "There should be two events processed."
+    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=2)
+    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.CRITICAL, count=0)
+
+    dispatch_error_mock(requests_mock)
+    run2_result = splunk_event_check.run()
+    assert run2_result == ""
+    assert len(aggregator.events) == 2, "There should be two events processed."
+    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=2)
+    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.WARNING, count=1)
+    # TODO: missing WARNING, also when we explode, not process next set of events
+
+
+def test_splunk_event_individual_search_failures(requests_mock, splunk_event_check, aggregator):
+    """
+    Splunk events check shouldn't fail if individual failures occur when executing Splunk searches.
+    """
+    # TODO: implement multiple searches
+    common_requests_mocks(requests_mock)
+    job_results_mock(requests_mock, response_file="minimal_events_response.json")
+    run1_result = splunk_event_check.run()
+    assert run1_result == "", "No errors when running Splunk check."
+    assert len(aggregator.events) == 2, "There should be two events processed."
+    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=2)
+    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.CRITICAL, count=0)
+
+    saved_searches_error_mock(requests_mock)
+    run2_result = splunk_event_check.run()
+    assert run2_result != "", "Check run result should return error message."
+    assert len(aggregator.events) == 2, "There should be two events processed."
+    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=2)
+    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.CRITICAL, count=1)
+    # TODO: missing WARNING
+
+
+def test_splunk_event_search_full_failure():
+    """
+    Splunk metric check should fail when all saved searches fail.
+    """
+    # TODO: implement multiple searches, reuse previous two tests for that
+    assert 1 == 2
