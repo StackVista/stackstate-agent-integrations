@@ -35,11 +35,13 @@ class SplunkConfigSavedSearchDefault(PickleModel):
     initial_delay_seconds = IntType(default=0)
 
 
+# TODO: Try and combine this with the main schematic after the test works
 class SplunkConfigSavedSearchAlternativeFields(SplunkConfigSavedSearchDefault):
     metric_name_field = StringType()
     metric_value_field = StringType()
 
 
+# TODO: Try and combine this with the main schematic after the test works
 class SplunkConfigSavedSearchAlternativeFields2(SplunkConfigSavedSearchDefault):
     metric_name = StringType()
     metric_value_field = StringType()
