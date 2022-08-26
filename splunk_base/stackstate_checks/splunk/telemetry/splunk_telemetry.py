@@ -90,10 +90,8 @@ class SplunkTelemetryInstance(object):
         return status_dict, has_history
 
     def get_search_data(self, data, search):
-        instance_key = TopologyInstance(SplunkTelemetryInstance.INSTANCE_TYPE,
-                                        self.instance_config.base_url).to_string()
-        if instance_key in data and search in data[instance_key]:
-            return data[instance_key][search]
+        if search in data:
+            return data[search]
         else:
             return None
 
