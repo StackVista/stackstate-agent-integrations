@@ -112,7 +112,7 @@ def test_partially_incomplete_metrics(partially_incomplete_metrics, telemetry, a
 
     service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
 
-    assert len(service_checks) == 3
+    assert len(service_checks) == 4
     assert service_checks[0].status == AgentCheck.WARNING
     assert service_checks[0].message == \
            "The saved search 'partially_incomplete_metrics' contained 1 incomplete records"
@@ -139,7 +139,6 @@ def test_full_metrics(full_metrics, telemetry, aggregator):
                 'checktag:checktagvalue'], hostname='', timestamp=1488997797.0)
 
 
-# TODO: Tanja
 @pytest.mark.unit
 def test_alternative_fields_metrics(alternative_fields_metrics, telemetry, aggregator):
     check = alternative_fields_metrics
@@ -147,10 +146,9 @@ def test_alternative_fields_metrics(alternative_fields_metrics, telemetry, aggre
 
     assert check_response == '', "The check run cycle SHOULD NOT produce a error"
 
-    # telemetry.assert_metric("metric_name", count=2, value=3.0, tags=[], hostname='', timestamp=1488974400.0)
+    telemetry.assert_metric("metric_name", count=2, value=3.0, tags=[], hostname='', timestamp=1488974400.0)
 
 
-# TODO: Tanja
 @pytest.mark.unit
 def test_fixed_metric_name(fixed_metric_name, telemetry, aggregator):
     check = fixed_metric_name
@@ -171,7 +169,7 @@ def test_warning_on_missing_fields(warning_on_missing_fields, telemetry, aggrega
 
     service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
 
-    assert len(service_checks) == 2
+    assert len(service_checks) == 3
     assert service_checks[0].status == AgentCheck.WARNING, \
         "service check should have status AgentCheck.WARNING when fields are missing"
 
@@ -240,7 +238,7 @@ def test_earliest_time_and_duplicates(requests_mock, get_logger, splunk_config, 
 
     service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
 
-    assert len(service_checks) == 1
+    assert len(service_checks) == 2
     assert service_checks[0].status == AgentCheck.CRITICAL, "service check should have status AgentCheck.CRITICAL"
 
 

@@ -12,17 +12,16 @@ from datetime import timedelta, datetime
 from stackstate_checks.errors import CheckException
 from typing import Type, Tuple
 from .common import HOST, PORT, USER, PASSWORD
-from .mock import MockSplunkMetric, mock_auth_session, mock_saved_searches, mock_token_auth_session, mock_search, \
+from .mock import MockSplunkMetric, mock_auth_session, mock_saved_searches, mock_search, \
     mock_finalize_sid, mock_dispatch_saved_search, mock_finalize_sid_exception, mock_polling_search, \
     _generate_mock_token, _requests_mock, SplunkMetric
 from stackstate_checks.splunk.config.splunk_instance_config_models import SplunkConfigInstance, SplunkConfig, \
-    SplunkConfigSavedSearchAlternativeFields, \
-    SplunkConfigSavedSearchAlternativeFields2, SplunkConfigSavedSearchDefault
+    SplunkConfigSavedSearchDefault
 
 
 @pytest.fixture
 def get_logger():  # type: () -> logging.Logger
-    return logging.getLogger('{}.{}'.format(__name__, "metric-check-name"))
+    return logging.getLogger('{}.{}'.format(__name__, SplunkMetric.CHECK_NAME))
 
 
 @pytest.fixture
@@ -203,7 +202,7 @@ def empty_metrics(requests_mock, get_logger, splunk_config, splunk_instance_basi
     # Validate the config, authentication and saved_search data we are sending
     splunk_config.validate()
 
-    check = splunk_metric("metric-check-name", splunk_config.init_config, {}, splunk_config.instances)
+    check = splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances)
 
     # We set the check id to the current function name to prevent a blank check id
     check.check_id = inspect.stack()[0][3]
@@ -236,7 +235,7 @@ def minimal_metrics(requests_mock, get_logger, splunk_config, splunk_instance_ba
     # Validate the config, authentication and saved_search data we are sending
     splunk_config.validate()
 
-    check = splunk_metric("metric-check-name", splunk_config.init_config, {}, splunk_config.instances)
+    check = splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances)
 
     # We set the check id to the current function name to prevent a blank check id
     check.check_id = inspect.stack()[0][3]
@@ -269,7 +268,7 @@ def partially_incomplete_metrics(requests_mock, get_logger, splunk_config, splun
     # Validate the config, authentication and saved_search data we are sending
     splunk_config.validate()
 
-    check = splunk_metric("metric-check-name", splunk_config.init_config, {}, splunk_config.instances)
+    check = splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances)
 
     # We set the check id to the current function name to prevent a blank check id
     check.check_id = inspect.stack()[0][3]
@@ -302,7 +301,7 @@ def full_metrics(requests_mock, get_logger, splunk_config, splunk_instance_basic
     # Validate the config, authentication and saved_search data we are sending
     splunk_config.validate()
 
-    check = splunk_metric("metric-check-name", splunk_config.init_config, {}, splunk_config.instances)
+    check = splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances)
 
     # We set the check id to the current function name to prevent a blank check id
     check.check_id = inspect.stack()[0][3]
@@ -320,10 +319,11 @@ def alternative_fields_metrics(get_logger, requests_mock, splunk_config, splunk_
 
     # Set the splunk saved searches
     splunk_instance_basic_auth.saved_searches = [
-        SplunkConfigSavedSearchAlternativeFields({
+        SplunkConfigSavedSearchDefault({
             "name": splunk_config_name,
+            "parameters": {},
             "metric_name_field": "mymetric",
-            "metric_value_field": "myvalue"
+            "metric_value_field": "myvalue",
         })
     ]
 
@@ -333,7 +333,7 @@ def alternative_fields_metrics(get_logger, requests_mock, splunk_config, splunk_
     # Validate the config, authentication and saved_search data we are sending
     splunk_config.validate()
 
-    check = splunk_metric("metric-check-name", splunk_config.init_config, {}, splunk_config.instances)
+    check = splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances)
 
     # We set the check id to the current function name to prevent a blank check id
     check.check_id = inspect.stack()[0][3]
@@ -342,31 +342,33 @@ def alternative_fields_metrics(get_logger, requests_mock, splunk_config, splunk_
 
 
 @pytest.fixture
-def fixed_metric_name(splunk_config, splunk_instance_basic_auth, mock_splunk_metric):
-    # type: (SplunkConfig, SplunkConfigInstance, Type[MockSplunkMetric]) -> MockSplunkMetric
+def fixed_metric_name(get_logger, requests_mock, splunk_config, splunk_instance_basic_auth, splunk_metric):
+    # type: (logging.Logger, Mocker, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+    splunk_config_name = 'alternative_fields_metrics'
 
-    splunk_instance_basic_auth.tags = []  # Splunk Config Tags
+    # Mock the HTTP Requests
+    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
 
+    # Set the splunk tags
     splunk_instance_basic_auth.saved_searches = [  # Splunk Saved Searches
-        SplunkConfigSavedSearchAlternativeFields2({
-            "name": "alternative_fields_metrics",
+        SplunkConfigSavedSearchDefault({
+            "name": splunk_config_name,
             "metric_name": "custommetric",
             "metric_value_field": "myvalue",
             "parameters": {}
         })
     ]
 
+    # Add the splunk instance into the config instances
     splunk_config.instances.append(splunk_instance_basic_auth)
+
+    # Validate the config, authentication and saved_search data we are sending
     splunk_config.validate()
 
-    check = mock_splunk_metric("metric-check-name", splunk_config.init_config, {}, splunk_config.instances, {
-        'auth_session': mock_auth_session,
-        '_dispatch_saved_search': mock_dispatch_saved_search,
-        'saved_search_results': mock_search,
-        'saved_searches': mock_saved_searches,
-    })
+    check = splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances)
 
-    check.check_id = "splunk_fixed_metric_name"
+    # We set the check id to the current function name to prevent a blank check id
+    check.check_id = inspect.stack()[0][3]
 
     return check
 
@@ -394,7 +396,7 @@ def warning_on_missing_fields(requests_mock, get_logger, splunk_config, splunk_i
     # Validate the config, authentication and saved_search data we are sending
     splunk_config.validate()
 
-    check = splunk_metric("metric-check-name", splunk_config.init_config, {}, splunk_config.instances)
+    check = splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances)
 
     # We set the check id to the current function name to prevent a blank check id
     check.check_id = inspect.stack()[0][3]
@@ -425,7 +427,7 @@ def same_data_metrics(requests_mock, get_logger, splunk_config, splunk_instance_
     # Validate the config, authentication and saved_search data we are sending
     splunk_config.validate()
 
-    check = splunk_metric("metric-check-name", splunk_config.init_config, {}, splunk_config.instances)
+    check = splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances)
 
     # We set the check id to the current function name to prevent a blank check id
     check.check_id = inspect.stack()[0][3]
@@ -484,7 +486,7 @@ def earliest_time_and_duplicates(requests_mock, get_logger, splunk_config, splun
 
         return test_data["sid"]
 
-    check = mock_splunk_metric("metric-check-name", splunk_config.init_config, {}, splunk_config.instances, {
+    check = mock_splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances, {
         'dispatch': mock_dispatch_saved_search_dispatch,
         'saved_search_results': mock_polling_search,
     })
@@ -523,7 +525,7 @@ def delayed_start(requests_mock, get_logger, splunk_config, splunk_instance_basi
     # Validate the config, authentication and saved_search data we are sending
     splunk_config.validate()
 
-    check = splunk_metric("metric-check-name", splunk_config.init_config, {}, splunk_config.instances)
+    check = splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances)
 
     # We set the check id to the current function name to prevent a blank check id
     check.check_id = inspect.stack()[0][3]

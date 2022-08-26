@@ -3,7 +3,7 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 
 from schematics.models import Model
-from schematics.types import StringType, ListType, DictType, PolyModelType, IntType, BooleanType, BaseType, ModelType
+from schematics.types import StringType, ListType, DictType, PolyModelType, IntType, BooleanType, BaseType, ModelType, MultiType
 
 
 # Allow copy.deepcopy to work on the schematic models
@@ -33,18 +33,9 @@ class SplunkConfigSavedSearchDefault(PickleModel):
     max_restart_history_seconds = IntType(default=86400)
     max_query_time_range = IntType(default=3600)
     initial_delay_seconds = IntType(default=0)
-
-
-# TODO: Try and combine this with the main schematic after the test works
-class SplunkConfigSavedSearchAlternativeFields(SplunkConfigSavedSearchDefault):
-    metric_name_field = StringType()
-    metric_value_field = StringType()
-
-
-# TODO: Try and combine this with the main schematic after the test works
-class SplunkConfigSavedSearchAlternativeFields2(SplunkConfigSavedSearchDefault):
-    metric_name = StringType()
-    metric_value_field = StringType()
+    metric_name = StringType(default=None)
+    metric_name_field = StringType(default=None)
+    metric_value_field = StringType(default=None)
 
 
 class SplunkConfigTokenAuthStructure(PickleModel):
@@ -70,10 +61,10 @@ class SplunkConfigInstance(PickleModel):
     authentication = ModelType(SplunkConfigAuthentication, required=True)
     saved_searches_parallel = IntType(default=3)
     ignore_saved_search_errors = BooleanType(default=False)
-    saved_searches = ListType(PolyModelType([SplunkConfigSavedSearchDefault, SplunkConfigSavedSearchAlternativeFields,
-                                             SplunkConfigSavedSearchAlternativeFields2]), required=True)
+    saved_searches = ListType(ModelType(SplunkConfigSavedSearchDefault), required=True)
 
 
 class SplunkConfig(PickleModel):
     init_config = DictType(BaseType)
     instances = ListType(ModelType(SplunkConfigInstance), required=True)
+

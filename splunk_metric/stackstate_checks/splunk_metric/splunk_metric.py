@@ -23,20 +23,27 @@ class MetricSavedSearch(SplunkTelemetrySavedSearch):
 
         required_base_fields = ['value']
 
-        if 'metric_name' in saved_search_instance:
-            if 'metric_name_field' in saved_search_instance:
+        if 'metric_name' in saved_search_instance and saved_search_instance['metric_name'] is not None:
+            if 'metric_name_field' in saved_search_instance and saved_search_instance['metric_name_field'] is not None:
                 raise Exception("Cannot set both metric_name and metric_name_field")
 
             self.fixed_fields = {'metric': saved_search_instance.get('metric_name')}
         else:
             required_base_fields.append('metric')
 
-        self.required_fields = {
-            field_name: saved_search_instance.get(name_in_config,
-                                                  instance_config.get_or_default("default_" + name_in_config))
-            for field_name in required_base_fields
-            for name_in_config in [MetricSavedSearch.field_name_in_config.get(field_name, field_name)]
-        }
+        if self.required_fields is None:
+            self.required_fields = {}
+
+        for field_name in required_base_fields:
+            for name_in_config in [MetricSavedSearch.field_name_in_config.get(field_name, field_name)]:
+                metric_value = saved_search_instance.get(name_in_config)
+
+                # Check None allows us to use Non in schematics to pass certain functionality
+                # If the key does not exist get the default_ value
+                if metric_value is None:
+                    metric_value = instance_config.get_or_default("default_" + name_in_config)
+
+                self.required_fields[field_name] = metric_value
 
 
 class SplunkMetric(SplunkTelemetryBase):
