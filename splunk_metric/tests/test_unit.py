@@ -4,13 +4,30 @@
 import json
 import pytest
 
-from datetime import datetime
 from freezegun import freeze_time
 from stackstate_checks.base import AgentCheck
 from stackstate_checks.base.utils.state_common import generate_state_key
 from stackstate_checks.splunk.config.splunk_instance_config import time_to_seconds
 from .conftest import continue_after_restart, max_restart_time, earliest_time_and_duplicates, metric_check, \
     max_query_chunk_sec_history_check
+
+
+def assert_service_check_status(check, aggregator, count, status_index, status, message=None):
+    service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
+
+    assert len(service_checks) == count
+
+    agent_check_status = "AgentCheck.OK"
+    if status == AgentCheck.WARNING:
+        agent_check_status = "AgentCheck.WARNING"
+    elif status == AgentCheck.CRITICAL:
+        agent_check_status = "AgentCheck.CRITICAL"
+
+    if message is not None:
+        assert service_checks[status_index].message == message
+
+    assert service_checks[status_index].status == status, \
+        "service check should have status %s" % agent_check_status
 
 
 @pytest.mark.unit
@@ -20,12 +37,9 @@ def test_error_response(error_response_check, telemetry, aggregator):
 
     assert check_response != '', "The check run cycle should run a error"
 
-    service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
-
     telemetry.assert_total_metrics(0)
 
-    assert len(service_checks) == 3
-    assert service_checks[1].status == AgentCheck.CRITICAL, "service check should have status AgentCheck.CRITICAL"
+    assert_service_check_status(check, aggregator, count=3, status_index=1, status=AgentCheck.CRITICAL)
 
 
 @pytest.mark.unit
@@ -110,12 +124,9 @@ def test_partially_incomplete_metrics(partially_incomplete_metrics, telemetry, a
 
     telemetry.assert_metric("metric_name", count=1, value=1.0, tags=[], hostname='', timestamp=1488974400.0)
 
-    service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
-
-    assert len(service_checks) == 4
-    assert service_checks[0].status == AgentCheck.WARNING
-    assert service_checks[0].message == \
-           "The saved search 'partially_incomplete_metrics' contained 1 incomplete records"
+    assert_service_check_status(check, aggregator, count=4, status_index=0, status=AgentCheck.WARNING,
+                                message="The saved search 'partially_incomplete_metrics' contained 1 "
+                                        "incomplete records")
 
 
 @pytest.mark.unit
@@ -167,11 +178,7 @@ def test_warning_on_missing_fields(warning_on_missing_fields, telemetry, aggrega
 
     assert check_response != '', "The check run cycle SHOULD produce a error"
 
-    service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
-
-    assert len(service_checks) == 3
-    assert service_checks[0].status == AgentCheck.WARNING, \
-        "service check should have status AgentCheck.WARNING when fields are missing"
+    assert_service_check_status(check, aggregator, count=3, status_index=0, status=AgentCheck.WARNING)
 
 
 @pytest.mark.unit
@@ -236,10 +243,7 @@ def test_earliest_time_and_duplicates(requests_mock, get_logger, splunk_config, 
 
     assert check_response != '', "The check run cycle SHOULD produce a error"
 
-    service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
-
-    assert len(service_checks) == 2
-    assert service_checks[0].status == AgentCheck.CRITICAL, "service check should have status AgentCheck.CRITICAL"
+    assert_service_check_status(check, aggregator, count=2, status_index=0, status=AgentCheck.CRITICAL)
 
 
 @pytest.mark.unit
@@ -269,8 +273,8 @@ def test_delayed_start(delayed_start, telemetry, aggregator):
 
 # Busy
 @pytest.mark.unit
-def test_continue_after_restart(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, mock_splunk_metric,
-                                telemetry, aggregator):
+def test_continue_after_restart(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
+                                mock_splunk_metric, telemetry, aggregator):
     # Instead of a pyfixture we are importing this check to allow a force_reload behaviour
     check, test_data = continue_after_restart(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
                                               mock_splunk_metric)
@@ -308,10 +312,7 @@ def test_continue_after_restart(requests_mock, get_logger, splunk_config, splunk
 
             telemetry.assert_total_metrics(0)
 
-            service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
-
-            assert len(service_checks) == 3
-            assert service_checks[0].status == AgentCheck.OK
+            assert_service_check_status(check, aggregator, count=3, status_index=0, status=AgentCheck.OK)
 
         telemetry.reset()
         aggregator.reset()
@@ -448,10 +449,7 @@ def test_saved_searches_error(saved_searches_error, telemetry, aggregator):
 
     assert check_response != '', "The check run cycle SHOULD produce a error"
 
-    service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
-
-    assert service_checks[0].status == AgentCheck.CRITICAL, "service check should have status AgentCheck.CRITICAL"
-    assert service_checks[0].message == "Boom"
+    assert_service_check_status(check, aggregator, count=2, status_index=0, status=AgentCheck.CRITICAL, message="Boom")
 
 
 @pytest.mark.unit
@@ -461,10 +459,7 @@ def test_saved_searches_ignore_error(saved_searches_ignore_error, telemetry, agg
 
     assert check_response == '', "The check run cycle NOT SHOULD produce a error"
 
-    service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
-
-    assert service_checks[0].status == AgentCheck.CRITICAL, "service check should have status AgentCheck.CRITICAL"
-    assert service_checks[0].message == "Boom"
+    assert_service_check_status(check, aggregator, count=2, status_index=0, status=AgentCheck.CRITICAL, message="Boom")
 
 
 @pytest.mark.unit
@@ -477,13 +472,7 @@ def test_individual_dispatch_failures(individual_dispatch_failures, telemetry, a
     telemetry.assert_total_metrics(2)
     telemetry.assert_metric("metric_name", count=2, value=3.0, timestamp=1488974400.0)
 
-    service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
-
-    assert len(service_checks) == 4
-
-    assert service_checks[0].status == AgentCheck.WARNING
-    assert service_checks[0].message == \
-           "BOOM"
+    assert_service_check_status(check, aggregator, count=4, status_index=0, status=AgentCheck.WARNING, message="BOOM")
 
 
 @pytest.mark.unit
@@ -496,13 +485,8 @@ def test_individual_search_failures(individual_search_failures, telemetry, aggre
     telemetry.assert_total_metrics(2)
     telemetry.assert_metric("metric_name", count=2, value=3.0, timestamp=1488974400.0)
 
-    service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
-
-    assert len(service_checks) == 4
-
-    assert service_checks[0].status == AgentCheck.WARNING
-    assert service_checks[0].message == \
-           "Received FATAL exception from Splunk, got: Invalid offset."
+    assert_service_check_status(check, aggregator, count=4, status_index=0, status=AgentCheck.WARNING,
+                                message="Received FATAL exception from Splunk, got: Invalid offset.")
 
 
 @pytest.mark.unit
@@ -512,10 +496,8 @@ def test_search_full_failure(search_full_failure, telemetry, aggregator):
     check_response = check.run()
     assert check_response != '', "The check run cycle SHOULD produce a error"
 
-    service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
-
-    assert service_checks[0].status == AgentCheck.CRITICAL
-    assert service_checks[0].message == "No saved search was successfully executed."
+    assert_service_check_status(check, aggregator, count=2, status_index=0, status=AgentCheck.CRITICAL,
+                                message="No saved search was successfully executed.")
 
 
 @pytest.mark.unit
@@ -546,10 +528,9 @@ def test_selective_fields_for_identification_check(selective_fields_for_identifi
     check_response = check.run()
     assert check_response == '', "The check run cycle SHOULD NOT produce a error"
 
-    service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
     telemetry.assert_total_metrics(0)
 
-    assert service_checks[2].status == AgentCheck.OK
+    assert_service_check_status(check, aggregator, count=6, status_index=2, status=AgentCheck.OK)
 
 
 @pytest.mark.unit
@@ -568,10 +549,9 @@ def test_all_fields_for_identification_check(all_fields_for_identification_check
     check_response = check.run()
     assert check_response == '', "The check run cycle SHOULD NOT produce a error"
 
-    service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
     telemetry.assert_total_metrics(0)
 
-    assert service_checks[2].status == AgentCheck.OK
+    assert_service_check_status(check, aggregator, count=6, status_index=2, status=AgentCheck.OK)
 
 
 @pytest.mark.unit
@@ -590,10 +570,9 @@ def test_backward_compatibility(backward_compatibility_check, telemetry, aggrega
     check_response = check.run()
     assert check_response == '', "The check run cycle SHOULD NOT produce a error"
 
-    service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
     telemetry.assert_total_metrics(0)
 
-    assert service_checks[2].status == AgentCheck.OK
+    assert_service_check_status(check, aggregator, count=6, status_index=2, status=AgentCheck.OK)
 
 
 @pytest.mark.unit
@@ -612,10 +591,9 @@ def test_backward_compatibility_new_conf(backward_compatibility_new_conf_check, 
     check_response = check.run()
     assert check_response == '', "The check run cycle SHOULD NOT produce a error"
 
-    service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
     telemetry.assert_total_metrics(0)
 
-    assert service_checks[2].status == AgentCheck.OK
+    assert_service_check_status(check, aggregator, count=6, status_index=2, status=AgentCheck.OK)
 
 
 @pytest.mark.unit
@@ -650,7 +628,7 @@ def test_overwrite_default_parameters(overwrite_default_parameters_check, teleme
 
 @pytest.mark.unit
 def test_max_query_chunk_sec_history(get_logger, requests_mock, splunk_config, splunk_instance_basic_auth,
-                                      mock_splunk_metric, telemetry, state, transaction):
+                                     mock_splunk_metric, telemetry, state, transaction):
     with freeze_time("2017-03-09T00:00:00.000000+0000"):
         check, test_data = max_query_chunk_sec_history_check(get_logger, requests_mock, splunk_config,
                                                              splunk_instance_basic_auth, mock_splunk_metric)
@@ -663,8 +641,7 @@ def test_max_query_chunk_sec_history(get_logger, requests_mock, splunk_config, s
         telemetry.assert_total_metrics(1)
 
         # Get the latest transaction value to check the last observed timestamp
-        key = generate_state_key(check._get_instance_key().to_string(),
-                                             check.TRANSACTIONAL_PERSISTENT_CACHE_KEY)
+        key = generate_state_key(check._get_instance_key().to_string(), check.TRANSACTIONAL_PERSISTENT_CACHE_KEY)
         state_value = state.get_state(check, check.check_id, key)
         transactional_state = json.loads(state_value)
 
@@ -688,8 +665,7 @@ def test_max_query_chunk_sec_history(get_logger, requests_mock, splunk_config, s
         telemetry.assert_total_metrics(2)
 
         # Get the latest transaction value to check the last observed timestamp
-        key = generate_state_key(check._get_instance_key().to_string(),
-                                             check.TRANSACTIONAL_PERSISTENT_CACHE_KEY)
+        key = generate_state_key(check._get_instance_key().to_string(), check.TRANSACTIONAL_PERSISTENT_CACHE_KEY)
         state_value = state.get_state(check, check.check_id, key)
         transactional_state = json.loads(state_value)
 
@@ -723,13 +699,9 @@ def test_token_auth_with_valid_token(token_auth_with_valid_token_check, telemetr
     telemetry.assert_total_metrics(2)
     telemetry.assert_metric("metric_name", value=3.0, tags=[], timestamp=1488974400.0)
 
-    service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
-
-    assert len(service_checks) == 3
-    assert service_checks[0].status == AgentCheck.OK
-
-    assert service_checks[2].status == AgentCheck.OK
-    assert service_checks[2].message == check.CHECK_NAME + " check was processed successfully"
+    assert_service_check_status(check, aggregator, count=3, status_index=0, status=AgentCheck.OK)
+    assert_service_check_status(check, aggregator, count=3, status_index=2, status=AgentCheck.OK,
+                                message=check.CHECK_NAME + " check was processed successfully")
 
 
 @pytest.mark.unit
@@ -739,12 +711,9 @@ def test_authentication_invalid_token(authentication_invalid_token_check, teleme
 
     assert check_response == '', "The check SHOULD NOT return a error result after running."
 
-    service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
-
-    assert len(service_checks) == 2
-    assert service_checks[0].status == AgentCheck.CRITICAL
-    assert service_checks[0].message == "Current in use authentication token is expired. Please provide a valid token" \
-                                        " in the YAML and restart the Agent"
+    assert_service_check_status(check, aggregator, count=2, status_index=0, status=AgentCheck.CRITICAL,
+                                message="Current in use authentication token is expired. Please provide a valid "
+                                        "token in the YAML and restart the Agent")
 
 
 @pytest.mark.unit
@@ -755,12 +724,8 @@ def test_authentication_token_no_audience_parameter_check(authentication_token_n
 
     assert check_response != '', "The check SHOULD return a error result after running."
 
-    service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
-
-    assert len(service_checks) == 1
-    assert service_checks[0].status == AgentCheck.CRITICAL, "Splunk metric instance missing " \
-                                                            "'authentication.token_auth.audience' value"
-    assert service_checks[0].message == "Instance missing \"authentication.token_auth.audience\" value"
+    assert_service_check_status(check, aggregator, count=1, status_index=0, status=AgentCheck.CRITICAL,
+                                message="Instance missing \"authentication.token_auth.audience\" value")
 
 
 @pytest.mark.unit
@@ -771,12 +736,8 @@ def test_authentication_token_no_name_parameter_check(authentication_token_no_na
 
     assert check_response != '', "The check SHOULD return a error result after running."
 
-    service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
-
-    assert len(service_checks) == 1
-    assert service_checks[0].status == AgentCheck.CRITICAL, "Splunk metric instance missing " \
-                                                            "'authentication.token_auth.name' value"
-    assert service_checks[0].message == "Instance missing \"authentication.token_auth.name\" value"
+    assert_service_check_status(check, aggregator, count=1, status_index=0, status=AgentCheck.CRITICAL,
+                                message="Instance missing \"authentication.token_auth.name\" value")
 
 
 @pytest.mark.unit
@@ -790,10 +751,7 @@ def test_authentication_prefer_token_over_basic_check(authentication_prefer_toke
     telemetry.assert_total_metrics(2)
     telemetry.assert_metric("metric_name", value=3.0, tags=[], timestamp=1488974400.0)
 
-    service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
-
-    assert len(service_checks) == 3
-    assert service_checks[0].status == AgentCheck.OK
+    assert_service_check_status(check, aggregator, count=3, status_index=0, status=AgentCheck.OK)
 
 
 @pytest.mark.unit
@@ -803,12 +761,9 @@ def test_authentication_token_expired_check(authentication_token_expired_check, 
 
     assert check_response == '', "The check SHOULD NOT return a error result after running."
 
-    service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
+    assert_service_check_status(check, aggregator, count=2, status_index=0, status=AgentCheck.CRITICAL,
+                                message="Current in use authentication token is expired. Please provide a valid"
+                                        " token in the YAML and restart the Agent")
 
-    assert len(service_checks) == 2
-    assert service_checks[0].status == AgentCheck.CRITICAL
-    assert service_checks[0].message == "Current in use authentication token is expired. Please provide a valid token" \
-                                        " in the YAML and restart the Agent"
-
-    assert service_checks[1].status == AgentCheck.OK
-    assert service_checks[1].message == check.CHECK_NAME + " check was processed successfully"
+    assert_service_check_status(check, aggregator, count=2, status_index=1, status=AgentCheck.OK,
+                                message=check.CHECK_NAME + " check was processed successfully")
