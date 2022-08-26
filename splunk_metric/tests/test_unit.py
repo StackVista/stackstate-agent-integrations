@@ -162,17 +162,16 @@ def test_fixed_metric_name(fixed_metric_name, telemetry, aggregator):
                             timestamp=1488974400.0)
 
 
-# TODO: Tanja
 @pytest.mark.unit
 def test_warning_on_missing_fields(warning_on_missing_fields, telemetry, aggregator):
     check = warning_on_missing_fields
     check_response = check.run()
 
-    assert check_response == '', "The check run cycle should not produce a error"
+    assert check_response != '', "The check run cycle SHOULD produce a error"
 
     service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
 
-    assert len(service_checks) == 1
+    assert len(service_checks) == 2
     assert service_checks[0].status == AgentCheck.WARNING, \
         "service check should have status AgentCheck.WARNING when fields are missing"
 
@@ -182,7 +181,7 @@ def test_same_data_metrics(same_data_metrics, telemetry, aggregator):
     check = same_data_metrics
     check_response = check.run()
 
-    assert check_response == '', "The check run cycle should not produce a error"
+    assert check_response == '', "The check run cycle SHOULD NOT produce a error"
 
     telemetry.assert_total_metrics(2)
     telemetry.assert_metric("metric_name", count=2, value=2.0, tags=[], hostname='',
@@ -200,7 +199,7 @@ def test_earliest_time_and_duplicates(requests_mock, get_logger, splunk_config, 
     test_data["sid"] = "poll"
     check_response = check.run()
 
-    assert check_response == '', "The check run cycle should not produce a error"
+    assert check_response == '', "The check run cycle NOT SHOULD produce a error"
 
     telemetry.assert_total_metrics(4)
 
@@ -220,7 +219,7 @@ def test_earliest_time_and_duplicates(requests_mock, get_logger, splunk_config, 
     test_data["earliest_time"] = '2017-03-08T18:30:00.000000+0000'
     check_response = check.run()
 
-    assert check_response == '', "The check run cycle should not produce a error"
+    assert check_response == '', "The check run cycle NOT SHOULD produce a error"
 
     telemetry.assert_total_metrics(2)
 
@@ -237,7 +236,7 @@ def test_earliest_time_and_duplicates(requests_mock, get_logger, splunk_config, 
     test_data["throw"] = True
     check_response = check.run()
 
-    assert check_response != '', "The check run cycle should produce a error"
+    assert check_response != '', "The check run cycle SHOULD produce a error"
 
     service_checks = aggregator.service_checks(check.SERVICE_CHECK_NAME)
 
@@ -357,7 +356,6 @@ def test_query_initial_history(query_initial_history, telemetry, aggregator):
     assert check.continue_after_commit is False, "As long as we are not done with history, the check should continue"
 
 
-# Done
 @pytest.mark.unit
 def test_max_restart_time(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, mock_splunk_metric,
                           telemetry, aggregator):
@@ -390,7 +388,6 @@ def test_max_restart_time(requests_mock, get_logger, splunk_config, splunk_insta
         telemetry.assert_total_metrics(0)
 
 
-# Done
 @pytest.mark.unit
 @freeze_time("2017-03-08T11:00:00.000000+0000")
 def test_keep_time_on_failure(keep_time_on_failure, telemetry, aggregator):
@@ -408,7 +405,6 @@ def test_keep_time_on_failure(keep_time_on_failure, telemetry, aggregator):
     assert check_response == '', "The check run cycle SHOULD NOT produce a error"
 
 
-# Done
 @pytest.mark.unit
 @freeze_time("2017-03-08T11:00:00.000000+0000")
 def test_advance_time_on_success(advance_time_on_success, telemetry, aggregator):
@@ -426,7 +422,6 @@ def test_advance_time_on_success(advance_time_on_success, telemetry, aggregator)
     assert check_response == '', "The check run cycle SHOULD NOT produce a error"
 
 
-# Done
 @pytest.mark.unit
 def test_wildcard_searches(wildcard_searches, telemetry, aggregator):
     check, data = wildcard_searches
@@ -448,7 +443,6 @@ def test_wildcard_searches(wildcard_searches, telemetry, aggregator):
     assert len(check.instance_data.saved_searches.searches) == 0
 
 
-# Done
 @pytest.mark.unit
 def test_saved_searches_error(saved_searches_error, telemetry, aggregator):
     check = saved_searches_error
@@ -462,7 +456,6 @@ def test_saved_searches_error(saved_searches_error, telemetry, aggregator):
     assert service_checks[0].message == "Boom"
 
 
-# Done
 @pytest.mark.unit
 def test_saved_searches_ignore_error(saved_searches_ignore_error, telemetry, aggregator):
     check = saved_searches_ignore_error
@@ -514,7 +507,6 @@ def test_individual_search_failures(individual_search_failures, telemetry, aggre
            "Received FATAL exception from Splunk, got: Invalid offset."
 
 
-# Done
 @pytest.mark.unit
 def test_search_full_failure(search_full_failure, telemetry, aggregator):
     check = search_full_failure
@@ -528,7 +520,6 @@ def test_search_full_failure(search_full_failure, telemetry, aggregator):
     assert service_checks[0].message == "No saved search was successfully executed."
 
 
-# Done
 @pytest.mark.unit
 def test_respect_parallel_dispatches(respect_parallel_dispatches, telemetry, aggregator):
     check = respect_parallel_dispatches
@@ -539,7 +530,6 @@ def test_respect_parallel_dispatches(respect_parallel_dispatches, telemetry, agg
     assert check.parallel_dispatches_failed is False, "The check should pass parallel dispatches"
 
 
-# Done
 @pytest.mark.unit
 def test_selective_fields_for_identification_check(selective_fields_for_identification_check, telemetry, aggregator):
     check = selective_fields_for_identification_check
@@ -564,7 +554,6 @@ def test_selective_fields_for_identification_check(selective_fields_for_identifi
     assert service_checks[2].status == AgentCheck.OK
 
 
-# Done
 @pytest.mark.unit
 def test_all_fields_for_identification_check(all_fields_for_identification_check, telemetry, aggregator):
     check = all_fields_for_identification_check
@@ -587,7 +576,6 @@ def test_all_fields_for_identification_check(all_fields_for_identification_check
     assert service_checks[2].status == AgentCheck.OK
 
 
-# Done
 @pytest.mark.unit
 def test_backward_compatibility(backward_compatibility_check, telemetry, aggregator):
     check = backward_compatibility_check
@@ -610,7 +598,6 @@ def test_backward_compatibility(backward_compatibility_check, telemetry, aggrega
     assert service_checks[2].status == AgentCheck.OK
 
 
-# Done
 @pytest.mark.unit
 def test_backward_compatibility_new_conf(backward_compatibility_new_conf_check, telemetry, aggregator):
     check = backward_compatibility_new_conf_check
@@ -633,7 +620,6 @@ def test_backward_compatibility_new_conf(backward_compatibility_new_conf_check, 
     assert service_checks[2].status == AgentCheck.OK
 
 
-# Done
 @pytest.mark.unit
 def test_default_parameters(default_parameters_check, telemetry, aggregator):
     check = default_parameters_check
@@ -644,7 +630,6 @@ def test_default_parameters(default_parameters_check, telemetry, aggregator):
     telemetry.assert_total_metrics(2)
 
 
-# Done
 @pytest.mark.unit
 def test_non_default_parameters(non_default_parameters_check, telemetry, aggregator):
     check = non_default_parameters_check
@@ -655,7 +640,6 @@ def test_non_default_parameters(non_default_parameters_check, telemetry, aggrega
     telemetry.assert_total_metrics(2)
 
 
-# Done
 @pytest.mark.unit
 def test_overwrite_default_parameters(overwrite_default_parameters_check, telemetry, aggregator):
     check = overwrite_default_parameters_check
@@ -717,7 +701,6 @@ def test_max_query_chunk_sec_history(get_logger, requests_mock, splunk_config, s
         assert last_observed_timestamp == time_to_seconds('2017-03-08T11:04:59.000000+0000')
 
 
-# Done
 @pytest.mark.unit
 @freeze_time("2017-03-08T11:58:00.000000+0000")
 def test_max_query_chunk_sec_live(max_query_chunk_sec_live_check, telemetry, aggregator):
@@ -732,7 +715,6 @@ def test_max_query_chunk_sec_live(max_query_chunk_sec_live_check, telemetry, agg
     assert last_observed_timestamp == time_to_seconds('2017-03-08T12:00:00.000000+0000')
 
 
-# Done
 @pytest.mark.unit
 def test_token_auth_with_valid_token(token_auth_with_valid_token_check, telemetry, aggregator):
     check = token_auth_with_valid_token_check
@@ -752,7 +734,6 @@ def test_token_auth_with_valid_token(token_auth_with_valid_token_check, telemetr
     assert service_checks[2].message == check.CHECK_NAME + " check was processed successfully"
 
 
-# Done
 @pytest.mark.unit
 def test_authentication_invalid_token(authentication_invalid_token_check, telemetry, aggregator):
     check = authentication_invalid_token_check
@@ -768,7 +749,6 @@ def test_authentication_invalid_token(authentication_invalid_token_check, teleme
                                         " in the YAML and restart the Agent"
 
 
-# Done
 @pytest.mark.unit
 def test_authentication_token_no_audience_parameter_check(authentication_token_no_audience_parameter_check, telemetry,
                                                           aggregator):
@@ -785,7 +765,6 @@ def test_authentication_token_no_audience_parameter_check(authentication_token_n
     assert service_checks[0].message == "Instance missing \"authentication.token_auth.audience\" value"
 
 
-# Done
 @pytest.mark.unit
 def test_authentication_token_no_name_parameter_check(authentication_token_no_name_parameter_check, telemetry,
                                                       aggregator):
@@ -802,7 +781,6 @@ def test_authentication_token_no_name_parameter_check(authentication_token_no_na
     assert service_checks[0].message == "Instance missing \"authentication.token_auth.name\" value"
 
 
-# Done
 @pytest.mark.unit
 def test_authentication_prefer_token_over_basic_check(authentication_prefer_token_over_basic_check, telemetry,
                                                       aggregator):
@@ -820,7 +798,6 @@ def test_authentication_prefer_token_over_basic_check(authentication_prefer_toke
     assert service_checks[0].status == AgentCheck.OK
 
 
-# Done
 @pytest.mark.unit
 def test_authentication_token_expired_check(authentication_token_expired_check, telemetry, aggregator):
     check = authentication_token_expired_check
