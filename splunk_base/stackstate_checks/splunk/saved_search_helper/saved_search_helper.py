@@ -220,7 +220,6 @@ class SavedSearchesTelemetry(SavedSearches):
         return executed_searches
 
     def _dispatch_saved_search(self, log, persisted_state, saved_search):
-        print("Running Function: _dispatch_saved_search")
         parameters = saved_search.parameters
         # json output_mode is mandatory for response parsing
         parameters["output_mode"] = "json"

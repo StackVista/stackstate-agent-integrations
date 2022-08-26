@@ -70,7 +70,6 @@ class SplunkClient(StatefulMixin):
         :return: nothing
         """
         auth_path = '/services/auth/login?output_mode=json'
-        self.log.debug("Searching on Path: " + auth_path)
         auth_username, auth_password = self.instance_config.get_auth_tuple()
         payload = urlencode([('username', auth_username), ('password', auth_password), ('cookie', 1)], doseq=True)
         response = self._do_post(auth_path, payload, self.instance_config.default_request_timeout_seconds)
@@ -102,7 +101,6 @@ class SplunkClient(StatefulMixin):
     def _create_auth_token(self, token):
         self.log.debug("Creating a new authentication token")
         token_path = '/services/authorization/tokens?output_mode=json'
-        self.log.debug("Searching on Path: " + token_path)
         name = self.instance_config.name
         audience = self.instance_config.audience
         expiry_days = self.instance_config.token_expiration_days
@@ -166,15 +164,12 @@ class SplunkClient(StatefulMixin):
         :return: list of names of saved searches
         """
         search_path = '/services/saved/searches?output_mode=json&count=-1'
-        self.log.debug("Searching on Path: " + search_path)
         response = self._do_get(search_path,
                                 self.instance_config.default_request_timeout_seconds,
                                 self.instance_config.verify_ssl_certificate)
         return [entry["name"] for entry in response.json()["entry"]]
 
     def _search_chunk(self, saved_search, search_id, offset, count):
-        self.log.debug("Running function: _search_chunk")
-
         """
         Retrieves the results of an already running splunk search, identified by the given search id.
         :param saved_search: current SavedSearch being processed
@@ -185,7 +180,6 @@ class SplunkClient(StatefulMixin):
         """
         search_path = '/servicesNS/-/-/search/jobs/%s/results?output_mode=json&offset=%s&count=%s' % \
                       (search_id, offset, count)
-        self.log.debug("Searching on Path: " + search_path)
 
         response = self._do_get(search_path,
                                 saved_search.request_timeout_seconds,
@@ -209,8 +203,6 @@ class SplunkClient(StatefulMixin):
         return response.json()
 
     def saved_search_results(self, search_id, saved_search):
-        self.log.debug("Running function: saved_search_results")
-
         """
         Perform a saved search, returns a list of responses that were received
         """
@@ -238,7 +230,6 @@ class SplunkClient(StatefulMixin):
             return self.instance_config.name
 
     def dispatch(self, saved_search, splunk_app, ignore_saved_search_errors, parameters):
-        self.log.debug("Running function: dispatch")
         """
         :param saved_search: The saved search to dispatch
         :param splunk_user: Splunk user that dispatches the saved search
@@ -259,7 +250,6 @@ class SplunkClient(StatefulMixin):
         return response_body.get("sid")
 
     def finalize_sid(self, search_id, saved_search):
-        self.log.debug("Running function: finalize_sid")
         """
         :param search_id: The saved search id to finish
         :param saved_search: The saved search to finish
@@ -267,7 +257,6 @@ class SplunkClient(StatefulMixin):
         finish_path = '/services/search/jobs/%s/control' % (search_id)
         payload = "action=finalize"
 
-        self.log.debug("Searching on Path: " + finish_path)
         try:
             res = self._do_post(finish_path,
                                 payload,
