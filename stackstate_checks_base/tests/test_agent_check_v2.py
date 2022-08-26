@@ -1606,7 +1606,7 @@ class TestAgentChecksV2:
 
         transaction.assert_completed_transaction(check.check_id)
 
-        expected_transactional_state = '{"test_transactional-state": {"transactional": true}}'
+        expected_transactional_state = '{"transactional": true}'
 
         key = get_test_state_key(check, check.TRANSACTIONAL_PERSISTENT_CACHE_KEY)
         assert state.get_state(check, check.check_id, key) == expected_transactional_state

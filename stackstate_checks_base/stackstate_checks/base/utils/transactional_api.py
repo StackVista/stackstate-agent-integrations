@@ -59,9 +59,4 @@ class TransactionApi(object):
         # we need to set this same behaviour over here for testing
         # To do this we will set State from this transaction
         if using_stub_transaction:
-            key = self.__check._get_instance_key().to_string()
-            transaction_state = {
-                key: new_state
-            }
-
-            state.set_state(self.__check, self.__check.check_id, state_key, json.dumps(transaction_state))
+            state.set_state(self.__check, self.__check.check_id, state_key, json.dumps(new_state))
