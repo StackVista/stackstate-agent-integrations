@@ -210,6 +210,11 @@ def wildcard_saved_search(unit_test_instance):
     unit_test_instance["saved_searches"][0]["match"] = "even*"
 
 
+@pytest.fixture
+def ignore_saved_search_errors(unit_test_instance):
+    unit_test_instance["ignore_saved_search_errors"] = True
+
+
 def extract_title_and_type_from_event(event):
     # type: (Dict) -> Dict
     """Extracts event title and type. Method call aggregator.assert_event needs event fields as **kwargs parameter."""
@@ -305,3 +310,15 @@ def batch_job_results_mock(requests_mock, response_files, batch_size):
               "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/results?output_mode=json&offset={}&count={}" \
             .format(i * batch_size, batch_size)
         job_results_mock(requests_mock, response_file, url)
+
+
+def saved_searches_error_mock(requests_mock):
+    # type: (Mocker) -> None
+    """
+    List saved searches.
+    """
+    requests_mock.get(
+        url="http://localhost:8089/services/saved/searches?output_mode=json&count=-1",
+        status_code=400,
+        text='{"messages":[{"type":"ERROR","text":"Error raised for testing!"}]}'
+    )

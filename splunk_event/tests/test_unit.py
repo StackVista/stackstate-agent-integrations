@@ -1,6 +1,7 @@
 # (C) StackState 2022
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
+from typing import Dict, Optional
 
 import freezegun
 import pytest
@@ -11,13 +12,15 @@ from stackstate_checks.splunk.client import SplunkClient
 from stackstate_checks.splunk.config.splunk_instance_config import time_to_seconds
 from stackstate_checks.splunk_event import SplunkEvent
 from .conftest import extract_title_and_type_from_event, common_requests_mocks, list_saved_searches_mock, \
-    basic_auth_mock, job_results_mock, search_job_finalized_mock, batch_job_results_mock
+    basic_auth_mock, job_results_mock, search_job_finalized_mock, batch_job_results_mock, saved_searches_error_mock
 
 # Mark the entire module as tests of type `unit`
 pytestmark = pytest.mark.unit
 
 # Used to validate which searches have been executed
+
 test_data = {
+    # type: Dict[str: str]
     "earliest_time": "",
     "latest_time": ""
 }
@@ -30,11 +33,11 @@ def _reset_test_data():
 
 def _mocked_dispatch(*args, **kwargs):
     earliest_time = args[4]['dispatch.earliest_time']
-    if not test_data["earliest_time"]:
+    if test_data["earliest_time"] != "":
         assert earliest_time == test_data["earliest_time"]
-    if not test_data["latest_time"]:
+    if test_data["latest_time"] == "":
         assert 'dispatch.latest_time' not in args[4]
-    elif test_data["latest_time"]:
+    elif test_data["latest_time"] != "":
         assert args[4]['dispatch.latest_time'] == test_data["latest_time"]
     return "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3"
 
@@ -151,8 +154,7 @@ def test_splunk_earliest_time_and_duplicates(splunk_event_check, requests_mock, 
     assert len(aggregator.events) == 4, "There should be four events processed."
     assert [e['event_type'] for e in aggregator.events] == ['0_1', '0_2', '1_1', '1_2']
 
-    assert splunk_event_check.get_state() == {
-        'splunk_http://localhost:8089': {'test_events': time_to_seconds("2017-03-08T18:29:59")}}
+    assert splunk_event_check.get_state() == {'test_events': time_to_seconds("2017-03-08T18:29:59")}
 
     # Respect earliest_time
     with freeze_time("2017-03-08 18:30:00"):
@@ -164,8 +166,7 @@ def test_splunk_earliest_time_and_duplicates(splunk_event_check, requests_mock, 
         assert len(aggregator.events) == 5, "There should be five event processed."
         assert [e['event_type'] for e in aggregator.events] == ['0_1', '0_2', '1_1', '1_2', '2_1']
 
-        assert splunk_event_check.get_state() == {
-            'splunk_http://localhost:8089': {'test_events': time_to_seconds("2017-03-08T18:30:00")}}
+        assert splunk_event_check.get_state() == {'test_events': time_to_seconds("2017-03-08T18:30:00")}
 
         # Throw exception during search
         batch_job_results_mock(requests_mock, ["error_response.json"], 2)
@@ -219,12 +220,11 @@ def test_splunk_continue_after_restart(splunk_event_check, restart_history_86400
     _setup_client_with_mocked_dispatch(monkeypatch, requests_mock, "empty_response.json")
 
     # Initial run with initial time
-    test_data["earliest_time"] = '2017-03-08T00:00:00.000000+0000'
+    test_data["earliest_time"] = "2017-03-08T00:00:00.000000+0000"
     check_result = splunk_event_check.run()
     assert check_result == "", "No errors when running Splunk check."
     assert len(aggregator.events) == 0
-    assert splunk_event_check.get_state() == {
-        'splunk_http://localhost:8089': {'test_events': time_to_seconds("2017-03-08T00:00:00")}}
+    assert splunk_event_check.get_state() == {'test_events': time_to_seconds("2017-03-08T00:00:00")}
 
     # Restart check and recover data
     with freezegun.freeze_time("2017-03-08 01:00:05.000000"):
@@ -241,8 +241,7 @@ def test_splunk_continue_after_restart(splunk_event_check, restart_history_86400
     test_data["latest_time"] = ""
     check_result = splunk_event_check.run()
     assert check_result == "", "No errors when running Splunk check."
-    assert splunk_event_check.get_state() == {
-        'splunk_http://localhost:8089': {'test_events': time_to_seconds("2017-03-08T01:00:01")}}
+    assert splunk_event_check.get_state() == {'test_events': time_to_seconds("2017-03-08T01:00:01")}
 
 
 @freezegun.freeze_time("2017-03-09 00:00:00")
@@ -268,24 +267,29 @@ def test_splunk_query_initial_history(requests_mock, restart_history_86400, splu
     assert len(aggregator.events) == 2
 
 
-@freezegun.freeze_time("2017-03-08 00:00:00")
-def test_splunk_max_restart_time(restart_history_3600, requests_mock, splunk_event_check, monkeypatch, aggregator):
+def test_splunk_max_restart_time(restart_history_3600, requests_mock, monkeypatch, aggregator,
+                                 state, transaction, unit_test_instance, unit_test_config):
     """
     Splunk event check should use the max restart time parameter.
     """
     _setup_client_with_mocked_dispatch(monkeypatch, requests_mock, "empty_response.json")
 
-    # Initial run with initial time
-    test_data["earliest_time"] = '2017-03-08T00:00:00.000000+0000'
-    check_result = splunk_event_check.run()
-    assert check_result == "", "No errors when running Splunk check."
-    assert len(aggregator.events) == 0
+    with freezegun.freeze_time("2017-03-08 00:00:00"):
+        # Initial run with initial time
+        test_data["earliest_time"] = '2017-03-08T00:00:00.000000+0000'
+        check = SplunkEvent("splunk", unit_test_config, {}, [unit_test_instance])
+        check.check_id = "first_splunk_check_id"
+        check_result = check.run()
+        assert check_result == "", "No errors when running Splunk check."
+        assert len(aggregator.events) == 0
 
     # Restart check and recover data, taking into account the max restart history
     with freezegun.freeze_time("2017-03-08 12:00:00"):
+        check = SplunkEvent("splunk", unit_test_config, {}, [unit_test_instance])
+        check.check_id = "second_splunk_test_id"
         test_data["earliest_time"] = '2017-03-08T11:00:00.000000+0000'
         test_data["latest_time"] = '2017-03-08T11:00:00.000000+0000'
-        check_result = splunk_event_check.run()
+        check_result = check.run()
         assert check_result == "", "No errors when running Splunk check."
 
 
@@ -335,16 +339,29 @@ def test_splunk_wildcard_searches(requests_mock, wildcard_saved_search, splunk_e
     run_result = splunk_event_check.run()
     assert run_result == "", "Check run result shouldn't return error message."
     assert len(aggregator.events) == 2
-    assert splunk_event_check.get_state() == {
-        'splunk_http://localhost:8089': {'test_events': time_to_seconds("2017-03-08 12:00:00")}}
+    assert splunk_event_check.get_state() == {'test_events': time_to_seconds("2017-03-08 12:00:00")}
 
     assert 1 == 2
     # TODO: check if wildcars match is working correctly
 
 
-def test_splunk_saved_searches_error():
+def test_splunk_saved_searches_error(requests_mock, splunk_event_check, aggregator):
     """
     Splunk event check should have a service check failure when getting an exception from saved searches.
     """
-    assert 1 == 2
-    # TODO: s
+    basic_auth_mock(requests_mock)
+    saved_searches_error_mock(requests_mock)
+    run_result = splunk_event_check.run()
+    assert run_result != ""
+    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.CRITICAL, count=1)
+
+
+def test_splunk_saved_searches_ignore_error(requests_mock, splunk_event_check, aggregator, ignore_saved_search_errors):
+    """
+    Splunk event check should ignore exception when getting an exception from saved searches.
+    """
+    basic_auth_mock(requests_mock)
+    saved_searches_error_mock(requests_mock)
+    run_result = splunk_event_check.run()
+    assert run_result == ""
+    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.CRITICAL, count=1)
