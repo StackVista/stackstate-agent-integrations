@@ -267,11 +267,11 @@ class SplunkClient(object):
                 raise FinalizeException(error.response.status_code, error.response.reason)
         # in case of timeout like read timeout or request timeout
         except Timeout as error:
-            self.log.error("Search job not finalized as the timeout error occured %s" % error)
+            self.log.error("Search job not finalized as the timeout error occurred %s" % error)
             raise FinalizeException(None, str(error))
         # in case of network issue
         except ConnectionError as error:
-            self.log.error("Search job not finalized as connection error occured %s" % error)
+            self.log.error("Search job not finalized as connection error occurred %s" % error)
             raise FinalizeException(None, str(error))
 
     def _do_get(self, path, request_timeout_seconds, verify_ssl_certificate):
@@ -295,17 +295,17 @@ class SplunkClient(object):
         except HTTPError as error:
             if not splunk_ignore_saved_search_errors:
                 raise error
-            self.log.warn("Received response with status {} and body {}".format(resp.status_code, resp.content))
+            self.log.warning("Received response with status {} and body {}".format(resp.status_code, resp.content))
         except Timeout as error:
             if not splunk_ignore_saved_search_errors:
                 self.log.error("Got a timeout error")
                 raise error
-            self.log.warn("Ignoring the timeout error as the flag ignore_saved_search_errors is true")
+            self.log.warning("Ignoring the timeout error as the flag ignore_saved_search_errors is true")
         except ConnectionError as error:
             if not splunk_ignore_saved_search_errors:
                 self.log.error(
                     "Received error response with status {} and body {}".format(resp.status_code, resp.content)
                 )
                 raise error
-            self.log.warn("Ignoring the connection error as the flag ignore_saved_search_errors is true")
+            self.log.warning("Ignoring the connection error as the flag ignore_saved_search_errors is true")
         return resp
