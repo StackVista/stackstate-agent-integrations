@@ -207,7 +207,8 @@ def restart_history_3600(unit_test_config, unit_test_instance):
 @pytest.fixture
 def wildcard_saved_search(unit_test_instance):
     # type: (Dict) -> None
-    unit_test_instance["saved_searches"][0]["match"] = "even*"
+    unit_test_instance["saved_searches"][0]["match"] = "test_even*"
+    del unit_test_instance["saved_searches"][0]["name"]
 
 
 @pytest.fixture
@@ -249,31 +250,35 @@ def common_requests_mocks(requests_mock):
     dispatch_search_mock(requests_mock)
 
 
-def dispatch_search_mock(requests_mock):
-    # type: (Mocker) -> None
+def dispatch_search_mock(requests_mock, search_result="test_events"):
+    # type: (Mocker, str) -> None
     """
     Dispatch search and get job's sid.
     """
     requests_mock.post(
-        url="http://localhost:8089/servicesNS/admin/search/saved/searches/test_events/dispatch",
+        url="http://localhost:8089/servicesNS/admin/search/saved/searches/{}/dispatch".format(search_result),
         status_code=201,
         text='{"sid": "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3"}'
     )
 
 
-def list_saved_searches_mock(requests_mock):
-    # type: (Mocker) -> None
+def list_saved_searches_mock(requests_mock, search_results=None):
+    # type: (Mocker, List[str]) -> None
     """
     List saved searches.
     """
+    entry = []
+    if not search_results:
+        search_results = ["test_events"]
+    for search_result in search_results:
+        entry.append({"name": search_result})
+
     requests_mock.get(
         url="http://localhost:8089/services/saved/searches?output_mode=json&count=-1",
         status_code=200,
         text=json.dumps(
-            {"entry": [{"name": "Errors in the last 24 hours"},
-                       {"name": "Errors in the last hour"},
-                       {"name": "test_events"}],
-             "paging": {"total": 3, "perPage": 18446744073709552000, "offset": 0},
+            {"entry": entry,
+             "paging": {"total": len(entry), "perPage": 18446744073709552000, "offset": 0},
              "messages": []}
         )
     )
@@ -341,13 +346,13 @@ def saved_searches_error_mock(requests_mock):
     )
 
 
-def dispatch_error_mock(requests_mock):
-    # type: (Mocker) -> None
+def dispatch_search_error_mock(requests_mock, search_result="test_events"):
+    # type: (Mocker, str) -> None
     """
     Explode with 400 when trying to dispatch search.
     """
-    requests_mock.get(
-        url="http://localhost:8089/servicesNS/admin/search/saved/searches/test_events/dispatch",
+    requests_mock.post(
+        url=("http://localhost:8089/servicesNS/admin/search/saved/searches/{}/dispatch".format(search_result)),
         status_code=400,
         text='{"messages":[{"type":"ERROR","text":"Error raised for testing!"}]}'
     )

@@ -14,7 +14,7 @@ from stackstate_checks.splunk.saved_search_helper import SavedSearchesTelemetry
 from stackstate_checks.splunk_event import SplunkEvent
 from .conftest import extract_title_and_type_from_event, common_requests_mocks, list_saved_searches_mock, \
     basic_auth_mock, job_results_mock, search_job_finalized_mock, batch_job_results_mock, saved_searches_error_mock, \
-    dispatch_error_mock
+    dispatch_search_error_mock, dispatch_search_mock
 
 # Mark the entire module as tests of type `unit`
 pytestmark = pytest.mark.unit
@@ -425,53 +425,54 @@ def test_splunk_all_fields_for_identification(requests_mock, splunk_event_check,
     assert len(aggregator.events) == 2, "There should be two events processed."
 
 
-def test_splunk_event_individual_dispatch_failures(requests_mock, splunk_event_check, aggregator):
+def test_splunk_event_individual_dispatch_failures(requests_mock, splunk_event_check, aggregator,
+                                                   wildcard_saved_search):
     """
     Splunk event check shouldn't fail if individual failures occur when dispatching Splunk searches.
     """
-    # TODO: implement multiple searches
-    common_requests_mocks(requests_mock)
+    basic_auth_mock(requests_mock)
+    list_saved_searches_mock(requests_mock, search_results=["test_events_01", "test_events_02"])
+    dispatch_search_mock(requests_mock, "test_events_01")
+    dispatch_search_error_mock(requests_mock, "test_events_02")
     job_results_mock(requests_mock, response_file="minimal_events_response.json")
-    run1_result = splunk_event_check.run()
-    assert run1_result == "", "No errors when running Splunk check."
+    run_result = splunk_event_check.run()
+    assert run_result == "", "No errors when running Splunk check."
     assert len(aggregator.events) == 2, "There should be two events processed."
     aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=2)
     aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.CRITICAL, count=0)
-
-    dispatch_error_mock(requests_mock)
-    run2_result = splunk_event_check.run()
-    assert run2_result == ""
-    assert len(aggregator.events) == 2, "There should be two events processed."
-    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=2)
-    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.WARNING, count=1)
     # TODO: missing WARNING, also when we explode, not process next set of events
 
 
-def test_splunk_event_individual_search_failures(requests_mock, splunk_event_check, aggregator):
+def test_splunk_event_individual_search_failures(requests_mock, splunk_event_check, aggregator, wildcard_saved_search):
     """
     Splunk events check shouldn't fail if individual failures occur when executing Splunk searches.
     """
-    # TODO: implement multiple searches
-    common_requests_mocks(requests_mock)
+    basic_auth_mock(requests_mock)
+    list_saved_searches_mock(requests_mock, search_results=["test_events_01", "test_events_02"])
+    dispatch_search_mock(requests_mock, "test_events_01")
+    dispatch_search_mock(requests_mock, "test_events_02")
     job_results_mock(requests_mock, response_file="minimal_events_response.json")
-    run1_result = splunk_event_check.run()
-    assert run1_result == "", "No errors when running Splunk check."
+    job_results_mock(requests_mock, response_file="minimal_events_error_response.json")
+    run_result = splunk_event_check.run()
+    assert run_result == "", "No errors when running Splunk check."
     assert len(aggregator.events) == 2, "There should be two events processed."
     aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=2)
     aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.CRITICAL, count=0)
-
-    saved_searches_error_mock(requests_mock)
-    run2_result = splunk_event_check.run()
-    assert run2_result != "", "Check run result should return error message."
-    assert len(aggregator.events) == 2, "There should be two events processed."
-    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=2)
-    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.CRITICAL, count=1)
     # TODO: missing WARNING
 
 
-def test_splunk_event_search_full_failure():
+def test_splunk_event_search_full_failure(requests_mock, splunk_event_check, aggregator, wildcard_saved_search):
     """
     Splunk metric check should fail when all saved searches fail.
     """
-    # TODO: implement multiple searches, reuse previous two tests for that
-    assert 1 == 2
+    basic_auth_mock(requests_mock)
+    list_saved_searches_mock(requests_mock, search_results=["test_events_01", "test_events_02"])
+    dispatch_search_error_mock(requests_mock, "test_events_01")
+    dispatch_search_error_mock(requests_mock, "test_events_02")
+    run_result = splunk_event_check.run()
+    assert "Splunk metric failed with message: No saved search was successfully" \
+           in run_result, "Check run result should return error message."
+    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=0)
+    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.CRITICAL, count=1)
+
+# TODO: add TestSplunkDefaults to pytest
