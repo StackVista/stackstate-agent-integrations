@@ -19,8 +19,9 @@ from .conftest import extract_title_and_type_from_event, common_requests_mocks, 
 # Mark the entire module as tests of type `unit`
 pytestmark = pytest.mark.unit
 
-# Used to validate which searches have been executed
+OTHER_SID = "admin__admin__search__RMD567222de41fbb54c3_at_1661943741_3"
 
+# test_data is used in _mock_dispatch
 test_data = {
     # type: Dict[str: str]
     "earliest_time": "",
@@ -336,15 +337,18 @@ def test_splunk_wildcard_searches(requests_mock, wildcard_saved_search, splunk_e
     """
     Splunk event check should process minimal response correctly
     """
-    common_requests_mocks(requests_mock)
+    basic_auth_mock(requests_mock)
+    list_saved_searches_mock(requests_mock, search_results=["test_events_01", "test_events_02"])
+    dispatch_search_mock(requests_mock, "test_events_01")
+    dispatch_search_mock(requests_mock, "test_events_02", sid=OTHER_SID)
     job_results_mock(requests_mock, response_file="minimal_events_response.json")
+    job_results_mock(requests_mock, response_file="minimal_events_response.json", sid=OTHER_SID)
     run_result = splunk_event_check.run()
     assert run_result == "", "Check run result shouldn't return error message."
-    assert len(aggregator.events) == 2
-    assert splunk_event_check.get_state() == {'test_events': time_to_seconds("2017-03-08 12:00:00")}
-
-    assert 1 == 2
-    # TODO: check if wildcars match is working correctly
+    assert len(aggregator.events) == 4
+    assert splunk_event_check.get_state() == {'test_events_01': time_to_seconds("2017-03-08 12:00:00"),
+                                              'test_events_02': time_to_seconds("2017-03-08 12:00:00")}
+    # TODO: compare with original agent v1 test, which incorrectly was mocked. I could be wrong about that.
 
 
 def test_splunk_saved_searches_error(requests_mock, splunk_event_check, aggregator):
@@ -450,12 +454,12 @@ def test_splunk_event_individual_search_failures(requests_mock, splunk_event_che
     basic_auth_mock(requests_mock)
     list_saved_searches_mock(requests_mock, search_results=["test_events_01", "test_events_02"])
     dispatch_search_mock(requests_mock, "test_events_01")
-    dispatch_search_mock(requests_mock, "test_events_02")
+    dispatch_search_mock(requests_mock, "test_events_02", sid=OTHER_SID)
     job_results_mock(requests_mock, response_file="minimal_events_response.json")
-    job_results_mock(requests_mock, response_file="minimal_events_error_response.json")
+    job_results_mock(requests_mock, response_file="minimal_events_error_response.json", sid=OTHER_SID)
     run_result = splunk_event_check.run()
     assert run_result == "", "No errors when running Splunk check."
-    assert len(aggregator.events) == 2, "There should be two events processed."
+    assert len(aggregator.events) == 3, "There should be two events processed."
     aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=2)
     aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.CRITICAL, count=0)
     # TODO: missing WARNING

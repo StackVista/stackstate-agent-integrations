@@ -3,7 +3,7 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import json
 import os
-from typing import Dict, Generator, Optional, List
+from typing import Dict, Generator, List
 
 import pytest
 import requests
@@ -19,6 +19,11 @@ from stackstate_checks.splunk.config import SplunkInstanceConfig
 from stackstate_checks.splunk_event import SplunkEvent
 from stackstate_checks.splunk_event.splunk_event import default_settings
 from .common import HOST, PORT, USER, PASSWORD
+
+# unit test constants
+UNIT_TEST_URL = "http://localhost:8089"
+SID = "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3"
+SAVED_SEARCH = "test_events"
 
 
 def _connect_to_splunk():
@@ -151,7 +156,7 @@ def splunk_event_check(unit_test_instance, unit_test_config, aggregator, state, 
 def unit_test_instance():
     # type: () -> Dict
     return {
-        "url": "http://localhost:8089",
+        "url": UNIT_TEST_URL,
         "authentication": {
             "basic_auth": {
                 "username": "admin",
@@ -250,31 +255,31 @@ def common_requests_mocks(requests_mock):
     dispatch_search_mock(requests_mock)
 
 
-def dispatch_search_mock(requests_mock, search_result="test_events"):
-    # type: (Mocker, str) -> None
+def dispatch_search_mock(requests_mock, search=SAVED_SEARCH, sid=SID, url=UNIT_TEST_URL):
+    # type: (Mocker, str, str, str) -> None
     """
     Dispatch search and get job's sid.
     """
     requests_mock.post(
-        url="http://localhost:8089/servicesNS/admin/search/saved/searches/{}/dispatch".format(search_result),
+        url="{}/servicesNS/admin/search/saved/searches/{}/dispatch".format(url, search),
         status_code=201,
-        text='{"sid": "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3"}'
+        text=json.dumps({"sid": sid})
     )
 
 
-def list_saved_searches_mock(requests_mock, search_results=None):
-    # type: (Mocker, List[str]) -> None
+def list_saved_searches_mock(requests_mock, search_results=None, url=UNIT_TEST_URL):
+    # type: (Mocker, List[str], str) -> None
     """
     List saved searches.
     """
     entry = []
     if not search_results:
-        search_results = ["test_events"]
+        search_results = [SAVED_SEARCH]
     for search_result in search_results:
         entry.append({"name": search_result})
 
     requests_mock.get(
-        url="http://localhost:8089/services/saved/searches?output_mode=json&count=-1",
+        url="{}/services/saved/searches?output_mode=json&count=-1".format(url),
         status_code=200,
         text=json.dumps(
             {"entry": entry,
@@ -284,75 +289,72 @@ def list_saved_searches_mock(requests_mock, search_results=None):
     )
 
 
-def basic_auth_mock(requests_mock):
-    # type: (Mocker) -> None
+def basic_auth_mock(requests_mock, url=UNIT_TEST_URL):
+    # type: (Mocker, str) -> None
     """
     Basic authentication.
     """
     requests_mock.post(
-        url="http://localhost:8089/services/auth/login?output_mode=json",
+        url="{}/services/auth/login?output_mode=json".format(url),
         status_code=200,
         text='{"sessionKey": "testSessionKey123", "message": "", "code": ""}'
     )
 
 
-def job_results_mock(requests_mock, response_file, job_results_url=None):
-    # type: (Mocker, str, Optional[str, None]) -> None
+def job_results_mock(requests_mock, response_file, sid=SID, offset=0, count=1000, url=UNIT_TEST_URL):
+    # type: (Mocker, str, str, int, int, str) -> None
     """
     Request for getting job result.
     """
-    default_job_results_url = "http://localhost:8089/servicesNS/-/-/search/jobs/" \
-                              "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/results?" \
-                              "output_mode=json&offset=0&count=1000"
-    if not job_results_url:
-        job_results_url = default_job_results_url
-    requests_mock.get(url=job_results_url, status_code=200, text=read_file(response_file, "ci/fixtures"))
+    job_results_path = "{}/servicesNS/-/-/search/jobs/{}/results?output_mode=json&offset={}&count={}".format(url,
+                                                                                                             sid,
+                                                                                                             offset,
+                                                                                                             count)
+    requests_mock.get(url=job_results_path, status_code=200, text=read_file(response_file, "ci/fixtures"))
 
 
-def search_job_finalized_mock(requests_mock):
-    # type: (Mocker) -> None
+def search_job_finalized_mock(requests_mock, sid=SID, url=UNIT_TEST_URL):
+    # type: (Mocker, str, str) -> None
     """
     Finalize search job.
     """
     requests_mock.post(
-        url="http://localhost:8089/services/search/jobs/"
-            "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/control?output_mode=json",
+        url="{}/services/search/jobs/{}/control?output_mode=json".format(url, sid),
         status_code=200,
         text='{"messages":[{"type":"INFO","text":"Search job finalized."}]}'
     )
 
 
-def batch_job_results_mock(requests_mock, response_files, batch_size):
-    # type: (Mocker, List, int) -> None
+def batch_job_results_mock(requests_mock, response_files, batch_size, sid=SID, url=UNIT_TEST_URL):
+    # type: (Mocker, List, int, str, str) -> None
     """
     Iterates through response files list and sets up requests_mock for each.
     """
     for i, response_file in enumerate(response_files):
-        url = "http://localhost:8089/servicesNS/-/-/search/jobs/" \
-              "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3/results?output_mode=json&offset={}&count={}" \
-            .format(i * batch_size, batch_size)
-        job_results_mock(requests_mock, response_file, url)
+        job_results_mock(requests_mock, response_file, offset=i * batch_size, count=batch_size, sid=sid, url=url)
 
 
-def saved_searches_error_mock(requests_mock):
-    # type: (Mocker) -> None
+def saved_searches_error_mock(requests_mock, url=UNIT_TEST_URL):
+    # type: (Mocker, str) -> None
     """
     Explode with 400 when listing saved searches.
     """
     requests_mock.get(
-        url="http://localhost:8089/services/saved/searches?output_mode=json&count=-1",
+        url="{}/services/saved/searches?output_mode=json&count=-1".format(url),
         status_code=400,
-        text='{"messages":[{"type":"ERROR","text":"Error raised for testing!"}]}'
+        text='{"messages":[{"type":"ERROR","text":"Error raised for testing!"}]}',
+        reason="Mocked error for unit test!"
     )
 
 
-def dispatch_search_error_mock(requests_mock, search_result="test_events"):
-    # type: (Mocker, str) -> None
+def dispatch_search_error_mock(requests_mock, search=SAVED_SEARCH, url=UNIT_TEST_URL):
+    # type: (Mocker, str, str) -> None
     """
     Explode with 400 when trying to dispatch search.
     """
     requests_mock.post(
-        url=("http://localhost:8089/servicesNS/admin/search/saved/searches/{}/dispatch".format(search_result)),
+        url=("{}/servicesNS/admin/search/saved/searches/{}/dispatch".format(url, search)),
         status_code=400,
-        text='{"messages":[{"type":"ERROR","text":"Error raised for testing!"}]}'
+        text='{"messages":[{"type":"ERROR","text":"Error raised for testing!"}]}',
+        reason="Mocked error for unit test!"
     )
