@@ -1,8 +1,7 @@
-import logging
-
 from stackstate_checks.splunk.client import SplunkClient
 from stackstate_checks.splunk.config import SplunkSavedSearch
 from stackstate_checks.base import TopologyInstance
+from stackstate_checks.splunk.saved_search_helper import SavedSearchesTelemetry
 
 
 class SplunkTelemetrySavedSearch(SplunkSavedSearch):
@@ -32,7 +31,7 @@ class SplunkTelemetrySavedSearch(SplunkSavedSearch):
 
     def get_status(self):
         """
-        :return: Return a tuple of the last time until which the query was ran, and whether this was based on history
+        :return: Return a tuple of the last time until which the query was run, and whether this was based on history
         """
 
         if self.last_recover_latest_time_epoch_seconds is None:
@@ -47,7 +46,7 @@ class SplunkTelemetrySavedSearch(SplunkSavedSearch):
 class SplunkTelemetryInstance(object):
     INSTANCE_TYPE = "splunk"
 
-    def __init__(self, current_time, instance, instance_config, create_saved_search, saved_search_helper):
+    def __init__(self, current_time, instance, instance_config, create_saved_search):
         self.instance_config = instance_config
         self.splunk_client = self._build_splunk_client()
 
@@ -55,10 +54,10 @@ class SplunkTelemetryInstance(object):
         if not isinstance(instance['saved_searches'], list):
             instance['saved_searches'] = []
 
-        self.saved_searches = saved_search_helper(instance_config, self.splunk_client, [
-                                                create_saved_search(instance_config, saved_search_instance)
-                                                for saved_search_instance in instance['saved_searches']
-                                            ])
+        self.saved_searches = SavedSearchesTelemetry(instance_config, self.splunk_client, [
+                                                     create_saved_search(instance_config, saved_search_instance)
+                                                     for saved_search_instance in instance['saved_searches']
+                                                     ])
 
         self.saved_searches_parallel = int(instance.get('saved_searches_parallel', self.instance_config.get_or_default(
             'default_saved_searches_parallel')))
@@ -105,7 +104,6 @@ class SplunkTelemetryInstance(object):
                     'initial_history_time_seconds']
             else:  # Continue running or restarting, add one to not duplicate the last events.
                 saved_search.last_observed_timestamp = last_committed + 1
-                if current_time - saved_search.last_observed_timestamp > saved_search.config[
-                        'max_restart_history_seconds']:
-                    saved_search.last_observed_timestamp = current_time - saved_search.config[
-                        'max_restart_history_seconds']
+                max_restart_history_seconds = saved_search.config['max_restart_history_seconds']
+                if current_time - saved_search.last_observed_timestamp > max_restart_history_seconds:
+                    saved_search.last_observed_timestamp = current_time - max_restart_history_seconds

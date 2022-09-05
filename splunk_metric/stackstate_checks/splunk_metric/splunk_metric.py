@@ -86,4 +86,4 @@ class SplunkMetric(SplunkTelemetryBase):
 
     def _build_instance(self, current_time, instance, metric_instance_config, _create_saved_search):
         return SplunkTelemetryInstance(current_time, instance, metric_instance_config,
-                                       _create_saved_search, SavedSearchesTelemetry)
+                                       _create_saved_search)

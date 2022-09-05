@@ -430,7 +430,7 @@ def test_wildcard_searches(wildcard_searches, telemetry, aggregator):
 
     assert check_response == '', "The check run cycle SHOULD NOT produce a error"
     telemetry.assert_total_metrics(2)
-    assert len(check.instance_data.saved_searches.searches) == 1
+    assert len(check.splunk_telemetry_instance.saved_searches.searches) == 1
 
     telemetry.reset()
 
@@ -439,7 +439,7 @@ def test_wildcard_searches(wildcard_searches, telemetry, aggregator):
 
     assert check_response == '', "The check run cycle SHOULD NOT produce a error"
     telemetry.assert_total_metrics(0)
-    assert len(check.instance_data.saved_searches.searches) == 0
+    assert len(check.splunk_telemetry_instance.saved_searches.searches) == 0
 
 
 @pytest.mark.unit
@@ -627,10 +627,10 @@ def test_overwrite_default_parameters(overwrite_default_parameters_check, teleme
 
 
 @pytest.mark.unit
-def test_max_query_chunk_sec_history(get_logger, requests_mock, splunk_config, splunk_instance_basic_auth,
+def test_max_query_chunk_sec_history(monkeypatch, get_logger, requests_mock, splunk_config, splunk_instance_basic_auth,
                                      mock_splunk_metric, telemetry, state, transaction):
     with freeze_time("2017-03-09T00:00:00.000000+0000"):
-        check, test_data = max_query_chunk_sec_history_check(get_logger, requests_mock, splunk_config,
+        check, test_data = max_query_chunk_sec_history_check(monkeypatch, get_logger, requests_mock, splunk_config,
                                                              splunk_instance_basic_auth, mock_splunk_metric)
 
         test_data["earliest_time"] = '2017-03-08T00:00:00.000000+0000'
@@ -654,7 +654,7 @@ def test_max_query_chunk_sec_history(get_logger, requests_mock, splunk_config, s
 
     with freeze_time("2017-03-08T12:00:00.000000+0000"):
         # Reload Check
-        check, test_data = max_query_chunk_sec_history_check(get_logger, requests_mock, splunk_config,
+        check, test_data = max_query_chunk_sec_history_check(monkeypatch, get_logger, requests_mock, splunk_config,
                                                              splunk_instance_basic_auth, mock_splunk_metric)
 
         test_data["earliest_time"] = '2017-03-08T11:00:00.000000+0000'

@@ -1,0 +1,22 @@
+[
+  {
+    "event_type": "some_type",
+    "msg_title": "generic_splunk_event",
+    "msg_text": "generic_splunk_event",
+    "tags": [
+      "value:1"
+    ],
+    "timestamp": 4100437796,
+    "source_type_name": "some_type"
+  },
+  {
+    "event_type": "some_type",
+    "msg_title": "generic_splunk_event",
+    "msg_text": "generic_splunk_event",
+    "tags": [
+      "value:2"
+    ],
+    "timestamp": 4100437796,
+    "source_type_name": "some_type"
+  }
+]

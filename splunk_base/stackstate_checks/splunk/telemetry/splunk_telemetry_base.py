@@ -21,6 +21,9 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
     def __init__(self, name, init_config, agent_config, instances=None):
         super(SplunkTelemetryBase, self).__init__(name, init_config, agent_config, instances)
         # Data to keep over check runs
+        self.splunk_telemetry_instance = None
+
+        # Data to keep over check runs
         self.instance_data = None
         self.continue_after_commit = True
 
@@ -33,31 +36,28 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
     def transactional_check(self, instance, transactional_state, persistent_state):
 
         current_time = self._current_time_seconds()
-        if not self.instance_data:
-            self.instance_data = self.get_instance(instance, current_time)
+        if not self.splunk_telemetry_instance:
+            self.splunk_telemetry_instance = self.get_instance(instance, current_time)
 
-        splunk_persistent_state = SplunkPersistentState(persistent_state)
-
-        instance = self.instance_data
-
-        # Skip the splunk check if the initial time has not passed
-        if not instance.initial_time_done(current_time):
-            self.log.debug("Skipping splunk metric/event instance %s, waiting for initial time to expire")
-
-            # Return the original transactional state and persistent state
+        if not self.splunk_telemetry_instance.initial_time_done(current_time):
+            self.log.debug("Skipping splunk metric/event instance %s, waiting for initial time"
+                           " to expire" % instance.get("url"))
             return CheckResponse(transactional_state=transactional_state,
                                  persistent_state=persistent_state,
                                  check_error=None)
 
+        splunk_persistent_state = SplunkPersistentState(persistent_state)
+
         try:
-            instance.splunk_client.auth_session(splunk_persistent_state, instance)
+            self.splunk_telemetry_instance.splunk_client.auth_session(splunk_persistent_state)
 
             def _service_check(status, tags=None, hostname=None, message=None):
                 self.service_check(self.SERVICE_CHECK_NAME, status, tags, hostname, message)
 
             def _process_data(saved_search, response, sent_already):
                 fail_count = 0
-                for data_point in self._extract_telemetry(saved_search, instance, response, sent_already):
+                for data_point in self._extract_telemetry(saved_search, self.splunk_telemetry_instance, response,
+                                                          sent_already):
                     if data_point is None:
                         fail_count += 1
                     else:
@@ -66,28 +66,31 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
 
             def _update_status():
                 self.log.debug("Called SplunkTelemetryBase._update_status")
-                instance.update_status(current_time=current_time, data=transactional_state)
+                self.splunk_telemetry_instance.update_status(current_time=current_time, data=transactional_state)
 
-            instance.saved_searches.run_saved_searches(_process_data, _service_check, self.log, splunk_persistent_state,
-                                                       _update_status)
+            self.splunk_telemetry_instance.saved_searches.run_saved_searches(_process_data, _service_check, self.log,
+                                                                             splunk_persistent_state,
+                                                                             _update_status)
 
             # Continue Process
-            transactional_state, continue_after_commit = instance.get_status()
+            transactional_state, continue_after_commit = self.splunk_telemetry_instance.get_status()
 
             self.continue_after_commit = continue_after_commit
 
             # If no service checks were produced, everything is ok
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK)
         except TokenExpiredException as e:
-            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=instance.instance_config.tags,
+            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL,
+                               tags=self.splunk_telemetry_instance.instance_config.tags,
                                message=str(e.message))
             self.log.exception("Splunk metric exception: %s" % str(e))
         except Exception as e:
             print(traceback.print_exc())
-            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=instance.instance_config.tags,
+            self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL,
+                               tags=self.splunk_telemetry_instance.instance_config.tags,
                                message=str(e))
             self.log.exception("Splunk metric exception: %s" % str(e))
-            if not instance.instance_config.ignore_saved_search_errors:
+            if not self.splunk_telemetry_instance.instance_config.ignore_saved_search_errors:
                 return CheckResponse(transactional_state=transactional_state,
                                      persistent_state=splunk_persistent_state.state,
                                      check_error=CheckException(

@@ -67,23 +67,23 @@ class TransactionStub(object):
         transactions_steps_state = self._ensure_transaction_steps(check_id)
 
         return transactions_steps_state["started"] is False and \
-               transactions_steps_state["stopped"] is True and \
-               transactions_steps_state["discarded"] is False
+            transactions_steps_state["stopped"] is True and \
+            transactions_steps_state["discarded"] is False
 
     def assert_transaction_success(self, check_id):
         assert self._transaction_completed_successfully(check_id) is True
 
     def assert_started_transaction(self, check_id, expected):
-        assert self._ensure_transaction_steps(check_id)["started"] is expected
+        assert self._ensure_transaction_steps(check_id)["started"] == expected
 
     def assert_stopped_transaction(self, check_id, expected):
-        assert self._ensure_transaction_steps(check_id)["stopped"] is expected
+        assert self._ensure_transaction_steps(check_id)["stopped"] == expected
 
     def assert_discarded_transaction(self, check_id, expected):
-        assert self._ensure_transaction_steps(check_id)["discarded"] is expected
+        assert self._ensure_transaction_steps(check_id)["discarded"] == expected
 
     def assert_discarded_transaction_reason(self, check_id, expected):
-        assert self._ensure_transaction_steps(check_id)["discard_reason"] is expected
+        assert self._ensure_transaction_steps(check_id)["discard_reason"] == expected
 
     def assert_completed_transaction(self, check_id):
         assert self._ensure_transaction_steps(check_id)["started"] is False and \
@@ -94,7 +94,7 @@ class TransactionStub(object):
                                                    check.TRANSACTIONAL_PERSISTENT_CACHE_KEY)
         transaction_state_dict = json.loads(self._ensure_transaction_state(check_id)[transaction_state_key])
 
-        assert transaction_state_dict.get(expected_key) is expected_value
+        assert transaction_state_dict.get(expected_key) == expected_value
 
 
 # Use the stub as a singleton

@@ -105,8 +105,7 @@ class MockSplunkMetric(SplunkMetric):
         mocked_splink_telemetry_instance = MockSplunkTelemetryInstance
         mocked_splink_telemetry_instance.mocks = self.mocks
 
-        return mocked_splink_telemetry_instance(current_time, instance, metric_instance_config, _create_saved_search,
-                                                mocked_saved_search)
+        return mocked_splink_telemetry_instance(current_time, instance, metric_instance_config, _create_saved_search)
 
 
 def _generate_mock_token(expire_time):

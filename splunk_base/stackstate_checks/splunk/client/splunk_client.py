@@ -213,7 +213,7 @@ class SplunkClient(StatefulMixin):
         while nr_of_results is None or nr_of_results == saved_search.batch_size:
             response = self._search_chunk(saved_search, search_id, offset, saved_search.batch_size)
             # received a message?
-            for message in response['messages']:
+            for message in response.get('messages', []):
                 if message['type'] == "FATAL":
                     raise CheckException("Received FATAL exception from Splunk, got: " + message['text'])
 
@@ -232,8 +232,8 @@ class SplunkClient(StatefulMixin):
     def dispatch(self, saved_search, splunk_app, ignore_saved_search_errors, parameters):
         """
         :param saved_search: The saved search to dispatch
-        :param splunk_user: Splunk user that dispatches the saved search
         :param splunk_app: Splunk App under which the saved search is located
+        :param ignore_saved_search_errors: Ignore saved search errors
         :param parameters: Parameters of the saved search
         :return: the sid of the saved search
         """
@@ -254,7 +254,7 @@ class SplunkClient(StatefulMixin):
         :param search_id: The saved search id to finish
         :param saved_search: The saved search to finish
         """
-        finish_path = '/services/search/jobs/%s/control' % (search_id)
+        finish_path = '/services/search/jobs/%s/control?output_mode=json' % search_id
         payload = "action=finalize"
 
         try:
@@ -274,11 +274,11 @@ class SplunkClient(StatefulMixin):
                 raise FinalizeException(error.response.status_code, error.response.reason)
         # in case of timeout like read timeout or request timeout
         except Timeout as error:
-            self.log.error("Search job not finalized as the timeout error occured %s" % error)
+            self.log.error("Search job not finalized as the timeout error occurred %s" % error)
             raise FinalizeException(None, str(error))
         # in case of network issue
         except ConnectionError as error:
-            self.log.error("Search job not finalized as connection error occured %s" % error)
+            self.log.error("Search job not finalized as connection error occurred %s" % error)
             raise FinalizeException(None, str(error))
 
     def _do_get(self, path, request_timeout_seconds, verify_ssl_certificate):
@@ -302,17 +302,17 @@ class SplunkClient(StatefulMixin):
         except HTTPError as error:
             if not splunk_ignore_saved_search_errors:
                 raise error
-            self.log.warn("Received response with status {} and body {}".format(resp.status_code, resp.content))
+            self.log.warning("Received response with status {} and body {}".format(resp.status_code, resp.content))
         except Timeout as error:
             if not splunk_ignore_saved_search_errors:
                 self.log.error("Got a timeout error")
                 raise error
-            self.log.warn("Ignoring the timeout error as the flag ignore_saved_search_errors is true")
+            self.log.warning("Ignoring the timeout error as the flag ignore_saved_search_errors is true")
         except ConnectionError as error:
             if not splunk_ignore_saved_search_errors:
                 self.log.error(
                     "Received error response with status {} and body {}".format(resp.status_code, resp.content)
                 )
                 raise error
-            self.log.warn("Ignoring the connection error as the flag ignore_saved_search_errors is true")
+            self.log.warning("Ignoring the connection error as the flag ignore_saved_search_errors is true")
         return resp
