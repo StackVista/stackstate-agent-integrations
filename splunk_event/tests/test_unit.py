@@ -14,7 +14,7 @@ from stackstate_checks.splunk.saved_search_helper import SavedSearchesTelemetry
 from stackstate_checks.splunk_event import SplunkEvent
 from .conftest import extract_title_and_type_from_event, common_requests_mocks, list_saved_searches_mock, \
     basic_auth_mock, job_results_mock, search_job_finalized_mock, batch_job_results_mock, saved_searches_error_mock, \
-    dispatch_search_error_mock, dispatch_search_mock
+    dispatch_search_error_mock, dispatch_search_mock, SID
 
 # Mark the entire module as tests of type `unit`
 pytestmark = pytest.mark.unit
@@ -37,12 +37,12 @@ def _reset_test_data():
 def _mocked_dispatch(*args, **kwargs):
     earliest_time = args[4]['dispatch.earliest_time']
     if test_data["earliest_time"] != "":
-        assert earliest_time == test_data["earliest_time"]
+        assert earliest_time == test_data["earliest_time"], "earliest_time should match"
     if test_data["latest_time"] == "":
         assert 'dispatch.latest_time' not in args[4]
     elif test_data["latest_time"] != "":
-        assert args[4]['dispatch.latest_time'] == test_data["latest_time"]
-    return "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3"
+        assert args[4]['dispatch.latest_time'] == test_data["latest_time"], "latest_time should match"
+    return SID
 
 
 def _setup_client_with_mocked_dispatch(monkeypatch, requests_mock, results_file):
@@ -239,21 +239,21 @@ def test_splunk_continue_after_restart(splunk_event_check, restart_history_86400
             check_result = splunk_event_check.run()
             assert check_result == "", "No errors when running Splunk check."
 
-    # Now continue with real-time polling (the earliest time taken from last event or last restart chunk)
-    test_data["earliest_time"] = "2017-03-08T01:00:01.000000+0000"
-    test_data["latest_time"] = ""
-    check_result = splunk_event_check.run()
-    assert check_result == "", "No errors when running Splunk check."
-    assert splunk_event_check.get_state() == {'test_events': time_to_seconds("2017-03-08T01:00:01")}
+        # Now continue with real-time polling (the earliest time taken from last event or last restart chunk)
+        test_data["earliest_time"] = "2017-03-08T01:00:01.000000+0000"
+        test_data["latest_time"] = ""
+        check_result = splunk_event_check.run()
+        assert check_result == "", "No errors when running Splunk check."
+        assert splunk_event_check.get_state() == {'test_events': time_to_seconds("2017-03-08T01:00:01")}
 
 
 @freezegun.freeze_time("2017-03-09 00:00:00")
-def test_splunk_query_initial_history(requests_mock, restart_history_86400, splunk_event_check, monkeypatch,
+def test_splunk_query_initial_history(requests_mock, initial_history_86400, splunk_event_check, monkeypatch,
                                       aggregator):
     """
     Splunk event check should continue where it left off after restart.
     """
-    _setup_client_with_mocked_dispatch(monkeypatch, requests_mock, "minimal_events_response.json")
+    _setup_client_with_mocked_dispatch(monkeypatch, requests_mock, "empty_response.json")
 
     # Gather initial data
     for slice_num in range(0, 23):
@@ -265,13 +265,14 @@ def test_splunk_query_initial_history(requests_mock, restart_history_86400, splu
     # Now continue with real-time polling (the earliest time taken from last event)
     test_data["earliest_time"] = "2017-03-08T23:00:00.000000+0000"
     test_data["latest_time"] = ""
+    job_results_mock(requests_mock, "minimal_events_response.json")
     check_result = splunk_event_check.run()
     assert check_result == "", "No errors when running Splunk check."
     assert len(aggregator.events) == 2
 
 
-def test_splunk_max_restart_time(restart_history_3600, requests_mock, monkeypatch, aggregator,
-                                 state, transaction, unit_test_instance, unit_test_config):
+def test_splunk_max_restart_time(max_restart_time, requests_mock, monkeypatch, aggregator, state, transaction,
+                                 unit_test_instance, unit_test_config):
     """
     Splunk event check should use the max restart time parameter.
     """

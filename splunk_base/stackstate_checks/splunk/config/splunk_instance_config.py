@@ -81,7 +81,7 @@ class SplunkInstanceConfig(object):
                 self.name = token_auth.get("name")
                 self.token_expiration_days = token_auth.get("token_expiration_days", 90)
                 self.renewal_days = token_auth.get("renewal_days", 10)
-            elif 'basic_auth' in authentication and authentication.basic_auth is not None:
+            elif 'basic_auth' in authentication and authentication["basic_auth"] is not None:
                 basic_auth = authentication["basic_auth"]
                 if 'username' not in basic_auth or basic_auth['username'] is None:
                     raise CheckException('Instance missing "authentication.basic_auth.username" value')
