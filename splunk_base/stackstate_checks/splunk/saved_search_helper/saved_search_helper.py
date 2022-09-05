@@ -1,6 +1,7 @@
 import copy
 import re
 import time
+import datetime
 
 from six import PY3
 
@@ -126,19 +127,18 @@ class SavedSearches(object):
                         "All result of saved search '%s' contained incomplete data" % saved_search.name)
 
         except CheckException as e:
-            if not self.instance_config.ignore_saved_search_errors:
-                log.error("Received Check exception while processing saved search " + saved_search.name)
-                raise e
             log.warning(
                 "Check exception occurred %s while processing saved search name %s" % (str(e), saved_search.name))
             service_check(AgentCheck.WARNING, tags=self.instance_config.tags, message=str(e))
+            if not self.instance_config.ignore_saved_search_errors:
+                raise e
             return False
         except Exception as e:
+            log.warning("Got an error %s while processing saved search name %s" % (str(e), saved_search.name))
+            service_check(AgentCheck.WARNING, tags=self.instance_config.tags, message=str(e))
             if not self.instance_config.ignore_saved_search_errors:
                 log.error("Received an exception while processing saved search " + saved_search.name)
                 raise e
-            log.warning("Got an error %s while processing saved search name %s" % (str(e), saved_search.name))
-            service_check(AgentCheck.WARNING, tags=self.instance_config.tags, message=str(e))
             return False
 
         return True
@@ -225,8 +225,8 @@ class SavedSearchesTelemetry(SavedSearches):
         parameters["output_mode"] = "json"
 
         earliest_epoch_datetime = get_utc_time(saved_search.last_observed_timestamp)
-
         splunk_app = saved_search.app
+
         parameters["dispatch.time_format"] = self.TIME_FMT
         parameters["dispatch.earliest_time"] = earliest_epoch_datetime.strftime(self.TIME_FMT)
 
@@ -235,17 +235,21 @@ class SavedSearchesTelemetry(SavedSearches):
 
         # Always observe the last time for data and use max query chunk seconds
         latest_time_epoch = saved_search.last_observed_timestamp + saved_search.config['max_query_chunk_seconds']
+
+        _last_observed = datetime.datetime.utcfromtimestamp(saved_search.last_observed_timestamp).strftime('%Y-%m-%dT%H:%M:%SZ')
+        _real_value = datetime.datetime.utcfromtimestamp(latest_time_epoch).strftime('%Y-%m-%dT%H:%M:%SZ')
+
         current_time = self._current_time_seconds()
 
         if latest_time_epoch >= current_time:
-            log.info("Caught up with old splunk data for saved search %s since %s" % (
+            log.info("[CONTINUE] Caught up with old splunk data for saved search %s since %s" % (
                 saved_search.name, parameters["dispatch.earliest_time"]))
             saved_search.last_recover_latest_time_epoch_seconds = None
         else:
             saved_search.last_recover_latest_time_epoch_seconds = latest_time_epoch
             latest_epoch_datetime = get_utc_time(latest_time_epoch)
             parameters["dispatch.latest_time"] = latest_epoch_datetime.strftime(self.TIME_FMT)
-            log.info("Catching up with old splunk data for saved search %s from %s to %s " % (
+            log.info("[CATCH_UP] Catching up with old splunk data for saved search %s from %s to %s " % (
                 saved_search.name, parameters["dispatch.earliest_time"], parameters["dispatch.latest_time"]))
 
         log.debug(

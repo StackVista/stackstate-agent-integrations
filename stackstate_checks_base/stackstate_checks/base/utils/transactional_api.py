@@ -9,6 +9,7 @@ from .state_common import validate_state
 
 try:
     import transaction
+    import state
 
     using_stub_transaction = False
 except ImportError:

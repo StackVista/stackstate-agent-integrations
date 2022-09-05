@@ -66,14 +66,14 @@ class SplunkInstanceConfig(object):
 
         if 'authentication' in instance:
             authentication = instance["authentication"]
-            if 'token_auth' in authentication:
+            if 'token_auth' in authentication and authentication.token_auth is not None:
                 token_auth = authentication["token_auth"]
-                if 'name' not in token_auth:
+                if 'name' not in token_auth or token_auth['name'] is None:
                     raise CheckException('Instance missing "authentication.token_auth.name" value')
-                if 'initial_token' not in token_auth:
+                if 'initial_token' not in token_auth or token_auth['initial_token'] is None:
                     raise CheckException('Instance missing "authentication.token_auth.initial_token" '
                                          'value')
-                if 'audience' not in token_auth:
+                if 'audience' not in token_auth or token_auth['audience'] is None:
                     raise CheckException('Instance missing "authentication.token_auth.audience" value')
                 self.auth_type = AuthType.TokenAuth
                 self.audience = token_auth.get("audience")
@@ -81,11 +81,11 @@ class SplunkInstanceConfig(object):
                 self.name = token_auth.get("name")
                 self.token_expiration_days = token_auth.get("token_expiration_days", 90)
                 self.renewal_days = token_auth.get("renewal_days", 10)
-            elif 'basic_auth' in authentication:
+            elif 'basic_auth' in authentication and authentication.basic_auth is not None:
                 basic_auth = authentication["basic_auth"]
-                if 'username' not in basic_auth:
+                if 'username' not in basic_auth or basic_auth['username'] is None:
                     raise CheckException('Instance missing "authentication.basic_auth.username" value')
-                if 'password' not in basic_auth:
+                if 'password' not in basic_auth or basic_auth['password'] is None:
                     raise CheckException('Instance missing "authentication.basic_auth.password" value')
                 self.auth_type = AuthType.BasicAuth
                 self.username = basic_auth.get("username")
@@ -117,10 +117,10 @@ class SplunkInstanceConfig(object):
 
 class SplunkSavedSearch(object):
     def __init__(self, instance_config, saved_search_instance):
-        if "name" in saved_search_instance:
+        if "name" in saved_search_instance and saved_search_instance["name"] is not None:
             self.name = saved_search_instance['name']
             self.match = None
-        elif "match" in saved_search_instance:
+        elif "match" in saved_search_instance and saved_search_instance["match"] is not None:
             self.match = saved_search_instance['match']
             self.name = None
         else:
@@ -132,16 +132,33 @@ class SplunkSavedSearch(object):
         self.optional_fields = None  # allowed to be absent
         self.fixed_fields = None  # fields that are filled in by the check
 
-        self.parameters = dict(saved_search_instance.get("parameters", instance_config.default_parameters))
-        self.request_timeout_seconds = \
-            int(saved_search_instance.get('request_timeout_seconds', instance_config.default_request_timeout_seconds))
-        self.search_max_retry_count = \
-            int(saved_search_instance.get('search_max_retry_count', instance_config.default_search_max_retry_count))
-        self.search_seconds_between_retries = \
-            int(saved_search_instance.get('search_seconds_between_retries',
-                                          instance_config.default_search_seconds_between_retries))
-        self.batch_size = int(saved_search_instance.get('batch_size', instance_config.default_batch_size))
+        self.parameters = self._saved_search_instance_get_or_else(
+            saved_search_instance, dict, "parameters", instance_config.default_parameters)
+
+        self.request_timeout_seconds = self._saved_search_instance_get_or_else(
+            saved_search_instance, int, "request_timeout_seconds", instance_config.default_request_timeout_seconds)
+
+        self.search_max_retry_count = self._saved_search_instance_get_or_else(
+            saved_search_instance, int, "search_max_retry_count", instance_config.default_search_max_retry_count)
+
+        self.search_seconds_between_retries = self._saved_search_instance_get_or_else(
+            saved_search_instance, int, "search_seconds_between_retries", instance_config.default_search_seconds_between_retries)
+
+        self.batch_size = self._saved_search_instance_get_or_else(
+            saved_search_instance, int, "batch_size", instance_config.default_batch_size)
+
         self.app = saved_search_instance.get("app", instance_config.default_app)
+
+    # Attempt to find a key in saved_search_instance and if not found return a default
+    # None inside the dictionaries will also be seen as invalid and return the alternative
+    @staticmethod
+    def _saved_search_instance_get_or_else(saved_search_instance, cast_to_type, key, alternative):
+        parameters = saved_search_instance.get(key)
+
+        if parameters is not None:
+            return cast_to_type(parameters)
+        else:
+            return cast_to_type(alternative)
 
     def retrieve_fields(self, data):
         retrieved_data = {}

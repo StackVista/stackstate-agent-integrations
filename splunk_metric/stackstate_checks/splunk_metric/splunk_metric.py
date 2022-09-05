@@ -3,11 +3,10 @@
 """
 
 # 3rd party
-# from stackstate_checks.splunk.client import SplunkClient
 from stackstate_checks.splunk.config.splunk_instance_config import SplunkTelemetryInstanceConfig
-# from stackstate_checks.splunk.saved_search_helper import SavedSearches
 from stackstate_checks.splunk.telemetry.splunk_telemetry import SplunkTelemetrySavedSearch, SplunkTelemetryInstance
 from stackstate_checks.splunk.telemetry.splunk_telemetry_base import SplunkTelemetryBase
+from stackstate_checks.splunk.saved_search_helper import SavedSearchesTelemetry
 
 
 class MetricSavedSearch(SplunkTelemetrySavedSearch):
@@ -24,23 +23,31 @@ class MetricSavedSearch(SplunkTelemetrySavedSearch):
 
         required_base_fields = ['value']
 
-        if 'metric_name' in saved_search_instance:
-            if 'metric_name_field' in saved_search_instance:
+        if 'metric_name' in saved_search_instance and saved_search_instance['metric_name'] is not None:
+            if 'metric_name_field' in saved_search_instance and saved_search_instance['metric_name_field'] is not None:
                 raise Exception("Cannot set both metric_name and metric_name_field")
 
             self.fixed_fields = {'metric': saved_search_instance.get('metric_name')}
         else:
             required_base_fields.append('metric')
 
-        self.required_fields = {
-            field_name: saved_search_instance.get(name_in_config,
-                                                  instance_config.get_or_default("default_" + name_in_config))
-            for field_name in required_base_fields
-            for name_in_config in [MetricSavedSearch.field_name_in_config.get(field_name, field_name)]
-        }
+        if self.required_fields is None:
+            self.required_fields = {}
+
+        for field_name in required_base_fields:
+            for name_in_config in [MetricSavedSearch.field_name_in_config.get(field_name, field_name)]:
+                metric_value = saved_search_instance.get(name_in_config)
+
+                # Check None allows us to use Non in schematics to pass certain functionality
+                # If the key does not exist get the default_ value
+                if metric_value is None:
+                    metric_value = instance_config.get_or_default("default_" + name_in_config)
+
+                self.required_fields[field_name] = metric_value
 
 
 class SplunkMetric(SplunkTelemetryBase):
+    CHECK_NAME = "splunk.metric_information"
     SERVICE_CHECK_NAME = "splunk.metric_information"
 
     def __init__(self, name, init_config, agent_config, instances=None):
@@ -70,16 +77,13 @@ class SplunkMetric(SplunkTelemetryBase):
                 "dispatch.now": True
             }
         })
-        # saved_searches = []
-        # if instance['saved_searches'] is not None:
-        #     saved_searches = instance['saved_searches']
 
         # method to be overwritten by SplunkMetric and SplunkEvent
         def _create_saved_search(instance_config, saved_search_instance):
             return MetricSavedSearch(instance_config, saved_search_instance)
 
-        return self.create_instance(_create_saved_search, current_time, instance, metric_instance_config)
+        return self._build_instance(current_time, instance, metric_instance_config, _create_saved_search)
 
-    def create_instance(self, current_time, instance, metric_instance_config, _create_saved_search):
+    def _build_instance(self, current_time, instance, metric_instance_config, _create_saved_search):
         return SplunkTelemetryInstance(current_time, instance, metric_instance_config,
                                        _create_saved_search)

@@ -23,8 +23,8 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
         # Data to keep over check runs
         self.splunk_telemetry_instance = None
 
-        # TODO: Melcom - Verify These Might Be Old Functionality That Is Not Required
-        self.collect_ok = True
+        # Data to keep over check runs
+        self.instance_data = None
         self.continue_after_commit = True
 
     def get_instance_key(self, instance):
@@ -73,12 +73,9 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
                                                                              _update_status)
 
             # Continue Process
-            transactional_state, continue_after_commit = self.splunk_telemetry_instance.get_status()  # TODO verify!
+            transactional_state, continue_after_commit = self.splunk_telemetry_instance.get_status()
 
-            if self.collect_ok:  # TODO: Melcom - Verify
-                self.continue_after_commit = continue_after_commit  # TODO: Melcom - Verify
-            else:
-                self.log.debug("Possible failure force here ????")  # TODO: Melcom - Verify
+            self.continue_after_commit = continue_after_commit
 
             # If no service checks were produced, everything is ok
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK)

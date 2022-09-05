@@ -1,6 +1,6 @@
-from stackstate_checks.base import TopologyInstance
 from stackstate_checks.splunk.client import SplunkClient
 from stackstate_checks.splunk.config import SplunkSavedSearch
+from stackstate_checks.base import TopologyInstance
 from stackstate_checks.splunk.saved_search_helper import SavedSearchesTelemetry
 
 
@@ -33,6 +33,7 @@ class SplunkTelemetrySavedSearch(SplunkSavedSearch):
         """
         :return: Return a tuple of the last time until which the query was run, and whether this was based on history
         """
+
         if self.last_recover_latest_time_epoch_seconds is None:
             # If there is not catching up to do, the status is as far as the last event time
             return self.last_observed_timestamp, False
@@ -53,11 +54,10 @@ class SplunkTelemetryInstance(object):
         if not isinstance(instance['saved_searches'], list):
             instance['saved_searches'] = []
 
-        self.saved_searches = SavedSearchesTelemetry(instance_config,
-                                                     self.splunk_client,
-                                                     [create_saved_search(instance_config, saved_search_instance)
-                                                      for saved_search_instance in instance['saved_searches']]
-                                                     )
+        self.saved_searches = SavedSearchesTelemetry(instance_config, self.splunk_client, [
+                                                     create_saved_search(instance_config, saved_search_instance)
+                                                     for saved_search_instance in instance['saved_searches']
+                                                     ])
 
         self.saved_searches_parallel = int(instance.get('saved_searches_parallel', self.instance_config.get_or_default(
             'default_saved_searches_parallel')))

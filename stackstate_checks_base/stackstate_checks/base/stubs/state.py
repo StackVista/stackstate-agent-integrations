@@ -15,7 +15,7 @@ class StateStub(object):
         self._state = {}
 
     def set_state(self, check, check_id, key, new_state):
-        print("Using stub state for setting state")
+        print("Using stub state for setting state, Setting State:")
         self._state[key] = new_state
 
     def get_state(self, check, check_id, key):
@@ -33,6 +33,14 @@ class StateStub(object):
         persistent_state_dict = json.loads(self.get_state(check, check.check_id, persistent_state_key))
 
         assert persistent_state_dict.get(expected_key) == expected_value
+
+    def assert_state_is_empty(self, check):
+        # Generate the persistent key to be used in retrieving the saved persistent state
+        persistent_state_key = generate_state_key(check._get_instance_key().to_string(), check.PERSISTENT_CACHE_KEY)
+        # Use the key to retrieve the persistent state and parse the dict to be tested
+        persistent_state = self.get_state(check, check.check_id, persistent_state_key)
+
+        assert persistent_state == "{}"
 
 
 # Use the stub as a singleton
