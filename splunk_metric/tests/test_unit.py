@@ -59,7 +59,7 @@ def test_metric_check(monkeypatch, requests_mock, get_logger, splunk_config, spl
     transaction.assert_stopped_transaction(check.check_id, True)
     transaction.assert_discarded_transaction(check.check_id, False)
 
-    check = metric_check(monkeypatch,requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
+    check = metric_check(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
                          splunk_metric, patch_finalize_sid=True)
     check_response = check.run()
 

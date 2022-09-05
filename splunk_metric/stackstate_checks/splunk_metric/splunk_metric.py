@@ -6,7 +6,6 @@
 from stackstate_checks.splunk.config.splunk_instance_config import SplunkTelemetryInstanceConfig
 from stackstate_checks.splunk.telemetry.splunk_telemetry import SplunkTelemetrySavedSearch, SplunkTelemetryInstance
 from stackstate_checks.splunk.telemetry.splunk_telemetry_base import SplunkTelemetryBase
-from stackstate_checks.splunk.saved_search_helper import SavedSearchesTelemetry
 
 
 class MetricSavedSearch(SplunkTelemetrySavedSearch):

@@ -97,7 +97,7 @@ def splunk_metric(telemetry, aggregator, topology, transaction, state):
 
 @pytest.fixture
 def error_response_check(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, splunk_metric):
-    # type: (RequestMocker, Logger, Config, Instance, MockSplunkMetricType) -> MockSplunkMetric
+    # type: (RequestMocker, Logger, Config, Instance, SplunkMetricType) -> SplunkMetric
     splunk_config_name = 'error'
 
     # Mock the HTTP Requests
@@ -491,7 +491,7 @@ def earliest_time_and_duplicates(monkeypatch, requests_mock, get_logger, splunk_
 
 @pytest.fixture
 def delayed_start(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, splunk_metric):
-    # type: (RequestMocker, Logger, Config, Instance, MockSplunkMetricType) -> SplunkMetric
+    # type: (RequestMocker, Logger, Config, Instance, SplunkMetricType) -> SplunkMetric
     splunk_config_name = 'minimal_metrics'
 
     # Mock the HTTP Requests
@@ -1287,6 +1287,7 @@ def backward_compatibility_new_conf_check(requests_mock, get_logger, splunk_conf
     check.check_id = inspect.stack()[0][3]
 
     return check
+
 
 @pytest.fixture
 def default_parameters_check(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
