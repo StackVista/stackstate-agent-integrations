@@ -192,6 +192,15 @@ def initial_delay_60_seconds(unit_test_config):
 
 
 @pytest.fixture
+def initial_history_86400(unit_test_config, unit_test_instance):
+    # type: (Dict, Dict) -> None
+    unit_test_config["default_initial_history_time_seconds"] = 86400
+    unit_test_config["default_max_query_chunk_seconds"] = 3600
+    unit_test_instance["saved_searches"][0]["max_initial_history_seconds"] = 86400
+    unit_test_instance["saved_searches"][0]["max_query_chunk_seconds"] = 3600
+
+
+@pytest.fixture
 def restart_history_86400(unit_test_config, unit_test_instance):
     # type: (Dict, Dict) -> None
     unit_test_config["default_max_restart_history_seconds"] = 86400
@@ -201,12 +210,12 @@ def restart_history_86400(unit_test_config, unit_test_instance):
 
 
 @pytest.fixture
-def restart_history_3600(unit_test_config, unit_test_instance):
+def max_restart_time(unit_test_config, unit_test_instance):
     # type: (Dict, Dict) -> None
-    unit_test_config["default_max_restart_history_seconds"] = 3600
-    unit_test_config["default_max_query_time_range"] = 3600
+    unit_test_config["default_restart_history_time_seconds"] = 3600
+    unit_test_config["default_max_query_chunk_seconds"] = 3600
     unit_test_instance["saved_searches"][0]["max_restart_history_seconds"] = 3600
-    unit_test_instance["saved_searches"][0]["max_query_time_range"] = 3600
+    unit_test_instance["saved_searches"][0]["max_query_chunk_seconds"] = 3600
 
 
 @pytest.fixture
