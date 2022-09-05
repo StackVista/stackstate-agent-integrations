@@ -14,7 +14,7 @@ from stackstate_checks.splunk.saved_search_helper import SavedSearchesTelemetry
 from stackstate_checks.splunk_event import SplunkEvent
 from .conftest import extract_title_and_type_from_event, common_requests_mocks, list_saved_searches_mock, \
     basic_auth_mock, job_results_mock, search_job_finalized_mock, batch_job_results_mock, saved_searches_error_mock, \
-    dispatch_search_error_mock, dispatch_search_mock
+    dispatch_search_error_mock, dispatch_search_mock, SID
 
 # Mark the entire module as tests of type `unit`
 pytestmark = pytest.mark.unit
@@ -42,7 +42,7 @@ def _mocked_dispatch(*args, **kwargs):
         assert 'dispatch.latest_time' not in args[4]
     elif test_data["latest_time"] != "":
         assert args[4]['dispatch.latest_time'] == test_data["latest_time"]
-    return "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3"
+    return SID
 
 
 def _setup_client_with_mocked_dispatch(monkeypatch, requests_mock, results_file):
@@ -239,12 +239,12 @@ def test_splunk_continue_after_restart(splunk_event_check, restart_history_86400
             check_result = splunk_event_check.run()
             assert check_result == "", "No errors when running Splunk check."
 
-    # Now continue with real-time polling (the earliest time taken from last event or last restart chunk)
-    test_data["earliest_time"] = "2017-03-08T01:00:01.000000+0000"
-    test_data["latest_time"] = ""
-    check_result = splunk_event_check.run()
-    assert check_result == "", "No errors when running Splunk check."
-    assert splunk_event_check.get_state() == {'test_events': time_to_seconds("2017-03-08T01:00:01")}
+        # Now continue with real-time polling (the earliest time taken from last event or last restart chunk)
+        test_data["earliest_time"] = "2017-03-08T01:00:01.000000+0000"
+        test_data["latest_time"] = ""
+        check_result = splunk_event_check.run()
+        assert check_result == "", "No errors when running Splunk check."
+        assert splunk_event_check.get_state() == {'test_events': time_to_seconds("2017-03-08T01:00:01")}
 
 
 @freezegun.freeze_time("2017-03-09 00:00:00")
