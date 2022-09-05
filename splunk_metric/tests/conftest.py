@@ -6,6 +6,7 @@ import pytest
 import logging
 import inspect
 
+from stackstate_checks.splunk.config import AuthType
 from requests_mock import Mocker
 from datetime import timedelta, datetime
 from stackstate_checks.errors import CheckException
@@ -1287,7 +1288,6 @@ def backward_compatibility_new_conf_check(requests_mock, get_logger, splunk_conf
 
     return check
 
-
 @pytest.fixture
 def default_parameters_check(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
                              splunk_metric):
@@ -1315,12 +1315,17 @@ def default_parameters_check(monkeypatch, requests_mock, get_logger, splunk_conf
     # Validate the config, authentication and saved_search data we are sending
     splunk_config.validate()
 
-    def mock_auth_session_to_check_instance_config(_, instance):
-        # TODO: No saved_searches.searches
-        # for saved_search in instance.saved_searches.searches:
-        #     assert saved_search.parameters == splunk_parameters, \
-        #         "Unexpected default parameters for saved search: %s" % saved_search.name
-        return "sessionKey1"
+    def mock_auth_session_to_check_instance_config(self, committable_state, instance=None):
+        for saved_search in instance.saved_searches.searches:
+            assert saved_search.parameters == splunk_parameters, \
+                "Unexpected default parameters for saved search: %s" % saved_search.name
+
+        if self.instance_config.auth_type == AuthType.BasicAuth:
+            self.log.debug("Using user/password based authentication mechanism")
+            self._basic_auth()
+        elif self.instance_config.auth_type == AuthType.TokenAuth:
+            self.log.debug("Using token based authentication mechanism")
+            self._token_auth_session(committable_state)
 
     # Monkey Patches for Mock Functions
     monkeypatch.setattr(SplunkClient, "auth_session", mock_auth_session_to_check_instance_config)
@@ -1368,12 +1373,17 @@ def non_default_parameters_check(monkeypatch, requests_mock, get_logger, splunk_
     # Validate the config, authentication and saved_search data we are sending
     splunk_config.validate()
 
-    def mock_auth_session_to_check_instance_config(committable_state, instance):
-        # TODO: No saved_searches.searches
-        # for saved_search in instance.saved_searches.searches:
-        #     assert saved_search.parameters == splunk_parameters, \
-        #         "Unexpected non-default parameters for saved search: %s" % saved_search.name
-        return "sessionKey1"
+    def mock_auth_session_to_check_instance_config(self, committable_state, instance):
+        for saved_search in instance.saved_searches.searches:
+            assert saved_search.parameters == splunk_parameters, \
+                "Unexpected non-default parameters for saved search: %s" % saved_search.name
+
+        if self.instance_config.auth_type == AuthType.BasicAuth:
+            self.log.debug("Using user/password based authentication mechanism")
+            self._basic_auth()
+        elif self.instance_config.auth_type == AuthType.TokenAuth:
+            self.log.debug("Using token based authentication mechanism")
+            self._token_auth_session(committable_state)
 
     # Monkey Patches for Mock Functions
     monkeypatch.setattr(SplunkClient, "auth_session", mock_auth_session_to_check_instance_config)
@@ -1414,12 +1424,17 @@ def overwrite_default_parameters_check(monkeypatch, requests_mock, get_logger, s
     # Validate the config, authentication and saved_search data we are sending
     splunk_config.validate()
 
-    def mock_auth_session_to_check_instance_config(committable_state, instance):
-        # TODO: No saved_searches.searches
-        # for saved_search in instance.saved_searches.searches:
-        #     assert saved_search.parameters == splunk_parameters, \
-        #         "Unexpected overwritten default parameters for saved search: %s" % saved_search.name
-        return "sessionKey1"
+    def mock_auth_session_to_check_instance_config(self, committable_state, instance):
+        for saved_search in instance.saved_searches.searches:
+            assert saved_search.parameters == splunk_parameters, \
+                "Unexpected overwritten default parameters for saved search: %s" % saved_search.name
+
+        if self.instance_config.auth_type == AuthType.BasicAuth:
+            self.log.debug("Using user/password based authentication mechanism")
+            self._basic_auth()
+        elif self.instance_config.auth_type == AuthType.TokenAuth:
+            self.log.debug("Using token based authentication mechanism")
+            self._token_auth_session(committable_state)
 
     # Monkey Patches for Mock Functions
     monkeypatch.setattr(SplunkClient, "auth_session", mock_auth_session_to_check_instance_config)
