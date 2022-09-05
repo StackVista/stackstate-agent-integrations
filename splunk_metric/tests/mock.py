@@ -9,12 +9,7 @@ import jwt
 from datetime import datetime, timedelta
 from .common import HOST, PORT
 from stackstate_checks.base.errors import CheckException
-from stackstate_checks.splunk_metric.splunk_metric import SplunkMetric
-from stackstate_checks.splunk.telemetry.splunk_telemetry import SplunkTelemetryInstance
-from stackstate_checks.splunk.client import SplunkClient
-from stackstate_checks.splunk.saved_search_helper import SavedSearchesTelemetry
 from stackstate_checks.base.utils.common import read_file
-from stackstate_checks.splunk.config.splunk_instance_config_models import SplunkConfigInstance
 from stackstate_checks.splunk.client.splunk_client import FinalizeException
 
 
@@ -42,70 +37,6 @@ def mock_polling_search(*args, **kwargs):  # type: (any, any) -> list[str]
     file_content_unmarshalled = json.loads(file_content)
 
     return file_content_unmarshalled
-
-
-class MockedSavedSearchesTelemetry(SavedSearchesTelemetry):
-    mocks = dict()
-
-    def __init__(self, instance_config, splunk_client, saved_searches):
-        if "_dispatch_saved_search" in self.mocks:
-            self._dispatch_saved_search = self.mocks.get("_dispatch_saved_search")
-
-        if "_dispatch_and_await_search" in self.mocks:
-            self._dispatch_and_await_search = self.mocks.get("_dispatch_and_await_search")
-
-        super(MockedSavedSearchesTelemetry, self).__init__(instance_config, splunk_client, saved_searches)
-
-
-class MockSplunkClient(SplunkClient):
-    mocks = dict()
-
-    def __init__(self, instance_config, *args, **kwargs):
-        if "finalize_sid" in self.mocks:
-            self.finalize_sid = self.mocks.get("finalize_sid")
-
-        if "dispatch" in self.mocks:
-            self.dispatch = self.mocks.get("dispatch")
-
-        if "saved_searches" in self.mocks:
-            self.saved_searches = self.mocks.get("saved_searches")
-
-        if "saved_search_results" in self.mocks:
-            self.saved_search_results = self.mocks.get("saved_search_results")
-
-        super(MockSplunkClient, self).__init__(instance_config, *args, **kwargs)
-
-
-class MockSplunkTelemetryInstance(SplunkTelemetryInstance):
-    mocks = dict()
-
-    def _build_splunk_client(self):  # type: () -> MockSplunkClient
-        mock_splunk_client = MockSplunkClient
-        mock_splunk_client.mocks = self.mocks
-
-        return MockSplunkClient(self.instance_config)
-
-
-class MockSplunkMetric(SplunkMetric):
-    mocks = dict()
-
-    def __init__(self, name, init_config, agent_config, instances=None, mocks=None):
-        if mocks is None:
-            self.mocks = {}
-        else:
-            self.mocks = mocks
-
-        super(MockSplunkMetric, self).__init__(name, init_config, agent_config, instances)
-
-    def _build_instance(self, current_time, instance, metric_instance_config, _create_saved_search):
-        # type: (int, SplunkConfigInstance, any, any) -> MockSplunkTelemetryInstance
-        mocked_saved_search = MockedSavedSearchesTelemetry
-        mocked_saved_search.mocks = self.mocks
-
-        mocked_splink_telemetry_instance = MockSplunkTelemetryInstance
-        mocked_splink_telemetry_instance.mocks = self.mocks
-
-        return mocked_splink_telemetry_instance(current_time, instance, metric_instance_config, _create_saved_search)
 
 
 def _generate_mock_token(expire_time):

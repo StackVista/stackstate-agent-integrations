@@ -204,6 +204,7 @@ class SavedSearchesTelemetry(SavedSearches):
                 log.warning("Ignoring the finalize exception as ignore_saved_search_errors flag is true")
             except Exception as e:
                 log.warning("Failed to dispatch saved search '%s' due to: %s" % (saved_search.name, e))
+                service_check(AgentCheck.WARNING, tags=self.instance_config.tags, message=str(e))
 
         executed_searches = False
         for (sid, saved_search) in search_ids:

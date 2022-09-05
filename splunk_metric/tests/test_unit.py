@@ -247,7 +247,7 @@ def test_earliest_time_and_duplicates(monkeypatch, requests_mock, get_logger, sp
 
     assert check_response != '', "The check run cycle SHOULD produce a error"
 
-    assert_service_check_status(check, aggregator, count=3, status_index=0, status=AgentCheck.CRITICAL)
+    assert_service_check_status(check, aggregator, count=3, status_index=1, status=AgentCheck.CRITICAL)
 
 
 @pytest.mark.unit
@@ -477,7 +477,7 @@ def test_individual_dispatch_failures(individual_dispatch_failures, telemetry, a
     telemetry.assert_metric("metric_name", count=2, value=3.0, timestamp=1488974400.0)
 
     assert_service_check_status(check, aggregator, count=4, status_index=0, status=AgentCheck.WARNING,
-                                message="Failed to dispatch saved search 'full_metrics' due to: BOOM")
+                                message="BOOM")
 
 
 @pytest.mark.unit
@@ -501,7 +501,7 @@ def test_search_full_failure(search_full_failure, telemetry, aggregator):
     check_response = check.run()
     assert check_response != '', "The check run cycle SHOULD produce a error"
 
-    assert_service_check_status(check, aggregator, count=2, status_index=0, status=AgentCheck.CRITICAL,
+    assert_service_check_status(check, aggregator, count=3, status_index=1, status=AgentCheck.CRITICAL,
                                 message="No saved search was successfully executed.")
 
 

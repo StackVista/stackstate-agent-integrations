@@ -13,20 +13,17 @@ from typing import Type, Tuple
 
 from stackstate_checks.splunk.client import SplunkClient
 from stackstate_checks.splunk.saved_search_helper import SavedSearchesTelemetry
+from stackstate_checks.splunk_metric import SplunkMetric
 from .common import HOST, PORT, USER, PASSWORD
-from .mock import MockSplunkMetric, mock_finalize_sid_exception, mock_polling_search, \
-    _generate_mock_token, _requests_mock, SplunkMetric
+from .mock import mock_finalize_sid_exception, mock_polling_search, \
+    _generate_mock_token, _requests_mock
 from stackstate_checks.splunk.config.splunk_instance_config_models import SplunkConfigInstance, SplunkConfig, \
     SplunkConfigSavedSearchDefault
 
 
 # Type safety mappings
-SplunkMetric = SplunkMetric
 SplunkMetricDataTuple = Tuple[SplunkMetric, dict[str, any]]
 SplunkMetricType = Type[SplunkMetric]
-MockSplunkMetric = MockSplunkMetric
-MockSplunkMetricDataTuple = Tuple[MockSplunkMetric, dict[str, any]]
-MockSplunkMetricType = Type[MockSplunkMetric]
 Instance = SplunkConfigInstance
 Config = SplunkConfig
 Logger = logging.Logger
