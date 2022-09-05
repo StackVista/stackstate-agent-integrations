@@ -34,8 +34,8 @@ def mock_search(search_id, saved_search):  # type: (str, any) -> list[str]
 
 
 def mock_polling_search(*args, **kwargs):  # type: (any, any) -> list[str]
-    sid = args[0]
-    count = args[1].batch_size
+    sid = args[1]
+    count = args[2].batch_size
 
     fixture_dir = os.path.join(os.path.dirname(__file__), 'ci', 'fixtures')
     file_content = read_file("batch_%s_seq_%s.json" % (sid, count), fixture_dir)

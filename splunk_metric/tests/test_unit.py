@@ -43,10 +43,12 @@ def test_error_response(error_response_check, telemetry, aggregator):
 
 
 @pytest.mark.unit
-def test_metric_check(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, mock_splunk_metric,
-                      transaction, state):
-    check = metric_check(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, mock_splunk_metric)
+def test_metric_check(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
+                      splunk_metric, transaction, state):
+    check = metric_check(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
+                         splunk_metric)
     check_response = check.run()
+
     assert check_response == '', "The check run should not return a error"
 
     persistent_state_key = generate_state_key(check._get_instance_key().to_string(), check.PERSISTENT_CACHE_KEY)
@@ -57,9 +59,10 @@ def test_metric_check(requests_mock, get_logger, splunk_config, splunk_instance_
     transaction.assert_stopped_transaction(check.check_id, True)
     transaction.assert_discarded_transaction(check.check_id, False)
 
-    check = metric_check(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, mock_splunk_metric,
-                         patch_finalize_sid=True)
+    check = metric_check(monkeypatch,requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
+                         splunk_metric, patch_finalize_sid=True)
     check_response = check.run()
+
     assert check_response == '', "The check run should not return a error"
 
     persistent_state_key = generate_state_key(check._get_instance_key().to_string(), check.PERSISTENT_CACHE_KEY)
@@ -73,9 +76,10 @@ def test_metric_check(requests_mock, get_logger, splunk_config, splunk_instance_
     assert first_transaction == second_transaction
     assert first_state == second_state
 
-    check = metric_check(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, mock_splunk_metric,
-                         patch_finalize_sid=True, force_finalize_sid_exception=True)
+    check = metric_check(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
+                         splunk_metric, patch_finalize_sid=True, force_finalize_sid_exception=True)
     check_response = check.run()
+
     assert check_response != '', "The check run should return a error"
 
     persistent_state_key = generate_state_key(check._get_instance_key().to_string(), check.PERSISTENT_CACHE_KEY)
@@ -195,11 +199,11 @@ def test_same_data_metrics(same_data_metrics, telemetry, aggregator):
 
 @pytest.mark.unit
 @freeze_time("2017-03-08T18:29:59.000000+0000")
-def test_earliest_time_and_duplicates(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
-                                      mock_splunk_metric, telemetry, aggregator):
+def test_earliest_time_and_duplicates(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
+                                      splunk_metric, telemetry, aggregator):
     # Initial run
-    check, test_data = earliest_time_and_duplicates(requests_mock, get_logger, splunk_config,
-                                                    splunk_instance_basic_auth, mock_splunk_metric)
+    check, test_data = earliest_time_and_duplicates(monkeypatch, requests_mock, get_logger, splunk_config,
+                                                    splunk_instance_basic_auth, splunk_metric)
 
     test_data["sid"] = "poll"
     check_response = check.run()
@@ -217,8 +221,8 @@ def test_earliest_time_and_duplicates(requests_mock, get_logger, splunk_config, 
     aggregator.reset()
 
     # Respect earliest_time
-    check, test_data = earliest_time_and_duplicates(requests_mock, get_logger, splunk_config,
-                                                    splunk_instance_basic_auth, mock_splunk_metric)
+    check, test_data = earliest_time_and_duplicates(monkeypatch, requests_mock, get_logger, splunk_config,
+                                                    splunk_instance_basic_auth, splunk_metric)
 
     test_data["sid"] = "poll1"
     test_data["earliest_time"] = '2017-03-08T18:30:00.000000+0000'
@@ -235,15 +239,15 @@ def test_earliest_time_and_duplicates(requests_mock, get_logger, splunk_config, 
     aggregator.reset()
 
     # Throw exception during search
-    check, test_data = earliest_time_and_duplicates(requests_mock, get_logger, splunk_config,
-                                                    splunk_instance_basic_auth, mock_splunk_metric)
+    check, test_data = earliest_time_and_duplicates(monkeypatch, requests_mock, get_logger, splunk_config,
+                                                    splunk_instance_basic_auth, splunk_metric)
 
     test_data["throw"] = True
     check_response = check.run()
 
     assert check_response != '', "The check run cycle SHOULD produce a error"
 
-    assert_service_check_status(check, aggregator, count=2, status_index=0, status=AgentCheck.CRITICAL)
+    assert_service_check_status(check, aggregator, count=3, status_index=0, status=AgentCheck.CRITICAL)
 
 
 @pytest.mark.unit
@@ -273,11 +277,11 @@ def test_delayed_start(delayed_start, telemetry, aggregator):
 
 # Busy
 @pytest.mark.unit
-def test_continue_after_restart(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
-                                mock_splunk_metric, telemetry, aggregator):
+def test_continue_after_restart(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
+                                splunk_metric, telemetry, aggregator):
     # Instead of a pyfixture we are importing this check to allow a force_reload behaviour
-    check, test_data = continue_after_restart(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
-                                              mock_splunk_metric)
+    check, test_data = continue_after_restart(monkeypatch, requests_mock, get_logger, splunk_config,
+                                              splunk_instance_basic_auth, splunk_metric)
 
     with freeze_time("2017-03-08T00:00:00.000000+0000"):
         # Initial run with initial time
@@ -296,9 +300,9 @@ def test_continue_after_restart(requests_mock, get_logger, splunk_config, splunk
             aggregator.reset()
 
             # Instead of a pyfixture we are importing this check to allow a force_reload behaviour
-            check, test_data = continue_after_restart(requests_mock, get_logger, splunk_config,
+            check, test_data = continue_after_restart(monkeypatch, requests_mock, get_logger, splunk_config,
                                                       splunk_instance_basic_auth,
-                                                      mock_splunk_metric)
+                                                      splunk_metric)
 
             test_data["earliest_time"] = '2017-03-08T00:%s:01.000000+0000' % (str(slice_num * 5).zfill(2))
             test_data["latest_time"] = '2017-03-08T00:%s:01.000000+0000' % (str((slice_num + 1) * 5).zfill(2))
@@ -356,12 +360,12 @@ def test_query_initial_history(query_initial_history, telemetry, aggregator):
 
 
 @pytest.mark.unit
-def test_max_restart_time(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, mock_splunk_metric,
-                          telemetry, aggregator):
+def test_max_restart_time(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
+                          splunk_metric, telemetry, aggregator):
     with freeze_time("2017-03-08T00:00:00.000000+0000"):
         # Instead of a pyfixture we are importing this check to allow a force_reload behaviour
-        check, test_data = max_restart_time(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
-                                            mock_splunk_metric)
+        check, test_data = max_restart_time(monkeypatch, requests_mock, get_logger, splunk_config,
+                                            splunk_instance_basic_auth, splunk_metric)
 
         test_data["earliest_time"] = '2017-03-08T00:00:00.000000+0000'
 
@@ -375,8 +379,8 @@ def test_max_restart_time(requests_mock, get_logger, splunk_config, splunk_insta
 
     with freeze_time("2017-03-08T12:00:00.000000+0000"):
         # Instead of a pyfixture we are importing this check to allow a force_reload behaviour
-        check, test_data = max_restart_time(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
-                                            mock_splunk_metric)
+        check, test_data = max_restart_time(monkeypatch, requests_mock, get_logger, splunk_config,
+                                            splunk_instance_basic_auth, splunk_metric)
 
         test_data["earliest_time"] = '2017-03-08T11:00:00.000000+0000'
         test_data["latest_time"] = '2017-03-08T11:00:00.000000+0000'
@@ -472,7 +476,8 @@ def test_individual_dispatch_failures(individual_dispatch_failures, telemetry, a
     telemetry.assert_total_metrics(2)
     telemetry.assert_metric("metric_name", count=2, value=3.0, timestamp=1488974400.0)
 
-    assert_service_check_status(check, aggregator, count=4, status_index=0, status=AgentCheck.WARNING, message="BOOM")
+    assert_service_check_status(check, aggregator, count=4, status_index=0, status=AgentCheck.WARNING,
+                                message="Failed to dispatch saved search 'full_metrics' due to: BOOM")
 
 
 @pytest.mark.unit
@@ -628,10 +633,10 @@ def test_overwrite_default_parameters(overwrite_default_parameters_check, teleme
 
 @pytest.mark.unit
 def test_max_query_chunk_sec_history(monkeypatch, get_logger, requests_mock, splunk_config, splunk_instance_basic_auth,
-                                     mock_splunk_metric, telemetry, state, transaction):
+                                     splunk_metric, telemetry, state, transaction):
     with freeze_time("2017-03-09T00:00:00.000000+0000"):
         check, test_data = max_query_chunk_sec_history_check(monkeypatch, get_logger, requests_mock, splunk_config,
-                                                             splunk_instance_basic_auth, mock_splunk_metric)
+                                                             splunk_instance_basic_auth, splunk_metric)
 
         test_data["earliest_time"] = '2017-03-08T00:00:00.000000+0000'
 
@@ -655,7 +660,7 @@ def test_max_query_chunk_sec_history(monkeypatch, get_logger, requests_mock, spl
     with freeze_time("2017-03-08T12:00:00.000000+0000"):
         # Reload Check
         check, test_data = max_query_chunk_sec_history_check(monkeypatch, get_logger, requests_mock, splunk_config,
-                                                             splunk_instance_basic_auth, mock_splunk_metric)
+                                                             splunk_instance_basic_auth, splunk_metric)
 
         test_data["earliest_time"] = '2017-03-08T11:00:00.000000+0000'
 

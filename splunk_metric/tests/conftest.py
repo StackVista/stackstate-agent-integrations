@@ -14,7 +14,7 @@ from typing import Type, Tuple
 from stackstate_checks.splunk.client import SplunkClient
 from stackstate_checks.splunk.saved_search_helper import SavedSearchesTelemetry
 from .common import HOST, PORT, USER, PASSWORD
-from .mock import MockSplunkMetric, mock_search, mock_finalize_sid_exception, mock_polling_search, \
+from .mock import MockSplunkMetric, mock_finalize_sid_exception, mock_polling_search, \
     _generate_mock_token, _requests_mock, SplunkMetric
 from stackstate_checks.splunk.config.splunk_instance_config_models import SplunkConfigInstance, SplunkConfig, \
     SplunkConfigSavedSearchDefault
@@ -85,21 +85,6 @@ def splunk_instance_token_auth():  # type: () -> SplunkConfigInstance
 
 
 @pytest.fixture
-def mock_splunk_metric(telemetry, aggregator, topology, transaction, state):
-    # type: (any, any, any, any, any) -> MockSplunkMetricType
-
-    # Bring back the splunk mock metrics
-    yield MockSplunkMetric
-
-    # Clean the singleton states that could have been used
-    telemetry.reset()
-    aggregator.reset()
-    topology.reset()
-    transaction.reset()
-    state.reset()
-
-
-@pytest.fixture
 def splunk_metric(telemetry, aggregator, topology, transaction, state):
     # type: (any, any, any, any, any) -> SplunkMetricType
 
@@ -145,9 +130,9 @@ def error_response_check(requests_mock, get_logger, splunk_config, splunk_instan
 
 
 # Not a pyfixture, Require multiple runs
-def metric_check(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, mock_splunk_metric,
+def metric_check(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, splunk_metric,
                  patch_finalize_sid=False, force_finalize_sid_exception=False):
-    # type: (RequestMocker, Logger, Config, Instance, MockSplunkMetricType, bool, bool) -> MockSplunkMetric
+    # type: (any, RequestMocker, Logger, Config, Instance, SplunkMetricType, bool, bool) -> SplunkMetric
     splunk_config_name = 'minimal_metrics'
 
     # Mock the HTTP Requests
@@ -171,12 +156,12 @@ def metric_check(requests_mock, get_logger, splunk_config, splunk_instance_basic
     # Validate the config, authentication and saved_search data we are sending
     splunk_config.validate()
 
-    mock = {}
-
     if force_finalize_sid_exception:
-        mock['finalize_sid'] = mock_finalize_sid_exception
+        # Monkey Patches for Mock Functions
+        monkeypatch.setattr(SplunkClient, "finalize_sid", mock_finalize_sid_exception)
 
-    check = mock_splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances, mock)
+    # Check
+    check = splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances)
 
     # We set the check id to the current function name to prevent a blank check id
     check.check_id = inspect.stack()[0][3]
@@ -442,14 +427,16 @@ def same_data_metrics(requests_mock, get_logger, splunk_config, splunk_instance_
     return check
 
 
-def earliest_time_and_duplicates(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
-                                 mock_splunk_metric):
-    # type: (RequestMocker, Logger, Config, Instance, MockSplunkMetricType) -> MockSplunkMetricDataTuple
+def earliest_time_and_duplicates(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
+                                 splunk_metric):
+    # type: (any, RequestMocker, Logger, Config, Instance, SplunkMetricType) -> SplunkMetricDataTuple
     splunk_config_name = "poll"
 
     # Mock the HTTP Requests
     _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
                    finalize_search_id=splunk_config_name, ignore_search=True)
+    _requests_mock(requests_mock, request_id="poll1", logger=get_logger, audience="admin",
+                   finalize_search_id="poll1", ignore_search=True)
 
     # Set the splunk tags
     splunk_instance_basic_auth.tags = ["checktag:checktagvalue"]
@@ -477,7 +464,7 @@ def earliest_time_and_duplicates(requests_mock, get_logger, splunk_config, splun
         "throw": False
     }
 
-    def mock_dispatch_saved_search_dispatch(saved_search, splunk_app, ignore_saved_search_errors, parameters):
+    def mock_dispatch_saved_search_dispatch(self, saved_search, splunk_app, ignore_saved_search_errors, parameters):
         print("Running Mock: mock_dispatch_saved_search_dispatch")
 
         if test_data["throw"]:
@@ -493,10 +480,12 @@ def earliest_time_and_duplicates(requests_mock, get_logger, splunk_config, splun
 
         return test_data["sid"]
 
-    check = mock_splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances, {
-        'dispatch': mock_dispatch_saved_search_dispatch,
-        'saved_search_results': mock_polling_search,
-    })
+    # Monkey Patches for Mock Functions
+    monkeypatch.setattr(SplunkClient, "dispatch", mock_dispatch_saved_search_dispatch)
+    monkeypatch.setattr(SplunkClient, "saved_search_results", mock_polling_search)
+
+    # Check
+    check = splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances)
 
     # We set the check id to the current function name to prevent a blank check id
     check.check_id = inspect.stack()[0][3]
@@ -540,8 +529,9 @@ def delayed_start(requests_mock, get_logger, splunk_config, splunk_instance_basi
     return check
 
 
-def continue_after_restart(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, mock_splunk_metric):
-    # type: (RequestMocker, Logger, Config, Instance, MockSplunkMetricType) -> MockSplunkMetricDataTuple
+def continue_after_restart(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
+                           splunk_metric):
+    # type: (any, RequestMocker, Logger, Config, Instance, SplunkMetricType) -> SplunkMetricDataTuple
     splunk_config_name = 'empty'
 
     # Mock the HTTP Requests
@@ -579,7 +569,7 @@ def continue_after_restart(requests_mock, get_logger, splunk_config, splunk_inst
         "latest_time": None
     }
 
-    def dispatch(saved_search, splunk_app, ignore_saved_search_errors, parameters):
+    def dispatch(self, saved_search, splunk_app, ignore_saved_search_errors, parameters):
         earliest_time = parameters['dispatch.earliest_time']
         if test_data["earliest_time"] != "":
             assert earliest_time == test_data["earliest_time"]
@@ -593,9 +583,11 @@ def continue_after_restart(requests_mock, get_logger, splunk_config, splunk_inst
 
         return "empty"
 
-    check = mock_splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances, {
-        'dispatch': dispatch,
-    })
+    # Monkey Patches for Mock Functions
+    monkeypatch.setattr(SplunkClient, "dispatch", dispatch)
+
+    # Check
+    check = splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances)
 
     # We set the check id to the current function name to prevent a blank check id
     check.check_id = inspect.stack()[0][3]
@@ -604,8 +596,9 @@ def continue_after_restart(requests_mock, get_logger, splunk_config, splunk_inst
 
 
 @pytest.fixture
-def query_initial_history(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, mock_splunk_metric):
-    # type: (RequestMocker, Logger, Config, Instance, MockSplunkMetricType) -> MockSplunkMetricDataTuple
+def query_initial_history(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
+                          splunk_metric):
+    # type: (any, RequestMocker, Logger, Config, Instance, SplunkMetricType) -> SplunkMetricDataTuple
     splunk_config_name = 'empty'
 
     # Mock the HTTP Requests
@@ -644,7 +637,7 @@ def query_initial_history(requests_mock, get_logger, splunk_config, splunk_insta
         "latest_time": ""
     }
 
-    def mock_dispatch_saved_search_dispatch(saved_search, splunk_app, ignore_saved_search_errors, parameters):
+    def mock_dispatch_saved_search_dispatch(self, saved_search, splunk_app, ignore_saved_search_errors, parameters):
         earliest_time = parameters['dispatch.earliest_time']
         if test_data["earliest_time"] != "":
             assert earliest_time == test_data["earliest_time"]
@@ -657,9 +650,11 @@ def query_initial_history(requests_mock, get_logger, splunk_config, splunk_insta
 
         return "minimal_metrics"
 
-    check = mock_splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances, {
-        'dispatch': mock_dispatch_saved_search_dispatch,
-    })
+    # Monkey Patches for Mock Functions
+    monkeypatch.setattr(SplunkClient, "dispatch", mock_dispatch_saved_search_dispatch)
+
+    # Check
+    check = splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances)
 
     # We set the check id to the current function name to prevent a blank check id
     check.check_id = inspect.stack()[0][3]
@@ -667,8 +662,9 @@ def query_initial_history(requests_mock, get_logger, splunk_config, splunk_insta
     return check, test_data
 
 
-def max_restart_time(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, mock_splunk_metric):
-    # type: (RequestMocker, Logger, Config, Instance, MockSplunkMetricType) -> MockSplunkMetricDataTuple
+def max_restart_time(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
+                     splunk_metric):
+    # type: (any, RequestMocker, Logger, Config, Instance, SplunkMetricType) -> SplunkMetricDataTuple
     splunk_config_name = 'empty'
 
     # Mock the HTTP Requests
@@ -705,16 +701,18 @@ def max_restart_time(requests_mock, get_logger, splunk_config, splunk_instance_b
         "earliest_time": ""
     }
 
-    def mock_dispatch_saved_search_dispatch(saved_search, splunk_app, ignore_saved_search_errors, parameters):
+    def mock_dispatch_saved_search_dispatch(self, saved_search, splunk_app, ignore_saved_search_errors, parameters):
         earliest_time = parameters['dispatch.earliest_time']
 
         if test_data["earliest_time"] != "":
             assert earliest_time == test_data["earliest_time"]
         return splunk_config_name
 
-    check = mock_splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances, {
-        'dispatch': mock_dispatch_saved_search_dispatch,
-    })
+    # Monkey Patches for Mock Functions
+    monkeypatch.setattr(SplunkClient, "dispatch", mock_dispatch_saved_search_dispatch)
+
+    # Check
+    check = splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances)
 
     # We set the check id to the current function name to prevent a blank check id
     check.check_id = inspect.stack()[0][3]
@@ -723,8 +721,10 @@ def max_restart_time(requests_mock, get_logger, splunk_config, splunk_instance_b
 
 
 @pytest.fixture
-def keep_time_on_failure(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, mock_splunk_metric):
-    # type: (RequestMocker, Logger, Config, Instance, MockSplunkMetricType) -> MockSplunkMetricDataTuple
+def keep_time_on_failure(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
+                         splunk_metric):
+    # type: (any, RequestMocker, Logger, Config, Instance, SplunkMetricType) -> SplunkMetricDataTuple
+
     splunk_config_name = 'minimal_metrics'
 
     # Mock the HTTP Requests
@@ -753,16 +753,18 @@ def keep_time_on_failure(requests_mock, get_logger, splunk_config, splunk_instan
         "earliest_time": ""
     }
 
-    def mock_dispatch_saved_search_dispatch(saved_search, splunk_app, ignore_saved_search_errors, parameters):
+    def mock_dispatch_saved_search_dispatch(self, saved_search, splunk_app, ignore_saved_search_errors, parameters):
         earliest_time = parameters['dispatch.earliest_time']
         if test_data["earliest_time"] != "":
             assert earliest_time == test_data["earliest_time"]
 
         return splunk_config_name
 
-    check = mock_splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances, {
-        'dispatch': mock_dispatch_saved_search_dispatch,
-    })
+    # Monkey Patches for Mock Functions
+    monkeypatch.setattr(SplunkClient, "dispatch", mock_dispatch_saved_search_dispatch)
+
+    # Check
+    check = splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances)
 
     # We set the check id to the current function name to prevent a blank check id
     check.check_id = inspect.stack()[0][3]
@@ -771,8 +773,10 @@ def keep_time_on_failure(requests_mock, get_logger, splunk_config, splunk_instan
 
 
 @pytest.fixture
-def advance_time_on_success(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, mock_splunk_metric):
-    # type: (RequestMocker, Logger, Config, Instance, MockSplunkMetricType) -> MockSplunkMetricDataTuple
+def advance_time_on_success(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
+                            splunk_metric):
+    # type: (any, RequestMocker, Logger, Config, Instance, SplunkMetricType) -> SplunkMetricDataTuple
+
     splunk_config_name = 'minimal_metrics'
 
     # Mock the HTTP Requests
@@ -801,15 +805,17 @@ def advance_time_on_success(requests_mock, get_logger, splunk_config, splunk_ins
         "earliest_time": ""
     }
 
-    def mock_dispatch_saved_search_dispatch(saved_search, splunk_app, ignore_saved_search_errors, parameters):
+    def mock_dispatch_saved_search_dispatch(self, saved_search, splunk_app, ignore_saved_search_errors, parameters):
         earliest_time = parameters['dispatch.earliest_time']
         if test_data["earliest_time"] != "":
             assert earliest_time == test_data["earliest_time"]
         return splunk_config_name
 
-    check = mock_splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances, {
-        'dispatch': mock_dispatch_saved_search_dispatch,
-    })
+    # Monkey Patches for Mock Functions
+    monkeypatch.setattr(SplunkClient, "dispatch", mock_dispatch_saved_search_dispatch)
+
+    # Check
+    check = splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances)
 
     # We set the check id to the current function name to prevent a blank check id
     check.check_id = inspect.stack()[0][3]
@@ -818,8 +824,9 @@ def advance_time_on_success(requests_mock, get_logger, splunk_config, splunk_ins
 
 
 @pytest.fixture
-def wildcard_searches(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, mock_splunk_metric):
-    # type: (RequestMocker, Logger, Config, Instance, MockSplunkMetricType) -> MockSplunkMetricDataTuple
+def wildcard_searches(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
+                      splunk_metric):
+    # type: (any, RequestMocker, Logger, Config, Instance, SplunkMetricType) -> SplunkMetricDataTuple
     splunk_config_name = 'minimal_metrics'
     splunk_config_match = 'minimal_*'
 
@@ -847,9 +854,11 @@ def wildcard_searches(requests_mock, get_logger, splunk_config, splunk_instance_
     def mocked_saved_searches(*args, **kwargs):
         return data['saved_searches']
 
-    check = mock_splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances, {
-        'saved_searches': mocked_saved_searches,
-    })
+    # Monkey Patches for Mock Functions
+    monkeypatch.setattr(SplunkClient, "saved_searches", mocked_saved_searches)
+
+    # Check
+    check = splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances)
 
     # We set the check id to the current function name to prevent a blank check id
     check.check_id = inspect.stack()[0][3]
@@ -858,8 +867,10 @@ def wildcard_searches(requests_mock, get_logger, splunk_config, splunk_instance_
 
 
 @pytest.fixture
-def saved_searches_error(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, mock_splunk_metric):
-    # type: (RequestMocker, Logger, Config, Instance, MockSplunkMetricType) -> MockSplunkMetric
+def saved_searches_error(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
+                         splunk_metric):
+    # type: (any, RequestMocker, Logger, Config, Instance, SplunkMetricType) -> SplunkMetric
+
     splunk_config_name = 'full_metrics'
     splunk_config_match = '.*metrics'
 
@@ -883,9 +894,11 @@ def saved_searches_error(requests_mock, get_logger, splunk_config, splunk_instan
     def mocked_saved_searches(*args, **kwargs):
         raise Exception("Boom")
 
-    check = mock_splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances, {
-        'saved_searches': mocked_saved_searches,
-    })
+    # Monkey Patches for Mock Functions
+    monkeypatch.setattr(SplunkClient, "saved_searches", mocked_saved_searches)
+
+    # Check
+    check = splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances)
 
     # We set the check id to the current function name to prevent a blank check id
     check.check_id = inspect.stack()[0][3]
@@ -894,9 +907,10 @@ def saved_searches_error(requests_mock, get_logger, splunk_config, splunk_instan
 
 
 @pytest.fixture
-def saved_searches_ignore_error(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
-                                mock_splunk_metric):
-    # type: (RequestMocker, Logger, Config, Instance, MockSplunkMetricType) -> MockSplunkMetric
+def saved_searches_ignore_error(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
+                                splunk_metric):
+    # type: (any, RequestMocker, Logger, Config, Instance, SplunkMetricType) -> SplunkMetric
+
     splunk_config_name = 'full_metrics'
     splunk_config_match = '.*metrics'
 
@@ -923,9 +937,11 @@ def saved_searches_ignore_error(requests_mock, get_logger, splunk_config, splunk
     def mocked_saved_searches(*args, **kwargs):
         raise Exception("Boom")
 
-    check = mock_splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances, {
-        'saved_searches': mocked_saved_searches,
-    })
+    # Monkey Patches for Mock Functions
+    monkeypatch.setattr(SplunkClient, "saved_searches", mocked_saved_searches)
+
+    # Check
+    check = splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances)
 
     # We set the check id to the current function name to prevent a blank check id
     check.check_id = inspect.stack()[0][3]
@@ -961,21 +977,18 @@ def individual_dispatch_failures(monkeypatch, requests_mock, get_logger, splunk_
     splunk_config.validate()
 
     data = {
-        'saved_searches': []
+        'saved_searches': ["minimal_metrics", "full_metrics"]
     }
 
     def _mocked_saved_searches(*args, **kwargs):
         return data['saved_searches']
 
-    data['saved_searches'] = ["minimal_metrics", "full_metrics"]
-
     def _mocked_failing_search(*args, **kwargs):
         sid = args[3].name
         if sid == "full_metrics":
-            print("BOOM")
             raise Exception("BOOM")
         else:
-            return mock_search(*args, **kwargs)
+            return sid
 
     # Monkey Patches for Mock Functions
     monkeypatch.setattr(SplunkClient, "saved_searches", _mocked_saved_searches)
@@ -1059,10 +1072,18 @@ def search_full_failure(monkeypatch, requests_mock, get_logger, splunk_config, s
     # Validate the config, authentication and saved_search data we are sending
     splunk_config.validate()
 
+    data = {
+        'saved_searches': ["full_metrics"]
+    }
+
+    def mocked_saved_searches(*args, **kwargs):
+        return data['saved_searches']
+
     def mock_dispatch_saved_search(*args, **kwargs):
         raise Exception("BOOM")
 
     # Monkey Patches for Mock Functions
+    monkeypatch.setattr(SplunkClient, "saved_searches", mocked_saved_searches)
     monkeypatch.setattr(SavedSearchesTelemetry, "_dispatch_saved_search", mock_dispatch_saved_search)
 
     # Check
