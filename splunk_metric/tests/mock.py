@@ -170,7 +170,6 @@ def request_mock_post_finalize_sid(requests_mock, logger, finalize_search_id):
 
 
 def force_request_get_error(requests_mock, url):
-    print("FORCE FAILURE ON URL: %s" % url)
     # Get search results for job
     requests_mock.get(
         url=url,
@@ -180,7 +179,6 @@ def force_request_get_error(requests_mock, url):
 
 
 def force_request_post_error(requests_mock, url):
-    print("FORCE FAILURE ON URL: %s" % url)
     # Get search results for job
     requests_mock.post(
         url=url,
