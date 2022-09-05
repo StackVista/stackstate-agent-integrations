@@ -40,6 +40,7 @@ def mock_polling_search(*args, **kwargs):  # type: (any, any) -> list[str]
 
 
 def generate_mock_token(expire_time):
+    # type: (datetime) -> str
     key = 'super-secret'
     payload = {"exp": expire_time}
     return jwt.encode(payload, key, algorithm='HS512')
@@ -66,7 +67,7 @@ def request_mock_post_token_authentication(requests_mock, logger):
                 "author": "system",
                 "content": {
                     "id": "29f344ad6f98a2370e18249a58f4acea1e6775982f102b34bec5f9ee5f9af76c",
-                    "token": generate_mock_token(token_expire_time).decode('utf-8')
+                    "token": generate_mock_token(token_expire_time)
                 }
             }
         ]
