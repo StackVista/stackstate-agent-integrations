@@ -15,11 +15,9 @@ from stackstate_checks.splunk.client import SplunkClient
 from stackstate_checks.splunk.saved_search_helper import SavedSearchesTelemetry
 from stackstate_checks.splunk_metric import SplunkMetric
 from .common import HOST, PORT, USER, PASSWORD
-from .mock import mock_finalize_sid_exception, mock_polling_search, \
-    _generate_mock_token, _requests_mock
+from .mock import mock_finalize_sid_exception, mock_polling_search, generate_mock_token, apply_request_mock_routes
 from stackstate_checks.splunk.config.splunk_instance_config_models import SplunkConfigInstance, SplunkConfig, \
     SplunkConfigSavedSearchDefault
-
 
 # Type safety mappings
 SplunkMetricDataTuple = Tuple[SplunkMetric, dict[str, any]]
@@ -70,7 +68,7 @@ def splunk_instance_token_auth():  # type: () -> SplunkConfigInstance
         'authentication': {
             'token_auth': {
                 'name': "api-admin",
-                'initial_token': _generate_mock_token(token_expire_time),
+                'initial_token': generate_mock_token(token_expire_time),
                 'audience': "admin",
                 'renewal_days': 10
             }
@@ -102,7 +100,7 @@ def error_response_check(requests_mock, get_logger, splunk_config, splunk_instan
     splunk_config_name = 'error'
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
 
     # Set the splunk tags
     splunk_instance_basic_auth.saved_searches = [
@@ -133,8 +131,8 @@ def metric_check(monkeypatch, requests_mock, get_logger, splunk_config, splunk_i
     splunk_config_name = 'minimal_metrics'
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
-                   finalize_search_id=splunk_config_name)
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
+                              finalize_search_id=splunk_config_name)
 
     # Splunk Config Tags
     splunk_instance_basic_auth.tags = ['mytag', 'mytag2']
@@ -172,7 +170,7 @@ def empty_metrics(requests_mock, get_logger, splunk_config, splunk_instance_basi
     splunk_config_name = 'empty'
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
 
     # Splunk Config Tags
     splunk_instance_basic_auth.tags = []
@@ -205,7 +203,7 @@ def minimal_metrics(requests_mock, get_logger, splunk_config, splunk_instance_ba
     splunk_config_name = 'minimal_metrics'
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
 
     # Splunk Config Tags
     splunk_instance_basic_auth.tags = []
@@ -238,7 +236,7 @@ def partially_incomplete_metrics(requests_mock, get_logger, splunk_config, splun
     splunk_config_name = 'partially_incomplete_metrics'
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
 
     # Splunk Config Tags
     splunk_instance_basic_auth.tags = []
@@ -271,7 +269,7 @@ def full_metrics(requests_mock, get_logger, splunk_config, splunk_instance_basic
     splunk_config_name = 'full_metrics'
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
 
     # Splunk Config Tags
     splunk_instance_basic_auth.tags = ["checktag:checktagvalue"]
@@ -304,7 +302,7 @@ def alternative_fields_metrics(requests_mock, get_logger, splunk_config, splunk_
     splunk_config_name = 'alternative_fields_metrics'
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
 
     # Set the splunk saved searches
     splunk_instance_basic_auth.saved_searches = [
@@ -336,7 +334,7 @@ def fixed_metric_name(requests_mock, get_logger, splunk_config, splunk_instance_
     splunk_config_name = 'alternative_fields_metrics'
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
 
     # Set the splunk tags
     splunk_instance_basic_auth.saved_searches = [  # Splunk Saved Searches
@@ -368,8 +366,8 @@ def warning_on_missing_fields(requests_mock, get_logger, splunk_config, splunk_i
     splunk_config_name = "incomplete_metrics"
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
-                   finalize_search_id=splunk_config_name)
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
+                              finalize_search_id=splunk_config_name)
 
     # Set the splunk tags
     splunk_instance_basic_auth.saved_searches = [  # Splunk Saved Searches
@@ -399,8 +397,8 @@ def same_data_metrics(requests_mock, get_logger, splunk_config, splunk_instance_
     splunk_config_name = "duplicate_metrics"
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
-                   finalize_search_id=splunk_config_name)
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
+                              finalize_search_id=splunk_config_name)
 
     # Set the splunk tags
     splunk_instance_basic_auth.saved_searches = [  # Splunk Saved Searches
@@ -430,10 +428,10 @@ def earliest_time_and_duplicates(monkeypatch, requests_mock, get_logger, splunk_
     splunk_config_name = "poll"
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
-                   finalize_search_id=splunk_config_name, ignore_search=True)
-    _requests_mock(requests_mock, request_id="poll1", logger=get_logger, audience="admin",
-                   finalize_search_id="poll1", ignore_search=True)
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
+                              finalize_search_id=splunk_config_name, ignore_search=True)
+    apply_request_mock_routes(requests_mock, request_id="poll1", logger=get_logger, audience="admin",
+                              finalize_search_id="poll1", ignore_search=True)
 
     # Set the splunk tags
     splunk_instance_basic_auth.tags = ["checktag:checktagvalue"]
@@ -496,8 +494,8 @@ def delayed_start(requests_mock, get_logger, splunk_config, splunk_instance_basi
     splunk_config_name = 'minimal_metrics'
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
-                   finalize_search_id=splunk_config_name)
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
+                              finalize_search_id=splunk_config_name)
 
     # Set the splunk tags
     splunk_instance_basic_auth.saved_searches = [
@@ -532,8 +530,8 @@ def continue_after_restart(monkeypatch, requests_mock, get_logger, splunk_config
     splunk_config_name = 'empty'
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
-                   finalize_search_id="empty")
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
+                              finalize_search_id="empty")
 
     # Set the splunk tags
     splunk_instance_basic_auth.tags = ["checktag:checktagvalue"]
@@ -599,8 +597,8 @@ def query_initial_history(monkeypatch, requests_mock, get_logger, splunk_config,
     splunk_config_name = 'empty'
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id="minimal_metrics", logger=get_logger, audience="admin",
-                   finalize_search_id="minimal_metrics")
+    apply_request_mock_routes(requests_mock, request_id="minimal_metrics", logger=get_logger, audience="admin",
+                              finalize_search_id="minimal_metrics")
 
     # Set the splunk tags
     splunk_instance_basic_auth.tags = ["checktag:checktagvalue"]
@@ -665,8 +663,8 @@ def max_restart_time(monkeypatch, requests_mock, get_logger, splunk_config, splu
     splunk_config_name = 'empty'
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
-                   finalize_search_id=splunk_config_name)
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
+                              finalize_search_id=splunk_config_name)
 
     # Set the splunk tags
     splunk_instance_basic_auth.tags = ["checktag:checktagvalue"]
@@ -725,8 +723,8 @@ def keep_time_on_failure(monkeypatch, requests_mock, get_logger, splunk_config, 
     splunk_config_name = 'minimal_metrics'
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
-                   finalize_search_id=splunk_config_name)
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
+                              finalize_search_id=splunk_config_name)
 
     # Set the splunk tags
     splunk_instance_basic_auth.tags = ["checktag:checktagvalue"]
@@ -777,8 +775,8 @@ def advance_time_on_success(monkeypatch, requests_mock, get_logger, splunk_confi
     splunk_config_name = 'minimal_metrics'
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
-                   finalize_search_id=splunk_config_name)
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
+                              finalize_search_id=splunk_config_name)
 
     # Set the splunk tags
     splunk_instance_basic_auth.tags = ["checktag:checktagvalue"]
@@ -828,7 +826,7 @@ def wildcard_searches(monkeypatch, requests_mock, get_logger, splunk_config, spl
     splunk_config_match = 'minimal_*'
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
 
     # Set the splunk saved searches
     splunk_instance_basic_auth.saved_searches = [
@@ -872,7 +870,7 @@ def saved_searches_error(monkeypatch, requests_mock, get_logger, splunk_config, 
     splunk_config_match = '.*metrics'
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
 
     # Set the splunk saved searches
     splunk_instance_basic_auth.saved_searches = [
@@ -912,7 +910,7 @@ def saved_searches_ignore_error(monkeypatch, requests_mock, get_logger, splunk_c
     splunk_config_match = '.*metrics'
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
 
     # Ignore the saved search errors, Default is False
     splunk_instance_basic_auth.ignore_saved_search_errors = True
@@ -953,11 +951,11 @@ def individual_dispatch_failures(monkeypatch, requests_mock, get_logger, splunk_
     splunk_config_match = '.*metrics'
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id="minimal_metrics", logger=get_logger, audience="admin",
-                   finalize_search_id="minimal_metrics")
-    _requests_mock(requests_mock, request_id="full_metrics", logger=get_logger, audience="admin",
-                   force_dispatch_search_failure=True,
-                   finalize_search_id="full_metrics")
+    apply_request_mock_routes(requests_mock, request_id="minimal_metrics", logger=get_logger, audience="admin",
+                              finalize_search_id="minimal_metrics")
+    apply_request_mock_routes(requests_mock, request_id="full_metrics", logger=get_logger, audience="admin",
+                              force_dispatch_search_failure=True,
+                              finalize_search_id="full_metrics")
 
     # Set the splunk saved searches
     splunk_instance_basic_auth.saved_searches = [
@@ -1007,9 +1005,9 @@ def individual_search_failures(monkeypatch, requests_mock, get_logger, splunk_co
     splunk_config_match = '.*metrics'
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id="minimal_metrics", logger=get_logger, audience="admin")
-    _requests_mock(requests_mock, request_id="full_metrics", logger=get_logger, audience="admin",
-                   force_search_failure=True)
+    apply_request_mock_routes(requests_mock, request_id="minimal_metrics", logger=get_logger, audience="admin")
+    apply_request_mock_routes(requests_mock, request_id="full_metrics", logger=get_logger, audience="admin",
+                              force_search_failure=True)
 
     # Set the splunk saved searches
     splunk_instance_basic_auth.saved_searches = [
@@ -1053,7 +1051,7 @@ def search_full_failure(monkeypatch, requests_mock, get_logger, splunk_config, s
     splunk_config_name = 'full_metrics'
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
 
     # Set the splunk saved searches
     splunk_instance_basic_auth.saved_searches = [
@@ -1102,7 +1100,8 @@ def respect_parallel_dispatches(monkeypatch, requests_mock, get_logger, splunk_c
 
     # Mock the HTTP Requests
     for request_id in splunk_config_names:
-        _requests_mock(requests_mock, request_id=request_id, logger=get_logger, audience="admin", ignore_search=True)
+        apply_request_mock_routes(requests_mock, request_id=request_id, logger=get_logger, audience="admin",
+                                  ignore_search=True)
 
     # Set the saved searches parallel count
     splunk_instance_basic_auth.saved_searches_parallel = saved_searches_parallel
@@ -1163,8 +1162,8 @@ def selective_fields_for_identification_check(requests_mock, get_logger, splunk_
     splunk_config_name = 'metrics_identification_fields_selective'
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
-                   finalize_search_id=splunk_config_name)
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
+                              finalize_search_id=splunk_config_name)
 
     # Set the splunk saved searches
     splunk_instance_basic_auth.saved_searches = [
@@ -1196,8 +1195,8 @@ def all_fields_for_identification_check(requests_mock, get_logger, splunk_config
     splunk_config_name = 'metrics_identification_fields_all'
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
-                   finalize_search_id=splunk_config_name)
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
+                              finalize_search_id=splunk_config_name)
 
     # Set the splunk saved searches
     splunk_instance_basic_auth.saved_searches = [
@@ -1229,8 +1228,8 @@ def backward_compatibility_check(requests_mock, get_logger, splunk_config, splun
     splunk_config_name = 'metrics_identification_fields_all'
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
-                   finalize_search_id=splunk_config_name)
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
+                              finalize_search_id=splunk_config_name)
 
     # Set the splunk saved searches
     splunk_instance_basic_auth.saved_searches = [
@@ -1263,8 +1262,8 @@ def backward_compatibility_new_conf_check(requests_mock, get_logger, splunk_conf
     splunk_config_name = 'metrics_identification_fields_all'
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
-                   finalize_search_id=splunk_config_name)
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
+                              finalize_search_id=splunk_config_name)
 
     # Set the splunk saved searches
     splunk_instance_basic_auth.saved_searches = [
@@ -1301,7 +1300,7 @@ def default_parameters_check(monkeypatch, requests_mock, get_logger, splunk_conf
     }
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
 
     # Set the splunk saved searches
     splunk_instance_basic_auth.saved_searches = [
@@ -1345,7 +1344,7 @@ def non_default_parameters_check(monkeypatch, requests_mock, get_logger, splunk_
     }
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
 
     # Set the splunk tags
     config_saved_search = SplunkConfigSavedSearchDefault({
@@ -1399,7 +1398,7 @@ def overwrite_default_parameters_check(monkeypatch, requests_mock, get_logger, s
     }
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
 
     # Set the splunk tags
     splunk_instance_basic_auth.saved_searches = [
@@ -1442,10 +1441,10 @@ def max_query_chunk_sec_history_check(monkeypatch, get_logger, requests_mock, sp
     splunk_config_name_alt = 'past_metrics'
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
-                   finalize_search_id=splunk_config_name)
-    _requests_mock(requests_mock, request_id=splunk_config_name_alt, logger=get_logger, audience="admin",
-                   finalize_search_id=splunk_config_name_alt)
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
+                              finalize_search_id=splunk_config_name)
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name_alt, logger=get_logger, audience="admin",
+                              finalize_search_id=splunk_config_name_alt)
 
     # Set the splunk tags
     splunk_instance_basic_auth.tags = ["checktag:checktagvalue"]
@@ -1506,7 +1505,7 @@ def max_query_chunk_sec_live_check(monkeypatch, requests_mock, get_logger, splun
     splunk_config_name = 'metrics'
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id="minimal_metrics", logger=get_logger, audience="admin")
+    apply_request_mock_routes(requests_mock, request_id="minimal_metrics", logger=get_logger, audience="admin")
 
     # Set the splunk tags
     splunk_instance_basic_auth.tags = ["checktag:checktagvalue"]
@@ -1556,7 +1555,7 @@ def token_auth_with_valid_token_check(get_logger, requests_mock, splunk_config, 
     splunk_config_name = 'minimal_metrics'
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="api-admin")
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="api-admin")
 
     # Set the splunk saved searches
     splunk_instance_token_auth.saved_searches = [
@@ -1588,11 +1587,11 @@ def authentication_invalid_token_check(get_logger, requests_mock, splunk_config,
     splunk_config_name = 'minimal_metrics'
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="api-admin")
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="api-admin")
 
     # Forcefully create a token with an expiry time from the past
     token_expire_time = datetime.now() - timedelta(days=999)
-    splunk_instance_token_auth.authentication.token_auth.initial_token = _generate_mock_token(token_expire_time)
+    splunk_instance_token_auth.authentication.token_auth.initial_token = generate_mock_token(token_expire_time)
 
     # Set the splunk saved searches
     splunk_instance_token_auth.saved_searches = [
@@ -1689,7 +1688,7 @@ def authentication_prefer_token_over_basic_check(requests_mock, get_logger, splu
     splunk_config_name = 'minimal_metrics'
 
     # Mock the HTTP Requests
-    _requests_mock(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="api-admin")
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="api-admin")
 
     # Combine the basic auth and the token auth py fixtures into one to test preferred
     splunk_instance_basic_auth.authentication.token_auth = splunk_instance_token_auth.authentication.token_auth
@@ -1724,7 +1723,7 @@ def authentication_token_expired_check(splunk_config, splunk_instance_token_auth
 
     # Forcefully create a token with an expiry time from the past
     token_expire_time = datetime.now() - timedelta(days=999)
-    splunk_instance_token_auth.authentication.token_auth.initial_token = _generate_mock_token(token_expire_time)
+    splunk_instance_token_auth.authentication.token_auth.initial_token = generate_mock_token(token_expire_time)
 
     # Set the splunk saved searches
     splunk_instance_token_auth.saved_searches = [
