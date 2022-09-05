@@ -14,7 +14,7 @@ from stackstate_checks.splunk.saved_search_helper import SavedSearchesTelemetry
 from stackstate_checks.splunk_event import SplunkEvent
 from .conftest import extract_title_and_type_from_event, common_requests_mocks, list_saved_searches_mock, \
     basic_auth_mock, job_results_mock, search_job_finalized_mock, batch_job_results_mock, saved_searches_error_mock, \
-    dispatch_search_error_mock, dispatch_search_mock, SID
+    dispatch_search_error_mock, dispatch_search_mock, SID, splunk_event_check
 
 # Mark the entire module as tests of type `unit`
 pytestmark = pytest.mark.unit
@@ -34,22 +34,30 @@ def _reset_test_data():
     test_data["latest_time"] = ""
 
 
-def _mocked_dispatch(*args, **kwargs):
+def _mocked_dispatch_assert_earliest_latest_time(*args, **kwargs):
     earliest_time = args[4]['dispatch.earliest_time']
     if test_data["earliest_time"] != "":
         assert earliest_time == test_data["earliest_time"], "earliest_time should match"
     if test_data["latest_time"] == "":
-        assert 'dispatch.latest_time' not in args[4]
+        assert 'dispatch.latest_time' not in args[4], "there should not be latest_time in params"
     elif test_data["latest_time"] != "":
         assert args[4]['dispatch.latest_time'] == test_data["latest_time"], "latest_time should match"
     return SID
 
 
-def _setup_client_with_mocked_dispatch(monkeypatch, requests_mock, results_file):
+def _mocked_dispatch_assert_earliest_time(*args, **kwargs):
+    earliest_time = args[4]['dispatch.earliest_time']
+    if test_data["earliest_time"] != "":
+        assert earliest_time == test_data["earliest_time"], "earliest_time should match"
+    return SID
+
+
+def _setup_client_with_mocked_dispatch(monkeypatch, requests_mock, results_file,
+                                       mocked_dispatch=_mocked_dispatch_assert_earliest_latest_time):
     basic_auth_mock(requests_mock)
     list_saved_searches_mock(requests_mock)
     job_results_mock(requests_mock, results_file)
-    monkeypatch.setattr(SplunkClient, "dispatch", _mocked_dispatch)
+    monkeypatch.setattr(SplunkClient, "dispatch", mocked_dispatch)
     _reset_test_data()
 
 
@@ -271,12 +279,13 @@ def test_splunk_query_initial_history(requests_mock, initial_history_86400, splu
     assert len(aggregator.events) == 2
 
 
-def test_splunk_max_restart_time(max_restart_time, requests_mock, monkeypatch, aggregator, state, transaction,
-                                 unit_test_instance, unit_test_config):
+def test_splunk_max_restart_time(max_restart_time, requests_mock, monkeypatch, aggregator, unit_test_instance,
+                                 unit_test_config):
     """
     Splunk event check should use the max restart time parameter.
     """
-    _setup_client_with_mocked_dispatch(monkeypatch, requests_mock, "empty_response.json")
+    _setup_client_with_mocked_dispatch(monkeypatch, requests_mock, "empty_response.json",
+                                       mocked_dispatch=_mocked_dispatch_assert_earliest_time)
 
     with freezegun.freeze_time("2017-03-08 00:00:00"):
         # Initial run with initial time
@@ -289,10 +298,10 @@ def test_splunk_max_restart_time(max_restart_time, requests_mock, monkeypatch, a
 
     # Restart check and recover data, taking into account the max restart history
     with freezegun.freeze_time("2017-03-08 12:00:00"):
-        check = SplunkEvent("splunk", unit_test_config, {}, [unit_test_instance])
-        check.check_id = "second_splunk_test_id"
         test_data["earliest_time"] = '2017-03-08T11:00:00.000000+0000'
         test_data["latest_time"] = '2017-03-08T11:00:00.000000+0000'
+        check = SplunkEvent("splunk", unit_test_config, {}, [unit_test_instance])
+        check.check_id = "second_splunk_test_id"
         check_result = check.run()
         assert check_result == "", "No errors when running Splunk check."
 

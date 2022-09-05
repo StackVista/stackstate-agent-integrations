@@ -108,14 +108,13 @@ def _make_event_fixture(url, user, password):
     Send requests to a Splunk instance for creating `test_events` search.
     The Splunk started with Docker Compose command when we run integration tests.
     """
-    search_name = 'test_events'
     source_type = "sts_test_data"
 
     # Delete first to avoid 409 in case of tearing down the `checksdev env stop`
-    requests.delete("%s/services/saved/searches/%s" % (url, search_name), auth=(user, password))
+    requests.delete("%s/services/saved/searches/%s" % (url, SAVED_SEARCH), auth=(user, password))
 
     requests.post("%s/services/saved/searches" % url,
-                  data={"name": search_name,
+                  data={"name": SAVED_SEARCH,
                         "search": 'sourcetype="sts_test_data" '
                                   '| eval status = upper(status) '
                                   '| search status=critical OR status=error OR status=warning OR status=ok '
@@ -138,7 +137,7 @@ def _make_event_fixture(url, user, password):
                   json={"status": "warning", "description": "host04 test warning event"},
                   auth=(user, password)).raise_for_status()
 
-    return search_name
+    return SAVED_SEARCH
 
 
 @pytest.fixture
@@ -165,7 +164,7 @@ def unit_test_instance():
         },
         "saved_searches": [
             {
-                "name": "test_events",
+                "name": SAVED_SEARCH,
                 "parameters": {},
             }
         ],
