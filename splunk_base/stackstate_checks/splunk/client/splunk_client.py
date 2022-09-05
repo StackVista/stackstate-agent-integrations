@@ -48,7 +48,7 @@ class SplunkClient(StatefulMixin):
         self.instance_config = instance_config
         self.log = logging.getLogger('%s' % __name__)
         self.requests_session = requests.session()
-        super().__init__(*args, **kwargs)
+        super(SplunkClient, self).__init__(*args, **kwargs)
 
     def auth_session(self, committable_state, instance=None):
         if self.instance_config.auth_type == AuthType.BasicAuth:

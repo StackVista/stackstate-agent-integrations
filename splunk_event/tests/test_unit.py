@@ -5,7 +5,6 @@ from typing import Dict
 
 import freezegun
 import pytest
-from freezegun import freeze_time
 
 from stackstate_checks.base.utils.common import load_json_from_file
 from stackstate_checks.splunk.client import SplunkClient
@@ -14,7 +13,7 @@ from stackstate_checks.splunk.saved_search_helper import SavedSearchesTelemetry
 from stackstate_checks.splunk_event import SplunkEvent
 from .conftest import extract_title_and_type_from_event, common_requests_mocks, list_saved_searches_mock, \
     basic_auth_mock, job_results_mock, search_job_finalized_mock, batch_job_results_mock, saved_searches_error_mock, \
-    dispatch_search_error_mock, dispatch_search_mock, SID, splunk_event_check
+    dispatch_search_error_mock, dispatch_search_mock, SID
 
 # Mark the entire module as tests of type `unit`
 pytestmark = pytest.mark.unit
@@ -152,7 +151,7 @@ def test_splunk_earliest_time_and_duplicates(splunk_event_check, requests_mock, 
     """
     Splunk event check should poll batches responses.
     """
-    with freeze_time("2017-03-08 18:29:59"):
+    with freezegun.freeze_time("2017-03-08 18:29:59"):
         # Initial run
         common_requests_mocks(requests_mock)
         initial_run_response_files = [
@@ -168,7 +167,7 @@ def test_splunk_earliest_time_and_duplicates(splunk_event_check, requests_mock, 
         assert splunk_event_check.get_state() == {'test_events': time_to_seconds("2017-03-08T18:29:59")}
 
     # Respect earliest_time
-    with freeze_time("2017-03-08 18:30:00"):
+    with freezegun.freeze_time("2017-03-08 18:30:00"):
         next_run_response_files = ["batch_poll2_1_response.json", "batch_last_response.json"]
         batch_job_results_mock(requests_mock, next_run_response_files, 2)
         search_job_finalized_mock(requests_mock)
@@ -195,15 +194,15 @@ def test_splunk_delay_first_time(splunk_event_check, requests_mock, initial_dela
     """
     common_requests_mocks(requests_mock)
     job_results_mock(requests_mock, response_file="minimal_events_response.json")
-    with freeze_time("2022-08-23 12:00:01"):
+    with freezegun.freeze_time("2022-08-23 12:00:01"):
         assert splunk_event_check.run() == ''
         assert len(aggregator.events) == 0
 
-    with freeze_time("2022-08-23 12:00:30"):
+    with freezegun.freeze_time("2022-08-23 12:00:30"):
         assert splunk_event_check.run() == ''
         assert len(aggregator.events) == 0
 
-    with freeze_time("2022-08-23 12:01:02"):
+    with freezegun.freeze_time("2022-08-23 12:01:02"):
         assert splunk_event_check.run() == ''
         assert len(aggregator.events) == 2
 
@@ -227,7 +226,7 @@ def test_splunk_continue_after_restart(splunk_event_check, restart_history_86400
     """
     Splunk event check should continue where it left off after restart.
     """
-    with freeze_time("2017-03-08 00:00:00"):
+    with freezegun.freeze_time("2017-03-08 00:00:00"):
         _setup_client_with_mocked_dispatch(monkeypatch, requests_mock, "empty_response.json")
 
         # Initial run with initial time
