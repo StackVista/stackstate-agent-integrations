@@ -74,8 +74,13 @@ def splunk_instance_token_auth():  # type: () -> SplunkConfigInstance
 
 
 @pytest.fixture
-def splunk_metric(telemetry, aggregator, topology, transaction, state):
-    # type: (any, any, any, any, any) -> Type[SplunkMetric]
+def splunk_metric(telemetry,  # type: any
+                  aggregator,  # type: any
+                  topology,  # type: any
+                  transaction,  # type: any
+                  state  # type: any
+                  ):
+    # type: (...) -> Type[SplunkMetric]
 
     # Bring back the splunk mock metrics
     yield SplunkMetric
@@ -89,12 +94,19 @@ def splunk_metric(telemetry, aggregator, topology, transaction, state):
 
 
 @pytest.fixture
-def error_response_check(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, splunk_metric):
-    # type: (Mocker, logging.Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+def error_response_check(requests_mock,  # type: Mocker
+                         get_logger,  # type: logging.Logger
+                         splunk_config,  # type: SplunkConfig
+                         splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                         splunk_metric  # type: Type[SplunkMetric]
+                         ):
+    # type: (...) -> SplunkMetric
+
     splunk_config_name = 'error'
 
     # Mock the HTTP Requests
-    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin")
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
+                              force_search_failure=True)
 
     # Set the splunk tags
     splunk_instance_basic_auth.saved_searches = [
@@ -119,9 +131,16 @@ def error_response_check(requests_mock, get_logger, splunk_config, splunk_instan
 
 
 # Not a pyfixture, Require multiple runs
-def metric_check(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, splunk_metric,
-                 patch_finalize_sid=False, force_finalize_sid_exception=False):
-    # type: (any, Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric], bool, bool) -> SplunkMetric
+def metric_check(monkeypatch,  # type: any
+                 requests_mock,  # type: Mocker
+                 get_logger,  # type: Logger
+                 splunk_config,  # type: SplunkConfig
+                 splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                 splunk_metric,  # type: Type[SplunkMetric]
+                 force_finalize_sid_exception=False  # type: bool
+                 ):
+    # type: (...) -> SplunkMetric
+
     splunk_config_name = 'minimal_metrics'
 
     # Mock the HTTP Requests
@@ -159,8 +178,14 @@ def metric_check(monkeypatch, requests_mock, get_logger, splunk_config, splunk_i
 
 
 @pytest.fixture
-def empty_metrics(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, splunk_metric):
-    # type: (Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+def empty_metrics(requests_mock,  # type: Mocker
+                  get_logger,  # type: logging.Logger
+                  splunk_config,  # type: SplunkConfig
+                  splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                  splunk_metric  # type: Type[SplunkMetric]
+                  ):
+    # type: (...) -> SplunkMetric
+
     splunk_config_name = 'empty'
 
     # Mock the HTTP Requests
@@ -192,8 +217,14 @@ def empty_metrics(requests_mock, get_logger, splunk_config, splunk_instance_basi
 
 
 @pytest.fixture
-def minimal_metrics(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, splunk_metric):
-    # type: (Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+def minimal_metrics(requests_mock,  # type: Mocker
+                    get_logger,  # type: logging.Logger
+                    splunk_config,  # type: SplunkConfig
+                    splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                    splunk_metric  # type: Type[SplunkMetric]
+                    ):
+    # type: (...) -> SplunkMetric
+
     splunk_config_name = 'minimal_metrics'
 
     # Mock the HTTP Requests
@@ -225,8 +256,14 @@ def minimal_metrics(requests_mock, get_logger, splunk_config, splunk_instance_ba
 
 
 @pytest.fixture
-def partially_incomplete_metrics(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, splunk_metric):
-    # type: (Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+def partially_incomplete_metrics(requests_mock,  # type: Mocker
+                                 get_logger,  # type: logging.Logger
+                                 splunk_config,  # type: SplunkConfig
+                                 splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                                 splunk_metric  # type: Type[SplunkMetric]
+                                 ):
+    # type: (...) -> SplunkMetric
+
     splunk_config_name = 'partially_incomplete_metrics'
 
     # Mock the HTTP Requests
@@ -258,8 +295,14 @@ def partially_incomplete_metrics(requests_mock, get_logger, splunk_config, splun
 
 
 @pytest.fixture
-def full_metrics(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, splunk_metric):
-    # type: (Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+def full_metrics(requests_mock,  # type: Mocker
+                 get_logger,  # type: logging.Logger
+                 splunk_config,  # type: SplunkConfig
+                 splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                 splunk_metric  # type: Type[SplunkMetric]
+                 ):
+    # type: (...) -> SplunkMetric
+
     splunk_config_name = 'full_metrics'
 
     # Mock the HTTP Requests
@@ -291,8 +334,14 @@ def full_metrics(requests_mock, get_logger, splunk_config, splunk_instance_basic
 
 
 @pytest.fixture
-def alternative_fields_metrics(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, splunk_metric):
-    # type: (Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+def alternative_fields_metrics(requests_mock,  # type: Mocker
+                               get_logger,  # type: logging.Logger
+                               splunk_config,  # type: SplunkConfig
+                               splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                               splunk_metric  # type: Type[SplunkMetric]
+                               ):
+    # type: (...) -> SplunkMetric
+
     splunk_config_name = 'alternative_fields_metrics'
 
     # Mock the HTTP Requests
@@ -323,8 +372,14 @@ def alternative_fields_metrics(requests_mock, get_logger, splunk_config, splunk_
 
 
 @pytest.fixture
-def fixed_metric_name(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, splunk_metric):
-    # type: (Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+def fixed_metric_name(requests_mock,  # type: Mocker
+                      get_logger,  # type: logging.Logger
+                      splunk_config,  # type: SplunkConfig
+                      splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                      splunk_metric  # type: Type[SplunkMetric]
+                      ):
+    # type: (...) -> SplunkMetric
+
     splunk_config_name = 'alternative_fields_metrics'
 
     # Mock the HTTP Requests
@@ -355,8 +410,14 @@ def fixed_metric_name(requests_mock, get_logger, splunk_config, splunk_instance_
 
 
 @pytest.fixture
-def warning_on_missing_fields(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, splunk_metric):
-    # type: (Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+def warning_on_missing_fields(requests_mock,  # type: Mocker
+                              get_logger,  # type: logging.Logger
+                              splunk_config,  # type: SplunkConfig
+                              splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                              splunk_metric  # type: Type[SplunkMetric]
+                              ):
+    # type: (...) -> SplunkMetric
+
     splunk_config_name = "incomplete_metrics"
 
     # Mock the HTTP Requests
@@ -386,8 +447,14 @@ def warning_on_missing_fields(requests_mock, get_logger, splunk_config, splunk_i
 
 
 @pytest.fixture
-def same_data_metrics(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, splunk_metric):
-    # type: (Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+def same_data_metrics(requests_mock,  # type: Mocker
+                      get_logger,  # type: logging.Logger
+                      splunk_config,  # type: SplunkConfig
+                      splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                      splunk_metric  # type: Type[SplunkMetric]
+                      ):
+    # type: (...) -> SplunkMetric
+
     splunk_config_name = "duplicate_metrics"
 
     # Mock the HTTP Requests
@@ -416,9 +483,15 @@ def same_data_metrics(requests_mock, get_logger, splunk_config, splunk_instance_
     return check
 
 
-def earliest_time_and_duplicates(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
-                                 splunk_metric):
-    # type: (any, Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> Tuple[SplunkMetric, Dict[str, any]]
+def earliest_time_and_duplicates(monkeypatch,  # type: any
+                                 requests_mock,  # type: Mocker
+                                 get_logger,  # type: logging.Logger
+                                 splunk_config,  # type: SplunkConfig
+                                 splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                                 splunk_metric  # type: Type[SplunkMetric]
+                                 ):
+    # type: (...) -> Tuple[SplunkMetric, Dict[str, any]]
+
     splunk_config_name = "poll"
 
     # Mock the HTTP Requests
@@ -483,8 +556,14 @@ def earliest_time_and_duplicates(monkeypatch, requests_mock, get_logger, splunk_
 
 
 @pytest.fixture
-def delayed_start(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth, splunk_metric):
-    # type: (Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+def delayed_start(requests_mock,  # type: Mocker
+                  get_logger,  # type: logging.Logger
+                  splunk_config,  # type: SplunkConfig
+                  splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                  splunk_metric  # type: Type[SplunkMetric]
+                  ):
+    # type: (...) -> SplunkMetric
+
     splunk_config_name = 'minimal_metrics'
 
     # Mock the HTTP Requests
@@ -518,9 +597,15 @@ def delayed_start(requests_mock, get_logger, splunk_config, splunk_instance_basi
     return check
 
 
-def continue_after_restart(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
-                           splunk_metric):
-    # type: (any, Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> Tuple[SplunkMetric, Dict[str, any]]
+def continue_after_restart(monkeypatch,  # type: any
+                           requests_mock,  # type: Mocker
+                           get_logger,  # type: logging.Logger
+                           splunk_config,  # type: SplunkConfig
+                           splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                           splunk_metric  # type: Type[SplunkMetric]
+                           ):
+    # type: (...) -> Tuple[SplunkMetric, Dict[str, any]]
+
     splunk_config_name = 'empty'
 
     # Mock the HTTP Requests
@@ -585,9 +670,15 @@ def continue_after_restart(monkeypatch, requests_mock, get_logger, splunk_config
 
 
 @pytest.fixture
-def query_initial_history(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
-                          splunk_metric):
-    # type: (any, Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> Tuple[SplunkMetric, Dict[str, any]]
+def query_initial_history(monkeypatch,  # type: any
+                          requests_mock,  # type: Mocker
+                          get_logger,  # type: logging.Logger
+                          splunk_config,  # type: SplunkConfig
+                          splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                          splunk_metric  # type: Type[SplunkMetric]
+                          ):
+    # type: (...) -> Tuple[SplunkMetric, Dict[str, any]]
+
     splunk_config_name = 'empty'
 
     # Mock the HTTP Requests
@@ -651,9 +742,15 @@ def query_initial_history(monkeypatch, requests_mock, get_logger, splunk_config,
     return check, test_data
 
 
-def max_restart_time(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
-                     splunk_metric):
-    # type: (any, Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> Tuple[SplunkMetric, Dict[str, any]]
+def max_restart_time(monkeypatch,  # type: any
+                     requests_mock,  # type: Mocker
+                     get_logger,  # type: logging.Logger
+                     splunk_config,  # type: SplunkConfig
+                     splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                     splunk_metric  # type: Type[SplunkMetric]
+                     ):
+    # type: (...) -> Tuple[SplunkMetric, Dict[str, any]]
+
     splunk_config_name = 'empty'
 
     # Mock the HTTP Requests
@@ -710,9 +807,14 @@ def max_restart_time(monkeypatch, requests_mock, get_logger, splunk_config, splu
 
 
 @pytest.fixture
-def keep_time_on_failure(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
-                         splunk_metric):
-    # type: (any, Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> Tuple[SplunkMetric, Dict[str, any]]
+def keep_time_on_failure(monkeypatch,  # type: any
+                         requests_mock,  # type: Mocker
+                         get_logger,  # type: logging.Logger
+                         splunk_config,  # type: SplunkConfig
+                         splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                         splunk_metric  # type: Type[SplunkMetric]
+                         ):
+    # type: (...) -> Tuple[SplunkMetric, Dict[str, any]]
 
     splunk_config_name = 'minimal_metrics'
 
@@ -762,9 +864,14 @@ def keep_time_on_failure(monkeypatch, requests_mock, get_logger, splunk_config, 
 
 
 @pytest.fixture
-def advance_time_on_success(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
-                            splunk_metric):
-    # type: (any, Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> Tuple[SplunkMetric, Dict[str, any]]
+def advance_time_on_success(monkeypatch,  # type: any
+                            requests_mock,  # type: Mocker
+                            get_logger,  # type: logging.Logger
+                            splunk_config,  # type: SplunkConfig
+                            splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                            splunk_metric  # type: Type[SplunkMetric]
+                            ):
+    # type: (...) -> Tuple[SplunkMetric, Dict[str, any]]
 
     splunk_config_name = 'minimal_metrics'
 
@@ -813,9 +920,15 @@ def advance_time_on_success(monkeypatch, requests_mock, get_logger, splunk_confi
 
 
 @pytest.fixture
-def wildcard_searches(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
-                      splunk_metric):
-    # type: (any, Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> Tuple[SplunkMetric, Dict[str, any]]
+def wildcard_searches(monkeypatch,  # type: any
+                      requests_mock,  # type: Mocker
+                      get_logger,  # type: logging.Logger
+                      splunk_config,  # type: SplunkConfig
+                      splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                      splunk_metric  # type: Type[SplunkMetric]
+                      ):
+    # type: (...) -> Tuple[SplunkMetric, Dict[str, any]]
+
     splunk_config_name = 'minimal_metrics'
     splunk_config_match = 'minimal_*'
 
@@ -856,9 +969,14 @@ def wildcard_searches(monkeypatch, requests_mock, get_logger, splunk_config, spl
 
 
 @pytest.fixture
-def saved_searches_error(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
-                         splunk_metric):
-    # type: (any, Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+def saved_searches_error(monkeypatch,  # type: any
+                         requests_mock,  # type: Mocker
+                         get_logger,  # type: logging.Logger
+                         splunk_config,  # type: SplunkConfig
+                         splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                         splunk_metric  # type: Type[SplunkMetric]
+                         ):
+    # type: (...) -> SplunkMetric
 
     splunk_config_name = 'full_metrics'
     splunk_config_match = '.*metrics'
@@ -896,9 +1014,14 @@ def saved_searches_error(monkeypatch, requests_mock, get_logger, splunk_config, 
 
 
 @pytest.fixture
-def saved_searches_ignore_error(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
-                                splunk_metric):
-    # type: (any, Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+def saved_searches_ignore_error(monkeypatch,  # type: any
+                                requests_mock,  # type: Mocker
+                                get_logger,  # type: logging.Logger
+                                splunk_config,  # type: SplunkConfig
+                                splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                                splunk_metric  # type: Type[SplunkMetric]
+                                ):
+    # type: (...) -> SplunkMetric
 
     splunk_config_name = 'full_metrics'
     splunk_config_match = '.*metrics'
@@ -939,9 +1062,15 @@ def saved_searches_ignore_error(monkeypatch, requests_mock, get_logger, splunk_c
 
 
 @pytest.fixture
-def individual_dispatch_failures(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
-                                 splunk_metric):
-    # type: (any, Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+def individual_dispatch_failures(monkeypatch,  # type: any
+                                 requests_mock,  # type: Mocker
+                                 get_logger,  # type: logging.Logger
+                                 splunk_config,  # type: SplunkConfig
+                                 splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                                 splunk_metric  # type: Type[SplunkMetric]
+                                 ):
+    # type: (...) -> SplunkMetric
+
     splunk_config_match = '.*metrics'
 
     # Mock the HTTP Requests
@@ -993,9 +1122,15 @@ def individual_dispatch_failures(monkeypatch, requests_mock, get_logger, splunk_
 
 
 @pytest.fixture
-def individual_search_failures(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
-                               splunk_metric):
-    # type: (any, Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+def individual_search_failures(monkeypatch,  # type: any
+                               requests_mock,  # type: Mocker
+                               get_logger,  # type: logging.Logger
+                               splunk_config,  # type: SplunkConfig
+                               splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                               splunk_metric  # type: Type[SplunkMetric]
+                               ):
+    # type: (...) -> SplunkMetric
+
     splunk_config_match = '.*metrics'
 
     # Mock the HTTP Requests
@@ -1039,9 +1174,15 @@ def individual_search_failures(monkeypatch, requests_mock, get_logger, splunk_co
 
 
 @pytest.fixture
-def search_full_failure(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
-                        splunk_metric):
-    # type: (any, Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+def search_full_failure(monkeypatch,  # type: any
+                        requests_mock,  # type: Mocker
+                        get_logger,  # type: logging.Logger
+                        splunk_config,  # type: SplunkConfig
+                        splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                        splunk_metric  # type: Type[SplunkMetric]
+                        ):
+    # type: (...) -> SplunkMetric
+
     splunk_config_name = 'full_metrics'
 
     # Mock the HTTP Requests
@@ -1085,9 +1226,15 @@ def search_full_failure(monkeypatch, requests_mock, get_logger, splunk_config, s
 
 
 @pytest.fixture
-def respect_parallel_dispatches(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
-                                splunk_metric):
-    # type: (any, Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+def respect_parallel_dispatches(monkeypatch,  # type: any
+                                requests_mock,  # type: Mocker
+                                get_logger,  # type: logging.Logger
+                                splunk_config,  # type: SplunkConfig
+                                splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                                splunk_metric  # type: Type[SplunkMetric]
+                                ):
+    # type: (...) -> SplunkMetric
+
     splunk_config_names = ['savedsearch1', 'savedsearch2', 'savedsearch3', 'savedsearch4']
 
     saved_searches_parallel = 2
@@ -1150,9 +1297,14 @@ def respect_parallel_dispatches(monkeypatch, requests_mock, get_logger, splunk_c
 
 
 @pytest.fixture
-def selective_fields_for_identification_check(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
-                                              splunk_metric):
-    # type: (Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+def selective_fields_for_identification_check(requests_mock,  # type: Mocker
+                                              get_logger,  # type: logging.Logger
+                                              splunk_config,  # type: SplunkConfig
+                                              splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                                              splunk_metric  # type: Type[SplunkMetric]
+                                              ):
+    # type: (...) -> SplunkMetric
+
     splunk_config_name = 'metrics_identification_fields_selective'
 
     # Mock the HTTP Requests
@@ -1183,75 +1335,13 @@ def selective_fields_for_identification_check(requests_mock, get_logger, splunk_
 
 
 @pytest.fixture
-def all_fields_for_identification_check(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
-                                        splunk_metric):
-    # type: (Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
-    splunk_config_name = 'metrics_identification_fields_all'
-
-    # Mock the HTTP Requests
-    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
-                              finalize_search_id=splunk_config_name)
-
-    # Set the splunk saved searches
-    splunk_instance_basic_auth.saved_searches = [
-        SplunkConfigSavedSearchDefault({
-            "name": splunk_config_name,
-            "parameters": {},
-            "unique_key_fields": []
-        })
-    ]
-
-    # Add the splunk instance into the config instances
-    splunk_config.instances.append(splunk_instance_basic_auth)
-
-    # Validate the config, authentication and saved_search data we are sending
-    splunk_config.validate()
-
-    check = splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances)
-
-    # We set the check id to the current function name to prevent a blank check id
-    check.check_id = inspect.stack()[0][3]
-
-    return check
-
-
-@pytest.fixture
-def backward_compatibility_check(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
-                                 splunk_metric):
-    # type: (Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
-    splunk_config_name = 'metrics_identification_fields_all'
-
-    # Mock the HTTP Requests
-    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
-                              finalize_search_id=splunk_config_name)
-
-    # Set the splunk saved searches
-    splunk_instance_basic_auth.saved_searches = [
-        SplunkConfigSavedSearchDefault({
-            "name": splunk_config_name,
-            "parameters": {},
-            "unique_key_fields": []
-        })
-    ]
-
-    # Add the splunk instance into the config instances
-    splunk_config.instances.append(splunk_instance_basic_auth)
-
-    # Validate the config, authentication and saved_search data we are sending
-    splunk_config.validate()
-
-    check = splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances)
-
-    # We set the check id to the current function name to prevent a blank check id
-    check.check_id = inspect.stack()[0][3]
-
-    return check
-
-
-@pytest.fixture
-def backward_compatibility_new_conf_check(requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
-                                          splunk_metric):
-    # type: (Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+def all_fields_for_identification_check(requests_mock,  # type: Mocker
+                                        get_logger,  # type: logging.Logger
+                                        splunk_config,  # type: SplunkConfig
+                                        splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                                        splunk_metric  # type: Type[SplunkMetric]
+                                        ):
+    # type: (...) -> SplunkMetric
 
     splunk_config_name = 'metrics_identification_fields_all'
 
@@ -1283,9 +1373,90 @@ def backward_compatibility_new_conf_check(requests_mock, get_logger, splunk_conf
 
 
 @pytest.fixture
-def default_parameters_check(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
-                             splunk_metric):
-    # type: (any, Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+def backward_compatibility_check(requests_mock,  # type: Mocker
+                                 get_logger,  # type: logging.Logger
+                                 splunk_config,  # type: SplunkConfig
+                                 splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                                 splunk_metric  # type: Type[SplunkMetric]
+                                 ):
+    # type: (...) -> SplunkMetric
+
+    splunk_config_name = 'metrics_identification_fields_all'
+
+    # Mock the HTTP Requests
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
+                              finalize_search_id=splunk_config_name)
+
+    # Set the splunk saved searches
+    splunk_instance_basic_auth.saved_searches = [
+        SplunkConfigSavedSearchDefault({
+            "name": splunk_config_name,
+            "parameters": {},
+            "unique_key_fields": []
+        })
+    ]
+
+    # Add the splunk instance into the config instances
+    splunk_config.instances.append(splunk_instance_basic_auth)
+
+    # Validate the config, authentication and saved_search data we are sending
+    splunk_config.validate()
+
+    check = splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances)
+
+    # We set the check id to the current function name to prevent a blank check id
+    check.check_id = inspect.stack()[0][3]
+
+    return check
+
+
+@pytest.fixture
+def backward_compatibility_new_conf_check(requests_mock,  # type: Mocker
+                                          get_logger,  # type: logging.Logger
+                                          splunk_config,  # type: SplunkConfig
+                                          splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                                          splunk_metric  # type: Type[SplunkMetric]
+                                          ):
+    # type: (...) -> SplunkMetric
+
+    splunk_config_name = 'metrics_identification_fields_all'
+
+    # Mock the HTTP Requests
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
+                              finalize_search_id=splunk_config_name)
+
+    # Set the splunk saved searches
+    splunk_instance_basic_auth.saved_searches = [
+        SplunkConfigSavedSearchDefault({
+            "name": splunk_config_name,
+            "parameters": {},
+            "unique_key_fields": []
+        })
+    ]
+
+    # Add the splunk instance into the config instances
+    splunk_config.instances.append(splunk_instance_basic_auth)
+
+    # Validate the config, authentication and saved_search data we are sending
+    splunk_config.validate()
+
+    check = splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances)
+
+    # We set the check id to the current function name to prevent a blank check id
+    check.check_id = inspect.stack()[0][3]
+
+    return check
+
+
+@pytest.fixture
+def default_parameters_check(monkeypatch,  # type: any
+                             requests_mock,  # type: Mocker
+                             get_logger,  # type: logging.Logger
+                             splunk_config,  # type: SplunkConfig
+                             splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                             splunk_metric  # type: Type[SplunkMetric]
+                             ):
+    # type: (...) -> SplunkMetric
 
     splunk_config_name = 'minimal_metrics'
     splunk_parameters = {
@@ -1334,9 +1505,15 @@ def default_parameters_check(monkeypatch, requests_mock, get_logger, splunk_conf
 
 
 @pytest.fixture
-def non_default_parameters_check(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
-                                 splunk_metric):
-    # type: (any, Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+def non_default_parameters_check(monkeypatch,  # type: any
+                                 requests_mock,  # type: Mocker
+                                 get_logger,  # type: logging.Logger
+                                 splunk_config,  # type: SplunkConfig
+                                 splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                                 splunk_metric  # type: Type[SplunkMetric]
+                                 ):
+    # type: (...) -> SplunkMetric
+
     splunk_config_name = 'minimal_metrics'
     splunk_parameters = {
         "respect": "me"
@@ -1392,9 +1569,14 @@ def non_default_parameters_check(monkeypatch, requests_mock, get_logger, splunk_
 
 
 @pytest.fixture
-def overwrite_default_parameters_check(monkeypatch, requests_mock, get_logger, splunk_config,
-                                       splunk_instance_basic_auth, splunk_metric):
-    # type: (any, Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+def overwrite_default_parameters_check(monkeypatch,  # type: any
+                                       requests_mock,  # type: Mocker
+                                       get_logger,  # type: logging.Logger
+                                       splunk_config,  # type: SplunkConfig
+                                       splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                                       splunk_metric  # type: Type[SplunkMetric]
+                                       ):
+    # type: (...) -> SplunkMetric
 
     splunk_config_name = 'minimal_metrics'
     splunk_parameters = {
@@ -1442,9 +1624,14 @@ def overwrite_default_parameters_check(monkeypatch, requests_mock, get_logger, s
     return check
 
 
-def max_query_chunk_sec_history_check(monkeypatch, get_logger, requests_mock, splunk_config, splunk_instance_basic_auth,
-                                      splunk_metric):
-    # type: (any, Logger, Mocker, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> Tuple[SplunkMetric, Dict[str, any]]
+def max_query_chunk_sec_history_check(monkeypatch,  # type: any
+                                      get_logger,  # type: logging.Logger
+                                      requests_mock,  # type: Mocker
+                                      splunk_config,  # type: SplunkConfig
+                                      splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                                      splunk_metric  # type: Type[SplunkMetric]
+                                      ):
+    # type: (...) -> Tuple[SplunkMetric, Dict[str, any]]
 
     splunk_config_name = 'metrics'
     splunk_config_name_alt = 'past_metrics'
@@ -1508,9 +1695,15 @@ def max_query_chunk_sec_history_check(monkeypatch, get_logger, requests_mock, sp
 
 
 @pytest.fixture
-def max_query_chunk_sec_live_check(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
-                                   splunk_metric):
-    # type: (any, Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+def max_query_chunk_sec_live_check(monkeypatch,  # type: any
+                                   requests_mock,  # type: Mocker
+                                   get_logger,  # type: logging.Logger
+                                   splunk_config,  # type: SplunkConfig
+                                   splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                                   splunk_metric  # type: Type[SplunkMetric]
+                                   ):
+    # type: (...) -> SplunkMetric
+
     splunk_config_name = 'metrics'
 
     # Mock the HTTP Requests
@@ -1558,9 +1751,14 @@ def max_query_chunk_sec_live_check(monkeypatch, requests_mock, get_logger, splun
 
 
 @pytest.fixture
-def token_auth_with_valid_token_check(get_logger, requests_mock, splunk_config, splunk_instance_token_auth,
-                                      splunk_metric):
-    # type: (Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+def token_auth_with_valid_token_check(get_logger,  # type: Mocker
+                                      requests_mock,  # type: logging.Logger
+                                      splunk_config,  # type: SplunkConfig
+                                      splunk_instance_token_auth,  # type: SplunkConfigInstance
+                                      splunk_metric  # type: Type[SplunkMetric]
+                                      ):
+    # type: (...) -> SplunkMetric
+
     splunk_config_name = 'minimal_metrics'
 
     # Mock the HTTP Requests
@@ -1590,9 +1788,14 @@ def token_auth_with_valid_token_check(get_logger, requests_mock, splunk_config, 
 
 
 @pytest.fixture
-def authentication_invalid_token_check(get_logger, requests_mock, splunk_config, splunk_instance_token_auth,
-                                       splunk_metric):
-    # type: (Mocker, Logger, SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+def authentication_invalid_token_check(get_logger,  # type: Mocker
+                                       requests_mock,  # type: logging.Logger
+                                       splunk_config,  # type: SplunkConfig
+                                       splunk_instance_token_auth,  # type: SplunkConfigInstance
+                                       splunk_metric  # type: Type[SplunkMetric]
+                                       ):
+    # type: (...) -> SplunkMetric
+
     splunk_config_name = 'minimal_metrics'
 
     # Mock the HTTP Requests
@@ -1626,8 +1829,12 @@ def authentication_invalid_token_check(get_logger, requests_mock, splunk_config,
 
 
 @pytest.fixture
-def authentication_token_no_audience_parameter_check(splunk_config, splunk_instance_token_auth, splunk_metric):
-    # type: (SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+def authentication_token_no_audience_parameter_check(splunk_config,  # type: SplunkConfig
+                                                     splunk_instance_token_auth,  # type: SplunkConfigInstance
+                                                     splunk_metric  # type: Type[SplunkMetric]
+                                                     ):
+    # type: (...) -> SplunkMetric
+
     splunk_config_name = 'minimal_metrics'
 
     # Delete the audience parameter from the token_auth to test
@@ -1657,8 +1864,12 @@ def authentication_token_no_audience_parameter_check(splunk_config, splunk_insta
 
 
 @pytest.fixture
-def authentication_token_no_name_parameter_check(splunk_config, splunk_instance_token_auth, splunk_metric):
-    # type: (SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+def authentication_token_no_name_parameter_check(splunk_config,  # type: SplunkConfig
+                                                 splunk_instance_token_auth,  # type: SplunkConfigInstance
+                                                 splunk_metric  # type: Type[SplunkMetric]
+                                                 ):
+    # type: (...) -> SplunkMetric
+
     splunk_config_name = 'minimal_metrics'
 
     # Delete the name parameter from the token_auth to test
@@ -1693,11 +1904,13 @@ def authentication_token_no_name_parameter_check(splunk_config, splunk_instance_
 @pytest.fixture
 def authentication_prefer_token_over_basic_check(requests_mock,  # type: Mocker
                                                  get_logger,  # type: logging.Logger
-                                                 splunk_config,
-                                                 splunk_instance_basic_auth,
-                                                 splunk_instance_token_auth,
-                                                 splunk_metric):
-    # type: (Mocker, Logger, SplunkConfig, SplunkConfigInstance, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+                                                 splunk_config,  # type: SplunkConfig
+                                                 splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                                                 splunk_instance_token_auth,  # type: SplunkConfigInstance
+                                                 splunk_metric  # type: Type[SplunkMetric]
+                                                 ):
+    # type: (...) -> SplunkMetric
+
     splunk_config_name = 'minimal_metrics'
 
     # Mock the HTTP Requests
@@ -1730,8 +1943,12 @@ def authentication_prefer_token_over_basic_check(requests_mock,  # type: Mocker
 
 
 @pytest.fixture
-def authentication_token_expired_check(splunk_config, splunk_instance_token_auth, splunk_metric):
-    # type: (SplunkConfig, SplunkConfigInstance, Type[SplunkMetric]) -> SplunkMetric
+def authentication_token_expired_check(splunk_config,  # type: SplunkConfig
+                                       splunk_instance_token_auth,  # type: SplunkConfig
+                                       splunk_metric  # type: Type[SplunkMetric]
+                                       ):
+    # type: (...) -> SplunkMetric
+
     splunk_config_name = 'minimal_metrics'
 
     # Forcefully create a token with an expiry time from the past

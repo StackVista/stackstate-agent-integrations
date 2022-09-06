@@ -60,7 +60,7 @@ def test_metric_check(monkeypatch, requests_mock, get_logger, splunk_config, spl
     transaction.assert_discarded_transaction(check.check_id, False)
 
     check = metric_check(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
-                         splunk_metric, patch_finalize_sid=True)
+                         splunk_metric)
     check_response = check.run()
 
     assert check_response == '', "The check run should not return a error"
@@ -77,7 +77,7 @@ def test_metric_check(monkeypatch, requests_mock, get_logger, splunk_config, spl
     assert first_state == second_state
 
     check = metric_check(monkeypatch, requests_mock, get_logger, splunk_config, splunk_instance_basic_auth,
-                         splunk_metric, patch_finalize_sid=True, force_finalize_sid_exception=True)
+                         splunk_metric, force_finalize_sid_exception=True)
     check_response = check.run()
 
     assert check_response != '', "The check run should return a error"
