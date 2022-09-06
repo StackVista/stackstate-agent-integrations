@@ -72,5 +72,3 @@ class SplunkEvent(SplunkTelemetryBase):
         telemetry_instance = SplunkTelemetryInstance(current_time, instance, metric_instance_config,
                                                      _create_saved_search)
         return telemetry_instance
-
-
