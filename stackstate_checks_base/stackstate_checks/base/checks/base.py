@@ -82,12 +82,6 @@ ONE_PER_CONTEXT_METRIC_TYPES = [
     aggregator.MONOTONIC_COUNT,
 ]
 
-PY3 = sys.version_info[0] == 3
-
-if PY3:
-    text_type = str
-else:
-    text_type = unicode
 
 class _TopologyInstanceBase(object):
     """
