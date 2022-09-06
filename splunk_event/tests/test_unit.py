@@ -451,7 +451,7 @@ def test_splunk_event_individual_dispatch_failures(requests_mock, splunk_event_c
     assert len(aggregator.events) == 2, "There should be two events processed."
     aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=2)
     aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.CRITICAL, count=0)
-    # TODO: missing WARNING, also when we explode, not process next set of events
+    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.WARNING, count=1)
 
 
 def test_splunk_event_individual_search_failures(requests_mock, splunk_event_check, aggregator, wildcard_saved_search):
@@ -469,7 +469,7 @@ def test_splunk_event_individual_search_failures(requests_mock, splunk_event_che
     assert len(aggregator.events) == 3, "There should be two events processed."
     aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=2)
     aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.CRITICAL, count=0)
-    # TODO: missing WARNING
+    aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.WARNING, count=1)
 
 
 def test_splunk_event_search_full_failure(requests_mock, splunk_event_check, aggregator, wildcard_saved_search):
