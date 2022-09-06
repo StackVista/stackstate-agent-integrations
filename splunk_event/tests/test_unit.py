@@ -31,19 +31,19 @@ def _reset_test_data():
     test_data["latest_time"] = ""
 
 
-def _mocked_dispatch_assert_earliest_latest_time(*args, **kwargs):
-    earliest_time = args[4]['dispatch.earliest_time']
-    if test_data["earliest_time"] != "":
-        assert earliest_time == test_data["earliest_time"], "earliest_time should match"
-    if test_data["latest_time"] == "":
-        assert 'dispatch.latest_time' not in args[4], "there should not be latest_time in params"
-    elif test_data["latest_time"] != "":
-        assert args[4]['dispatch.latest_time'] == test_data["latest_time"], "latest_time should match"
-    return SID
+def _setup_client_with_mocked_dispatch(monkeypatch, requests_mock, results_file, mocked_dispatch=None):
+    def _mocked_dispatch_assert_earliest_latest_time(*args, **kwargs):
+        earliest_time = args[4]['dispatch.earliest_time']
+        if test_data["earliest_time"] != "":
+            assert earliest_time == test_data["earliest_time"], "earliest_time should match"
+        if test_data["latest_time"] == "":
+            assert 'dispatch.latest_time' not in args[4], "there should not be latest_time in params"
+        elif test_data["latest_time"] != "":
+            assert args[4]['dispatch.latest_time'] == test_data["latest_time"], "latest_time should match"
+        return SID
 
-
-def _setup_client_with_mocked_dispatch(monkeypatch, requests_mock, results_file,
-                                       mocked_dispatch=_mocked_dispatch_assert_earliest_latest_time):
+    if not mocked_dispatch:
+        mocked_dispatch = _mocked_dispatch_assert_earliest_latest_time
     basic_auth_mock(requests_mock)
     list_saved_searches_mock(requests_mock)
     job_results_mock(requests_mock, results_file)
