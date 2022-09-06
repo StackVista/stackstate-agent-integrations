@@ -20,9 +20,10 @@ from stackstate_checks.splunk_event import SplunkEvent
 from stackstate_checks.splunk_event.splunk_event import default_settings
 from .common import HOST, PORT, USER, PASSWORD
 
-# unit test constants
+# These constants are used in requests mocks
 UNIT_TEST_URL = "http://localhost:8089"
 SID = "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3"
+OTHER_SID = "admin__admin__search__RMD567222de41fbb54c3_at_1661943741_3"
 SAVED_SEARCH = "test_events"
 
 

@@ -13,12 +13,10 @@ from stackstate_checks.splunk.saved_search_helper import SavedSearchesTelemetry
 from stackstate_checks.splunk_event import SplunkEvent
 from .conftest import extract_title_and_type_from_event, common_requests_mocks, list_saved_searches_mock, \
     basic_auth_mock, job_results_mock, search_job_finalized_mock, batch_job_results_mock, saved_searches_error_mock, \
-    dispatch_search_error_mock, dispatch_search_mock, SID
+    dispatch_search_error_mock, dispatch_search_mock, SID, OTHER_SID
 
 # Mark the entire module as tests of type `unit`
 pytestmark = pytest.mark.unit
-
-OTHER_SID = "admin__admin__search__RMD567222de41fbb54c3_at_1661943741_3"
 
 # test_data is used in _mock_dispatch
 test_data = {
