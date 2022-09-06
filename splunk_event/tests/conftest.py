@@ -26,8 +26,7 @@ SID = "admin__admin__search__RMD567222de41fbb54c3_at_1660747475_3"
 SAVED_SEARCH = "test_events"
 
 
-def _connect_to_splunk():
-    # type: () -> None
+def _connect_to_splunk():  # type: () -> None
     SplunkClient(
         SplunkInstanceConfig(
             {
@@ -48,8 +47,7 @@ def _connect_to_splunk():
 
 
 @pytest.fixture(scope='session')
-def test_environment():
-    # type: () -> Generator
+def test_environment():  # type: () -> Generator
     """
     Start a standalone splunk server requiring authentication.
     """
@@ -62,8 +60,8 @@ def test_environment():
 
 # this fixture is used for checksdev env start
 @pytest.fixture(scope='session')
-def sts_environment(test_environment):
-    # type: (Generator) -> Dict
+def sts_environment(test_environment  # type: Generator
+                    ):  # type: (...) -> Dict
     """
     This fixture is used for checksdev env start.
     """
@@ -84,8 +82,7 @@ def sts_environment(test_environment):
 
 
 @pytest.fixture
-def integration_test_instance():
-    # type: () -> Dict
+def integration_test_instance():  # type: () -> Dict
     url = 'http://%s:%s' % (HOST, PORT)
     return {
         'url': url,
@@ -102,8 +99,10 @@ def integration_test_instance():
     }
 
 
-def _make_event_fixture(url, user, password):
-    # type: (str, str, str) -> str
+def _make_event_fixture(url,  # type: str
+                        user,  # type: str
+                        password  # type: str
+                        ):  # type: (...) -> str
     """
     Send requests to a Splunk instance for creating `test_events` search.
     The Splunk started with Docker Compose command when we run integration tests.
@@ -141,8 +140,12 @@ def _make_event_fixture(url, user, password):
 
 
 @pytest.fixture
-def splunk_event_check(unit_test_instance, unit_test_config, aggregator, state, transaction):
-    # type: (Dict, Dict, AggregatorStub, StateStub, TransactionStub) -> SplunkEvent
+def splunk_event_check(unit_test_instance,  # type: Dict
+                       unit_test_config,  # type: Dict
+                       aggregator,  # type: AggregatorStub
+                       state,  # type: StateStub
+                       transaction  # type: TransactionStub
+                       ):  # type: (...) -> SplunkEvent
     check = SplunkEvent("splunk", unit_test_config, {}, [unit_test_instance])
     check.check_id = "splunk_test_id"
     yield check
@@ -152,8 +155,7 @@ def splunk_event_check(unit_test_instance, unit_test_config, aggregator, state, 
 
 
 @pytest.fixture
-def unit_test_instance():
-    # type: () -> Dict
+def unit_test_instance():  # type: () -> Dict
     return {
         "url": UNIT_TEST_URL,
         "authentication": {
@@ -173,26 +175,26 @@ def unit_test_instance():
 
 
 @pytest.fixture
-def unit_test_config():
-    # type: () -> Dict
+def unit_test_config():  # type: () -> Dict
     return {}
 
 
 @pytest.fixture
-def batch_size_2(unit_test_instance):
-    # type: (Dict) -> None
+def batch_size_2(unit_test_instance  # type: Dict
+                 ):  # type: (...) -> None
     unit_test_instance["saved_searches"][0]["batch_size"] = 2
 
 
 @pytest.fixture
-def initial_delay_60_seconds(unit_test_config):
-    # type: (Dict) -> None
+def initial_delay_60_seconds(unit_test_config  # type: Dict
+                             ):  # type: (...) -> None
     unit_test_config["default_initial_delay_seconds"] = 60
 
 
 @pytest.fixture
-def initial_history_86400(unit_test_config, unit_test_instance):
-    # type: (Dict, Dict) -> None
+def initial_history_86400(unit_test_config,  # type: Dict
+                          unit_test_instance  # type: Dict
+                          ):  # type: (...) -> None
     unit_test_config["default_initial_history_time_seconds"] = 86400
     unit_test_config["default_max_query_chunk_seconds"] = 3600
     unit_test_instance["saved_searches"][0]["max_initial_history_seconds"] = 86400
@@ -200,8 +202,9 @@ def initial_history_86400(unit_test_config, unit_test_instance):
 
 
 @pytest.fixture
-def restart_history_86400(unit_test_config, unit_test_instance):
-    # type: (Dict, Dict) -> None
+def restart_history_86400(unit_test_config,  # type: Dict
+                          unit_test_instance  # type: Dict
+                          ):  # type: (...) -> None
     unit_test_config["default_max_restart_history_seconds"] = 86400
     unit_test_config["default_max_query_time_range"] = 3600
     unit_test_instance["saved_searches"][0]["max_restart_history_seconds"] = 86400
@@ -209,8 +212,9 @@ def restart_history_86400(unit_test_config, unit_test_instance):
 
 
 @pytest.fixture
-def max_restart_time(unit_test_config, unit_test_instance):
-    # type: (Dict, Dict) -> None
+def max_restart_time(unit_test_config,  # type: Dict
+                     unit_test_instance  # type: Dict
+                     ):  # type: (...) -> None
     unit_test_config["default_restart_history_time_seconds"] = 3600
     unit_test_config["default_max_query_chunk_seconds"] = 3600
     unit_test_instance["saved_searches"][0]["max_restart_history_seconds"] = 3600
@@ -218,19 +222,21 @@ def max_restart_time(unit_test_config, unit_test_instance):
 
 
 @pytest.fixture
-def wildcard_saved_search(unit_test_instance):
-    # type: (Dict) -> None
+def wildcard_saved_search(unit_test_instance  # type: Dict
+                          ):  # type: (...) -> None
     unit_test_instance["saved_searches"][0]["match"] = "test_even*"
     del unit_test_instance["saved_searches"][0]["name"]
 
 
 @pytest.fixture
-def ignore_saved_search_errors(unit_test_instance):
+def ignore_saved_search_errors(unit_test_instance  # type: Dict
+                               ):  # type: (...) -> None
     unit_test_instance["ignore_saved_search_errors"] = True
 
 
 @pytest.fixture
-def multiple_saved_searches(unit_test_instance):
+def multiple_saved_searches(unit_test_instance  # type: Dict
+                            ):  # type: (...) -> None
     unit_test_instance["saved_searches_parallel"] = 2
     unit_test_instance["saved_searches"] = [
         {"name": "savedsearch1", "parameters": {}},
@@ -242,18 +248,19 @@ def multiple_saved_searches(unit_test_instance):
 
 
 @pytest.fixture
-def selective_events(unit_test_instance):
+def selective_events(unit_test_instance  # type: Dict
+                     ):  # type: (...) -> None
     unit_test_instance["saved_searches"][0]["unique_key_fields"] = ["uid1", "uid2"]
 
 
-def extract_title_and_type_from_event(event):
-    # type: (Dict) -> Dict
+def extract_title_and_type_from_event(event  # type: Dict
+                                      ):  # type: (...) -> Dict
     """Extracts event title and type. Method call aggregator.assert_event needs event fields as **kwargs parameter."""
     return {"msg_title": event["msg_title"], "event_type": event["event_type"]}
 
 
-def common_requests_mocks(requests_mock):
-    # type: (Mocker) -> None
+def common_requests_mocks(requests_mock  # type: Mocker
+                          ):  # type: (...) -> None
     """
     Splunk client request flow: Basic authentication > List saved searches > Dispatch search > Get search results
     Here we mock first three requests.
@@ -263,8 +270,11 @@ def common_requests_mocks(requests_mock):
     dispatch_search_mock(requests_mock)
 
 
-def dispatch_search_mock(requests_mock, search=SAVED_SEARCH, sid=SID, url=UNIT_TEST_URL):
-    # type: (Mocker, str, str, str) -> None
+def dispatch_search_mock(requests_mock,  # type: Mocker
+                         search=SAVED_SEARCH,  # type: str
+                         sid=SID,  # type: str
+                         url=UNIT_TEST_URL  # type: str
+                         ):  # type: (...) -> None
     """
     Dispatch search and get job's sid.
     """
@@ -275,8 +285,10 @@ def dispatch_search_mock(requests_mock, search=SAVED_SEARCH, sid=SID, url=UNIT_T
     )
 
 
-def list_saved_searches_mock(requests_mock, search_results=None, url=UNIT_TEST_URL):
-    # type: (Mocker, List[str], str) -> None
+def list_saved_searches_mock(requests_mock,  # type: Mocker
+                             search_results=None,  # type: List[str]
+                             url=UNIT_TEST_URL  # type: str
+                             ):  # type: (...) -> None
     """
     List saved searches.
     """
@@ -297,8 +309,9 @@ def list_saved_searches_mock(requests_mock, search_results=None, url=UNIT_TEST_U
     )
 
 
-def basic_auth_mock(requests_mock, url=UNIT_TEST_URL):
-    # type: (Mocker, str) -> None
+def basic_auth_mock(requests_mock,  # type: Mocker
+                    url=UNIT_TEST_URL  # type: str
+                    ):  # type: (...) -> None
     """
     Basic authentication.
     """
@@ -309,8 +322,13 @@ def basic_auth_mock(requests_mock, url=UNIT_TEST_URL):
     )
 
 
-def job_results_mock(requests_mock, response_file, sid=SID, offset=0, count=1000, url=UNIT_TEST_URL):
-    # type: (Mocker, str, str, int, int, str) -> None
+def job_results_mock(requests_mock,  # type: Mocker
+                     response_file,  # type: str
+                     sid=SID,  # type: str
+                     offset=0,  # type: int
+                     count=1000,  # type: int
+                     url=UNIT_TEST_URL  # type: str
+                     ):  # type: (...) -> None
     """
     Request for getting job result.
     """
@@ -321,8 +339,10 @@ def job_results_mock(requests_mock, response_file, sid=SID, offset=0, count=1000
     requests_mock.get(url=job_results_path, status_code=200, text=read_file(response_file, "ci/fixtures"))
 
 
-def search_job_finalized_mock(requests_mock, sid=SID, url=UNIT_TEST_URL):
-    # type: (Mocker, str, str) -> None
+def search_job_finalized_mock(requests_mock,  # type: Mocker
+                              sid=SID,  # type: str
+                              url=UNIT_TEST_URL  # type: str
+                              ):  # type: (...) -> None
     """
     Finalize search job.
     """
@@ -333,8 +353,12 @@ def search_job_finalized_mock(requests_mock, sid=SID, url=UNIT_TEST_URL):
     )
 
 
-def batch_job_results_mock(requests_mock, response_files, batch_size, sid=SID, url=UNIT_TEST_URL):
-    # type: (Mocker, List, int, str, str) -> None
+def batch_job_results_mock(requests_mock,  # type: Mocker
+                           response_files,  # type: List
+                           batch_size,  # type: int
+                           sid=SID,  # type: str
+                           url=UNIT_TEST_URL  # type: str
+                           ):  # type: (...) -> None
     """
     Iterates through response files list and sets up requests_mock for each.
     """
@@ -342,8 +366,9 @@ def batch_job_results_mock(requests_mock, response_files, batch_size, sid=SID, u
         job_results_mock(requests_mock, response_file, offset=i * batch_size, count=batch_size, sid=sid, url=url)
 
 
-def saved_searches_error_mock(requests_mock, url=UNIT_TEST_URL):
-    # type: (Mocker, str) -> None
+def saved_searches_error_mock(requests_mock,  # type: Mocker
+                              url=UNIT_TEST_URL  # type: str
+                              ):  # type: (...) -> None
     """
     Explode with 400 when listing saved searches.
     """
@@ -355,8 +380,10 @@ def saved_searches_error_mock(requests_mock, url=UNIT_TEST_URL):
     )
 
 
-def dispatch_search_error_mock(requests_mock, search=SAVED_SEARCH, url=UNIT_TEST_URL):
-    # type: (Mocker, str, str) -> None
+def dispatch_search_error_mock(requests_mock,  # type: Mocker
+                               search=SAVED_SEARCH,  # type: str
+                               url=UNIT_TEST_URL  # type: str
+                               ):  # type: (...) -> None
     """
     Explode with 400 when trying to dispatch search.
     """

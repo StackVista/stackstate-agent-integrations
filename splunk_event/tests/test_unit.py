@@ -44,13 +44,6 @@ def _mocked_dispatch_assert_earliest_latest_time(*args, **kwargs):
     return SID
 
 
-def _mocked_dispatch_assert_earliest_time(*args, **kwargs):
-    earliest_time = args[4]['dispatch.earliest_time']
-    if test_data["earliest_time"] != "":
-        assert earliest_time == test_data["earliest_time"], "earliest_time should match"
-    return SID
-
-
 def _setup_client_with_mocked_dispatch(monkeypatch, requests_mock, results_file,
                                        mocked_dispatch=_mocked_dispatch_assert_earliest_latest_time):
     basic_auth_mock(requests_mock)
@@ -283,6 +276,13 @@ def test_splunk_max_restart_time(max_restart_time, requests_mock, monkeypatch, a
     """
     Splunk event check should use the max restart time parameter.
     """
+
+    def _mocked_dispatch_assert_earliest_time(*args, **kwargs):
+        earliest_time = args[4]['dispatch.earliest_time']
+        if test_data["earliest_time"] != "":
+            assert earliest_time == test_data["earliest_time"], "earliest_time should match"
+        return SID
+
     _setup_client_with_mocked_dispatch(monkeypatch, requests_mock, "empty_response.json",
                                        mocked_dispatch=_mocked_dispatch_assert_earliest_time)
 
