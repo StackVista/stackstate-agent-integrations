@@ -9,7 +9,7 @@ from stackstate_checks.base.errors import CheckException
 from stackstate_checks.splunk.client import TokenExpiredException
 from stackstate_checks.splunk_topology.splunk_topology import SplunkTopology, Instance
 from stackstate_checks.base.stubs import topology, aggregator
-from stackstate_checks.base import TopologyInstance
+from stackstate_checks.base import TopologyInstance, AgentCheck
 
 # Mark the entire module as tests of type `unit`
 pytestmark = pytest.mark.unit
@@ -282,7 +282,8 @@ class TestSplunkCheck(unittest.TestCase):
         assert self.check.run() != ''
 
         service_checks = aggregator.service_checks(SplunkTopology.SERVICE_CHECK_NAME)
-        self.assertEqual(service_checks[0].status, 2)
+        self.assertEqual(service_checks[0].status, AgentCheck.WARNING)
+        self.assertEqual(service_checks[1].status, AgentCheck.CRITICAL)
 
     def test_partially_incomplete(self):
         instance = {
