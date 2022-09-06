@@ -79,8 +79,7 @@ def splunk_metric(telemetry,  # type: any
                   topology,  # type: any
                   transaction,  # type: any
                   state  # type: any
-                  ):
-    # type: (...) -> Type[SplunkMetric]
+                  ):  # type: (...) -> Type[SplunkMetric]
 
     # Bring back the splunk mock metrics
     yield SplunkMetric
@@ -99,8 +98,7 @@ def error_response_check(requests_mock,  # type: Mocker
                          splunk_config,  # type: SplunkConfig
                          splunk_instance_basic_auth,  # type: SplunkConfigInstance
                          splunk_metric  # type: Type[SplunkMetric]
-                         ):
-    # type: (...) -> SplunkMetric
+                         ):  # type: (...) -> SplunkMetric
 
     splunk_config_name = 'error'
 
@@ -138,8 +136,7 @@ def metric_check(monkeypatch,  # type: any
                  splunk_instance_basic_auth,  # type: SplunkConfigInstance
                  splunk_metric,  # type: Type[SplunkMetric]
                  force_finalize_sid_exception=False  # type: bool
-                 ):
-    # type: (...) -> SplunkMetric
+                 ):  # type: (...) -> SplunkMetric
 
     splunk_config_name = 'minimal_metrics'
 
@@ -183,8 +180,7 @@ def empty_metrics(requests_mock,  # type: Mocker
                   splunk_config,  # type: SplunkConfig
                   splunk_instance_basic_auth,  # type: SplunkConfigInstance
                   splunk_metric  # type: Type[SplunkMetric]
-                  ):
-    # type: (...) -> SplunkMetric
+                  ):  # type: (...) -> SplunkMetric
 
     splunk_config_name = 'empty'
 
@@ -222,8 +218,7 @@ def minimal_metrics(requests_mock,  # type: Mocker
                     splunk_config,  # type: SplunkConfig
                     splunk_instance_basic_auth,  # type: SplunkConfigInstance
                     splunk_metric  # type: Type[SplunkMetric]
-                    ):
-    # type: (...) -> SplunkMetric
+                    ):  # type: (...) -> SplunkMetric
 
     splunk_config_name = 'minimal_metrics'
 
@@ -261,8 +256,7 @@ def partially_incomplete_metrics(requests_mock,  # type: Mocker
                                  splunk_config,  # type: SplunkConfig
                                  splunk_instance_basic_auth,  # type: SplunkConfigInstance
                                  splunk_metric  # type: Type[SplunkMetric]
-                                 ):
-    # type: (...) -> SplunkMetric
+                                 ):  # type: (...) -> SplunkMetric
 
     splunk_config_name = 'partially_incomplete_metrics'
 
@@ -300,8 +294,7 @@ def full_metrics(requests_mock,  # type: Mocker
                  splunk_config,  # type: SplunkConfig
                  splunk_instance_basic_auth,  # type: SplunkConfigInstance
                  splunk_metric  # type: Type[SplunkMetric]
-                 ):
-    # type: (...) -> SplunkMetric
+                 ):  # type: (...) -> SplunkMetric
 
     splunk_config_name = 'full_metrics'
 
@@ -339,8 +332,7 @@ def alternative_fields_metrics(requests_mock,  # type: Mocker
                                splunk_config,  # type: SplunkConfig
                                splunk_instance_basic_auth,  # type: SplunkConfigInstance
                                splunk_metric  # type: Type[SplunkMetric]
-                               ):
-    # type: (...) -> SplunkMetric
+                               ):  # type: (...) -> SplunkMetric
 
     splunk_config_name = 'alternative_fields_metrics'
 
@@ -377,8 +369,7 @@ def fixed_metric_name(requests_mock,  # type: Mocker
                       splunk_config,  # type: SplunkConfig
                       splunk_instance_basic_auth,  # type: SplunkConfigInstance
                       splunk_metric  # type: Type[SplunkMetric]
-                      ):
-    # type: (...) -> SplunkMetric
+                      ):  # type: (...) -> SplunkMetric
 
     splunk_config_name = 'alternative_fields_metrics'
 
@@ -415,8 +406,7 @@ def warning_on_missing_fields(requests_mock,  # type: Mocker
                               splunk_config,  # type: SplunkConfig
                               splunk_instance_basic_auth,  # type: SplunkConfigInstance
                               splunk_metric  # type: Type[SplunkMetric]
-                              ):
-    # type: (...) -> SplunkMetric
+                              ):  # type: (...) -> SplunkMetric
 
     splunk_config_name = "incomplete_metrics"
 
@@ -452,8 +442,7 @@ def same_data_metrics(requests_mock,  # type: Mocker
                       splunk_config,  # type: SplunkConfig
                       splunk_instance_basic_auth,  # type: SplunkConfigInstance
                       splunk_metric  # type: Type[SplunkMetric]
-                      ):
-    # type: (...) -> SplunkMetric
+                      ):  # type: (...) -> SplunkMetric
 
     splunk_config_name = "duplicate_metrics"
 
@@ -489,8 +478,7 @@ def earliest_time_and_duplicates(monkeypatch,  # type: any
                                  splunk_config,  # type: SplunkConfig
                                  splunk_instance_basic_auth,  # type: SplunkConfigInstance
                                  splunk_metric  # type: Type[SplunkMetric]
-                                 ):
-    # type: (...) -> Tuple[SplunkMetric, Dict[str, any]]
+                                 ):  # type: (...) -> Tuple[SplunkMetric, Dict[str, any]]
 
     splunk_config_name = "poll"
 
@@ -561,8 +549,7 @@ def delayed_start(requests_mock,  # type: Mocker
                   splunk_config,  # type: SplunkConfig
                   splunk_instance_basic_auth,  # type: SplunkConfigInstance
                   splunk_metric  # type: Type[SplunkMetric]
-                  ):
-    # type: (...) -> SplunkMetric
+                  ):  # type: (...) -> SplunkMetric
 
     splunk_config_name = 'minimal_metrics'
 
@@ -603,8 +590,7 @@ def continue_after_restart(monkeypatch,  # type: any
                            splunk_config,  # type: SplunkConfig
                            splunk_instance_basic_auth,  # type: SplunkConfigInstance
                            splunk_metric  # type: Type[SplunkMetric]
-                           ):
-    # type: (...) -> Tuple[SplunkMetric, Dict[str, any]]
+                           ):  # type: (...) -> Tuple[SplunkMetric, Dict[str, any]]
 
     splunk_config_name = 'empty'
 
@@ -676,8 +662,7 @@ def query_initial_history(monkeypatch,  # type: any
                           splunk_config,  # type: SplunkConfig
                           splunk_instance_basic_auth,  # type: SplunkConfigInstance
                           splunk_metric  # type: Type[SplunkMetric]
-                          ):
-    # type: (...) -> Tuple[SplunkMetric, Dict[str, any]]
+                          ):  # type: (...) -> Tuple[SplunkMetric, Dict[str, any]]
 
     splunk_config_name = 'empty'
 
@@ -748,8 +733,7 @@ def max_restart_time(monkeypatch,  # type: any
                      splunk_config,  # type: SplunkConfig
                      splunk_instance_basic_auth,  # type: SplunkConfigInstance
                      splunk_metric  # type: Type[SplunkMetric]
-                     ):
-    # type: (...) -> Tuple[SplunkMetric, Dict[str, any]]
+                     ):  # type: (...) -> Tuple[SplunkMetric, Dict[str, any]]
 
     splunk_config_name = 'empty'
 
@@ -813,8 +797,7 @@ def keep_time_on_failure(monkeypatch,  # type: any
                          splunk_config,  # type: SplunkConfig
                          splunk_instance_basic_auth,  # type: SplunkConfigInstance
                          splunk_metric  # type: Type[SplunkMetric]
-                         ):
-    # type: (...) -> Tuple[SplunkMetric, Dict[str, any]]
+                         ):  # type: (...) -> Tuple[SplunkMetric, Dict[str, any]]
 
     splunk_config_name = 'minimal_metrics'
 
@@ -870,8 +853,7 @@ def advance_time_on_success(monkeypatch,  # type: any
                             splunk_config,  # type: SplunkConfig
                             splunk_instance_basic_auth,  # type: SplunkConfigInstance
                             splunk_metric  # type: Type[SplunkMetric]
-                            ):
-    # type: (...) -> Tuple[SplunkMetric, Dict[str, any]]
+                            ):  # type: (...) -> Tuple[SplunkMetric, Dict[str, any]]
 
     splunk_config_name = 'minimal_metrics'
 
@@ -926,8 +908,7 @@ def wildcard_searches(monkeypatch,  # type: any
                       splunk_config,  # type: SplunkConfig
                       splunk_instance_basic_auth,  # type: SplunkConfigInstance
                       splunk_metric  # type: Type[SplunkMetric]
-                      ):
-    # type: (...) -> Tuple[SplunkMetric, Dict[str, any]]
+                      ):  # type: (...) -> Tuple[SplunkMetric, Dict[str, any]]
 
     splunk_config_name = 'minimal_metrics'
     splunk_config_match = 'minimal_*'
@@ -975,8 +956,7 @@ def saved_searches_error(monkeypatch,  # type: any
                          splunk_config,  # type: SplunkConfig
                          splunk_instance_basic_auth,  # type: SplunkConfigInstance
                          splunk_metric  # type: Type[SplunkMetric]
-                         ):
-    # type: (...) -> SplunkMetric
+                         ):  # type: (...) -> SplunkMetric
 
     splunk_config_name = 'full_metrics'
     splunk_config_match = '.*metrics'
@@ -1020,8 +1000,7 @@ def saved_searches_ignore_error(monkeypatch,  # type: any
                                 splunk_config,  # type: SplunkConfig
                                 splunk_instance_basic_auth,  # type: SplunkConfigInstance
                                 splunk_metric  # type: Type[SplunkMetric]
-                                ):
-    # type: (...) -> SplunkMetric
+                                ):  # type: (...) -> SplunkMetric
 
     splunk_config_name = 'full_metrics'
     splunk_config_match = '.*metrics'
@@ -1068,8 +1047,7 @@ def individual_dispatch_failures(monkeypatch,  # type: any
                                  splunk_config,  # type: SplunkConfig
                                  splunk_instance_basic_auth,  # type: SplunkConfigInstance
                                  splunk_metric  # type: Type[SplunkMetric]
-                                 ):
-    # type: (...) -> SplunkMetric
+                                 ):  # type: (...) -> SplunkMetric
 
     splunk_config_match = '.*metrics'
 
@@ -1128,8 +1106,7 @@ def individual_search_failures(monkeypatch,  # type: any
                                splunk_config,  # type: SplunkConfig
                                splunk_instance_basic_auth,  # type: SplunkConfigInstance
                                splunk_metric  # type: Type[SplunkMetric]
-                               ):
-    # type: (...) -> SplunkMetric
+                               ):  # type: (...) -> SplunkMetric
 
     splunk_config_match = '.*metrics'
 
@@ -1180,8 +1157,7 @@ def search_full_failure(monkeypatch,  # type: any
                         splunk_config,  # type: SplunkConfig
                         splunk_instance_basic_auth,  # type: SplunkConfigInstance
                         splunk_metric  # type: Type[SplunkMetric]
-                        ):
-    # type: (...) -> SplunkMetric
+                        ):  # type: (...) -> SplunkMetric
 
     splunk_config_name = 'full_metrics'
 
@@ -1232,8 +1208,7 @@ def respect_parallel_dispatches(monkeypatch,  # type: any
                                 splunk_config,  # type: SplunkConfig
                                 splunk_instance_basic_auth,  # type: SplunkConfigInstance
                                 splunk_metric  # type: Type[SplunkMetric]
-                                ):
-    # type: (...) -> SplunkMetric
+                                ):  # type: (...) -> SplunkMetric
 
     splunk_config_names = ['savedsearch1', 'savedsearch2', 'savedsearch3', 'savedsearch4']
 
@@ -1302,8 +1277,7 @@ def selective_fields_for_identification_check(requests_mock,  # type: Mocker
                                               splunk_config,  # type: SplunkConfig
                                               splunk_instance_basic_auth,  # type: SplunkConfigInstance
                                               splunk_metric  # type: Type[SplunkMetric]
-                                              ):
-    # type: (...) -> SplunkMetric
+                                              ):  # type: (...) -> SplunkMetric
 
     splunk_config_name = 'metrics_identification_fields_selective'
 
@@ -1340,8 +1314,7 @@ def all_fields_for_identification_check(requests_mock,  # type: Mocker
                                         splunk_config,  # type: SplunkConfig
                                         splunk_instance_basic_auth,  # type: SplunkConfigInstance
                                         splunk_metric  # type: Type[SplunkMetric]
-                                        ):
-    # type: (...) -> SplunkMetric
+                                        ):  # type: (...) -> SplunkMetric
 
     splunk_config_name = 'metrics_identification_fields_all'
 
@@ -1378,8 +1351,7 @@ def backward_compatibility_check(requests_mock,  # type: Mocker
                                  splunk_config,  # type: SplunkConfig
                                  splunk_instance_basic_auth,  # type: SplunkConfigInstance
                                  splunk_metric  # type: Type[SplunkMetric]
-                                 ):
-    # type: (...) -> SplunkMetric
+                                 ):  # type: (...) -> SplunkMetric
 
     splunk_config_name = 'metrics_identification_fields_all'
 
@@ -1416,8 +1388,7 @@ def backward_compatibility_new_conf_check(requests_mock,  # type: Mocker
                                           splunk_config,  # type: SplunkConfig
                                           splunk_instance_basic_auth,  # type: SplunkConfigInstance
                                           splunk_metric  # type: Type[SplunkMetric]
-                                          ):
-    # type: (...) -> SplunkMetric
+                                          ):  # type: (...) -> SplunkMetric
 
     splunk_config_name = 'metrics_identification_fields_all'
 
@@ -1455,8 +1426,7 @@ def default_parameters_check(monkeypatch,  # type: any
                              splunk_config,  # type: SplunkConfig
                              splunk_instance_basic_auth,  # type: SplunkConfigInstance
                              splunk_metric  # type: Type[SplunkMetric]
-                             ):
-    # type: (...) -> SplunkMetric
+                             ):  # type: (...) -> SplunkMetric
 
     splunk_config_name = 'minimal_metrics'
     splunk_parameters = {
@@ -1511,8 +1481,7 @@ def non_default_parameters_check(monkeypatch,  # type: any
                                  splunk_config,  # type: SplunkConfig
                                  splunk_instance_basic_auth,  # type: SplunkConfigInstance
                                  splunk_metric  # type: Type[SplunkMetric]
-                                 ):
-    # type: (...) -> SplunkMetric
+                                 ):  # type: (...) -> SplunkMetric
 
     splunk_config_name = 'minimal_metrics'
     splunk_parameters = {
@@ -1575,8 +1544,7 @@ def overwrite_default_parameters_check(monkeypatch,  # type: any
                                        splunk_config,  # type: SplunkConfig
                                        splunk_instance_basic_auth,  # type: SplunkConfigInstance
                                        splunk_metric  # type: Type[SplunkMetric]
-                                       ):
-    # type: (...) -> SplunkMetric
+                                       ):  # type: (...) -> SplunkMetric
 
     splunk_config_name = 'minimal_metrics'
     splunk_parameters = {
@@ -1630,8 +1598,7 @@ def max_query_chunk_sec_history_check(monkeypatch,  # type: any
                                       splunk_config,  # type: SplunkConfig
                                       splunk_instance_basic_auth,  # type: SplunkConfigInstance
                                       splunk_metric  # type: Type[SplunkMetric]
-                                      ):
-    # type: (...) -> Tuple[SplunkMetric, Dict[str, any]]
+                                      ):  # type: (...) -> Tuple[SplunkMetric, Dict[str, any]]
 
     splunk_config_name = 'metrics'
     splunk_config_name_alt = 'past_metrics'
@@ -1701,8 +1668,7 @@ def max_query_chunk_sec_live_check(monkeypatch,  # type: any
                                    splunk_config,  # type: SplunkConfig
                                    splunk_instance_basic_auth,  # type: SplunkConfigInstance
                                    splunk_metric  # type: Type[SplunkMetric]
-                                   ):
-    # type: (...) -> SplunkMetric
+                                   ):  # type: (...) -> SplunkMetric
 
     splunk_config_name = 'metrics'
 
@@ -1756,8 +1722,7 @@ def token_auth_with_valid_token_check(get_logger,  # type: Mocker
                                       splunk_config,  # type: SplunkConfig
                                       splunk_instance_token_auth,  # type: SplunkConfigInstance
                                       splunk_metric  # type: Type[SplunkMetric]
-                                      ):
-    # type: (...) -> SplunkMetric
+                                      ):  # type: (...) -> SplunkMetric
 
     splunk_config_name = 'minimal_metrics'
 
@@ -1793,8 +1758,7 @@ def authentication_invalid_token_check(get_logger,  # type: Mocker
                                        splunk_config,  # type: SplunkConfig
                                        splunk_instance_token_auth,  # type: SplunkConfigInstance
                                        splunk_metric  # type: Type[SplunkMetric]
-                                       ):
-    # type: (...) -> SplunkMetric
+                                       ):  # type: (...) -> SplunkMetric
 
     splunk_config_name = 'minimal_metrics'
 
@@ -1832,8 +1796,7 @@ def authentication_invalid_token_check(get_logger,  # type: Mocker
 def authentication_token_no_audience_parameter_check(splunk_config,  # type: SplunkConfig
                                                      splunk_instance_token_auth,  # type: SplunkConfigInstance
                                                      splunk_metric  # type: Type[SplunkMetric]
-                                                     ):
-    # type: (...) -> SplunkMetric
+                                                     ):  # type: (...) -> SplunkMetric
 
     splunk_config_name = 'minimal_metrics'
 
@@ -1867,8 +1830,7 @@ def authentication_token_no_audience_parameter_check(splunk_config,  # type: Spl
 def authentication_token_no_name_parameter_check(splunk_config,  # type: SplunkConfig
                                                  splunk_instance_token_auth,  # type: SplunkConfigInstance
                                                  splunk_metric  # type: Type[SplunkMetric]
-                                                 ):
-    # type: (...) -> SplunkMetric
+                                                 ):  # type: (...) -> SplunkMetric
 
     splunk_config_name = 'minimal_metrics'
 
@@ -1908,8 +1870,7 @@ def authentication_prefer_token_over_basic_check(requests_mock,  # type: Mocker
                                                  splunk_instance_basic_auth,  # type: SplunkConfigInstance
                                                  splunk_instance_token_auth,  # type: SplunkConfigInstance
                                                  splunk_metric  # type: Type[SplunkMetric]
-                                                 ):
-    # type: (...) -> SplunkMetric
+                                                 ):  # type: (...) -> SplunkMetric
 
     splunk_config_name = 'minimal_metrics'
 
@@ -1946,8 +1907,7 @@ def authentication_prefer_token_over_basic_check(requests_mock,  # type: Mocker
 def authentication_token_expired_check(splunk_config,  # type: SplunkConfig
                                        splunk_instance_token_auth,  # type: SplunkConfig
                                        splunk_metric  # type: Type[SplunkMetric]
-                                       ):
-    # type: (...) -> SplunkMetric
+                                       ):  # type: (...) -> SplunkMetric
 
     splunk_config_name = 'minimal_metrics'
 
