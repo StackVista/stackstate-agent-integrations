@@ -3,7 +3,7 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 
 from schematics.models import Model
-from schematics.types import StringType, ListType, DictType, PolyModelType, IntType, BooleanType, BaseType, ModelType, MultiType
+from schematics.types import StringType, ListType, DictType, IntType, BooleanType, BaseType, ModelType
 
 
 # Allow copy.deepcopy to work on the schematic models
@@ -67,4 +67,3 @@ class SplunkConfigInstance(PickleModel):
 class SplunkConfig(PickleModel):
     init_config = DictType(BaseType)
     instances = ListType(ModelType(SplunkConfigInstance), required=True)
-

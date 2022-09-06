@@ -66,7 +66,7 @@ class SplunkInstanceConfig(object):
 
         if 'authentication' in instance:
             authentication = instance["authentication"]
-            if 'token_auth' in authentication and authentication.token_auth is not None:
+            if 'token_auth' in authentication and authentication["token_auth"] is not None:
                 token_auth = authentication["token_auth"]
                 if 'name' not in token_auth or token_auth['name'] is None:
                     raise CheckException('Instance missing "authentication.token_auth.name" value')
@@ -142,7 +142,8 @@ class SplunkSavedSearch(object):
             saved_search_instance, int, "search_max_retry_count", instance_config.default_search_max_retry_count)
 
         self.search_seconds_between_retries = self._saved_search_instance_get_or_else(
-            saved_search_instance, int, "search_seconds_between_retries", instance_config.default_search_seconds_between_retries)
+            saved_search_instance, int, "search_seconds_between_retries",
+            instance_config.default_search_seconds_between_retries)
 
         self.batch_size = self._saved_search_instance_get_or_else(
             saved_search_instance, int, "batch_size", instance_config.default_batch_size)

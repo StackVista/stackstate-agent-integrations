@@ -237,9 +237,6 @@ class SavedSearchesTelemetry(SavedSearches):
         # Always observe the last time for data and use max query chunk seconds
         latest_time_epoch = saved_search.last_observed_timestamp + saved_search.config['max_query_chunk_seconds']
 
-        _last_observed = datetime.datetime.utcfromtimestamp(saved_search.last_observed_timestamp).strftime('%Y-%m-%dT%H:%M:%SZ')
-        _real_value = datetime.datetime.utcfromtimestamp(latest_time_epoch).strftime('%Y-%m-%dT%H:%M:%SZ')
-
         current_time = self._current_time_seconds()
 
         if latest_time_epoch >= current_time:
