@@ -1,6 +1,5 @@
 from stackstate_checks.splunk.client import SplunkClient
 from stackstate_checks.splunk.config import SplunkSavedSearch
-from stackstate_checks.base import TopologyInstance
 from stackstate_checks.splunk.saved_search_helper import SavedSearchesTelemetry
 
 
