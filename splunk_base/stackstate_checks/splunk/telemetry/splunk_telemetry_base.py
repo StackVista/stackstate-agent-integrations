@@ -49,8 +49,7 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
         splunk_persistent_state = SplunkPersistentState(persistent_state)
 
         try:
-            self.splunk_telemetry_instance.splunk_client.auth_session(splunk_persistent_state,
-                                                                      self.splunk_telemetry_instance)
+            self.splunk_telemetry_instance.splunk_client.auth_session(splunk_persistent_state)
 
             def _service_check(status, tags=None, hostname=None, message=None):
                 self.service_check(self.SERVICE_CHECK_NAME, status, tags, hostname, message)
