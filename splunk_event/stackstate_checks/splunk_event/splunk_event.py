@@ -69,8 +69,8 @@ class SplunkEvent(SplunkTelemetryBase):
         def _create_saved_search(instance_config, saved_search_instance):
             return EventSavedSearch(instance_config, saved_search_instance)
 
-        return self._build_instance(current_time, instance, metric_instance_config, _create_saved_search)
+        telemetry_instance = SplunkTelemetryInstance(current_time, instance, metric_instance_config,
+                                                     _create_saved_search)
+        return telemetry_instance
 
-    # Hook to override instance creation
-    def _build_instance(self, current_time, instance, metric_instance_config, _create_saved_search):
-        return SplunkTelemetryInstance(current_time, instance, metric_instance_config, _create_saved_search)
+

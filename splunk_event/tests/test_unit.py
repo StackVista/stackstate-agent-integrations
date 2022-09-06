@@ -486,4 +486,44 @@ def test_splunk_event_search_full_failure(requests_mock, splunk_event_check, agg
     aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.OK, count=0)
     aggregator.assert_service_check(SplunkEvent.SERVICE_CHECK_NAME, status=SplunkEvent.CRITICAL, count=1)
 
-# TODO: add TestSplunkDefaults to pytest
+
+def test_default_params(requests_mock, splunk_event_check, aggregator):
+    """
+    When no default parameters are provided, the code should provide the parameters.
+    """
+    expected_default_parameters = {'dispatch.now': True, 'force_dispatch': True}
+    common_requests_mocks(requests_mock)
+    job_results_mock(requests_mock, response_file="full_events_response.json")
+    check_result = splunk_event_check.run()
+    default_params = splunk_event_check.splunk_telemetry_instance.instance_config.default_parameters
+    assert check_result == "", "No errors when running Splunk check."
+    assert len(aggregator.events) == 2
+    assert default_params == expected_default_parameters
+
+
+def test_non_default_params(requests_mock, splunk_event_check, aggregator, non_default_params):
+    """
+    When non default parameters are provided, the code should respect them.
+    """
+    expected_default_parameters = {'respect': 'me'}
+    common_requests_mocks(requests_mock)
+    job_results_mock(requests_mock, response_file="full_events_response.json")
+    check_result = splunk_event_check.run()
+    default_params = splunk_event_check.splunk_telemetry_instance.instance_config.default_parameters
+    assert check_result == "", "No errors when running Splunk check."
+    assert len(aggregator.events) == 2
+    assert default_params == expected_default_parameters
+
+
+def test_overwrite_default_params(requests_mock, splunk_event_check, aggregator, overwrite_default_params):
+    """
+    When default parameters are overwritten, the code should respect them.
+    """
+    expected_search_parameters = {"respect": "me"}
+    common_requests_mocks(requests_mock)
+    job_results_mock(requests_mock, response_file="full_events_response.json")
+    check_result = splunk_event_check.run()
+    search_params = splunk_event_check.splunk_telemetry_instance.saved_searches.searches[0].parameters
+    assert check_result == "", "No errors when running Splunk check."
+    assert len(aggregator.events) == 2
+    assert expected_search_parameters == {k: v for k, v in search_params.items() if k in expected_search_parameters}

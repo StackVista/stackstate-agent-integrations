@@ -254,6 +254,23 @@ def selective_events(unit_test_instance  # type: Dict
     unit_test_instance["saved_searches"][0]["unique_key_fields"] = ["uid1", "uid2"]
 
 
+@pytest.fixture
+def non_default_params(unit_test_config,  # type: Dict
+                       ):  # type: (...) -> None
+    unit_test_config["default_parameters"] = {"respect": "me"}
+
+
+@pytest.fixture
+def overwrite_default_params(unit_test_config,  # type: Dict
+                             unit_test_instance  # type: Dict
+                             ):  # type: (...) -> None
+    # TODO: changing of unit_test this way is unnecessary, as init_config inside init config is ignored
+    unit_test_config["init_config"] = {
+        'default_parameters': {'default_should': 'be ignored'}
+    }
+    unit_test_instance["saved_searches"][0]["parameters"] = {"respect": "me"}
+
+
 def extract_title_and_type_from_event(event  # type: Dict
                                       ):  # type: (...) -> Dict
     """Extracts event title and type. Method call aggregator.assert_event needs event fields as **kwargs parameter."""
