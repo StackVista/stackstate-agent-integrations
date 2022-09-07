@@ -310,13 +310,13 @@ def test_splunk_keep_time_on_failure(requests_mock, monkeypatch, splunk_event_ch
     """
     _setup_client_with_mocked_dispatch(monkeypatch, requests_mock, "minimal_events_response.json")
 
-    # TODO Run the check, collect will fail
     test_data["earliest_time"] = "2017-03-08T11:00:00.000000+0000"
     check_result = splunk_event_check.run()
     assert check_result == "", "No errors when running Splunk check."
     assert len(aggregator.events) == 2
 
-    # TODO: Make sure we keep the same start time
+    test_data["earliest_time"] = '2017-03-08T12:00:01.000000+0000'
+    check_result = splunk_event_check.run()
     assert check_result == "", "No errors when running Splunk check."
 
 
@@ -345,7 +345,7 @@ def test_splunk_wildcard_searches(requests_mock, wildcard_saved_search, splunk_e
     Splunk event check should process minimal response correctly
     """
     basic_auth_mock(requests_mock)
-    list_saved_searches_mock(requests_mock, search_results=["test_events_01", "test_events_02"])
+    list_saved_searches_mock(requests_mock, search_results=["test_events_01", "test_events_02", "blaat"])
     dispatch_search_mock(requests_mock, "test_events_01")
     dispatch_search_mock(requests_mock, "test_events_02", sid=OTHER_SID)
     job_results_mock(requests_mock, response_file="minimal_events_response.json")
@@ -355,7 +355,6 @@ def test_splunk_wildcard_searches(requests_mock, wildcard_saved_search, splunk_e
     assert len(aggregator.events) == 4
     assert splunk_event_check.get_state() == {'test_events_01': time_to_seconds("2017-03-08 12:00:00"),
                                               'test_events_02': time_to_seconds("2017-03-08 12:00:00")}
-    # TODO: compare with original agent v1 test, which incorrectly was mocked. I could be wrong about that.
 
 
 def test_splunk_saved_searches_error(requests_mock, splunk_event_check, aggregator):

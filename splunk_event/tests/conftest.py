@@ -264,10 +264,7 @@ def non_default_params(unit_test_config,  # type: Dict
 def overwrite_default_params(unit_test_config,  # type: Dict
                              unit_test_instance  # type: Dict
                              ):  # type: (...) -> None
-    # TODO: changing of unit_test this way is unnecessary, as init_config inside init config is ignored
-    unit_test_config["init_config"] = {
-        'default_parameters': {'default_should': 'be ignored'}
-    }
+    unit_test_config["default_parameters"] = {'default_should': 'be ignored'}
     unit_test_instance["saved_searches"][0]["parameters"] = {"respect": "me"}
 
 
