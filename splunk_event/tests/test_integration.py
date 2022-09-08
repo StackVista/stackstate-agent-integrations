@@ -7,7 +7,6 @@ from .conftest import extract_title_and_type_from_event
 
 
 @pytest.mark.integration
-@pytest.mark.skip
 def test_event_search(aggregator, integration_test_instance, test_environment):
     check = SplunkEvent("splunk", {}, {}, [integration_test_instance])
 
