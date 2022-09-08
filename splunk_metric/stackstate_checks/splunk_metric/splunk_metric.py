@@ -49,8 +49,8 @@ class SplunkMetric(SplunkTelemetryBase):
     CHECK_NAME = "splunk.metric_information"
     SERVICE_CHECK_NAME = "splunk.metric_information"
 
-    def __init__(self, name, init_config, agent_config, instances=None):
-        super(SplunkMetric, self).__init__(name, init_config, agent_config, instances)
+    def __init__(self, name, init_config, agentConfig, instances=None):
+        super(SplunkMetric, self).__init__(name, init_config, agentConfig, instances)
 
     def _apply(self, metric, value, **kwargs):
         self.raw(metric, float(value), **kwargs)
