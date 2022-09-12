@@ -95,6 +95,7 @@ def integration_test_instance():  # type: () -> Dict
         },
         'saved_searches': [{
             "name": _make_event_fixture(url, USER, PASSWORD),
+            "initial_history_time_seconds": 300
         }],
         'collection_interval': 15
     }
