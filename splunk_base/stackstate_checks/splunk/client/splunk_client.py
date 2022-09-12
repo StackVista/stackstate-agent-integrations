@@ -42,13 +42,12 @@ class TokenExpiredException(Exception):
         self.code = code
 
 
-class SplunkClient(StatefulMixin):
+class SplunkClient:
 
     def __init__(self, instance_config, *args, **kwargs):
         self.instance_config = instance_config
         self.log = logging.getLogger('%s' % __name__)
         self.requests_session = requests.session()
-        super(SplunkClient, self).__init__(*args, **kwargs)
 
     def auth_session(self, committable_state):
         if self.instance_config.auth_type == AuthType.BasicAuth:
