@@ -2,6 +2,7 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import os
+import time
 
 import pytest
 import logging
@@ -1286,5 +1287,6 @@ def _make_event_fixture(url,  # type: str
                       params={"host": "server_1", "sourcetype": source_type},
                       json={"topo_type": saved_search, "metric": "raw.metric", "value": value, "qa": "splunk"},
                       auth=(USER, PASSWORD)).raise_for_status()
+        time.sleep(1)
 
     return saved_search
