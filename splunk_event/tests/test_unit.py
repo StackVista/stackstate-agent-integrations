@@ -1,7 +1,6 @@
 # (C) StackState 2022
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
-from typing import Dict
 
 import freezegun
 import pytest
@@ -20,7 +19,6 @@ pytestmark = pytest.mark.unit
 
 # test_data is used in _mock_dispatch
 test_data = {
-    # type: Dict[str: str]
     "earliest_time": "",
     "latest_time": ""
 }

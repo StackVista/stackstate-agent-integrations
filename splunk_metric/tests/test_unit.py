@@ -2,17 +2,17 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import json
-import logging
-import pytest
 
-from requests_mock import Mocker
-from stackstate_checks.splunk_metric import SplunkMetric
+import pytest
 from freezegun import freeze_time
+
 from stackstate_checks.base import AgentCheck
 from stackstate_checks.base.utils.state_common import generate_state_key
 from stackstate_checks.splunk.config.splunk_instance_config import time_to_seconds
-from .conftest import patch_metric_check, max_query_chunk_sec_history_check, SplunkConfig, SplunkConfigInstance
-from typing import Dict, Type
+from .conftest import patch_metric_check, max_query_chunk_sec_history_check
+
+# Mark the entire module as tests of type `unit`
+pytestmark = pytest.mark.unit
 
 
 def assert_service_check_status(check, aggregator, count, status_index, status, message=None):
@@ -25,12 +25,7 @@ def assert_service_check_status(check, aggregator, count, status_index, status, 
     assert service_checks[status_index].status == status, "service check should have status %s" % status
 
 
-@pytest.mark.unit
-def test_minimal_metrics(config_minimal_metrics,  # type: None
-                         check,  # type: SplunkMetric
-                         telemetry  # type: any
-                         ):
-    #  type: (...) -> None
+def test_minimal_metrics(config_minimal_metrics, check, telemetry):
     check_response = check.run()
     assert check_response == '', "The check run cycle should not produce a error"
 
@@ -38,13 +33,7 @@ def test_minimal_metrics(config_minimal_metrics,  # type: None
     telemetry.assert_metric("metric_name", count=2, value=3.0, tags=[], hostname='', timestamp=1488974400.0)
 
 
-@pytest.mark.unit
-def test_error_response(config_error,  # type: None
-                        check,  # type: SplunkMetric
-                        telemetry,  # type: any
-                        aggregator  # type: any
-                        ):
-    #  type: (...) -> None
+def test_error_response(config_error, check, telemetry, aggregator):
     check_response = check.run()
     assert check_response != '', "The check run cycle should run a error"
 
@@ -52,12 +41,7 @@ def test_error_response(config_error,  # type: None
     assert_service_check_status(check, aggregator, count=3, status_index=1, status=AgentCheck.CRITICAL)
 
 
-@pytest.mark.unit
-def test_empty_metrics(config_empty,  # type: None
-                       check,  # type: SplunkMetric
-                       telemetry,  # type: any
-                       ):
-    #  type: (...) -> None
+def test_empty_metrics(config_empty, check, telemetry, ):
     check_response = check.run()
     assert check_response == '', "The check run cycle should not produce a error"
 
@@ -65,13 +49,7 @@ def test_empty_metrics(config_empty,  # type: None
     telemetry.assert_metric("metric_name", count=0)
 
 
-@pytest.mark.unit
-def test_partially_incomplete_metrics(config_partially_incomplete_metrics,  # type: None
-                                      check,  # type: SplunkMetric
-                                      telemetry,  # type: any
-                                      aggregator  # type: any
-                                      ):
-    #  type: (...) -> None
+def test_partially_incomplete_metrics(config_partially_incomplete_metrics, check, telemetry, aggregator):
     check_response = check.run()
     assert check_response == '', "The check run cycle should not produce a error"
 
@@ -83,49 +61,30 @@ def test_partially_incomplete_metrics(config_partially_incomplete_metrics,  # ty
                                         "incomplete records")
 
 
-@pytest.mark.unit
-def test_full_metrics(config_full_metrics,  # type: None
-                      check,  # type: SplunkMetric
-                      telemetry,  # type: any
-                      aggregator  # type: any
-                      ):
-    #  type: (...) -> None
-
+def test_full_metrics(config_full_metrics, check, telemetry, aggregator):
     check_response = check.run()
     assert check_response == '', "The check run cycle should not produce a error"
 
     telemetry.assert_total_metrics(2)
     telemetry.assert_metric("metric_name", count=1, value=1.0, tags=[
-                'hostname:myhost',
-                'some:tag',
-                'checktag:checktagvalue'], hostname='', timestamp=1488997796.0)
+        'hostname:myhost',
+        'some:tag',
+        'checktag:checktagvalue'], hostname='', timestamp=1488997796.0)
     telemetry.assert_metric("metric_name", count=1, value=1.0, tags=[
-                'hostname:123',
-                'some:123',
-                'device_name:123',
-                'checktag:checktagvalue'], hostname='', timestamp=1488997797.0)
+        'hostname:123',
+        'some:123',
+        'device_name:123',
+        'checktag:checktagvalue'], hostname='', timestamp=1488997797.0)
 
 
-@pytest.mark.unit
-def test_alternative_fields_metrics(config_alternative_fields_metrics,  # type: None
-                                    check,  # type: SplunkMetric
-                                    telemetry,  # type: any
-                                    aggregator  # type: any
-                                    ):
-    #  type: (...) -> None
+def test_alternative_fields_metrics(config_alternative_fields_metrics, check, telemetry, aggregator):
     check_response = check.run()
     assert check_response == '', "The check run cycle SHOULD NOT produce a error"
 
     telemetry.assert_metric("metric_name", count=2, value=3.0, tags=[], hostname='', timestamp=1488974400.0)
 
 
-@pytest.mark.unit
-def test_fixed_metric_name(config_fixed_metric_name,  # type: None
-                           check,  # type: SplunkMetric
-                           telemetry,  # type: any
-                           aggregator  # type: any
-                           ):
-    #  type: (...) -> None
+def test_fixed_metric_name(config_fixed_metric_name, check, telemetry, aggregator):
     check_response = check.run()
     assert check_response == '', "The check run cycle should not produce a error"
 
@@ -133,26 +92,14 @@ def test_fixed_metric_name(config_fixed_metric_name,  # type: None
                             timestamp=1488974400.0)
 
 
-@pytest.mark.unit
-def test_warning_on_missing_fields(config_warning_on_missing_fields,  # type: None
-                                   check,  # type: SplunkMetric
-                                   telemetry,  # type: any
-                                   aggregator  # type: any
-                                   ):
-    #  type: (...) -> None
+def test_warning_on_missing_fields(config_warning_on_missing_fields, check, telemetry, aggregator):
     check_response = check.run()
     assert check_response != '', "The check run cycle SHOULD produce a error"
 
     assert_service_check_status(check, aggregator, count=3, status_index=0, status=AgentCheck.WARNING)
 
 
-@pytest.mark.unit
-def test_same_data_metrics(config_same_data_metrics,  # type: None
-                           check,  # type: SplunkMetric
-                           telemetry,  # type: any
-                           aggregator  # type: any
-                           ):
-    #  type: (...) -> None
+def test_same_data_metrics(config_same_data_metrics, check, telemetry, aggregator):
     check_response = check.run()
     assert check_response == '', "The check run cycle SHOULD NOT produce a error"
 
@@ -161,13 +108,7 @@ def test_same_data_metrics(config_same_data_metrics,  # type: None
                             timestamp=1488974400.0)
 
 
-@pytest.mark.unit
-def test_delayed_start(config_delayed_start,  # type: None
-                       check,  # type: SplunkMetric
-                       telemetry,  # type: any
-                       aggregator  # type: any
-                       ):
-    #  type: (...) -> None
+def test_delayed_start(config_delayed_start, check, telemetry, aggregator):
     with freeze_time("1970-01-01T00:00:01Z"):
         check_response = check.run()
         assert check_response == '', "The check run cycle NOT SHOULD produce a error"
@@ -188,14 +129,7 @@ def test_delayed_start(config_delayed_start,  # type: None
         telemetry.assert_metric("metric_name", count=2, value=3.0, timestamp=1488974400.0)
 
 
-@pytest.mark.unit
-def test_max_restart_time(config_max_restart_time,  # type: None
-                          patch_max_restart_time,  # type: Dict[str, any]
-                          check,  # type: SplunkMetric
-                          telemetry,  # type: any
-                          aggregator  # type: any
-                          ):
-    #  type: (...) -> None
+def test_max_restart_time(config_max_restart_time, patch_max_restart_time, check, telemetry, aggregator):
     with freeze_time("2017-03-08T00:00:00.000000+0000"):
         patch_max_restart_time["earliest_time"] = '2017-03-08T00:00:00.000000+0000'
 
@@ -217,14 +151,7 @@ def test_max_restart_time(config_max_restart_time,  # type: None
         telemetry.assert_total_metrics(0)
 
 
-@pytest.mark.unit
-def test_metric_check(config_metric_check,  # type: None
-                      check,  # type: SplunkMetric
-                      monkeypatch,  # type: any
-                      transaction,  # type: any
-                      state  # type: any
-                      ):
-    #  type: (...) -> None
+def test_metric_check(config_metric_check, check, monkeypatch, transaction, state):
     check_response = check.run()
     assert check_response == '', "The check run should not return a error"
 
@@ -267,29 +194,17 @@ def test_metric_check(config_metric_check,  # type: None
     assert third_state is not None and third_state is not {}
 
 
-@pytest.mark.unit
-def test_default_parameters(config_test_default_parameters,  # type: None
-                            patch_default_parameters_check,  # type: None
-                            check,  # type: SplunkMetric
-                            telemetry,  # type: any
-                            aggregator  # type: any
-                            ):
-    #  type: (...) -> None
+def test_default_parameters(config_test_default_parameters, patch_default_parameters_check, check, telemetry,
+                            aggregator):
     check_response = check.run()
     assert check_response == '', "The check run cycle SHOULD NOT produce a error"
 
     telemetry.assert_total_metrics(2)
 
 
-@pytest.mark.unit
 @freeze_time("2017-03-08T18:29:59.000000+0000")
-def test_earliest_time_and_duplicates(config_earliest_time_and_duplicates,  # type: None
-                                      patch_earliest_time_and_duplicates,  # type: None
-                                      check,  # type: SplunkMetric
-                                      telemetry,  # type: any
-                                      aggregator  # type: any
-                                      ):
-    #  type: (...) -> None
+def test_earliest_time_and_duplicates(config_earliest_time_and_duplicates, patch_earliest_time_and_duplicates, check,
+                                      telemetry, aggregator):
     test_data = patch_earliest_time_and_duplicates
 
     test_data["sid"] = "poll"
@@ -330,14 +245,8 @@ def test_earliest_time_and_duplicates(config_earliest_time_and_duplicates,  # ty
     assert_service_check_status(check, aggregator, count=3, status_index=1, status=AgentCheck.CRITICAL)
 
 
-@pytest.mark.unit
-def test_continue_after_restart(config_continue_after_restart,  # type: None
-                                patch_continue_after_restart,  # type: None
-                                check,  # type: SplunkMetric
-                                telemetry,  # type: any
-                                aggregator  # type: any
-                                ):
-    #  type: (...) -> None
+def test_continue_after_restart(config_continue_after_restart, patch_continue_after_restart, check, telemetry,
+                                aggregator):
     test_data = patch_continue_after_restart
 
     with freeze_time("2017-03-08T00:00:00.000000+0000"):
@@ -386,13 +295,8 @@ def test_continue_after_restart(config_continue_after_restart,  # type: None
             "As long as we are not done with history, the check should continue"
 
 
-@pytest.mark.unit
-def test_selective_fields_for_identification_check(config_selective_fields_for_identification_check,  # type: None
-                                                   check,  # type: SplunkMetric
-                                                   telemetry,  # type: any
-                                                   aggregator  # type: any
-                                                   ):
-    #  type: (...) -> None
+def test_selective_fields_for_identification_check(config_selective_fields_for_identification_check, check, telemetry,
+                                                   aggregator):
     check_response = check.run()
     assert check_response == '', "The check run cycle SHOULD NOT produce a error"
 
@@ -412,13 +316,7 @@ def test_selective_fields_for_identification_check(config_selective_fields_for_i
     assert_service_check_status(check, aggregator, count=6, status_index=2, status=AgentCheck.OK)
 
 
-@pytest.mark.unit
-def test_all_fields_for_identification_check(config_all_fields_for_identification_check,  # type: None
-                                             check,  # type: SplunkMetric
-                                             telemetry,  # type: any
-                                             aggregator  # type: any
-                                             ):
-    #  type: (...) -> None
+def test_all_fields_for_identification_check(config_all_fields_for_identification_check, check, telemetry, aggregator):
     check_response = check.run()
     assert check_response == '', "The check run cycle SHOULD NOT produce a error"
 
@@ -436,13 +334,7 @@ def test_all_fields_for_identification_check(config_all_fields_for_identificatio
     assert_service_check_status(check, aggregator, count=6, status_index=2, status=AgentCheck.OK)
 
 
-@pytest.mark.unit
-def test_backward_compatibility(config_backward_compatibility_check,  # type: None
-                                check,  # type: SplunkMetric
-                                telemetry,  # type: any
-                                aggregator  # type: any
-                                ):
-    #  type: (...) -> None
+def test_backward_compatibility(config_backward_compatibility_check, check, telemetry, aggregator):
     check_response = check.run()
     assert check_response == '', "The check run cycle SHOULD NOT produce a error"
 
@@ -460,13 +352,7 @@ def test_backward_compatibility(config_backward_compatibility_check,  # type: No
     assert_service_check_status(check, aggregator, count=6, status_index=2, status=AgentCheck.OK)
 
 
-@pytest.mark.unit
-def test_backward_compatibility_new_conf(config_backward_compatibility_new_conf_check,  # type: None
-                                         check,  # type: SplunkMetric
-                                         telemetry,  # type: any
-                                         aggregator  # type: any
-                                         ):
-    #  type: (...) -> None
+def test_backward_compatibility_new_conf(config_backward_compatibility_new_conf_check, check, telemetry, aggregator):
     check_response = check.run()
     assert check_response == '', "The check run cycle SHOULD NOT produce a error"
 
@@ -484,15 +370,8 @@ def test_backward_compatibility_new_conf(config_backward_compatibility_new_conf_
     assert_service_check_status(check, aggregator, count=6, status_index=2, status=AgentCheck.OK)
 
 
-@pytest.mark.unit
 @freeze_time("2017-03-09T00:00:00.000000+0000")
-def test_query_initial_history(config_query_initial_history,  # type: None
-                               patch_query_initial_history,  # type: None
-                               check,  # type: SplunkMetric
-                               telemetry,  # type: any
-                               aggregator  # type: any
-                               ):
-    #  type: (...) -> None
+def test_query_initial_history(config_query_initial_history, patch_query_initial_history, check, telemetry, aggregator):
     test_data = patch_query_initial_history
 
     # Gather initial data
@@ -517,15 +396,8 @@ def test_query_initial_history(config_query_initial_history,  # type: None
     assert check.continue_after_commit is False, "As long as we are not done with history, the check should continue"
 
 
-@pytest.mark.unit
 @freeze_time("2017-03-08T11:00:00.000000+0000")
-def test_keep_time_on_failure(config_keep_time_on_failure,  # type: None
-                              patch_keep_time_on_failure,  # type: None
-                              check,  # type: SplunkMetric
-                              telemetry,  # type: any
-                              aggregator  # type: any
-                              ):
-    #  type: (...) -> None
+def test_keep_time_on_failure(config_keep_time_on_failure, patch_keep_time_on_failure, check, telemetry, aggregator):
     test_data = patch_keep_time_on_failure
 
     test_data["earliest_time"] = '2017-03-08T11:00:00.000000+0000'
@@ -540,15 +412,9 @@ def test_keep_time_on_failure(config_keep_time_on_failure,  # type: None
     assert check_response == '', "The check run cycle SHOULD NOT produce a error"
 
 
-@pytest.mark.unit
 @freeze_time("2017-03-08T11:00:00.000000+0000")
-def test_advance_time_on_success(config_advance_time_on_success,  # type: None
-                                 patch_advance_time_on_success,  # type: None
-                                 check,  # type: SplunkMetric
-                                 telemetry,  # type: any
-                                 aggregator  # type: any
-                                 ):
-    #  type: (...) -> None
+def test_advance_time_on_success(config_advance_time_on_success, patch_advance_time_on_success, check, telemetry,
+                                 aggregator):
     test_data = patch_advance_time_on_success
 
     test_data["earliest_time"] = '2017-03-08T11:00:00.000000+0000'
@@ -563,14 +429,7 @@ def test_advance_time_on_success(config_advance_time_on_success,  # type: None
     assert check_response == '', "The check run cycle SHOULD NOT produce a error"
 
 
-@pytest.mark.unit
-def test_wildcard_searches(config_wildcard_searches,  # type: None
-                           patch_wildcard_searches,  # type: None
-                           check,  # type: SplunkMetric
-                           telemetry,  # type: any
-                           aggregator  # type: any
-                           ):
-    #  type: (...) -> None
+def test_wildcard_searches(config_wildcard_searches, patch_wildcard_searches, check, telemetry, aggregator):
     data = patch_wildcard_searches
 
     data['saved_searches'] = ["minimal_metrics", "blaat"]
@@ -590,42 +449,23 @@ def test_wildcard_searches(config_wildcard_searches,  # type: None
     assert len(check.splunk_telemetry_instance.saved_searches.searches) == 0
 
 
-@pytest.mark.unit
-def test_saved_searches_error(config_saved_searches_error,  # type: None
-                              patch_saved_searches_error,  # type: None
-                              check,  # type: SplunkMetric
-                              telemetry,  # type: any
-                              aggregator  # type: any
-                              ):
-    #  type: (...) -> None
+def test_saved_searches_error(config_saved_searches_error, patch_saved_searches_error, check, telemetry, aggregator):
     check_response = check.run()
     assert check_response != '', "The check run cycle SHOULD produce a error"
 
     assert_service_check_status(check, aggregator, count=2, status_index=0, status=AgentCheck.CRITICAL, message="Boom")
 
 
-@pytest.mark.unit
-def test_saved_searches_ignore_error(config_saved_searches_ignore_error,  # type: None
-                                     patch_saved_searches_ignore_error,  # type: None
-                                     check,  # type: SplunkMetric
-                                     telemetry,  # type: any
-                                     aggregator  # type: any
-                                     ):
-    #  type: (...) -> None
+def test_saved_searches_ignore_error(config_saved_searches_ignore_error, patch_saved_searches_ignore_error, check,
+                                     telemetry, aggregator):
     check_response = check.run()
     assert check_response == '', "The check run cycle NOT SHOULD produce a error"
 
     assert_service_check_status(check, aggregator, count=2, status_index=0, status=AgentCheck.CRITICAL, message="Boom")
 
 
-@pytest.mark.unit
-def test_individual_dispatch_failures(config_individual_dispatch_failures,  # type: None
-                                      patch_individual_dispatch_failures,  # type: None
-                                      check,  # type: SplunkMetric
-                                      telemetry,  # type: any
-                                      aggregator  # type: any
-                                      ):
-    #  type: (...) -> None
+def test_individual_dispatch_failures(config_individual_dispatch_failures, patch_individual_dispatch_failures, check,
+                                      telemetry, aggregator):
     check_response = check.run()
     assert check_response == '', "The check run cycle NOT SHOULD produce a error"
 
@@ -636,14 +476,8 @@ def test_individual_dispatch_failures(config_individual_dispatch_failures,  # ty
                                 message="BOOM")
 
 
-@pytest.mark.unit
-def test_individual_search_failures(config_individual_search_failures,  # type: None
-                                    patch_individual_search_failures,  # type: None
-                                    check,  # type: SplunkMetric
-                                    telemetry,  # type: any
-                                    aggregator  # type: any
-                                    ):
-    #  type: (...) -> None
+def test_individual_search_failures(config_individual_search_failures, patch_individual_search_failures, check,
+                                    telemetry, aggregator):
     check_response = check.run()
     assert check_response == '', "The check run cycle NOT SHOULD produce a error"
 
@@ -654,14 +488,7 @@ def test_individual_search_failures(config_individual_search_failures,  # type: 
                                 message="Received FATAL exception from Splunk, got: Invalid offset.")
 
 
-@pytest.mark.unit
-def test_search_full_failure(config_search_full_failure,  # type: None
-                             patch_search_full_failure,  # type: None
-                             check,  # type: SplunkMetric
-                             telemetry,  # type: any
-                             aggregator  # type: any
-                             ):
-    #  type: (...) -> None
+def test_search_full_failure(config_search_full_failure, patch_search_full_failure, check, telemetry, aggregator):
     check_response = check.run()
     assert check_response != '', "The check run cycle SHOULD produce a error"
 
@@ -669,43 +496,25 @@ def test_search_full_failure(config_search_full_failure,  # type: None
                                 message="No saved search was successfully executed.")
 
 
-@pytest.mark.unit
-def test_non_default_parameters(config_non_default_parameters_check,  # type: None
-                                patch_non_default_parameters_check,  # type: None
-                                check,  # type: SplunkMetric
-                                telemetry,  # type: any
-                                aggregator  # type: any
-                                ):
-    #  type: (...) -> None
+def test_non_default_parameters(config_non_default_parameters_check, patch_non_default_parameters_check, check,
+                                telemetry, aggregator):
     check_response = check.run()
     assert check_response == '', "The check run cycle SHOULD NOT produce a error."
 
     telemetry.assert_total_metrics(2)
 
 
-@pytest.mark.unit
-def test_overwrite_default_parameters(config_overwrite_default_parameters_check,  # type: None
-                                      patch_overwrite_default_parameters_check,  # type: None
-                                      check,  # type: SplunkMetric
-                                      telemetry,  # type: any
-                                      aggregator  # type: any
-                                      ):
-    #  type: (...) -> None
+def test_overwrite_default_parameters(config_overwrite_default_parameters_check,
+                                      patch_overwrite_default_parameters_check, check, telemetry, aggregator):
     check_response = check.run()
     assert check_response == '', "The check run cycle SHOULD NOT produce a error."
 
     telemetry.assert_total_metrics(2)
 
 
-@pytest.mark.unit
 @freeze_time("2017-03-08T11:58:00.000000+0000")
-def test_max_query_chunk_sec_live(config_max_query_chunk_sec_live_check,  # type: None
-                                  patch_max_query_chunk_sec_live_check,  # type: None
-                                  check,  # type: SplunkMetric
-                                  telemetry,  # type: any
-                                  aggregator  # type: any
-                                  ):
-    #  type: (...) -> None
+def test_max_query_chunk_sec_live(config_max_query_chunk_sec_live_check, patch_max_query_chunk_sec_live_check, check,
+                                  telemetry, aggregator):
     check_response = check.run()
     assert check_response == '', "The check run cycle SHOULD NOT produce a error."
 
@@ -715,14 +524,8 @@ def test_max_query_chunk_sec_live(config_max_query_chunk_sec_live_check,  # type
     assert last_observed_timestamp == time_to_seconds('2017-03-08T12:00:00.000000+0000')
 
 
-@pytest.mark.unit
-def test_token_auth_with_valid_token(set_authentication_mode_to_token,  # type: None
-                                     config_token_auth_with_valid_token_check,  # type: None
-                                     check,  # type: SplunkMetric
-                                     telemetry,  # type: any
-                                     aggregator  # type: any
-                                     ):
-    #  type: (...) -> None
+def test_token_auth_with_valid_token(set_authentication_mode_to_token, config_token_auth_with_valid_token_check, check,
+                                     telemetry, aggregator):
     check_response = check.run()
     assert check_response == '', "The check run cycle SHOULD NOT produce a error."
 
@@ -734,14 +537,8 @@ def test_token_auth_with_valid_token(set_authentication_mode_to_token,  # type: 
                                 message=check.CHECK_NAME + " check was processed successfully")
 
 
-@pytest.mark.unit
-def test_authentication_invalid_token(set_authentication_mode_to_token,  # type: None
-                                      config_authentication_invalid_token_check,  # type: None
-                                      check,  # type: SplunkMetric
-                                      telemetry,  # type: any
-                                      aggregator  # type: any
-                                      ):
-    #  type: (...) -> None
+def test_authentication_invalid_token(set_authentication_mode_to_token, config_authentication_invalid_token_check,
+                                      check, telemetry, aggregator):
     check_response = check.run()
     assert check_response == '', "The check SHOULD NOT return a error result after running."
 
@@ -750,14 +547,9 @@ def test_authentication_invalid_token(set_authentication_mode_to_token,  # type:
                                         "token in the YAML and restart the Agent")
 
 
-@pytest.mark.unit
-def test_authentication_token_no_audience_parameter_check(set_authentication_mode_to_token,  # type: None
+def test_authentication_token_no_audience_parameter_check(set_authentication_mode_to_token,
                                                           config_authentication_token_no_audience_parameter_check,
-                                                          check,  # type: SplunkMetric
-                                                          telemetry,  # type: any
-                                                          aggregator  # type: any
-                                                          ):
-    #  type: (...) -> None
+                                                          check, telemetry, aggregator):
     check_response = check.run()
     assert check_response != '', "The check SHOULD return a error result after running."
 
@@ -765,14 +557,9 @@ def test_authentication_token_no_audience_parameter_check(set_authentication_mod
                                 message="Instance missing \"authentication.token_auth.audience\" value")
 
 
-@pytest.mark.unit
-def test_authentication_token_no_name_parameter_check(set_authentication_mode_to_token,  # type: None
-                                                      config_authentication_token_no_name_parameter_check,  # type: None
-                                                      check,  # type: SplunkMetric
-                                                      telemetry,  # type: any
-                                                      aggregator  # type: any
-                                                      ):
-    #  type: (...) -> None
+def test_authentication_token_no_name_parameter_check(set_authentication_mode_to_token,
+                                                      config_authentication_token_no_name_parameter_check,
+                                                      check, telemetry, aggregator):
     check_response = check.run()
     assert check_response != '', "The check SHOULD return a error result after running."
 
@@ -780,13 +567,8 @@ def test_authentication_token_no_name_parameter_check(set_authentication_mode_to
                                 message="Instance missing \"authentication.token_auth.name\" value")
 
 
-@pytest.mark.unit
-def test_authentication_prefer_token_over_basic_check(config_authentication_prefer_token_over_basic_check,  # type: None
-                                                      check,  # type: SplunkMetric
-                                                      telemetry,  # type: any
-                                                      aggregator  # type: any
-                                                      ):
-    #  type: (...) -> None
+def test_authentication_prefer_token_over_basic_check(config_authentication_prefer_token_over_basic_check,
+                                                      check, telemetry, aggregator):
     check_response = check.run()
     assert check_response == '', "The check SHOULD NOT return a error result after running."
 
@@ -796,14 +578,8 @@ def test_authentication_prefer_token_over_basic_check(config_authentication_pref
     assert_service_check_status(check, aggregator, count=3, status_index=0, status=AgentCheck.OK)
 
 
-@pytest.mark.unit
-def test_authentication_token_expired_check(set_authentication_mode_to_token,  # type: None
-                                            config_authentication_token_expired_check,  # type: None
-                                            check,  # type: SplunkMetric
-                                            telemetry,  # type: any
-                                            aggregator  # type: any
-                                            ):
-    #  type: (...) -> None
+def test_authentication_token_expired_check(set_authentication_mode_to_token, config_authentication_token_expired_check,
+                                            check, telemetry, aggregator):
     check_response = check.run()
     assert check_response == '', "The check SHOULD NOT return a error result after running."
 
@@ -815,30 +591,15 @@ def test_authentication_token_expired_check(set_authentication_mode_to_token,  #
                                 message=check.CHECK_NAME + " check was processed successfully")
 
 
-@pytest.mark.unit
-def test_respect_parallel_dispatches(config_respect_parallel_dispatches,  # type: None
-                                     patch_respect_parallel_dispatches,  # type: None
-                                     check,  # type: SplunkMetric
-                                     telemetry,  # type: any
-                                     aggregator  # type: any
-                                     ):
-    #  type: (...) -> None
+def test_respect_parallel_dispatches(config_respect_parallel_dispatches, patch_respect_parallel_dispatches,
+                                     check, telemetry, aggregator):
     check_response = check.run()
     assert check_response == '', "The check run cycle SHOULD NOT produce a error"
     assert check.parallel_dispatches_failed is False, "The check should pass parallel dispatches"
 
 
-@pytest.mark.unit
-def test_max_query_chunk_sec_history(monkeypatch,  # type: any
-                                     get_logger,  # type: logging.Logger
-                                     requests_mock,  # type: Mocker
-                                     splunk_config,  # type: SplunkConfig
-                                     splunk_instance_basic_auth,  # type: SplunkConfigInstance
-                                     splunk_metric,  # type: Type[SplunkMetric]
-                                     telemetry,  # type: any
-                                     state,  # type: any
-                                     transaction  # type: any
-                                     ):
+def test_max_query_chunk_sec_history(monkeypatch, get_logger, requests_mock, splunk_config, splunk_instance_basic_auth,
+                                     splunk_metric, telemetry, state, transaction):
     with freeze_time("2017-03-09T00:00:00.000000+0000"):
         check, test_data = max_query_chunk_sec_history_check(monkeypatch, get_logger, requests_mock, splunk_config,
                                                              splunk_instance_basic_auth, splunk_metric)
