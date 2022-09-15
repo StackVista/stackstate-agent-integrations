@@ -83,7 +83,7 @@ def sts_environment(test_environment  # type: Generator
 
 
 @pytest.fixture
-def integration_test_instance():  # type: () -> Dict
+def event_integration_test_instance():  # type: () -> Dict
     url = 'http://%s:%s' % (HOST, PORT)
     return {
         'url': url,
