@@ -17,7 +17,7 @@ from stackstate_checks.dev import docker_run, WaitFor
 from stackstate_checks.splunk.client import SplunkClient
 from stackstate_checks.splunk.config import SplunkInstanceConfig
 from stackstate_checks.splunk_event import SplunkEvent
-from stackstate_checks.splunk_event.splunk_event import default_settings
+from stackstate_checks.splunk_event.splunk_event import DEFAULT_SETTINGS
 from .common import HOST, PORT, USER, PASSWORD
 
 # These constants are used in requests mocks
@@ -42,7 +42,7 @@ def _connect_to_splunk():  # type: () -> None
                 'collection_interval': 15
             },
             {},
-            default_settings
+            DEFAULT_SETTINGS
         )
     ).auth_session({})
 

@@ -10,7 +10,7 @@ from stackstate_checks.splunk.telemetry.splunk_telemetry_base import SplunkTelem
     Events as generic events from splunk. StackState.
 """
 
-default_settings = {
+DEFAULT_SETTINGS = {
     'default_request_timeout_seconds': 5,
     'default_search_max_retry_count': 3,
     'default_search_seconds_between_retries': 1,
@@ -64,7 +64,7 @@ class SplunkEvent(SplunkTelemetryBase):
         self.event(event_data)
 
     def get_instance(self, instance, current_time):
-        metric_instance_config = SplunkTelemetryInstanceConfig(instance, self.init_config, default_settings)
+        metric_instance_config = SplunkTelemetryInstanceConfig(instance, self.init_config, DEFAULT_SETTINGS)
 
         def _create_saved_search(instance_config, saved_search_instance):
             return EventSavedSearch(instance_config, saved_search_instance)
