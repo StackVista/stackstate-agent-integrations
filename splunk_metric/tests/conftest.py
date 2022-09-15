@@ -1,19 +1,28 @@
 # (C) StackState 2021
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
+import os
 
 import pytest
 import logging
 import inspect
 
-from stackstate_checks.splunk.config import AuthType
+import requests
+
+from stackstate_checks.base.stubs.aggregator import AggregatorStub
+from stackstate_checks.base.stubs.state import StateStub
+from stackstate_checks.base.stubs.telemetry import TelemetryStub
+from stackstate_checks.base.stubs.topology import TopologyStub
+from stackstate_checks.base.stubs.transaction import TransactionStub
+from stackstate_checks.dev import docker_run, WaitFor
+from stackstate_checks.splunk.config import AuthType, SplunkInstanceConfig
 from requests_mock import Mocker
 from datetime import timedelta, datetime
 from stackstate_checks.errors import CheckException
-from typing import Type, Tuple, Dict
+from typing import Type, Tuple, Dict, Generator
 from stackstate_checks.splunk.client import SplunkClient
 from stackstate_checks.splunk.saved_search_helper import SavedSearchesTelemetry
-from stackstate_checks.splunk_metric import SplunkMetric
+from stackstate_checks.splunk_metric import SplunkMetric, DEFAULT_SETTINGS
 from .common import HOST, PORT, USER, PASSWORD
 from .mock import mock_finalize_sid_exception, mock_polling_search, generate_mock_token, apply_request_mock_routes
 from stackstate_checks.splunk.config.splunk_instance_config_models import SplunkConfigInstance, SplunkConfig, \
@@ -72,11 +81,11 @@ def splunk_instance_token_auth():  # type: () -> SplunkConfigInstance
 
 
 @pytest.fixture
-def splunk_metric(telemetry,  # type: any
-                  aggregator,  # type: any
-                  topology,  # type: any
-                  transaction,  # type: any
-                  state  # type: any
+def splunk_metric(telemetry,  # type: TelemetryStub
+                  aggregator,  # type: AggregatorStub
+                  topology,  # type: TopologyStub
+                  transaction,  # type: TransactionStub
+                  state  # type: StateStub
                   ):  # type: (...) -> Type[SplunkMetric]
 
     # Bring back the splunk mock metrics
@@ -112,13 +121,15 @@ def saved_search_config():  # type: () -> Dict
 
 
 @pytest.fixture
-def set_authentication_mode_to_token(authentication_mode,
-                                     splunk_instance_token_auth):  # type: (...) -> None
+def set_authentication_mode_to_token(authentication_mode,  # type: Dict
+                                     splunk_instance_token_auth  # type: SplunkConfigInstance
+                                     ):  # type: (...) -> None
     authentication_mode["mode"] = splunk_instance_token_auth
 
 
 @pytest.fixture
-def authentication_mode(splunk_instance_basic_auth):  # type: (...) -> Dict
+def authentication_mode(splunk_instance_basic_auth,  # type: SplunkConfigInstance
+                        ):  # type: (...) -> Dict
     return {
         "mode": splunk_instance_basic_auth
     }
@@ -129,13 +140,12 @@ def authentication_mode(splunk_instance_basic_auth):  # type: (...) -> Dict
 def check(requests_mock,  # type: Mocker
           get_logger,  # type: logging.Logger
           splunk_config,  # type: SplunkConfig
-          authentication_mode,
+          authentication_mode,  # type: Dict
           splunk_metric,  # type: Type[SplunkMetric]
-          config,  # type: any
-          init_config,  # type: any
-          saved_search_config  # type: any
-          ):
-    # type: (...) -> SplunkMetric
+          config,  # type: Dict
+          init_config,  # type: Dict
+          saved_search_config  # type: Dict
+          ):  # type: (...) -> SplunkMetric
 
     # Mock the HTTP Requests
     apply_request_mock_routes(requests_mock,
@@ -1083,7 +1093,7 @@ def config_respect_parallel_dispatches(config,  # type: any
 @pytest.fixture
 def patch_respect_parallel_dispatches(monkeypatch,  # type: any
                                       check
-                                      ):  # type: (...) -> SplunkMetric
+                                      ):  # type: (...) -> None
     def _mock_dispatch_and_await_search(self, process_data, service_check, log, persisted_state, saved_searches):
         assert len(saved_searches) == 2, \
             "Did not respect the configured saved_searches_parallel setting, got value: %i" % len(saved_searches)
@@ -1172,3 +1182,109 @@ def max_query_chunk_sec_history_check(monkeypatch,  # type: any
     check.check_id = inspect.stack()[0][3]
 
     return check, test_data
+
+
+def _connect_to_splunk():  # type: () -> None
+    SplunkClient(
+        SplunkInstanceConfig(
+            {
+                'url': 'http://%s:%s' % (HOST, PORT),
+                'authentication': {
+                    'basic_auth': {
+                        'username': USER,
+                        'password': PASSWORD
+                    },
+                },
+                'saved_searches': [],
+                'collection_interval': 15
+            },
+            {},
+            DEFAULT_SETTINGS
+        )
+    ).auth_session({})
+
+
+@pytest.fixture(scope='session')
+def test_environment():  # type: () -> Generator
+    """
+    Start a standalone splunk server requiring authentication.
+    """
+    with docker_run(
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'compose', 'docker-compose.yaml'),
+            conditions=[WaitFor(_connect_to_splunk)],
+    ):
+        yield True
+
+
+# this fixture is used for checksdev env start
+@pytest.fixture(scope='session')
+def sts_environment(test_environment  # type: Generator
+                    ):  # type: (...) -> Dict
+    """
+    This fixture is used for checksdev env start.
+    """
+    url = 'http://%s:%s' % (HOST, PORT)
+    yield {
+        'url': url,
+        'authentication': {
+            'basic_auth': {
+                'username': USER,
+                'password': PASSWORD
+            },
+        },
+        'saved_searches': [{
+            "name": _make_event_fixture(url, USER, PASSWORD),
+        }],
+        'collection_interval': 15
+    }
+
+
+@pytest.fixture
+def metric_integration_test_instance():  # type: () -> Dict
+    url = 'http://%s:%s' % (HOST, PORT)
+    return {
+        'url': url,
+        'authentication': {
+            'basic_auth': {
+                'username': USER,
+                'password': PASSWORD
+            },
+        },
+        'saved_searches': [{
+            "name": _make_event_fixture(url, USER, PASSWORD),
+            "initial_history_time_seconds": 300
+        }],
+        'collection_interval': 15
+    }
+
+
+def _make_event_fixture(url,  # type: str
+                        user,  # type: str
+                        password  # type: str
+                        ):  # type: (...) -> str
+    """
+    Send requests to a Splunk instance for creating `test_events` search.
+    The Splunk started with Docker Compose command when we run integration tests.
+    """
+    source_type = "sts_test_data"
+    saved_search = "metrics"
+    metric_values = range(10)
+
+    # Delete first to avoid 409 in case of tearing down the `checksdev env stop`
+    requests.delete("%s/services/saved/searches/%s" % (url, saved_search), auth=(user, password))
+
+    requests.post("%s/services/saved/searches" % url,
+                  data={"name": saved_search,
+                        "search": 'sourcetype="{}" '
+                                  'AND topo_type="{}" '
+                                  'AND value!="" '
+                                  'AND metric!="" '
+                                  '| table _bkt _cd _time metric value host'.format(source_type, saved_search)},
+                  auth=(user, password)).raise_for_status()
+    for value in metric_values:
+        requests.post("%s/services/receivers/simple" % url,
+                      params={"host": "server_1", "sourcetype": source_type},
+                      json={"topo_type": saved_search, "metric": "raw.metric", "value": value, "qa": "splunk"},
+                      auth=(USER, PASSWORD)).raise_for_status()
+
+    return saved_search

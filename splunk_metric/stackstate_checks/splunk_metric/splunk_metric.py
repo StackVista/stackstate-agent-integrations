@@ -7,6 +7,27 @@ from stackstate_checks.splunk.config.splunk_instance_config import SplunkTelemet
 from stackstate_checks.splunk.telemetry.splunk_telemetry import SplunkTelemetrySavedSearch, SplunkTelemetryInstance
 from stackstate_checks.splunk.telemetry.splunk_telemetry_base import SplunkTelemetryBase
 
+DEFAULT_SETTINGS = {
+    'default_request_timeout_seconds': 5,
+    'default_search_max_retry_count': 3,
+    'default_search_seconds_between_retries': 1,
+    'default_verify_ssl_certificate': False,
+    'default_batch_size': 1000,
+    'default_saved_searches_parallel': 3,
+    "default_metric_name_field": "metric",
+    "default_metric_value_field": "value",
+    'default_initial_history_time_seconds': 0,
+    'default_max_restart_history_seconds': 86400,
+    'default_max_query_chunk_seconds': 300,
+    'default_initial_delay_seconds': 0,
+    'default_unique_key_fields': ["_bkt", "_cd"],
+    'default_app': "search",
+    'default_parameters': {
+        "force_dispatch": True,
+        "dispatch.now": True
+    }
+}
+
 
 class MetricSavedSearch(SplunkTelemetrySavedSearch):
     last_observed_telemetry = set()
@@ -61,26 +82,7 @@ class SplunkMetric(SplunkTelemetryBase):
         self.raw(metric, float(value), tags, hostname, device_name, int(timestamp))
 
     def get_instance(self, instance, current_time):
-        metric_instance_config = SplunkTelemetryInstanceConfig(instance, self.init_config, {
-            'default_request_timeout_seconds': 5,
-            'default_search_max_retry_count': 3,
-            'default_search_seconds_between_retries': 1,
-            'default_verify_ssl_certificate': False,
-            'default_batch_size': 1000,
-            'default_saved_searches_parallel': 3,
-            "default_metric_name_field": "metric",
-            "default_metric_value_field": "value",
-            'default_initial_history_time_seconds': 0,
-            'default_max_restart_history_seconds': 86400,
-            'default_max_query_chunk_seconds': 300,
-            'default_initial_delay_seconds': 0,
-            'default_unique_key_fields': ["_bkt", "_cd"],
-            'default_app': "search",
-            'default_parameters': {
-                "force_dispatch": True,
-                "dispatch.now": True
-            }
-        })
+        metric_instance_config = SplunkTelemetryInstanceConfig(instance, self.init_config, DEFAULT_SETTINGS)
 
         # method to be overwritten by SplunkMetric and SplunkEvent
         def _create_saved_search(instance_config, saved_search_instance):
