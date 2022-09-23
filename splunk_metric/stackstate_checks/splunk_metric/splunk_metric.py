@@ -1,6 +1,7 @@
 """
     Metrics from splunk. StackState.
 """
+import logging
 
 # 3rd party
 from stackstate_checks.splunk.config.splunk_instance_config import SplunkTelemetryInstanceConfig
@@ -78,6 +79,14 @@ class SplunkMetric(SplunkTelemetryBase):
         hostname = kwargs.get("hostname")
         device_name = kwargs.get("device_name")
         timestamp = kwargs.get("timestamp")
+
+        self.log = logging.getLogger('%s' % __name__)
+        self.log.debug("Submitting a new raw metric with the following values:")
+        self.log.debug(" - Tags: {}".format(tags))
+        self.log.debug(" - Hostname: {}".format(hostname))
+        self.log.debug(" - Value: {}".format(value))
+        self.log.debug(" - DeviceName: {}".format(device_name))
+        self.log.debug(" - Timestamp: {}".format(timestamp))
 
         self.raw(metric, float(value), tags, hostname, device_name, int(timestamp))
 

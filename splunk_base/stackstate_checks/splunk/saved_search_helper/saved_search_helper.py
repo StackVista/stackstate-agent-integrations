@@ -1,7 +1,7 @@
 import copy
 import re
 import time
-import datetime
+import logging
 
 from six import PY3
 
@@ -91,6 +91,8 @@ class SavedSearches(object):
         return all_success
 
     def _process_saved_search(self, process_data, service_check, log, search_id, saved_search, start_time):
+        self.log = logging.getLogger('%s' % __name__)
+
         count = 0
         fail_count = 0
 
@@ -101,6 +103,7 @@ class SavedSearches(object):
 
         try:
             responses = self.splunk_client.saved_search_results(search_id, saved_search)
+            self.log.debug("Attempt to post new raw metrics with a total of {} responses".format(len(responses)))
 
             for response in responses:
                 for message in response.get('messages', []):
