@@ -1,5 +1,9 @@
 # StackState Agent Integrations v2 releases
 
+# 1.22.1 / 2022-09-26
+
+* [Fixed] Updated the cryptography dependency to the latest version.
+
 # 1.22.0 / 2022-08-01
 
 * [Added] Added an Agent v2 Base Class. [STAC-16162](https://stackstate.atlassian.net/browse/STAC-16162)
