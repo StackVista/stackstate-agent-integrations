@@ -1,8 +1,9 @@
 # StackState Agent Integrations v2 releases
 
-# 1.23.0 / ????-??-??
+# 1.23.0 / 2022-09-28
 
 * [Added] Support for spunk metrics [(STAC-16164)] https://stackstate.atlassian.net/browse/STAC-16164 
+* [Added] Support for spunk events [(STAC-16163)] https://stackstate.atlassian.net/browse/STAC-16163 
 
 # 1.22.1 / 2022-09-26
 
