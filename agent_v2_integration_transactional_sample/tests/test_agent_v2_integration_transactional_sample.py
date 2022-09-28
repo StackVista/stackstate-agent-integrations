@@ -125,11 +125,24 @@ class TestAgentIntegration(unittest.TestCase):
         transaction.assert_transaction_state(self.check,
                                              self.check.check_id,
                                              expected_key="transaction_counter",
-                                             expected_value=1)
+                                             expected_value=2)
 
         # Testing for a persistent state after the 2nd check execution
         # Expecting the previous value set after the 1st execution to increase
         state.assert_state(self.check, expected_key="persistent_counter", expected_value=2)
+
+        # Run the check for a third time to test persistent and transactional state
+        self.check.run()
+
+        # Testing for transaction state after the 2nd check execution
+        transaction.assert_transaction_state(self.check,
+                                             self.check.check_id,
+                                             expected_key="transaction_counter",
+                                             expected_value=3)
+
+        # Testing for a persistent state after the 2nd check execution
+        # Expecting the previous value set after the 1st execution to increase
+        state.assert_state(self.check, expected_key="persistent_counter", expected_value=3)
 
     def test_topology_items_from_config_check(self):
         instance_config = {

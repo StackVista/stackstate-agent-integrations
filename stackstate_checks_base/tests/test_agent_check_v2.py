@@ -20,7 +20,6 @@ from stackstate_checks.base.stubs import datadog_agent
 from stackstate_checks.base.stubs.topology import component
 from stackstate_checks.base.utils.state_api import generate_state_key
 
-
 TEST_INSTANCE = {
     "url": "https://example.org/api"
 }
@@ -1443,7 +1442,7 @@ class TestStatefulCheck:
 class NormalCheck(AgentCheckV2):
     def __init__(self, *args, **kwargs):
         instances = [{'a': 'b'}]
-        super(NormalCheck, self).\
+        super(NormalCheck, self). \
             __init__("test", {}, instances)
 
     def check(self, instance):
@@ -1482,7 +1481,6 @@ class StatefulCheck(StatefulAgentCheck):
         return StackPackInstance("test", "stateful")
 
     def stateful_check(self, instance, persistent_state):
-
         persistent_state['updated'] = True
 
         return CheckResponse(persistent_state=persistent_state)
@@ -1501,7 +1499,6 @@ class StatefulSchemaCheck(StatefulAgentCheck):
         return StackPackInstance("test", str(instance.url))
 
     def stateful_check(self, instance, persistent_state):
-
         persistent_state.updated = True
 
         return CheckResponse(persistent_state=persistent_state)
@@ -1517,12 +1514,26 @@ class TransactionalStateCheck(TransactionalAgentCheck):
         return StackPackInstance("test", "transactional-state")
 
     def transactional_check(self, instance, persistent_state, transactional_state):
-
         transactional_state['transactional'] = True
 
         persistent_state["state"] = "set_state"
 
         return CheckResponse(transactional_state=transactional_state, persistent_state=persistent_state)
+
+
+class TransactionalStateDiscardCheck(TransactionalAgentCheck):
+    def __init__(self, key=None, *args, **kwargs):
+        instances = [{'a': 'b'}]
+        super(TransactionalStateDiscardCheck, self). \
+            __init__("test", {}, instances)
+
+    def get_instance_key(self, instance):
+        return StackPackInstance("test", "transactional-state")
+
+    def transactional_check(self, instance, persistent_state, transactional_state):
+        return CheckResponse(transactional_state=transactional_state,
+                             persistent_state=persistent_state,
+                             check_error=Exception("Something Went Wrong"))
 
 
 class TransactionalStateSchema(Model):
@@ -1542,7 +1553,6 @@ class TransactionalStateSchemaCheck(TransactionalAgentCheck):
         return StackPackInstance("test", str(instance.url))
 
     def transactional_check(self, instance, transactional_state, persistent_state):
-
         transactional_state.transactional = True
 
         persistent_state.updated = True
@@ -1596,12 +1606,27 @@ class TestAgentChecksV2:
 
         transaction.assert_completed_transaction(check.check_id)
 
-        expected_transactional_state = {}
+        expected_transactional_state = '{"transactional": true}'
 
         key = get_test_state_key(check, check.TRANSACTIONAL_PERSISTENT_CACHE_KEY)
-        assert state.get_state(check, check.check_id, key) == json.dumps(expected_transactional_state)
+        assert state.get_state(check, check.check_id, key) == expected_transactional_state
 
         expected_state = {"state": "set_state"}
 
         key = get_test_state_key(check)
         assert state.get_state(check, check.check_id, key) == json.dumps(expected_state)
+
+    def test_transactional_state_check_discard(self, transaction, state):
+        check = TransactionalStateDiscardCheck()
+        assert check.run() != ""
+
+        transaction.assert_discarded_transaction_reason(check.check_id, 'Something Went Wrong')
+
+        # Reset State to make sure it does not persist between runs
+        state.reset()
+        transaction.reset()
+
+        check_alt = TransactionalStateCheck()
+        assert check_alt.run() == ""
+
+        transaction.assert_discarded_transaction_reason(check_alt.check_id, None)

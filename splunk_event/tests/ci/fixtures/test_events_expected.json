@@ -1,0 +1,50 @@
+[
+  {
+    "event_type": "generic_splunk_event",
+    "msg_title": "generic_splunk_event",
+    "msg_text": "generic_splunk_event",
+    "tags": [
+      "host:host01",
+      "status:OK",
+      "description:host01 test ok event"
+    ],
+    "timestamp": 1660827057,
+    "source_type_name": "generic_splunk_event"
+  },
+  {
+    "event_type": "generic_splunk_event",
+    "msg_title": "generic_splunk_event",
+    "msg_text": "generic_splunk_event",
+    "tags": [
+      "host:host02",
+      "status:CRITICAL",
+      "description:host02 test critical event"
+    ],
+    "timestamp": 1660827057,
+    "source_type_name": "generic_splunk_event"
+  },
+  {
+    "event_type": "generic_splunk_event",
+    "msg_title": "generic_splunk_event",
+    "msg_text": "generic_splunk_event",
+    "tags": [
+      "host:host03",
+      "status:ERROR",
+      "description:host03 test error event"
+    ],
+    "timestamp": 1660827057,
+    "source_type_name": "generic_splunk_event"
+  },
+  {
+    "event_type": "generic_splunk_event",
+    "msg_title": "generic_splunk_event",
+    "msg_text": "generic_splunk_event",
+    "tags": [
+      "host:host04",
+      "status:WARNING",
+      "description:host04 test warning event"
+    ],
+    "timestamp": 1660827057,
+    "source_type_name": "generic_splunk_event"
+  }
+]

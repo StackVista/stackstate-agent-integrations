@@ -3,9 +3,9 @@ import unittest
 import logging
 
 # project
-from stackstate_checks.splunk.config import SplunkInstanceConfig, SplunkSavedSearch
+from stackstate_checks.splunk.config import SplunkInstanceConfig, SplunkSavedSearch, SplunkPersistentState
 from stackstate_checks.splunk.client import FinalizeException
-from test_splunk_instance_config import MockedCommittableState, mock_defaults
+from test_splunk_instance_config import mock_defaults
 from stackstate_checks.splunk.saved_search_helper import SavedSearches
 from stackstate_checks.base import AgentCheck
 from stackstate_checks.base.errors import CheckException
@@ -74,7 +74,7 @@ class MockProcessData(object):
         self.results = []
         self.ret_val = 0
 
-        def _process_data(saved_search, response):
+        def _process_data(saved_search, response, sent_already):
             self.results.append(response)
             return self.ret_val
 
@@ -85,7 +85,7 @@ class TestSplunkInstanceConfig(unittest.TestCase):
 
     def setUp(self):
         self.log = logging.getLogger('%s' % __name__)
-        self.committable_state = MockedCommittableState({})
+        self.committable_state = SplunkPersistentState({})
         self.mock_service_check = MockServiceCheck()
         self.mock_process_data = MockProcessData()
         self.mock_splunk_client = MockSplunkClient()
@@ -129,7 +129,7 @@ class TestSplunkInstanceConfig(unittest.TestCase):
         except Exception:
             issue = True
         assert issue
-        assert self.mock_service_check.results == []
+        assert self.mock_service_check.results == [[AgentCheck.WARNING, ['mytag', 'mytag2'], None, "'sid1'"]]
         assert self.committable_state.state == {'sid_breaking': 'sid1'}
 
         # Make sure it now runs correctly
@@ -140,7 +140,9 @@ class TestSplunkInstanceConfig(unittest.TestCase):
         searches.run_saved_searches(self.mock_process_data.function, self.mock_service_check.function, self.log,
                                     self.committable_state)
         assert self.mock_splunk_client.finalized == ['sid1']
-        assert self.mock_service_check.results == [[AgentCheck.OK, None, None, None]]
+        assert len(self.mock_service_check.results) == 2
+        assert [AgentCheck.OK, None, None, None] in self.mock_service_check.results
+        assert [AgentCheck.WARNING, ['mytag', 'mytag2'], None, "'sid1'"] in self.mock_service_check.results
         assert self.committable_state.state == {'sid_breaking': 'sid1'}
 
     def test_keep_sid_when_finalize_fails(self):
@@ -159,7 +161,7 @@ class TestSplunkInstanceConfig(unittest.TestCase):
         except Exception:
             issue = True
         assert issue
-        assert self.mock_service_check.results == []
+        assert self.mock_service_check.results == [[AgentCheck.WARNING, ['mytag', 'mytag2'], None, "'sid1'"]]
         assert self.committable_state.state == {'sid_breaking': 'sid1'}
 
         # Run again, this will trigger an issue during finalize
@@ -173,7 +175,7 @@ class TestSplunkInstanceConfig(unittest.TestCase):
         assert issue2
 
         assert mock_splunk_client.finalized == ['sid1']
-        assert self.mock_service_check.results == []
+        assert self.mock_service_check.results == [[AgentCheck.WARNING, ['mytag', 'mytag2'], None, "'sid1'"]]
         assert self.committable_state.state == {'sid_breaking': 'sid1'}
 
     def test_incomplete_data(self):
@@ -199,7 +201,8 @@ class TestSplunkInstanceConfig(unittest.TestCase):
         assert issue
 
         assert self.mock_process_data.results == [data1]
-        assert self.mock_service_check.results == []
+        assert self.mock_service_check.results == [[AgentCheck.WARNING, ['mytag', 'mytag2'], None,
+                                                    "All result of saved search 'search1' contained incomplete data"]]
 
     def test_partially_incomplete_data(self):
         instance = SplunkInstanceConfig(base_instance, {}, mock_defaults)
@@ -241,8 +244,15 @@ class TestSplunkInstanceConfig(unittest.TestCase):
         assert issue
 
         assert self.mock_process_data.results == [data1, data2]
-        assert self.mock_service_check.results == [[AgentCheck.WARNING, ['mytag', 'mytag2'], None,
-                                                    "The saved search 'search1' contained 1 incomplete records"]]
+        assert self.mock_service_check.results == [[AgentCheck.WARNING,
+                                                    ['mytag', 'mytag2'],
+                                                    None,
+                                                    "The saved search 'search1' contained 1 incomplete records"],
+                                                   [AgentCheck.WARNING,
+                                                    ['mytag', 'mytag2'],
+                                                    None,
+                                                    "All result of saved search 'search2' contained incomplete data"]
+                                                   ]
 
     def test_wildcard_topology(self):
         instance = SplunkInstanceConfig(base_instance, {}, mock_defaults)
@@ -377,7 +387,7 @@ class TestSplunkInstanceConfig(unittest.TestCase):
             issue = True
         assert issue
         assert self.mock_process_data.results == []
-        assert self.mock_service_check.results == []
+        assert self.mock_service_check.results == [[AgentCheck.WARNING, ['mytag', 'mytag2'], None, "'sid_broken'"]]
 
     def test_incomplete_and_failing_produce_warnings(self):
         """
@@ -408,7 +418,6 @@ class TestSplunkInstanceConfig(unittest.TestCase):
         searches.run_saved_searches(self.mock_process_data.function, self.mock_service_check.function, self.log,
                                     self.committable_state)
 
-        assert self.mock_service_check.results == [
-                                                   [AgentCheck.WARNING, [], None,
+        assert self.mock_service_check.results == [[AgentCheck.WARNING, [], None,
                                                     "All result of saved search 'search1' contained incomplete data"],
                                                    [AgentCheck.WARNING, [], None, "'broken_sid'"]]

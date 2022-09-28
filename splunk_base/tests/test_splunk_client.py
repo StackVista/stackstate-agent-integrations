@@ -10,8 +10,7 @@ import datetime
 
 # project
 from stackstate_checks.splunk.client import SplunkClient, FinalizeException, TokenExpiredException
-from stackstate_checks.splunk.config import AuthType
-from test_splunk_instance_config import MockedCommittableState
+from stackstate_checks.splunk.config import AuthType, SplunkPersistentState
 
 
 class FakeInstanceConfig(object):
@@ -297,7 +296,7 @@ class TestSplunkClient(unittest.TestCase):
         Test token_auth_session when memory token is valid and doesn't need renewal
         """
         # load a token in memory for validation
-        status = MockedCommittableState({})
+        status = SplunkPersistentState({})
         status.set_auth_token('memorytokenpresent')
         config = FakeInstanceConfig()
         config.auth_type = AuthType.TokenAuth
@@ -323,7 +322,7 @@ class TestSplunkClient(unittest.TestCase):
         """
         new_token = json.loads(mocked_token_create_response()).get('entry')[0].get('content').get('token')
 
-        status = MockedCommittableState({})
+        status = SplunkPersistentState({})
         config = FakeInstanceConfig()
         config.auth_type = AuthType.TokenAuth
 
@@ -338,7 +337,6 @@ class TestSplunkClient(unittest.TestCase):
         self.assertEqual(expected_header, "Bearer {}".format(new_token))
         # persistence data will have new updated token
         self.assertEqual(status.get_auth_token(), new_token)
-        self.assertEqual(status.committed, status.state)
 
     @mock.patch('stackstate_checks.splunk.client.splunk_client.jwt.decode',
                 return_value={"exp": 1591797915, "iat": 1584021915, "aud": "stackstate"})
@@ -350,7 +348,7 @@ class TestSplunkClient(unittest.TestCase):
         """
         new_token = json.loads(mocked_token_create_response()).get('entry')[0].get('content').get('token')
 
-        status = MockedCommittableState({})
+        status = SplunkPersistentState({})
         # load a token in memory for validation
         status.set_auth_token('memorytokenpresent')
         config = FakeInstanceConfig()
@@ -367,7 +365,6 @@ class TestSplunkClient(unittest.TestCase):
         self.assertEqual(expected_header, "Bearer {}".format(new_token))
         # persistence data will have new token as well
         self.assertEqual(status.get_auth_token(), new_token)
-        self.assertEqual(status.committed, status.state)
 
     @mock.patch('stackstate_checks.splunk.client.splunk_client.jwt.decode',
                 return_value={"exp": 1591797915, "iat": 1584021915, "aud": "stackstate"})
@@ -375,7 +372,7 @@ class TestSplunkClient(unittest.TestCase):
         """
         Test token_auth_session to throw TokenExpiredException when initial token is expired
         """
-        status = MockedCommittableState({})
+        status = SplunkPersistentState({})
         config = FakeInstanceConfig()
         config.auth_type = AuthType.TokenAuth
 
@@ -398,7 +395,7 @@ class TestSplunkClient(unittest.TestCase):
         """
         Test token_auth_session to throw TokenExpiredException when memory token is expired
         """
-        status = MockedCommittableState({})
+        status = SplunkPersistentState({})
         # load a token in memory for validation
         status.set_auth_token('memorytokenpresent')
         config = FakeInstanceConfig()

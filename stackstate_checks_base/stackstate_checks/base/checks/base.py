@@ -9,15 +9,15 @@ import os
 import re
 import traceback
 import unicodedata
+import sys
+import yaml
+
 from collections import defaultdict
 from functools import reduce
 from os.path import basename
-
-import yaml
 from schematics import Model
 from six import PY3, iteritems, iterkeys, text_type, string_types, integer_types
 from typing import Any, Set, Dict, Sequence, List, Optional, Union, AnyStr, TypeVar
-
 from ..utils.health_api import HealthApiCommon
 
 try:
@@ -475,6 +475,7 @@ class AgentCheck(HealthApiCommon):
         check_instance = self._get_instance_schema(self.instance)
 
         value = self.get_instance_key(check_instance)
+
         if value is None:
             AgentCheck._raise_unexpected_type("get_instance_key()", "None", "dictionary")
         if not isinstance(value, (TopologyInstance, AgentIntegrationInstance, NoIntegrationInstance)):
@@ -482,6 +483,10 @@ class AgentCheck(HealthApiCommon):
                                               value,
                                               "TopologyInstance, AgentIntegrationInstance or "
                                               "DefaultIntegrationInstance")
+        # Convert unicode to string if the url is a unicode
+        if isinstance(value.url, text_type):
+            value.url = str(value.url)
+
         if not isinstance(value.type, str):
             raise ValueError("Instance requires a 'type' field of type 'string'")
         if not isinstance(value.url, str):

@@ -1,6 +1,8 @@
-import time
-import requests
 import logging
+import time
+
+import requests
+import urllib3
 from six import PY3
 
 if PY3:
@@ -11,18 +13,20 @@ else:
 import jwt
 import datetime
 
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
+from urllib3.exceptions import InsecureRequestWarning
 from requests.exceptions import HTTPError, ConnectionError, Timeout
 from stackstate_checks.base.errors import CheckException
 from stackstate_checks.splunk.config import AuthType
+from stackstate_checks.base.checks import StatefulMixin
 
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+urllib3.disable_warnings(InsecureRequestWarning)
 
 
 class FinalizeException(Exception):
     """
        A custom exception for the finalize_sid method
     """
+
     def __init__(self, code, message):
         self.code = code
         self.message = message
@@ -38,9 +42,9 @@ class TokenExpiredException(Exception):
         self.code = code
 
 
-class SplunkClient(object):
+class SplunkClient:
 
-    def __init__(self, instance_config):
+    def __init__(self, instance_config, *args, **kwargs):
         self.instance_config = instance_config
         self.log = logging.getLogger('%s' % __name__)
         self.requests_session = requests.session()
@@ -173,8 +177,9 @@ class SplunkClient(object):
         :param count: the maximum number of elements expecting to be returned by the API call
         :return: raw json response from splunk
         """
-        search_path = '/servicesNS/-/-/search/jobs/%s/results?output_mode=json&offset=%s&count=%s' %\
+        search_path = '/servicesNS/-/-/search/jobs/%s/results?output_mode=json&offset=%s&count=%s' % \
                       (search_id, offset, count)
+
         response = self._do_get(search_path,
                                 saved_search.request_timeout_seconds,
                                 self.instance_config.verify_ssl_certificate)
@@ -207,7 +212,7 @@ class SplunkClient(object):
         while nr_of_results is None or nr_of_results == saved_search.batch_size:
             response = self._search_chunk(saved_search, search_id, offset, saved_search.batch_size)
             # received a message?
-            for message in response['messages']:
+            for message in response.get('messages', []):
                 if message['type'] == "FATAL":
                     raise CheckException("Received FATAL exception from Splunk, got: " + message['text'])
 
@@ -226,18 +231,21 @@ class SplunkClient(object):
     def dispatch(self, saved_search, splunk_app, ignore_saved_search_errors, parameters):
         """
         :param saved_search: The saved search to dispatch
-        :param splunk_user: Splunk user that dispatches the saved search
         :param splunk_app: Splunk App under which the saved search is located
+        :param ignore_saved_search_errors: Ignore saved search errors
         :param parameters: Parameters of the saved search
         :return: the sid of the saved search
         """
         splunk_user = self._get_dispatch_user()
-        dispatch_path = '/servicesNS/%s/%s/saved/searches/%s/dispatch' %\
+        dispatch_path = '/servicesNS/%s/%s/saved/searches/%s/dispatch' % \
                         (splunk_user, splunk_app, quote(saved_search.name))
+        self.log.debug("Searching on Dispatch Path: " + dispatch_path)
+
         response_body = self._do_post(dispatch_path,
                                       parameters,
                                       saved_search.request_timeout_seconds,
                                       ignore_saved_search_errors).json()
+
         return response_body.get("sid")
 
     def finalize_sid(self, search_id, saved_search):
@@ -245,8 +253,9 @@ class SplunkClient(object):
         :param search_id: The saved search id to finish
         :param saved_search: The saved search to finish
         """
-        finish_path = '/services/search/jobs/%s/control' % (search_id)
+        finish_path = '/services/search/jobs/%s/control?output_mode=json' % search_id
         payload = "action=finalize"
+
         try:
             res = self._do_post(finish_path,
                                 payload,
@@ -264,11 +273,11 @@ class SplunkClient(object):
                 raise FinalizeException(error.response.status_code, error.response.reason)
         # in case of timeout like read timeout or request timeout
         except Timeout as error:
-            self.log.error("Search job not finalized as the timeout error occured %s" % error)
+            self.log.error("Search job not finalized as the timeout error occurred %s" % error)
             raise FinalizeException(None, str(error))
         # in case of network issue
         except ConnectionError as error:
-            self.log.error("Search job not finalized as connection error occured %s" % error)
+            self.log.error("Search job not finalized as connection error occurred %s" % error)
             raise FinalizeException(None, str(error))
 
     def _do_get(self, path, request_timeout_seconds, verify_ssl_certificate):
@@ -292,17 +301,17 @@ class SplunkClient(object):
         except HTTPError as error:
             if not splunk_ignore_saved_search_errors:
                 raise error
-            self.log.warn("Received response with status {} and body {}".format(resp.status_code, resp.content))
+            self.log.warning("Received response with status {} and body {}".format(resp.status_code, resp.content))
         except Timeout as error:
             if not splunk_ignore_saved_search_errors:
                 self.log.error("Got a timeout error")
                 raise error
-            self.log.warn("Ignoring the timeout error as the flag ignore_saved_search_errors is true")
+            self.log.warning("Ignoring the timeout error as the flag ignore_saved_search_errors is true")
         except ConnectionError as error:
             if not splunk_ignore_saved_search_errors:
                 self.log.error(
                     "Received error response with status {} and body {}".format(resp.status_code, resp.content)
                 )
                 raise error
-            self.log.warn("Ignoring the connection error as the flag ignore_saved_search_errors is true")
+            self.log.warning("Ignoring the connection error as the flag ignore_saved_search_errors is true")
         return resp

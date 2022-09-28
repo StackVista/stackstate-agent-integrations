@@ -6,15 +6,15 @@
 # 3rd party
 import sys
 
-from stackstate_checks.base import AgentCheck, TopologyInstance, HealthStream, HealthStreamUrn, HealthType
-from stackstate_checks.base.errors import CheckException
-from stackstate_checks.splunk.client import TokenExpiredException, SplunkClient
-
-from stackstate_checks.splunk.config.splunk_instance_config import SplunkSavedSearch, SplunkInstanceConfig, \
-    CommittableState
-from stackstate_checks.splunk.saved_search_helper import SavedSearches
 from schematics.exceptions import ValidationError
 
+from stackstate_checks.base import AgentCheck, TopologyInstance, HealthStream, HealthStreamUrn, HealthType
+from stackstate_checks.base.checks import StatefulAgentCheck, CheckResponse
+from stackstate_checks.base.errors import CheckException
+from stackstate_checks.splunk.client import TokenExpiredException, SplunkClient
+from stackstate_checks.splunk.config import SplunkPersistentState
+from stackstate_checks.splunk.config.splunk_instance_config import SplunkSavedSearch, SplunkInstanceConfig
+from stackstate_checks.splunk.saved_search_helper import SavedSearches
 
 default_settings = {
     'default_request_timeout_seconds': 5,
@@ -49,7 +49,7 @@ class Instance(object):
         return SplunkClient(self.instance_config)
 
 
-class SplunkHealth(AgentCheck):
+class SplunkHealth(StatefulAgentCheck):
     SERVICE_CHECK_NAME = "splunk.health_information"
 
     def __init__(self, name, init_config, agentConfig, instances=None):
@@ -68,26 +68,26 @@ class SplunkHealth(AgentCheck):
     def _build_instance(self, instance):
         return Instance(instance, self.init_config)
 
-    def check(self, instance):
+    def stateful_check(self, instance, persistent_state):
         if self.instance_data is None:
             self.instance_data = self._build_instance(instance)
 
-        committable_state = CommittableState(self.commit_state, self.load_state(instance))
+        pstate = SplunkPersistentState(persistent_state)
 
         instance = self.instance_data
 
         self.health.start_snapshot()
 
         try:
-            instance.splunk_client.auth_session(committable_state)
+            instance.splunk_client.auth_session(pstate)
 
             def _service_check(status, tags=None, hostname=None, message=None):
                 self.service_check(self.SERVICE_CHECK_NAME, status, tags, hostname, message)
 
-            def _process_data(saved_search, response):
+            def _process_data(saved_search, response, sent_already):
                 return self._extract_health(instance, response)
 
-            instance.saved_searches.run_saved_searches(_process_data, _service_check, self.log, committable_state)
+            instance.saved_searches.run_saved_searches(_process_data, _service_check, self.log, pstate)
 
             self.health.stop_snapshot()
         except TokenExpiredException as e:
@@ -99,7 +99,12 @@ class SplunkHealth(AgentCheck):
                                message=str(e))
             self.log.exception("Splunk health exception: %s" % str(e))
             if not instance.instance_config.ignore_saved_search_errors:
-                raise CheckException("Splunk health failed with message: %s" % e, None, sys.exc_info()[2])
+                # raise CheckException("Splunk health failed with message: %s" % e, None, sys.exc_info()[2])
+                return CheckResponse(persistent_state=pstate.state,
+                                     check_error=CheckException("Splunk health failed with message: %s" % e, None,
+                                                                sys.exc_info()[2])
+                                     )
+        return CheckResponse(persistent_state=pstate.state)
 
     def _extract_health(self, instance, result):
         fail_count = 0
