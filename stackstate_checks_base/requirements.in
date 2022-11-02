@@ -1,4 +1,4 @@
-kubernetes==8.0.1
+kubernetes==25.3.0
 pyyaml==5.4.1
 prometheus-client==0.3.0
 protobuf==3.7.0
