@@ -24,7 +24,7 @@ class SavedSearches(object):
         self.matches = list(filter(lambda ss: ss.match is not None, saved_searches))
 
     def run_saved_searches(self, process_data, service_check, log, persisted_state, update_status=None):
-        new_saved_searches = self.splunk_client.saved_searches()
+        new_saved_searches = self.splunk_client.saved_searches(self.instance_config.app)
         self._update_searches(log, new_saved_searches)
         all_success = True
 
@@ -153,8 +153,6 @@ class SavedSearches(object):
         :return: search id
         """
         parameters = saved_search.parameters
-        # json output_mode is mandatory for response parsing
-        parameters["output_mode"] = "json"
 
         splunk_app = saved_search.app
 
@@ -170,7 +168,7 @@ class SavedSearchesTelemetry(SavedSearches):
     TIME_FMT = "%Y-%m-%dT%H:%M:%S.%f%z"
 
     def run_saved_searches(self, process_data, service_check, log, persisted_state, update_status=None):
-        new_saved_searches = self.splunk_client.saved_searches()
+        new_saved_searches = self.splunk_client.saved_searches(self.instance_config.app)
         self._update_searches(log, new_saved_searches)
 
         if callable(update_status):
@@ -225,8 +223,6 @@ class SavedSearchesTelemetry(SavedSearches):
 
     def _dispatch_saved_search(self, log, persisted_state, saved_search):
         parameters = saved_search.parameters
-        # json output_mode is mandatory for response parsing
-        parameters["output_mode"] = "json"
 
         earliest_epoch_datetime = get_utc_time(saved_search.last_observed_timestamp)
         splunk_app = saved_search.app
