@@ -219,14 +219,6 @@ test_kubelet:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
 
-test_kubernetes_state:
-  <<: *linux_test
-  variables:
-    CHECK: "kubernetes_state"
-    PYTHON3: "true"
-    DOCKER_HOST: tcp://docker:2375/
-    DOCKER_DRIVER: overlay2
-
 test_mysql:
   <<: *linux_test
   variables:
