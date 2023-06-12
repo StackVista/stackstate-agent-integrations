@@ -215,7 +215,7 @@ class PrometheusScraperMixin(object):
                 metric_name = "%s_bucket" % metric.name if metric.type == "histogram" else metric.name
                 metric_type = self.type_overrides.get(metric_name, metric.type)
                 if metric_type == "untyped" or metric_type not in self.METRIC_TYPES:
-                    continue
+                    metric_type = "gauge"
 
                 for sample in metric.samples:
                     if (sample[0].endswith("_sum") or sample[0].endswith("_count")) and \

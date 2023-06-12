@@ -231,7 +231,7 @@ class OpenMetricsScraperMixin(object):
         for metric in text_fd_to_metric_families(input_gen):
             metric.type = scraper_config['type_overrides'].get(metric.name, metric.type)
             if metric.type not in self.METRIC_TYPES:
-                continue
+                metric.type = "gauge"
             metric.name = self._remove_metric_prefix(metric.name, scraper_config)
             yield metric
 
