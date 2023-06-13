@@ -958,7 +958,15 @@ class AgentCheck(HealthApiCommon):
         if value is None:
             # ignore metric sample
             return
+        if tags is None:
+            tags = []
 
+        if self.cluster_name:
+            # Add cluster name to tags only if it is not already present
+            if self.cluster_name and not any('cluster_name:' in tag for tag in tags):
+                tags += ['cluster_name:%s' % self.cluster_name]
+            tags += ['kube_cluster_name:%s' % self.cluster_name]
+            
         tags = self._normalize_tags_type(tags, device_name, name)
         if hostname is None:
             hostname = to_string(b'')

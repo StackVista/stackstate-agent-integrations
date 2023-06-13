@@ -311,7 +311,7 @@ class KubeletCheck(CadvisorPrometheusScraperMixin, OpenMetricsBaseCheck, Cadviso
             node_resp.raise_for_status()
         except requests.HTTPError as e:
             if node_resp.status_code == 404:
-                # ignore HTTPError, for supporting k8s >= 1.18 in a degrated mode
+                # ignore HTTPError, for supporting k8s >= 1.18 in a degraded mode
                 # in 1.18 the /spec can be reactivated from the kubelet config
                 # in 1.19 the /spec will removed.
                 return
