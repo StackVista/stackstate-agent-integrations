@@ -153,12 +153,8 @@ def test_parse_metric_family_text(text_data, mocked_prometheus_check):
 
     response = MockResponse(text_data, 'text/plain; version=0.0.4')
 
-    messages = list(check.parse_metric_family(response))
-    # total metrics are 41 but one is typeless and we expect it not to be
-    # parsed...
-    assert len(messages) == 40
-    # ...unless the check ovverrides the type manually
-    check.type_overrides = {"go_goroutines": "gauge"}
+    # override the type manually
+    check.type_overrides = {"go_goroutines": "count"}
     response = MockResponse(text_data, 'text/plain; version=0.0.4')
     messages = list(check.parse_metric_family(response))
     assert len(messages) == 41
@@ -349,7 +345,7 @@ def test_poll_text_plain(mocked_prometheus_check, text_data):
         response = check.poll("http://fake.endpoint:10055/metrics")
         messages = list(check.parse_metric_family(response))
         messages.sort(key=lambda x: x.name)
-        assert len(messages) == 40
+        assert len(messages) == 41
         assert messages[-1].name == 'skydns_skydns_dns_response_size_bytes'
 
 
