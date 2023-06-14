@@ -152,7 +152,7 @@ def test_poll_text_plain(mocked_prometheus_check, mocked_prometheus_scraper_conf
         response = check.poll(mocked_prometheus_scraper_config)
         messages = list(check.parse_metric_family(response, mocked_prometheus_scraper_config))
         messages.sort(key=lambda x: x.name)
-        assert len(messages) == 40
+        assert len(messages) == 41
         assert messages[-1].name == 'skydns_skydns_dns_response_size_bytes'
 
 
