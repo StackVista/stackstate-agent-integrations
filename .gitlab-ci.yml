@@ -107,6 +107,31 @@ print_env:
     - printenv
   interruptible: true
 
+docker:
+  <<: *manual_job_rules
+  image: ${DOCKER_PROXY_URL}/docker:20-git
+  stage: build
+  script:
+    - echo "${docker_password}" | docker login --username=${docker_user} --password-stdin docker.io
+    - echo "${quay_password}" | docker login --username=${quay_user} --password-stdin quay.io
+    - echo "${artifactory_password}" | docker login --username=${artifactory_user} --password-stdin artifactory.tooling.stackstate.io
+    - apk add make
+    - cd .setup-scripts/image
+    - make build
+    - make push
+    - if [ "${CI_COMMIT_REF_NAME}" = "master" ]; then make tag_latest; make push_latest; fi
+  services:
+    - alias: docker
+      command:
+        - --experimental
+        - --tls=false
+      name: ${DOCKER_PROXY_URL}/docker:20-dind
+  variables:
+    DOCKER_DRIVER: overlay2
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+
+
 linux_deps:
   <<: *linux_env
   <<: *base_job_rules
