@@ -1,6 +1,6 @@
-FROM python:3.6
+FROM python:3.8.11
 RUN apt-get update && \
-    apt-get install -y virtualenv python2.7-dev apt-transport-https ca-certificates curl gnupg2 software-properties-common && \
+    apt-get install -y virtualenv apt-transport-https ca-certificates curl gnupg2 software-properties-common && \
     apt-get clean
 
 RUN curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add -
