@@ -3,7 +3,7 @@
 There is a Nagios + MySQL environment that is useful for testing. 
 
 ```shell
-checksdev env start nagios py27
+checksdev env start nagios py3
 ```
 
 ## Simulation events
