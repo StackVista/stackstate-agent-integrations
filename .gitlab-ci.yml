@@ -1,13 +1,13 @@
-image: artifactory.tooling.stackstate.io/docker-virtual/stackstate/stackstate-agent-integrations-runner:latest
-
+#image: artifactory.tooling.stackstate.io/docker-virtual/stackstate/stackstate-agent-integrations-runner:latest-py38
+image: artifactory.tooling.stackstate.io/docker-virtual/stackstate/stackstate-agent-integrations-runner:20230707-py38
 stages:
   - build
   - test
   - publish
 
 variables:
-  CONDA_ENV: "stackstate-agent-integrations-py-2"
-  PYTHON_VERSION: 2.7.18
+  CONDA_ENV: "stackstate-agent-integrations-py-3"
+  PYTHON_VERSION: 3.8.11
 
 .rules:
   - &pull_requests
@@ -472,7 +472,7 @@ test_solarwinds:
 test_stackstate_checks_dev_win:
   <<: *windows_test
   variables:
-    CHECK: "stackstate_checks_dev:py27-default,stackstate_checks_dev:flake8"
+    CHECK: "stackstate_checks_dev:py3-default,stackstate_checks_dev:flake8"
 
 test_stackstate_checks_base_win:
   <<: *windows_test

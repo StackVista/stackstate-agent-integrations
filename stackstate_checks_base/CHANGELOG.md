@@ -1,3 +1,7 @@
+## 6.12.0 / 2023-06-27
+
+* [Changed] Migrated to python3
+
 ## 6.11.0 / 2020-03-09
 
 * [Added] Added support to map user defined `stackstate-environment` tags or config to the `environments` object
