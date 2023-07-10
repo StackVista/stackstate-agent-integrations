@@ -18,7 +18,7 @@ if [ ! -d $VENV_PATH ]; then
 else
   echo "$VENV_PATH already exists, only activating the venv"
   ls $INTEGRATIONS_DIR_TMP/venv/bin || echo 'no bin'
-  ls $INTEGRATIONS_DIR_TMP/venv/lib/python3.6/site-packages || echo 'no site-packages'
+  ls $INTEGRATIONS_DIR_TMP/venv/lib/python3.8/site-packages || echo 'no site-packages'
   source $INTEGRATIONS_DIR_TMP/venv/bin/activate
   pip freeze
   pip -V
