@@ -19,7 +19,7 @@ instance = {
         'counter1'
     ],
     'send_histograms_buckets': True,
-    'send_monotonic_counter': True
+    'send_monotonic_counter': False
 }
 
 

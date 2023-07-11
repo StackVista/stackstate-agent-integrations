@@ -103,7 +103,7 @@ class GenericPrometheusCheck(AgentCheck):
         scraper.process(
             endpoint,
             send_histograms_buckets=instance.get('send_histograms_buckets', True),
-            send_monotonic_counter=instance.get('send_monotonic_counter', True),
+            send_monotonic_counter=instance.get('send_monotonic_counter', False),
             instance=instance,
             ignore_unmapped=True
         )
