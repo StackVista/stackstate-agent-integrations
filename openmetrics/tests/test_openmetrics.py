@@ -5,7 +5,7 @@ from stackstate_checks.openmetrics import OpenMetricsCheck
 from stackstate_checks.base import AgentIntegrationInstance
 import pytest
 import mock
-from prometheus_client import generate_latest, CollectorRegistry, Gauge, Counter
+from prometheus_client import generate_latest, CollectorRegistry, Gauge, Counter, Histogram
 
 CHECK_NAME = 'openmetrics'
 NAMESPACE = 'openmetrics'
@@ -16,7 +16,8 @@ instance = {
     'metrics': [
         {'metric1': 'renamed.metric1'},
         'metric2',
-        'counter1'
+        'counter1',
+        'hist1'
     ],
     'send_histograms_buckets': True,
     'send_monotonic_counter': False
@@ -34,6 +35,8 @@ def poll_mock():
     c1.labels(node='host2').inc(42)
     g3 = Gauge('metric3', 'memory usage', ['matched_label', 'node', 'timestamp'], registry=registry)
     g3.labels(matched_label='foobar', node='host2', timestamp='456').set(float('inf'))
+    h1 = Histogram('hist1', 'latency', ['node'], buckets=[0.0, 1.0, "+Inf"], registry=registry)
+    h1.labels(node='host2').observe(0.123)
 
     with mock.patch(
         'requests.get',
@@ -67,31 +70,47 @@ def test_openmetrics_check(aggregator):
     aggregator.assert_metric(
         CHECK_NAME + '.counter1',
         tags=['node:host2'],
-        metric_type=aggregator.MONOTONIC_COUNT
+        metric_type=aggregator.GAUGE
+    )
+    aggregator.assert_metric(
+        CHECK_NAME + '.hist1.bucket',
+        tags=['node:host2', 'le:0.0'],
+        metric_type=aggregator.GAUGE,
+        value=0.0
+    )
+    aggregator.assert_metric(
+        CHECK_NAME + '.hist1.bucket',
+        tags=['node:host2', 'le:1.0'],
+        metric_type=aggregator.GAUGE,
+        value=1.0
+    )
+    aggregator.assert_metric(
+        CHECK_NAME + '.hist1.bucket',
+        tags=['node:host2', 'le:+Inf'],
+        metric_type=aggregator.GAUGE,
+    )
+    aggregator.assert_metric(
+        CHECK_NAME + '.hist1.count',
+        tags=['node:host2'],
+        metric_type=aggregator.GAUGE
+    )
+    aggregator.assert_metric(
+        CHECK_NAME + '.hist1.sum',
+        tags=['node:host2'],
+        metric_type=aggregator.GAUGE
     )
     aggregator.assert_all_metrics_covered()
 
 
 def test_openmetrics_check_counter_gauge(aggregator):
-    instance['send_monotonic_counter'] = False
+    instance['send_monotonic_counter'] = True
     c = OpenMetricsCheck('openmetrics', None, {}, [instance])
     c.check(instance)
     aggregator.assert_metric(
-        CHECK_NAME + '.renamed.metric1',
-        tags=['node:host1', 'flavor:test', 'matched_label:foobar'],
-        metric_type=aggregator.GAUGE
-    )
-    aggregator.assert_metric(
-        CHECK_NAME + '.metric2',
-        tags=['timestamp:123', 'node:host2', 'matched_label:foobar'],
-        metric_type=aggregator.GAUGE
-    )
-    aggregator.assert_metric(
         CHECK_NAME + '.counter1',
         tags=['node:host2'],
-        metric_type=aggregator.GAUGE
+        metric_type=aggregator.MONOTONIC_COUNT
     )
-    aggregator.assert_all_metrics_covered()
 
 
 def test_invalid_metric(aggregator):

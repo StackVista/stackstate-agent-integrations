@@ -148,8 +148,6 @@ class OpenMetricsScraperMixin(object):
         # when sending the gauges.
         config['labels_mapper'] = default_instance.get('labels_mapper', {})
         config['labels_mapper'].update(instance.get('labels_mapper', {}))
-        # Rename bucket "le" label to "upper_bound"
-        config['labels_mapper']['le'] = 'upper_bound'
 
         # `exclude_labels` is an array of labels names to exclude. Those labels
         # will just not be added as tags when submitting the metric.
@@ -572,11 +570,9 @@ class OpenMetricsScraperMixin(object):
                 tags = self._metric_tags(metric_name, val, sample, scraper_config, hostname)
                 self.gauge("{}.{}.count".format(scraper_config['namespace'], metric_name), val, tags=tags,
                            hostname=custom_hostname)
-            elif (scraper_config['send_histograms_buckets'] and sample[self.SAMPLE_NAME].endswith("_bucket") and
-                    "Inf" not in sample[self.SAMPLE_LABELS]["le"]):
-                sample[self.SAMPLE_LABELS]["le"] = float(sample[self.SAMPLE_LABELS]["le"])
+            elif scraper_config['send_histograms_buckets'] and sample[self.SAMPLE_NAME].endswith("_bucket"):
                 tags = self._metric_tags(metric_name, val, sample, scraper_config, hostname)
-                self.gauge("{}.{}.count".format(scraper_config['namespace'], metric_name), val, tags=tags,
+                self.gauge("{}.{}.bucket".format(scraper_config['namespace'], metric_name), val, tags=tags,
                            hostname=custom_hostname)
 
     def _metric_tags(self, metric_name, val, sample, scraper_config, hostname=None):
