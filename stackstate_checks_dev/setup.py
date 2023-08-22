@@ -87,7 +87,7 @@ setup(
             'semver',
             'setuptools',
             'toml>=0.9.4, <1.0.0',
-            'tox',
+            'tox<4.0.0',
             'twine>=1.11.0',
             'wheel',
         ],
