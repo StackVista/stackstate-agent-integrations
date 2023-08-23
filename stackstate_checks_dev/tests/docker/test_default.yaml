@@ -3,7 +3,7 @@ version: '3'
 services:
 
   vault:
-    image: hashicorp/vault:latest
+    image: artifactory.tooling.stackstate.io/docker-virtual/hashicorp/vault:latest
     container_name: checksdev_vault
     cap_add:
       - IPC_LOCK
