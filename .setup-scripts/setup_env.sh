@@ -12,8 +12,9 @@ VENV_PATH=$INTEGRATIONS_DIR_TMP/venv
 
 if [ ! -d $VENV_PATH ]; then
   echo "$VENV_PATH doesn't exist, create the venv and loading deps"
-  virtualenv --python=python3 $INTEGRATIONS_DIR_TMP/venv
+  virtualenv --python=python3.8 --pip=23.1.2 $INTEGRATIONS_DIR_TMP/venv
   source $INTEGRATIONS_DIR_TMP/venv/bin/activate
+  pip install -U setuptools
   source $INTEGRATIONS_DIR_TMP/.setup-scripts/load_deps.sh
 else
   echo "$VENV_PATH already exists, only activating the venv"
