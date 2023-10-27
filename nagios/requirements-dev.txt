@@ -1,1 +1,2 @@
 -e ../stackstate_checks_dev
+pylint==2.17.2

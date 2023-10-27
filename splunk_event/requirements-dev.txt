@@ -1,3 +1,4 @@
 -e ../stackstate_checks_dev
 requests-mock==1.9.3
 freezegun
+pylint==2.17.2

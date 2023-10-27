@@ -1,1 +1,2 @@
 {test_dev_dep}
+pylint==2.17.2
