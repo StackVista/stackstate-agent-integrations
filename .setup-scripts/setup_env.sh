@@ -14,6 +14,7 @@ if [ ! -d $VENV_PATH ]; then
   echo "$VENV_PATH doesn't exist, create the venv and loading deps"
   virtualenv --python=python3.8 --pip=23.1.2 $INTEGRATIONS_DIR_TMP/venv
   source $INTEGRATIONS_DIR_TMP/venv/bin/activate
+  pip install pylint==2.17.2
   pip install -U setuptools
   source $INTEGRATIONS_DIR_TMP/.setup-scripts/load_deps.sh
 else
@@ -21,6 +22,7 @@ else
   ls $INTEGRATIONS_DIR_TMP/venv/bin || echo 'no bin'
   ls $INTEGRATIONS_DIR_TMP/venv/lib/python3.8/site-packages || echo 'no site-packages'
   source $INTEGRATIONS_DIR_TMP/venv/bin/activate
+  pip install pylint==2.17.2
   pip freeze
   pip -V
   checksdev -h || source $INTEGRATIONS_DIR_TMP/.setup-scripts/load_deps.sh
