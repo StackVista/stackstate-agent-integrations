@@ -183,7 +183,6 @@ test_stackstate_checks_base:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
   script:
-    - pip install pylint==2.17.2
     - checksdev validate config
     - checksdev validate dep
     - checksdev validate manifest --include-extras
