@@ -1,3 +1,2 @@
 -e ../stackstate_checks_dev
 -e ../splunk_base
-pylint==2.17.2
