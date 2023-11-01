@@ -82,6 +82,6 @@ class TestAWSClient(unittest.TestCase):
         self.assertEqual(session.get_credentials().access_key, KEY_ID)
         self.assertEqual(session.get_credentials().secret_key, ACCESS_KEY)
         self.assertEqual(session.get_credentials().token, TOKEN)
-        assert mock_method.called_once_with(
-            "AssumeRole", {"RoleArn": ROLE, "RoleSessionName": "sts-agent-check", "ExternalId": EXTERNAL_ID}
+        mock_method.assert_called_with(
+            "AssumeRole", {"RoleArn": ROLE, "RoleSessionName": "sts-agent-check-test-region", "ExternalId": EXTERNAL_ID}
         )
