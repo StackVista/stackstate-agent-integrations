@@ -31,4 +31,3 @@ six==1.14.0
 uuid==1.30
 vsphere-automation-sdk==1.69.0-4fb7d48
 zeep==3.4.0
-certifi==2023.7.22
