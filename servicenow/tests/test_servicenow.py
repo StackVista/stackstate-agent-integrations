@@ -716,7 +716,7 @@ class TestServicenow(unittest.TestCase):
 
     def test_process_components_encoding_errors(self):
         """
-        This would provoke following error with py27:
+        This would provoke following error with py3:
         "UnicodeEncodeError: 'ascii' codec can't encode character u'\xeb' in position 4: ordinal not in range(128)"
         in the function stackstate_checks.base.Identifiers.create_host_identifier
         """
