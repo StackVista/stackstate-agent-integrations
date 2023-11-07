@@ -1,3 +1,4 @@
+certifi==2023.7.22
 kubernetes==24.2.0
 pyyaml==5.4.1
 prometheus-client==0.14.1
