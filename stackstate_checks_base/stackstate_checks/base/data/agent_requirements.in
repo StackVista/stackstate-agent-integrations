@@ -1,5 +1,4 @@
 boto3==1.17.68
-certifi==2023.7.22
 cm-client==33.0.0
 cryptography==3.3.2; python_version < "3.0"
 cryptography==41.0.5; python_version > "3.0"
