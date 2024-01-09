@@ -24,7 +24,11 @@ class SavedSearches(object):
         self.matches = list(filter(lambda ss: ss.match is not None, saved_searches))
 
     def run_saved_searches(self, process_data, service_check, log, persisted_state, update_status=None):
-        new_saved_searches = self.splunk_client.saved_searches(self.instance_config.app)
+        if self.instance_config.app is not None and self.instance_config.app != "":
+            new_saved_searches = self.splunk_client.saved_searches(self.instance_config.app)
+        else:
+            new_saved_searches = self.splunk_client.saved_searches()
+
         self._update_searches(log, new_saved_searches)
         all_success = True
 
@@ -168,7 +172,11 @@ class SavedSearchesTelemetry(SavedSearches):
     TIME_FMT = "%Y-%m-%dT%H:%M:%S.%f%z"
 
     def run_saved_searches(self, process_data, service_check, log, persisted_state, update_status=None):
-        new_saved_searches = self.splunk_client.saved_searches(self.instance_config.app)
+        if self.instance_config.app is not None and self.instance_config.app != "":
+            new_saved_searches = self.splunk_client.saved_searches(self.instance_config.app)
+        else:
+            new_saved_searches = self.splunk_client.saved_searches()
+
         self._update_searches(log, new_saved_searches)
 
         if callable(update_status):

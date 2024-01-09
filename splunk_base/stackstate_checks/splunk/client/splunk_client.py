@@ -157,13 +157,15 @@ class SplunkClient:
         """ This method is mocked for testing. Do not change its behavior """
         return datetime.datetime.utcnow()
 
-    def saved_searches(self, splunk_app):
+    def saved_searches(self, splunk_app=None):
         """
         Retrieves a list of saved searches from splunk
         :return: list of names of saved searches
         """
-        search_path = '/servicesNS/-/%s/saved/searches?output_mode=json&count=-1' % \
-                      (splunk_app)
+        if splunk_app is not None:
+            search_path = '/servicesNS/-/%s/saved/searches?output_mode=json&count=-1' % splunk_app
+        else:
+            search_path = '/services/saved/searches?output_mode=json&count=-1'
         response = self._do_get(search_path,
                                 self.instance_config.default_request_timeout_seconds,
                                 self.instance_config.verify_ssl_certificate)
