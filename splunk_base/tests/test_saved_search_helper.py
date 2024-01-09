@@ -97,10 +97,46 @@ class TestSplunkInstanceConfig(unittest.TestCase):
         assert self.mock_process_data.results == []
         assert self.mock_service_check.results == [[AgentCheck.OK, None, None, None]]
 
-    def test_process_data(self):
+    def test_process_data_no_app(self):
         instance = SplunkInstanceConfig(base_instance, {}, mock_defaults)
         searches = SavedSearches(instance, self.mock_splunk_client, [SplunkSavedSearch(instance, {'name': 'search1'}),
                                                                      SplunkSavedSearch(instance, {'name': 'search2'})])
+        self.mock_splunk_client.dispatch_results['search1'] = 'sid1'
+        self.mock_splunk_client.dispatch_results['search2'] = 'sid2'
+
+        data1 = {'messages': [], 'results': [{'data': 'result1'}]}
+        data2 = {'messages': [], 'results': [{'data': 'result2'}]}
+        self.mock_splunk_client.saved_search_results_results['sid1'] = [data1]
+        self.mock_splunk_client.saved_search_results_results['sid2'] = [data2]
+
+        searches.run_saved_searches(self.mock_process_data.function, self.mock_service_check.function, self.log,
+                                    self.committable_state)
+        assert self.mock_process_data.results == [data1, data2]
+        assert self.mock_service_check.results == [[AgentCheck.OK, None, None, None]]
+
+    def test_process_data_with_app(self):
+        instance = SplunkInstanceConfig(base_instance, {}, mock_defaults)
+        searches = SavedSearches(instance, self.mock_splunk_client,
+                                 [SplunkSavedSearch(instance, {'name': 'search1', 'app': 'myapp1'}),
+                                  SplunkSavedSearch(instance, {'name': 'search2', 'app': 'myapp2'})])
+        self.mock_splunk_client.dispatch_results['search1'] = 'sid1'
+        self.mock_splunk_client.dispatch_results['search2'] = 'sid2'
+
+        data1 = {'messages': [], 'results': [{'data': 'result1'}]}
+        data2 = {'messages': [], 'results': [{'data': 'result2'}]}
+        self.mock_splunk_client.saved_search_results_results['sid1'] = [data1]
+        self.mock_splunk_client.saved_search_results_results['sid2'] = [data2]
+
+        searches.run_saved_searches(self.mock_process_data.function, self.mock_service_check.function, self.log,
+                                    self.committable_state)
+        assert self.mock_process_data.results == [data1, data2]
+        assert self.mock_service_check.results == [[AgentCheck.OK, None, None, None]]
+
+    def test_process_data_with_and_without_app(self):
+        instance = SplunkInstanceConfig(base_instance, {}, mock_defaults)
+        searches = SavedSearches(instance, self.mock_splunk_client,
+                                 [SplunkSavedSearch(instance, {'name': 'search1', 'app': 'myapp1'}),
+                                  SplunkSavedSearch(instance, {'name': 'search2'})])
         self.mock_splunk_client.dispatch_results['search1'] = 'sid1'
         self.mock_splunk_client.dispatch_results['search2'] = 'sid2'
 
