@@ -28,9 +28,5 @@ else
   checksdev -h || source $INTEGRATIONS_DIR_TMP/.setup-scripts/load_deps.sh
 fi
 
-# in the event where certain initial package versions are beyond our control, we force them to be downgraded
-# pinned versions are defined in .setup-scripts/requirements.txt
-pip install --force-reinstall -r $INTEGRATIONS_DIR_TMP/.setup-scripts/requirements-locked.txt
-
 unset INTEGRATIONS_DIR_TMP
 set +x
