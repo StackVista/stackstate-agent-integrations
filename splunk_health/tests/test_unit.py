@@ -288,8 +288,7 @@ class TestSplunkCheck(unittest.TestCase):
         assert self.check.run() == ''
 
         assert self.check.instance_data.splunk_client._dispatch_parameters == {'dispatch.now': True,
-                                                                               'force_dispatch': True,
-                                                                               'output_mode': 'json'}
+                                                                               'force_dispatch': True}
 
     def test_non_default_parameters(self):
         instance = {
@@ -314,7 +313,7 @@ class TestSplunkCheck(unittest.TestCase):
         self.check = MockedSplunkHealth(self.CHECK_NAME, init_config, {}, [instance])
         assert self.check.run() == ''
 
-        assert self.check.instance_data.splunk_client._dispatch_parameters == {'respect': 'me', 'output_mode': 'json'}
+        assert self.check.instance_data.splunk_client._dispatch_parameters == {'respect': 'me'}
 
     def test_non_default_parameters_override(self):
         instance = {
@@ -342,7 +341,7 @@ class TestSplunkCheck(unittest.TestCase):
         self.check = MockedSplunkHealth(self.CHECK_NAME, init_config, {}, [instance])
         assert self.check.run() == ''
 
-        assert self.check.instance_data.splunk_client._dispatch_parameters == {'respect': 'me', 'output_mode': 'json'}
+        assert self.check.instance_data.splunk_client._dispatch_parameters == {'respect': 'me'}
 
     def test_check_valid_initial_token(self):
         """
