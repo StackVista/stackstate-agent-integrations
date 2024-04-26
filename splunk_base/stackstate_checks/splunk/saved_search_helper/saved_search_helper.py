@@ -24,11 +24,29 @@ class SavedSearches(object):
         self.matches = list(filter(lambda ss: ss.match is not None, saved_searches))
 
     def run_saved_searches(self, process_data, service_check, log, persisted_state, update_status=None):
+        have_saved_searches = False
         try:
-            if self.instance_config.app is not None and self.instance_config.app != "":
-                new_saved_searches = self.splunk_client.saved_searches(self.instance_config.app)
+            if self.searches is None or len(self.searches) == 0:
+                if self.matches is None or len(self.matches) == 0:
+                    log.warn("No saved searches configured")
+                    return
+                else:
+                    have_saved_searches = True
             else:
-                new_saved_searches = self.splunk_client.saved_searches()
+                have_saved_searches = True
+            new_saved_searches = []
+            if have_saved_searches:
+                for search in self.searches:
+                    if search.app == self.instance_config.default_app:
+                        continue
+                    if search.app is not None and search.app != "":
+                        new_saved_searches = new_saved_searches + self.splunk_client.saved_searches(search.app)
+                for match in self.matches:
+                    if match.app == self.instance_config.default_app:
+                        continue
+                    if match.app is not None and match.app != "":
+                        new_saved_searches = new_saved_searches + self.splunk_client.saved_searches(match.app)
+            new_saved_searches = new_saved_searches + self.splunk_client.saved_searches()
         except AttributeError:
             # This happens when the splunk instance config does not contain an app field, so we just do the same as
             # the else clause
@@ -53,18 +71,24 @@ class SavedSearches(object):
         :param saved_searches: List of strings with names of observed saved searches
         """
         # Drop missing matches
-        self.searches = list(filter(lambda s: s.match is None or s.name in saved_searches, self.searches))
+        searches = []
+
+        for src in self.searches:
+            searches.append((src.app, src.name))
+
+        self.searches = list(filter(lambda s: s[1] is None or s[1] in saved_searches, searches))
 
         # Filter already instantiated searches
-        new_searches = set(saved_searches).difference([s.name for s in self.searches])
+        new_searches = set(saved_searches).difference([s[1].name for s in self.searches])
 
         # Match new searches
         for new_search in new_searches:
             for match in self.matches:
-                if re.match(match.match, new_search) is not None:
+                if re.match(match.match, new_search[1]) is not None:
                     search = copy.deepcopy(match)
-                    search.name = new_search
-                    log.debug("Added saved search '%s'" % new_search)
+                    search.name = new_search[1]
+                    search.app = new_search[0]
+                    log.debug(f"Added saved search {search.name} {search.app} ")
                     self.searches.append(search)
                     break
 
