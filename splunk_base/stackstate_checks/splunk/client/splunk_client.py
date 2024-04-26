@@ -162,14 +162,18 @@ class SplunkClient:
         Retrieves a list of saved searches from splunk
         :return: list of names of saved searches
         """
-        if splunk_app is not None:
+        app_name = "search"
+        is_custom_app = splunk_app is not None
+        if is_custom_app:
+            app_name = splunk_app
             search_path = '/servicesNS/-/%s/saved/searches?output_mode=json&count=-1' % splunk_app
         else:
             search_path = '/services/saved/searches?output_mode=json&count=-1'
         response = self._do_get(search_path,
                                 self.instance_config.default_request_timeout_seconds,
                                 self.instance_config.verify_ssl_certificate)
-        return [entry["name"] for entry in response.json()["entry"]]
+
+        return [(app_name, entry["name"]) for entry in response.json()["entry"]]
 
     def _search_chunk(self, saved_search, search_id, offset, count):
         """
