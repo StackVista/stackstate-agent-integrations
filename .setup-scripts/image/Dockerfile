@@ -1,4 +1,4 @@
-FROM artifactory.tooling.stackstate.io/docker-virtual/python:3.8.11
+FROM artifactory.tooling.stackstate.io/docker-virtual/python:3.11.9
 RUN apt-get update && \
     apt-get install -y virtualenv apt-transport-https ca-certificates curl gnupg2 software-properties-common && \
     apt-get clean && \
