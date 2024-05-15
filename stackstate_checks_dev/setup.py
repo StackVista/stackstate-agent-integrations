@@ -83,7 +83,7 @@ setup(
             'pylint==2.17.2',
             'lazy_object_proxy<1.7.0',
             'pyperclip>=1.7.0',
-            'PyYAML',
+            'PyYAML==6.0.1',
             'semver',
             'setuptools',
             'toml>=0.9.4, <1.0.0',
