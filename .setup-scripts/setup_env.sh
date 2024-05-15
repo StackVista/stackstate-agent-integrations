@@ -16,9 +16,10 @@ if [ ! -d $VENV_PATH ]; then
   source $INTEGRATIONS_DIR_TMP/venv/bin/activate
   pip install pylint==2.17.2
   pip install docker==6.1.3
+  pip install --upgrade pip setuptools
   pip install 'cython<3.0.0'
   pip install "pyyaml==5.4.1" --no-build-isolation
-  pip install --upgrade pip setuptools wheel
+  pip install --upgrade wheel
   source $INTEGRATIONS_DIR_TMP/.setup-scripts/load_deps.sh
 else
   echo "$VENV_PATH already exists, only activating the venv"
