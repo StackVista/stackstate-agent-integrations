@@ -16,7 +16,7 @@ if [ ! -d $VENV_PATH ]; then
   source $INTEGRATIONS_DIR_TMP/venv/bin/activate
   pip install pylint==2.17.2
   pip install docker==6.1.3
-  pip install -U setuptools
+  pip3 install --upgrade pip setuptools wheel
   source $INTEGRATIONS_DIR_TMP/.setup-scripts/load_deps.sh
 else
   echo "$VENV_PATH already exists, only activating the venv"
@@ -25,6 +25,7 @@ else
   source $INTEGRATIONS_DIR_TMP/venv/bin/activate
   pip install pylint==2.17.2
   pip install docker==6.1.3
+  pip3 install --upgrade pip setuptools wheel
   pip freeze
   pip -V
   checksdev -h || source $INTEGRATIONS_DIR_TMP/.setup-scripts/load_deps.sh
