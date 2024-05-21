@@ -1,4 +1,4 @@
-FROM artifactory.tooling.stackstate.io/docker-virtual/python:3.11.9-bullseye
+FROM artifactory.tooling.stackstate.io/docker-virtual/python:3.11.8-bullseye
 RUN apt-get update && \
     apt-get install -y virtualenv apt-transport-https ca-certificates curl gnupg2 software-properties-common && \
     apt-get clean && \
