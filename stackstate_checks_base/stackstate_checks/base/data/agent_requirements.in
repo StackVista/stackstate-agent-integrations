@@ -28,5 +28,5 @@ simplejson==3.19.2
 six==1.16.0
 urllib3==1.26.5
 uuid==1.30
-vsphere-automation-sdk==1.82.0
+dt-vsphere-automation-sdk==1.86.2
 zeep==3.4.0
