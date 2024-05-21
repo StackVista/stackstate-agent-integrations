@@ -1,2 +1,2 @@
 # TODO: When vmware publishes new release with this fixes we'll build it and publish it to artifactory.tooling.stackstate.io
-dt-vsphere-automation-sdk==1.86.2
+vsphere-automation-sdk==1.82.0
