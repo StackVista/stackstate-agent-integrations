@@ -12,7 +12,7 @@ VENV_PATH=$INTEGRATIONS_DIR_TMP/venv
 
 if [ ! -d $VENV_PATH ]; then
   echo "$VENV_PATH doesn't exist, create the venv and loading deps"
-  virtualenv --python=python3.11 --pip=24.0 $INTEGRATIONS_DIR_TMP/venv
+  virtualenv --python=python3.11 --pip=23.3.1 $INTEGRATIONS_DIR_TMP/venv
   source $INTEGRATIONS_DIR_TMP/venv/bin/activate
   pip install pylint==2.17.2
   pip install docker==6.1.3

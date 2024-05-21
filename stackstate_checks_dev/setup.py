@@ -79,7 +79,7 @@ setup(
             'datadog-a7',
             'docker-compose',
             'in-toto==0.2.3',
-            'pip-tools',
+            'pip-tools==7.3.0',
             'pylint==2.17.2',
             'lazy_object_proxy<1.7.0',
             'pyperclip>=1.7.0',
