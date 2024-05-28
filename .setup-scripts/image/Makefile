@@ -16,12 +16,12 @@ RUNTIMETAG := $(shell date +%Y%m%d)
 # vvv New runner
 
 build:
-	docker build -t stackstate/stackstate-agent-integrations-runner:$(RUNTIMETAG)-py38 .
+	docker build -t stackstate/stackstate-agent-integrations-runner:$(RUNTIMETAG)-py311 .
 push:
-	docker push stackstate/stackstate-agent-integrations-runner:$(RUNTIMETAG)-py38
+	docker push stackstate/stackstate-agent-integrations-runner:$(RUNTIMETAG)-py311
 
 tag_latest:
-	docker tag stackstate/stackstate-agent-integrations-runner:$(RUNTIMETAG)-py38 stackstate/stackstate-agent-integrations-runner:latest-py38
+	docker tag stackstate/stackstate-agent-integrations-runner:$(RUNTIMETAG)-py311 stackstate/stackstate-agent-integrations-runner:latest-py311
 
 push_latest:
-	docker push stackstate/stackstate-agent-integrations-runner:latest-py38
+	docker push stackstate/stackstate-agent-integrations-runner:latest-py311

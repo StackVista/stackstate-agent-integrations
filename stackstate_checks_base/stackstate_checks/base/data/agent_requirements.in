@@ -9,7 +9,7 @@ docker==6.1.3
 enum34==1.1.10; python_version < "3.4"
 flatten-dict==0.2.0
 iso8601==0.1.14
-kubernetes==24.2.0
+kubernetes==28.1.0
 orionsdk==0.3.0
 orjson==2.6.1; python_version > '3.0'
 psutil==5.7.0

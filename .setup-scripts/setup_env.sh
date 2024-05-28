@@ -12,16 +12,19 @@ VENV_PATH=$INTEGRATIONS_DIR_TMP/venv
 
 if [ ! -d $VENV_PATH ]; then
   echo "$VENV_PATH doesn't exist, create the venv and loading deps"
-  virtualenv --python=python3.8 --pip=23.1.2 $INTEGRATIONS_DIR_TMP/venv
+  virtualenv --python=python3.11 --pip=23.3.1 $INTEGRATIONS_DIR_TMP/venv
   source $INTEGRATIONS_DIR_TMP/venv/bin/activate
   pip install pylint==2.17.2
   pip install docker==6.1.3
-  pip install -U setuptools
+  pip install --upgrade pip setuptools
+  pip install 'cython<3.0.0'
+  pip install "pyyaml==5.4.1" --no-build-isolation
+  pip install --upgrade wheel
   source $INTEGRATIONS_DIR_TMP/.setup-scripts/load_deps.sh
 else
   echo "$VENV_PATH already exists, only activating the venv"
   ls $INTEGRATIONS_DIR_TMP/venv/bin || echo 'no bin'
-  ls $INTEGRATIONS_DIR_TMP/venv/lib/python3.8/site-packages || echo 'no site-packages'
+  ls $INTEGRATIONS_DIR_TMP/venv/lib/python3.11/site-packages || echo 'no site-packages'
   source $INTEGRATIONS_DIR_TMP/venv/bin/activate
   pip install pylint==2.17.2
   pip install docker==6.1.3
