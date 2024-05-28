@@ -286,7 +286,7 @@ Resources:
     Properties:
       Handler: index.handler
       Role: !GetAtt NotificationSendLambdaFunctionIamRole.Arn
-      Runtime: python3.8
+      Runtime: python3.11
       Environment:
         Variables:
           SECRET: !Ref NotificationSecret
