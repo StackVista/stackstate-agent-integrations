@@ -1,1 +1,1 @@
-requests-ntlm==1.2.0; python_version > '3.0'
+requests_ntlm==1.1.0
