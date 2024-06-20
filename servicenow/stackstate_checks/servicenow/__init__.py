@@ -3,12 +3,11 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 from .__about__ import __version__
 from .models import State, InstanceInfo
-from .servicenow import ServicenowCheck, json_parse_exception
+from .servicenow import ServiceNowCheck
 
 __all__ = [
     '__version__',
-    'ServicenowCheck',
-    'json_parse_exception',
+    'ServiceNowCheck',
     'State',
     'InstanceInfo'
 ]

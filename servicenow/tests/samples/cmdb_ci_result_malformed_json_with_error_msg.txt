@@ -1,0 +1,17 @@
+{
+  "result": [
+    {
+      "asset": {
+        "name": "apc3276",
+        "sys_id": "375924dfdb6fb2882f74f12aaf9619b8",
+        "sys_created_on": "2017-06-29 11:03:27",
+        "sys_class_name": "cmdb_ci_linux_server"
+      },
+    }""
+  ],
+  "error": {
+    "detail": "Transaction cancelled: maximum execution time exceeded. Check logs for error trace.",
+    "message": "Transaction cancelled: maximum execution time exceeded"
+  },
+  "status": "failure"
+}

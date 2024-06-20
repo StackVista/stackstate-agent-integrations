@@ -13,7 +13,7 @@ from stackstate_checks.servicenow.common import API_SNOW_TABLE_CMDB_CI, API_SNOW
 from stackstate_checks.stubs import aggregator, telemetry
 
 SERVICE_CHECK_NAME = 'servicenow.cmdb.topology_information'
-EMPTY_RESULT = '{"result": []}'
+EMPTY_RESULT = read_file('empty_result.json', 'samples')
 PLANNED_CRS_RESPONSE = [
     {'status_code': 200, 'text': EMPTY_RESULT},
     {'status_code': 200, 'text': read_file('planned_crs.json', 'samples')},
@@ -22,10 +22,10 @@ PLANNED_CRS_RESPONSE = [
 ]
 
 
-def test_creating_topology_event_from_change_request(servicenow_check, requests_mock, test_cr_instance):
+def test_creating_topology_event_from_change_request(servicenow_check, requests_mock, test_instance):
     response = [{'status_code': 200, 'text': read_file('CHG0000001.json', 'samples')},
                 {'status_code': 200, 'text': EMPTY_RESULT}]
-    request_mock_cmdb_ci_tables_setup(requests_mock, test_cr_instance.get('url'), response)
+    request_mock_cmdb_ci_tables_setup(requests_mock, test_instance.get('url'), response)
     servicenow_check.run()
     aggregator.assert_service_check(SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     topology_events = telemetry._topology_events
@@ -59,14 +59,14 @@ def test_creating_topology_event_from_change_request(servicenow_check, requests_
     assert 'New' == state.get('change_requests')['CHG0000001']
 
 
-def test_creating_topo_event_from_cr_when_field_has_null_value(servicenow_check, requests_mock, test_cr_instance):
+def test_creating_topo_event_from_cr_when_field_has_null_value(servicenow_check, requests_mock, test_instance):
     """
     SNOW CR Field can have null for display_value
     "category": { "display_value": null, "value": "" }
     """
     response = [{'status_code': 200, 'text': read_file('CHG0000002.json', 'samples')},
                 {'status_code': 200, 'text': EMPTY_RESULT}]
-    request_mock_cmdb_ci_tables_setup(requests_mock, test_cr_instance.get('url'), response)
+    request_mock_cmdb_ci_tables_setup(requests_mock, test_instance.get('url'), response)
     servicenow_check.run()
     aggregator.assert_service_check(SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     topology_events = telemetry._topology_events
@@ -75,11 +75,11 @@ def test_creating_topo_event_from_cr_when_field_has_null_value(servicenow_check,
     assert 'category:None' in topology_events[0]['tags']
 
 
-def test_custom_cmdb_ci_field(servicenow_check, requests_mock, test_cr_instance):
+def test_custom_cmdb_ci_field(servicenow_check, requests_mock, test_instance):
     response = [{'status_code': 200, 'text': read_file('CHG0000003.json', 'samples')},
                 {'status_code': 200, 'text': EMPTY_RESULT}]
-    test_cr_instance['custom_cmdb_ci_field'] = 'u_configuration_item'
-    request_mock_cmdb_ci_tables_setup(requests_mock, test_cr_instance.get('url'), response)
+    test_instance['custom_cmdb_ci_field'] = 'u_configuration_item'
+    request_mock_cmdb_ci_tables_setup(requests_mock, test_instance.get('url'), response)
     servicenow_check.run()
     aggregator.assert_service_check(SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     topology_events = telemetry._topology_events
@@ -91,8 +91,8 @@ def test_custom_cmdb_ci_field(servicenow_check, requests_mock, test_cr_instance)
 
 
 @freeze_time("2021-08-02 12:15:00")
-def test_two_planned_crs_one_matches_resend_schedule(servicenow_check, requests_mock, test_cr_instance):
-    request_mock_cmdb_ci_tables_setup(requests_mock, test_cr_instance.get('url'), PLANNED_CRS_RESPONSE)
+def test_two_planned_crs_one_matches_resend_schedule(servicenow_check, requests_mock, test_instance):
+    request_mock_cmdb_ci_tables_setup(requests_mock, test_instance.get('url'), PLANNED_CRS_RESPONSE)
     servicenow_check.run()
     aggregator.assert_service_check(SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     topology_events = telemetry._topology_events
@@ -102,8 +102,8 @@ def test_two_planned_crs_one_matches_resend_schedule(servicenow_check, requests_
     assert ['CHG0040004'] == state.get('sent_planned_crs_cache')
 
 
-def test_planned_cr_is_removed_from_sent_cache_after_end_time(servicenow_check, requests_mock, test_cr_instance):
-    request_mock_cmdb_ci_tables_setup(requests_mock, test_cr_instance.get('url'), PLANNED_CRS_RESPONSE)
+def test_planned_cr_is_removed_from_sent_cache_after_end_time(servicenow_check, requests_mock, test_instance):
+    request_mock_cmdb_ci_tables_setup(requests_mock, test_instance.get('url'), PLANNED_CRS_RESPONSE)
 
     with freeze_time('2021-08-02 12:15:00'):
         servicenow_check.run()
@@ -123,9 +123,9 @@ def test_planned_cr_is_removed_from_sent_cache_after_end_time(servicenow_check, 
 
 
 @freeze_time('2021-08-02 11:15:00')
-def test_change_of_planned_cr_resend_schedule(servicenow_check, requests_mock, test_cr_instance):
-    test_cr_instance['planned_change_request_resend_schedule'] = 2
-    request_mock_cmdb_ci_tables_setup(requests_mock, test_cr_instance.get('url'), PLANNED_CRS_RESPONSE)
+def test_change_of_planned_cr_resend_schedule(servicenow_check, requests_mock, test_instance):
+    test_instance['planned_change_request_resend_schedule'] = 2
+    request_mock_cmdb_ci_tables_setup(requests_mock, test_instance.get('url'), PLANNED_CRS_RESPONSE)
     servicenow_check.run()
     aggregator.assert_service_check(SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     topology_events = telemetry._topology_events
@@ -137,12 +137,12 @@ def test_change_of_planned_cr_resend_schedule(servicenow_check, requests_mock, t
 
 
 @freeze_time('2021-09-01 11:15:00')
-def test_cr_custom_fields(servicenow_check, requests_mock, test_cr_instance):
-    test_cr_instance['custom_planned_start_date_field'] = 'u_custom_start_date'
-    test_cr_instance['custom_planned_end_date_field'] = 'u_custom_end_date'
+def test_cr_custom_fields(servicenow_check, requests_mock, test_instance):
+    test_instance['custom_planned_start_date_field'] = 'u_custom_start_date'
+    test_instance['custom_planned_end_date_field'] = 'u_custom_end_date'
     response = [{'status_code': 200, 'text': EMPTY_RESULT},
                 {'status_code': 200, 'text': read_file('CHG0040007_custom_cr_fields.json', 'samples')}]
-    request_mock_cmdb_ci_tables_setup(requests_mock, test_cr_instance.get('url'), response)
+    request_mock_cmdb_ci_tables_setup(requests_mock, test_instance.get('url'), response)
     servicenow_check.run()
     aggregator.assert_service_check(SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     topology_events = telemetry._topology_events
