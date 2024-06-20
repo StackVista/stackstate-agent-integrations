@@ -454,8 +454,8 @@ class VSphereCheck(AgentCheck):
                     property_spec.pathSet.append("runtime.host")
                     property_spec.pathSet.append("guest.hostName")
                     # Topology property collection as we did previously
-                    property_spec.pathSet.append("config.guestId")
-                    property_spec.pathSet.append("config.guestFullName")
+                    property_spec.pathSet.append("guest.guestId")
+                    property_spec.pathSet.append("guest.guestFullName")
                     property_spec.pathSet.append("config.hardware.numCPU")
                     property_spec.pathSet.append("config.hardware.memoryMB")
                     property_spec.pathSet.append("datastore")
@@ -1057,8 +1057,8 @@ class VSphereCheck(AgentCheck):
                         datastores.append(ds._moId)
                     topology_tags["datastore"] = datastores
                     add_label_pair(labels, "name", topology_tags["name"])
-                    add_label_pair(labels, "guestId", properties.get("config.guestId", ""))
-                    add_label_pair(labels, "guestFullName", properties.get("config.guestFullName", ""))
+                    add_label_pair(labels, "guestId", properties.get("guest.guestId", ""))
+                    add_label_pair(labels, "guestFullName", properties.get("guest.guestFullName", ""))
                     add_label_pair(labels, "numCPU", properties.get("config.hardware.numCPU", ""))
                     add_label_pair(labels, "memoryMB", properties.get("config.hardware.memoryMB", ""))
                     topology_tags["labels"] = labels
