@@ -28,7 +28,12 @@ class TransactionalAgentCheck(TransactionalMixin, AgentCheckV2):
         self.set_state(check_response.persistent_state)
 
         if check_response and check_response.check_error:
-            self.transaction.discard(check_response.check_error)
+            # if check_response.check_error is not a string, convert it to a string
+            if not isinstance(check_response.check_error, str):
+                error_message = str(check_response.check_error)
+            else:
+                error_message = check_response.check_error
+            self.transaction.discard(error_message)
             return check_response
 
         self.set_transaction_state(check_response.transactional_state)
