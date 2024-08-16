@@ -113,7 +113,12 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
                 if not saved_search.unique_key_fields:  # empty list, whole record
                     current_id = tuple(data)
                 else:
-                    current_id = tuple(data[field] for field in saved_search.unique_key_fields)
+                    for field in saved_search.unique_key_fields:
+                        if field not in data.keys():
+                            self.log.warning("Field %s not found in data" % field)
+                            continue
+                        else:
+                            current_id = data[field]
 
                 timestamp = time_to_seconds(take_required_field("_time", data))
 
