@@ -16,22 +16,41 @@ TIMEOUT = 10
 RELATIVE_TIME = 'hour'
 ENVIRONMENT = 'production'
 DOMAIN = 'dynatrace'
-CUSTOM_DEVICE_DEFAULT_RELATIVE_TIME = '1h'
-CUSTOM_DEVICE_DEFAULT_FIELDS = '+fromRelationships,+toRelationships,+tags,+managementZones,+properties.dnsNames,' \
-                               '+properties.ipAddress'
 
-TOPOLOGY_API_ENDPOINTS = {
-    "process": "api/v1/entity/infrastructure/processes",
-    "host": "api/v1/entity/infrastructure/hosts",
-    "application": "api/v1/entity/applications",
-    "process-group": "api/v1/entity/infrastructure/process-groups",
-    "service": "api/v1/entity/services",
-    "custom-device": "api/v2/entities",
-    "synthetic-monitor": "api/v1/synthetic/monitors"
+API_V2_DEFAULT_RELATIVE_TIME = '1h'
+API_V2_DEFAULT_FIELDS_STRING = '+fromRelationships,+toRelationships,+tags,+managementZones,+properties'
+
+TOPOLOGY_API_SPEC = {
+    "process": ("api/v2/entities", 'type("PROCESS_GROUP_INSTANCE")'),
+    "host": ("api/v2/entities", 'type("HOST")'),
+    "application": ("api/v2/entities", 'type("APPLICATION")'),
+    "process-group": ("api/v2/entities", 'type("PROCESS_GROUP")'),
+    "service": ("api/v2/entities", 'type("SERVICE")'),
+    "custom-device": ("api/v2/entities", 'type("CUSTOM_DEVICE")'),
+    "synthetic-monitor": ("api/v1/synthetic/monitors", None),
+    "queue": ("api/v2/entities", 'type("QUEUE")'),
 }
 
 DynatraceCachedEntity = namedtuple('DynatraceCachedEntity', 'identifier external_id name type')
 
+class Entity(Model):
+    entityId = StringType(required=True)
+    displayName = StringType(required=True)
+    firstSeenTms = IntType()
+    fromRelationships = DictType(ListType(DictType(StringType)), default={})
+    icon = DictType(StringType)
+    lastSeenTms = IntType()
+    managementZones = ListType(DictType(StringType), default={})
+    properties = DictType(ListType(StringType), default={})
+    tags = ListType(DictType(StringType), default=[])
+    toRelationships = DictType(ListType(DictType(StringType)), default={})
+    type = StringType(required=True)
+
+class ApiV2EntitiesResponse(Model):
+    entities = ListType(ModelType(Entity))
+    nextPageKey = StringType()
+    pageSize = IntType()
+    totalCount = IntType()
 
 class MonitoringState(Model):
     actualMonitoringState = StringType()
@@ -62,16 +81,6 @@ class DynatraceComponent(Model):
     localHostName = StringType()
 
 
-class CustomDevice(Model):
-    entityId = StringType(required=True)
-    displayName = StringType(required=True)
-    tags = ListType(DictType(StringType), default=[])
-    fromRelationships = DictType(ListType(DictType(StringType, default={})), default={})
-    toRelationships = DictType(ListType(DictType(StringType, default={})), default={})
-    managementZones = ListType(DictType(StringType), default=[])
-    properties = DictType(ListType(StringType), default={})
-
-
 class InstanceInfo(Model):
     url = URLType(required=True)
     token = StringType(required=True)
@@ -83,8 +92,8 @@ class InstanceInfo(Model):
     domain = StringType(default=DOMAIN)
     environment = StringType(default=ENVIRONMENT)
     relative_time = StringType(default=RELATIVE_TIME)
-    custom_device_fields = StringType(default=CUSTOM_DEVICE_DEFAULT_FIELDS)
-    custom_device_relative_time = StringType(default=CUSTOM_DEVICE_DEFAULT_RELATIVE_TIME)
+    custom_device_fields = StringType(default=API_V2_DEFAULT_FIELDS_STRING)
+    custom_device_relative_time = StringType(default=API_V2_DEFAULT_FIELDS_STRING)
     custom_device_ip = BooleanType(default=True)
 
 
@@ -127,7 +136,7 @@ class DynatraceTopologyCheck(AgentCheck):
                                message=str(e))
 
     @staticmethod
-    def get_custom_device_params(custom_device_relative_time, custom_device_fields, next_page_key=None):
+    def get_entity_params(custom_device_relative_time, custom_device_fields, component_type, next_page_key=None):
         """
         Process the default parameters needed for custom device
         @param
@@ -139,15 +148,15 @@ class DynatraceTopologyCheck(AgentCheck):
         if next_page_key:
             params = {'nextPageKey': next_page_key}
         else:
-            params = {'entitySelector': 'type("CUSTOM_DEVICE")'}
+            params = {'entitySelector': TOPOLOGY_API_SPEC[component_type][1]}
             relative_time = {'from': 'now-{}'.format(custom_device_relative_time)}
             params.update(relative_time)
             fields = {'fields': '{}'.format(custom_device_fields)}
             params.update(fields)
         return params
 
-    def collect_custom_devices_get_next_key(self, dynatrace_client, instance_info, endpoint, component_type,
-                                            next_page_key=None):
+    def collect_entities_get_next_key(self, dynatrace_client, instance_info, endpoint, component_type,
+                                      next_page_key=None):
         """
         Process custom device response & topology and returns the next page key for result
         @param
@@ -158,14 +167,15 @@ class DynatraceTopologyCheck(AgentCheck):
         @return
         Returns the next_page_key value from API response
         """
-        params = self.get_custom_device_params(instance_info.custom_device_relative_time,
-                                               instance_info.custom_device_fields,
-                                               next_page_key)
+        params = self.get_entity_params(instance_info.relative_time,
+                                        API_V2_DEFAULT_FIELDS_STRING,
+                                        component_type,
+                                        next_page_key)
         response = dynatrace_client.get_dynatrace_json_response(endpoint, params)
         self._collect_topology(response.get("entities", []), component_type, instance_info)
         return response.get('nextPageKey')
 
-    def process_custom_device_topology(self, dynatrace_client, instance_info, endpoint, component_type):
+    def process_entity_topology(self, dynatrace_client, instance_info, endpoint, component_type):
         """
         Process the custom device topology until next page key is None
         @param
@@ -175,12 +185,12 @@ class DynatraceTopologyCheck(AgentCheck):
         @return
         None
         """
-        next_page_key = self.collect_custom_devices_get_next_key(dynatrace_client, instance_info, endpoint,
-                                                                 component_type)
+        next_page_key = self.collect_entities_get_next_key(dynatrace_client, instance_info, endpoint,
+                                                           component_type)
         while next_page_key:
-            next_page_key = self.collect_custom_devices_get_next_key(dynatrace_client, instance_info, endpoint,
-                                                                     component_type,
-                                                                     next_page_key)
+            next_page_key = self.collect_entities_get_next_key(dynatrace_client, instance_info, endpoint,
+                                                               component_type,
+                                                               next_page_key)
 
     def _process_topology(self, dynatrace_client, instance_info):
         """
@@ -190,11 +200,11 @@ class DynatraceTopologyCheck(AgentCheck):
         self.start_snapshot()
         start_time = datetime.now()
         self.log.debug("Starting the collection of topology")
-        for component_type, path in TOPOLOGY_API_ENDPOINTS.items():
-            endpoint = dynatrace_client.get_endpoint(instance_info.url, path)
-            if component_type == "custom-device":
+        for component_type, data_tuple in TOPOLOGY_API_SPEC.items():
+            endpoint = dynatrace_client.get_endpoint(instance_info.url, data_tuple[0])
+            if component_type != "synthetic-monitor":
                 # process the custom device topology separately because of pagination
-                self.process_custom_device_topology(dynatrace_client, instance_info, endpoint, component_type)
+                self.process_entity_topology(dynatrace_client, instance_info, endpoint, component_type)
             else:
                 params = {"relativeTime": instance_info.relative_time}
                 response = dynatrace_client.get_dynatrace_json_response(endpoint, params)
@@ -245,8 +255,8 @@ class DynatraceTopologyCheck(AgentCheck):
         """
         for item in response:
             item = self._clean_unsupported_metadata(item)
-            if component_type == "custom-device":
-                dynatrace_component = CustomDevice(item, strict=False)
+            if component_type != "synthetic-monitor":
+                dynatrace_component = Entity(item, strict=False)
                 dynatrace_component.validate()
             else:
                 dynatrace_component = DynatraceComponent(item, strict=False)
@@ -261,7 +271,8 @@ class DynatraceTopologyCheck(AgentCheck):
                 host_identifiers = self._get_host_identifiers(dynatrace_component)
                 identifiers.extend(host_identifiers)
             if component_type == "custom-device":
-                custom_device_identifiers = self.process_custom_device_identifiers(item, instance_info.custom_device_ip)
+                custom_device_identifiers = self.process_custom_device_identifiers(item,
+                                                                                   instance_info.custom_device_ip)
                 identifiers.extend(custom_device_identifiers)
             # derive useful labels from dynatrace tags
             tags = self._get_labels(dynatrace_component)
@@ -345,16 +356,28 @@ class DynatraceTopologyCheck(AgentCheck):
     @staticmethod
     def _get_host_identifiers(component):
         host_identifiers = []
-        if component.esxiHostName:
-            host_identifiers.append(Identifiers.create_host_identifier(component.esxiHostName))
-        if component.oneAgentCustomHostName:
-            host_identifiers.append(Identifiers.create_host_identifier(component.oneAgentCustomHostName))
-        if component.azureHostNames:
-            host_identifiers.append(Identifiers.create_host_identifier(component.azureHostNames))
-        if component.publicHostName:
-            host_identifiers.append(Identifiers.create_host_identifier(component.publicHostName))
-        if component.localHostName:
-            host_identifiers.append(Identifiers.create_host_identifier(component.localHostName))
+
+        properties = component.properties
+        # If properties is a list of dictionaries, check for azure, esxi, gce, public, local, and oneAgentCustomHostName
+        if properties:
+            for prop in properties:
+                if prop.get("azureHostName"):
+                    host_identifiers.append(Identifiers.create_host_identifier(prop["azureHostName"]))
+                if prop.get("esxiHostName"):
+                    host_identifiers.append(Identifiers.create_host_identifier(prop["esxiHostName"]))
+                if prop.get("oneAgentCustomHostName"):
+                    host_identifiers.append(Identifiers.create_host_identifier(prop["oneAgentCustomHostName"]))
+                if prop.get("publicHostName"):
+                    host_identifiers.append(Identifiers.create_host_identifier(prop["publicHostName"]))
+                if prop.get("localHostName"):
+                    host_identifiers.append(Identifiers.create_host_identifier(prop["localHostName"]))
+                if prop.get("ipAddress"):
+                    host_identifiers.append(Identifiers.create_host_identifier(prop["ipAddress"]))
+                if prop.get("detectedName"):
+                    host_identifiers.append(Identifiers.create_host_identifier(prop["detectedName"]))
+                if prop.get("dnsNames"):
+                    for dns in prop.get("dnsNames"):
+                        host_identifiers.append(Identifiers.create_host_identifier(dns))
         host_identifiers.append(Identifiers.create_host_identifier(component.displayName))
         host_identifiers = Identifiers.append_lowercase_identifiers(host_identifiers)
         return host_identifiers
@@ -397,25 +420,53 @@ class DynatraceTopologyCheck(AgentCheck):
         :return: the list of added labels for a component
         """
         labels = []
-        # append management zones in labels for each existing component
-        for zone in dynatrace_component.managementZones:
-            if zone.get("name"):
-                labels.append("managementZones:%s" % zone.get("name"))
-        if dynatrace_component.entityId:
-            labels.append(dynatrace_component.entityId)
-        if dynatrace_component.get('monitoringState'):
-            if dynatrace_component.monitoringState.actualMonitoringState:
-                labels.append("actualMonitoringState:%s" % dynatrace_component.monitoringState.actualMonitoringState)
-            if dynatrace_component.monitoringState.expectedMonitoringState:
-                labels.append(
-                    "expectedMonitoringState:%s" % dynatrace_component.monitoringState.expectedMonitoringState)
-        if dynatrace_component.get('softwareTechnologies'):
-            for technologies in dynatrace_component.softwareTechnologies:
-                tech_label = ':'.join(filter(None, [technologies.get('type'), technologies.get('edition'),
-                                                    technologies.get('version')]))
-                labels.append(tech_label)
-        labels_from_tags = self._get_labels_from_dynatrace_tags(dynatrace_component)
-        labels.extend(labels_from_tags)
+        # Check if dynatrace_component is an instance of DynatraceComponent or Entity
+        if isinstance(dynatrace_component, DynatraceComponent):
+            if dynatrace_component.get('monitoringState'):
+                if dynatrace_component.monitoringState.actualMonitoringState:
+                    labels.append(
+                        "actualMonitoringState:%s" % dynatrace_component.monitoringState.actualMonitoringState)
+                if dynatrace_component.monitoringState.expectedMonitoringState:
+                    labels.append(
+                        "expectedMonitoringState:%s" % dynatrace_component.monitoringState.expectedMonitoringState)
+
+            # append management zones in labels for each existing component
+            for zone in dynatrace_component.managementZones:
+                if zone.get("name"):
+                    labels.append("managementZones:%s" % zone.get("name"))
+            if dynatrace_component.entityId:
+                labels.append(dynatrace_component.entityId)
+
+            if dynatrace_component.get('softwareTechnologies'):
+                for technologies in dynatrace_component.softwareTechnologies:
+                    tech_label = ':'.join(filter(None, [technologies.get('type'), technologies.get('edition'),
+                                          technologies.get('version')]))
+                    labels.append(tech_label)
+            labels_from_tags = self._get_labels_from_dynatrace_tags(dynatrace_component)
+            labels.extend(labels_from_tags)
+        else:
+            # If dynatrace_component is not an instance of DynatraceComponent, it should be an instance of Entity
+            if dynatrace_component.entityId:
+                labels.append(dynatrace_component.entityId)
+            if dynatrace_component.properties:
+                # What would previously have been fields of DynatraceComponent are now properties of Entity
+                # append what would have been from DynatraceComponent, but now from Entity
+                for prop in dynatrace_component.properties:
+                    if prop.get("key") and prop.get("value"):
+                        # Look for monitoringState, expectedMonitoringState, actualMonitoringState, managementZones
+                        # and softwareTechnologies in properties
+
+                        if prop.get("key") == "monitoringState":
+                            labels.append("monitoringState:%s" % prop.get("value"))
+                            monitoring_state = prop.get("value")
+                            if monitoring_state.get("actualMonitoringState"):
+                                labels.append("actualMonitoringState:%s" % monitoring_state.get("actualMonitoringState"))
+                            if monitoring_state.get("expectedMonitoringState"):
+                                labels.append("expectedMonitoringState:%s" % monitoring_state.get("expectedMonitoringState"))
+                        elif prop.get("key") == "managementZones":
+                            labels.append("managementZones:%s" % prop.get("value"))
+                        elif prop.get("key") == "softwareTechnologies":
+                            labels.append("softwareTechnologies:%s" % prop.get("value"))
         return labels
 
     def monitored_health(self):
