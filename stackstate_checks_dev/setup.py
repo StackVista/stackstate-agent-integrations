@@ -30,7 +30,7 @@ REQUIRES = [
     'pytest-cov>=2.6.1',
     'pytest-mock',
     'requests>=2.20.0',
-    'six==1.14.0',
+    'six==1.16.0',
     'Deprecated==1.2.10',
     "enum34==1.1.10; python_version < '3.4'",
     'schematics==2.1.0'

@@ -143,19 +143,6 @@ linux_deps:
       - venv/
     expire_in: 1 week
 
-win_deps:
-  <<: *windows_env
-  <<: *manual_job_rules
-  stage: build
-  interruptible: true
-  script:
-    - conda activate $CONDA_ENV
-    - python -m pip install .\stackstate_checks_dev[cli]
-  artifacts:
-    paths:
-      - venv/
-    expire_in: 1 week
-
 .linux_test: &linux_test
   <<: *linux_env
   <<: *base_integration_rules
@@ -234,7 +221,6 @@ test_dynatrace_health:
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
 
-
 test_kubelet:
   <<: *linux_test
   variables:
@@ -242,19 +228,6 @@ test_kubelet:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
-
-test_mysql:
-  <<: *linux_test
-  variables:
-    CHECK: "mysql"
-    PYTHON3: "true"
-    DOCKER_HOST: tcp://docker:2375/
-    DOCKER_DRIVER: overlay2
-    DOCKER_TLS_CERTDIR: ""
-  tags:
-    #- sts-k8s-xl-runner
-    #- sts-aws
-    - sts-k8s-xl-no-docker-runner
 
 test_openmetrics:
   <<: *linux_test
@@ -318,38 +291,6 @@ test_splunk_event:
     DOCKER_TLS_CERTDIR: ""
   tags:
     - sts-k8s-xl-no-docker-runner
-
-test_cloudera:
-  <<: *linux_test
-  variables:
-    CHECK: "cloudera"
-    PYTHON3: "true"
-    DOCKER_HOST: tcp://docker:2375/
-    DOCKER_DRIVER: overlay2
-
-test_aws_topology:
-  <<: *linux_test
-  variables:
-    CHECK: "aws_topology"
-    PYTHON3: "true"
-    DOCKER_HOST: tcp://docker:2375/
-    DOCKER_DRIVER: overlay2
-
-test_aws_xray:
-  <<: *linux_test
-  variables:
-    CHECK: "aws_xray"
-    PYTHON3: "true"
-    DOCKER_HOST: tcp://docker:2375/
-    DOCKER_DRIVER: overlay2
-
-test_sap:
-  <<: *linux_test
-  variables:
-    CHECK: "sap"
-    PYTHON3: "true"
-    DOCKER_HOST: tcp://docker:2375/
-    DOCKER_DRIVER: overlay2
 
 test_agent_integration_sample:
   <<: *linux_test
@@ -430,67 +371,6 @@ test_static_health:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
-
-test_nagios:
-  <<: *linux_test
-  variables:
-    CHECK: "nagios"
-    PYTHON3: "true"
-    DOCKER_HOST: tcp://docker:2375/
-    DOCKER_DRIVER: overlay2
-
-test_solarwinds:
-  <<: *linux_test
-  variables:
-    CHECK: "solarwinds"
-    PYTHON3: "true"
-    DOCKER_HOST: tcp://docker:2375/
-    DOCKER_DRIVER: overlay2
-
-
-.windows_test: &windows_test
-  <<: *windows_env
-  <<: *base_integration_manual_rules
-  stage: test
-  needs:
-    - win_deps
-  script:
-    - conda activate $CONDA_ENV
-    - checksdev test -c %CHECK%
-  interruptible: true
-  tags:
-    - windows_agent7_ps1
-  retry:
-    max: 2
-    when:
-      - runner_system_failure
-      - stuck_or_timeout_failure
-      - script_failure
-
-test_stackstate_checks_dev_win:
-  <<: *windows_test
-  variables:
-    CHECK: "stackstate_checks_dev:py3-default,stackstate_checks_dev:flake8"
-
-test_stackstate_checks_base_win:
-  <<: *windows_test
-  variables:
-    CHECK: "stackstate_checks_base"
-
-test_wmi_check:
-  <<: *windows_test
-  variables:
-    CHECK: "wmi_check"
-
-test_cloudera_win:
-  <<: *windows_test
-  variables:
-    CHECK: "cloudera"
-
-test_aws_xray_win:
-  <<: *windows_test
-  variables:
-    CHECK: "aws_xray"
 
 publish-checks-dev:
   stage: publish

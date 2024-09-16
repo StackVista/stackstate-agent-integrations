@@ -1,2 +1,0 @@
-# CHANGELOG - Aws_topology
-
