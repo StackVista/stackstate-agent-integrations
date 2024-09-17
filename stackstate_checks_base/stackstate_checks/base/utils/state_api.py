@@ -1,7 +1,7 @@
 import json
 import logging
 from typing import Union, Dict, Any, Optional, Type
-from .validations_utils import CheckBaseModel
+from .validations_utils import StrictBaseModel
 from .state_common import generate_state_key, validate_state
 
 try:
@@ -24,7 +24,7 @@ class StateApi(object):
             self.log.warning("Using stub state api")
 
     def get(self, key, schema=None):
-        # type: (str, Optional[Type[CheckBaseModel]]) -> Union[Dict[str, Any], CheckBaseModel]
+        # type: (str, Optional[Type[StrictBaseModel]]) -> Union[Dict[str, Any], StrictBaseModel]
         """
         Reads state stored as JSON string and returns it as dictionary.
         """
@@ -47,7 +47,7 @@ class StateApi(object):
             raise Exception(e)
 
     def set(self, key, new_state):
-        # type: (str, Union[Dict[str, Any], CheckBaseModel]) -> None
+        # type: (str, Union[Dict[str, Any], StrictBaseModel]) -> None
         """
         Dumps state to JSON string and sets it as a new state.
         """

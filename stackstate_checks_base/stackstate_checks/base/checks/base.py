@@ -15,7 +15,7 @@ import yaml
 from collections import defaultdict
 from functools import reduce
 from os.path import basename
-from stackstate_checks.base.utils.validations_utils import CheckBaseModel
+from stackstate_checks.base.utils.validations_utils import StrictBaseModel
 from pydantic import ValidationError
 from six import PY3, iteritems, iterkeys, text_type, string_types, integer_types
 from typing import Any, Set, Dict, Sequence, List, Optional, Union, AnyStr, TypeVar
@@ -165,8 +165,8 @@ class TopologyInstance(_TopologyInstanceBase):
 StackPackInstance = TopologyInstance
 
 _SanitazableType = TypeVar('_SanitazableType', str, Dict[str, Any], List, Set)
-_InstanceType = TypeVar('_InstanceType', CheckBaseModel, Dict[str, Any])
-_EventType = TypeVar('_EventType', CheckBaseModel, Dict[str, Any])
+_InstanceType = TypeVar('_InstanceType', StrictBaseModel, Dict[str, Any])
+_EventType = TypeVar('_EventType', StrictBaseModel, Dict[str, Any])
 
 
 class AgentCheck(HealthApiCommon):
@@ -190,7 +190,7 @@ class AgentCheck(HealthApiCommon):
     """
     INSTANCE_SCHEMA allows checks to specify a schematics Schema that is used for the instance in self.check
     """
-    INSTANCE_SCHEMA: CheckBaseModel | None = None
+    INSTANCE_SCHEMA: StrictBaseModel | None = None
 
     """
     STATE_FIELD_NAME is used to determine to which key the check state should be set, defaults to `state`

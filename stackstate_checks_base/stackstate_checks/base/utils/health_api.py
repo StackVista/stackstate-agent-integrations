@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional, TypeVar
 from enum import Enum
 from pydantic import ValidationError, Field, model_validator
 from six import PY3
-from .validations_utils import CheckBaseModel
+from .validations_utils import StrictBaseModel
 
 try:
     import health
@@ -14,7 +14,7 @@ except ImportError:
 
     using_stub_health = True
 
-_InstanceType = TypeVar('_InstanceType', CheckBaseModel, Dict[str, Any])
+_InstanceType = TypeVar('_InstanceType', StrictBaseModel, Dict[str, Any])
 
 
 class Health(str, Enum):
@@ -46,7 +46,7 @@ class HealthType(object):
             raise ValidationError("Error parsing health") from e
 
 
-class HealthStreamUrn(CheckBaseModel):
+class HealthStreamUrn(StrictBaseModel):
     """
     Represents the urn of a health stream
     """
@@ -67,7 +67,7 @@ class HealthStreamUrn(CheckBaseModel):
         return "urn:health:%s:%s" % (encoded_source, encoded_stream)
 
 
-class HealthStream(CheckBaseModel):
+class HealthStream(StrictBaseModel):
     """
     Data structure for defining a health stream, a unique identifier for a health stream source.
 
@@ -93,7 +93,7 @@ class HealthStream(CheckBaseModel):
         return {"urn": self.urn.urn_string(), "sub_stream": self.sub_stream}
 
 
-class HealthCheckData(CheckBaseModel):
+class HealthCheckData(StrictBaseModel):
     checkStateId: str
     name: str
     health: Health

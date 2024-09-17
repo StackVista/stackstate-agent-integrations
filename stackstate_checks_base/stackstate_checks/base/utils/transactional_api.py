@@ -5,7 +5,7 @@ from typing import Union, Dict, Any
 
 from .state_api import generate_state_key
 from .state_common import validate_state
-from .validations_utils import CheckBaseModel
+from .validations_utils import StrictBaseModel
 
 try:
     import transaction
@@ -48,7 +48,7 @@ class TransactionApi(object):
         transaction.discard_transaction(self.__check, self.__check.check_id, discard_reason)
 
     def set_state(self, key, new_state):
-        # type: (str, Union[Dict[str, Any], CheckBaseModel]) -> None
+        # type: (str, Union[Dict[str, Any], StrictBaseModel]) -> None
         """
         Dumps transactional state to JSON string and sets it as a new state.
         """

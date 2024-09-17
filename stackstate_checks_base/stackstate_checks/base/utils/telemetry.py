@@ -5,8 +5,8 @@ from six import iteritems
 from enum import Enum
 from typing import Optional, List, Any
 import uuid
-from pydantic import AnyUrl, Field, AliasChoices, ValidationInfo, field_validator
-from .validations_utils import CheckBaseModel
+from pydantic import Field, AliasChoices
+from .validations_utils import StrictBaseModel, AnyUrlStr
 
 
 class HealthState(str, Enum):
@@ -464,7 +464,7 @@ class ServiceCheckStream(TelemetryStream):
     pass
 
 
-class SourceLink(CheckBaseModel):
+class SourceLink(StrictBaseModel):
     """
     SourceLink is a external source / event that the event might link to
     args:
@@ -472,10 +472,10 @@ class SourceLink(CheckBaseModel):
     `url` the url at which more information about this event can be found
     """
     title: str
-    url: AnyUrl
+    url: AnyUrlStr
 
 
-class TopologyEventContext(CheckBaseModel):
+class TopologyEventContext(StrictBaseModel):
     """
     EventContext enriches the event with some more context and allows correlation to topology in StackState
     args:
@@ -515,7 +515,7 @@ class AlertType(str, Enum):
         return None
 
 
-class Event(CheckBaseModel):
+class Event(StrictBaseModel):
     """
     Event represents some activity that occurred that is of interest to
     args:

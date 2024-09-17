@@ -4,8 +4,8 @@
 from collections import namedtuple
 from datetime import datetime
 
-from stackstate_checks.base.utils.validations_utils import CheckBaseModel
-from schematics.types import IntType, URLType, StringType, ListType, BooleanType, ModelType, DictType
+from stackstate_checks.base.utils.validations_utils import ForgivingBaseModel, AnyUrlStr
+from typing import Optional, List
 
 from stackstate_checks.base import AgentCheck, StackPackInstance, HealthStream, HealthStreamUrn, Health
 from stackstate_checks.dynatrace.dynatrance_client import DynatraceClient
@@ -33,59 +33,59 @@ TOPOLOGY_API_ENDPOINTS = {
 DynatraceCachedEntity = namedtuple('DynatraceCachedEntity', 'identifier external_id name type')
 
 
-class MonitoringState(Model):
-    actualMonitoringState = StringType()
-    expectedMonitoringState = StringType()
-    restartRequired = BooleanType()
+class MonitoringState(ForgivingBaseModel):
+    actualMonitoringState: Optional[str] = None
+    expectedMonitoringState: Optional[str] = None
+    restartRequired: bool = False
 
 
-class DynatraceComponent(Model):
+class DynatraceComponent(ForgivingBaseModel):
     # Common fields to Host, Process, Process groups, Services and Applications
-    entityId = StringType(required=True)
-    displayName = StringType(required=True)
-    customizedName = StringType()
-    discoveredName = StringType()
-    firstSeenTimestamp = IntType()
-    tags = ListType(DictType(StringType))
-    fromRelationships = DictType(ListType(StringType), default={})
-    toRelationships = DictType(ListType(StringType), default={})
-    managementZones = ListType(DictType(StringType), default=[])
+    entityId: str
+    displayName: str
+    customizedName: Optional[str] = None
+    discoveredName: Optional[str] = None
+    firstSeenTimestamp: Optional[int] = None
+    tags: List[dict] = []
+    fromRelationships: dict = {}
+    toRelationships: dict = {}
+    managementZones: List[dict] = []
     # Host, Process, Process groups, Services
-    softwareTechnologies = ListType(DictType(StringType), default=[])
+    softwareTechnologies: List[dict] = []
     # Process
-    monitoringState = ModelType(MonitoringState)
+    monitoringState: Optional[MonitoringState] = None
     # Host
-    esxiHostName = StringType()
-    oneAgentCustomHostName = StringType()
-    azureHostNames = ListType(StringType(), default=[])
-    publicHostName = StringType()
-    localHostName = StringType()
+    esxiHostName: Optional[str] = None
+    oneAgentCustomHostName: Optional[str] = None
+    azureHostNames: List[str] = []
+    publicHostName: Optional[str] = None
+    localHostName: Optional[str] = None
 
 
-class CustomDevice(Model):
-    entityId = StringType(required=True)
-    displayName = StringType(required=True)
-    tags = ListType(DictType(StringType), default=[])
-    fromRelationships = DictType(ListType(DictType(StringType, default={})), default={})
-    toRelationships = DictType(ListType(DictType(StringType, default={})), default={})
-    managementZones = ListType(DictType(StringType), default=[])
-    properties = DictType(ListType(StringType), default={})
+class CustomDevice(ForgivingBaseModel):
+    entityId: str
+    displayName: str
+    tags: List[dict] = []
+    fromRelationships: dict = {}
+    toRelationships: dict = {}
+    managementZones: List[dict] = []
+    properties: dict = {}
 
 
-class InstanceInfo(Model):
-    url = URLType(required=True)
-    token = StringType(required=True)
-    instance_tags = ListType(StringType, default=[])
-    verify = BooleanType(default=VERIFY_HTTPS)
-    cert = StringType()
-    keyfile = StringType()
-    timeout = IntType(default=TIMEOUT)
-    domain = StringType(default=DOMAIN)
-    environment = StringType(default=ENVIRONMENT)
-    relative_time = StringType(default=RELATIVE_TIME)
-    custom_device_fields = StringType(default=CUSTOM_DEVICE_DEFAULT_FIELDS)
-    custom_device_relative_time = StringType(default=CUSTOM_DEVICE_DEFAULT_RELATIVE_TIME)
-    custom_device_ip = BooleanType(default=True)
+class InstanceInfo(ForgivingBaseModel):
+    url: AnyUrlStr
+    token: str
+    instance_tags: List[str] = []
+    verify: bool = VERIFY_HTTPS
+    cert: Optional[str] = None
+    keyfile: Optional[str] = None
+    timeout: int = TIMEOUT
+    domain: str = DOMAIN
+    environment: str = ENVIRONMENT
+    relative_time: str = RELATIVE_TIME
+    custom_device_fields: str = CUSTOM_DEVICE_DEFAULT_FIELDS
+    custom_device_relative_time: str = CUSTOM_DEVICE_DEFAULT_RELATIVE_TIME
+    custom_device_ip: bool = True
 
 
 class DynatraceTopologyCheck(AgentCheck):
@@ -246,11 +246,9 @@ class DynatraceTopologyCheck(AgentCheck):
         for item in response:
             item = self._clean_unsupported_metadata(item)
             if component_type == "custom-device":
-                dynatrace_component = CustomDevice(item, strict=False)
-                dynatrace_component.validate()
+                dynatrace_component = CustomDevice(**item)
             else:
-                dynatrace_component = DynatraceComponent(item, strict=False)
-                dynatrace_component.validate()
+                dynatrace_component = DynatraceComponent(**item)
             data = {}
             external_id = dynatrace_component.entityId
             identifiers = [Identifiers.create_custom_identifier("dynatrace", external_id)]

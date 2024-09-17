@@ -5,11 +5,11 @@
 import os
 import json
 import errno
-from pydantic import Field
-from .validations_utils import CheckBaseModel
+from pydantic import Field, BaseModel
+from .validations_utils import StrictBaseModel
 
 
-class StateDescriptorSchema(CheckBaseModel):
+class StateDescriptorSchema(StrictBaseModel):
     """
     StateDescriptorSchema is used to validate data passed to the StateDescriptor
     """
@@ -118,7 +118,7 @@ class StateManager:
         """
         if isinstance(state, dict):
             pass
-        elif isinstance(state, CheckBaseModel):
+        elif isinstance(state, BaseModel):
             state = state.dict()
         elif state is None:
             return self.clear(instance)

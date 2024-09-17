@@ -3,7 +3,7 @@ from pydantic import ValidationError
 from .common import sanitize_url_as_valid_filename
 import json
 
-from .validations_utils import CheckBaseModel
+from pydantic import BaseModel
 
 
 def generate_state_key(instance_url, key):
@@ -21,7 +21,7 @@ def validate_state(new_state):
         pass
     # check to see if this state has a Schematics schema, validate it to make sure it meets the schema and return
     # the primitive (dict)
-    elif isinstance(new_state, CheckBaseModel):
+    elif isinstance(new_state, BaseModel):
         new_state = new_state.dict()
     else:
         raise ValidationError(

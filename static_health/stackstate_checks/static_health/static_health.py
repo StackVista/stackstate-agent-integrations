@@ -4,7 +4,7 @@
 
 import csv
 import codecs
-from stackstate_checks.base.utils.validations_utils import CheckBaseModel
+from stackstate_checks.base.utils.validations_utils import StrictBaseModel
 from stackstate_checks.base.utils.schemas import StrictStringType
 from stackstate_checks.base import ConfigurationError, AgentCheck, TopologyInstance,\
     HealthStream, HealthStreamUrn, HealthType

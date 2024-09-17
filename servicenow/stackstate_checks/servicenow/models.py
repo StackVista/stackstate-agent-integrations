@@ -1,4 +1,4 @@
-CheckBaseModel
+StrictBaseModel
 from schematics.types import StringType, DateTimeType, ModelType, DictType, ListType, URLType, IntType, BooleanType
 
 from stackstate_checks.servicenow.common import DEFAULT_COMPONENT_DISPLAY_VALUE_LIST, \

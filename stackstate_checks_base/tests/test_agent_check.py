@@ -17,7 +17,7 @@ from stackstate_checks.base.stubs import datadog_agent
 from stackstate_checks.base.stubs.topology import component
 from stackstate_checks.checks import AgentCheck, TopologyInstance, AgentIntegrationInstance, \
     HealthStream, HealthStreamUrn, Health
-from stackstate_checks.base.utils.validations_utils import CheckBaseModel
+from stackstate_checks.base.utils.validations_utils import StrictBaseModel
 
 
 def test_instance():
@@ -502,11 +502,11 @@ class NestedIdentifierMappingTestAgentCheck(TopologyCheck):
         pass
 
 
-class StateSchema(CheckBaseModel):
+class StateSchema(StrictBaseModel):
     offset: int
 
 
-class CheckInstanceSchema(CheckBaseModel):
+class CheckInstanceSchema(StrictBaseModel):
     a: str
     state: StateSchema = StateSchema(**{'offset': 0})
 

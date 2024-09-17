@@ -13,14 +13,14 @@ import sys
 
 from typing import List
 from six import PY3, text_type
-from pydantic import ValidationError, AnyUrl
+from pydantic import ValidationError
 
 from stackstate_checks.checks import AgentCheckV2, TransactionalAgentCheck, StatefulAgentCheck, StackPackInstance, \
     TopologyInstance, AgentIntegrationInstance, HealthStream, HealthStreamUrn, Health, CheckResponse
 from stackstate_checks.base.stubs import datadog_agent
 from stackstate_checks.base.stubs.topology import component
 from stackstate_checks.base.utils.state_api import generate_state_key
-from stackstate_checks.base.utils.validations_utils import CheckBaseModel
+from stackstate_checks.base.utils.validations_utils import StrictBaseModel, AnyUrlStr
 
 TEST_INSTANCE = {
     "url": "https://example.org/api"
@@ -1343,12 +1343,12 @@ def sample_stateful_check(state, aggregator):
     aggregator.reset()
 
 
-class InstanceInfo(CheckBaseModel):
-    url: AnyUrl
+class InstanceInfo(StrictBaseModel):
+    url: AnyUrlStr
     instance_tags: List[str] = []
 
 
-class State(CheckBaseModel):
+class State(StrictBaseModel):
     offset: int = 0
 
 
@@ -1500,12 +1500,12 @@ class TransactionalCheck(TransactionalAgentCheck):
         return CheckResponse(transactional_state=transactional_state, persistent_state=persistent_state)
 
 
-class InstanceInfoSchemaCheck(CheckBaseModel):
-    url: AnyUrl
+class InstanceInfoSchemaCheck(StrictBaseModel):
+    url: AnyUrlStr
     instance_tags: List[str] = []
 
 
-class StateSchema(CheckBaseModel):
+class StateSchema(StrictBaseModel):
     updated: bool = False
 
 
@@ -1574,7 +1574,7 @@ class TransactionalStateDiscardCheck(TransactionalAgentCheck):
                              check_error=Exception("Something Went Wrong"))
 
 
-class TransactionalStateSchema(CheckBaseModel):
+class TransactionalStateSchema(StrictBaseModel):
     updated: bool = False
 
 

@@ -21,7 +21,7 @@ from stackstate_checks.utils.persistent_state import StateDescriptor, StateNotPe
     StateCorruptedException
 from six import PY3
 from pydantic import ValidationError
-from stackstate_checks.base.utils.validations_utils import CheckBaseModel
+from stackstate_checks.base.utils.validations_utils import StrictBaseModel
 
 
 class Item:
@@ -138,7 +138,7 @@ class TestRounding():
         assert round_value(4.2345, precision=3) == 4.235
 
 
-class TestStorageSchema(CheckBaseModel):
+class TestStorageSchema(StrictBaseModel):
     offset: int = 0
 
 
