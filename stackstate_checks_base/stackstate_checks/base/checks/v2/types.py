@@ -1,8 +1,8 @@
-from schematics import Model
+from stackstate_checks.base.utils.validations_utils import CheckBaseModel
 from typing import Any, Dict, TypeVar, Optional
 
-InstanceType = TypeVar('InstanceType', Model, Dict[str, Any])
-StateType = TypeVar('StateType', Model, Dict[str, Any])
+InstanceType = TypeVar('InstanceType', CheckBaseModel, Dict[str, Any])
+StateType = TypeVar('StateType', CheckBaseModel, Dict[str, Any])
 
 
 class CheckResponse(object):

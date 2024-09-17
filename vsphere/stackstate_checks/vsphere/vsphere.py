@@ -20,7 +20,7 @@ from six import itervalues
 from six.moves import range
 from vmware.vapi.vsphere.client import create_vsphere_client
 from com.vmware.vapi.std_client import DynamicID
-from schematics import Model
+from stackstate_checks.base.utils.validations_utils import CheckBaseModel
 from schematics.exceptions import DataError
 from schematics.types import StringType, BooleanType
 

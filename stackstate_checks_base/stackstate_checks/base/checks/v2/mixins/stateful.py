@@ -1,9 +1,9 @@
-from schematics import Model
 from typing import Any, Optional
 
 from .mixins import CheckMixin
 from ..types import StateType
 from ....utils.state_api import StateApi
+from ....utils.validations_utils import CheckBaseModel
 
 
 class StatefulMixin(CheckMixin):
@@ -14,7 +14,7 @@ class StatefulMixin(CheckMixin):
     """
     STATE_SCHEMA allows checks to specify a schematics Schema that is used for the state in self.check.
     """
-    STATE_SCHEMA = None  # type: Optional[Model]
+    STATE_SCHEMA = None  # type: Optional[CheckBaseModel]
 
     """
     PERSISTENT_CACHE_KEY is the key that is used for the state of the agent check.

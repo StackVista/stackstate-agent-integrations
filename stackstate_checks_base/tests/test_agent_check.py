@@ -6,18 +6,18 @@
 
 import copy
 import sys
+import textwrap
 
 import mock
 import pytest
-from schematics import Model
-from schematics.exceptions import ValidationError, ConversionError, DataError
-from schematics.types import IntType, StringType, ModelType
+from pydantic import ValidationError
 from six import PY3, text_type
 
 from stackstate_checks.base.stubs import datadog_agent
 from stackstate_checks.base.stubs.topology import component
 from stackstate_checks.checks import AgentCheck, TopologyInstance, AgentIntegrationInstance, \
     HealthStream, HealthStreamUrn, Health
+from stackstate_checks.base.utils.validations_utils import CheckBaseModel
 
 
 def test_instance():
@@ -502,13 +502,13 @@ class NestedIdentifierMappingTestAgentCheck(TopologyCheck):
         pass
 
 
-class StateSchema(Model):
-    offset = IntType(required=True)
+class StateSchema(CheckBaseModel):
+    offset: int
 
 
-class CheckInstanceSchema(Model):
-    a = StringType(required=True)
-    state = ModelType(StateSchema, required=True, default=StateSchema({'offset': 0}))
+class CheckInstanceSchema(CheckBaseModel):
+    a: str
+    state: StateSchema = StateSchema(**{'offset': 0})
 
 
 class TopologyStatefulSchemaCheck(TopologyStatefulCheck):
@@ -738,7 +738,7 @@ class TestBaseSanitize:
                 check._ensure_homogeneous_list(list)
 
             assert str(e.value) == "List: {0}, is not homogeneous, it contains the following types: {1}" \
-                .format(list, expected_types)
+                .format(list, sorted(str(x) for x in expected_types))
 
         # list of ints and strings
         exeception_case([1, '2', 3, '4'], {str, int})
@@ -789,7 +789,7 @@ class TestBaseSanitize:
                 "mixedlist": ['a', 'b', 'c', 4]}
         assert check.relation("source-id", "target-id", "my-type", data) is None
         # ensure that a schematics data error is thrown for events with non-homogeneous tags
-        with pytest.raises(DataError):
+        with pytest.raises(ValidationError):
             event = {
                 "timestamp": 123456789,
                 "event_type": "new.event",
@@ -801,7 +801,7 @@ class TestBaseSanitize:
             }
             assert check.event(event) is None
         # ensure that a schematics data error is thrown for topology events with non-homogeneous tags
-        with pytest.raises(DataError):
+        with pytest.raises(ValidationError):
             event = {
                 "timestamp": 123456789,
                 "source_type_name": "new.source.type",
@@ -926,7 +926,7 @@ class TestTopology:
 
     def test_auto_snapshotting(self, topology):
         check = TopologyAutoSnapshotCheck()
-        check.run()
+        assert check.run() == ""
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
 
@@ -989,7 +989,8 @@ class TestTopology:
         check = TopologyStatefulSchemaCheck()
         # assert the state check function as expected
         state_manager.assert_state_check(check, expected_pre_run_state=None,
-                                         expected_post_run_state=StateSchema({'offset': 20}), state_schema=StateSchema)
+                                         expected_post_run_state=StateSchema(**{'offset': 20}),
+                                         state_schema=StateSchema)
         # assert auto snapshotting occurred
         topology.assert_snapshot(check.check_id, check.key, start_snapshot=True, stop_snapshot=True)
 
@@ -1267,37 +1268,69 @@ class TestHealthStreamUrn:
         assert urn.urn_string() == "urn:health:source.:stream_id%3A"
 
     def test_verify_types(self):
-        with pytest.raises(ConversionError) as e:
+        with pytest.raises(ValidationError) as e:
             HealthStreamUrn(None, "stream_id")
-        assert e.value[0] == "This field is required."
+        assert str(e.value) == textwrap.dedent("""\
+            1 validation error for HealthStreamUrn
+            source
+              Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+                For further information visit https://errors.pydantic.dev/2.9/v/string_type""")
 
-        with pytest.raises(ConversionError) as e2:
+        with pytest.raises(ValidationError) as e2:
             HealthStreamUrn("source", None)
-        assert e2.value[0] == "This field is required."
+        assert str(e2.value) == textwrap.dedent("""\
+            1 validation error for HealthStreamUrn
+            stream_id
+              Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+                For further information visit https://errors.pydantic.dev/2.9/v/string_type""")
 
 
 class TestHealthStream:
     def test_throws_error_when_expiry_on_sub_stream(self):
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(ValidationError) as e:
             HealthStream(HealthStreamUrn("source.", "stream_id:"), "sub_stream", expiry_seconds=0)
-        assert str(e.value) == "Expiry cannot be disabled if a substream is specified"
+        assert str(e.value) == textwrap.dedent("""\
+            1 validation error for HealthStream
+              Value error, Expiry cannot be disabled if a substream is specified \
+[type=value_error, input_value={'urn': HealthStreamUrn(s...ne, 'expiry_seconds': 0}, input_type=dict]
+                For further information visit https://errors.pydantic.dev/2.9/v/value_error""")
 
     def test_verify_types(self):
         with pytest.raises(ValidationError) as e:
             HealthStream("str")
-        assert e.value[0] == "Value must be of class: <class 'stackstate_checks.base.utils.health_api.HealthStreamUrn'>"
+        assert str(e.value) == textwrap.dedent("""\
+            1 validation error for HealthStream
+            urn
+              Input should be a valid dictionary or instance of HealthStreamUrn \
+[type=model_type, input_value='str', input_type=str]
+                For further information visit https://errors.pydantic.dev/2.9/v/model_type""")
 
         with pytest.raises(ValidationError) as e:
             HealthStream(HealthStreamUrn("source", "urn"), sub_stream=1)
-        assert e.value[0] == """Value must be a string"""
+        assert str(e.value) == str(e.value) == textwrap.dedent("""\
+            1 validation error for HealthStream
+            sub_stream
+              Input should be a valid string \
+[type=string_type, input_value=1, input_type=int]
+                For further information visit https://errors.pydantic.dev/2.9/v/string_type""")
 
-        with pytest.raises(ConversionError) as e:
+        with pytest.raises(ValidationError) as e:
             HealthStream(HealthStreamUrn("source", "urn"), repeat_interval_seconds="")
-        assert e.value[0].summary == "Value '' is not int."
+        assert str(e.value) == str(e.value) == textwrap.dedent("""\
+            1 validation error for HealthStream
+            repeat_interval_seconds
+              Input should be a valid integer, unable to parse \
+string as an integer [type=int_parsing, input_value='', input_type=str]
+                For further information visit https://errors.pydantic.dev/2.9/v/int_parsing""")
 
-        with pytest.raises(ConversionError) as e:
+        with pytest.raises(ValidationError) as e:
             HealthStream(HealthStreamUrn("source", "urn"), expiry_seconds="")
-        assert e.value[0].summary == "Value '' is not int."
+        assert str(e.value) == str(e.value) == textwrap.dedent("""\
+            1 validation error for HealthStream
+            expiry_seconds
+              Input should be a valid integer, unable to parse string \
+as an integer [type=int_parsing, input_value='', input_type=str]
+                For further information visit https://errors.pydantic.dev/2.9/v/int_parsing""")
 
 
 class TestHealth:
@@ -1329,19 +1362,19 @@ class TestHealth:
     def test_check_state_verify_types(self):
         check = HealthCheck()
         check._init_health_api()
-        with pytest.raises(DataError):
+        with pytest.raises(ValidationError):
             check.health.check_state(1, "name", Health.CRITICAL, "identifier")
 
-        with pytest.raises(DataError):
+        with pytest.raises(ValidationError):
             check.health.check_state("check_id", 1, Health.CRITICAL, "identifier")
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValidationError):
             check.health.check_state("check_id", "name", "bla", "identifier")
 
-        with pytest.raises(DataError):
+        with pytest.raises(ValidationError):
             check.health.check_state("check_id", "name", Health.CRITICAL, 1)
 
-        with pytest.raises(DataError):
+        with pytest.raises(ValidationError):
             check.health.check_state("check_id", "name", Health.CRITICAL, "identifier", 1)
 
     def test_start_snapshot(self, health):

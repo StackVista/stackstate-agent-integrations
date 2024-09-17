@@ -2,10 +2,10 @@ import logging
 
 import json
 from typing import Union, Dict, Any
-from schematics import Model
 
 from .state_api import generate_state_key
 from .state_common import validate_state
+from .validations_utils import CheckBaseModel
 
 try:
     import transaction
@@ -48,7 +48,7 @@ class TransactionApi(object):
         transaction.discard_transaction(self.__check, self.__check.check_id, discard_reason)
 
     def set_state(self, key, new_state):
-        # type: (str, Union[Dict[str, Any], Model]) -> None
+        # type: (str, Union[Dict[str, Any], CheckBaseModel]) -> None
         """
         Dumps transactional state to JSON string and sets it as a new state.
         """

@@ -4,7 +4,7 @@
 from collections import namedtuple
 from datetime import datetime
 
-from schematics import Model
+from stackstate_checks.base.utils.validations_utils import CheckBaseModel
 from schematics.types import IntType, URLType, StringType, ListType, BooleanType, ModelType, DictType
 
 from stackstate_checks.base import AgentCheck, StackPackInstance, HealthStream, HealthStreamUrn, Health

@@ -4,7 +4,7 @@
 import time
 from datetime import datetime, timedelta
 
-from schematics import Model
+from stackstate_checks.base.utils.validations_utils import CheckBaseModel
 from schematics.types import IntType, StringType, ListType, DictType, URLType, BooleanType, ModelType
 
 from stackstate_checks.base import StackPackInstance, HealthStream, HealthStreamUrn, Health, Identifiers

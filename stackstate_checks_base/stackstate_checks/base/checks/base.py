@@ -15,7 +15,8 @@ import yaml
 from collections import defaultdict
 from functools import reduce
 from os.path import basename
-from schematics import Model
+from stackstate_checks.base.utils.validations_utils import CheckBaseModel
+from pydantic import ValidationError
 from six import PY3, iteritems, iterkeys, text_type, string_types, integer_types
 from typing import Any, Set, Dict, Sequence, List, Optional, Union, AnyStr, TypeVar
 from ..utils.health_api import HealthApiCommon
@@ -164,8 +165,8 @@ class TopologyInstance(_TopologyInstanceBase):
 StackPackInstance = TopologyInstance
 
 _SanitazableType = TypeVar('_SanitazableType', str, Dict[str, Any], List, Set)
-_InstanceType = TypeVar('_InstanceType', Model, Dict[str, Any])
-_EventType = TypeVar('_EventType', Model, Dict[str, Any])
+_InstanceType = TypeVar('_InstanceType', CheckBaseModel, Dict[str, Any])
+_EventType = TypeVar('_EventType', CheckBaseModel, Dict[str, Any])
 
 
 class AgentCheck(HealthApiCommon):
@@ -189,7 +190,7 @@ class AgentCheck(HealthApiCommon):
     """
     INSTANCE_SCHEMA allows checks to specify a schematics Schema that is used for the instance in self.check
     """
-    INSTANCE_SCHEMA = None
+    INSTANCE_SCHEMA: CheckBaseModel | None = None
 
     """
     STATE_FIELD_NAME is used to determine to which key the check state should be set, defaults to `state`
@@ -457,8 +458,12 @@ class AgentCheck(HealthApiCommon):
         check_instance = instance
 
         if self.INSTANCE_SCHEMA:
-            check_instance = self.INSTANCE_SCHEMA(instance, strict=False)  # strict=False ignores extra fields
-            check_instance.validate()
+            try:
+                check_instance = self.INSTANCE_SCHEMA(**instance)
+            except ValidationError as e:
+                print("Error validating instance: ", e)
+                raise e
+
         return check_instance
 
     def get_instance_key(self, instance):
@@ -942,14 +947,11 @@ class AgentCheck(HealthApiCommon):
         and are the correct type
         `event` the event that will be validated against the Event schematic model.
         """
-        # sent in as Event, validate to make sure it's correct
         if isinstance(event, Event):
-            event.validate()
+            return
         # sent in as dictionary, convert to Event and validate to make sure it's correct
         elif isinstance(event, dict):
-            _event = Event(event, strict=False)  # strict=False ignores extra fields provided by nagios
-            _event.validate()
-            event = _event
+            Event(**event)
         elif not isinstance(event, Event):
             AgentCheck._raise_unexpected_type("event", event, "Dictionary or Event")
 
@@ -1244,7 +1246,7 @@ class AgentCheck(HealthApiCommon):
 
         if len(type_set) > 1:
             raise TypeError("List: {0}, is not homogeneous, it contains the following types: {1}"
-                            .format(list, type_set))
+                            .format(list, sorted(str(x) for x in type_set)))
 
     def get_check_state_path(self):
         # type: () -> str

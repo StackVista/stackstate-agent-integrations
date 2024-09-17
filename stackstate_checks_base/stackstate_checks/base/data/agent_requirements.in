@@ -23,7 +23,7 @@ pywin32==306; sys_platform == 'win32' and python_version > '3.0'
 pyyaml==6.0.1; python_version > '3.0'
 requests-ntlm==1.2.0; python_version > '3.0'
 requests==2.31.0; python_version > '3.0'
-schematics==2.1.0
+pydantic==2.9.1
 simplejson==3.19.2
 six==1.16.0
 urllib3==1.26.5
