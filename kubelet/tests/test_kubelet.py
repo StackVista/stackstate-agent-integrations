@@ -75,9 +75,11 @@ EXPECTED_METRICS_PROMETHEUS = [
     'kubernetes.io.read_bytes',
     'kubernetes.apiserver.certificate.expiration.count',
     'kubernetes.apiserver.certificate.expiration.sum',
+    'kubernetes.apiserver.certificate.expiration.bucket',
     'kubernetes.rest.client.requests',
     'kubernetes.rest.client.latency.count',
     'kubernetes.rest.client.latency.sum',
+    'kubernetes.rest.client.latency.bucket',
     'kubernetes.kubelet.runtime.operations',
     'kubernetes.kubelet.runtime.errors',
     'kubernetes.kubelet.network_plugin.latency.sum',
@@ -269,7 +271,7 @@ def _test_kubelet_check_prometheus(monkeypatch, aggregator, tagger, instance_tag
             for tag in instance_tags:
                 aggregator.assert_metric_has_tag(metric, tag)
 
-    assert aggregator.metrics_asserted_pct == 100.0
+    assert aggregator.not_asserted() == []
 
 
 def test_prometheus_cpu_summed(monkeypatch, aggregator, tagger):
@@ -357,7 +359,7 @@ def test_prometheus_filtering(monkeypatch, aggregator):
         mock_method.assert_called_once()
         metric = mock_method.call_args[0][0]
         assert len(metric.samples) == 12
-        for name, labels, _ in metric.samples:
+        for name, labels, _, _, _ in metric.samples:
             assert name == "container_cpu_usage_seconds_total"
             assert labels["pod_name"] != ""
 

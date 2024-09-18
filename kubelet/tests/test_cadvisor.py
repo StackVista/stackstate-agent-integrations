@@ -87,4 +87,4 @@ def test_kubelet_check_cadvisor(monkeypatch, aggregator, tagger):
         aggregator.assert_metric(metric)
         aggregator.assert_metric_has_tag(metric, "instance:tag")
 
-    assert aggregator.metrics_asserted_pct == 100.0
+    assert aggregator.not_asserted() == []

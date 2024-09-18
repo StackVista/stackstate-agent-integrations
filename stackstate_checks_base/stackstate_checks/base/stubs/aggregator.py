@@ -214,7 +214,7 @@ class AggregatorStub(object):
             assert len(candidates) >= at_least, msg
 
     def assert_all_metrics_covered(self):
-        assert self.metrics_asserted_pct >= 100.0
+        assert self.not_asserted() == []
 
     def reset(self):
         """
@@ -224,9 +224,6 @@ class AggregatorStub(object):
         self._asserted = set()
         self._service_checks = defaultdict(list)
         self._events = []
-
-    def all_metrics_asserted(self):
-        assert self.metrics_asserted_pct >= 100.0
 
     def not_asserted(self):
         metrics_not_asserted = []
@@ -250,22 +247,6 @@ class AggregatorStub(object):
             assert len(candidates) == count
         else:
             assert len(candidates) >= at_least
-
-    @property
-    def metrics_asserted_pct(self):
-        """
-        Return the metrics assertion coverage
-        """
-        num_metrics = len(self._metrics)
-        num_asserted = len(self._asserted)
-
-        if num_metrics == 0:
-            if num_asserted == 0:
-                return 100
-            else:
-                return 0
-
-        return num_asserted / num_metrics * 100
 
     @property
     def metric_names(self):

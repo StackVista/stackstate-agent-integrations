@@ -55,7 +55,7 @@ def test_multi_instance_counter(aggregator, pdh_mocks_fixture):  # noqa: F811
     c.check(instance)
     for t in ['instance:0', 'instance:1', 'instance:_Total']:
         aggregator.assert_metric("test.processor_time", tags=['%s' % t], count=1)
-    assert aggregator.metrics_asserted_pct == 100.0
+    assert aggregator.not_asserted() == []
 
 
 @requires_windows
@@ -66,7 +66,7 @@ def test_multi_instance_counter_specific_instances(aggregator, pdh_mocks_fixture
     c.check(instance)
     for t in ['test.processor_time_0', 'test.processor_time_1']:
         aggregator.assert_metric(t, tags=None, count=1)
-    assert aggregator.metrics_asserted_pct == 100.0
+    assert aggregator.not_asserted() == []
 
 
 @requires_windows
@@ -89,4 +89,4 @@ def test_returns_partial_metrics(aggregator, pdh_mocks_fixture):  # noqa: F811
     aggregator.assert_metric("active_directory.ldap.bind_time", tags=None, count=1)
     aggregator.assert_metric("active_directory.ldap.successful_binds_persec", tags=None, count=1)
     aggregator.assert_metric("active_directory.ldap.searches_persec", tags=None, count=1)
-    assert aggregator.metrics_asserted_pct == 100.0
+    assert aggregator.not_asserted() == []
