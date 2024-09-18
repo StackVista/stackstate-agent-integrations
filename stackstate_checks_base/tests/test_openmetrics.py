@@ -462,11 +462,13 @@ def test_parse_one_counter(p_check, mocked_prometheus_scraper_config):
 
     expected_etcd_metric = CounterMetricFamily('go_memstats_mallocs_total', 'Total number of mallocs.')
     expected_etcd_metric.add_metric([], 18713)
+    # Fix up the _total change
+    expected_etcd_metric.name = 'go_memstats_mallocs_total'
 
     # Iter on the generator to get all metrics
     response = MockResponse(text_data, text_content_type)
     check = p_check
-    metrics = [k for k in check.parse_metric_family(response, mocked_prometheus_scraper_config)]
+    metrics = list(check.parse_metric_family(response, mocked_prometheus_scraper_config))
 
     assert 1 == len(metrics)
     current_metric = metrics[0]

@@ -11,7 +11,7 @@ from collections import defaultdict
 from google.protobuf.internal.decoder import _DecodeVarint32  # pylint: disable=E0611,E0401
 from ...utils.prometheus import metrics_pb2
 from math import isnan, isinf
-from prometheus_client.parser import text_fd_to_metric_families
+from ....checks.libs.prometheus import text_fd_to_metric_families
 
 from six import PY3, iteritems, string_types
 
