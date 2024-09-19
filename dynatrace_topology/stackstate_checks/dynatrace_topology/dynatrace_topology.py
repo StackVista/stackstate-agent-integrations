@@ -8,8 +8,12 @@ from schematics import Model
 from schematics.types import IntType, URLType, StringType, ListType, BooleanType, ModelType, DictType
 
 from stackstate_checks.base import AgentCheck, StackPackInstance, HealthStream, HealthStreamUrn, Health
-from stackstate_checks.dynatrace.dynatrance_client import DynatraceClient
+from stackstate_checks.dynatrace.dynatrace_client import DynatraceClient
 from stackstate_checks.utils.identifiers import Identifiers
+
+from stackstate_checks.dynatrace.host_data_type import HostEntity
+from stackstate_checks.dynatrace.queue_data_type import QueueEntity
+from stackstate_checks.dynatrace.service_data_type import ServiceEntity
 
 VERIFY_HTTPS = True
 TIMEOUT = 10
@@ -18,17 +22,25 @@ ENVIRONMENT = 'production'
 DOMAIN = 'dynatrace'
 
 API_V2_DEFAULT_RELATIVE_TIME = '1h'
-API_V2_DEFAULT_FIELDS_STRING = '+fromRelationships,+toRelationships,+tags,+managementZones,+properties'
+API_V2_DEFAULT_FIELDS_STRING = '+fromRelationships,+toRelationships,+tags,+managementZones'
+
+APPLICATION_PROPERTIES = '+properties.awsNameTag,+properties.boshName,+properties.conditionalName,+properties.customizedName,+properties.detectedName,+properties.gcpZone,+properties.oneAgentCustomHostName,+properties.ruleAppliedPattern'
+CUSTOM_DEVICE_PROPERTIES = '+properties.dnsNames,+properties.ipAddress'
+HOST_PROPERTIES = '+properties'
+PROCESS_GROUP_INSTANCE_PROPERTIES = '+properties.agentVersion,+properties.appVersion,+properties.awsNameTag,+properties.azureHostName,+properties.azureSiteName,+properties.boshName,+properties.conditionalName,+properties.customizedName,+properties.detectedName,+properties.ebpfHasPublicTraffic,+properties.gcpZone,+properties.hasPublicTraffic,+properties.installerVersion,+properties.isDockerized,+properties.jvmClrVersion,+properties.jvmVendor,+properties.oneAgentCustomHostName,+properties.releasesBuildVersion,+properties.releasesPro,+properties.releasesStage'
+PROCESS_GROUP_PROPERTIES = '+properties.awsNameTag,+properties.azureHostName,+properties.azureSiteName,+properties.boshName,+properties.conditionalName,+properties.customizedName,+properties.detectedName,+properties.gcpZone,+properties.oneAgentCustomHostName'
+SERVICE_PROPERTIES = HOST_PROPERTIES
+QUEUE_PROPERTIES = HOST_PROPERTIES
 
 TOPOLOGY_API_SPEC = {
-    "process": ("api/v2/entities", 'type("PROCESS_GROUP_INSTANCE")'),
-    "host": ("api/v2/entities", 'type("HOST")'),
-    "application": ("api/v2/entities", 'type("APPLICATION")'),
-    "process-group": ("api/v2/entities", 'type("PROCESS_GROUP")'),
-    "service": ("api/v2/entities", 'type("SERVICE")'),
-    "custom-device": ("api/v2/entities", 'type("CUSTOM_DEVICE")'),
-    "synthetic-monitor": ("api/v1/synthetic/monitors", None),
-    "queue": ("api/v2/entities", 'type("QUEUE")'),
+    "process": ("api/v2/entities", 'type("PROCESS_GROUP_INSTANCE")', f'{API_V2_DEFAULT_FIELDS_STRING},{PROCESS_GROUP_INSTANCE_PROPERTIES}'),
+    "host": ("api/v2/entities", 'type("HOST")', f'{API_V2_DEFAULT_FIELDS_STRING},{HOST_PROPERTIES}'),
+    "application": ("api/v2/entities", 'type("APPLICATION")', f'{API_V2_DEFAULT_FIELDS_STRING},{APPLICATION_PROPERTIES}'),
+    "process-group": ("api/v2/entities", 'type("PROCESS_GROUP")', f'{API_V2_DEFAULT_FIELDS_STRING},{PROCESS_GROUP_PROPERTIES}'),
+    "service": ("api/v2/entities", 'type("SERVICE")', f'{API_V2_DEFAULT_FIELDS_STRING},{SERVICE_PROPERTIES}'),
+    "custom-device": ("api/v2/entities", 'type("CUSTOM_DEVICE")', f'{API_V2_DEFAULT_FIELDS_STRING},{CUSTOM_DEVICE_PROPERTIES}'),
+    "synthetic-monitor": ("api/v1/synthetic/monitors", None, None),
+    "queue": ("api/v2/entities", 'type("QUEUE")', f'{API_V2_DEFAULT_FIELDS_STRING},{QUEUE_PROPERTIES}'),
 }
 
 DynatraceCachedEntity = namedtuple('DynatraceCachedEntity', 'identifier external_id name type')
@@ -36,10 +48,7 @@ DynatraceCachedEntity = namedtuple('DynatraceCachedEntity', 'identifier external
 class Entity(Model):
     entityId = StringType(required=True)
     displayName = StringType(required=True)
-    firstSeenTms = IntType()
     fromRelationships = DictType(ListType(DictType(StringType)), default={})
-    icon = DictType(StringType)
-    lastSeenTms = IntType()
     managementZones = ListType(DictType(StringType), default={})
     properties = DictType(ListType(StringType), default={})
     tags = ListType(DictType(StringType), default=[])
@@ -136,7 +145,7 @@ class DynatraceTopologyCheck(AgentCheck):
                                message=str(e))
 
     @staticmethod
-    def get_entity_params(custom_device_relative_time, custom_device_fields, component_type, next_page_key=None):
+    def get_entity_params(custom_device_relative_time, entity_type_fields, component_type, next_page_key=None):
         """
         Process the default parameters needed for custom device
         @param
@@ -151,12 +160,12 @@ class DynatraceTopologyCheck(AgentCheck):
             params = {'entitySelector': TOPOLOGY_API_SPEC[component_type][1]}
             relative_time = {'from': 'now-{}'.format(custom_device_relative_time)}
             params.update(relative_time)
-            fields = {'fields': '{}'.format(custom_device_fields)}
+            fields = {'fields': '{}'.format(entity_type_fields)}
             params.update(fields)
         return params
 
     def collect_entities_get_next_key(self, dynatrace_client, instance_info, endpoint, component_type,
-                                      next_page_key=None):
+                                      entity_type_fields, next_page_key=None):
         """
         Process custom device response & topology and returns the next page key for result
         @param
@@ -168,14 +177,14 @@ class DynatraceTopologyCheck(AgentCheck):
         Returns the next_page_key value from API response
         """
         params = self.get_entity_params(instance_info.relative_time,
-                                        API_V2_DEFAULT_FIELDS_STRING,
+                                        entity_type_fields,
                                         component_type,
                                         next_page_key)
         response = dynatrace_client.get_dynatrace_json_response(endpoint, params)
         self._collect_topology(response.get("entities", []), component_type, instance_info)
         return response.get('nextPageKey')
 
-    def process_entity_topology(self, dynatrace_client, instance_info, endpoint, component_type):
+    def process_entity_topology(self, dynatrace_client, instance_info, endpoint, component_type, entity_type_fields):
         """
         Process the custom device topology until next page key is None
         @param
@@ -186,10 +195,11 @@ class DynatraceTopologyCheck(AgentCheck):
         None
         """
         next_page_key = self.collect_entities_get_next_key(dynatrace_client, instance_info, endpoint,
-                                                           component_type)
+                                                           component_type, entity_type_fields)
         while next_page_key:
             next_page_key = self.collect_entities_get_next_key(dynatrace_client, instance_info, endpoint,
                                                                component_type,
+                                                               entity_type_fields,
                                                                next_page_key)
 
     def _process_topology(self, dynatrace_client, instance_info):
@@ -204,7 +214,7 @@ class DynatraceTopologyCheck(AgentCheck):
             endpoint = dynatrace_client.get_endpoint(instance_info.url, data_tuple[0])
             if component_type != "synthetic-monitor":
                 # process the custom device topology separately because of pagination
-                self.process_entity_topology(dynatrace_client, instance_info, endpoint, component_type)
+                self.process_entity_topology(dynatrace_client, instance_info, endpoint, component_type, data_tuple[2])
             else:
                 params = {"relativeTime": instance_info.relative_time}
                 response = dynatrace_client.get_dynatrace_json_response(endpoint, params)
@@ -256,7 +266,14 @@ class DynatraceTopologyCheck(AgentCheck):
         for item in response:
             item = self._clean_unsupported_metadata(item)
             if component_type != "synthetic-monitor":
-                dynatrace_component = Entity(item, strict=False)
+                if component_type == "host":
+                    dynatrace_component = HostEntity(item, strict=False)
+                elif component_type == "service":
+                    dynatrace_component = ServiceEntity
+                elif component_type == "queue":
+                    dynatrace_component = QueueEntity(item, strict=False)
+                else:
+                    dynatrace_component = Entity(item, strict=False)
                 dynatrace_component.validate()
             else:
                 dynatrace_component = DynatraceComponent(item, strict=False)
@@ -358,26 +375,28 @@ class DynatraceTopologyCheck(AgentCheck):
         host_identifiers = []
 
         properties = component.properties
-        # If properties is a list of dictionaries, check for azure, esxi, gce, public, local, and oneAgentCustomHostName
+
         if properties:
-            for prop in properties:
-                if prop.get("azureHostName"):
-                    host_identifiers.append(Identifiers.create_host_identifier(prop["azureHostName"]))
-                if prop.get("esxiHostName"):
-                    host_identifiers.append(Identifiers.create_host_identifier(prop["esxiHostName"]))
-                if prop.get("oneAgentCustomHostName"):
-                    host_identifiers.append(Identifiers.create_host_identifier(prop["oneAgentCustomHostName"]))
-                if prop.get("publicHostName"):
-                    host_identifiers.append(Identifiers.create_host_identifier(prop["publicHostName"]))
-                if prop.get("localHostName"):
-                    host_identifiers.append(Identifiers.create_host_identifier(prop["localHostName"]))
-                if prop.get("ipAddress"):
-                    host_identifiers.append(Identifiers.create_host_identifier(prop["ipAddress"]))
-                if prop.get("detectedName"):
-                    host_identifiers.append(Identifiers.create_host_identifier(prop["detectedName"]))
-                if prop.get("dnsNames"):
-                    for dns in prop.get("dnsNames"):
-                        host_identifiers.append(Identifiers.create_host_identifier(dns))
+            if properties.azureHostNames:
+                for azure_host_name in properties.azureHostNames:
+                    host_identifiers.append(Identifiers.create_host_identifier(azure_host_name))
+            if properties.oneAgentCustomHostName:
+                host_identifiers.append(Identifiers.create_host_identifier(properties.oneAgentCustomHostName))
+            if properties.ipAddress:
+                for ip in properties.ipAddress:
+                    host_identifiers.append(Identifiers.create_host_identifier(ip))
+            if properties.detectedName:
+                host_identifiers.append(Identifiers.create_host_identifier(properties.detectedName))
+            if properties.dnsNames:
+                for dns in properties.dnsNames:
+                    host_identifiers.append(Identifiers.create_host_identifier(dns))
+            if properties.gceHostName:
+                host_identifiers.append(Identifiers.create_host_identifier(properties.gceHostName))
+            if properties.esxiHostName:
+                host_identifiers.append(Identifiers.create_host_identifier(properties.esxiHostName))
+            if properties.hypervisorType:
+                host_identifiers.append(Identifiers.create_host_identifier(properties.hypervisorType))
+
         host_identifiers.append(Identifiers.create_host_identifier(component.displayName))
         host_identifiers = Identifiers.append_lowercase_identifiers(host_identifiers)
         return host_identifiers
