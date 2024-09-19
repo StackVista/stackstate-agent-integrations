@@ -6,7 +6,7 @@ from enum import Enum
 from typing import Optional, List, Any
 import uuid
 from pydantic import Field, AliasChoices
-from .validations_utils import StrictBaseModel, AnyUrlStr
+from .validations_utils import StrictBaseModel, AnyUrlStr, ForgivingBaseModel
 
 
 class HealthState(str, Enum):
@@ -515,7 +515,7 @@ class AlertType(str, Enum):
         return None
 
 
-class Event(StrictBaseModel):
+class Event(ForgivingBaseModel):
     """
     Event represents some activity that occurred that is of interest to
     args:
