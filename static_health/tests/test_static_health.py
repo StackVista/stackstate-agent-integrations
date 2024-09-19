@@ -1,6 +1,7 @@
 # (C) StackState 2020
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
+import textwrap
 
 # 3p
 import mock
@@ -73,7 +74,13 @@ class TestStaticCSVHealth(unittest.TestCase):
         }
 
         self.check = StaticHealthCheck(self.CHECK_NAME, config, instances=[instance])
-        assert json.loads(self.check.run())[0]['message'] == '{"health_file": ["This field is required."]}'
+        assert json.loads(self.check.run())[0]['message'] == textwrap.dedent("""\
+            1 validation error for InstanceInfo
+            health_file
+              Field required [type=missing, input_value={'type': 'csv', \
+'delimite...ollection_interval': 15}, input_type=dict]
+                For further information visit \
+https://errors.pydantic.dev/2.9/v/missing""")
 
     def test_empty_health_file(self):
         instance = {
@@ -172,7 +179,8 @@ class TestStaticCSVHealth(unittest.TestCase):
     @mock.patch('codecs.open', side_effect=lambda location, mode, encoding: MockFileReader(location, {
                 'health.csv': ['check_state_id,name,health,topology_element_identifier', '1,name,blaat,id1']}))
     def test_wrong_health(self, mock):
-        assert json.loads(self.check.run())[0]['message'] == '["Health value must be clear, deviating or critical"]'
+        assert json.loads(self.check.run())[0]['message'] == \
+            'Error parsing health, got: blaat, expected clear, deviating or critical'
         # Snapshot will be started but not stopped
         health.assert_snapshot(self.check.check_id, self.check.health.stream,
                                start_snapshot={'expiry_interval_s': 0, 'repeat_interval_s': 15})

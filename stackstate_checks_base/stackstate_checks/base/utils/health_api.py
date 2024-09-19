@@ -43,7 +43,7 @@ class HealthType(object):
         try:
             return Health(value)
         except Exception as e:
-            raise ValueError(f"Error parsing health: {value}") from e
+            raise ValueError(f"Error parsing health, got: {value}, expected clear, deviating or critical") from e
 
 
 class HealthStreamUrn(StrictBaseModel):
