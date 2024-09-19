@@ -49,10 +49,6 @@ class SplunkTelemetryInstance(object):
         self.instance_config = instance_config
         self.splunk_client = self._build_splunk_client()
 
-        # no saved searches may be configured
-        if not isinstance(instance['saved_searches'], list):
-            instance['saved_searches'] = []
-
         self.saved_searches = SavedSearchesTelemetry(instance_config, self.splunk_client, [
                                                      create_saved_search(instance_config, saved_search_instance)
                                                      for saved_search_instance in instance['saved_searches']

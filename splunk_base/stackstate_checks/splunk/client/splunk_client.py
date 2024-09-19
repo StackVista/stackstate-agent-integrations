@@ -17,7 +17,6 @@ from urllib3.exceptions import InsecureRequestWarning
 from requests.exceptions import HTTPError, ConnectionError, Timeout
 from stackstate_checks.base.errors import CheckException
 from stackstate_checks.splunk.config import AuthType
-from stackstate_checks.base.checks import StatefulMixin
 
 urllib3.disable_warnings(InsecureRequestWarning)
 

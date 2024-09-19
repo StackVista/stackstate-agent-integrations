@@ -5,6 +5,7 @@ from enum import Enum
 from iso8601 import iso8601
 from pytz import timezone
 from stackstate_checks.base.errors import CheckException
+from .splunk_instance_config_models import SplunkConfigInstance, SplunkConfigSavedSearchDefault
 
 AUTH_TOKEN_KEY = "auth_token"
 SID_KEY_BASE = "sid"
@@ -46,67 +47,51 @@ class SplunkInstanceConfig(object):
     def __init__(self, instance, init_config, defaults):
         self.log = logging.getLogger('%s' % __name__)
 
+        if 'username' in instance and 'authentication' not in instance:
+            raise CheckException('Instance username/password should be configured using "authentication.basic_auth" \
+instead of username/password on top level')
+
+        instance = SplunkConfigInstance(**instance)
+
         self.defaults = defaults
         self.init_config = init_config
 
-        self.default_request_timeout_seconds = self.get_or_default('default_request_timeout_seconds')
-        self.default_search_max_retry_count = self.get_or_default('default_search_max_retry_count')
-        self.default_search_seconds_between_retries = self.get_or_default('default_search_seconds_between_retries')
-        self.default_verify_ssl_certificate = self.get_or_default('default_verify_ssl_certificate')
-        self.default_batch_size = self.get_or_default('default_batch_size')
-        self.default_saved_searches_parallel = self.get_or_default('default_saved_searches_parallel')
+        self.default_request_timeout_seconds = int(self.get_or_default('default_request_timeout_seconds'))
+        self.default_search_max_retry_count = int(self.get_or_default('default_search_max_retry_count'))
+        self.default_search_seconds_between_retries = int(
+            self.get_or_default('default_search_seconds_between_retries')
+        )
+        self.default_verify_ssl_certificate = bool(self.get_or_default('default_verify_ssl_certificate'))
+        self.default_batch_size = int(self.get_or_default('default_batch_size'))
+        self.default_saved_searches_parallel = int(self.get_or_default('default_saved_searches_parallel'))
         self.default_app = self.get_or_default('default_app')
         self.default_parameters = self.get_or_default('default_parameters')
 
-        self.verify_ssl_certificate = bool(instance.get('verify_ssl_certificate', self.default_verify_ssl_certificate))
+        self.verify_ssl_certificate = instance.verify_ssl_certificate or self.default_verify_ssl_certificate
 
-        if 'url' not in instance:
-            raise CheckException('Instance is missing "url" value.')
-        self.base_url = instance['url']
+        self.base_url = instance.url
 
-        if 'authentication' in instance:
-            authentication = instance["authentication"]
-            if 'token_auth' in authentication and authentication["token_auth"] is not None:
-                token_auth = authentication["token_auth"]
-                if 'name' not in token_auth or token_auth['name'] is None:
-                    raise CheckException('Instance missing "authentication.token_auth.name" value')
-                if 'initial_token' not in token_auth or token_auth['initial_token'] is None:
-                    raise CheckException('Instance missing "authentication.token_auth.initial_token" '
-                                         'value')
-                if 'audience' not in token_auth or token_auth['audience'] is None:
-                    raise CheckException('Instance missing "authentication.token_auth.audience" value')
-                self.auth_type = AuthType.TokenAuth
-                self.audience = token_auth.get("audience")
-                self.initial_token = token_auth.get("initial_token")
-                self.name = token_auth.get("name")
-                self.token_expiration_days = token_auth.get("token_expiration_days", 90)
-                self.renewal_days = token_auth.get("renewal_days", 10)
-            elif 'basic_auth' in authentication and authentication["basic_auth"] is not None:
-                basic_auth = authentication["basic_auth"]
-                if 'username' not in basic_auth or basic_auth['username'] is None:
-                    raise CheckException('Instance missing "authentication.basic_auth.username" value')
-                if 'password' not in basic_auth or basic_auth['password'] is None:
-                    raise CheckException('Instance missing "authentication.basic_auth.password" value')
-                self.auth_type = AuthType.BasicAuth
-                self.username = basic_auth.get("username")
-                self.password = basic_auth.get("password")
-            else:
-                raise CheckException('Instance missing "authentication.basic_auth" or '
-                                     '"authentication.token_auth" value')
+        authentication = instance.authentication
+        if instance.authentication.token_auth is not None:
+            token_auth = authentication.token_auth
+            self.auth_type = AuthType.TokenAuth
+            self.audience = token_auth.audience
+            self.initial_token = token_auth.initial_token
+            self.name = token_auth.name
+            self.token_expiration_days = token_auth.token_expiration_days
+            self.renewal_days = token_auth.renewal_days
+        elif authentication.basic_auth is not None:
+            basic_auth = authentication.basic_auth
+            self.auth_type = AuthType.BasicAuth
+            self.username = basic_auth.username
+            self.password = basic_auth.password
         else:
-            if instance.get('username') is not None and instance.get('password') is not None:
-                self.log.warning("This username and password configuration will be deprecated soon. Please use the new "
-                                 "updated configuration from the conf")
-                self.username = instance.get('username')
-                self.password = instance.get('password')
-                self.auth_type = AuthType.BasicAuth
-            else:
-                raise CheckException("Instance missing 'authentication'.")
+            raise CheckException('Instance missing "authentication.basic_auth" or '
+                                 '"authentication.token_auth" value')
 
-        self.ignore_saved_search_errors = instance.get('ignore_saved_search_errors', False)
-        self.saved_searches_parallel = int(
-            instance.get('saved_searches_parallel', self.default_saved_searches_parallel))
-        self.tags = instance.get('tags', [])
+        self.ignore_saved_search_errors = instance.ignore_saved_search_errors
+        self.saved_searches_parallel = instance.saved_searches_parallel or self.default_saved_searches_parallel
+        self.tags = instance.tags
 
     def get_or_default(self, field):
         return self.init_config.get(field, self.defaults[field])
@@ -117,14 +102,16 @@ class SplunkInstanceConfig(object):
 
 class SplunkSavedSearch(object):
     def __init__(self, instance_config, saved_search_instance):
-        if "name" in saved_search_instance and saved_search_instance["name"] is not None:
-            self.name = saved_search_instance['name']
+        saved_search_instance = SplunkConfigSavedSearchDefault(**saved_search_instance)
+
+        if saved_search_instance.name is not None:
+            self.name = saved_search_instance.name
             self.match = None
-        elif "match" in saved_search_instance and saved_search_instance["match"] is not None:
-            self.match = saved_search_instance['match']
+        elif saved_search_instance.match is not None:
+            self.match = saved_search_instance.match
             self.name = None
         else:
-            raise Exception("Neither 'name' or 'match' should be defined for saved search.")
+            raise Exception("Either 'name' or 'match' should be defined for saved search.")
 
         # maps from fields (as they go to output) to corresponding column names in results we get from Splunk
         self.critical_fields = None  # if absent, then fail the search
@@ -132,34 +119,17 @@ class SplunkSavedSearch(object):
         self.optional_fields = None  # allowed to be absent
         self.fixed_fields = None  # fields that are filled in by the check
 
-        self.parameters = self._saved_search_instance_get_or_else(
-            saved_search_instance, dict, "parameters", instance_config.default_parameters)
+        self.parameters = dict(saved_search_instance.parameters or instance_config.default_parameters)
+        self.request_timeout_seconds = \
+            saved_search_instance.request_timeout_seconds or instance_config.default_request_timeout_seconds
+        self.search_max_retry_count = \
+            saved_search_instance.search_max_retry_count or instance_config.default_search_max_retry_count
+        self.search_seconds_between_retries = \
+            saved_search_instance.search_seconds_between_retries or \
+            instance_config.default_search_seconds_between_retries
+        self.batch_size = saved_search_instance.batch_size or instance_config.default_batch_size
 
-        self.request_timeout_seconds = self._saved_search_instance_get_or_else(
-            saved_search_instance, int, "request_timeout_seconds", instance_config.default_request_timeout_seconds)
-
-        self.search_max_retry_count = self._saved_search_instance_get_or_else(
-            saved_search_instance, int, "search_max_retry_count", instance_config.default_search_max_retry_count)
-
-        self.search_seconds_between_retries = self._saved_search_instance_get_or_else(
-            saved_search_instance, int, "search_seconds_between_retries",
-            instance_config.default_search_seconds_between_retries)
-
-        self.batch_size = self._saved_search_instance_get_or_else(
-            saved_search_instance, int, "batch_size", instance_config.default_batch_size)
-
-        self.app = saved_search_instance.get("app", instance_config.default_app)
-
-    # Attempt to find a key in saved_search_instance and if not found return a default
-    # None inside the dictionaries will also be seen as invalid and return the alternative
-    @staticmethod
-    def _saved_search_instance_get_or_else(saved_search_instance, cast_to_type, key, alternative):
-        parameters = saved_search_instance.get(key)
-
-        if parameters is not None:
-            return cast_to_type(parameters)
-        else:
-            return cast_to_type(alternative)
+        self.app = saved_search_instance.app or instance_config.default_app
 
     def retrieve_fields(self, data):
         retrieved_data = {}

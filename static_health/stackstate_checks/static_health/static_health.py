@@ -68,7 +68,7 @@ class StaticHealthCheck(AgentCheck):
 
                 check_state_id = data.get(CHECK_STATE_ID_FIELD)
                 name = data.get(NAME_FIELD)
-                health = HealthType().convert(data.get(HEALTH_FIELD), None)
+                health = HealthType().convert(data.get(HEALTH_FIELD))
                 topology_element_identifier = data.get(TOPOLOGY_ELEMENT_IDENTIFIER_FIELD)
                 message = data.get(MESSAGE_FIELD, None)
 

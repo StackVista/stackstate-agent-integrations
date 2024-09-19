@@ -1,10 +1,11 @@
 # stdlib
+import textwrap
 import unittest
 
 # project
 from stackstate_checks.splunk.config import AuthType, SplunkInstanceConfig
 from stackstate_checks.base.errors import CheckException
-
+from pydantic import ValidationError
 
 mock_defaults = {
     'default_request_timeout_seconds': 5,
@@ -51,7 +52,7 @@ class TestSplunkInstanceConfig(unittest.TestCase):
         instance_config = SplunkInstanceConfig(instance, {}, mock_defaults)
         assert instance_config.auth_type == AuthType.TokenAuth
 
-    def test_checks_backward_compatibility(self):
+    def test_error_legacy_auth(self):
         """
         Test whether username/password without the authentication block is still accepted
         """
@@ -71,8 +72,12 @@ class TestSplunkInstanceConfig(unittest.TestCase):
             'tags': ['mytag', 'mytag2']
         }
 
-        instance_config = SplunkInstanceConfig(instance, {}, mock_defaults)
-        assert instance_config.auth_type == AuthType.BasicAuth
+        try:
+            SplunkInstanceConfig(instance, {}, mock_defaults)
+            assert False
+        except CheckException as e:
+            assert str(e) == "Instance username/password should be configured using \"authentication.basic_auth\" \
+instead of username/password on top level"
 
     def test_combine_old_and_new_conf(self):
         instance = {
@@ -126,8 +131,13 @@ class TestSplunkInstanceConfig(unittest.TestCase):
         try:
             SplunkInstanceConfig(instance, {}, mock_defaults)
             assert False
-        except CheckException as e:
-            assert str(e) == 'Instance missing "authentication.token_auth.audience" value'
+        except ValidationError as e:
+            assert str(e) == textwrap.dedent("""\
+            1 validation error for SplunkConfigInstance
+            authentication.token_auth.audience
+              Field required [type=missing, input_value={'name': 'admin', 'initia...dx', \
+'renewal_days': 10}, input_type=dict]
+                For further information visit https://errors.pydantic.dev/2.9/v/missing""")
 
     def test_check_name_param_not_set(self):
         """
@@ -154,5 +164,10 @@ class TestSplunkInstanceConfig(unittest.TestCase):
         try:
             SplunkInstanceConfig(instance, {}, mock_defaults)
             assert False
-        except CheckException as e:
-            assert str(e) == 'Instance missing "authentication.token_auth.name" value'
+        except ValidationError as e:
+            assert str(e) == textwrap.dedent("""\
+            1 validation error for SplunkConfigInstance
+            authentication.token_auth.name
+              Field required [type=missing, input_value={'initial_token': 'dsfdgf...ch', \
+'renewal_days': 10}, input_type=dict]
+                For further information visit https://errors.pydantic.dev/2.9/v/missing""")

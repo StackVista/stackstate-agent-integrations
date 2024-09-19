@@ -2,68 +2,59 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 
-from schematics.models import Model
-from schematics.types import StringType, ListType, DictType, IntType, BooleanType, BaseType, ModelType
+from stackstate_checks.base.utils.validations_utils import ForgivingBaseModel, StrictBaseModel
+from typing import List, Optional
 
 
-# Allow copy.deepcopy to work on the schematic models
-class PickleModel(Model):
-    def __getstate__(self):
-        return self.to_native()
-
-    def __setstate__(self, kwargs):
-        self.__init__(kwargs)
-
-
-class SplunkConfigSavedSearchDefault(PickleModel):
-    name = StringType(default=None)
-    match = StringType(default=None)
-    parameters = DictType(BaseType, default={"force_dispatch": True, "dispatch.now": True})
-    request_timeout_seconds = IntType(default=5)
-    search_max_retry_count = IntType(default=3)
-    search_seconds_between_retries = IntType(default=1)
-    verify_ssl_certificate = BooleanType(default=False)
-    max_initial_history_seconds = IntType(default=86400)
-    max_query_chunk_seconds = IntType(default=300)
-    unique_key_fields = ListType(StringType, default=["_bkt", "_cd"])
-    app = StringType(default="search")
-    batch_size = IntType(default=1000)
-    saved_searches_parallel = IntType(default=3)
-    initial_history_time_seconds = IntType(default=0)
-    max_restart_history_seconds = IntType(default=86400)
-    max_query_time_range = IntType(default=3600)
-    initial_delay_seconds = IntType(default=0)
-    metric_name = StringType(default=None)
-    metric_name_field = StringType(default=None)
-    metric_value_field = StringType(default=None)
+class SplunkConfigSavedSearchDefault(ForgivingBaseModel):
+    name: Optional[str] = None
+    match: Optional[str] = None
+    parameters: Optional[dict] = None
+    request_timeout_seconds: Optional[int] = None
+    search_max_retry_count: Optional[int] = None
+    search_seconds_between_retries: Optional[int] = None
+    max_initial_history_seconds: int = 86400
+    max_query_chunk_seconds: int = 300
+    unique_key_fields: List[str] = ["_bkt", "_cd"]
+    app: Optional[str] = None
+    batch_size: Optional[int] = None
+    initial_history_time_seconds: int = 0
+    max_restart_history_seconds: int = 86400
+    max_query_time_range: int = 3600
+    initial_delay_seconds: int = 0
+    metric_name: Optional[str] = None
+    metric_name_field: Optional[str] = None
+    metric_value_field: Optional[str] = None
 
 
-class SplunkConfigTokenAuthStructure(PickleModel):
-    name = StringType()
-    audience = StringType()
-    initial_token = StringType(required=True)
-    renewal_days = IntType(required=True)
+class SplunkConfigTokenAuthStructure(StrictBaseModel):
+    name: str
+    audience: str
+    initial_token: str
+    token_expiration_days: int = 90
+    renewal_days: int = 10
 
 
-class SplunkConfigBasicAuthStructure(PickleModel):
-    username = StringType(required=True)
-    password = StringType(required=True)
+class SplunkConfigBasicAuthStructure(StrictBaseModel):
+    username: str
+    password: str
 
 
-class SplunkConfigAuthentication(PickleModel):
-    token_auth = ModelType(SplunkConfigTokenAuthStructure)
-    basic_auth = ModelType(SplunkConfigBasicAuthStructure)
+class SplunkConfigAuthentication(StrictBaseModel):
+    token_auth: Optional[SplunkConfigTokenAuthStructure] = None
+    basic_auth: Optional[SplunkConfigBasicAuthStructure] = None
 
 
-class SplunkConfigInstance(PickleModel):
-    url = StringType(required=True)
-    tags = ListType(StringType, required=True)
-    authentication = ModelType(SplunkConfigAuthentication, required=True)
-    saved_searches_parallel = IntType(default=3)
-    ignore_saved_search_errors = BooleanType(default=False)
-    saved_searches = ListType(ModelType(SplunkConfigSavedSearchDefault), required=True)
+class SplunkConfigInstance(ForgivingBaseModel):
+    url: str
+    tags: List[str] = []
+    authentication: SplunkConfigAuthentication
+    saved_searches_parallel: int = 3
+    ignore_saved_search_errors: bool = False
+    saved_searches: List[SplunkConfigSavedSearchDefault] = []
+    verify_ssl_certificate: Optional[bool] = None
 
 
-class SplunkConfig(PickleModel):
-    init_config = DictType(BaseType)
-    instances = ListType(ModelType(SplunkConfigInstance), required=True)
+class SplunkConfig(ForgivingBaseModel):
+    init_config: dict
+    instances: List[SplunkConfigInstance]

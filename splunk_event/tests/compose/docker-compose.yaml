@@ -1,8 +1,0 @@
-version: '3'
-services:
-  splunk:
-    # This image is defined in gitlab.com/stackvista/stackstate-installation/plugin-products/splunk
-    image: "artifactory.tooling.stackstate.io/docker-virtual/stackstate/splunk-test:7.3"
-    ports:
-      - 8000:8000
-      - 8089:8089

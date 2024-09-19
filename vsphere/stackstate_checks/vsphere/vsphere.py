@@ -1339,7 +1339,6 @@ class VSphereCheck(AgentCheck):
         # )
         try:
             instance_info = InstanceConfig(instance, strict=False)
-            instance_info.validate()
         except DataError as e:
             self.log.error("Missing required element in configuration: " + str(e))
             raise e

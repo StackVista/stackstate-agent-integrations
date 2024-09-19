@@ -23,7 +23,7 @@ class HealthState(str, Enum):
     # Make case-insensitive
     @classmethod
     def _missing_(cls, value):
-        value = value.lower()
+        value = value.lower() if value is not None else None
         for member in cls:
             if member.lower() == value:
                 return member
@@ -508,7 +508,7 @@ class AlertType(str, Enum):
     # Make case-insensitive
     @classmethod
     def _missing_(cls, value):
-        value = value.lower()
+        value = value.lower() if value is not None else None
         for member in cls:
             if member.lower() == value:
                 return member

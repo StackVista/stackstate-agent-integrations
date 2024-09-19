@@ -25,7 +25,7 @@ class Health(str, Enum):
     # Make case-insensitive
     @classmethod
     def _missing_(cls, value):
-        value = value.lower()
+        value = value.lower() if value is not None else None
         for member in cls:
             if member.lower() == value:
                 return member
@@ -42,8 +42,8 @@ class HealthType(object):
 
         try:
             return Health(value)
-        except ValueError as e:
-            raise ValidationError("Error parsing health") from e
+        except Exception as e:
+            raise ValueError(f"Error parsing health: {value}") from e
 
 
 class HealthStreamUrn(StrictBaseModel):
