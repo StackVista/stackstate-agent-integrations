@@ -1,4 +1,4 @@
-image: artifactory.tooling.stackstate.io/docker-virtual/stackstate/stackstate-agent-integrations-runner:20240515-py311
+image: artifactory.tooling.stackstate.io/docker-virtual/stackstate/stackstate-agent-integrations-runner:20240919-py311
 stages:
   - build
   - test
