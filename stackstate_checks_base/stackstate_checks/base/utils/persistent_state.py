@@ -144,7 +144,7 @@ class StateManager:
                     os.makedirs(os.path.dirname(instance.file_location))
 
                 with open(instance.file_location, 'w+') as f:
-                    f.write(json.dumps(self.state[instance.instance_key]))
+                    f.write(json.dumps(self.state[instance.instance_key], default=str))
             except (IOError, OSError) as e:
                 if e.errno != errno.EEXIST:
                     # if we couldn't save, log the state

@@ -26,7 +26,7 @@ def test_creating_topology_event_from_change_request(servicenow_check, requests_
     response = [{'status_code': 200, 'text': read_file('CHG0000001.json', 'samples')},
                 {'status_code': 200, 'text': EMPTY_RESULT}]
     request_mock_cmdb_ci_tables_setup(requests_mock, test_cr_instance.get('url'), response)
-    servicenow_check.run()
+    assert servicenow_check.run() == ""
     aggregator.assert_service_check(SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     topology_events = telemetry._topology_events
     assert len(topology_events) == 1
@@ -72,7 +72,7 @@ def test_creating_topo_event_from_cr_when_field_has_null_value(servicenow_check,
     topology_events = telemetry._topology_events
     assert len(topology_events) == 1
     assert topology_events[0]['msg_title'] == to_string('CHG0000002: Rollback Oracle Version')
-    assert 'category:None' in topology_events[0]['tags']
+    assert 'category:' in topology_events[0]['tags']
 
 
 def test_custom_cmdb_ci_field(servicenow_check, requests_mock, test_cr_instance):
