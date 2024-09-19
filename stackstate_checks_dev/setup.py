@@ -77,7 +77,6 @@ setup(
             'click',
             'colorama',
             'datadog-a7',
-            'docker-compose',
             'in-toto==0.2.3',
             'pip-tools==7.3.0',
             'pylint==2.17.2',

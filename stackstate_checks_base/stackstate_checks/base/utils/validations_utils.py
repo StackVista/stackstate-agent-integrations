@@ -30,6 +30,7 @@ class StrictBaseModel(BaseModel):
         else:
             return default
 
+
 class ForgivingBaseModel(BaseModel):
     # StrictBaseModel extends the BaseModel of pydantic with some default behaviors and backwards compatibility
     model_config = ConfigDict(extra="ignore")
