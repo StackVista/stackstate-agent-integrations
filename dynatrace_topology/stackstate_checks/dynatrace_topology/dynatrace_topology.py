@@ -11,9 +11,7 @@ from stackstate_checks.base import AgentCheck, StackPackInstance, HealthStream, 
 from stackstate_checks.dynatrace.dynatrace_client import DynatraceClient
 from stackstate_checks.utils.identifiers import Identifiers
 
-from stackstate_checks.dynatrace.host_data_type import HostEntity
-from stackstate_checks.dynatrace.queue_data_type import QueueEntity
-from stackstate_checks.dynatrace.service_data_type import ServiceEntity
+from stackstate_checks.dynatrace.entity_data_types import ApplicationEntity, HostEntity, QueueEntity, ServiceEntity, ProcessGroupEntity, ProcessGroupInstanceEntity, CustomDeviceEntity
 
 VERIFY_HTTPS = True
 TIMEOUT = 10
@@ -22,25 +20,17 @@ ENVIRONMENT = 'production'
 DOMAIN = 'dynatrace'
 
 API_V2_DEFAULT_RELATIVE_TIME = '1h'
-API_V2_DEFAULT_FIELDS_STRING = '+fromRelationships,+toRelationships,+tags,+managementZones'
-
-APPLICATION_PROPERTIES = '+properties.awsNameTag,+properties.boshName,+properties.conditionalName,+properties.customizedName,+properties.detectedName,+properties.gcpZone,+properties.oneAgentCustomHostName,+properties.ruleAppliedPattern'
-CUSTOM_DEVICE_PROPERTIES = '+properties.dnsNames,+properties.ipAddress'
-HOST_PROPERTIES = '+properties'
-PROCESS_GROUP_INSTANCE_PROPERTIES = '+properties.agentVersion,+properties.appVersion,+properties.awsNameTag,+properties.azureHostName,+properties.azureSiteName,+properties.boshName,+properties.conditionalName,+properties.customizedName,+properties.detectedName,+properties.ebpfHasPublicTraffic,+properties.gcpZone,+properties.hasPublicTraffic,+properties.installerVersion,+properties.isDockerized,+properties.jvmClrVersion,+properties.jvmVendor,+properties.oneAgentCustomHostName,+properties.releasesBuildVersion,+properties.releasesPro,+properties.releasesStage'
-PROCESS_GROUP_PROPERTIES = '+properties.awsNameTag,+properties.azureHostName,+properties.azureSiteName,+properties.boshName,+properties.conditionalName,+properties.customizedName,+properties.detectedName,+properties.gcpZone,+properties.oneAgentCustomHostName'
-SERVICE_PROPERTIES = HOST_PROPERTIES
-QUEUE_PROPERTIES = HOST_PROPERTIES
+API_V2_DEFAULT_FIELDS_STRING = '+fromRelationships,+toRelationships,+tags,+managementZones,+properties'
 
 TOPOLOGY_API_SPEC = {
-    "process": ("api/v2/entities", 'type("PROCESS_GROUP_INSTANCE")', f'{API_V2_DEFAULT_FIELDS_STRING},{PROCESS_GROUP_INSTANCE_PROPERTIES}'),
-    "host": ("api/v2/entities", 'type("HOST")', f'{API_V2_DEFAULT_FIELDS_STRING},{HOST_PROPERTIES}'),
-    "application": ("api/v2/entities", 'type("APPLICATION")', f'{API_V2_DEFAULT_FIELDS_STRING},{APPLICATION_PROPERTIES}'),
-    "process-group": ("api/v2/entities", 'type("PROCESS_GROUP")', f'{API_V2_DEFAULT_FIELDS_STRING},{PROCESS_GROUP_PROPERTIES}'),
-    "service": ("api/v2/entities", 'type("SERVICE")', f'{API_V2_DEFAULT_FIELDS_STRING},{SERVICE_PROPERTIES}'),
-    "custom-device": ("api/v2/entities", 'type("CUSTOM_DEVICE")', f'{API_V2_DEFAULT_FIELDS_STRING},{CUSTOM_DEVICE_PROPERTIES}'),
+    "process": ("api/v2/entities", 'type("PROCESS_GROUP_INSTANCE")', f'{API_V2_DEFAULT_FIELDS_STRING}'),
+    "host": ("api/v2/entities", 'type("HOST")', f'{API_V2_DEFAULT_FIELDS_STRING}'),
+    "application": ("api/v2/entities", 'type("APPLICATION")', f'{API_V2_DEFAULT_FIELDS_STRING}'),
+    "process-group": ("api/v2/entities", 'type("PROCESS_GROUP")', f'{API_V2_DEFAULT_FIELDS_STRING}'),
+    "service": ("api/v2/entities", 'type("SERVICE")', f'{API_V2_DEFAULT_FIELDS_STRING}'),
+    "custom-device": ("api/v2/entities", 'type("CUSTOM_DEVICE")', f'{API_V2_DEFAULT_FIELDS_STRING}'),
     "synthetic-monitor": ("api/v1/synthetic/monitors", None, None),
-    "queue": ("api/v2/entities", 'type("QUEUE")', f'{API_V2_DEFAULT_FIELDS_STRING},{QUEUE_PROPERTIES}'),
+    "queue": ("api/v2/entities", 'type("QUEUE")', f'{API_V2_DEFAULT_FIELDS_STRING}'),
 }
 
 DynatraceCachedEntity = namedtuple('DynatraceCachedEntity', 'identifier external_id name type')
@@ -50,7 +40,7 @@ class Entity(Model):
     displayName = StringType(required=True)
     fromRelationships = DictType(ListType(DictType(StringType)), default={})
     managementZones = ListType(DictType(StringType), default={})
-    properties = DictType(ListType(StringType), default={})
+    properties = DictType(StringType, default={})
     tags = ListType(DictType(StringType), default=[])
     toRelationships = DictType(ListType(DictType(StringType)), default={})
     type = StringType(required=True)
@@ -272,6 +262,14 @@ class DynatraceTopologyCheck(AgentCheck):
                     dynatrace_component = ServiceEntity
                 elif component_type == "queue":
                     dynatrace_component = QueueEntity(item, strict=False)
+                elif component_type == "process-group":
+                    dynatrace_component = ProcessGroupEntity(item, strict=False)
+                elif component_type == "process":
+                    dynatrace_component = ProcessGroupInstanceEntity(item, strict=False)
+                elif component_type == "application":
+                    dynatrace_component = ApplicationEntity(item, strict=False)
+                elif component_type == "custom-device":
+                    dynatrace_component = CustomDeviceEntity(item, strict=False)
                 else:
                     dynatrace_component = Entity(item, strict=False)
                 dynatrace_component.validate()
