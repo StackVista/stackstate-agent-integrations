@@ -272,10 +272,11 @@ class DynatraceTopologyCheck(AgentCheck):
                     dynatrace_component = CustomDeviceEntity(item, strict=False)
                 else:
                     dynatrace_component = Entity(item, strict=False)
-                dynatrace_component.validate()
             else:
                 dynatrace_component = DynatraceComponent(item, strict=False)
-                dynatrace_component.validate()
+
+            dynatrace_component.validate(self)
+
             data = {}
             external_id = dynatrace_component.entityId
             identifiers = [Identifiers.create_custom_identifier("dynatrace", external_id)]
@@ -322,13 +323,13 @@ class DynatraceTopologyCheck(AgentCheck):
                     source_id = relation_id if is_target_component else component_id
                     target_id = component_id if is_target_component else relation_id
 
-                    # special case for custom-device because relation value will be a dictionary here
-                    if component_type == 'custom-device':
-                        custom_device_id = relation_id.get('id')
+                    # special case for api v1 because v2 relation values will be a dictionaries at this point
+                    if component_type != 'synthetic-monitor':
+                        entity_id = relation_id.get('id')
                         if is_target_component:
-                            self.relation(custom_device_id, component_id, relation_type, {})
+                            self.relation(entity_id, component_id, relation_type, {})
                         else:
-                            self.relation(component_id, custom_device_id, relation_type, {})
+                            self.relation(component_id, entity_id, relation_type, {})
                     elif relation_type == 'monitors':
                         self.relation(target_id, source_id, relation_type, {})
                     else:
@@ -378,25 +379,25 @@ class DynatraceTopologyCheck(AgentCheck):
         properties = component.properties
 
         if properties:
-            if properties.azureHostNames:
-                for azure_host_name in properties.azureHostNames:
+            if properties.get("azureHostNames"):
+                for azure_host_name in properties.get("azureHostNames"):
                     host_identifiers.append(Identifiers.create_host_identifier(azure_host_name))
-            if properties.oneAgentCustomHostName:
-                host_identifiers.append(Identifiers.create_host_identifier(properties.oneAgentCustomHostName))
-            if properties.ipAddress:
-                for ip in properties.ipAddress:
+            if properties.get("oneAgentCustomHostName"):
+                host_identifiers.append(Identifiers.create_host_identifier(properties.get("oneAgentCustomHostName")))
+            if properties.get("ipAddress"):
+                for ip in properties.get("ipAddress"):
                     host_identifiers.append(Identifiers.create_host_identifier(ip))
-            if properties.detectedName:
-                host_identifiers.append(Identifiers.create_host_identifier(properties.detectedName))
-            if properties.dnsNames:
-                for dns in properties.dnsNames:
+            if properties.get("detectedName"):
+                host_identifiers.append(Identifiers.create_host_identifier(properties.get("detectedName")))
+            if properties.get("dnsNames"):
+                for dns in properties.get("dnsNames"):
                     host_identifiers.append(Identifiers.create_host_identifier(dns))
-            if properties.gceHostName:
-                host_identifiers.append(Identifiers.create_host_identifier(properties.gceHostName))
-            if properties.esxiHostName:
-                host_identifiers.append(Identifiers.create_host_identifier(properties.esxiHostName))
-            if properties.hypervisorType:
-                host_identifiers.append(Identifiers.create_host_identifier(properties.hypervisorType))
+            if properties.get("gceHostName"):
+                host_identifiers.append(Identifiers.create_host_identifier(properties.get("gceHostName")))
+            if properties.get("esxiHostName"):
+                host_identifiers.append(Identifiers.create_host_identifier(properties.get("esxiHostName")))
+            if properties.get("hypervisorType"):
+                host_identifiers.append(Identifiers.create_host_identifier(properties.get("hypervisorType")))
 
         host_identifiers.append(Identifiers.create_host_identifier(component.displayName))
         host_identifiers = Identifiers.append_lowercase_identifiers(host_identifiers)

@@ -51,7 +51,7 @@ class CustomDeviceProperties(Model):
 
 
 class HostProperties(Model):
-    additionalSystemInfo = DictType(StringType)
+    additionalSystemInfo = ListType(DictType(StringType))
     autoInjection = StringType()
     awsNameTag = StringType()
     azureComputeModeName = StringType()
