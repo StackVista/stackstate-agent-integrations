@@ -364,6 +364,9 @@ class DynatraceTopologyCheck(AgentCheck):
             elif type(component[key]) is bool:
                 component[key] = str(component[key])
                 self.log.debug('Converting %s from bool to str.' % key)
+            elif type(component[key]) is int:
+                component[key] = str(component[key])
+                self.log.debug('Converting %s from int to str.' % key)
         if "lastSeenTimestamp" in component:
             del component["lastSeenTimestamp"]
         return component
@@ -469,22 +472,47 @@ class DynatraceTopologyCheck(AgentCheck):
                 # What would previously have been fields of DynatraceComponent are now properties of Entity
                 # append what would have been from DynatraceComponent, but now from Entity
                 for prop in dynatrace_component.properties:
-                    if prop.get("key") and prop.get("value"):
-                        # Look for monitoringState, expectedMonitoringState, actualMonitoringState, managementZones
-                        # and softwareTechnologies in properties
-
-                        if prop.get("key") == "monitoringState":
-                            labels.append("monitoringState:%s" % prop.get("value"))
-                            monitoring_state = prop.get("value")
-                            if monitoring_state.get("actualMonitoringState"):
-                                labels.append("actualMonitoringState:%s" % monitoring_state.get("actualMonitoringState"))
-                            if monitoring_state.get("expectedMonitoringState"):
-                                labels.append("expectedMonitoringState:%s" % monitoring_state.get("expectedMonitoringState"))
-                        elif prop.get("key") == "managementZones":
-                            labels.append("managementZones:%s" % prop.get("value"))
-                        elif prop.get("key") == "softwareTechnologies":
-                            labels.append("softwareTechnologies:%s" % prop.get("value"))
+                    if type(prop) is dict:
+                        labels = self._process_labels(labels, prop)
+                    elif type(prop) is list:
+                        for item in prop:
+                            if type(item) is dict:
+                                labels = self._process_labels(labels, item)
         return labels
+
+
+    @staticmethod
+    def _process_labels(labels_in, dynatrace_component_property_dict):
+        """
+        Process labels from DynatraceComponent properties
+        :param labels_in: list of labels
+        :param dynatrace_component_property_dict: dictionary of DynatraceComponent properties
+        :return:
+        """
+        labels_out = labels_in
+        if dynatrace_component_property_dict.get("monitoringState"):
+            labels_out.append("monitoringState:%s" % dynatrace_component_property_dict.get("monitoringState"))
+            monitoring_state = dynatrace_component_property_dict.get("value")
+            if monitoring_state.get("actualMonitoringState"):
+                labels_out.append("actualMonitoringState:%s" % monitoring_state.get("actualMonitoringState"))
+            if monitoring_state.get("expectedMonitoringState"):
+                labels_out.append("expectedMonitoringState:%s" % monitoring_state.get("expectedMonitoringState"))
+        elif dynatrace_component_property_dict.get("key") == "managementZones":
+            labels_out.append("managementZones:%s" % dynatrace_component_property_dict.get("value"))
+        elif dynatrace_component_property_dict.get("key") == "softwareTechnologies":
+            sp_type = "undefined"
+            sp_version = "undefined"
+            sp_edition = "undefined"
+            if dynatrace_component_property_dict.get("type"):
+                sp_type = dynatrace_component_property_dict.get("type")
+            if dynatrace_component_property_dict.get("version"):
+                sp_version = dynatrace_component_property_dict.get("version")
+            if dynatrace_component_property_dict.get("edition"):
+                sp_edition = dynatrace_component_property_dict.get("edition")
+            tech_label = ':'.join(filter(None, [technologies.get('type'), technologies.get('edition'),
+                                                technologies.get('version')]))
+            labels_out.append(tech_label)
+        return labels_out
 
     def monitored_health(self):
         """

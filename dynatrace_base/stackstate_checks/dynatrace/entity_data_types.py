@@ -12,6 +12,11 @@ class Relationship(Model):
     type = StringType()
 
 
+class LogPathEntry(Model):
+    key = StringType()
+    value = IntType()
+
+
 class ApplicationProperties(Model):
     applicationInjectionType = StringType()
     applicationMatchTarget = StringType()
@@ -95,7 +100,7 @@ class HostProperties(Model):
     isMonitoringCandidate = BooleanType()
     kubernetesLabels = DictType(StringType)
     logFileStatus = DictType(StringType)
-    logPathLastUpdate = DictType(StringType)
+    logPathLastUpdate = LogPathEntry()
     logSourceState = DictType(StringType)
     logicalCpuCores = IntType()
     logicalCpus = IntType()
@@ -150,7 +155,7 @@ class ProcessGroupInstanceProperties(Model):
     jvmVendor = StringType()
     listenPorts = ListType(StringType())
     logFileStatus = DictType(StringType)
-    logPathLastUpdate = DictType(StringType)
+    logPathLastUpdate = LogPathEntry()
     logSourceState = DictType(StringType)
     metadata = ListType(DictType(StringType))
     modules = ListType(StringType())
@@ -161,7 +166,7 @@ class ProcessGroupInstanceProperties(Model):
     releasesStage = StringType()
     releasesVersion = DictType(StringType)
     softwareTechnologies = ListType(ModelType(SoftwareTechnology))
-    versionedModules = ListType(StringType())
+    versionedModules = ListType(DictType(StringType))
 
 
 class ProcessGroupProperties(Model):
