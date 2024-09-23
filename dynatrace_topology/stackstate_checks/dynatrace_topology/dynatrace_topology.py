@@ -275,7 +275,11 @@ class DynatraceTopologyCheck(AgentCheck):
             else:
                 dynatrace_component = DynatraceComponent(item, strict=False)
 
-            dynatrace_component.validate(self)
+            try:
+                dynatrace_component.validate(self)
+            except Exception as e:
+                self.log.warn("Couldn't validate topology component: %s" % e)
+                continue
 
             data = {}
             external_id = dynatrace_component.entityId
