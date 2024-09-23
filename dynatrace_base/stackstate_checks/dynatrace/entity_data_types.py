@@ -152,7 +152,7 @@ class ProcessGroupInstanceProperties(Model):
     logFileStatus = DictType(StringType)
     logPathLastUpdate = DictType(StringType)
     logSourceState = DictType(StringType)
-    metadata = ListType(StringType())
+    metadata = ListType(DictType(StringType))
     modules = ListType(StringType())
     oneAgentCustomHostName = StringType()
     processType = StringType()
@@ -176,7 +176,7 @@ class ProcessGroupProperties(Model):
     dt_security_context = ListType(StringType())
     gcpZone = StringType()
     listenPorts = ListType(StringType())
-    metadata = ListType(StringType())
+    metadata = ListType(DictType(StringType))
     oneAgentCustomHostName = StringType()
     softwareTechnologies = ListType(ModelType(SoftwareTechnology))
 
