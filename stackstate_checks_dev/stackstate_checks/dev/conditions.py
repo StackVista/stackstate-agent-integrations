@@ -28,12 +28,14 @@ class WaitFor(LazyFunction):
     def __call__(self):
         last_result = None
         last_error = None
+        last_exception = None
 
         for _ in range(self.attempts):
             try:
                 result = self.func(*self.args, **self.kwargs)
             except Exception as e:
                 last_error = str(e)
+                last_exception = e
                 time.sleep(self.wait)
                 continue
             else:
@@ -44,13 +46,22 @@ class WaitFor(LazyFunction):
 
             time.sleep(self.wait)
         else:
-            raise RetryError(
-                'Result: {}\n'
-                'Error: {}'.format(
-                    repr(last_result),
-                    last_error,
+            if last_exception is not None:
+                raise RetryError(
+                    'Result: {}\n'
+                    'Error: {}'.format(
+                        repr(last_result),
+                        last_error,
+                    )
+                ) from last_exception
+            else:
+                raise RetryError(
+                    'Result: {}\n'
+                    'Error: {}'.format(
+                        repr(last_result),
+                        last_error,
+                    )
                 )
-            )
 
 
 class CheckEndpoints(LazyFunction):

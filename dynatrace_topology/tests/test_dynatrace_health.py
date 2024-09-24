@@ -9,7 +9,7 @@ def test_health(dynatrace_check, requests_mock, test_instance, aggregator, healt
     Test if we have Dynatrace monitored health state for each component.
     """
     set_http_responses(requests_mock, hosts=read_file('host_response.json', 'samples'))
-    dynatrace_check.run()
+    assert dynatrace_check.run() == ""
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     health.assert_snapshot(dynatrace_check.check_id, dynatrace_check.health.stream,
                            check_states=[{'checkStateId': 'HOST-6AAE0F78BCF2E0F4',

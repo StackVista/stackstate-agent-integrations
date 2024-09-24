@@ -3,13 +3,13 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 from six import iteritems
 from enum import Enum
+from typing import Optional, List, Any
 import uuid
-from schematics import Model
-from schematics.types import URLType, ModelType, ListType, IntType, BaseType
-from .schemas import StrictStringType
+from pydantic import Field, AliasChoices
+from .validations_utils import StrictBaseModel, AnyUrlStr, ForgivingBaseModel
 
 
-class HealthState(Enum):
+class HealthState(str, Enum):
     """
     The different HealthStates supported in StackState
     """
@@ -19,6 +19,15 @@ class HealthState(Enum):
     DEVIATING = "DEVIATING"
     FLAPPING = "FLAPPING"
     CRITICAL = "CRITICAL"
+
+    # Make case-insensitive
+    @classmethod
+    def _missing_(cls, value):
+        value = value.lower() if value is not None else None
+        for member in cls:
+            if member.lower() == value:
+                return member
+        return None
 
 
 class EventHealthChecks(object):
@@ -455,18 +464,18 @@ class ServiceCheckStream(TelemetryStream):
     pass
 
 
-class SourceLink(Model):
+class SourceLink(StrictBaseModel):
     """
     SourceLink is a external source / event that the event might link to
     args:
     `title` the name of the external source / event
     `url` the url at which more information about this event can be found
     """
-    title = StrictStringType(required=True)
-    url = URLType(fqdn=False, required=True)
+    title: str
+    url: AnyUrlStr
 
 
-class TopologyEventContext(Model):
+class TopologyEventContext(StrictBaseModel):
     """
     EventContext enriches the event with some more context and allows correlation to topology in StackState
     args:
@@ -479,18 +488,34 @@ class TopologyEventContext(Model):
     `data` - json blob with any extra properties our stackpack builders want to send
     `source_links`[title: String, url: String] - A list of titles and URLs that the event might link to.
     """
-    source_identifier = StrictStringType(required=False)
-    element_identifiers = ListType(StrictStringType, required=False)
-    source = StrictStringType(required=True)
-    category = StrictStringType(required=True)
-    data = BaseType(required=False)
-    source_links = ListType(ModelType(SourceLink), required=False)
-
-    class Options:
-        serialize_when_none = False
+    source_identifier: Optional[str] = None
+    element_identifiers: List[str] = []
+    source: str
+    category: str
+    data: Optional[Any] = None
+    source_links: List[SourceLink] = []
 
 
-class Event(Model):
+class AlertType(str, Enum):
+    """
+    The different HealthStates supported in StackState
+    """
+    error = "error"
+    warning = "warning"
+    success = "success"
+    info = "info"
+
+    # Make case-insensitive
+    @classmethod
+    def _missing_(cls, value):
+        value = value.lower() if value is not None else None
+        for member in cls:
+            if member.lower() == value:
+                return member
+        return None
+
+
+class Event(ForgivingBaseModel):
     """
     Event represents some activity that occurred that is of interest to
     args:
@@ -505,15 +530,19 @@ class Event(Model):
     `event_type` the event name
     `event_context` enriches the event with some more context and allows correlation to topology in StackState
     """
-    msg_title = StrictStringType(required=True)
-    msg_text = StrictStringType(required=True)
-    timestamp = IntType(required=True)
-    event_type = StrictStringType(required=True, deserialize_from=['event_type', 'source_type_name'])
-    host = StrictStringType(required=False)
-    tags = ListType(StrictStringType, required=False)
-    alert_type = StrictStringType(required=False, choices=['error', 'warning', 'success', 'info'], default="info")
-    aggregation_key = StrictStringType(required=False)
-    context = ModelType(TopologyEventContext, required=False)
 
-    class Options:
-        serialize_when_none = False
+    msg_title: str
+    msg_text: str
+    timestamp: int
+    event_type: str = Field(validation_alias=AliasChoices('event_type', 'source_type_name'))
+    host: Optional[str] = None
+    tags: List[str] = []
+    alert_type: Optional[AlertType] = Field(default=AlertType.info)
+    aggregation_key: Optional[str] = None
+    context: Optional[TopologyEventContext] = None
+
+    def __init__(self, /, **kwargs):
+        newkwargs = dict(kwargs)
+        if "source_type_name" in kwargs and "event_type" in kwargs:
+            del newkwargs["source_type_name"]
+        super(Event, self).__init__(**newkwargs)

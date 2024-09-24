@@ -1,9 +1,7 @@
 import json
 import logging
 from typing import Union, Dict, Any, Optional, Type
-
-from schematics import Model
-
+from .validations_utils import StrictBaseModel
 from .state_common import generate_state_key, validate_state
 
 try:
@@ -26,7 +24,7 @@ class StateApi(object):
             self.log.warning("Using stub state api")
 
     def get(self, key, schema=None):
-        # type: (str, Optional[Type[Model]]) -> Union[Dict[str, Any], Model]
+        # type: (str, Optional[Type[StrictBaseModel]]) -> Union[Dict[str, Any], StrictBaseModel]
         """
         Reads state stored as JSON string and returns it as dictionary.
         """
@@ -42,16 +40,14 @@ class StateApi(object):
                 return json.loads(current_state)
 
             if current_state and schema:
-                schema_state = schema(json.loads(current_state))
-                schema_state.validate()
-                return schema_state
+                return schema(**json.loads(current_state))
         except TypeError as e:
             self.log.error("""Unable to unmarshal the latest persistent state,
                               Saved state may be in the incorrect format: {}""".format(current_state))
             raise Exception(e)
 
     def set(self, key, new_state):
-        # type: (str, Union[Dict[str, Any], Model]) -> None
+        # type: (str, Union[Dict[str, Any], StrictBaseModel]) -> None
         """
         Dumps state to JSON string and sets it as a new state.
         """

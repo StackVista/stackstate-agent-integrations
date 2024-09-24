@@ -6,6 +6,7 @@
 
 import json
 import os
+import textwrap
 import unittest
 from copy import copy
 
@@ -265,10 +266,10 @@ mock_instance = {
     'password': 'secret'
 }
 
-state = State({'latest_sys_updated_on': "2017-06-29 11:03:27"})
+state = State(**{'latest_sys_updated_on': "2017-06-29 11:03:27"})
 
 instance_info = InstanceInfo(
-    {
+    **{
         'instance_tags': [],
         'url': mock_instance.get('url'),
         'user': mock_instance.get('user'),
@@ -306,7 +307,7 @@ class TestServicenow(unittest.TestCase):
         self.check._collect_relation_types = mock_collect_process
         self.check._batch_collect = mock_collect_process
 
-        self.check.run()
+        assert self.check.run() == ""
 
         topo_instances = topology.get_snapshot(self.check.check_id)
         self.assertEqual(len(topo_instances['components']), 0)
@@ -452,7 +453,6 @@ class TestServicenow(unittest.TestCase):
         Test _process_components to return whole topology when query changed in between
         """
         sys_class_filter = self.instance.get('include_resource_types')
-        instance_info.sys_class_filter = sys_class_filter
         query_filter = self.check._get_sys_class_component_filter_query(sys_class_filter)
         expected_query = 'sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server'
         # asserting the actual query
@@ -476,7 +476,6 @@ class TestServicenow(unittest.TestCase):
         Test _process_components to return whole topology when query changed in between
         """
         sys_class_filter = self.instance.get('include_resource_types')
-        instance_info.sys_class_filter = sys_class_filter
         query_filter = self.check._get_sys_class_relation_filter_query(sys_class_filter)
         expected_query = 'parent.sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server' \
                          '^child.sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server'
@@ -502,7 +501,6 @@ class TestServicenow(unittest.TestCase):
         Test _process_components to return whole topology when query changed in between
         """
         sys_class_filter = self.instance.get('include_resource_types')
-        instance_info.sys_class_filter = sys_class_filter
         query_filter = self.check._get_sys_class_component_filter_query(sys_class_filter)
         expected_query = 'sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server'
         # asserting the actual query
@@ -523,7 +521,6 @@ class TestServicenow(unittest.TestCase):
         Test _process_components to return whole topology when query changed in between
         """
         sys_class_filter = self.instance.get('include_resource_types')
-        instance_info.sys_class_filter = sys_class_filter
         query_filter = self.check._get_sys_class_relation_filter_query(sys_class_filter)
         expected_query = 'parent.sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server' \
                          '^child.sys_class_nameINcmdb_ci_netgear,cmdb_ci_cluster,cmdb_ci_app_server'
@@ -561,15 +558,28 @@ class TestServicenow(unittest.TestCase):
         tests = [
             {
                 'instance': {'user': 'name', 'password': 'secret'},
-                'error': '{"url": ["This field is required."]}'
+                'error': textwrap.dedent("""\
+            1 validation error for InstanceInfo
+            url
+              Field required [type=missing, input_value={'user': 'name', 'password': 'secret'}, input_type=dict]
+                For further information visit https://errors.pydantic.dev/2.9/v/missing""")
             },
             {
                 'instance': {'user': 'name', 'url': "https://website.com"},
-                'error': '{"password": ["This field is required."]}'
+                'error': textwrap.dedent("""\
+            1 validation error for InstanceInfo
+            password
+              Field required [type=missing, input_value={'user': 'name', 'url': 'https://website.com'}, input_type=dict]
+                For further information visit https://errors.pydantic.dev/2.9/v/missing""")
             },
             {
                 'instance': {'password': 'secret', 'url': "https://website.com"},
-                'error': '{"user": ["This field is required."]}'
+                'error': textwrap.dedent("""\
+            1 validation error for InstanceInfo
+            user
+              Field required [type=missing, input_value={'password': \
+'secret', 'u...: 'https://website.com'}, input_type=dict]
+                For further information visit https://errors.pydantic.dev/2.9/v/missing""")
             }
         ]
         for test in tests:
@@ -680,7 +690,13 @@ class TestServicenow(unittest.TestCase):
         instance = {'user': 'name', 'password': 'secret', 'url': "https://website.com", 'batch_size': 20000}
         check = ServicenowCheck('servicenow', {}, {}, [instance])
         result = json.loads(check.run())
-        self.assertEqual('{"batch_size": ["Int value should be less than or equal to 10000."]}', result[0]['message'])
+        self.assertEqual(textwrap.dedent("""\
+            1 validation error for InstanceInfo
+            batch_size
+              Input should be less than or equal to 10000 [type=less_than_equal, \
+input_value=20000, input_type=int]
+                For further information visit \
+https://errors.pydantic.dev/2.9/v/less_than_equal"""), result[0]['message'])
 
     @mock.patch('requests.Session.get')
     def test_get_json_timeout(self, mock_request_get):
@@ -763,8 +779,8 @@ class TestServicenow(unittest.TestCase):
         Test the query filter with resource types while collecting components batch
         """
         self.check._get_json = mock_get_json
-        instance_info['cmdb_ci_sysparm_query'] = "company.nameSTARTSWITHaxa"
-        instance_info['include_resource_types'] = ['cmdb_ci_netgear']
+        instance_info.cmdb_ci_sysparm_query = "company.nameSTARTSWITHaxa"
+        instance_info.include_resource_types = ['cmdb_ci_netgear']
         instance_info.batch_size = 100
         params = self.check._batch_collect_components(instance_info, 0)
         self.assertEqual(params.get("sysparm_offset"), 0)
@@ -777,10 +793,10 @@ class TestServicenow(unittest.TestCase):
         Test the query filter with resource types while collecting relations batch
         """
         self.check._get_json = mock_get_json
-        instance_info['cmdb_ci_sysparm_query'] = None
-        instance_info['cmdb_rel_ci_sysparm_query'] = "parent.company.nameSTARTSWITHaxa^" \
-                                                     "ORchild.company.nameSTARTSWITHaxa"
-        instance_info['include_resource_types'] = ['cmdb_ci_netgear']
+        instance_info.cmdb_ci_sysparm_query = None
+        instance_info.cmdb_rel_ci_sysparm_query = "parent.company.nameSTARTSWITHaxa^" \
+                                                  "ORchild.company.nameSTARTSWITHaxa"
+        instance_info.include_resource_types = ['cmdb_ci_netgear']
         instance_info.batch_size = 100
         params = self.check._batch_collect_relations(instance_info, 0)
         self.assertEqual(params.get("sysparm_offset"), 0)
@@ -794,9 +810,9 @@ class TestServicenow(unittest.TestCase):
         Test the query filter with resource types while collecting change requests
         """
         self.check._get_json = mock_get_json
-        instance_info['change_request_sysparm_query'] = "company.nameSTARTSWITHaxa"
-        instance_info['include_resource_types'] = ['cmdb_ci_netgear']
-        instance_info['state'] = state
+        instance_info.change_request_sysparm_query = "company.nameSTARTSWITHaxa"
+        instance_info.include_resource_types = ['cmdb_ci_netgear']
+        instance_info.state = state
         params = self.check._collect_change_requests_updates(instance_info)
         self.assertEqual(params.get("sysparm_display_value"), 'all')
         self.assertEqual(params.get("sysparm_exclude_reference_link"), 'true')

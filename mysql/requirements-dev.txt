@@ -1,2 +1,0 @@
--e ../stackstate_checks_dev
-psutil==5.8.0

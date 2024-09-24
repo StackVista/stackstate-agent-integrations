@@ -1,2 +1,0 @@
-# CHANGELOG - Splunk_event
-

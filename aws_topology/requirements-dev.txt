@@ -1,2 +1,0 @@
--e ../stackstate_checks_dev
-parameterized==0.8.1

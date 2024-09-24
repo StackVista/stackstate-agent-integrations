@@ -19,7 +19,7 @@ def test_no_events_means_empty_health_snapshot(dynatrace_check, test_instance, r
     timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
     requests_mock.get('{}/api/v1/events?from={}'.format(test_instance['url'], timestamp), status_code=200,
                       text=read_file('no_events_response.json', 'samples'))
-    dynatrace_check.run()
+    assert dynatrace_check.run() == ""
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     health.assert_snapshot(dynatrace_check.check_id, dynatrace_check.health.stream,
                            check_states=[],
@@ -36,7 +36,7 @@ def test_events_process_limit(dynatrace_check, test_instance, aggregator, reques
     timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
     requests_mock.get('{}/api/v1/events?from={}'.format(test_instance['url'], timestamp), status_code=200,
                       text=read_file('21_events_response.json', 'samples'))
-    dynatrace_check.run()
+    assert dynatrace_check.run() == ""
     # service check returns warning about events_process_limit
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.WARNING,
                                     message='Maximum event limit to process is 10 but received total 11 events')
@@ -161,7 +161,7 @@ def test_state_data(state_manager, dynatrace_check, test_instance, requests_mock
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     mocked_response_data = load_json_from_file(events_file, 'samples')
-    new_state = State({'last_processed_event_timestamp': mocked_response_data.get('to')})
+    new_state = State(**{'last_processed_event_timestamp': mocked_response_data.get('to')})
     state_manager.assert_state(state_instance, new_state)
 
 

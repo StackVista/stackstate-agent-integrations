@@ -37,7 +37,7 @@ def get_logger():  # type: () -> logging.Logger
 
 @pytest.fixture
 def splunk_config():  # type: () -> SplunkConfig
-    splunk_config = SplunkConfig({
+    splunk_config = SplunkConfig(**{
         'init_config': {},
         'instances': []
     })
@@ -47,7 +47,7 @@ def splunk_config():  # type: () -> SplunkConfig
 
 @pytest.fixture
 def splunk_instance_basic_auth():  # type: () -> SplunkConfigInstance
-    splunk_config = SplunkConfigInstance({
+    splunk_config = SplunkConfigInstance(**{
         'url': 'http://%s:%s' % (HOST, PORT),
         'authentication': {
             'basic_auth': {
@@ -57,7 +57,6 @@ def splunk_instance_basic_auth():  # type: () -> SplunkConfigInstance
         },
         'tags': []
     })
-    splunk_config.validate(partial=True)
     return splunk_config
 
 
@@ -65,7 +64,7 @@ def splunk_instance_basic_auth():  # type: () -> SplunkConfigInstance
 def splunk_instance_token_auth():  # type: () -> SplunkConfigInstance
     token_expire_time = datetime.now() + timedelta(days=999)
 
-    splunk_config = SplunkConfigInstance({
+    splunk_config = SplunkConfigInstance(**{
         'url': 'http://%s:%s' % (HOST, PORT),
         'authentication': {
             'token_auth': {
@@ -75,9 +74,9 @@ def splunk_instance_token_auth():  # type: () -> SplunkConfigInstance
                 'renewal_days': 10
             }
         },
+        'saved_searches': [],
         'tags': []
     })
-    splunk_config.validate(partial=True)
     return splunk_config
 
 
@@ -180,7 +179,7 @@ def check(requests_mock,  # type: Mocker
 
     # Set the splunk tags
     authentication_mode["mode"].saved_searches = [
-        SplunkConfigSavedSearchDefault(parameters)
+        SplunkConfigSavedSearchDefault(**parameters).dict()
     ]
 
     for saved_search in config.get("merge_saved_search", []):
@@ -191,11 +190,8 @@ def check(requests_mock,  # type: Mocker
     # Add the splunk instance into the config instances
     splunk_config.instances.append(authentication_mode["mode"])
 
-    # Validate the config, authentication and saved_search data we are sending
-    splunk_config.validate()
-
     # Check
-    check = splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances)
+    check = splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.dict()["instances"])
 
     # We set the check id to the current function name to prevent a blank check id
     check.check_id = inspect.stack()[0][3]
@@ -1084,7 +1080,7 @@ def config_respect_parallel_dispatches(config,  # type: any
 
     for name in ['savedsearch2', 'savedsearch3', 'savedsearch4']:
         config["merge_saved_search"].append(
-            SplunkConfigSavedSearchDefault({
+            SplunkConfigSavedSearchDefault(**{
                 "name": name,
                 "parameters": {},
             })
@@ -1138,7 +1134,7 @@ def max_query_chunk_sec_history_check(monkeypatch,  # type: any
 
     # Set the splunk saved searches
     splunk_instance_basic_auth.saved_searches = [
-        SplunkConfigSavedSearchDefault({
+        SplunkConfigSavedSearchDefault(**{
             "name": splunk_config_name,
             "parameters": {},
             "max_restart_history_seconds": 3600,
@@ -1159,9 +1155,6 @@ def max_query_chunk_sec_history_check(monkeypatch,  # type: any
     # Add the splunk instance into the config instances
     splunk_config.instances.append(splunk_instance_basic_auth)
 
-    # Validate the config, authentication and saved_search data we are sending
-    splunk_config.validate()
-
     # Used to validate which searches have been executed
     test_data = {
         "earliest_time": ""
@@ -1177,7 +1170,7 @@ def max_query_chunk_sec_history_check(monkeypatch,  # type: any
     monkeypatch.setattr(SplunkClient, "dispatch", mock_dispatch_saved_search_dispatch)
 
     # Check
-    check = splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.instances)
+    check = splunk_metric(SplunkMetric.CHECK_NAME, splunk_config.init_config, {}, splunk_config.dict()["instances"])
 
     # We set the check id to the current function name to prevent a blank check id
     check.check_id = inspect.stack()[0][3]

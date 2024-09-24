@@ -1,2 +1,0 @@
-# CHANGELOG - AWS X-Ray
-

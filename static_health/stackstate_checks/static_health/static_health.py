@@ -4,16 +4,29 @@
 
 import csv
 import codecs
-from schematics import Model
-from stackstate_checks.base.utils.schemas import StrictStringType
+from stackstate_checks.base.utils.validations_utils import ForgivingBaseModel
 from stackstate_checks.base import ConfigurationError, AgentCheck, TopologyInstance,\
     HealthStream, HealthStreamUrn, HealthType
+from enum import Enum
 
 
-class InstanceInfo(Model):
-    type = StrictStringType(required=True, choices=["csv"])
-    health_file = StrictStringType(required=True)
-    delimiter = StrictStringType(required=True)
+class InputType(str, Enum):
+    CSV = "csv"
+
+    # Make case-insensitive
+    @classmethod
+    def _missing_(cls, value):
+        value = value.lower() if value is not None else None
+        for member in cls:
+            if member.lower() == value:
+                return member
+        return None
+
+
+class InstanceInfo(ForgivingBaseModel):
+    type: InputType
+    health_file: str
+    delimiter: str
 
 
 class StaticHealthCheck(AgentCheck):
@@ -68,7 +81,7 @@ class StaticHealthCheck(AgentCheck):
 
                 check_state_id = data.get(CHECK_STATE_ID_FIELD)
                 name = data.get(NAME_FIELD)
-                health = HealthType().convert(data.get(HEALTH_FIELD), None)
+                health = HealthType().convert(data.get(HEALTH_FIELD))
                 topology_element_identifier = data.get(TOPOLOGY_ELEMENT_IDENTIFIER_FIELD)
                 message = data.get(MESSAGE_FIELD, None)
 

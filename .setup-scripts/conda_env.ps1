@@ -1,7 +1,7 @@
 $envName = $args[0]
 $pythonVersion = $args[1]
 if ($pythonVersion -eq '3') {
-  $pythonVersion = '3.8'
+  $pythonVersion = '3.11'
 }
 $env_name = conda env list | grep $envName | awk '{print $1}'
 if (($env_name -ne $null) -and ($env_name -eq  $envName)) {

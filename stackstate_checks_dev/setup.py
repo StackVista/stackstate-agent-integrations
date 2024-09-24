@@ -30,10 +30,10 @@ REQUIRES = [
     'pytest-cov>=2.6.1',
     'pytest-mock',
     'requests>=2.20.0',
-    'six==1.14.0',
+    'six==1.16.0',
     'Deprecated==1.2.10',
     "enum34==1.1.10; python_version < '3.4'",
-    'schematics==2.1.0'
+    'pydantic==2.9.1'
 ]
 
 
@@ -61,7 +61,7 @@ setup(
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.11',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy',
     ],
@@ -77,9 +77,8 @@ setup(
             'click',
             'colorama',
             'datadog-a7',
-            'docker-compose',
             'in-toto==0.2.3',
-            'pip-tools',
+            'pip-tools==7.3.0',
             'pylint==2.17.2',
             'lazy_object_proxy<1.7.0',
             'pyperclip>=1.7.0',

@@ -360,15 +360,16 @@ def test_submit_summary(aggregator, mocked_prometheus_check, mocked_prometheus_s
 def test_submit_histogram(aggregator, mocked_prometheus_check, mocked_prometheus_scraper_config):
     _histo = HistogramMetricFamily('my_histogram', 'my_histogram')
     _histo.add_metric(
-        [], buckets=[("-Inf", 0), ("1", 1), ("3.1104e+07", 1), ("4.324e+08", 1), ("+Inf", 3)], sum_value=3
+        [], buckets=[("1", 1), ("3.1104e+07", 1), ("4.324e+08", 1), ("+Inf", 3)], sum_value=3
     )
     check = mocked_prometheus_check
     check.submit_openmetric('custom.histogram', _histo, mocked_prometheus_scraper_config)
     aggregator.assert_metric('prometheus.custom.histogram.sum', 3, tags=[], count=1)
     aggregator.assert_metric('prometheus.custom.histogram.count', 3, tags=[], count=1)
-    aggregator.assert_metric('prometheus.custom.histogram.count', 1, tags=['upper_bound:1.0'], count=1)
-    aggregator.assert_metric('prometheus.custom.histogram.count', 1, tags=['upper_bound:31104000.0'], count=1)
-    aggregator.assert_metric('prometheus.custom.histogram.count', 1, tags=['upper_bound:432400000.0'], count=1)
+    aggregator.assert_metric('prometheus.custom.histogram.bucket', 1, tags=['le:1'], count=1)
+    aggregator.assert_metric('prometheus.custom.histogram.bucket', 1, tags=['le:3.1104e+07'], count=1)
+    aggregator.assert_metric('prometheus.custom.histogram.bucket', 1, tags=['le:4.324e+08'], count=1)
+    aggregator.assert_metric('prometheus.custom.histogram.bucket', 3, tags=['le:+Inf'], count=1)
     aggregator.assert_all_metrics_covered()
 
 
@@ -461,11 +462,13 @@ def test_parse_one_counter(p_check, mocked_prometheus_scraper_config):
 
     expected_etcd_metric = CounterMetricFamily('go_memstats_mallocs_total', 'Total number of mallocs.')
     expected_etcd_metric.add_metric([], 18713)
+    # Fix up the _total change
+    expected_etcd_metric.name = 'go_memstats_mallocs_total'
 
     # Iter on the generator to get all metrics
     response = MockResponse(text_data, text_content_type)
     check = p_check
-    metrics = [k for k in check.parse_metric_family(response, mocked_prometheus_scraper_config)]
+    metrics = list(check.parse_metric_family(response, mocked_prometheus_scraper_config))
 
     assert 1 == len(metrics)
     current_metric = metrics[0]

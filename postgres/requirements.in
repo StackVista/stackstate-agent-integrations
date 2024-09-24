@@ -1,3 +1,0 @@
-pg8000==1.10.1
-psycopg2-binary==2.8.4
-docker==6.1.3

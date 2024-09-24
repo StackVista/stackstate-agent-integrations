@@ -6,8 +6,6 @@
 # 3rd party
 import sys
 
-from schematics.exceptions import ValidationError
-
 from stackstate_checks.base import AgentCheck, TopologyInstance, HealthStream, HealthStreamUrn, HealthType
 from stackstate_checks.base.checks import StatefulAgentCheck, CheckResponse
 from stackstate_checks.base.errors import CheckException
@@ -114,8 +112,8 @@ class SplunkHealth(StatefulAgentCheck):
             name = data.get("name")
             health = None
             try:
-                health = HealthType().convert(data.get("health"), None)
-            except ValidationError:
+                health = HealthType().convert(data.get("health"))
+            except ValueError:
                 pass
             topology_element_identifier = data.get("topology_element_identifier")
             message = data.get("message", None)

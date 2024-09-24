@@ -3,9 +3,8 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import time
 from datetime import datetime, timedelta
-
-from schematics import Model
-from schematics.types import IntType, StringType, ListType, DictType, URLType, BooleanType, ModelType
+from typing import Optional, List
+from stackstate_checks.base.utils.validations_utils import ForgivingBaseModel, AnyUrlStr
 
 from stackstate_checks.base import StackPackInstance, HealthStream, HealthStreamUrn, Health, Identifiers
 from stackstate_checks.checks import AgentCheck
@@ -28,37 +27,37 @@ DYNATRACE_UI_URLS = {
 }
 
 
-class DynatraceEvent(Model):
-    eventId = IntType()
-    startTime = IntType()
-    endTime = IntType()
-    entityId = StringType()
-    entityName = StringType()
-    severityLevel = StringType()
-    impactLevel = StringType()
-    eventType = StringType()
-    eventStatus = StringType()
-    tags = ListType(DictType(StringType))
-    id = StringType()
-    source = StringType()
+class DynatraceEvent(ForgivingBaseModel):
+    eventId: Optional[int] = None
+    startTime: Optional[int] = None
+    endTime: Optional[int] = None
+    entityId: Optional[str] = None
+    entityName: Optional[str] = None
+    severityLevel: Optional[str] = None
+    impactLevel: Optional[str] = None
+    eventType: Optional[str] = None
+    eventStatus: Optional[str] = None
+    tags: List[dict] = []
+    id: Optional[str] = None
+    source: Optional[str] = None
 
 
-class State(Model):
-    last_processed_event_timestamp = IntType(required=True)
+class State(ForgivingBaseModel):
+    last_processed_event_timestamp: int
 
 
-class InstanceInfo(Model):
-    url = URLType(required=True)
-    token = StringType(required=True)
-    instance_tags = ListType(StringType, default=[])
-    events_boostrap_days = IntType(default=EVENTS_BOOSTRAP_DAYS)
-    events_process_limit = IntType(default=EVENTS_PROCESS_LIMIT)
-    verify = BooleanType(default=VERIFY_HTTPS)
-    cert = StringType()
-    keyfile = StringType()
-    timeout = IntType(default=TIMEOUT)
-    relative_time = StringType(default=RELATIVE_TIME)
-    state = ModelType(State)
+class InstanceInfo(ForgivingBaseModel):
+    url: AnyUrlStr
+    token: str
+    instance_tags: List[str] = []
+    events_boostrap_days: int = EVENTS_BOOSTRAP_DAYS
+    events_process_limit: int = EVENTS_PROCESS_LIMIT
+    verify: bool = VERIFY_HTTPS
+    cert: Optional[str] = None
+    keyfile: Optional[str] = None
+    timeout: int = TIMEOUT
+    relative_time: str = RELATIVE_TIME
+    state: Optional[State] = None
 
 
 class DynatraceHealthCheck(AgentCheck):
@@ -78,7 +77,7 @@ class DynatraceHealthCheck(AgentCheck):
                 # Create state on the first run
                 empty_state_timestamp = self.generate_bootstrap_timestamp(instance_info.events_boostrap_days)
                 self.log.debug('Creating new empty state with timestamp: %s', empty_state_timestamp)
-                instance_info.state = State({'last_processed_event_timestamp': empty_state_timestamp})
+                instance_info.state = State(**{'last_processed_event_timestamp': empty_state_timestamp})
             dynatrace_client = DynatraceClient(instance_info.token,
                                                instance_info.verify,
                                                instance_info.cert,
@@ -164,7 +163,7 @@ class DynatraceHealthCheck(AgentCheck):
                 "element_identifiers": ["urn:%s" % dynatrace_event.entityId],
                 "source": "dynatrace",
                 "category": "info_event",
-                "data": dynatrace_event.to_primitive(),
+                "data": dynatrace_event.dict(),
                 "source_links": [
                     {
                         "title": "my_event_external_link",
@@ -189,8 +188,7 @@ class DynatraceHealthCheck(AgentCheck):
             while events_response:
                 events = events_response.get('events', [])
                 for event in events:
-                    dynatrace_event = DynatraceEvent(event, strict=False)
-                    dynatrace_event.validate()
+                    dynatrace_event = DynatraceEvent(**event)
                     new_events.append(dynatrace_event)
                     events_processed += 1
                     self._check_event_limit_exceeded_condition(instance_info.events_process_limit, events_processed)

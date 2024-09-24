@@ -3,6 +3,7 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import datetime
 import json
+import textwrap
 from decimal import ROUND_HALF_DOWN, ROUND_HALF_UP
 
 import pytest
@@ -16,12 +17,11 @@ from stackstate_checks.base.utils.common import load_json_from_file, sanitize_ur
 from stackstate_checks.base.utils.time import get_time_since_epoch, time_to_seconds, get_utc_time
 from stackstate_checks.utils.common import pattern_filter, round_value, read_file
 from stackstate_checks.utils.limiter import Limiter
-from stackstate_checks.utils.persistent_state import StateManager, StateDescriptor, StateNotPersistedException, \
-    StateCorruptedException, StateReadException
+from stackstate_checks.utils.persistent_state import StateDescriptor, StateNotPersistedException, \
+    StateCorruptedException
 from six import PY3
-from schematics import Model
-from schematics.types import IntType
-from schematics.exceptions import DataError
+from pydantic import ValidationError
+from stackstate_checks.base.utils.validations_utils import StrictBaseModel
 
 
 class Item:
@@ -138,8 +138,8 @@ class TestRounding():
         assert round_value(4.2345, precision=3) == 4.235
 
 
-class TestStorageSchema(Model):
-    offset = IntType(required=True, default=0)
+class TestStorageSchema(StrictBaseModel):
+    offset: int = 0
 
 
 class TestPersistentState:
@@ -147,9 +147,13 @@ class TestPersistentState:
     def test_exception_state_without_valid_location(self, state_manager):
         s = {'a': 'b', 'c': 1, 'd': ['e', 'f', 'g'], 'h': {'i': 'j', 'k': True}}
 
-        with pytest.raises(DataError) as e:
+        with pytest.raises(ValidationError) as e:
             StateDescriptor("", "")
-        assert str(e.value) == """{"instance_key": ["Value must not be a empty string"]}"""
+        assert str(e.value) == textwrap.dedent("""\
+            1 validation error for StateDescriptorSchema
+            instance_key
+              String should have at least 1 character [type=string_too_short, input_value='', input_type=str]
+                For further information visit https://errors.pydantic.dev/2.9/v/string_too_short""")
 
         instance = StateDescriptor("test", "this")
         # set an invalid file_location for this test
@@ -205,13 +209,13 @@ class TestPersistentState:
         state_manager.assert_state(instance, s)
 
     def test_state_flushing_with_schema(self, state_manager):
-        s = TestStorageSchema({'offset': 10})
+        s = TestStorageSchema(**{'offset': 10})
         instance = StateDescriptor("on.disk.state.schema", ".")
         rs = state_manager.assert_state(instance, s, TestStorageSchema)
         assert rs.offset == s.offset
 
     def test_state_copy_no_modification_state(self, state_manager):
-        s = TestStorageSchema({'offset': 10})
+        s = TestStorageSchema(**{'offset': 10})
         instance = StateDescriptor("rollback.state.schema", ".")
         s = state_manager.assert_state(instance, s, TestStorageSchema, with_clear=False)
 

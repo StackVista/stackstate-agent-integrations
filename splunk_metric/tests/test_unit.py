@@ -2,6 +2,7 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import json
+import textwrap
 
 import pytest
 from freezegun import freeze_time
@@ -554,7 +555,12 @@ def test_authentication_token_no_audience_parameter_check(set_authentication_mod
     assert check_response != '', "The check SHOULD return a error result after running."
 
     assert_service_check_status(check, aggregator, count=1, status_index=0, status=AgentCheck.CRITICAL,
-                                message="Instance missing \"authentication.token_auth.audience\" value")
+                                message=textwrap.dedent("""\
+            1 validation error for SplunkConfigInstance
+            authentication.token_auth.audience
+              Field required [type=missing, input_value={'name': 'api-admin', 'in... 90, \
+'renewal_days': 10}, input_type=dict]
+                For further information visit https://errors.pydantic.dev/2.9/v/missing"""))
 
 
 def test_authentication_token_no_name_parameter_check(set_authentication_mode_to_token,
@@ -564,7 +570,12 @@ def test_authentication_token_no_name_parameter_check(set_authentication_mode_to
     assert check_response != '', "The check SHOULD return a error result after running."
 
     assert_service_check_status(check, aggregator, count=1, status_index=0, status=AgentCheck.CRITICAL,
-                                message="Instance missing \"authentication.token_auth.name\" value")
+                                message=textwrap.dedent("""\
+            1 validation error for SplunkConfigInstance
+            authentication.token_auth.name
+              Field required [type=missing, input_value={'audience': 'search', 'i... 90, \
+'renewal_days': 10}, input_type=dict]
+                For further information visit https://errors.pydantic.dev/2.9/v/missing"""))
 
 
 def test_authentication_prefer_token_over_basic_check(config_authentication_prefer_token_over_basic_check,

@@ -1,9 +1,9 @@
-from schematics import Model
 from typing import Any, Optional
 
 from .stateful import StatefulMixin
 from ..types import StateType
 from ....utils.transactional_api import TransactionApi
+from ....utils.validations_utils import StrictBaseModel
 
 
 class TransactionalMixin(StatefulMixin):
@@ -21,7 +21,7 @@ class TransactionalMixin(StatefulMixin):
     TRANSACTIONAL_STATE_SCHEMA allows checks to specify a schematics Schema that is used for the transactional state in
     self.check.
     """
-    TRANSACTIONAL_STATE_SCHEMA = None  # type: Optional[Model]
+    TRANSACTIONAL_STATE_SCHEMA = None  # type: Optional[StrictBaseModel]
 
     def __init__(self, *args, **kwargs):
         # type: (*Any, **Any) -> None

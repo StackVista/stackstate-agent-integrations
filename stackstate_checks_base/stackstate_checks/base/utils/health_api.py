@@ -1,12 +1,9 @@
 import urllib
 from typing import Any, Dict, Optional, TypeVar
 from enum import Enum
-from schematics import Model
-from schematics.exceptions import ValidationError
-from schematics.transforms import import_converter
-from schematics.types import IntType, ModelType, BaseType
-from .schemas import StrictStringType, ClassType
-from six import PY3, string_types
+from pydantic import ValidationError, Field, model_validator
+from six import PY3
+from .validations_utils import StrictBaseModel
 
 try:
     import health
@@ -17,40 +14,48 @@ except ImportError:
 
     using_stub_health = True
 
-_InstanceType = TypeVar('_InstanceType', Model, Dict[str, Any])
+_InstanceType = TypeVar('_InstanceType', StrictBaseModel, Dict[str, Any])
 
 
-class Health(Enum):
+class Health(str, Enum):
     CLEAR = "CLEAR"
     DEVIATING = "DEVIATING"
     CRITICAL = "CRITICAL"
 
+    # Make case-insensitive
+    @classmethod
+    def _missing_(cls, value):
+        value = value.lower() if value is not None else None
+        for member in cls:
+            if member.lower() == value:
+                return member
+        return None
 
-class HealthType(BaseType):
+
+class HealthType(object):
     def __init__(self, **kwargs):
         super(HealthType, self).__init__(**kwargs)
 
-    def convert(self, value, context=None):
+    def convert(self, value):
         if isinstance(value, Health):
             return value
 
-        # check if this is a string or bytes which is converted to string in super.convert()
-        if not isinstance(value, string_types):
-            raise ValidationError('Value must be a string or Health')
-
-        if value.upper() in Health._member_names_:
-            return Health[value.upper()]
-
-        raise ValidationError('Health value must be clear, deviating or critical')
+        try:
+            return Health(value)
+        except Exception as e:
+            raise ValueError(f"Error parsing health, got: {value}, expected clear, deviating or critical") from e
 
 
-class HealthStreamUrn(object):
+class HealthStreamUrn(StrictBaseModel):
     """
     Represents the urn of a health stream
     """
+
+    source: str
+    stream_id: str
+
     def __init__(self, source, stream_id):
-        self.source = import_converter(StrictStringType(required=True), source, None)
-        self.stream_id = import_converter(StrictStringType(required=True), stream_id, None)
+        super(HealthStreamUrn, self).__init__(source=source, stream_id=stream_id)
 
     def urn_string(self):
         if PY3:
@@ -62,42 +67,38 @@ class HealthStreamUrn(object):
         return "urn:health:%s:%s" % (encoded_source, encoded_stream)
 
 
-class HealthStream(object):
+class HealthStream(StrictBaseModel):
     """
     Data structure for defining a health stream, a unique identifier for a health stream source.
 
     This is not meant to be used in checks.
     """
+    urn: HealthStreamUrn
+    sub_stream: str = Field(default="")
+    repeat_interval_seconds: Optional[int] = None
+    expiry_seconds: Optional[int] = None
 
     def __init__(self, urn, sub_stream="", repeat_interval_seconds=None, expiry_seconds=None):
-        """
-        :param urn: the urn of the health stream. needs to be of the type HealthStreamUrn
-        :param sub_stream: (optional) an identifier for the sub stream. a sub stream can be used if an individual
-                           check instance only synchronizes part of a complete streams' data
-        :param repeat_interval_seconds: (optional) the interval in which the data will be repeated.
-                                        will default to the check instance collection_interval
-        :param expiry_seconds: (optional) the time after which health check states will be expired.
-                               Providing 0 will disable expiry, which can only be done when no substream is specified
-                               Expiry is mandatory when specifying a substream,
-                               by default will be four times the repeat_interval_seconds
-        """
-        self.urn = import_converter(ClassType(HealthStreamUrn, required=True), urn, None)
-        self.sub_stream = import_converter(StrictStringType(required=True), sub_stream, None)
-        self.repeat_interval_seconds = import_converter(IntType(), repeat_interval_seconds, None)
-        self.expiry_seconds = import_converter(IntType(), expiry_seconds, None)
-        if sub_stream != "" and expiry_seconds == 0:
+        super(HealthStream, self).__init__(
+            urn=urn, sub_stream=sub_stream, repeat_interval_seconds=repeat_interval_seconds,
+            expiry_seconds=expiry_seconds)
+
+    @model_validator(mode='after')
+    def check_sub_stream_expiry(self):
+        if self.sub_stream != "" and self.expiry_seconds == 0:
             raise ValueError("Expiry cannot be disabled if a substream is specified")
+        return self
 
     def to_dict(self):
         return {"urn": self.urn.urn_string(), "sub_stream": self.sub_stream}
 
 
-class HealthCheckData(Model):
-    checkStateId = StrictStringType(required=True)
-    name = StrictStringType(required=True)
-    health = HealthType(required=True)
-    topologyElementIdentifier = StrictStringType(required=True)
-    message = StrictStringType(required=False)
+class HealthCheckData(StrictBaseModel):
+    checkStateId: str
+    name: str
+    health: Health
+    topologyElementIdentifier: str
+    message: Optional[str] = None
 
 
 class HealthApiCommon(object):
@@ -176,18 +177,17 @@ class HealthApi(object):
         check_data = {
             'checkStateId': check_state_id,
             'name': name,
-            'topologyElementIdentifier': topology_element_identifier
+            'topologyElementIdentifier': topology_element_identifier,
+            'health': health_value
         }
-
-        if isinstance(health_value, Health):
-            check_data['health'] = health_value.value
-        else:
-            raise ValueError("Health value is not of type Health")
 
         if message:
             check_data['message'] = message
 
         # Validate the data
-        HealthCheckData(check_data).validate()
+        HealthCheckData(**check_data)
+
+        # Turn enum into string for passing to golang
+        check_data['health'] = check_data['health'].value
 
         health.submit_health_check_data(self.check, self.check.check_id, self.stream.to_dict(), check_data)

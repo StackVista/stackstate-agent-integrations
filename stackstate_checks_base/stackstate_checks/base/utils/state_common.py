@@ -1,7 +1,9 @@
 from typing import Union, Dict, Any
-from schematics import Model
+from pydantic import ValidationError
 from .common import sanitize_url_as_valid_filename
 import json
+
+from pydantic import BaseModel
 
 
 def generate_state_key(instance_url, key):
@@ -19,11 +21,10 @@ def validate_state(new_state):
         pass
     # check to see if this state has a Schematics schema, validate it to make sure it meets the schema and return
     # the primitive (dict)
-    elif isinstance(new_state, Model):
-        new_state.validate()
-        new_state = new_state.to_primitive()
+    elif isinstance(new_state, BaseModel):
+        new_state = new_state.dict()
     else:
-        raise ValueError(
+        raise ValidationError(
             "Got unexpected {} for new state, expected dictionary or schematics.Model".format(type(new_state))
         )
 

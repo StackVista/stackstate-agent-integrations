@@ -5,7 +5,7 @@ import datetime
 import json
 
 from requests import Session
-
+from pydantic import ValidationError
 from stackstate_checks.servicenow import State, InstanceInfo
 from stackstate_checks.servicenow.common import API_SNOW_TABLE_CMDB_CI, API_SNOW_TABLE_CMDB_REL_CI, \
     API_SNOW_TABLE_CHANGE_REQUEST
@@ -16,7 +16,6 @@ try:
 except AttributeError:  # Python 2
     json_parse_exception = ValueError
 
-from schematics.exceptions import DataError
 
 from stackstate_checks.base import AgentCheck, StackPackInstance, Identifiers, to_string
 from stackstate_checks.base.errors import CheckException
@@ -34,8 +33,7 @@ class ServicenowCheck(AgentCheck):
         try:
             if not instance_info.state:
                 # Create empty state
-                instance_info.state = State(
-                    {
+                instance_info.state = State(**{
                         'latest_sys_updated_on': datetime.datetime.now() - datetime.timedelta(
                             days=instance_info.change_request_bootstrap_days
                         )
@@ -161,9 +159,8 @@ class ServicenowCheck(AgentCheck):
 
         for component in collected_components:
             try:
-                config_item = ConfigurationItem(component, strict=False)
-                config_item.validate()
-            except DataError as e:
+                config_item = ConfigurationItem(**component)
+            except ValidationError as e:
                 self.log.warning("Error while processing properties of CI {} having sys_id {} - {}"
                                  .format(config_item.sys_id.value, config_item.name.value, e))
                 continue
@@ -213,9 +210,8 @@ class ServicenowCheck(AgentCheck):
         collected_relations = self._batch_collect(self._batch_collect_relations, instance_info)
         for relation in collected_relations:
             try:
-                ci_relation = CIRelation(relation, strict=False)
-                ci_relation.validate()
-            except DataError as e:
+                ci_relation = CIRelation(**relation)
+            except ValidationError as e:
                 self.log.warning("Error while processing properties of relation having Sys ID {} - {}"
                                  .format(ci_relation.sys_id.value, e))
                 continue
@@ -290,15 +286,18 @@ class ServicenowCheck(AgentCheck):
         change_requests = []
         for cr in response.get('result', []):
             try:
-                mapping = {
-                    'custom_cmdb_ci': instance_info.custom_cmdb_ci_field,
-                    'custom_planned_start_date': instance_info.custom_planned_start_date_field,
-                    'custom_planned_end_date': instance_info.custom_planned_end_date_field,
-                }
-                change_request = ChangeRequest(cr, strict=False, deserialize_mapping=mapping)
-                change_request.validate()
-            except DataError as e:
-                self.log.warning('%s - DataError: %s. This CR is skipped.', cr['number']['value'], e)
+                cr_copy = dict(cr)
+
+                if instance_info.custom_cmdb_ci_field in cr:
+                    cr_copy['custom_cmdb_ci'] = cr[instance_info.custom_cmdb_ci_field]
+                if instance_info.custom_planned_start_date_field in cr:
+                    cr_copy['custom_planned_start_date'] = cr[instance_info.custom_planned_start_date_field]
+                if instance_info.custom_planned_end_date_field in cr:
+                    cr_copy['custom_planned_end_date'] = cr[instance_info.custom_planned_end_date_field]
+
+                change_request = ChangeRequest(**cr_copy)
+            except ValidationError as e:
+                self.log.warning('%s - ValidationError: %s. This CR is skipped.', cr['number']['value'], e)
                 continue
             # Change request must have CMDB_CI to be connected to STS component
             if change_request.custom_cmdb_ci.value:

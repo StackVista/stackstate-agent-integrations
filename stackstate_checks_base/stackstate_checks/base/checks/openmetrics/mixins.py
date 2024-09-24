@@ -8,7 +8,7 @@ import requests
 from urllib3 import disable_warnings
 from urllib3.exceptions import InsecureRequestWarning
 from math import isnan, isinf
-from prometheus_client.parser import text_fd_to_metric_families
+from ....checks.libs.prometheus import text_fd_to_metric_families
 
 from six import PY3, iteritems, string_types
 

@@ -5,20 +5,22 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import copy
 import json
+import textwrap
+
 import mock
 import pytest
 import sys
 
+from typing import List
 from six import PY3, text_type
-from schematics import Model
-from schematics.exceptions import ValidationError, ConversionError, DataError
-from schematics.types import URLType, ListType, StringType, IntType, BooleanType, ModelType
+from pydantic import ValidationError
 
 from stackstate_checks.checks import AgentCheckV2, TransactionalAgentCheck, StatefulAgentCheck, StackPackInstance, \
     TopologyInstance, AgentIntegrationInstance, HealthStream, HealthStreamUrn, Health, CheckResponse
 from stackstate_checks.base.stubs import datadog_agent
 from stackstate_checks.base.stubs.topology import component
 from stackstate_checks.base.utils.state_api import generate_state_key
+from stackstate_checks.base.utils.validations_utils import StrictBaseModel, AnyUrlStr
 
 TEST_INSTANCE = {
     "url": "https://example.org/api"
@@ -661,7 +663,7 @@ class TestBaseSanitize:
                 check._ensure_homogeneous_list(list)
 
             assert str(e.value) == "List: {0}, is not homogeneous, it contains the following types: {1}" \
-                .format(list, expected_types)
+                .format(list, sorted(str(x) for x in expected_types))
 
         # list of ints and strings
         exeception_case([1, '2', 3, '4'], {str, int})
@@ -712,7 +714,7 @@ class TestBaseSanitize:
                 "mixedlist": ['a', 'b', 'c', 4]}
         assert check.relation("source-id", "target-id", "my-type", data) is None
         # ensure that a schematics data error is thrown for events with non-homogeneous tags
-        with pytest.raises(DataError):
+        with pytest.raises(ValidationError):
             event = {
                 "timestamp": 123456789,
                 "event_type": "new.event",
@@ -724,7 +726,7 @@ class TestBaseSanitize:
             }
             assert check.event(event) is None
         # ensure that a schematics data error is thrown for topology events with non-homogeneous tags
-        with pytest.raises(DataError):
+        with pytest.raises(ValidationError):
             event = {
                 "timestamp": 123456789,
                 "source_type_name": "new.source.type",
@@ -1143,37 +1145,69 @@ class TestHealthStreamUrn:
         assert urn.urn_string() == "urn:health:source.:stream_id%3A"
 
     def test_verify_types(self):
-        with pytest.raises(ConversionError) as e:
+        with pytest.raises(ValidationError) as e:
             HealthStreamUrn(None, "stream_id")
-        assert e.value[0] == "This field is required."
+        assert str(e.value) == textwrap.dedent("""\
+                1 validation error for HealthStreamUrn
+                source
+                  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+                    For further information visit https://errors.pydantic.dev/2.9/v/string_type""")
 
-        with pytest.raises(ConversionError) as e2:
+        with pytest.raises(ValidationError) as e2:
             HealthStreamUrn("source", None)
-        assert e2.value[0] == "This field is required."
+        assert str(e2.value) == textwrap.dedent("""\
+                1 validation error for HealthStreamUrn
+                stream_id
+                  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+                    For further information visit https://errors.pydantic.dev/2.9/v/string_type""")
 
 
 class TestHealthStream:
     def test_throws_error_when_expiry_on_sub_stream(self):
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(ValidationError) as e:
             HealthStream(HealthStreamUrn("source.", "stream_id:"), "sub_stream", expiry_seconds=0)
-        assert str(e.value) == "Expiry cannot be disabled if a substream is specified"
+        assert str(e.value) == textwrap.dedent("""\
+            1 validation error for HealthStream
+              Value error, Expiry cannot be disabled if a substream is specified \
+[type=value_error, input_value={'urn': HealthStreamUrn(s...ne, 'expiry_seconds': 0}, input_type=dict]
+                For further information visit https://errors.pydantic.dev/2.9/v/value_error""")
 
     def test_verify_types(self):
         with pytest.raises(ValidationError) as e:
             HealthStream("str")
-        assert e.value[0] == "Value must be of class: <class 'stackstate_checks.base.utils.health_api.HealthStreamUrn'>"
+        assert str(e.value) == textwrap.dedent("""\
+            1 validation error for HealthStream
+            urn
+              Input should be a valid dictionary or instance of HealthStreamUrn \
+[type=model_type, input_value='str', input_type=str]
+                For further information visit https://errors.pydantic.dev/2.9/v/model_type""")
 
         with pytest.raises(ValidationError) as e:
             HealthStream(HealthStreamUrn("source", "urn"), sub_stream=1)
-        assert e.value[0] == """Value must be a string"""
+        assert str(e.value) == str(e.value) == textwrap.dedent("""\
+            1 validation error for HealthStream
+            sub_stream
+              Input should be a valid string \
+[type=string_type, input_value=1, input_type=int]
+                For further information visit https://errors.pydantic.dev/2.9/v/string_type""")
 
-        with pytest.raises(ConversionError) as e:
+        with pytest.raises(ValidationError) as e:
             HealthStream(HealthStreamUrn("source", "urn"), repeat_interval_seconds="")
-        assert e.value[0].summary == "Value '' is not int."
+        assert str(e.value) == str(e.value) == textwrap.dedent("""\
+            1 validation error for HealthStream
+            repeat_interval_seconds
+              Input should be a valid integer, unable to parse \
+string as an integer [type=int_parsing, input_value='', input_type=str]
+                For further information visit https://errors.pydantic.dev/2.9/v/int_parsing""")
 
-        with pytest.raises(ConversionError) as e:
+        with pytest.raises(ValidationError) as e:
             HealthStream(HealthStreamUrn("source", "urn"), expiry_seconds="")
-        assert e.value[0].summary == "Value '' is not int."
+        assert str(e.value) == str(e.value) == textwrap.dedent("""\
+            1 validation error for HealthStream
+            expiry_seconds
+              Input should be a valid integer, unable to parse string as \
+an integer [type=int_parsing, input_value='', input_type=str]
+                For further information visit https://errors.pydantic.dev/2.9/v/int_parsing""")
 
 
 class TestHealth:
@@ -1205,19 +1239,19 @@ class TestHealth:
     def test_check_state_verify_types(self):
         check = HealthCheck()
         check._init_health_api()
-        with pytest.raises(DataError):
+        with pytest.raises(ValidationError):
             check.health.check_state(1, "name", Health.CRITICAL, "identifier")
 
-        with pytest.raises(DataError):
+        with pytest.raises(ValidationError):
             check.health.check_state("check_id", 1, Health.CRITICAL, "identifier")
 
         with pytest.raises(ValueError):
             check.health.check_state("check_id", "name", "bla", "identifier")
 
-        with pytest.raises(DataError):
+        with pytest.raises(ValidationError):
             check.health.check_state("check_id", "name", Health.CRITICAL, 1)
 
-        with pytest.raises(DataError):
+        with pytest.raises(ValidationError):
             check.health.check_state("check_id", "name", Health.CRITICAL, "identifier", 1)
 
     def test_start_snapshot(self, health):
@@ -1309,13 +1343,13 @@ def sample_stateful_check(state, aggregator):
     aggregator.reset()
 
 
-class InstanceInfo(Model):
-    url = URLType(required=True)
-    instance_tags = ListType(StringType, default=[])
+class InstanceInfo(StrictBaseModel):
+    url: AnyUrlStr
+    instance_tags: List[str] = []
 
 
-class State(Model):
-    offset = IntType(default=0)
+class State(StrictBaseModel):
+    offset: int = 0
 
 
 class SampleStatefulCheckWithSchema(StatefulAgentCheck):
@@ -1395,13 +1429,13 @@ class TestStatefulCheck:
         aggregator.assert_service_check(sample_stateful_check.name, count=1, status=AgentCheckV2.OK)
 
     def test_stateful_check_with_schema(self, sample_stateful_check_with_schema, state, aggregator):
-        sample_stateful_check_with_schema.run()
+        assert sample_stateful_check_with_schema.run() == ""
         key = get_test_state_key(sample_stateful_check_with_schema)
-        expected_state = State({"offset": 10})
+        expected_state = State(**{"offset": 10})
         assert sample_stateful_check_with_schema.get_state() == expected_state
         assert state.get_state(sample_stateful_check_with_schema,
                                sample_stateful_check_with_schema.check_id,
-                               key) == json.dumps(expected_state.to_primitive())
+                               key) == json.dumps(expected_state.dict())
         aggregator.assert_service_check(sample_stateful_check_with_schema.name, count=1, status=AgentCheckV2.OK)
 
     def test_stateful_check_with_schema_existing_state(self, sample_stateful_check_with_schema, state, aggregator):
@@ -1414,12 +1448,12 @@ class TestStatefulCheck:
                         existing_state)
 
         # run the check to alter state
-        sample_stateful_check_with_schema.run()
-        expected_state = State({"offset": 30})
+        assert sample_stateful_check_with_schema.run() == ""
+        expected_state = State(**{"offset": 30})
         assert sample_stateful_check_with_schema.get_state() == expected_state
         assert state.get_state(sample_stateful_check_with_schema,
                                sample_stateful_check_with_schema.check_id,
-                               key) == json.dumps(expected_state.to_primitive())
+                               key) == json.dumps(expected_state.dict())
         aggregator.assert_service_check(sample_stateful_check_with_schema.name, count=1, status=AgentCheckV2.OK)
 
     def test_stateful_check_with_invalid_schema(self, sample_stateful_check_with_schema, state, aggregator):
@@ -1436,7 +1470,11 @@ class TestStatefulCheck:
         aggregator.assert_service_check(sample_stateful_check_with_schema.name, count=1, status=AgentCheckV2.CRITICAL)
         service_check = aggregator.service_checks(sample_stateful_check_with_schema.name)
         # error should Schema validation error
-        assert service_check[0].message == '{"key_that_is_not_in_schema": "Rogue field"}'
+        assert service_check[0].message == textwrap.dedent("""\
+                1 validation error for State
+                key_that_is_not_in_schema
+                  Extra inputs are not permitted [type=extra_forbidden, input_value='some_value', input_type=str]
+                    For further information visit https://errors.pydantic.dev/2.9/v/extra_forbidden""")
 
 
 class NormalCheck(AgentCheckV2):
@@ -1462,13 +1500,13 @@ class TransactionalCheck(TransactionalAgentCheck):
         return CheckResponse(transactional_state=transactional_state, persistent_state=persistent_state)
 
 
-class InstanceInfoSchemaCheck(Model):
-    url = URLType(required=True)
-    instance_tags = ListType(StringType, default=[])
+class InstanceInfoSchemaCheck(StrictBaseModel):
+    url: AnyUrlStr
+    instance_tags: List[str] = []
 
 
-class StateSchema(Model):
-    updated = BooleanType(default=False)
+class StateSchema(StrictBaseModel):
+    updated: bool = False
 
 
 class StatefulCheck(StatefulAgentCheck):
@@ -1536,8 +1574,8 @@ class TransactionalStateDiscardCheck(TransactionalAgentCheck):
                              check_error=Exception("Something Went Wrong"))
 
 
-class TransactionalStateSchema(Model):
-    updated = BooleanType(default=False)
+class TransactionalStateSchema(StrictBaseModel):
+    updated: bool = False
 
 
 class TransactionalStateSchemaCheck(TransactionalAgentCheck):
@@ -1594,11 +1632,11 @@ class TestAgentChecksV2:
         check = StatefulSchemaCheck()
         check.run()
 
-        expected_state = StateSchema({"updated": True})
+        expected_state = StateSchema(**{"updated": True})
 
         key = get_test_state_key(check)
         assert check.get_state() == expected_state
-        assert state.get_state(check, check.check_id, key) == json.dumps(expected_state.to_primitive())
+        assert state.get_state(check, check.check_id, key) == json.dumps(expected_state.dict())
 
     def test_transactional_state_check(self, transaction, state):
         check = TransactionalStateCheck()

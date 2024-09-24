@@ -5,16 +5,16 @@
 import os
 import json
 import errno
-from schematics import Model
-from .schemas import StrictStringType
+from pydantic import Field, BaseModel
+from .validations_utils import StrictBaseModel
 
 
-class StateDescriptorSchema(Model):
+class StateDescriptorSchema(StrictBaseModel):
     """
     StateDescriptorSchema is used to validate data passed to the StateDescriptor
     """
-    instance_key = StrictStringType(required=True, accept_empty=False)
-    file_location = StrictStringType(required=True, accept_empty=False)
+    instance_key: str = Field(min_length=1)
+    file_location: str = Field(min_length=1)
 
 
 class StateDescriptor:
@@ -28,7 +28,7 @@ class StateDescriptor:
         `file_location` is the location on disk where the state file is store
         """
         _file_location = "{}.state".format(os.path.join(check_conf_d_path, instance_key))
-        StateDescriptorSchema({'instance_key': instance_key, 'file_location': _file_location}).validate()
+        StateDescriptorSchema(**{'instance_key': instance_key, 'file_location': _file_location})
         self.instance_key = instance_key
         self.file_location = _file_location
 
@@ -104,8 +104,7 @@ class StateManager:
             state = self.state[instance.instance_key]
 
         if state and schema:
-            state = schema(state)
-            state.validate()
+            state = schema(**state)
 
         return state
 
@@ -119,8 +118,8 @@ class StateManager:
         """
         if isinstance(state, dict):
             pass
-        elif isinstance(state, Model):
-            state = state.to_primitive()
+        elif isinstance(state, BaseModel):
+            state = state.dict()
         elif state is None:
             return self.clear(instance)
         else:
@@ -145,7 +144,7 @@ class StateManager:
                     os.makedirs(os.path.dirname(instance.file_location))
 
                 with open(instance.file_location, 'w+') as f:
-                    f.write(json.dumps(self.state[instance.instance_key]))
+                    f.write(json.dumps(self.state[instance.instance_key], default=str))
             except (IOError, OSError) as e:
                 if e.errno != errno.EEXIST:
                     # if we couldn't save, log the state
