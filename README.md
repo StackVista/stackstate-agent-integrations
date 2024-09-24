@@ -10,6 +10,7 @@ For information on how to develop your own integrations, see the [developer guid
 Prerequisites:
 - python 3
 - bash
+- docker
 
 ## Setup
 

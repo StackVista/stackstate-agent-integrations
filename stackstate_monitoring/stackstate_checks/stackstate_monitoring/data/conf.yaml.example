@@ -1,0 +1,5 @@
+init_config: {}
+
+instances:
+- cluster-name: preprod-dev.preprod.stackstate.io
+  namespace: nightly-champagne
