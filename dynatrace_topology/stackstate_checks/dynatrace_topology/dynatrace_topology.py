@@ -11,7 +11,7 @@ from stackstate_checks.base import AgentCheck, StackPackInstance, HealthStream, 
 from stackstate_checks.dynatrace.dynatrace_client import DynatraceClient
 from stackstate_checks.utils.identifiers import Identifiers
 
-from stackstate_checks.dynatrace.entity_data_types import ApplicationEntity, HostEntity, QueueEntity, ServiceEntity, ProcessGroupEntity, ProcessGroupInstanceEntity, CustomDeviceEntity
+from stackstate_checks.dynatrace_topology.entity_data_types import ApplicationEntity, HostEntity, QueueEntity, ServiceEntity, ProcessGroupEntity, ProcessGroupInstanceEntity, CustomDeviceEntity
 
 VERIFY_HTTPS = True
 TIMEOUT = 10

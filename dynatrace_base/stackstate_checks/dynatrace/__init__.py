@@ -6,5 +6,4 @@ from .__about__ import __version__
 __all__ = [
     '__version__',
     'dynatrace_client',
-    'entity_data_types'
 ]

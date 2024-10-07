@@ -16,6 +16,22 @@ class LogPathEntry(Model):
     key = StringType()
     value = IntType()
 
+class LogFileStatusEntry(Model):
+    key = StringType(required=True)  # Assuming 'key' is always required
+    value = StringType(required=True)  # Assuming 'value' is always required
+
+class LogFileStatus(Model):
+    logFileStatus = ListType(ModelType(LogFileStatusEntry), default=[])
+
+class StorageStatus(Model):
+    storageStatus = StringType(required=True)  # Assuming 'storageStatus' is always required
+
+class LogSourceStateEntry(Model):
+    key = StringType(required=True)  # Assuming 'key' is always required
+    value = ModelType(StorageStatus, required=True)  # Assuming 'value' is always required
+
+class LogSourceState(Model):
+    logSourceState = ListType(ModelType(LogSourceStateEntry), default=[])
 
 class ApplicationProperties(Model):
     applicationInjectionType = StringType()
@@ -99,9 +115,9 @@ class HostProperties(Model):
     ipAddress = ListType(StringType())
     isMonitoringCandidate = BooleanType()
     kubernetesLabels = DictType(StringType)
-    logFileStatus = DictType(StringType)
+    logFileStatus = ModelType(LogFileStatus)
     logPathLastUpdate = LogPathEntry()
-    logSourceState = DictType(StringType)
+    logSourceState = ModelType(LogSourceState)
     logicalCpuCores = IntType()
     logicalCpus = IntType()
     macAddresses = ListType(StringType())
