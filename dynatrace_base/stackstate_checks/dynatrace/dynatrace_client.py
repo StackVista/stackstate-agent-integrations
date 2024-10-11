@@ -38,6 +38,10 @@ class DynatraceClient:
                 session.verify = self.verify
                 if self.cert:
                     session.cert = (self.cert, self.keyfile)
+                print(f"Getting response from {endpoint}")
+                print(f"Params: {params}")
+                print(f"Timeout: {self.timeout}")
+                print(f"Headers: {headers}")
                 response = session.get(endpoint, params=params, timeout=self.timeout)
                 response_json = response.json()
                 if response.status_code != 200:
