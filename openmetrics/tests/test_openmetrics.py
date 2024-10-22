@@ -68,7 +68,7 @@ def test_openmetrics_check(aggregator):
         metric_type=aggregator.GAUGE
     )
     aggregator.assert_metric(
-        CHECK_NAME + '.counter1_total',
+        CHECK_NAME + '.counter1',
         tags=['node:host2'],
         metric_type=aggregator.GAUGE
     )
@@ -107,7 +107,7 @@ def test_openmetrics_check_counter_gauge(aggregator):
     c = OpenMetricsCheck('openmetrics', None, {}, [instance])
     c.check(instance)
     aggregator.assert_metric(
-        CHECK_NAME + '.counter1_total',
+        CHECK_NAME + '.counter1',
         tags=['node:host2'],
         metric_type=aggregator.MONOTONIC_COUNT
     )

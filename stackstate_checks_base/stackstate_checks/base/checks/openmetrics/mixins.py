@@ -500,6 +500,9 @@ class OpenMetricsScraperMixin(object):
                 custom_hostname = self._get_hostname(hostname, sample, scraper_config)
                 # Determine the tags to send
                 tags = self._metric_tags(metric_name, val, sample, scraper_config, hostname=custom_hostname)
+                # Ditch _total postfix for counters
+                if metric.type == "counter":
+                    metric_name_with_namespace = metric_name_with_namespace.removesuffix("_total")
                 if metric.type == "counter" and scraper_config['send_monotonic_counter']:
                     self.monotonic_count(metric_name_with_namespace, val, tags=tags, hostname=custom_hostname)
                 elif metric.type == "rate":
