@@ -48,11 +48,11 @@ def test_collect_services(requests_mock, dynatrace_check, topology, aggregator):
     """
     Testing Dynatrace check should collect services and tags coming from Kubernetes
     """
-    set_http_responses(requests_mock, services=read_file("service_response.json", "samples"))
+    set_http_responses(requests_mock, services=read_file("service_response_v2.json", "samples"))
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     test_topology = topology.get_snapshot(dynatrace_check.check_id)
-    expected_topology = load_json_from_file("expected_service_topology.json", "samples")
+    expected_topology = load_json_from_file("expected_service_topology_v2.json", "samples")
     assert_topology(expected_topology, test_topology)
 
 

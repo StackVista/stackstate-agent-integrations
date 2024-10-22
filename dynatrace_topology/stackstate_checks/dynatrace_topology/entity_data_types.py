@@ -5,6 +5,7 @@ from schematics.types import StringType, IntType, BooleanType, ListType, DictTyp
 # Extra classes for reused structures
 class SoftwareTechnology(Model):
     type = StringType()
+    version = StringType()
 
 
 class Relationship(Model):
@@ -170,9 +171,9 @@ class ProcessGroupInstanceProperties(Model):
     jvmClrVersion = StringType()
     jvmVendor = StringType()
     listenPorts = ListType(StringType())
-    logFileStatus = DictType(StringType)
+    logFileStatus = ModelType(LogFileStatus)
     logPathLastUpdate = LogPathEntry()
-    logSourceState = DictType(StringType)
+    logSourceState = ModelType(LogSourceState)
     metadata = ListType(DictType(StringType))
     modules = ListType(StringType())
     oneAgentCustomHostName = StringType()

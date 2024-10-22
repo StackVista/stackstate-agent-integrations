@@ -1,0 +1,205 @@
+{
+  "totalCount": 3,
+  "pageSize": 50,
+  "entities": [
+    {
+      "entityId": "SERVICE-93E117D7DDAD5AA7",
+      "type": "SERVICE",
+      "displayName": "webscraper",
+      "properties": {
+        "serviceType": "DATABASE_SERVICE",
+        "detectedName": "webscraper",
+        "isExternalService": true,
+        "databaseName": "webscraper",
+        "port": 3306,
+        "ipAddress": [
+          "172.19.0.2"
+        ],
+        "databaseHostNames": [
+          "db"
+        ],
+        "databaseVendor": "MySQL",
+        "softwareTechnologies": [
+          {
+            "type": "MYSQL"
+          }
+        ],
+        "serviceTechnologyTypes": [
+          "MySQL"
+        ],
+        "agentTechnologyType": "N/A"
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {},
+      "toRelationships": {
+        "isGroupOf": [
+          {
+            "id": "SERVICE_METHOD_GROUP-833F383BDD7533E4",
+            "type": "SERVICE_METHOD_GROUP"
+          }
+        ],
+        "isInstanceOf": [
+          {
+            "id": "SERVICE_INSTANCE-E26080879D30E4EC",
+            "type": "SERVICE_INSTANCE"
+          }
+        ],
+        "calls": [
+          {
+            "id": "SERVICE-C364E91F84B8F254",
+            "type": "SERVICE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "SERVICE-C364E91F84B8F254",
+      "type": "SERVICE",
+      "displayName": ":8080",
+      "properties": {
+        "serviceType": "WEB_REQUEST_SERVICE",
+        "detectedName": ":8080",
+        "isExternalService": false,
+        "port": 8080,
+        "webServerName": ":8080",
+        "softwareTechnologies": [
+          {
+            "type": "GO",
+            "version": "1.19.13"
+          },
+          {
+            "type": "GO"
+          },
+          {
+            "type": "DOCKER"
+          }
+        ],
+        "serviceTechnologyTypes": [
+          "Go"
+        ],
+        "contextRoot": "/",
+        "agentTechnologyType": "GO"
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "runsOnProcessGroupInstance": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-A1CF3E0CF4DFC8D1",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ],
+        "runsOnHost": [
+          {
+            "id": "HOST-A4FF55197C0F846E",
+            "type": "HOST"
+          }
+        ],
+        "calls": [
+          {
+            "id": "SERVICE-93E117D7DDAD5AA7",
+            "type": "SERVICE"
+          }
+        ],
+        "runsOn": [
+          {
+            "id": "PROCESS_GROUP-51BD3694E190306C",
+            "type": "PROCESS_GROUP"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isGroupOf": [
+          {
+            "id": "SERVICE_METHOD_GROUP-E5E37EA5164C540E",
+            "type": "SERVICE_METHOD_GROUP"
+          }
+        ],
+        "isInstanceOf": [
+          {
+            "id": "SERVICE_INSTANCE-2598E86E9ADB5E9D",
+            "type": "SERVICE_INSTANCE"
+          }
+        ],
+        "calls": [
+          {
+            "id": "SERVICE-D4552C067BE873FC",
+            "type": "SERVICE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "SERVICE-D4552C067BE873FC",
+      "type": "SERVICE",
+      "displayName": "newsapp.soft-serve.co.za:443",
+      "properties": {
+        "serviceType": "WEB_REQUEST_SERVICE",
+        "detectedName": "newsapp.soft-serve.co.za:443",
+        "isExternalService": false,
+        "port": 443,
+        "webServerName": "newsapp.soft-serve.co.za:443",
+        "softwareTechnologies": [
+          {
+            "type": "NGINX"
+          },
+          {
+            "type": "NGINX",
+            "version": "nginx/1.27.0"
+          },
+          {
+            "type": "DOCKER"
+          }
+        ],
+        "serviceTechnologyTypes": [
+          "Nginx"
+        ],
+        "contextRoot": "/",
+        "agentTechnologyType": "NGINX"
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "runsOnProcessGroupInstance": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-83B45B30794CA9A5",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ],
+        "runsOnHost": [
+          {
+            "id": "HOST-A4FF55197C0F846E",
+            "type": "HOST"
+          }
+        ],
+        "calls": [
+          {
+            "id": "SERVICE-C364E91F84B8F254",
+            "type": "SERVICE"
+          }
+        ],
+        "runsOn": [
+          {
+            "id": "PROCESS_GROUP-B44AE6BE0CB555DA",
+            "type": "PROCESS_GROUP"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isGroupOf": [
+          {
+            "id": "SERVICE_METHOD_GROUP-8298EA0CA7A79E31",
+            "type": "SERVICE_METHOD_GROUP"
+          }
+        ],
+        "isInstanceOf": [
+          {
+            "id": "SERVICE_INSTANCE-0D0418929421FF85",
+            "type": "SERVICE_INSTANCE"
+          }
+        ]
+      }
+    }
+  ]
+}

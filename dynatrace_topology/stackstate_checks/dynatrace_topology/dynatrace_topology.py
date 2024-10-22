@@ -255,25 +255,30 @@ class DynatraceTopologyCheck(AgentCheck):
         """
         for item in response:
             item = self._clean_unsupported_metadata(item)
-            if component_type != "synthetic-monitor":
-                if component_type == "host":
-                    dynatrace_component = HostEntity(item, strict=False)
-                elif component_type == "service":
-                    dynatrace_component = ServiceEntity
-                elif component_type == "queue":
-                    dynatrace_component = QueueEntity(item, strict=False)
-                elif component_type == "process-group":
-                    dynatrace_component = ProcessGroupEntity(item, strict=False)
-                elif component_type == "process":
-                    dynatrace_component = ProcessGroupInstanceEntity(item, strict=False)
-                elif component_type == "application":
-                    dynatrace_component = ApplicationEntity(item, strict=False)
-                elif component_type == "custom-device":
-                    dynatrace_component = CustomDeviceEntity(item, strict=False)
+            try:
+                if component_type != "synthetic-monitor":
+                    if component_type == "host":
+                        dynatrace_component = HostEntity(item, strict=False)
+                    elif component_type == "service":
+                        dynatrace_component = ServiceEntity(item, strict=False)
+                    elif component_type == "queue":
+                        dynatrace_component = QueueEntity(item, strict=False)
+                    elif component_type == "process-group":
+                        dynatrace_component = ProcessGroupEntity(item, strict=False)
+                    elif component_type == "process":
+                        dynatrace_component = ProcessGroupInstanceEntity(item, strict=False)
+                    elif component_type == "application":
+                        dynatrace_component = ApplicationEntity(item, strict=False)
+                    elif component_type == "custom-device":
+                        dynatrace_component = CustomDeviceEntity(item, strict=False)
+                    else:
+                        dynatrace_component = Entity(item, strict=False)
                 else:
-                    dynatrace_component = Entity(item, strict=False)
-            else:
-                dynatrace_component = DynatraceComponent(item, strict=False)
+                    dynatrace_component = DynatraceComponent(item, strict=False)
+            except Exception as e:
+                self.log.warn("Couldn't create topology component: %s" % e)
+                print(f"{item}")
+                raise e
 
             try:
                 dynatrace_component.validate()
