@@ -51,12 +51,12 @@ def dynatrace_check(test_instance, aggregator, telemetry, topology, health):
     check.commit_state(None)
 
 
-def set_http_responses(requests_mock, hosts="[]", applications="[]", services="[]", processes="[]", process_groups="[]",
+def set_http_responses(requests_mock, hosts='{"entities": []}', applications='{"entities": []}', services='{"entities": []}', processes='{"entities": []}', process_groups='{"entities": []}',
                        entities='{"entities": []}', monitors='{"monitors": []}'):
     requests_mock.get("/api/v1/entity/infrastructure/hosts", text=hosts, status_code=200)
     requests_mock.get("/api/v1/entity/applications", text=applications, status_code=200)
     requests_mock.get("/api/v2/entities?entitySelector=type%28%22SERVICE%22%29&from=now-hour&fields=%2BfromRelationships%2C%2BtoRelationships%2C%2Btags%2C%2BmanagementZones%2C%2Bproperties", text=services, status_code=200)
-    requests_mock.get("/api/v1/entity/infrastructure/processes", text=processes, status_code=200)
+    requests_mock.get("/api/v2/entities?entitySelector=type%28%22PROCESS_GROUP_INSTANCE%22%29&from=now-hour&fields=%2BfromRelationships%2C%2BtoRelationships%2C%2Btags%2C%2BmanagementZones%2C%2Bproperties", text=processes, status_code=200)
     requests_mock.get("/api/v1/entity/infrastructure/process-groups", text=process_groups, status_code=200)
     requests_mock.get("/api/v2/entities", text=entities, status_code=200)
     requests_mock.get("/api/v1/synthetic/monitors", text=monitors, status_code=200)
