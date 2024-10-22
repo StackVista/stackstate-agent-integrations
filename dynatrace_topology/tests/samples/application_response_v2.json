@@ -1,0 +1,35 @@
+{
+  "totalCount": 1,
+  "pageSize": 50,
+  "entities": [
+    {
+      "entityId": "APPLICATION-EA7C4B59F27D43EB",
+      "type": "APPLICATION",
+      "displayName": "My web application",
+      "properties": {
+        "detectedName": "RUM Default Application",
+        "applicationType": "DEFAULT",
+        "applicationInjectionType": "AUTO_INJECTED",
+        "customizedName": "My web application"
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "calls": [
+          {
+            "id": "SERVICE-7B2B45284091ED24",
+            "type": "SERVICE"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isGroupOf": [
+          {
+            "id": "APPLICATION_METHOD_GROUP-61E0931E1B82A315",
+            "type": "APPLICATION_METHOD_GROUP"
+          }
+        ]
+      }
+    }
+  ]
+}
