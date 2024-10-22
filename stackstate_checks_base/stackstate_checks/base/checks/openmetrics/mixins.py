@@ -230,6 +230,9 @@ class OpenMetricsScraperMixin(object):
             metric.type = scraper_config['type_overrides'].get(metric.name, metric.type)
             if metric.type not in self.METRIC_TYPES:
                 metric.type = "gauge"
+            # Ditch _total postfix for counters
+            if metric.type == 'counter':
+                metric.name = metric.name.removesuffix("_total")
             metric.name = self._remove_metric_prefix(metric.name, scraper_config)
             yield metric
 
