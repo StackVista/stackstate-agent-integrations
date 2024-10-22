@@ -16,7 +16,7 @@ instance = {
     'metrics': [
         {'metric1': 'renamed.metric1'},
         'metric2',
-        'counter1',
+        'counter1_total',
         'hist1'
     ],
     'send_histograms_buckets': True,
