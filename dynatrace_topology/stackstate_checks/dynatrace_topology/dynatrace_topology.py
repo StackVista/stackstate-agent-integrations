@@ -396,17 +396,17 @@ class DynatraceTopologyCheck(AgentCheck):
             if properties.get("ipAddress"):
                 for ip in properties.get("ipAddress"):
                     host_identifiers.append(Identifiers.create_host_identifier(ip))
-            if properties.get("detectedName"):
-                host_identifiers.append(Identifiers.create_host_identifier(properties.get("detectedName")))
+            # if properties.get("detectedName"):
+            #     host_identifiers.append(Identifiers.create_host_identifier(properties.get("detectedName")))
             if properties.get("dnsNames"):
                 for dns in properties.get("dnsNames"):
                     host_identifiers.append(Identifiers.create_host_identifier(dns))
             if properties.get("gceHostName"):
                 host_identifiers.append(Identifiers.create_host_identifier(properties.get("gceHostName")))
-            if properties.get("esxiHostName"):
-                host_identifiers.append(Identifiers.create_host_identifier(properties.get("esxiHostName")))
-            if properties.get("hypervisorType"):
-                host_identifiers.append(Identifiers.create_host_identifier(properties.get("hypervisorType")))
+            # if properties.get("esxiHostName"):
+            #     host_identifiers.append(Identifiers.create_host_identifier(properties.get("esxiHostName")))
+            # if properties.get("hypervisorType"):
+            #     host_identifiers.append(Identifiers.create_host_identifier(properties.get("hypervisorType")))
 
         host_identifiers.append(Identifiers.create_host_identifier(component.displayName))
         host_identifiers = Identifiers.append_lowercase_identifiers(host_identifiers)

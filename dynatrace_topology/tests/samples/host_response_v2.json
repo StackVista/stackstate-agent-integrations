@@ -1,0 +1,572 @@
+{
+  "totalCount": 2,
+  "pageSize": 50,
+  "entities": [
+    {
+      "entityId": "HOST-27D021F0FED92055",
+      "type": "HOST",
+      "displayName": "ubuntu",
+      "properties": {
+        "bitness": "64",
+        "installerTrackedDownload": false,
+        "autoInjection": "ENABLED",
+        "additionalSystemInfo": [
+          {
+            "value": "QEMU",
+            "key": "system.vendor"
+          },
+          {
+            "value": "0",
+            "key": "system.processor.frequency.max"
+          },
+          {
+            "value": "1953456128",
+            "key": "system.memory.size"
+          },
+          {
+            "value": "0",
+            "key": "system.processor.frequency.min"
+          },
+          {
+            "value": "AMD EPYC-Milan Processor",
+            "key": "system.processor.model"
+          },
+          {
+            "value": "Standard PC (i440FX + PIIX, 1996)",
+            "key": "system.model"
+          },
+          {
+            "value": "x86",
+            "key": "system.architecture"
+          }
+        ],
+        "monitoringMode": "FULL_STACK",
+        "ebpfHasPublicTraffic": false,
+        "osArchitecture": "X86",
+        "osVersion": "Ubuntu 22.04.5 LTS (Jammy Jellyfish) (kernel 5.15.0-124-generic)",
+        "installerPotentialProblem": false,
+        "macAddresses": [
+          "02:01:FA:CC:F6:3E"
+        ],
+        "osType": "LINUX",
+        "state": "RUNNING",
+        "physicalMemory": 1953456128,
+        "detectedName": "ubuntu",
+        "installerVersion": "1.301.48.20241007-103336",
+        "standalone": false,
+        "ipAddress": [
+          "194.164.126.192"
+        ],
+        "hasPublicTraffic": false,
+        "hypervisorType": "QEMU",
+        "networkZone": "default",
+        "standaloneSpecialAgentsOnly": false,
+        "logicalCpuCores": 2,
+        "isMonitoringCandidate": false,
+        "cpuCores": 1,
+        "ebpfDiscoveryMonitored": true,
+        "memoryTotal": 1953456128,
+        "installerSupportAlert": false
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "isNetworkClientOfHost": [
+          {
+            "id": "HOST-27D021F0FED92055",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isSiteOf": [
+          {
+            "id": "GEOLOC_SITE-F8DA24C9DD4B91E0",
+            "type": "GEOLOC_SITE"
+          }
+        ],
+        "isProcessOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-9FB696F3447E78A7",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-9D91309ACC28EF31",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-F10D7DD3820A3A1F",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-DE6BBC832B4468B0",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-E2683B14FA408D19",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-DA980B8E0D5C5AB7",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-7CC5C7C213737326",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-CAD774CA5C98E786",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-7D52E74879BE6940",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-C51921BD8393403A",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-39C09EA6259E757D",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-A2FFB340144A4372",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-E011E6F91F5C0BFC",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-9AF64692A8FC4999",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-EA5429DAFCEFA055",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-009B2FD9FB9A0D9E",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-671E0D7CA84FC247",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ],
+        "runsOn": [
+          {
+            "id": "PROCESS_GROUP-D3CFC41B5F609A03",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-3AD9FB79C914520C",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-EF1E81586EB8EDD6",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-B44AE6BE0CB555DA",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-02B9992C264DE845",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-ECE82357AF59AF52",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-5B15E632EDAA5373",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-DA52C7DE4DCF26C3",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-30DCB5EACE59580B",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-8A0DF0F9C446635C",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-D319A5EAB816D403",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-4F6264254199189E",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-213FB355CA5E6C74",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-55BB99EBACB51463",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-216FDBEF8325B5C6",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-5A22F6D7F2447FBB",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-68B404144F1EFBEA",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "isNetworkInterfaceOf": [
+          {
+            "id": "NETWORK_INTERFACE-27D023F10415D66B",
+            "type": "NETWORK_INTERFACE"
+          }
+        ],
+        "runsOnHost": [
+          {
+            "id": "SERVICE-37C6463F105A6D3A",
+            "type": "SERVICE"
+          },
+          {
+            "id": "SERVICE-201FFEDBAAA46C08",
+            "type": "SERVICE"
+          },
+          {
+            "id": "SERVICE_INSTANCE-3829429BE585EDF0",
+            "type": "SERVICE_INSTANCE"
+          },
+          {
+            "id": "SERVICE-54C8B660D2ACD52B",
+            "type": "SERVICE"
+          },
+          {
+            "id": "SERVICE_INSTANCE-C7C1CA9EF57FC7DA",
+            "type": "SERVICE_INSTANCE"
+          },
+          {
+            "id": "SERVICE-7B2B45284091ED24",
+            "type": "SERVICE"
+          },
+          {
+            "id": "SERVICE_INSTANCE-6E80C45E09A13D55",
+            "type": "SERVICE_INSTANCE"
+          },
+          {
+            "id": "SERVICE_INSTANCE-138DC9C5CBDFCD6C",
+            "type": "SERVICE_INSTANCE"
+          }
+        ],
+        "isCgiOfHost": [
+          {
+            "id": "CONTAINER_GROUP_INSTANCE-06263B9ECE09CD3B",
+            "type": "CONTAINER_GROUP_INSTANCE"
+          },
+          {
+            "id": "CONTAINER_GROUP_INSTANCE-5F4EEA3262323AA3",
+            "type": "CONTAINER_GROUP_INSTANCE"
+          },
+          {
+            "id": "CONTAINER_GROUP_INSTANCE-F9B7E73E1262EE8B",
+            "type": "CONTAINER_GROUP_INSTANCE"
+          },
+          {
+            "id": "CONTAINER_GROUP_INSTANCE-E7A13AF18299373C",
+            "type": "CONTAINER_GROUP_INSTANCE"
+          },
+          {
+            "id": "CONTAINER_GROUP_INSTANCE-04B409C74ABB237D",
+            "type": "CONTAINER_GROUP_INSTANCE"
+          },
+          {
+            "id": "CONTAINER_GROUP_INSTANCE-A46CDAFDD118CE29",
+            "type": "CONTAINER_GROUP_INSTANCE"
+          }
+        ],
+        "isDiskOf": [
+          {
+            "id": "DISK-C7DA45C3161CD758",
+            "type": "DISK"
+          },
+          {
+            "id": "DISK-739838EB4F8C4CAD",
+            "type": "DISK"
+          }
+        ],
+        "isNetworkClientOfHost": [
+          {
+            "id": "HOST-27D021F0FED92055",
+            "type": "HOST"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "HOST-CCAF57403E126C46",
+      "type": "HOST",
+      "displayName": "ubuntu",
+      "properties": {
+        "bitness": "64",
+        "installerTrackedDownload": false,
+        "autoInjection": "ENABLED",
+        "additionalSystemInfo": [
+          {
+            "value": "QEMU",
+            "key": "system.vendor"
+          },
+          {
+            "value": "0",
+            "key": "system.processor.frequency.max"
+          },
+          {
+            "value": "1953456128",
+            "key": "system.memory.size"
+          },
+          {
+            "value": "0",
+            "key": "system.processor.frequency.min"
+          },
+          {
+            "value": "AMD EPYC-Milan Processor",
+            "key": "system.processor.model"
+          },
+          {
+            "value": "Standard PC (i440FX + PIIX, 1996)",
+            "key": "system.model"
+          },
+          {
+            "value": "x86",
+            "key": "system.architecture"
+          }
+        ],
+        "monitoringMode": "FULL_STACK",
+        "ebpfHasPublicTraffic": false,
+        "osArchitecture": "X86",
+        "osVersion": "Ubuntu 22.04.5 LTS (Jammy Jellyfish) (kernel 5.15.0-124-generic)",
+        "installerPotentialProblem": false,
+        "macAddresses": [
+          "02:01:A7:2B:C6:68"
+        ],
+        "osType": "LINUX",
+        "state": "RUNNING",
+        "physicalMemory": 1953456128,
+        "detectedName": "ubuntu",
+        "installerVersion": "1.301.48.20241007-103336",
+        "standalone": false,
+        "ipAddress": [
+          "194.164.126.187"
+        ],
+        "hasPublicTraffic": false,
+        "hypervisorType": "QEMU",
+        "networkZone": "default",
+        "standaloneSpecialAgentsOnly": false,
+        "logicalCpuCores": 2,
+        "isMonitoringCandidate": false,
+        "cpuCores": 1,
+        "ebpfDiscoveryMonitored": true,
+        "memoryTotal": 1953456128,
+        "installerSupportAlert": false
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "isNetworkClientOfHost": [
+          {
+            "id": "HOST-CCAF57403E126C46",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isSiteOf": [
+          {
+            "id": "GEOLOC_SITE-F8DA24C9DD4B91E0",
+            "type": "GEOLOC_SITE"
+          }
+        ],
+        "isProcessOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-718930226837058A",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-0E55A1E56A6E898E",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-2E66570D43580C29",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-7DEE56A819F0B76D",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-54D06710958DD6D1",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-D8E522DD9F9877E0",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-44BCD2A37B650B83",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-EBE459693B51418D",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-76EE462A0CE3A322",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-46F4DCE90AE5FC99",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-FFF5251A6A806135",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-B65E01FA15EA1BE2",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-FAFF9812C50A76CA",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-C99F3C55B6C220F9",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ],
+        "runsOn": [
+          {
+            "id": "PROCESS_GROUP-BD788867042F0723",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-3AD9FB79C914520C",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-51BD3694E190306C",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-EF1E81586EB8EDD6",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-B44AE6BE0CB555DA",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-02B9992C264DE845",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-ECE82357AF59AF52",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-DA52C7DE4DCF26C3",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-8A0DF0F9C446635C",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-4F6264254199189E",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-55BB99EBACB51463",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-216FDBEF8325B5C6",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-31AE98E6D95C50FE",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-68B404144F1EFBEA",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "isNetworkInterfaceOf": [
+          {
+            "id": "NETWORK_INTERFACE-CCAF55419939AA2E",
+            "type": "NETWORK_INTERFACE"
+          }
+        ],
+        "runsOnHost": [
+          {
+            "id": "SERVICE_INSTANCE-9888F624B1A51C3F",
+            "type": "SERVICE_INSTANCE"
+          },
+          {
+            "id": "SERVICE_INSTANCE-77E518558B5EA48C",
+            "type": "SERVICE_INSTANCE"
+          },
+          {
+            "id": "SERVICE-D4552C067BE873FC",
+            "type": "SERVICE"
+          },
+          {
+            "id": "SERVICE-C364E91F84B8F254",
+            "type": "SERVICE"
+          }
+        ],
+        "isCgiOfHost": [
+          {
+            "id": "CONTAINER_GROUP_INSTANCE-4B3AFBE7D97A751E",
+            "type": "CONTAINER_GROUP_INSTANCE"
+          },
+          {
+            "id": "CONTAINER_GROUP_INSTANCE-F7F866BEBCAF0480",
+            "type": "CONTAINER_GROUP_INSTANCE"
+          },
+          {
+            "id": "CONTAINER_GROUP_INSTANCE-F98EE2E75DA25A63",
+            "type": "CONTAINER_GROUP_INSTANCE"
+          },
+          {
+            "id": "CONTAINER_GROUP_INSTANCE-F6C4570D2A540108",
+            "type": "CONTAINER_GROUP_INSTANCE"
+          }
+        ],
+        "isDiskOf": [
+          {
+            "id": "DISK-3DC8165C460610EB",
+            "type": "DISK"
+          },
+          {
+            "id": "DISK-289D71513B886847",
+            "type": "DISK"
+          }
+        ],
+        "isNetworkClientOfHost": [
+          {
+            "id": "HOST-CCAF57403E126C46",
+            "type": "HOST"
+          }
+        ]
+      }
+    }
+  ]
+}
