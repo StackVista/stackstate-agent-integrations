@@ -72,11 +72,11 @@ def test_collect_process_groups(dynatrace_check, requests_mock, topology, aggreg
     """
     Testing Dynatrace check should collect process-groups
     """
-    set_http_responses(requests_mock, process_groups=read_file("process-group_response.json", "samples"))
+    set_http_responses(requests_mock, process_groups=read_file("process-group_response_v2.json", "samples"))
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     topology_instances = topology.get_snapshot(dynatrace_check.check_id)
-    expected_topology = load_json_from_file("expected_process-group_topology.json", "samples")
+    expected_topology = load_json_from_file("expected_process-group_topology_v2.json", "samples")
     assert_topology(expected_topology, topology_instances)
 
 

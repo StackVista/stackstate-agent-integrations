@@ -1,0 +1,1302 @@
+{
+  "totalCount": 20,
+  "pageSize": 50,
+  "entities": [
+    {
+      "entityId": "PROCESS_GROUP-02B9992C264DE845",
+      "type": "PROCESS_GROUP",
+      "displayName": "sshd",
+      "properties": {
+        "detectedName": "sshd",
+        "metadata": [
+          {
+            "key": "EXE_NAME",
+            "value": "sshd"
+          },
+          {
+            "key": "EXE_PATH",
+            "value": "/usr/sbin/sshd"
+          }
+        ],
+        "listenPorts": [
+          22
+        ]
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "isNetworkClientOfProcessGroup": [
+          {
+            "id": "PROCESS_GROUP-02B9992C264DE845",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "runsOn": [
+          {
+            "id": "HOST-27D021F0FED92055",
+            "type": "HOST"
+          },
+          {
+            "id": "HOST-CCAF57403E126C46",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isNetworkClientOfProcessGroup": [
+          {
+            "id": "PROCESS_GROUP-02B9992C264DE845",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-7D52E74879BE6940",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-0E55A1E56A6E898E",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "PROCESS_GROUP-213FB355CA5E6C74",
+      "type": "PROCESS_GROUP",
+      "displayName": "activemq.jar",
+      "properties": {
+        "detectedName": "activemq.jar",
+        "metadata": [
+          {
+            "key": "JAVA_MAIN_CLASS",
+            "value": "/opt/apache-activemq/bin/activemq.jar"
+          },
+          {
+            "key": "COMMAND_LINE_ARGS",
+            "value": "/opt/java/openjdk/bin/java -Xms64M -Xmx1G -Djava.util.logging.config.file=logging.properties -Djava.security.auth.login.config=/opt/apache-activemq/conf/login.config -Djetty.host=0.0.0.0 -Dcom.sun.management.jmxremote -Djava.awt.headless=true -Djava.io.tmpdir=/opt/apache-activemq/tmp --add-reads=java.xml=java.logging --add-opens java.base/java.security=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.naming/javax.naming.spi=ALL-UNNAMED --add-opens java.rmi/sun.rmi.transport.tcp=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED --add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-exports=java.base/sun.net.www.protocol.http=ALL-UNNAMED --add-exports=java.base/sun.net.www.protocol.https=ALL-UNNAMED --add-exports=java.base/sun.net.www.protocol.jar=ALL-UNNAMED --add-exports=jdk.xml.dom/org.w3c.dom.html=ALL-UNNAMED --add-exports=jdk.naming.rmi/com.sun.jndi.url.rmi=ALL-UNNAMED -Dactivemq.classpath=/opt/apache-activemq/conf:/opt/apache-activemq/../lib/: -Dactivemq.home=/opt/apache-activemq -Dactivemq.base=/opt/apache-activemq -Dactivemq.conf=/opt/apache-activemq/conf -Dactivemq.data=/opt/apache-activemq/data -Djolokia.conf=file:/opt/apache-activemq/conf/jolokia-access.xml -jar /opt/apache-activemq/bin/activemq.jar start"
+          },
+          {
+            "key": "JAVA_JAR_FILE",
+            "value": "activemq.jar"
+          },
+          {
+            "key": "CONTAINER_NAME",
+            "value": "activemq"
+          },
+          {
+            "key": "JAVA_JAR_PATH",
+            "value": "/opt/apache-activemq/bin/activemq.jar"
+          },
+          {
+            "key": "CONTAINER_IMAGE_NAME",
+            "value": "apache/activemq-classic"
+          },
+          {
+            "key": "EXE_NAME",
+            "value": "java"
+          },
+          {
+            "key": "EXE_PATH",
+            "value": "/opt/java/openjdk/bin/java"
+          }
+        ],
+        "softwareTechnologies": [
+          {
+            "type": "ACTIVEMQ_CLIENT",
+            "edition": "ActiveMQ :: Client, jakarta.jms",
+            "version": "6.1.2"
+          },
+          {
+            "type": "JAVA",
+            "edition": "Adoptium",
+            "version": "17.0.11"
+          },
+          {
+            "type": "AMQP"
+          },
+          {
+            "type": "JAVA",
+            "edition": "Eclipse Adoptium",
+            "version": "17.0.11"
+          },
+          {
+            "type": "APACHE_LOG4J",
+            "version": "2.23.1"
+          },
+          {
+            "type": "ACTIVE_MQ"
+          },
+          {
+            "type": "JETTY",
+            "edition": "HTTP Server",
+            "version": "11.0.20"
+          },
+          {
+            "type": "DOCKER"
+          }
+        ],
+        "listenPorts": [
+          61616,
+          8161,
+          41523,
+          5672,
+          1883,
+          61613,
+          61614
+        ]
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "isPgOfCg": [
+          {
+            "id": "CONTAINER_GROUP-878477CD4C8318D3",
+            "type": "CONTAINER_GROUP"
+          }
+        ],
+        "runsOn": [
+          {
+            "id": "HOST-27D021F0FED92055",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-DE6BBC832B4468B0",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "PROCESS_GROUP-216FDBEF8325B5C6",
+      "type": "PROCESS_GROUP",
+      "displayName": "OneAgent log analytics",
+      "properties": {
+        "detectedName": "OneAgent log analytics",
+        "metadata": [
+          {
+            "key": "COMMAND_LINE_ARGS",
+            "value": "oneagentloganalytics -Dcom.compuware.apm.WatchDogTimeout=900 -Dcom.compuware.apm.WatchDogPipe=/var/lib/dynatrace/oneagent/agent/watchdog/oneagentloganalytics_pipe_793"
+          },
+          {
+            "key": "COMMAND_LINE_ARGS",
+            "value": "oneagentloganalytics -Dcom.compuware.apm.WatchDogTimeout=900 -Dcom.compuware.apm.WatchDogPipe=/var/lib/dynatrace/oneagent/agent/watchdog/oneagentloganalytics_pipe_784"
+          },
+          {
+            "key": "EXE_NAME",
+            "value": "oneagentloganalytics"
+          },
+          {
+            "key": "EXE_PATH",
+            "value": "/opt/dynatrace/oneagent/agent/lib*/oneagentloganalytics"
+          }
+        ],
+        "softwareTechnologies": [
+          {
+            "type": "DYNATRACE"
+          }
+        ]
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "runsOn": [
+          {
+            "id": "HOST-27D021F0FED92055",
+            "type": "HOST"
+          },
+          {
+            "id": "HOST-CCAF57403E126C46",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-C51921BD8393403A",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-2E66570D43580C29",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "PROCESS_GROUP-30DCB5EACE59580B",
+      "type": "PROCESS_GROUP",
+      "displayName": "MySQL",
+      "properties": {
+        "detectedName": "MySQL",
+        "metadata": [
+          {
+            "key": "EXE_NAME",
+            "value": "mysqld"
+          },
+          {
+            "key": "CONTAINER_IMAGE_NAME",
+            "value": "mysql"
+          },
+          {
+            "key": "EXE_PATH",
+            "value": "/usr/sbin/mysqld"
+          }
+        ],
+        "softwareTechnologies": [
+          {
+            "type": "MYSQL"
+          },
+          {
+            "type": "DOCKER"
+          }
+        ],
+        "listenPorts": [
+          3306
+        ]
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "isPgOfCg": [
+          {
+            "id": "CONTAINER_GROUP-FFD35018A09EC2F0",
+            "type": "CONTAINER_GROUP"
+          }
+        ],
+        "runsOn": [
+          {
+            "id": "HOST-27D021F0FED92055",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-E2683B14FA408D19",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "PROCESS_GROUP-31AE98E6D95C50FE",
+      "type": "PROCESS_GROUP",
+      "displayName": "MySQL",
+      "properties": {
+        "detectedName": "MySQL",
+        "metadata": [
+          {
+            "key": "EXE_NAME",
+            "value": "mysqld"
+          },
+          {
+            "key": "CONTAINER_IMAGE_NAME",
+            "value": "wolverminion/mysql"
+          },
+          {
+            "key": "EXE_PATH",
+            "value": "/usr/sbin/mysqld"
+          }
+        ],
+        "softwareTechnologies": [
+          {
+            "type": "MYSQL"
+          },
+          {
+            "type": "DOCKER"
+          }
+        ],
+        "listenPorts": [
+          3306
+        ]
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "isPgOfCg": [
+          {
+            "id": "CONTAINER_GROUP-461B2DC619CBFE7A",
+            "type": "CONTAINER_GROUP"
+          }
+        ],
+        "runsOn": [
+          {
+            "id": "HOST-CCAF57403E126C46",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isNetworkClientOfProcessGroup": [
+          {
+            "id": "PROCESS_GROUP-BD788867042F0723",
+            "type": "PROCESS_GROUP"
+          },
+          {
+            "id": "PROCESS_GROUP-51BD3694E190306C",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-46F4DCE90AE5FC99",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "PROCESS_GROUP-3AD9FB79C914520C",
+      "type": "PROCESS_GROUP",
+      "displayName": "OneAgent system monitoring",
+      "properties": {
+        "detectedName": "OneAgent system monitoring",
+        "metadata": [
+          {
+            "key": "EXE_PATH",
+            "value": "/opt/dynatrace/oneagent/agent/lib64/oneagentwatchdog"
+          },
+          {
+            "key": "EXE_NAME",
+            "value": "oneagentwatchdog"
+          }
+        ],
+        "softwareTechnologies": [
+          {
+            "type": "DYNATRACE"
+          }
+        ]
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "runsOn": [
+          {
+            "id": "HOST-27D021F0FED92055",
+            "type": "HOST"
+          },
+          {
+            "id": "HOST-CCAF57403E126C46",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-EA5429DAFCEFA055",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-D8E522DD9F9877E0",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "PROCESS_GROUP-4F6264254199189E",
+      "type": "PROCESS_GROUP",
+      "displayName": "OneAgent eBPF service discovery",
+      "properties": {
+        "detectedName": "OneAgent eBPF service discovery",
+        "metadata": [
+          {
+            "key": "EXE_PATH",
+            "value": "/opt/dynatrace/oneagent/agent/lib64/oneagentebpfdiscovery"
+          },
+          {
+            "key": "EXE_NAME",
+            "value": "oneagentebpfdiscovery"
+          }
+        ],
+        "softwareTechnologies": [
+          {
+            "type": "DYNATRACE"
+          }
+        ]
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "runsOn": [
+          {
+            "id": "HOST-27D021F0FED92055",
+            "type": "HOST"
+          },
+          {
+            "id": "HOST-CCAF57403E126C46",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-39C09EA6259E757D",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-7DEE56A819F0B76D",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "PROCESS_GROUP-51BD3694E190306C",
+      "type": "PROCESS_GROUP",
+      "displayName": "webserver",
+      "properties": {
+        "detectedName": "webserver",
+        "metadata": [
+          {
+            "key": "CONTAINER_IMAGE_NAME",
+            "value": "wolverminion/newsscraper-host"
+          },
+          {
+            "key": "CONTAINER_NAME",
+            "value": "newsapp-us_server-1_1"
+          },
+          {
+            "key": "EXE_NAME",
+            "value": "webserver"
+          },
+          {
+            "key": "COMMAND_LINE_ARGS",
+            "value": "/usr/bin/webserver"
+          },
+          {
+            "key": "PG_ID_CALC_INPUT_KEY_LINKAGE",
+            "value": "dynamic"
+          },
+          {
+            "key": "CONTAINER_IMAGE_VERSION",
+            "value": "40d71747"
+          },
+          {
+            "key": "EXE_PATH",
+            "value": "/usr/bin/webserver"
+          }
+        ],
+        "softwareTechnologies": [
+          {
+            "type": "GO",
+            "version": "1.19.13"
+          },
+          {
+            "type": "GO"
+          },
+          {
+            "type": "DOCKER"
+          }
+        ],
+        "listenPorts": [
+          8080
+        ]
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "isNetworkClientOfProcessGroup": [
+          {
+            "id": "PROCESS_GROUP-31AE98E6D95C50FE",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "isPgOfCg": [
+          {
+            "id": "CONTAINER_GROUP-090F28AC20E99344",
+            "type": "CONTAINER_GROUP"
+          }
+        ],
+        "runsOn": [
+          {
+            "id": "HOST-CCAF57403E126C46",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isNetworkClientOfProcessGroup": [
+          {
+            "id": "PROCESS_GROUP-B44AE6BE0CB555DA",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-C99F3C55B6C220F9",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ],
+        "runsOn": [
+          {
+            "id": "SERVICE-C364E91F84B8F254",
+            "type": "SERVICE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "PROCESS_GROUP-55BB99EBACB51463",
+      "type": "PROCESS_GROUP",
+      "displayName": "OneAgent network monitoring",
+      "properties": {
+        "detectedName": "OneAgent network monitoring",
+        "metadata": [
+          {
+            "key": "EXE_PATH",
+            "value": "/opt/dynatrace/oneagent/agent/lib64/oneagentnetwork"
+          },
+          {
+            "key": "EXE_NAME",
+            "value": "oneagentnetwork"
+          }
+        ],
+        "softwareTechnologies": [
+          {
+            "type": "DYNATRACE"
+          }
+        ]
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "runsOn": [
+          {
+            "id": "HOST-27D021F0FED92055",
+            "type": "HOST"
+          },
+          {
+            "id": "HOST-CCAF57403E126C46",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-E011E6F91F5C0BFC",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-44BCD2A37B650B83",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "PROCESS_GROUP-5A22F6D7F2447FBB",
+      "type": "PROCESS_GROUP",
+      "displayName": "Erlang Port Mapper",
+      "properties": {
+        "detectedName": "Erlang Port Mapper",
+        "metadata": [
+          {
+            "key": "EXE_NAME",
+            "value": "epmd"
+          },
+          {
+            "key": "CONTAINER_IMAGE_NAME",
+            "value": "rabbitmq"
+          },
+          {
+            "key": "EXE_PATH",
+            "value": "/opt/erlang/lib/erlang/erts-14.2.5.4/bin/epmd"
+          }
+        ],
+        "softwareTechnologies": [
+          {
+            "type": "ERLANG"
+          },
+          {
+            "type": "DOCKER"
+          }
+        ],
+        "listenPorts": [
+          4369
+        ]
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "isPgOfCg": [
+          {
+            "id": "CONTAINER_GROUP-BCB844B4C4E4F06C",
+            "type": "CONTAINER_GROUP"
+          }
+        ],
+        "runsOn": [
+          {
+            "id": "HOST-27D021F0FED92055",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-F10D7DD3820A3A1F",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "PROCESS_GROUP-5B15E632EDAA5373",
+      "type": "PROCESS_GROUP",
+      "displayName": "PHP-FPM",
+      "properties": {
+        "detectedName": "PHP-FPM",
+        "metadata": [
+          {
+            "key": "COMMAND_LINE_ARGS",
+            "value": "php-fpm"
+          },
+          {
+            "key": "EXE_NAME",
+            "value": "php-fpm"
+          },
+          {
+            "key": "EXE_PATH",
+            "value": "/usr/local/sbin/php-fpm"
+          },
+          {
+            "key": "CONTAINER_IMAGE_VERSION",
+            "value": "4.5.17-php7.2-fpm"
+          },
+          {
+            "key": "CONTAINER_IMAGE_NAME",
+            "value": "invoiceninja/invoiceninja"
+          },
+          {
+            "key": "CONTAINER_NAME",
+            "value": "mastering_app_1"
+          }
+        ],
+        "softwareTechnologies": [
+          {
+            "type": "PHP_FPM"
+          },
+          {
+            "type": "LARAVEL"
+          },
+          {
+            "type": "SYMFONY"
+          },
+          {
+            "type": "DOCKER"
+          },
+          {
+            "type": "PHP",
+            "edition": "FPM",
+            "version": "7.2.10"
+          }
+        ],
+        "listenPorts": [
+          9000
+        ]
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "isPgOfCg": [
+          {
+            "id": "CONTAINER_GROUP-2F3FB2C79A1E7141",
+            "type": "CONTAINER_GROUP"
+          }
+        ],
+        "runsOn": [
+          {
+            "id": "HOST-27D021F0FED92055",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isNetworkClientOfProcessGroup": [
+          {
+            "id": "PROCESS_GROUP-D3CFC41B5F609A03",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-7CC5C7C213737326",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ],
+        "runsOn": [
+          {
+            "id": "SERVICE-201FFEDBAAA46C08",
+            "type": "SERVICE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "PROCESS_GROUP-68B404144F1EFBEA",
+      "type": "PROCESS_GROUP",
+      "displayName": "systemd-resolved",
+      "properties": {
+        "detectedName": "systemd-resolved",
+        "metadata": [
+          {
+            "key": "EXE_NAME",
+            "value": "systemd-resolved"
+          },
+          {
+            "key": "EXE_PATH",
+            "value": "/usr/lib/systemd/systemd-resolved"
+          }
+        ],
+        "listenPorts": [
+          53
+        ]
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "runsOn": [
+          {
+            "id": "HOST-27D021F0FED92055",
+            "type": "HOST"
+          },
+          {
+            "id": "HOST-CCAF57403E126C46",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-FFF5251A6A806135",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-DA980B8E0D5C5AB7",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "PROCESS_GROUP-8A0DF0F9C446635C",
+      "type": "PROCESS_GROUP",
+      "displayName": "containerd-shim-runc-v*",
+      "properties": {
+        "detectedName": "containerd-shim-runc-v*",
+        "metadata": [
+          {
+            "key": "PG_ID_CALC_INPUT_KEY_LINKAGE",
+            "value": "static"
+          },
+          {
+            "key": "COMMAND_LINE_ARGS",
+            "value": "/usr/bin/containerd-shim-runc-v2 -namespace moby -id bd1991a03800a5c94343310f00eb4683ad51f03078fcc6459c6d908f832aea54 -address /run/containerd/containerd.sock"
+          },
+          {
+            "key": "EXE_NAME",
+            "value": "containerd-shim-runc-v*"
+          },
+          {
+            "key": "EXE_PATH",
+            "value": "/usr/bin/containerd-shim-runc-v*"
+          },
+          {
+            "key": "COMMAND_LINE_ARGS",
+            "value": "/usr/bin/containerd-shim-runc-v2 -namespace moby -id 9d00f8c664ff76af4b3e616f28805384c5b29f92639c11fb0abe7d522b65dfad -address /run/containerd/containerd.sock"
+          }
+        ],
+        "softwareTechnologies": [
+          {
+            "type": "GO"
+          }
+        ]
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "runsOn": [
+          {
+            "id": "HOST-27D021F0FED92055",
+            "type": "HOST"
+          },
+          {
+            "id": "HOST-CCAF57403E126C46",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-718930226837058A",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-9AF64692A8FC4999",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "PROCESS_GROUP-B44AE6BE0CB555DA",
+      "type": "PROCESS_GROUP",
+      "displayName": "nginx",
+      "properties": {
+        "detectedName": "nginx",
+        "metadata": [
+          {
+            "key": "CONTAINER_IMAGE_NAME",
+            "value": "nginx"
+          },
+          {
+            "key": "COMMAND_LINE_ARGS",
+            "value": "nginx -g daemon\\ off;"
+          },
+          {
+            "key": "EXE_NAME",
+            "value": "nginx"
+          },
+          {
+            "key": "EXE_PATH",
+            "value": "/usr/sbin/nginx"
+          },
+          {
+            "key": "CONTAINER_NAME",
+            "value": "nginx"
+          }
+        ],
+        "softwareTechnologies": [
+          {
+            "type": "NGINX"
+          },
+          {
+            "type": "NGINX",
+            "version": "nginx/1.27.0"
+          },
+          {
+            "type": "DOCKER"
+          }
+        ],
+        "listenPorts": [
+          443
+        ]
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "isNetworkClientOfProcessGroup": [
+          {
+            "id": "PROCESS_GROUP-51BD3694E190306C",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "isPgOfCg": [
+          {
+            "id": "CONTAINER_GROUP-5C5C23F580864AAB",
+            "type": "CONTAINER_GROUP"
+          }
+        ],
+        "runsOn": [
+          {
+            "id": "HOST-27D021F0FED92055",
+            "type": "HOST"
+          },
+          {
+            "id": "HOST-CCAF57403E126C46",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-009B2FD9FB9A0D9E",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-EBE459693B51418D",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ],
+        "runsOn": [
+          {
+            "id": "SERVICE-7B2B45284091ED24",
+            "type": "SERVICE"
+          },
+          {
+            "id": "SERVICE-D4552C067BE873FC",
+            "type": "SERVICE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "PROCESS_GROUP-BD788867042F0723",
+      "type": "PROCESS_GROUP",
+      "displayName": "main.py",
+      "properties": {
+        "detectedName": "main.py",
+        "metadata": [
+          {
+            "key": "EXE_PATH",
+            "value": "/usr/local/bin/python*"
+          },
+          {
+            "key": "CONTAINER_NAME",
+            "value": "newsapp-uk_app-newsscraper_1"
+          },
+          {
+            "key": "EXE_NAME",
+            "value": "python*"
+          },
+          {
+            "key": "CONTAINER_IMAGE_NAME",
+            "value": "wolverminion/webscraper"
+          },
+          {
+            "key": "COMMAND_LINE_ARGS",
+            "value": "python main.py"
+          },
+          {
+            "key": "CONTAINER_IMAGE_VERSION",
+            "value": "9f79f4f2-uk"
+          }
+        ],
+        "softwareTechnologies": [
+          {
+            "type": "PYTHON"
+          },
+          {
+            "type": "DOCKER"
+          }
+        ]
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "isNetworkClientOfProcessGroup": [
+          {
+            "id": "PROCESS_GROUP-31AE98E6D95C50FE",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "isPgOfCg": [
+          {
+            "id": "CONTAINER_GROUP-DFE950F214066240",
+            "type": "CONTAINER_GROUP"
+          }
+        ],
+        "runsOn": [
+          {
+            "id": "HOST-CCAF57403E126C46",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-FAFF9812C50A76CA",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "PROCESS_GROUP-D319A5EAB816D403",
+      "type": "PROCESS_GROUP",
+      "displayName": "RabbitMQ",
+      "properties": {
+        "detectedName": "RabbitMQ",
+        "metadata": [
+          {
+            "key": "EXE_PATH",
+            "value": "/opt/erlang/lib/erlang/erts-14.2.5.4/bin/beam.smp"
+          },
+          {
+            "key": "CONTAINER_IMAGE_NAME",
+            "value": "rabbitmq"
+          },
+          {
+            "key": "EXE_NAME",
+            "value": "beam.smp"
+          }
+        ],
+        "softwareTechnologies": [
+          {
+            "type": "AMQP"
+          },
+          {
+            "type": "ERLANG"
+          },
+          {
+            "type": "RABBIT_MQ"
+          },
+          {
+            "type": "DOCKER"
+          }
+        ],
+        "listenPorts": [
+          5672,
+          15672,
+          25672,
+          15692
+        ]
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "isPgOfCg": [
+          {
+            "id": "CONTAINER_GROUP-BCB844B4C4E4F06C",
+            "type": "CONTAINER_GROUP"
+          }
+        ],
+        "runsOn": [
+          {
+            "id": "HOST-27D021F0FED92055",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-A2FFB340144A4372",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "PROCESS_GROUP-D3CFC41B5F609A03",
+      "type": "PROCESS_GROUP",
+      "displayName": "nginx",
+      "properties": {
+        "detectedName": "nginx",
+        "metadata": [
+          {
+            "key": "CONTAINER_NAME",
+            "value": "softserve_web_1"
+          },
+          {
+            "key": "COMMAND_LINE_ARGS",
+            "value": "nginx -g daemon\\ off;"
+          },
+          {
+            "key": "EXE_NAME",
+            "value": "nginx"
+          },
+          {
+            "key": "CONTAINER_IMAGE_NAME",
+            "value": "wolverminion/nginx"
+          },
+          {
+            "key": "EXE_PATH",
+            "value": "/usr/sbin/nginx"
+          },
+          {
+            "key": "CONTAINER_IMAGE_VERSION",
+            "value": "1"
+          }
+        ],
+        "softwareTechnologies": [
+          {
+            "type": "NGINX",
+            "version": "nginx/1.15.2"
+          },
+          {
+            "type": "NGINX"
+          },
+          {
+            "type": "DOCKER"
+          }
+        ],
+        "listenPorts": [
+          80,
+          443
+        ]
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "isNetworkClientOfProcessGroup": [
+          {
+            "id": "PROCESS_GROUP-5B15E632EDAA5373",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "isPgOfCg": [
+          {
+            "id": "CONTAINER_GROUP-F824455F51288D9E",
+            "type": "CONTAINER_GROUP"
+          }
+        ],
+        "runsOn": [
+          {
+            "id": "HOST-27D021F0FED92055",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-671E0D7CA84FC247",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ],
+        "runsOn": [
+          {
+            "id": "SERVICE-54C8B660D2ACD52B",
+            "type": "SERVICE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "PROCESS_GROUP-DA52C7DE4DCF26C3",
+      "type": "PROCESS_GROUP",
+      "displayName": "snapd",
+      "properties": {
+        "detectedName": "snapd",
+        "metadata": [
+          {
+            "key": "EXE_PATH",
+            "value": "/usr/lib/snapd/snapd"
+          },
+          {
+            "key": "PG_ID_CALC_INPUT_KEY_LINKAGE",
+            "value": "dynamic"
+          },
+          {
+            "key": "COMMAND_LINE_ARGS",
+            "value": "/usr/lib/snapd/snapd"
+          },
+          {
+            "key": "EXE_NAME",
+            "value": "snapd"
+          }
+        ],
+        "softwareTechnologies": [
+          {
+            "type": "GO"
+          }
+        ]
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "runsOn": [
+          {
+            "id": "HOST-27D021F0FED92055",
+            "type": "HOST"
+          },
+          {
+            "id": "HOST-CCAF57403E126C46",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-76EE462A0CE3A322",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-9D91309ACC28EF31",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "PROCESS_GROUP-ECE82357AF59AF52",
+      "type": "PROCESS_GROUP",
+      "displayName": "Short-lived processes",
+      "properties": {
+        "detectedName": "Short-lived processes"
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "runsOn": [
+          {
+            "id": "HOST-27D021F0FED92055",
+            "type": "HOST"
+          },
+          {
+            "id": "HOST-CCAF57403E126C46",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-B65E01FA15EA1BE2",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-CAD774CA5C98E786",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "PROCESS_GROUP-EF1E81586EB8EDD6",
+      "type": "PROCESS_GROUP",
+      "displayName": "Linux System",
+      "properties": {
+        "detectedName": "Linux System",
+        "softwareTechnologies": [
+          {
+            "type": "LINUX_SYSTEM"
+          }
+        ]
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "runsOn": [
+          {
+            "id": "HOST-27D021F0FED92055",
+            "type": "HOST"
+          },
+          {
+            "id": "HOST-CCAF57403E126C46",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-9FB696F3447E78A7",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-54D06710958DD6D1",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ]
+      }
+    }
+  ]
+}
