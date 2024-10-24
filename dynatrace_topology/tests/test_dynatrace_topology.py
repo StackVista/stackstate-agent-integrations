@@ -24,11 +24,11 @@ def test_collect_processes(requests_mock, dynatrace_check, topology, aggregator)
     """
     Testing Dynatrace check should collect processes
     """
-    set_http_responses(requests_mock, processes=read_file("process_response.json", "samples"))
+    set_http_responses(requests_mock, processes=read_file("process_response_v2.json", "samples"))
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     test_topology = topology.get_snapshot(dynatrace_check.check_id)
-    expected_topology = load_json_from_file("expected_process_topology.json", "samples")
+    expected_topology = load_json_from_file("expected_process_topology_v2.json", "samples")
     assert_topology(expected_topology, test_topology)
 
 
@@ -36,11 +36,11 @@ def test_collect_hosts(requests_mock, dynatrace_check, topology, aggregator):
     """
     Testing Dynatrace check should collect hosts
     """
-    set_http_responses(requests_mock, hosts=read_file("host_response.json", "samples"))
+    set_http_responses(requests_mock, hosts=read_file("host_response_v2.json", "samples"))
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     test_topology = topology.get_snapshot(dynatrace_check.check_id)
-    expected_topology = load_json_from_file("expected_host_topology.json", "samples")
+    expected_topology = load_json_from_file("expected_host_topology_v2.json", "samples")
     assert_topology(expected_topology, test_topology)
 
 
@@ -48,11 +48,11 @@ def test_collect_services(requests_mock, dynatrace_check, topology, aggregator):
     """
     Testing Dynatrace check should collect services and tags coming from Kubernetes
     """
-    set_http_responses(requests_mock, services=read_file("service_response.json", "samples"))
+    set_http_responses(requests_mock, services=read_file("service_response_v2.json", "samples"))
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     test_topology = topology.get_snapshot(dynatrace_check.check_id)
-    expected_topology = load_json_from_file("expected_service_topology.json", "samples")
+    expected_topology = load_json_from_file("expected_service_topology_v2.json", "samples")
     assert_topology(expected_topology, test_topology)
 
 
@@ -60,11 +60,11 @@ def test_collect_applications(dynatrace_check, requests_mock, topology, aggregat
     """
     Testing Dynatrace check should collect applications and also the tags properly coming from dynatrace
     """
-    set_http_responses(requests_mock, applications=read_file("application_response.json", "samples"))
+    set_http_responses(requests_mock, applications=read_file("application_response_v2.json", "samples"))
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     topology_instances = topology.get_snapshot(dynatrace_check.check_id)
-    expected_topology = load_json_from_file("expected_application_topology.json", "samples")
+    expected_topology = load_json_from_file("expected_application_topology_v2.json", "samples")
     assert_topology(expected_topology, topology_instances)
 
 
@@ -72,11 +72,11 @@ def test_collect_process_groups(dynatrace_check, requests_mock, topology, aggreg
     """
     Testing Dynatrace check should collect process-groups
     """
-    set_http_responses(requests_mock, process_groups=read_file("process-group_response.json", "samples"))
+    set_http_responses(requests_mock, process_groups=read_file("process-group_response_v2.json", "samples"))
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     topology_instances = topology.get_snapshot(dynatrace_check.check_id)
-    expected_topology = load_json_from_file("expected_process-group_topology.json", "samples")
+    expected_topology = load_json_from_file("expected_process-group_topology_v2.json", "samples")
     assert_topology(expected_topology, topology_instances)
 
 
