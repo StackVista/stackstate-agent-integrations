@@ -472,8 +472,6 @@ class DynatraceTopologyCheck(AgentCheck):
                     tech_label = ':'.join(filter(None, [technologies.get('type'), technologies.get('edition'),
                                           technologies.get('version')]))
                     labels.append(tech_label)
-            labels_from_tags = self._get_labels_from_dynatrace_tags(dynatrace_component)
-            labels.extend(labels_from_tags)
         else:
             # If dynatrace_component is not an instance of DynatraceComponent, it should be an instance of Entity
             if dynatrace_component.entityId:
@@ -488,6 +486,8 @@ class DynatraceTopologyCheck(AgentCheck):
                         for item in prop:
                             if type(item) is dict:
                                 labels = self._process_labels(labels, item)
+        labels_from_tags = self._get_labels_from_dynatrace_tags(dynatrace_component)
+        labels.extend(labels_from_tags)
         return labels
 
 
@@ -519,8 +519,8 @@ class DynatraceTopologyCheck(AgentCheck):
                 sp_version = dynatrace_component_property_dict.get("version")
             if dynatrace_component_property_dict.get("edition"):
                 sp_edition = dynatrace_component_property_dict.get("edition")
-            tech_label = ':'.join(filter(None, [technologies.get('type'), technologies.get('edition'),
-                                                technologies.get('version')]))
+            tech_label = ':'.join(filter(None, [sp_type, sp_edition,
+                                                sp_version]))
             labels_out.append(tech_label)
         return labels_out
 

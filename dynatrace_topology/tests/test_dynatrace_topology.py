@@ -115,11 +115,11 @@ def test_full_topology(dynatrace_check, requests_mock, topology, aggregator):
     Test e2e to collect full topology for all component types from Dynatrace
     """
     set_http_responses(requests_mock,
-                       hosts=read_file("host_response.json", "samples"),
-                       applications=read_file("application_response.json", "samples"),
-                       services=read_file("service_response.json", "samples"),
-                       processes=read_file("process_response.json", "samples"),
-                       process_groups=read_file("process-group_response.json", "samples"))
+                       hosts=read_file("host_response_v2.json", "samples"),
+                       applications=read_file("application_response_v2.json", "samples"),
+                       services=read_file("service_response_v2.json", "samples"),
+                       processes=read_file("process_response_v2.json", "samples"),
+                       process_groups=read_file("process-group_response_v2.json", "samples"))
 
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
