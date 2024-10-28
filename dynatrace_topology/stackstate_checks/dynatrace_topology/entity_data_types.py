@@ -51,20 +51,8 @@ class ApplicationProperties(Model):
 
 
 class CustomDeviceProperties(Model):
-    arn = StringType()
-    awsNameTag = StringType()
-    boshName = StringType()
-    conditionalName = StringType()
-    customFavicon = StringType()
-    customProperties = DictType(StringType)
-    customizedName = StringType()
-    detectedName = StringType()
     dnsNames = ListType(StringType())
-    dt_security_context = ListType(StringType())
-    gcpZone = StringType()
     ipAddress = ListType(StringType())
-    listenPorts = ListType(StringType())
-    oneAgentCustomHostName = StringType()
 
 
 class HostProperties(Model):

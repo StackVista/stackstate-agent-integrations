@@ -142,7 +142,7 @@ def test_collect_custom_devices(dynatrace_check, requests_mock, topology, aggreg
     """
     Test Dynatrace check should produce custom devices
     """
-    set_http_responses(requests_mock, entities=read_file("custom_device_response.json", "samples"))
+    set_http_responses(requests_mock, custom_devices=read_file("custom_device_response.json", "samples"))
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
 
