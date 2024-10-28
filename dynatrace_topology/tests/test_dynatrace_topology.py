@@ -84,16 +84,16 @@ def test_collect_relations(dynatrace_check, requests_mock, topology, aggregator)
     """
     Test to check if relations are collected properly
     """
-    set_http_responses(requests_mock, hosts=read_file("host_response.json", "samples"))
+    set_http_responses(requests_mock, hosts=read_file("host_response_v2.json", "samples"))
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     topology_instances = topology.get_snapshot(dynatrace_check.check_id)
     assert len(topology_instances['components']) == 2
-    assert len(topology_instances['relations']) == 5
+    assert len(topology_instances['relations']) == 94
     # since all relations are to this host itself so target id is same
     relation = topology_instances['relations'][0]
-    assert relation['target_id'] == 'HOST-6AAE0F78BCF2E0F4'
-    assert relation['type'] in ['isProcessOf', 'runsOn']
+    assert relation['target_id'] == 'HOST-27D021F0FED92055'
+    assert relation['type'] in ['isProcessOf', 'runsOn', 'isNetworkClientOfHost']
 
 
 def test_check_raise_exception(dynatrace_check, topology, aggregator):
