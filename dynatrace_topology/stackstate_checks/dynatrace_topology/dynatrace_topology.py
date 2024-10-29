@@ -15,12 +15,13 @@ from stackstate_checks.dynatrace_topology.entity_data_types import ApplicationEn
 
 VERIFY_HTTPS = True
 TIMEOUT = 10
-RELATIVE_TIME = 'hour'
+RELATIVE_TIME = '1h'
 ENVIRONMENT = 'production'
 DOMAIN = 'dynatrace'
 
 API_V2_DEFAULT_RELATIVE_TIME = '1h'
 API_V2_DEFAULT_FIELDS_STRING = '+fromRelationships,+toRelationships,+tags,+managementZones,+properties'
+API_V2_CUSTOM_DEVICE_FIELDS_STRING = '+fromRelationships,+toRelationships,+tags,+managementZones,+properties.dnsNames,+properties.ipAddress'
 
 TOPOLOGY_API_SPEC = {
     "process": ("api/v2/entities", 'type("PROCESS_GROUP_INSTANCE")', f'{API_V2_DEFAULT_FIELDS_STRING}'),
@@ -92,7 +93,7 @@ class InstanceInfo(Model):
     environment = StringType(default=ENVIRONMENT)
     relative_time = StringType(default=RELATIVE_TIME)
     custom_device_fields = StringType(default=API_V2_DEFAULT_FIELDS_STRING)
-    custom_device_relative_time = StringType(default=API_V2_DEFAULT_FIELDS_STRING)
+    custom_device_relative_time = StringType(default=API_V2_DEFAULT_RELATIVE_TIME)
     custom_device_ip = BooleanType(default=True)
 
 

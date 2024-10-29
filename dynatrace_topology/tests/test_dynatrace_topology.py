@@ -157,9 +157,7 @@ def test_collect_custom_devices_with_pagination(dynatrace_check, requests_mock, 
     """
     set_http_responses(requests_mock)
     url = test_instance.get('url')
-    first_url = url + "/api/v2/entities?entitySelector=type%28%22CUSTOM_DEVICE%22%29&from=now-1h&fields=%2B" \
-                      "fromRelationships%2C%2BtoRelationships%2C%2Btags%2C%2BmanagementZones%2C%2B" \
-                      "properties.dnsNames%2C%2Bproperties.ipAddress"
+    first_url = url + "/api/v2/entities?entitySelector=type%28%22CUSTOM_DEVICE%22%29&from=now-1h&fields=%2BfromRelationships%2C%2BtoRelationships%2C%2Btags%2C%2BmanagementZones%2C%2Bproperties.dnsNames%2C%2Bproperties.ipAddress"
     second_url = url + "/api/v2/entities?nextPageKey=nextpageresultkey"
     requests_mock.get(first_url, status_code=200, text=read_file("custom_device_response_next_page.json", "samples"))
     requests_mock.get(second_url, status_code=200, text=read_file("custom_device_response.json", "samples"))
