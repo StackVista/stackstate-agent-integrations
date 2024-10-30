@@ -11,7 +11,8 @@ from stackstate_checks.base import AgentCheck, StackPackInstance, HealthStream, 
 from stackstate_checks.dynatrace.dynatrace_client import DynatraceClient
 from stackstate_checks.utils.identifiers import Identifiers
 
-from stackstate_checks.dynatrace_topology.entity_data_types import ApplicationEntity, HostEntity, QueueEntity, ServiceEntity, ProcessGroupEntity, ProcessGroupInstanceEntity, CustomDeviceEntity
+from stackstate_checks.dynatrace_topology.entity_data_types import ApplicationEntity, HostEntity, QueueEntity, \
+    ServiceEntity, ProcessGroupEntity, ProcessGroupInstanceEntity, CustomDeviceEntity, Relationship
 
 VERIFY_HTTPS = True
 TIMEOUT = 10
@@ -29,7 +30,7 @@ TOPOLOGY_API_SPEC = {
     "application": ("api/v2/entities", 'type("APPLICATION")', f'{API_V2_DEFAULT_FIELDS_STRING}'),
     "process-group": ("api/v2/entities", 'type("PROCESS_GROUP")', f'{API_V2_DEFAULT_FIELDS_STRING}'),
     "service": ("api/v2/entities", 'type("SERVICE")', f'{API_V2_DEFAULT_FIELDS_STRING}'),
-    "custom-device": ("api/v2/entities", 'type("CUSTOM_DEVICE")', f'{API_V2_DEFAULT_FIELDS_STRING}'),
+    "custom-device": ("api/v2/entities", 'type("CUSTOM_DEVICE")', f'{API_V2_CUSTOM_DEVICE_FIELDS_STRING}'),
     "synthetic-monitor": ("api/v1/synthetic/monitors", None, None),
     "queue": ("api/v2/entities", 'type("QUEUE")', f'{API_V2_DEFAULT_FIELDS_STRING}'),
 }
@@ -334,14 +335,24 @@ class DynatraceTopologyCheck(AgentCheck):
                     target_id = component_id if is_target_component else relation_id
 
                     # special case for api v1 because v2 relation values will be a dictionaries at this point
-                    if component_type != 'synthetic-monitor':
+                    if relation_type == 'monitors':
+                        actual_source = ""
+                        actual_target = ""
+                        if type(target_id) is Relationship:
+                            actual_target = target_id.get('id')
+                        elif type(target_id) is str:
+                            actual_target = target_id
+                        if type(source_id) is Relationship:
+                            actual_source = source_id.get('id')
+                        elif type(source_id) is str:
+                            actual_source = source_id
+                        self.relation(actual_target, actual_source, relation_type, {})
+                    elif component_type != 'synthetic-monitor':
                         entity_id = relation_id.get('id')
                         if is_target_component:
                             self.relation(entity_id, component_id, relation_type, {})
                         else:
                             self.relation(component_id, entity_id, relation_type, {})
-                    elif relation_type == 'monitors':
-                        self.relation(target_id, source_id, relation_type, {})
                     else:
                         self.relation(source_id, target_id, relation_type, {})
 

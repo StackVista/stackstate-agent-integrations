@@ -5,6 +5,7 @@
   "entities": [
     {
       "entityId": "CUSTOM_DEVICE-D3692A3DBB1B6420",
+      "type": "CUSTOM_DEVICE",
       "displayName": "Test Device",
       "properties": {
         "dnsNames": [
