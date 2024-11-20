@@ -1,4 +1,4 @@
-image: artifactory.tooling.stackstate.io/docker-virtual/stackstate/stackstate-agent-integrations-runner:20240919-py311
+image: artifactory.tooling.stackstate.io/docker-virtual/stackstate/stackstate-agent-integrations-runner:20241120-py311
 stages:
   - build
   - test
@@ -6,7 +6,7 @@ stages:
 
 variables:
   CONDA_ENV: "stackstate-agent-integrations-py-3"
-  PYTHON_VERSION: 3.11.8
+  PYTHON_VERSION: 3.11.10
 
 .rules:
   - &pull_requests
