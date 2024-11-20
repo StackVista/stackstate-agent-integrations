@@ -398,7 +398,7 @@ class DynatraceTopologyCheck(AgentCheck):
         host_identifiers = []
 
         properties = component.properties
-
+        first_ip = ""
         if properties:
             if properties.get("azureHostNames"):
                 for azure_host_name in properties.get("azureHostNames"):
@@ -408,6 +408,8 @@ class DynatraceTopologyCheck(AgentCheck):
             if properties.get("ipAddress"):
                 for ip in properties.get("ipAddress"):
                     host_identifiers.append(Identifiers.create_host_identifier(ip))
+                    if first_ip == "":
+                        first_ip = ip
             # if properties.get("detectedName"):
             #     host_identifiers.append(Identifiers.create_host_identifier(properties.get("detectedName")))
             if properties.get("dnsNames"):
@@ -420,7 +422,12 @@ class DynatraceTopologyCheck(AgentCheck):
             # if properties.get("hypervisorType"):
             #     host_identifiers.append(Identifiers.create_host_identifier(properties.get("hypervisorType")))
 
-        host_identifiers.append(Identifiers.create_host_identifier(component.displayName))
+        if first_ip != "":
+            host_id = f"{component.displayName}-{first_ip}"
+            host_identifiers.append(Identifiers.create_host_identifier(host_id))
+        else:
+            host_identifiers.append(Identifiers.create_host_identifier(component.displayName))
+
         host_identifiers = Identifiers.append_lowercase_identifiers(host_identifiers)
         return host_identifiers
 
