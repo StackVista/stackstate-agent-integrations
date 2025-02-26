@@ -4,35 +4,37 @@
 from collections import namedtuple
 from datetime import datetime
 
+from typing import Optional, List, Dict, Any
 from stackstate_checks.base.utils.validations_utils import ForgivingBaseModel, AnyUrlStr
-from typing import Optional, List
 
 from stackstate_checks.base import AgentCheck, StackPackInstance, HealthStream, HealthStreamUrn, Health
-from stackstate_checks.dynatrace.dynatrance_client import DynatraceClient
+from stackstate_checks.dynatrace.dynatrace_client import DynatraceClient
 from stackstate_checks.utils.identifiers import Identifiers
 
 VERIFY_HTTPS = True
 TIMEOUT = 10
-RELATIVE_TIME = 'hour'
+RELATIVE_TIME = '1h'
 ENVIRONMENT = 'production'
 DOMAIN = 'dynatrace'
-CUSTOM_DEVICE_DEFAULT_RELATIVE_TIME = '1h'
-CUSTOM_DEVICE_DEFAULT_FIELDS = '+fromRelationships,+toRelationships,+tags,+managementZones,+properties.dnsNames,' \
-                               '+properties.ipAddress'
 
-TOPOLOGY_API_ENDPOINTS = {
-    "process": "api/v1/entity/infrastructure/processes",
-    "host": "api/v1/entity/infrastructure/hosts",
-    "application": "api/v1/entity/applications",
-    "process-group": "api/v1/entity/infrastructure/process-groups",
-    "service": "api/v1/entity/services",
-    "custom-device": "api/v2/entities",
-    "synthetic-monitor": "api/v1/synthetic/monitors"
+API_V2_DEFAULT_RELATIVE_TIME = '1h'
+API_V2_DEFAULT_FIELDS_STRING = '+fromRelationships,+toRelationships,+tags,+managementZones,+properties'
+API_V2_CUSTOM_DEVICE_FIELDS_STRING = '+fromRelationships,+toRelationships,+tags,+managementZones,+properties.dnsNames,+properties.ipAddress'
+
+TOPOLOGY_API_SPEC = {
+    "process": ("api/v2/entities", 'type("PROCESS_GROUP_INSTANCE")', f'{API_V2_DEFAULT_FIELDS_STRING}'),
+    "host": ("api/v2/entities", 'type("HOST")', f'{API_V2_DEFAULT_FIELDS_STRING}'),
+    "application": ("api/v2/entities", 'type("APPLICATION")', f'{API_V2_DEFAULT_FIELDS_STRING}'),
+    "process-group": ("api/v2/entities", 'type("PROCESS_GROUP")', f'{API_V2_DEFAULT_FIELDS_STRING}'),
+    "service": ("api/v2/entities", 'type("SERVICE")', f'{API_V2_DEFAULT_FIELDS_STRING}'),
+    "custom-device": ("api/v2/entities", 'type("CUSTOM_DEVICE")', f'{API_V2_CUSTOM_DEVICE_FIELDS_STRING}'),
+    "synthetic-monitor": ("api/v1/synthetic/monitors", None, None),
+    "queue": ("api/v2/entities", 'type("QUEUE")', f'{API_V2_DEFAULT_FIELDS_STRING}'),
 }
 
 DynatraceCachedEntity = namedtuple('DynatraceCachedEntity', 'identifier external_id name type')
 
-
+# Existing Converted Models (Assuming these are already converted)
 class MonitoringState(ForgivingBaseModel):
     actualMonitoringState: Optional[str] = None
     expectedMonitoringState: Optional[str] = None
@@ -46,12 +48,12 @@ class DynatraceComponent(ForgivingBaseModel):
     customizedName: Optional[str] = None
     discoveredName: Optional[str] = None
     firstSeenTimestamp: Optional[int] = None
-    tags: List[dict] = []
-    fromRelationships: dict = {}
-    toRelationships: dict = {}
-    managementZones: List[dict] = []
+    tags: List[Dict[str, Any]] = []
+    fromRelationships: Dict[str, List[str]] = {}
+    toRelationships: Dict[str, List[str]] = {}
+    managementZones: List[Dict[str, Any]] = []
     # Host, Process, Process groups, Services
-    softwareTechnologies: List[dict] = []
+    softwareTechnologies: List[Dict[str, Any]] = []
     # Process
     monitoringState: Optional[MonitoringState] = None
     # Host
@@ -62,30 +64,39 @@ class DynatraceComponent(ForgivingBaseModel):
     localHostName: Optional[str] = None
 
 
-class CustomDevice(ForgivingBaseModel):
-    entityId: str
-    displayName: str
-    tags: List[dict] = []
-    fromRelationships: dict = {}
-    toRelationships: dict = {}
-    managementZones: List[dict] = []
-    properties: dict = {}
-
-
 class InstanceInfo(ForgivingBaseModel):
     url: AnyUrlStr
     token: str
     instance_tags: List[str] = []
-    verify: bool = VERIFY_HTTPS
+    verify: bool = True  # Replace VERIFY_HTTPS with True or appropriate default
     cert: Optional[str] = None
     keyfile: Optional[str] = None
-    timeout: int = TIMEOUT
-    domain: str = DOMAIN
-    environment: str = ENVIRONMENT
-    relative_time: str = RELATIVE_TIME
-    custom_device_fields: str = CUSTOM_DEVICE_DEFAULT_FIELDS
-    custom_device_relative_time: str = CUSTOM_DEVICE_DEFAULT_RELATIVE_TIME
+    timeout: int = 30  # Replace TIMEOUT with actual default value
+    domain: str = "default_domain"  # Replace DOMAIN with actual default value
+    environment: str = "production"  # Replace ENVIRONMENT with actual default value
+    relative_time: str = "now"  # Replace RELATIVE_TIME with actual default value
+    custom_device_fields: str = "default_fields"  # Replace API_V2_DEFAULT_FIELDS_STRING
+    custom_device_relative_time: str = "now"  # Replace API_V2_DEFAULT_RELATIVE_TIME
     custom_device_ip: bool = True
+
+# New Converted Models
+
+class Entity(ForgivingBaseModel):
+    entityId: str
+    displayName: str
+    fromRelationships: Dict[str, List[Dict[str, str]]] = {}
+    managementZones: List[Dict[str, str]] = []
+    properties: Dict[str, str] = {}
+    tags: List[Dict[str, str]] = []
+    toRelationships: Dict[str, List[Dict[str, str]]] = {}
+    type: str
+
+
+class ApiV2EntitiesResponse(ForgivingBaseModel):
+    entities: List[Entity] = []
+    nextPageKey: Optional[str] = None
+    pageSize: Optional[int] = None
+    totalCount: Optional[int] = None
 
 
 class DynatraceTopologyCheck(AgentCheck):
