@@ -8,7 +8,7 @@ from stackstate_checks.base.utils.validations_utils import ForgivingBaseModel, A
 
 from stackstate_checks.base import StackPackInstance, HealthStream, HealthStreamUrn, Health, Identifiers
 from stackstate_checks.checks import AgentCheck
-from stackstate_checks.dynatrace.dynatrance_client import DynatraceClient
+from stackstate_checks.dynatrace.dynatrace_client import DynatraceClient
 
 VERIFY_HTTPS = True
 TIMEOUT = 10
