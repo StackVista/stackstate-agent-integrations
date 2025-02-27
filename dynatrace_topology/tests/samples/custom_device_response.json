@@ -4,6 +4,7 @@
   "entities": [
     {
       "entityId": "CUSTOM_DEVICE-D3692A3DBB1B6419",
+      "type": "CUSTOM_DEVICE",
       "displayName": "coffeeMachine",
       "properties": {
         "dnsNames": [

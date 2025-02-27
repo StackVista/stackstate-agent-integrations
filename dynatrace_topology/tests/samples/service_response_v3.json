@@ -1,0 +1,590 @@
+{
+  "totalCount": 8,
+  "pageSize": 50,
+  "entities": [
+    {
+      "entityId": "SERVICE-201FFEDBAAA46C08",
+      "type": "SERVICE",
+      "displayName": "PHP on FPM pool www",
+      "properties": {
+        "serviceType": "WEB_REQUEST_SERVICE",
+        "isExternalService": false,
+        "detectedName": "PHP on FPM pool www",
+        "webServerName": "localhost",
+        "softwareTechnologies": [
+          {
+            "type": "PHP",
+            "edition": "FPM",
+            "version": "7.2.10"
+          },
+          {
+            "type": "PHP"
+          },
+          {
+            "type": "SYMFONY"
+          },
+          {
+            "type": "LARAVEL"
+          },
+          {
+            "type": "PHP_FPM"
+          },
+          {
+            "type": "DOCKER"
+          }
+        ],
+        "webApplicationId": "FPM pool www",
+        "serviceTechnologyTypes": [
+          "PHP"
+        ],
+        "contextRoot": "/",
+        "agentTechnologyType": "PHP"
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "runsOn": [
+          {
+            "id": "PROCESS_GROUP-5B15E632EDAA5373",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "runsOnHost": [
+          {
+            "id": "HOST-27D021F0FED92055",
+            "type": "HOST"
+          }
+        ],
+        "calls": [
+          {
+            "id": "SERVICE-93864D6C224F72FE",
+            "type": "SERVICE"
+          },
+          {
+            "id": "SERVICE-2191129A499676EB",
+            "type": "SERVICE"
+          }
+        ],
+        "runsOnProcessGroupInstance": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-7CC5C7C213737326",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "SERVICE_INSTANCE-3829429BE585EDF0",
+            "type": "SERVICE_INSTANCE"
+          }
+        ],
+        "isGroupOf": [
+          {
+            "id": "SERVICE_METHOD_GROUP-9139E4722765B5CE",
+            "type": "SERVICE_METHOD_GROUP"
+          }
+        ],
+        "calls": [
+          {
+            "id": "SERVICE-54C8B660D2ACD52B",
+            "type": "SERVICE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "SERVICE-2191129A499676EB",
+      "type": "SERVICE",
+      "displayName": "ninja",
+      "properties": {
+        "serviceType": "DATABASE_SERVICE",
+        "isExternalService": true,
+        "detectedName": "ninja",
+        "databaseName": "ninja",
+        "port": 3306,
+        "ipAddress": [
+          "172.19.0.5"
+        ],
+        "databaseVendor": "MySQL",
+        "softwareTechnologies": [
+          {
+            "type": "MYSQL"
+          }
+        ],
+        "databaseHostNames": [
+          "mysql"
+        ],
+        "serviceTechnologyTypes": [
+          "MySQL"
+        ],
+        "agentTechnologyType": "N/A"
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {},
+      "toRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "SERVICE_INSTANCE-EF98F360F031D73A",
+            "type": "SERVICE_INSTANCE"
+          }
+        ],
+        "isGroupOf": [
+          {
+            "id": "SERVICE_METHOD_GROUP-9C8943382E0494EA",
+            "type": "SERVICE_METHOD_GROUP"
+          },
+          {
+            "id": "SERVICE_METHOD_GROUP-24BCFF50CFB308C1",
+            "type": "SERVICE_METHOD_GROUP"
+          }
+        ],
+        "calls": [
+          {
+            "id": "SERVICE-201FFEDBAAA46C08",
+            "type": "SERVICE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "SERVICE-37C6463F105A6D3A",
+      "type": "SERVICE",
+      "displayName": "mastering.soft-serve.co.za:443",
+      "properties": {
+        "serviceType": "WEB_REQUEST_SERVICE",
+        "isExternalService": false,
+        "detectedName": "mastering.soft-serve.co.za:443",
+        "port": 443,
+        "webServerName": "mastering.soft-serve.co.za:443",
+        "softwareTechnologies": [
+          {
+            "type": "NGINX"
+          },
+          {
+            "type": "NGINX",
+            "version": "nginx/1.27.0"
+          },
+          {
+            "type": "DOCKER"
+          }
+        ],
+        "serviceTechnologyTypes": [
+          "Nginx"
+        ],
+        "contextRoot": "/",
+        "agentTechnologyType": "NGINX"
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "runsOn": [
+          {
+            "id": "PROCESS_GROUP-B44AE6BE0CB555DA",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "runsOnHost": [
+          {
+            "id": "HOST-27D021F0FED92055",
+            "type": "HOST"
+          }
+        ],
+        "calls": [
+          {
+            "id": "SERVICE-54C8B660D2ACD52B",
+            "type": "SERVICE"
+          }
+        ],
+        "runsOnProcessGroupInstance": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-009B2FD9FB9A0D9E",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "SERVICE_INSTANCE-6E80C45E09A13D55",
+            "type": "SERVICE_INSTANCE"
+          }
+        ],
+        "isGroupOf": [
+          {
+            "id": "SERVICE_METHOD_GROUP-1D46F31F36954760",
+            "type": "SERVICE_METHOD_GROUP"
+          },
+          {
+            "id": "SERVICE_METHOD_GROUP-CA502A39101CC803",
+            "type": "SERVICE_METHOD_GROUP"
+          }
+        ],
+        "calls": [
+          {
+            "id": "APPLICATION-EA7C4B59F27D43EB",
+            "type": "APPLICATION"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "SERVICE-54C8B660D2ACD52B",
+      "type": "SERVICE",
+      "displayName": "your_ininja_site:443",
+      "properties": {
+        "serviceType": "WEB_REQUEST_SERVICE",
+        "isExternalService": false,
+        "detectedName": "your_ininja_site:443",
+        "port": 443,
+        "webServerName": "your_ininja_site:443",
+        "softwareTechnologies": [
+          {
+            "type": "NGINX"
+          },
+          {
+            "type": "NGINX",
+            "version": "nginx/1.15.2"
+          },
+          {
+            "type": "DOCKER"
+          }
+        ],
+        "serviceTechnologyTypes": [
+          "Nginx"
+        ],
+        "contextRoot": "/",
+        "agentTechnologyType": "NGINX"
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "runsOn": [
+          {
+            "id": "PROCESS_GROUP-D3CFC41B5F609A03",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "runsOnHost": [
+          {
+            "id": "HOST-27D021F0FED92055",
+            "type": "HOST"
+          }
+        ],
+        "calls": [
+          {
+            "id": "SERVICE-201FFEDBAAA46C08",
+            "type": "SERVICE"
+          }
+        ],
+        "runsOnProcessGroupInstance": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-671E0D7CA84FC247",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "SERVICE_INSTANCE-C7C1CA9EF57FC7DA",
+            "type": "SERVICE_INSTANCE"
+          }
+        ],
+        "isGroupOf": [
+          {
+            "id": "SERVICE_METHOD_GROUP-3BA7F5033A1E15D4",
+            "type": "SERVICE_METHOD_GROUP"
+          },
+          {
+            "id": "SERVICE_METHOD_GROUP-367195FEB0D25740",
+            "type": "SERVICE_METHOD_GROUP"
+          }
+        ],
+        "calls": [
+          {
+            "id": "SERVICE-37C6463F105A6D3A",
+            "type": "SERVICE"
+          },
+          {
+            "id": "SERVICE-7B2B45284091ED24",
+            "type": "SERVICE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "SERVICE-7B2B45284091ED24",
+      "type": "SERVICE",
+      "displayName": "softserve.soft-serve.co.za:443",
+      "properties": {
+        "serviceType": "WEB_REQUEST_SERVICE",
+        "isExternalService": false,
+        "detectedName": "softserve.soft-serve.co.za:443",
+        "port": 443,
+        "webServerName": "softserve.soft-serve.co.za:443",
+        "softwareTechnologies": [
+          {
+            "type": "NGINX"
+          },
+          {
+            "type": "NGINX",
+            "version": "nginx/1.27.0"
+          },
+          {
+            "type": "DOCKER"
+          }
+        ],
+        "serviceTechnologyTypes": [
+          "Nginx"
+        ],
+        "contextRoot": "/",
+        "agentTechnologyType": "NGINX"
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "runsOn": [
+          {
+            "id": "PROCESS_GROUP-B44AE6BE0CB555DA",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "runsOnHost": [
+          {
+            "id": "HOST-27D021F0FED92055",
+            "type": "HOST"
+          }
+        ],
+        "calls": [
+          {
+            "id": "SERVICE-54C8B660D2ACD52B",
+            "type": "SERVICE"
+          }
+        ],
+        "runsOnProcessGroupInstance": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-009B2FD9FB9A0D9E",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "SERVICE_INSTANCE-138DC9C5CBDFCD6C",
+            "type": "SERVICE_INSTANCE"
+          }
+        ],
+        "isGroupOf": [
+          {
+            "id": "SERVICE_METHOD_GROUP-ABE10B0BBDFAA9B2",
+            "type": "SERVICE_METHOD_GROUP"
+          },
+          {
+            "id": "SERVICE_METHOD_GROUP-AD1D644F74685E32",
+            "type": "SERVICE_METHOD_GROUP"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "SERVICE-93864D6C224F72FE",
+      "type": "SERVICE",
+      "displayName": "ninja",
+      "properties": {
+        "serviceType": "DATABASE_SERVICE",
+        "isExternalService": true,
+        "detectedName": "ninja",
+        "databaseName": "ninja",
+        "port": 3306,
+        "ipAddress": [
+          "172.18.0.5"
+        ],
+        "databaseVendor": "MySQL",
+        "softwareTechnologies": [
+          {
+            "type": "MYSQL"
+          }
+        ],
+        "databaseHostNames": [
+          "mysql"
+        ],
+        "serviceTechnologyTypes": [
+          "MySQL"
+        ],
+        "agentTechnologyType": "N/A"
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {},
+      "toRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "SERVICE_INSTANCE-9E3A7F20549448D5",
+            "type": "SERVICE_INSTANCE"
+          }
+        ],
+        "isGroupOf": [
+          {
+            "id": "SERVICE_METHOD_GROUP-1B97D6368B5361FA",
+            "type": "SERVICE_METHOD_GROUP"
+          },
+          {
+            "id": "SERVICE_METHOD_GROUP-D368982516208B29",
+            "type": "SERVICE_METHOD_GROUP"
+          }
+        ],
+        "calls": [
+          {
+            "id": "SERVICE-201FFEDBAAA46C08",
+            "type": "SERVICE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "SERVICE-C364E91F84B8F254",
+      "type": "SERVICE",
+      "displayName": ":8080",
+      "properties": {
+        "serviceType": "WEB_REQUEST_SERVICE",
+        "isExternalService": false,
+        "detectedName": ":8080",
+        "port": 8080,
+        "webServerName": ":8080",
+        "softwareTechnologies": [
+          {
+            "type": "GO",
+            "version": "1.19.13"
+          },
+          {
+            "type": "GO"
+          },
+          {
+            "type": "DOCKER"
+          }
+        ],
+        "serviceTechnologyTypes": [
+          "Go"
+        ],
+        "contextRoot": "/",
+        "agentTechnologyType": "GO"
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "runsOn": [
+          {
+            "id": "PROCESS_GROUP-51BD3694E190306C",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "runsOnHost": [
+          {
+            "id": "HOST-CCAF57403E126C46",
+            "type": "HOST"
+          }
+        ],
+        "runsOnProcessGroupInstance": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-C99F3C55B6C220F9",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "SERVICE_INSTANCE-9888F624B1A51C3F",
+            "type": "SERVICE_INSTANCE"
+          }
+        ],
+        "isGroupOf": [
+          {
+            "id": "SERVICE_METHOD_GROUP-E5E37EA5164C540E",
+            "type": "SERVICE_METHOD_GROUP"
+          }
+        ],
+        "calls": [
+          {
+            "id": "SERVICE-D4552C067BE873FC",
+            "type": "SERVICE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "SERVICE-D4552C067BE873FC",
+      "type": "SERVICE",
+      "displayName": "newsapp.soft-serve.co.za:443",
+      "properties": {
+        "serviceType": "WEB_REQUEST_SERVICE",
+        "isExternalService": false,
+        "detectedName": "newsapp.soft-serve.co.za:443",
+        "port": 443,
+        "webServerName": "newsapp.soft-serve.co.za:443",
+        "softwareTechnologies": [
+          {
+            "type": "NGINX"
+          },
+          {
+            "type": "NGINX",
+            "version": "nginx/1.27.0"
+          },
+          {
+            "type": "DOCKER"
+          }
+        ],
+        "serviceTechnologyTypes": [
+          "Nginx"
+        ],
+        "contextRoot": "/",
+        "agentTechnologyType": "NGINX"
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "runsOn": [
+          {
+            "id": "PROCESS_GROUP-B44AE6BE0CB555DA",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "runsOnHost": [
+          {
+            "id": "HOST-CCAF57403E126C46",
+            "type": "HOST"
+          }
+        ],
+        "calls": [
+          {
+            "id": "SERVICE-C364E91F84B8F254",
+            "type": "SERVICE"
+          }
+        ],
+        "runsOnProcessGroupInstance": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-EBE459693B51418D",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "SERVICE_INSTANCE-77E518558B5EA48C",
+            "type": "SERVICE_INSTANCE"
+          }
+        ],
+        "isGroupOf": [
+          {
+            "id": "SERVICE_METHOD_GROUP-8298EA0CA7A79E31",
+            "type": "SERVICE_METHOD_GROUP"
+          }
+        ]
+      }
+    }
+  ]
+}
