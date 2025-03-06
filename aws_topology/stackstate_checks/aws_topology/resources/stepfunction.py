@@ -75,7 +75,7 @@ class StepFunctionCollector(RegisteredResourceCollector):
 
     @set_required_access_v2("states:DescribeStateMachine")
     def collect_state_machine_description(self, arn):
-        return self.client.describe_state_machine(stateMachineArn=arn)
+        return self.client.describe_state_machine(stateMachineArn=arn, includedData='METADATA_ONLY')
 
     def collect_state_machine(self, summary):
         arn = summary.get("stateMachineArn")
@@ -149,8 +149,6 @@ class StepFunctionCollector(RegisteredResourceCollector):
         # generate component
         state_machine = StepFunction(data.state_machine, strict=False)
         output = make_valid_data(data.state_machine)
-        if "definition" in output:
-            output.pop("definition")
         output["tags"] = data.tags
         output.update(
             with_dimensions(
