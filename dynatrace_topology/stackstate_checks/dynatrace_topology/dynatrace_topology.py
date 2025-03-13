@@ -2,6 +2,7 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 from collections import namedtuple
+from dataclasses import field
 from datetime import datetime
 
 from typing import Optional, List, Dict, Any
@@ -10,6 +11,8 @@ from stackstate_checks.base.utils.validations_utils import ForgivingBaseModel, A
 
 from stackstate_checks.base import AgentCheck, StackPackInstance, HealthStream, HealthStreamUrn, Health
 from stackstate_checks.dynatrace.dynatrace_client import DynatraceClient
+from stackstate_checks.dynatrace_topology.entity_data_types import HostEntity, ServiceEntity, QueueEntity, \
+    ProcessGroupEntity, ProcessGroupInstanceEntity, ApplicationEntity, CustomDeviceEntity, Relationship
 from stackstate_checks.utils.identifiers import Identifiers
 
 VERIFY_HTTPS = True
@@ -48,34 +51,34 @@ class DynatraceComponent(ForgivingBaseModel):
     customizedName: Optional[str] = None
     discoveredName: Optional[str] = None
     firstSeenTimestamp: Optional[int] = None
-    tags: List[Dict[str, Any]] = Field(default_factory=list)
-    fromRelationships: Dict[str, List[str]] = Field(default_factory=dict)
-    toRelationships: Dict[str, List[str]] = Field(default_factory=dict)
-    managementZones: List[Dict[str, Any]] = Field(default_factory=list)
+    tags: List[Dict[str, Any]] = field(default_factory=list)
+    fromRelationships: Dict[str, List[str]] = field(default_factory=dict)
+    toRelationships: Dict[str, List[str]] = field(default_factory=dict)
+    managementZones: List[Dict[str, Any]] = field(default_factory=list)
     # Host, Process, Process groups, Services
-    softwareTechnologies: List[Dict[str, Any]] = Field(default_factory=list)
+    softwareTechnologies: List[Dict[str, Any]] = field(default_factory=list)
     # Process
     monitoringState: Optional[MonitoringState] = None
     # Host
     esxiHostName: Optional[str] = None
     oneAgentCustomHostName: Optional[str] = None
-    azureHostNames: List[str] = Field(default_factory=list)
+    azureHostNames: List[str] = field(default_factory=list)
     publicHostName: Optional[str] = None
     localHostName: Optional[str] = None
 
 class InstanceInfo(ForgivingBaseModel):
     url: AnyUrlStr
     token: str
-    instance_tags: List[str] = Field(default_factory=list)
-    verify: bool = Field(default=True)  # Replace VERIFY_HTTPS with appropriate default
+    instance_tags: List[str] = field(default_factory=list)
+    verify: bool = field(default=True)  # Replace VERIFY_HTTPS with appropriate default
     cert: Optional[str] = None
     keyfile: Optional[str] = None
-    timeout: int = Field(default=30)  # Replace TIMEOUT with actual default value
-    domain: str = Field(default="default_domain")  # Replace DOMAIN with actual default
-    environment: str = Field(default="production")  # Replace ENVIRONMENT with actual default
-    relative_time: str = Field(default="now")  # Replace RELATIVE_TIME with actual default
-    custom_device_fields: str = Field(default="default_fields")  # Replace API_V2_DEFAULT_FIELDS_STRING
-    custom_device_relative_time: str = Field(default="now")  # Replace API_V2_DEFAULT_RELATIVE_TIME
+    timeout: int = field(default=30)  # Replace TIMEOUT with actual default value
+    domain: str = field(default="default_domain")  # Replace DOMAIN with actual default
+    environment: str = field(default="production")  # Replace ENVIRONMENT with actual default
+    relative_time: str = field(default="now")  # Replace RELATIVE_TIME with actual default
+    custom_device_fields: str = field(default="default_fields")  # Replace API_V2_DEFAULT_FIELDS_STRING
+    custom_device_relative_time: str = field(default="now")  # Replace API_V2_DEFAULT_RELATIVE_TIME
     custom_device_ip: bool = True
 
 # New Converted Models with Corrected Mutable Defaults
@@ -83,15 +86,15 @@ class InstanceInfo(ForgivingBaseModel):
 class Entity(ForgivingBaseModel):
     entityId: str
     displayName: str
-    fromRelationships: Dict[str, List[Dict[str, str]]] = Field(default_factory=dict)
-    managementZones: List[Dict[str, str]] = Field(default_factory=list)
-    properties: Dict[str, str] = Field(default_factory=dict)
-    tags: List[Dict[str, str]] = Field(default_factory=list)
-    toRelationships: Dict[str, List[Dict[str, str]]] = Field(default_factory=dict)
+    fromRelationships: Dict[str, List[Dict[str, str]]] = field(default_factory=dict)
+    managementZones: List[Dict[str, str]] = field(default_factory=list)
+    properties: Dict[str, str] = field(default_factory=dict)
+    tags: List[Dict[str, str]] = field(default_factory=list)
+    toRelationships: Dict[str, List[Dict[str, str]]] = field(default_factory=dict)
     type: str
 
 class ApiV2EntitiesResponse(ForgivingBaseModel):
-    entities: List[Entity] = Field(default_factory=list)
+    entities: List[Entity] = field(default_factory=list)
     nextPageKey: Optional[str] = None
     pageSize: Optional[int] = None
     totalCount: Optional[int] = None
