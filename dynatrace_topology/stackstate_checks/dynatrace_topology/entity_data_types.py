@@ -174,9 +174,9 @@ class ProcessGroupInstanceProperties(ForgivingBaseModel):
     isDockerized: Optional[bool] = False
     jvmClrVersion: Optional[str] = None
     jvmVendor: Optional[str] = None
-    listenPorts: List[str] = field(default_factory=list)
+    listenPorts: Optional[List[int]] = field(default_factory=list)
     logFileStatus: Optional[LogFileStatus] = None
-    logPathLastUpdate: Optional[LogPathEntry] = None
+    logPathLastUpdate: Optional[List[LogPathEntry]] = None
     logSourceState: Optional[LogSourceState] = None
     metadata: List[Dict[str, Any]] = field(default_factory=list)
     modules: List[str] = field(default_factory=list)
@@ -201,7 +201,7 @@ class ProcessGroupProperties(ForgivingBaseModel):
     detectedName: Optional[str] = None
     dt_security_context: List[str] = field(default_factory=list)
     gcpZone: Optional[str] = None
-    listenPorts: List[str] = field(default_factory=list)
+    listenPorts: Optional[List[int]] = field(default_factory=list)
     metadata: List[Dict[str, Any]] = field(default_factory=list)
     oneAgentCustomHostName: Optional[str] = None
     softwareTechnologies: List[SoftwareTechnology] = field(default_factory=list)

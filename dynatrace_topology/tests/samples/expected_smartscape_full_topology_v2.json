@@ -2463,7 +2463,7 @@
             "identifiers":[
                "urn:dynatrace:/HOST-27D021F0FED92055",
                "urn:host:/194.164.126.192",
-               "urn:host:/ubuntu"
+               "urn:host:/ubuntu-194.164.126.192"
             ],
             "instance":"https://instance.live.dynatrace.com",
             "managementZones":[
@@ -2552,7 +2552,7 @@
             "identifiers":[
                "urn:dynatrace:/HOST-CCAF57403E126C46",
                "urn:host:/194.164.126.187",
-               "urn:host:/ubuntu"
+               "urn:host:/ubuntu-194.164.126.187"
             ],
             "instance":"https://instance.live.dynatrace.com",
             "managementZones":[

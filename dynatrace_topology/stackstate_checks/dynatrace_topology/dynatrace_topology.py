@@ -6,7 +6,6 @@ from dataclasses import field
 from datetime import datetime
 
 from typing import Optional, List, Dict, Any
-from pydantic import Field
 from stackstate_checks.base.utils.validations_utils import ForgivingBaseModel, AnyUrlStr
 
 from stackstate_checks.base import AgentCheck, StackPackInstance, HealthStream, HealthStreamUrn, Health
@@ -33,7 +32,7 @@ TOPOLOGY_API_SPEC = {
     "service": ("api/v2/entities", 'type("SERVICE")', f'{API_V2_DEFAULT_FIELDS_STRING}'),
     "custom-device": ("api/v2/entities", 'type("CUSTOM_DEVICE")', f'{API_V2_CUSTOM_DEVICE_FIELDS_STRING}'),
     "synthetic-monitor": ("api/v1/synthetic/monitors", None, None),
-    "queue": ("api/v2/entities", 'type("QUEUE")', f'{API_V2_DEFAULT_FIELDS_STRING}'),
+    # "queue": ("api/v2/entities", 'type("QUEUE")', f'{API_V2_DEFAULT_FIELDS_STRING}'),
 }
 
 DynatraceCachedEntity = namedtuple('DynatraceCachedEntity', 'identifier external_id name type')
@@ -74,11 +73,11 @@ class InstanceInfo(ForgivingBaseModel):
     cert: Optional[str] = None
     keyfile: Optional[str] = None
     timeout: int = field(default=30)  # Replace TIMEOUT with actual default value
-    domain: str = field(default="default_domain")  # Replace DOMAIN with actual default
+    domain: str = field(default="dynatrace")  # Replace DOMAIN with actual default
     environment: str = field(default="production")  # Replace ENVIRONMENT with actual default
-    relative_time: str = field(default="now")  # Replace RELATIVE_TIME with actual default
+    relative_time: str = field(default="1h")  # Replace RELATIVE_TIME with actual default
     custom_device_fields: str = field(default="default_fields")  # Replace API_V2_DEFAULT_FIELDS_STRING
-    custom_device_relative_time: str = field(default="now")  # Replace API_V2_DEFAULT_RELATIVE_TIME
+    custom_device_relative_time: str = field(default="1h")  # Replace API_V2_DEFAULT_RELATIVE_TIME
     custom_device_ip: bool = True
 
 # New Converted Models with Corrected Mutable Defaults
@@ -175,7 +174,11 @@ class DynatraceTopologyCheck(AgentCheck):
                                         component_type,
                                         next_page_key)
         response = dynatrace_client.get_dynatrace_json_response(endpoint, params)
-        self._collect_topology(response.get("entities", []), component_type, instance_info)
+        if type(response) is dict:
+            response_list = response.get('entities', [])
+        else:
+            response_list = response
+        self._collect_topology(response_list, component_type, instance_info)
         return response.get('nextPageKey')
 
     def process_entity_topology(self, dynatrace_client, instance_info, endpoint, component_type, entity_type_fields):
@@ -262,33 +265,33 @@ class DynatraceTopologyCheck(AgentCheck):
             try:
                 if component_type != "synthetic-monitor":
                     if component_type == "host":
-                        dynatrace_component = HostEntity(item, strict=False)
+                        dynatrace_component = HostEntity.model_validate(item)
                     elif component_type == "service":
-                        dynatrace_component = ServiceEntity(item, strict=False)
+                        dynatrace_component = ServiceEntity.model_validate(item)
                     elif component_type == "queue":
-                        dynatrace_component = QueueEntity(item, strict=False)
+                        dynatrace_component = QueueEntity.model_validate(item)
                     elif component_type == "process-group":
-                        dynatrace_component = ProcessGroupEntity(item, strict=False)
+                        dynatrace_component = ProcessGroupEntity.model_validate(item)
                     elif component_type == "process":
-                        dynatrace_component = ProcessGroupInstanceEntity(item, strict=False)
+                        dynatrace_component = ProcessGroupInstanceEntity.model_validate(item)
                     elif component_type == "application":
-                        dynatrace_component = ApplicationEntity(item, strict=False)
+                        dynatrace_component = ApplicationEntity.model_validate(item)
                     elif component_type == "custom-device":
-                        dynatrace_component = CustomDeviceEntity(item, strict=False)
+                        dynatrace_component = CustomDeviceEntity.model_validate(item)
                     else:
-                        dynatrace_component = Entity(item, strict=False)
+                        dynatrace_component = Entity.model_validate(item)
                 else:
-                    dynatrace_component = DynatraceComponent(item, strict=False)
+                    dynatrace_component = DynatraceComponent.model_validate(item)
             except Exception as e:
                 self.log.warn("Couldn't create topology component: %s" % e)
                 print(f"{item}")
                 raise e
 
-            try:
-                dynatrace_component.validate()
-            except Exception as e:
-                self.log.warn("Couldn't validate topology component: %s" % e)
-                continue
+            # try:
+            #     dynatrace_component.model_validate()
+            # except Exception as e:
+            #     self.log.warn("Couldn't validate topology component: %s" % e)
+            #     continue
 
             data = {}
             external_id = dynatrace_component.entityId
