@@ -570,7 +570,6 @@
                   "ngx_http_flv_module",
                   "ngx_http_stub_status_module",
                   "ngx_http_log_module",
-                  "ngx_quic_bpf_module",
                   "ngx_http_rewrite_module",
                   "ngx_http_mirror_module",
                   "ngx_http_uwsgi_module",

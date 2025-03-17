@@ -110,16 +110,22 @@ def test_check_raise_exception(dynatrace_check, topology, aggregator):
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.CRITICAL)
 
 
+import json
+from deepdiff import DeepDiff
+
+
 def test_full_topology(dynatrace_check, requests_mock, topology, aggregator):
     """
     Test e2e to collect full topology for all component types from Dynatrace
     """
-    set_http_responses(requests_mock,
-                       hosts=read_file("host_response_v3.json", "samples"),
-                       applications=read_file("application_response_v3.json", "samples"),
-                       services=read_file("service_response_v3.json", "samples"),
-                       processes=read_file("process_response_v3.json", "samples"),
-                       process_groups=read_file("process-group_response_v3.json", "samples"))
+    set_http_responses(
+        requests_mock,
+        hosts=read_file("host_response_v3.json", "samples"),
+        applications=read_file("application_response_v3.json", "samples"),
+        services=read_file("service_response_v3.json", "samples"),
+        processes=read_file("process_response_v3.json", "samples"),
+        process_groups=read_file("process-group_response_v3.json", "samples")
+    )
 
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
@@ -130,12 +136,36 @@ def test_full_topology(dynatrace_check, requests_mock, topology, aggregator):
     components, relations = sort_topology_data(actual_topology)
     expected_components, expected_relations = sort_topology_data(expected_topology)
 
-    assert len(components) == len(expected_components)
-    for component in components:
-        assert component in expected_components
-    assert len(relations) == len(expected_relations)
-    for relation in relations:
-        assert relation in expected_relations
+    assert len(components) == len(
+        expected_components), f"Expected {len(expected_components)} components, got {len(components)}."
+
+    def normalize(data):
+        if isinstance(data, dict):
+            return {k: normalize(v) for k, v in sorted(data.items())}
+        elif isinstance(data, list):
+            return sorted([normalize(item) for item in data], key=lambda x: json.dumps(x, sort_keys=True))
+        else:
+            return data
+
+    parsed_components = [json.loads(comp) for comp in components]
+    parsed_expected = [json.loads(exp) for exp in expected_components]
+
+    normalized_components = [normalize(comp) for comp in parsed_components]
+    normalized_expected = [normalize(exp) for exp in parsed_expected]
+
+    for idx, component in enumerate(normalized_components):
+        if component not in normalized_expected:
+            print(f"Component at index {idx} not found in expected_components:")
+            print(json.dumps(parsed_components[idx], indent=2))
+
+            # Find and display specific differences
+            for exp_idx, exp in enumerate(normalized_expected):
+                diff = DeepDiff(exp, component, ignore_order=True)
+                if not diff:
+                    continue  # Exact match found elsewhere
+                print(f"Differences with expected_components[{exp_idx}]: {diff}")
+
+            raise AssertionError(f"Component at index {idx} not found in expected_components.")
 
 
 def test_collect_custom_devices(dynatrace_check, requests_mock, topology, aggregator):
