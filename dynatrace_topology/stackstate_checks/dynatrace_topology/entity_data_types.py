@@ -1,7 +1,6 @@
 from dataclasses import field
 from typing import Optional, List, Dict, Any
-from pydantic import Field  # Assuming ForgivingBaseModel supports Pydantic's Field
-from stackstate_checks.base.utils.validations_utils import ForgivingBaseModel, AnyUrlStr
+from stackstate_checks.base.utils.validations_utils import ForgivingBaseModel
 
 # Define your constants if they are not already defined elsewhere
 VERIFY_HTTPS = True
@@ -12,7 +11,7 @@ RELATIVE_TIME = "now"
 API_V2_DEFAULT_FIELDS_STRING = "default_fields"
 API_V2_DEFAULT_RELATIVE_TIME = "now"
 
-# Extra classes for reused structures
+
 class SoftwareTechnology(ForgivingBaseModel):
     type: Optional[str] = None
     version: Optional[str] = None

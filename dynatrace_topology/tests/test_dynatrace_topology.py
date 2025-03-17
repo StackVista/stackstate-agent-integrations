@@ -4,7 +4,6 @@
 
 from stackstate_checks.base import AgentCheck
 from stackstate_checks.base.utils.common import read_file, load_json_from_file
-from stackstate_checks.dynatrace_topology import DynatraceTopologyCheck
 from .conftest import set_http_responses, sort_topology_data, assert_topology
 
 
@@ -110,14 +109,13 @@ def test_check_raise_exception(dynatrace_check, topology, aggregator):
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.CRITICAL)
 
 
-import json
-from deepdiff import DeepDiff
-
-
 def test_full_topology(dynatrace_check, requests_mock, topology, aggregator):
     """
     Test e2e to collect full topology for all component types from Dynatrace
     """
+    import json
+    from deepdiff import DeepDiff
+
     set_http_responses(
         requests_mock,
         hosts=read_file("host_response_v3.json", "samples"),
@@ -187,14 +185,19 @@ def test_collect_custom_devices_with_pagination(dynatrace_check, requests_mock, 
     """
     set_http_responses(requests_mock)
     url = test_instance.get('url')
-    first_url = url + "/api/v2/entities?entitySelector=type%28%22CUSTOM_DEVICE%22%29&from=now-1h&fields=%2BfromRelationships%2C%2BtoRelationships%2C%2Btags%2C%2BmanagementZones%2C%2Bproperties.dnsNames%2C%2Bproperties.ipAddress"
+    first_url = url + ("/api/v2/entities?entitySelector=type%28%22CUSTOM_DEVICE%22%29&from=now-1h&fields=%2BfromRelati"
+                       "onships%2C%2BtoRelationships%2C%2Btags%2C%2BmanagementZones%2C%2Bproperties.dnsNames%2C%2Bprop"
+                       "erties.ipAddress")
     second_url = url + "/api/v2/entities?nextPageKey=nextpageresultkey"
-    requests_mock.get(first_url, status_code=200, text=read_file("custom_device_response_next_page.json", "samples"))
-    requests_mock.get(second_url, status_code=200, text=read_file("custom_device_response.json", "samples"))
+    requests_mock.get(first_url, status_code=200, text=read_file("custom_device_response_next_page.json",
+                                                                 "samples"))
+    requests_mock.get(second_url, status_code=200, text=read_file("custom_device_response.json",
+                                                                  "samples"))
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     snapshot = topology.get_snapshot(dynatrace_check.check_id)
-    expected_topology = load_json_from_file("expected_custom_device_pagination_full_topology.json", "samples")
+    expected_topology = load_json_from_file("expected_custom_device_pagination_full_topology.json",
+                                            "samples")
     assert_topology(expected_topology, snapshot)
 
 
@@ -219,7 +222,8 @@ def test_applications_to_monitors_relations(requests_mock, dynatrace_check, topo
     """
     Testing Dynatrace check should collect applications and synthetic monitors relationship
     """
-    set_http_responses(requests_mock, applications=read_file("application_response_synthetic_monitor.json", "samples"))
+    set_http_responses(requests_mock, applications=read_file("application_response_synthetic_monitor.json",
+                                                             "samples"))
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     topology_instances = topology.get_snapshot(dynatrace_check.check_id)

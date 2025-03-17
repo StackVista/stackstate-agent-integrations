@@ -22,7 +22,8 @@ DOMAIN = 'dynatrace'
 
 API_V2_DEFAULT_RELATIVE_TIME = '1h'
 API_V2_DEFAULT_FIELDS_STRING = '+fromRelationships,+toRelationships,+tags,+managementZones,+properties'
-API_V2_CUSTOM_DEVICE_FIELDS_STRING = '+fromRelationships,+toRelationships,+tags,+managementZones,+properties.dnsNames,+properties.ipAddress'
+API_V2_CUSTOM_DEVICE_FIELDS_STRING = ('+fromRelationships,+toRelationships,+tags,+managementZones,+properties.dnsNames,'
+                                      '+properties.ipAddress')
 
 TOPOLOGY_API_SPEC = {
     "process": ("api/v2/entities", 'type("PROCESS_GROUP_INSTANCE")', f'{API_V2_DEFAULT_FIELDS_STRING}'),
@@ -42,6 +43,7 @@ class MonitoringState(ForgivingBaseModel):
     actualMonitoringState: Optional[str] = None
     expectedMonitoringState: Optional[str] = None
     restartRequired: bool = False
+
 
 class DynatraceComponent(ForgivingBaseModel):
     # Common fields to Host, Process, Process groups, Services and Applications
@@ -65,6 +67,7 @@ class DynatraceComponent(ForgivingBaseModel):
     publicHostName: Optional[str] = None
     localHostName: Optional[str] = None
 
+
 class InstanceInfo(ForgivingBaseModel):
     url: AnyUrlStr
     token: str
@@ -80,7 +83,6 @@ class InstanceInfo(ForgivingBaseModel):
     custom_device_relative_time: str = field(default="1h")  # Replace API_V2_DEFAULT_RELATIVE_TIME
     custom_device_ip: bool = True
 
-# New Converted Models with Corrected Mutable Defaults
 
 class Entity(ForgivingBaseModel):
     entityId: str
@@ -91,6 +93,7 @@ class Entity(ForgivingBaseModel):
     tags: List[Dict[str, str]] = field(default_factory=list)
     toRelationships: Dict[str, List[Dict[str, str]]] = field(default_factory=dict)
     type: str
+
 
 class ApiV2EntitiesResponse(ForgivingBaseModel):
     entities: List[Entity] = field(default_factory=list)
@@ -513,7 +516,6 @@ class DynatraceTopologyCheck(AgentCheck):
         labels_from_tags = self._get_labels_from_dynatrace_tags(dynatrace_component)
         labels.extend(labels_from_tags)
         return labels
-
 
     @staticmethod
     def _process_labels(labels_in, dynatrace_component_property_dict):
