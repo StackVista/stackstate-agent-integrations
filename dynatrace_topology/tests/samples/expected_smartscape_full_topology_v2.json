@@ -167,14 +167,14 @@
                "processType":"NGINX",
                "softwareTechnologies":[
                   {
-                     "type":"NGINX"
+                     "type":"NGINX",
+                     "version":"nginx/1.27.0"
                   },
                   {
                      "type":"DOCKER"
                   },
                   {
-                     "type":"NGINX",
-                     "version":"nginx/1.27.0"
+                     "type":"NGINX"
                   }
                ]
             },
