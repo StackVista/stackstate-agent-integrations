@@ -1,4 +1,4 @@
-image: registry.tooling.stackstate.io/quay/stackstate/stackstate-agent-integrations-runner:20241120-py311
+image: registry.tooling.stackstate.io/docker/stackstate/stackstate-agent-integrations-runner:20241120-py311
 stages:
   - build
   - test
