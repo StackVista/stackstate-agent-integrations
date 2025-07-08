@@ -174,9 +174,9 @@ class ProcessGroupInstanceProperties(ForgivingBaseModel):
     jvmClrVersion: Optional[str] = None
     jvmVendor: Optional[str] = None
     listenPorts: Optional[List[int]] = field(default_factory=list)
-    logFileStatus: Optional[LogFileStatus] = None
+    logFileStatus: Optional[List[LogFileStatus]] = None
     logPathLastUpdate: Optional[List[LogPathEntry]] = None
-    logSourceState: Optional[LogSourceState] = None
+    logSourceState: Optional[List[LogSourceState]] = None
     metadata: List[Dict[str, Any]] = field(default_factory=list)
     modules: List[str] = field(default_factory=list)
     oneAgentCustomHostName: Optional[str] = None
