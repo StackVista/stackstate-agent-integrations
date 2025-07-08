@@ -1,13 +1,29 @@
-## python artifactory dependency
-echo "Artifactory PyPI URL: $ARTIFACTORY_URL_PYPI"
-mkdir ~/.pip/ && touch ~/.pip/pip.conf
-echo "[global]" > ~/.pip/pip.conf
-echo "extra-index-url = https://$artifactory_user:$artifactory_password@$ARTIFACTORY_URL_PYPI" >> ~/.pip/pip.conf
+#!/usr/bin/env bash
+set -euo pipefail
 
-touch ~/.pypirc
-echo "[distutils]" > ~/.pypirc
-echo "index-servers = local" >> ~/.pypirc
-echo "[local]" >> ~/.pypirc
-echo "repository: https://$ARTIFACTORY_URL_PYPI" >> ~/.pypirc
-echo "username: $artifactory_user" >> ~/.pypirc
-echo "password: $artifactory_password" >> ~/.pypirc
+echo "→ Configuring pip to pull from GitLab Package Registry (simple URL)..."
+echo "GitLab PyPI simple URL: $GITLAB_PACKAGE_REGISTRY_PYPI_SIMPLE_URL"
+
+# setup pip.conf
+mkdir -p ~/.pip
+cat > ~/.pip/pip.conf <<EOF
+[global]
+extra-index-url = https://$GITLAB_PACKAGE_REGISTRY_USER:$GITLAB_PACKAGE_REGISTRY_TOKEN@$GITLAB_PACKAGE_REGISTRY_PYPI_SIMPLE_URL
+EOF
+
+echo "→ Configuring .pypirc for publishing to GitLab Package Registry..."
+echo "GitLab PyPI URL: $GITLAB_PACKAGE_REGISTRY_PYPI_URL"
+
+# setup .pypirc
+cat > ~/.pypirc <<EOF
+[distutils]
+index-servers =
+    gitlab
+
+[gitlab]
+repository = https://$GITLAB_PACKAGE_REGISTRY_USER:$GITLAB_PACKAGE_REGISTRY_TOKEN@$GITLAB_PACKAGE_REGISTRY_PYPI_URL
+username   = $GITLAB_PACKAGE_REGISTRY_USER
+password   = $GITLAB_PACKAGE_REGISTRY_TOKEN
+EOF
+
+echo "✔ GitLab PyPI registry has been configured for both install and publish."
