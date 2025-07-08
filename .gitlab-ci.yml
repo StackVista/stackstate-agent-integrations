@@ -1,4 +1,4 @@
-image: artifactory.tooling.stackstate.io/docker-virtual/stackstate/stackstate-agent-integrations-runner:20241120-py311
+image: registry.tooling.stackstate.io/quay/stackstate/stackstate-agent-integrations-runner:20241120-py311
 stages:
   - build
   - test
@@ -113,7 +113,7 @@ docker:
   script:
     - echo "${docker_password}" | docker login --username=${docker_user} --password-stdin docker.io
     - echo "${quay_password}" | docker login --username=${quay_user} --password-stdin quay.io
-    - echo "${artifactory_password}" | docker login --username=${artifactory_user} --password-stdin artifactory.tooling.stackstate.io
+    - echo "${REGISTRY_PASSWORD}" | docker login --username=${REGISTRY_USER} --password-stdin ${REGISTRY_HOST}
     - apk add make
     - cd .setup-scripts/image
     - make build
