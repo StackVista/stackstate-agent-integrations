@@ -1,0 +1,33 @@
+[
+    {
+        "timestamp": "2025-07-22T12:00:00Z",
+        "level": "INFO",
+        "service": "webapp",
+        "message": "User login successful for user_id=12345"
+    },
+    {
+        "timestamp": "2025-07-22T12:05:00Z",
+        "level": "ERROR",
+        "service": "webapp",
+        "message": "Failed to connect to database: Connection timeout"
+    },
+    {
+        "timestamp": "2025-07-22T12:10:00Z",
+        "level": "WARN",
+        "service": "api",
+        "message": "API request took longer than expected: duration=150ms"
+    },
+    {
+        "timestamp": "2025-07-22T12:15:00Z",
+        "level": "INFO",
+        "service": "webapp",
+        "message": "User logout successful for user_id=12345"
+    },
+    {
+        "timestamp": "2025-07-22T12:20:00Z",
+        "level": "DEBUG",
+        "service": "worker",
+        "message": "Processing job with job_id=67890"
+    }
+]
+
