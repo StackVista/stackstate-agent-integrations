@@ -71,6 +71,15 @@ You can optionally pass a log level parameter, if not passed logging is disabled
 
 The CI image is built from `.setup-scripts/image`.
 
+## Dynatrace feeder
+We also expose a script to feed some fake data into Dynatrace.
+
+To run it:
+
+```sh
+scripts/dynatrace_ingestion/ingest.sh scripts/dynatrace_ingestion/fixtures <instance-name> <api-key>
+```
+
 ### Improve this
 
 If you find anything missing in this README please amend it! :)
