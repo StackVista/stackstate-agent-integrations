@@ -12,7 +12,7 @@ def sts_environment():
     #  The start command places this as a `conf.yaml` in the `conf.d/mycheck/` directory.
     #  If you want to run an environment this object can not be empty.
     return {
-        "url": "https://ton48129.live.dynatrace.com",
+        "url": "https://sin85135.live.dynatrace.com",
         "token": "some_token",
         'collection_interval': 15
     }

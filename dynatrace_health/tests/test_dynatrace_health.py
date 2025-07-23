@@ -11,14 +11,14 @@ from stackstate_checks.base.utils.common import read_file, load_json_from_file
 from stackstate_checks.dynatrace_health import State
 
 
-@freeze_time('2021-02-16 14:26:24')
+@freeze_time('2025-07-22 08:26:24')
 def test_no_events_means_empty_health_snapshot(dynatrace_check, test_instance, requests_mock, health, aggregator):
     """
     Dynatrace health check should not produce any health states when there are no events
     """
     timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
-    requests_mock.get('{}/api/v1/events?from={}'.format(test_instance['url'], timestamp), status_code=200,
-                      text=read_file('no_events_response.json', 'samples'))
+    requests_mock.get('{}/api/v2/events?from={}'.format(test_instance['url'], timestamp), status_code=200,
+                      text=read_file('no_events_response_v2.json', 'samples'))
     assert dynatrace_check.run() == ""
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     health.assert_snapshot(dynatrace_check.check_id, dynatrace_check.health.stream,
@@ -28,14 +28,14 @@ def test_no_events_means_empty_health_snapshot(dynatrace_check, test_instance, r
     assert len(aggregator.events) == 0
 
 
-@freeze_time('2021-02-16 14:26:24')
+@freeze_time('2025-07-22 08:26:24')
 def test_events_process_limit(dynatrace_check, test_instance, aggregator, requests_mock, health):
     """
     Check should respect `events_process_limit` config setting and just produce those number of events
     """
     timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
-    requests_mock.get('{}/api/v1/events?from={}'.format(test_instance['url'], timestamp), status_code=200,
-                      text=read_file('21_events_response.json', 'samples'))
+    requests_mock.get('{}/api/v2/events?from={}'.format(test_instance['url'], timestamp), status_code=200,
+                      text=read_file('21_events_response_v2.json', 'samples'))
     assert dynatrace_check.run() == ""
     # service check returns warning about events_process_limit
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.WARNING,

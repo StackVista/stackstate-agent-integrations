@@ -1,0 +1,31 @@
+
+PROCESS_GROUP_INSTANCE = "PROCESS_GROUP_INSTANCE"
+HOST = "HOST"
+APPLICATION = "APPLICATION"
+PROCESS_GROUP = "PROCESS_GROUP"
+SERVICE = "SERVICE"
+CUSTOM_DEVICE = "CUSTOM_DEVICE"
+SYNTHETIC = "SYNTHETIC"
+QUEUE = "QUEUE"
+
+ENTITY_TYPES = {
+    PROCESS_GROUP_INSTANCE: "process",
+    HOST: "host",
+    APPLICATION: "application",
+    PROCESS_GROUP: "process-group",
+    SERVICE: "service",
+    CUSTOM_DEVICE: "custom-device",
+    SYNTHETIC: "synthetic-monitor",
+    QUEUE: "queue"
+}
+
+API_POST_ENTITY_SELECTORS = {
+    PROCESS_GROUP_INSTANCE: "type(\"PROCESS_GROUP_INSTANCE\")",
+    HOST: "type(\"HOST\")",
+    APPLICATION: "type(\"APPLICATION\")",
+    PROCESS_GROUP: "type(\"PROCESS_GROUP\")",
+    SERVICE: "type(\"SERVICE\")",
+    CUSTOM_DEVICE: "type(\"CUSTOM_DEVICE\")",
+    SYNTHETIC: "type(\"SYNTHETIC_MONITOR\")",
+    QUEUE: "type(\"QUEUE\")"
+}
