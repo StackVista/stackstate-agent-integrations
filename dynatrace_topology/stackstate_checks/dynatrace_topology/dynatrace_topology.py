@@ -33,7 +33,7 @@ TOPOLOGY_API_SPEC = {
     "service": ("api/v2/entities", 'type("SERVICE")', f'{API_V2_DEFAULT_FIELDS_STRING}'),
     "custom-device": ("api/v2/entities", 'type("CUSTOM_DEVICE")', f'{API_V2_CUSTOM_DEVICE_FIELDS_STRING}'),
     "synthetic-monitor": ("api/v1/synthetic/monitors", None, None),
-    # "queue": ("api/v2/entities", 'type("QUEUE")', f'{API_V2_DEFAULT_FIELDS_STRING}'),
+    "queue": ("api/v2/entities", 'type("QUEUE")', f'{API_V2_DEFAULT_FIELDS_STRING}'),
 }
 
 DynatraceCachedEntity = namedtuple('DynatraceCachedEntity', 'identifier external_id name type')
