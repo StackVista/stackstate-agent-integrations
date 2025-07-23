@@ -22,7 +22,7 @@ from ....utils import dir_exists, file_exists, path_join
 )
 @click.argument('check')
 @click.argument('env')
-@click.option('--agent', '-a', default='stackstate/stackstate-agent-2:latest', show_default=True,
+@click.option('--agent', '-a', default='quay.io/stackstate/stackstate-k8s-agent:a2f4d43a', show_default=True,
               help='The docker image of the agent to use')
 @click.option('--dev/--prod', default=True, show_default=True,
               help='Use the latest version of a check (or else what is shipped with the agent package)')
@@ -30,12 +30,14 @@ from ....utils import dir_exists, file_exists, path_join
  Also will install all shared libraries')
 @click.option('--api-key', '-k',
               help='Set the api key. can also be picked up form the STS_API_KEY environment variable')
+@click.option('--sts-hostname', '-s',
+              help='Set the hostname for the agent, can also be picked up from the STS_HOSTNAME environment variable')
 @click.option('--sts-url', '-u',
               help='StackState product url, can also be picked up from STS_STS_URL environment variable')
 @click.option('--cluster-name', '-c',
               help='Kubernetes cluster name, can also be picked up from CLUSTER_NAME environment variable')
 @click.pass_context
-def start(ctx, check, env, agent, dev, base, api_key, sts_url, cluster_name):
+def start(ctx, check, env, agent, dev, base, api_key, sts_hostname, sts_url, cluster_name):
     """Start an environment."""
     if not file_exists(get_tox_file(check)):
         abort('`{}` is not a testable check.'.format(check))
@@ -75,6 +77,8 @@ def start(ctx, check, env, agent, dev, base, api_key, sts_url, cluster_name):
             'Environment/parameter variable STS_STS_URL does not exist;'
             ' default to {}'.format(sts_url)
         )
+
+    sts_hostname = sts_hostname or ctx.obj['sts_hostname']
 
     cluster_name = cluster_name or ctx.obj['cluster_name']
     if cluster_name is not None:
@@ -117,7 +121,7 @@ def start(ctx, check, env, agent, dev, base, api_key, sts_url, cluster_name):
         stop_environment(check, env, metadata=metadata)
         abort()
 
-    environment = interface(check, env, base_package, config, metadata, agent_build, sts_url, api_key, cluster_name)
+    environment = interface(check, env, base_package, config, metadata, agent_build, sts_url, api_key, cluster_name, sts_hostname)
 
     echo_waiting('Updating `{}`... '.format(agent_build), nl=False)
     environment.update_agent()
