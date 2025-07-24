@@ -121,7 +121,18 @@ def start(ctx, check, env, agent, dev, base, api_key, sts_hostname, sts_url, clu
         stop_environment(check, env, metadata=metadata)
         abort()
 
-    environment = interface(check, env, base_package, config, metadata, agent_build, sts_url, api_key, cluster_name, sts_hostname)
+    environment = interface(
+            check,
+            env,
+            base_package,
+            config,
+            metadata,
+            agent_build,
+            sts_url,
+            api_key,
+            cluster_name,
+            sts_hostname
+        )
 
     echo_waiting('Updating `{}`... '.format(agent_build), nl=False)
     environment.update_agent()
