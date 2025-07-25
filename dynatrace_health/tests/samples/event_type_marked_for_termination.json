@@ -1,0 +1,6 @@
+{
+  "type": "MARKED_FOR_TERMINATION",
+  "displayName": "Marked for Termination",
+  "severityLevel": "INFO",
+  "description": "A marked for termination event."
+} 

@@ -1,0 +1,6 @@
+{
+  "type": "RESOURCE_CONTENTION",
+  "displayName": "Resource Contention Event",
+  "severityLevel": "RESOURCE_CONTENTION",
+  "description": "A resource contention event."
+} 

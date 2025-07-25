@@ -1,0 +1,6 @@
+{
+  "type": "CUSTOM_ANNOTATION",
+  "displayName": "Custom Annotation",
+  "severityLevel": "INFO",
+  "description": "A custom annotation event."
+} 

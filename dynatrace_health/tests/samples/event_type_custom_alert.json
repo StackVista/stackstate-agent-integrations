@@ -1,0 +1,6 @@
+{
+  "type": "CUSTOM_ALERT",
+  "displayName": "Custom Alert",
+  "severityLevel": "ERROR",
+  "description": "A custom alert event."
+} 

@@ -89,58 +89,65 @@ class DynatraceHealthCheck(AgentCheck):
                                                                "MONITORING_UNAVAILABLE", "ERROR"]
         severity_levels_that_maps_to_critical_health_state = ["AVAILABILITY", "CUSTOM_ALERT"]
         events, events_limit_reached = self._collect_events(dynatrace_client, instance_info)
-        open_events = [e for e in events if e.get('status') == 'OPEN']
-        closed_events = len(events) - len(open_events)
-        self.log.info("Collected %d events, %d are open and %d are closed.", len(events), len(open_events),
-                      closed_events)
+        open_events_count = len([e for e in events if e.status == 'OPEN'])
+        closed_events_count = len(events) - open_events_count
+        self.log.info("Collected %d events, %d are open and %d are closed.", len(events), open_events_count,
+                      closed_events_count)
         self.health.start_snapshot()
-        for event in open_events:
+        for event in events:
             # Get the event Type definition from the API.
-            endpoint = dynatrace_client.get_endpoint(instance_info.url, f"/api/v2/events/{event.eventType}")
+            endpoint = f"{instance_info.url}/api/v2/eventTypes/{event.eventType}"
             event_type_data = dynatrace_client.get_dynatrace_json_response(endpoint, None)
+            display_name = event_type_data.get('displayName', event.eventType)
             severity_level = event_type_data.get('severityLevel', 'INFO')
             impact = "Unspecified"
+            source = "builtin"
             for ppty in event.properties:
-                if ppty.get('key') == 'dt.event.impact_level':
-                    impact = ppty.get('value', 'Unspecified')
+                if ppty.key == 'impactLevel':
+                    impact = ppty.value
+                if ppty.key == 'source':
+                    source = ppty.value
             if severity_level == 'INFO':
                 # Events with a info severity are send as topology events
-                link_to_entity = self.link_to_dynatrace(str(event.entityId.entityId), instance_info.url)
-                entity_data = dynatrace_client.get_dynatrace_json_response(endpoint, None)
-                self._create_topology_event(event, link_to_entity, severity_level, entity_data, impact)
-            else:
-                # Create health state for other events
+                entity_id = event.entityId.entityId.id
+                entity_endpoint = f"{instance_info.url}/api/v2/entities/{entity_id}"
+                entity_data = dynatrace_client.get_dynatrace_json_response(entity_endpoint, None)
+                link_to_entity = self.link_to_dynatrace(entity_id, instance_info.url)
+                self._create_topology_event(event, link_to_entity, severity_level, entity_data, impact, display_name)
+            elif event.status == 'OPEN':
+                # Create health state for other events that are OPEN
                 if severity_level in severity_levels_that_maps_to_deviating_health_state:
                     health_value = Health.DEVIATING
                 elif severity_level in severity_levels_that_maps_to_critical_health_state:
                     health_value = Health.CRITICAL
                 else:
                     health_value = Health.CLEAR
-                identifier = Identifiers.create_custom_identifier("dynatrace", event.entityId.entityId)
+                identifier = Identifiers.create_custom_identifier("dynatrace", event.entityId.entityId.id)
                 self.health.check_state(
-                    check_state_id=event.entityId.entityId,
+                    check_state_id=event.entityId.entityId.id,
                     name='Dynatrace event',
                     health_value=health_value,
                     topology_element_identifier=identifier,
                     message='Event: {} Severity: {} Impact: {} Open Since: {} Source: {}'.format(
-                        event.eventType, severity_level, impact,
+                        display_name, severity_level, impact,
                         datetime.fromtimestamp(int(event.startTime) / 1000).strftime(
-                            "%b %-d, %Y, %H:%M:%S"), event.source
+                            "%b %-d, %Y, %H:%M:%S"), source
                     )
                 )
         self.health.stop_snapshot()
         if events_limit_reached:
             raise EventLimitReachedException(events_limit_reached)
 
-    def _create_topology_event(self, dynatrace_event, link_to_entity, severity_level, entity_data, impact):
+    def _create_topology_event(self, dynatrace_event, link_to_entity, severity_level, entity_data, impact,
+                               event_display_name):
         """
         Create an standard or custom event based on the Dynatrace Severity level
         """
         event = {
             "timestamp": int(time.time()),
             "source_type_name": "Dynatrace Events",
-            "msg_title": "%s on %s" % (dynatrace_event.eventType, entity_data.get('displayName')),
-            "msg_text": "%s on %s" % (dynatrace_event.eventType, entity_data.get('displayName')),
+            "msg_title": "%s on %s" % (event_display_name, entity_data.get('displayName')),
+            "msg_text": "%s on %s" % (event_display_name, entity_data.get('displayName')),
             "tags": [
                 "entityId:%s" % dynatrace_event.entityId,
                 "severityLevel:%s" % severity_level,
@@ -155,7 +162,7 @@ class DynatraceHealthCheck(AgentCheck):
             ],
             "context": {
                 "source_identifier": "source_identifier_value",
-                "element_identifiers": ["urn:%s" % dynatrace_event.entityId.entityId],
+                "element_identifiers": ["urn:%s" % dynatrace_event.entityId.entityId.id],
                 "source": "dynatrace",
                 "category": "info_event",
                 "data": dynatrace_event.dict(),
@@ -239,10 +246,9 @@ class DynatraceHealthCheck(AgentCheck):
         :return: url to Dynatrace entity page.
         """
         entity_type = entity_id.split("-")[0]
-        try:
-            url = f"{instance_url}/api/v2/events/{entity_id}"
-            return url
-        except KeyError:
+        if entity_type != "UNKNOWN":
+            return f"{instance_url}/api/v2/entities/{entity_id}"
+        else:
             return instance_url
 
     @staticmethod

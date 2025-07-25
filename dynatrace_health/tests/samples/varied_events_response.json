@@ -1,0 +1,271 @@
+{
+  "totalCount": 10,
+  "pageSize": 10,
+  "events": [
+    {
+      "eventId": "availability-event-1_1678886400000",
+      "startTime": 1678886400000,
+      "endTime": -1,
+      "eventType": "AVAILABILITY_EVENT",
+      "title": "Application Unavailable",
+      "entityId": {
+        "entityId": {
+          "id": "APPLICATION-123456",
+          "type": "APPLICATION"
+        },
+        "name": "My Critical App"
+      },
+      "properties": [
+        { "key": "severityLevel", "value": "AVAILABILITY" },
+        { "key": "impactLevel", "value": "APPLICATION" },
+        { "key": "source", "value": "builtin" }
+      ],
+      "status": "OPEN",
+      "correlationId": "corr-avail-1",
+      "entityTags": [],
+      "managementZones": [],
+      "underMaintenance": false,
+      "suppressAlert": false,
+      "suppressProblem": false,
+      "frequentEvent": false
+    },
+    {
+      "eventId": "error-event-1_1678887000000",
+      "startTime": 1678888200000,
+      "endTime": -1,
+      "eventType": "ERROR_EVENT",
+      "title": "High Error Rate",
+      "entityId": {
+        "entityId": {
+          "id": "SERVICE-654321",
+          "type": "SERVICE"
+        },
+        "name": "Login Service"
+      },
+      "properties": [
+        { "key": "severityLevel", "value": "ERROR" },
+        { "key": "impactLevel", "value": "SERVICE" },
+        { "key": "source", "value": "builtin" }
+      ],
+      "status": "OPEN",
+      "correlationId": "corr-error-1",
+      "entityTags": [],
+      "managementZones": [],
+      "underMaintenance": false,
+      "suppressAlert": false,
+      "suppressProblem": false,
+      "frequentEvent": false
+    },
+    {
+      "eventId": "performance-event-1_1678887600000",
+      "startTime": 1678887600000,
+      "endTime": 1678888200000,
+      "eventType": "PERFORMANCE_EVENT",
+      "title": "Slow Response Time",
+      "entityId": {
+        "entityId": {
+          "id": "SERVICE-789012",
+          "type": "SERVICE"
+        },
+        "name": "API Gateway"
+      },
+      "properties": [
+        { "key": "severityLevel", "value": "PERFORMANCE" },
+        { "key": "impactLevel", "value": "SERVICE" },
+        { "key": "source", "value": "builtin" }
+      ],
+      "status": "CLOSED",
+      "correlationId": "corr-perf-1",
+      "entityTags": [],
+      "managementZones": [],
+      "underMaintenance": false,
+      "suppressAlert": false,
+      "suppressProblem": false,
+      "frequentEvent": false
+    },
+    {
+      "eventId": "resource-contention-event-1_1678888200000",
+      "startTime": 1678890000000,
+      "endTime": -1,
+      "eventType": "RESOURCE_CONTENTION",
+      "title": "CPU Saturation",
+      "entityId": {
+        "entityId": {
+          "id": "HOST-ABCDEF",
+          "type": "HOST"
+        },
+        "name": "web-server-1"
+      },
+      "properties": [
+        { "key": "severityLevel", "value": "RESOURCE_CONTENTION" },
+        { "key": "impactLevel", "value": "INFRASTRUCTURE" },
+        { "key": "source", "value": "builtin" }
+      ],
+      "status": "OPEN",
+      "correlationId": "corr-resource-1",
+      "entityTags": [],
+      "managementZones": [],
+      "underMaintenance": false,
+      "suppressAlert": false,
+      "suppressProblem": false,
+      "frequentEvent": false
+    },
+    {
+      "eventId": "custom-deployment-1_1678888800000",
+      "startTime": 1678888800000,
+      "endTime": 1678888860000,
+      "eventType": "CUSTOM_DEPLOYMENT",
+      "title": "Deploy new version 1.2.3",
+      "entityId": {
+        "entityId": {
+          "id": "SERVICE-DEPLOY1",
+          "type": "SERVICE"
+        },
+        "name": "Frontend App"
+      },
+      "properties": [
+        { "key": "source", "value": "Jenkins" },
+        { "key": "deploymentVersion", "value": "1.2.3" }
+      ],
+      "status": "CLOSED",
+      "correlationId": "corr-deploy-1",
+      "entityTags": [],
+      "managementZones": [],
+      "underMaintenance": false,
+      "suppressAlert": false,
+      "suppressProblem": false,
+      "frequentEvent": false
+    },
+    {
+      "eventId": "custom-annotation-1_1678889400000",
+      "startTime": 1678889400000,
+      "endTime": 1678889400000,
+      "eventType": "CUSTOM_ANNOTATION",
+      "title": "DB Schema Migration",
+      "entityId": {
+        "entityId": {
+          "id": "DATABASE-XYZ",
+          "type": "DATABASE"
+        },
+        "name": "User Database"
+      },
+      "properties": [
+        { "key": "source", "value": "DB Migration Tool" },
+        { "key": "description", "value": "Applied migration V2." }
+      ],
+      "status": "CLOSED",
+      "correlationId": "corr-anno-1",
+      "entityTags": [],
+      "managementZones": [],
+      "underMaintenance": false,
+      "suppressAlert": false,
+      "suppressProblem": false,
+      "frequentEvent": false
+    },
+    {
+      "eventId": "custom-info-1_1678890000000",
+      "startTime": 1678890000000,
+      "endTime": 1678890000000,
+      "eventType": "CUSTOM_INFO",
+      "title": "Feature Flag Enabled",
+      "entityId": {
+        "entityId": {
+          "id": "APPLICATION-FEAT",
+          "type": "APPLICATION"
+        },
+        "name": "Mobile App"
+      },
+      "properties": [
+        { "key": "source", "value": "FeatureFlagService" },
+        { "key": "feature", "value": "new-checkout-flow" }
+      ],
+      "status": "CLOSED",
+      "correlationId": "corr-info-1",
+      "entityTags": [],
+      "managementZones": [],
+      "underMaintenance": false,
+      "suppressAlert": false,
+      "suppressProblem": false,
+      "frequentEvent": false
+    },
+    {
+      "eventId": "marked-for-termination-1_1678890600000",
+      "startTime": 1678890600000,
+      "endTime": -1,
+      "eventType": "MARKED_FOR_TERMINATION",
+      "title": "Host scheduled for decommissioning",
+      "entityId": {
+        "entityId": {
+          "id": "HOST-OLD",
+          "type": "HOST"
+        },
+        "name": "old-worker-5"
+      },
+      "properties": [
+        { "key": "source", "value": "Auto-scaling" }
+      ],
+      "status": "OPEN",
+      "correlationId": "corr-term-1",
+      "entityTags": [],
+      "managementZones": [],
+      "underMaintenance": false,
+      "suppressAlert": false,
+      "suppressProblem": false,
+      "frequentEvent": false
+    },
+    {
+      "eventId": "custom-alert-1_1678891200000",
+      "startTime": 1678891200000,
+      "endTime": -1,
+      "eventType": "CUSTOM_ALERT",
+      "title": "External system alert",
+      "entityId": {
+        "entityId": {
+          "id": "CUSTOM_DEVICE-EXT",
+          "type": "CUSTOM_DEVICE"
+        },
+        "name": "Mainframe"
+      },
+      "properties": [
+        { "key": "source", "value": "External Monitoring" },
+        { "key": "severity", "value": "CRITICAL" }
+      ],
+      "status": "OPEN",
+      "correlationId": "corr-alert-1",
+      "entityTags": [],
+      "managementZones": [],
+      "underMaintenance": false,
+      "suppressAlert": false,
+      "suppressProblem": false,
+      "frequentEvent": false
+    },
+    {
+      "eventId": "custom-config-1_1678891800000",
+      "startTime": 1678891800000,
+      "endTime": 1678891800000,
+      "eventType": "CUSTOM_CONFIGURATION",
+      "title": "Updated timeout setting",
+      "entityId": {
+        "entityId": {
+          "id": "SERVICE-CONFIG",
+          "type": "SERVICE"
+        },
+        "name": "Configuration Service"
+      },
+      "properties": [
+        { "key": "source", "value": "Ansible" },
+        { "key": "config-item", "value": "timeout" },
+        { "key": "new-value", "value": "30s" }
+      ],
+      "status": "CLOSED",
+      "correlationId": "corr-config-1",
+      "entityTags": [],
+      "managementZones": [],
+      "underMaintenance": false,
+      "suppressAlert": false,
+      "suppressProblem": false,
+      "frequentEvent": false
+    }
+  ],
+  "warnings": []
+} 

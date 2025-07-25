@@ -1,0 +1,6 @@
+{
+  "type": "ERROR_EVENT",
+  "displayName": "Error Event",
+  "severityLevel": "ERROR",
+  "description": "An error event."
+} 

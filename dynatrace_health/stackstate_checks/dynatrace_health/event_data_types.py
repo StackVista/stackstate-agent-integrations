@@ -40,10 +40,3 @@ class EventsResponse(ForgivingBaseModel):
     pageSize: int
     events: List[DynatraceEvent]
     warnings: List[Any]
-
-
-# Example usage:
-# import json
-# data = json.loads(json_string)
-# resp = EventsResponse.parse_obj(data)
-# print(resp.events[0].title)
