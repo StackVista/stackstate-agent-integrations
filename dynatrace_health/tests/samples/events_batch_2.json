@@ -1,0 +1,7 @@
+{
+  "totalCount": 11,
+  "pageSize": 10,
+  "events": [
+    { "eventId": "event-11", "startTime": 1750655000000, "eventType": "FAILURE_RATE_INCREASED", "status": "OPEN", "entityId": { "entityId": { "id": "SERVICE-BATCH-2", "type": "SERVICE" }, "name": "SERVICE-BATCH-2" }, "properties": [ { "key": "severityLevel", "value": "ERROR" }, { "key": "impactLevel", "value": "SERVICE" }], "title": "", "correlationId": "", "entityTags": [], "managementZones": [], "underMaintenance": false, "suppressAlert": false, "suppressProblem": false, "frequentEvent": false, "endTime": 0 }
+  ]
+} 

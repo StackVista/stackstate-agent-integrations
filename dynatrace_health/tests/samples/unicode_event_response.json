@@ -1,0 +1,17 @@
+{
+  "totalCount": 1,
+  "pageSize": 1,
+  "events": [
+    {
+      "eventId": "unicode-event-1_1678886400000",
+      "startTime": 1678886400000,
+      "endTime": 1678886460000,
+      "eventType": "PROCESS_RESTART",
+      "title": "aws-cni™",
+      "entityId": { "entityId": { "id": "PROCESS_GROUP_INSTANCE-UNICODE", "type": "PROCESS_GROUP_INSTANCE" }, "name": "aws-cni™" },
+      "properties": [ { "key": "impactLevel", "value": "INFRASTRUCTURE" }, { "key": "source", "value": "builtin" } ],
+      "status": "CLOSED",
+      "correlationId": "", "entityTags": [], "managementZones": [], "underMaintenance": false, "suppressAlert": false, "suppressProblem": false, "frequentEvent": false
+    }
+  ]
+} 

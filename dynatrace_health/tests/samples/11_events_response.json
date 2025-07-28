@@ -1,0 +1,127 @@
+{
+  "totalCount": 11,
+  "pageSize": 11,
+  "events": [
+    {
+      "eventId": "-5695353740630077232_1600875000000",
+      "startTime": 1750649000000,
+      "endTime": 1750649060000,
+      "eventType": "PROCESS_RESTART",
+      "title": "SFControl.exe",
+      "entityId": { "entityId": { "id": "PROCESS_GROUP_INSTANCE-824A512BB875431D", "type": "PROCESS_GROUP_INSTANCE" }, "name": "SFControl.exe" },
+      "properties": [ { "key": "impactLevel", "value": "INFRASTRUCTURE" }, { "key": "source", "value": "builtin" } ],
+      "status": "CLOSED",
+      "correlationId": "", "entityTags": [], "managementZones": [], "underMaintenance": false, "suppressAlert": false, "suppressProblem": false, "frequentEvent": false
+    },
+    {
+      "eventId": "1273921780227268668_1600875000000",
+      "startTime": 1750649600000,
+      "endTime": 1750649660000,
+      "eventType": "PROCESS_RESTART",
+      "title": "csc.exe",
+      "entityId": { "entityId": { "id": "PROCESS_GROUP_INSTANCE-874A7BE975CB6D92", "type": "PROCESS_GROUP_INSTANCE" }, "name": "csc.exe" },
+      "properties": [ { "key": "impactLevel", "value": "INFRASTRUCTURE" }, { "key": "source", "value": "builtin" } ],
+      "status": "CLOSED",
+      "correlationId": "", "entityTags": [], "managementZones": [], "underMaintenance": false, "suppressAlert": false, "suppressProblem": false, "frequentEvent": false
+    },
+    {
+      "eventId": "-1920904455712358970_1600874700000",
+      "startTime": 1750650200000,
+      "endTime": -1,
+      "eventType": "FAILURE_RATE_INCREASED",
+      "title": "Ivory Server CTP Inbound PROD",
+      "entityId": { "entityId": { "id": "SERVICE-FAA29C9BB1C02F9B", "type": "SERVICE" }, "name": "Ivory Server CTP Inbound PROD" },
+      "properties": [ { "key": "severityLevel", "value": "ERROR" }, { "key": "impactLevel", "value": "SERVICE" }, { "key": "source", "value": "builtin" } ],
+      "status": "OPEN",
+      "correlationId": "", "entityTags": [], "managementZones": [], "underMaintenance": false, "suppressAlert": false, "suppressProblem": false, "frequentEvent": false
+    },
+    {
+      "eventId": "2476935386724871208_1600875000000",
+      "startTime": 1750650800000,
+      "endTime": 1750650860000,
+      "eventType": "PROCESS_RESTART",
+      "title": "AxaEurex_Batch.jar",
+      "entityId": { "entityId": { "id": "PROCESS_GROUP_INSTANCE-0C52D42FE2AD313D", "type": "PROCESS_GROUP_INSTANCE" }, "name": "AxaEurex_Batch.jar" },
+      "properties": [ { "key": "impactLevel", "value": "INFRASTRUCTURE" }, { "key": "source", "value": "builtin" } ],
+      "status": "CLOSED",
+      "correlationId": "", "entityTags": [], "managementZones": [], "underMaintenance": false, "suppressAlert": false, "suppressProblem": false, "frequentEvent": false
+    },
+    {
+      "eventId": "7577229374478442894_1600875000000",
+      "startTime": 1750651400000,
+      "endTime": 1750651460000,
+      "eventType": "PROCESS_RESTART",
+      "title": "AGCommandLineSupport.exe",
+      "entityId": { "entityId": { "id": "PROCESS_GROUP_INSTANCE-39E189EB637F4477", "type": "PROCESS_GROUP_INSTANCE" }, "name": "AGCommandLineSupport.exe" },
+      "properties": [ { "key": "impactLevel", "value": "INFRASTRUCTURE" }, { "key": "source", "value": "builtin" } ],
+      "status": "CLOSED",
+      "correlationId": "", "entityTags": [], "managementZones": [], "underMaintenance": false, "suppressAlert": false, "suppressProblem": false, "frequentEvent": false
+    },
+    {
+      "eventId": "-1509535909667188740_1600874980000",
+      "startTime": 1750652000000,
+      "endTime": 1750652060000,
+      "eventType": "DEPLOYMENT_CHANGED_CHANGE",
+      "title": "Apache Web Server dispatcher",
+      "entityId": { "entityId": { "id": "PROCESS_GROUP_INSTANCE-FDC86DF925A614C8", "type": "PROCESS_GROUP_INSTANCE" }, "name": "Apache Web Server dispatcher" },
+      "properties": [ { "key": "impactLevel", "value": "INFRASTRUCTURE" }, { "key": "source", "value": "builtin" } ],
+      "status": "CLOSED",
+      "correlationId": "", "entityTags": [], "managementZones": [], "underMaintenance": false, "suppressAlert": false, "suppressProblem": false, "frequentEvent": false
+    },
+    {
+      "eventId": "7799395567706106116_1600874820000",
+      "startTime": 1750652600000,
+      "endTime": -1,
+      "eventType": "FAILURE_RATE_INCREASED",
+      "title": "RequestService",
+      "entityId": { "entityId": { "id": "SERVICE-9B16B9C5B03836C5", "type": "SERVICE" }, "name": "RequestService" },
+      "properties": [ { "key": "severityLevel", "value": "ERROR" }, { "key": "impactLevel", "value": "SERVICE" }, { "key": "source", "value": "builtin" } ],
+      "status": "OPEN",
+      "correlationId": "", "entityTags": [], "managementZones": [], "underMaintenance": false, "suppressAlert": false, "suppressProblem": false, "frequentEvent": false
+    },
+    {
+      "eventId": "-2499485708448302794_1600874960000",
+      "startTime": 1750653200000,
+      "endTime": 1750653260000,
+      "eventType": "PROCESS_RESTART",
+      "title": "ruby",
+      "entityId": { "entityId": { "id": "PROCESS_GROUP_INSTANCE-D85C10AE9B4A47E0", "type": "PROCESS_GROUP_INSTANCE" }, "name": "ruby" },
+      "properties": [ { "key": "impactLevel", "value": "INFRASTRUCTURE" }, { "key": "source", "value": "builtin" } ],
+      "status": "CLOSED",
+      "correlationId": "", "entityTags": [], "managementZones": [], "underMaintenance": false, "suppressAlert": false, "suppressProblem": false, "frequentEvent": false
+    },
+    {
+      "eventId": "4304649148681175773_1600874940000",
+      "startTime": 1750653800000,
+      "endTime": 1750653860000,
+      "eventType": "PROCESS_RESTART",
+      "title": "jstat",
+      "entityId": { "entityId": { "id": "PROCESS_GROUP_INSTANCE-CF8539713BBAB924", "type": "PROCESS_GROUP_INSTANCE" }, "name": "jstat" },
+      "properties": [ { "key": "impactLevel", "value": "INFRASTRUCTURE" }, { "key": "source", "value": "builtin" } ],
+      "status": "CLOSED",
+      "correlationId": "", "entityTags": [], "managementZones": [], "underMaintenance": false, "suppressAlert": false, "suppressProblem": false, "frequentEvent": false
+    },
+    {
+      "eventId": "-6846071412382021333_1600874920000",
+      "startTime": 1750654400000,
+      "endTime": 1750654460000,
+      "eventType": "PROCESS_RESTART",
+      "title": "choco.exe",
+      "entityId": { "entityId": { "id": "PROCESS_GROUP_INSTANCE-F475E01D291BD4E6", "type": "PROCESS_GROUP_INSTANCE" }, "name": "choco.exe" },
+      "properties": [ { "key": "impactLevel", "value": "INFRASTRUCTURE" }, { "key": "source", "value": "builtin" } ],
+      "status": "CLOSED",
+      "correlationId": "", "entityTags": [], "managementZones": [], "underMaintenance": false, "suppressAlert": false, "suppressProblem": false, "frequentEvent": false
+    },
+    {
+      "eventId": "3408190044300453974_1600874910000",
+      "startTime": 1750655000000,
+      "endTime": 1750655060000,
+      "eventType": "PROCESS_RESTART",
+      "title": "ruby",
+      "entityId": { "entityId": { "id": "PROCESS_GROUP_INSTANCE-2AF17995B89ACEFE", "type": "PROCESS_GROUP_INSTANCE" }, "name": "ruby" },
+      "properties": [ { "key": "impactLevel", "value": "INFRASTRUCTURE" }, { "key": "source", "value": "builtin" } ],
+      "status": "CLOSED",
+      "correlationId": "", "entityTags": [], "managementZones": [], "underMaintenance": false, "suppressAlert": false, "suppressProblem": false, "frequentEvent": false
+    }
+  ]
+} 

@@ -46,7 +46,8 @@ def dynatrace_check(test_instance, health, aggregator, telemetry, topology):
 def set_http_responses(requests_mock, availability_event='{}', error_event='{}', performance_event='{}',
                        resource_contention_event='{}', custom_deployment_event='{}', custom_annotation_event='{}',
                        custom_info_event='{}', marked_for_termination_event='{}', custom_alert_event='{}',
-                       custom_configuration_event='{}'):
+                       custom_configuration_event='{}', failure_rate_increased_event='{}', process_restart_event='{}',
+                       deployment_changed_change_event='{}'):
     """
     Mock the HTTP responses for event type details.
     `kwargs` should be a dictionary where keys are event type names (e.g., 'AVAILABILITY_EVENT')
@@ -81,3 +82,13 @@ def set_http_responses(requests_mock, availability_event='{}', error_event='{}',
 
     custom_configuration_event_url_pattern = re.compile(r'/api/v2/eventTypes/CUSTOM_CONFIGURATION$')
     requests_mock.get(custom_configuration_event_url_pattern, text=custom_configuration_event, status_code=200)
+
+    failure_rate_increased_event_url_pattern = re.compile(r'/api/v2/eventTypes/FAILURE_RATE_INCREASED$')
+    requests_mock.get(failure_rate_increased_event_url_pattern, text=failure_rate_increased_event, status_code=200)
+
+    process_restart_event_url_pattern = re.compile(r'/api/v2/eventTypes/PROCESS_RESTART$')
+    requests_mock.get(process_restart_event_url_pattern, text=process_restart_event, status_code=200)
+
+    deployment_changed_change_event_url_pattern = re.compile(r'/api/v2/eventTypes/DEPLOYMENT_CHANGED_CHANGE$')
+    requests_mock.get(deployment_changed_change_event_url_pattern, text=deployment_changed_change_event,
+                      status_code=200)

@@ -17,6 +17,7 @@ EVENTS_BOOSTRAP_DAYS = 5
 EVENTS_PROCESS_LIMIT = 10000
 RELATIVE_TIME = '1h'
 
+
 class State(ForgivingBaseModel):
     last_processed_event_timestamp: int
 
@@ -78,6 +79,10 @@ class DynatraceHealthCheck(AgentCheck):
                                                                "MONITORING_UNAVAILABLE", "ERROR"]
         severity_levels_that_maps_to_critical_health_state = ["AVAILABILITY", "CUSTOM_ALERT"]
         events, events_limit_reached = self._collect_events(dynatrace_client, instance_info)
+
+        if events_limit_reached:
+            events = events[:instance_info.events_process_limit]
+
         open_events_count = len([e for e in events if e.status == 'OPEN'])
         closed_events_count = len(events) - open_events_count
         self.log.info("Collected %d events, %d are open and %d are closed.", len(events), open_events_count,

@@ -133,3 +133,5 @@ splunk_health/splunk.d
 .mypy_cache
 
 setup_venv.sh
+*_old/
+*_old.py

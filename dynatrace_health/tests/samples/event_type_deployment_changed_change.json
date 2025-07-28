@@ -1,0 +1,6 @@
+{
+  "type": "DEPLOYMENT_CHANGED_CHANGE",
+  "displayName": "Deployment Changed",
+  "severityLevel": "INFO",
+  "description": "A deployment has been changed."
+} 

@@ -335,3 +335,129 @@ def test_link_to_dynatrace_unknown_type(dynatrace_check, test_instance):
     instance_url = test_instance.get('url')
     process_url = dynatrace_check.link_to_dynatrace('UNKNOWN', instance_url)
     assert process_url == instance_url
+
+
+@freeze_time('2025-07-22 08:26:24')
+def test_events_process_limit(dynatrace_check, test_instance, requests_mock, health, aggregator):
+    """
+    Check should respect `events_process_limit` config setting and just produce those number of events.
+    """
+    event_type_response_fri = read_file('event_type_failure_rate_increased.json', 'samples')
+    event_type_response_pr = read_file('event_type_process_restart.json', 'samples')
+    event_type_response_dcc = read_file('event_type_deployment_changed_change.json', 'samples')
+    set_http_responses(requests_mock, failure_rate_increased_event=event_type_response_fri,
+                       process_restart_event=event_type_response_pr,
+                       deployment_changed_change_event=event_type_response_dcc)
+
+    events_response = json.loads(read_file('11_events_response.json', 'samples'))
+    for event in events_response['events']:
+        if event['eventType'] in ["PROCESS_RESTART", "DEPLOYMENT_CHANGED_CHANGE"]:
+            entity_id = event['entityId']['entityId']['id']
+            entity_name = event['entityId']['name']
+            requests_mock.get(f"{test_instance['url']}/api/v2/entities/{entity_id}",
+                              text=json.dumps({"displayName": entity_name}))
+
+    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
+    requests_mock.get(f"{test_instance['url']}/api/v2/events?from={timestamp}", status_code=200,
+                      text=json.dumps(events_response))
+
+    dynatrace_check.run()
+    aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.WARNING,
+                                    message='Maximum event limit to process is 10 but received total 11 events')
+
+    # 2 open events were in the first 10 events processed, so we expect 2 health states
+    health.assert_snapshot(
+        dynatrace_check.check_id,
+        dynatrace_check.health.stream,
+        check_states=[
+            {
+                'checkStateId': 'SERVICE-FAA29C9BB1C02F9B',
+                'health': 'DEVIATING',
+                'name': 'Dynatrace event',
+                'message': 'Event: Failure Rate Increased Severity: ERROR Impact: SERVICE Open Since: '
+                           'Jun 23, 2025, 03:43:20 Source: builtin',
+                'topologyElementIdentifier': 'urn:dynatrace:/SERVICE-FAA29C9BB1C02F9B'
+            },
+            {
+                'checkStateId': 'SERVICE-9B16B9C5B03836C5',
+                'health': 'DEVIATING',
+                'name': 'Dynatrace event',
+                'message': 'Event: Failure Rate Increased Severity: ERROR Impact: SERVICE Open Since: '
+                           'Jun 23, 2025, 04:23:20 Source: builtin',
+                'topologyElementIdentifier': 'urn:dynatrace:/SERVICE-9B16B9C5B03836C5'
+            }
+        ],
+        start_snapshot={'expiry_interval_s': 0, 'repeat_interval_s': 15},
+        stop_snapshot={}
+    )
+
+
+@freeze_time('2025-07-22 08:26:24')
+def test_events_process_limit_with_batches(dynatrace_check, test_instance, requests_mock, health, aggregator):
+    """
+    Check should respect `events_process_limit` config setting with batch event retrieval.
+    """
+    event_type_response = read_file('event_type_failure_rate_increased.json', 'samples')
+    event_type_response_pr = read_file('event_type_process_restart.json', 'samples')
+    set_http_responses(requests_mock, failure_rate_increased_event=event_type_response,
+                       process_restart_event=event_type_response_pr)
+
+    events_batch_1 = json.loads(read_file('events_batch_1.json', 'samples'))
+    for event in events_batch_1['events']:
+        if event['eventType'] == "PROCESS_RESTART":
+            entity_id = event['entityId']['entityId']['id']
+            entity_name = event['entityId']['name']
+            requests_mock.get(f"{test_instance['url']}/api/v2/entities/{entity_id}",
+                              text=json.dumps({"displayName": entity_name}))
+
+    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
+    requests_mock.get(f"{test_instance['url']}/api/v2/events?from={timestamp}", status_code=200,
+                      text=json.dumps(events_batch_1))
+    requests_mock.get(f"{test_instance['url']}/api/v2/events?nextPageKey=nextPageKey_mock_123", status_code=200,
+                      text=read_file('events_batch_2.json', 'samples'))
+
+    dynatrace_check.run()
+    aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.WARNING,
+                                    message='Maximum event limit to process is 10 but received total 11 events')
+
+    # Only 1 open event was in the first 10 events processed, so we expect 1 health state
+    health.assert_snapshot(
+        dynatrace_check.check_id,
+        dynatrace_check.health.stream,
+        check_states=[
+            {
+                'checkStateId': 'SERVICE-BATCH-1',
+                'health': 'DEVIATING',
+                'name': 'Dynatrace event',
+                'message': 'Event: Failure Rate Increased Severity: ERROR Impact: SERVICE Open Since: '
+                           'Jun 23, 2025, 03:43:20 Source: builtin',
+                'topologyElementIdentifier': 'urn:dynatrace:/SERVICE-BATCH-1'
+            }
+        ],
+        start_snapshot={'expiry_interval_s': 0, 'repeat_interval_s': 15},
+        stop_snapshot={}
+    )
+
+
+@freeze_time('2025-07-22 08:26:24')
+def test_unicode_in_response_text(dynatrace_check, test_instance, requests_mock, aggregator, telemetry):
+    """
+    Check should correctly handle unicode characters in the API response.
+    """
+    event_type_response = read_file('event_type_process_restart.json', 'samples')
+    set_http_responses(requests_mock, process_restart_event=event_type_response)
+
+    event = json.loads(read_file('unicode_event_response.json', 'samples'))
+    entity_id = event['events'][0]['entityId']['entityId']['id']
+    entity_name = event['events'][0]['entityId']['name']
+    requests_mock.get(f"{test_instance['url']}/api/v2/entities/{entity_id}",
+                      text=json.dumps({"displayName": entity_name}))
+
+    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
+    requests_mock.get(f"{test_instance['url']}/api/v2/events?from={timestamp}", status_code=200,
+                      text=read_file('unicode_event_response.json', 'samples'))
+
+    dynatrace_check.run()
+    aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
+    assert len(telemetry._topology_events) == 1
+    assert telemetry._topology_events[0]['msg_title'] == "Process Restart on aws-cni™"
