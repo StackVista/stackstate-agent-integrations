@@ -17,17 +17,6 @@ EVENTS_BOOSTRAP_DAYS = 5
 EVENTS_PROCESS_LIMIT = 10000
 RELATIVE_TIME = '1h'
 
-TOPOLOGY_API_SPEC = {
-    "SERVICE": ("api/v2/events", 'type("SERVICE")'),
-    "PROCESS-GROUP": ("api/v2/events", 'type("PROCESS_GROUP")'),
-    "PROCESS_GROUP_INSTANCE": ("api/v2/events", 'type("PROCESS_GROUP_INSTANCE")'),
-    "PROCESS": ("api/v2/events", 'type("PROCESS_GROUP_INSTANCE")'),
-    "HOST": ("api/v2/events", 'type("HOST")'),
-    "APPLICATION": ("api/v2/events", 'type("APPLICATION")'),
-    "CUSTOM-DEVICE": ("api/v2/events", 'type("CUSTOM_DEVICE")'),
-}
-
-
 class State(ForgivingBaseModel):
     last_processed_event_timestamp: int
 

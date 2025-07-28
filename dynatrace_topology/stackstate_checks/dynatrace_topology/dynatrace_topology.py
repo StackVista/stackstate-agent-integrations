@@ -290,12 +290,6 @@ class DynatraceTopologyCheck(AgentCheck):
                 print(f"{item}")
                 raise e
 
-            # try:
-            #     dynatrace_component.model_validate()
-            # except Exception as e:
-            #     self.log.warn("Couldn't validate topology component: %s" % e)
-            #     continue
-
             data = {}
             external_id = dynatrace_component.entityId
             identifiers = [Identifiers.create_custom_identifier("dynatrace", external_id)]
