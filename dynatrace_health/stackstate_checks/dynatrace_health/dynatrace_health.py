@@ -19,7 +19,7 @@ RELATIVE_TIME = '1h'
 
 
 class State(ForgivingBaseModel):
-    last_processed_event_timestamp: int
+    last_processed_event_timestamp: Optional[int] = None
 
 
 class InstanceInfo(ForgivingBaseModel):
@@ -49,7 +49,7 @@ class DynatraceHealthCheck(AgentCheck):
 
     def check(self, instance_info):
         try:
-            if not instance_info.state:
+            if not instance_info.state or not instance_info.state.last_processed_event_timestamp:
                 # Create state on the first run
                 empty_state_timestamp = self.generate_bootstrap_timestamp(instance_info.events_boostrap_days)
                 self.log.debug('Creating new empty state with timestamp: %s', empty_state_timestamp)

@@ -44,6 +44,17 @@ The initial set of generated data was then used to build out the test suite. Thi
 -   Refining the test data (e.g., correcting timestamps, event types, and other properties) based on test failures and feedback.
 -   Updating the check's implementation to correctly handle the v2 API data structures.
 
+### 6. Re-instating Legacy Test Cases
+
+After the initial migration, it was determined that several valuable test cases from the original v1 test suite had been lost. These tests covered important edge cases, such as event processing limits, batching, and Unicode character handling.
+
+These tests were re-implemented for the v2 API, which required the generation of new, focused sample files:
+-   `11_events_response.json`: To test the `events_process_limit`.
+-   `events_batch_1.json` & `events_batch_2.json`: To test the handling of paginated API responses.
+-   `unicode_event_response.json`: To test the correct handling of non-ASCII characters.
+
+This process also involved a significant amount of debugging and refinement to address issues with Pydantic validation, incorrect timestamps, and missing mocks, which were only discovered once the tests were run against the newly generated data.
+
 ## Reproducibility
 
 The process used to generate this test data can be reproduced by following these steps:
