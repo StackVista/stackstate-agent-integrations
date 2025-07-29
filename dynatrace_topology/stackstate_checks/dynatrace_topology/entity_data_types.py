@@ -161,7 +161,7 @@ class ProcessGroupInstanceProperties(ForgivingBaseModel):
     bitness: Optional[str] = None
     boshName: Optional[str] = None
     conditionalName: Optional[str] = None
-    customPgMetadata: Dict[str, Any] = field(default_factory=dict)
+    customPgMetadata: Optional[Any] = None
     customizedName: Optional[str] = None
     detectedName: Optional[str] = None
     dt_security_context: List[str] = field(default_factory=list)
