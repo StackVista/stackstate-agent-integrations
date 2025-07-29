@@ -3,7 +3,7 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import pytest
 
-from stackstate_checks.dynatrace.dynatrace_client import DynatraceClient
+from stackstate_checks.dynatrace.dynatrace_client import DynatraceClientFactory
 
 
 @pytest.fixture
@@ -19,9 +19,11 @@ def test_instance():
 
 @pytest.fixture
 def dynatrace_client(test_instance):
-    client = DynatraceClient(token=test_instance.get('token'),
-                             verify=False,
-                             cert=None,
-                             keyfile=None,
-                             timeout=10)
+    factory = DynatraceClientFactory()
+    client = factory.create_client(instance_name=test_instance.get('url'),
+                                   token=test_instance.get('token'),
+                                   verify=False,
+                                   cert=None,
+                                   keyfile=None,
+                                   timeout=10)
     return client

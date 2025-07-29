@@ -3,11 +3,15 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 
 import logging
+import os
 
 from requests import Session, Timeout
 
+from stackstate_checks.dynatrace.custom_auth import MsJWTAuth
 
-class DynatraceClient:
+
+class _DynatraceClient:
+
     def __init__(self, token, verify=False, cert=None, keyfile=None, timeout=None):
         """
         Client for Dynatrace rest API. It's used by dynatrace_topology and dynatrace_health check.
@@ -66,3 +70,26 @@ class DynatraceClient:
         endpoint = sanitized_url + "/" + sanitized_path
         self.log.debug("Dynatrace URL endpoint %s", endpoint)
         return endpoint
+
+    def get_token(self):
+        return self.token
+
+
+class DynatraceClientFactory:
+    def __init__(self):
+        self._instances = {}
+        self._ms_jwt_auth = None
+
+    def create_client(self, instance_name, token, verify=False, cert=None, keyfile=None, timeout=None):
+        is_jwt_auth = os.getenv('JWT_AUTH', 'false').lower() == 'true'
+        if is_jwt_auth:
+            if not self._ms_jwt_auth:
+                self._ms_jwt_auth = MsJWTAuth(verify, cert, keyfile, timeout)
+            token = self._ms_jwt_auth.get_token()
+
+        if instance_name not in self._instances:
+            client = _DynatraceClient(token, verify, cert, keyfile, timeout)
+            self._instances[instance_name] = client
+        # Always update the token in case it has been renewed
+        self._instances[instance_name].token = token
+        return self._instances[instance_name]

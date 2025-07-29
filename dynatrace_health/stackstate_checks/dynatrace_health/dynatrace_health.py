@@ -1,6 +1,7 @@
 # (C) StackState 2021
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
+import os
 import time
 from datetime import datetime, timedelta
 from typing import Optional, List
@@ -8,7 +9,7 @@ from stackstate_checks.base.utils.validations_utils import ForgivingBaseModel, A
 
 from stackstate_checks.base import StackPackInstance, HealthStream, HealthStreamUrn, Health, Identifiers
 from stackstate_checks.checks import AgentCheck
-from stackstate_checks.dynatrace.dynatrace_client import DynatraceClient
+from stackstate_checks.dynatrace.dynatrace_client import DynatraceClientFactory
 from stackstate_checks.dynatrace_health.event_data_types import DynatraceEvent
 
 VERIFY_HTTPS = True
@@ -41,6 +42,10 @@ class DynatraceHealthCheck(AgentCheck):
     SERVICE_CHECK_NAME = "dynatrace-health"
     INSTANCE_SCHEMA = InstanceInfo
 
+    def __init__(self, name, init_config, instances):
+        super(DynatraceHealthCheck, self).__init__(name, init_config, instances)
+        self.dynatrace_client_factory = DynatraceClientFactory()
+
     def get_instance_key(self, instance_info):
         return StackPackInstance(self.INSTANCE_TYPE, str(instance_info.url))
 
@@ -54,11 +59,17 @@ class DynatraceHealthCheck(AgentCheck):
                 empty_state_timestamp = self.generate_bootstrap_timestamp(instance_info.events_boostrap_days)
                 self.log.debug('Creating new empty state with timestamp: %s', empty_state_timestamp)
                 instance_info.state = State(**{'last_processed_event_timestamp': empty_state_timestamp})
-            dynatrace_client = DynatraceClient(instance_info.token,
-                                               instance_info.verify,
-                                               instance_info.cert,
-                                               instance_info.keyfile,
-                                               instance_info.timeout)
+            dynatrace_client = self.dynatrace_client_factory.create_client(
+                instance_name=str(instance_info.url),
+                token=instance_info.token,
+                verify=instance_info.verify,
+                cert=instance_info.cert,
+                keyfile=instance_info.keyfile,
+                timeout=instance_info.timeout
+            )
+            if os.getenv('JWT_AUTH') == "true":
+                instance_info.token = dynatrace_client.get_token()
+
             self._process_events(dynatrace_client, instance_info)
             msg = "Dynatrace health check processed successfully"
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=instance_info.instance_tags, message=msg)

@@ -33,8 +33,20 @@ def test_instance():
 
 
 @pytest.fixture
-def dynatrace_check(test_instance, health, aggregator, telemetry, topology):
-    check = DynatraceHealthCheck('dynatrace', {}, instances=[test_instance])
+def dynatrace_check(test_instance, health, aggregator, telemetry, topology, mocker):
+    check = DynatraceHealthCheck('dynatrace_health', {}, instances=[test_instance])
+    # mock the factory to return a mock client
+    mocker.patch(
+        'stackstate_checks.dynatrace.dynatrace_client.DynatraceClientFactory.create_client',
+        return_value=check.dynatrace_client_factory.create_client(
+            instance_name=str(test_instance.get('url')),
+            token=test_instance.get('token'),
+            verify=test_instance.get('verify', False),
+            cert=test_instance.get('cert'),
+            keyfile=test_instance.get('keyfile'),
+            timeout=test_instance.get('timeout')
+        )
+    )
     yield check
     aggregator.reset()
     telemetry.reset()

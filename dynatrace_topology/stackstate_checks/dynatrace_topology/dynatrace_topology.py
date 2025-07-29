@@ -4,12 +4,13 @@
 from collections import namedtuple
 from dataclasses import field
 from datetime import datetime
+import os
 
 from typing import Optional, List, Dict, Any
 from stackstate_checks.base.utils.validations_utils import ForgivingBaseModel, AnyUrlStr
 
 from stackstate_checks.base import AgentCheck, StackPackInstance, HealthStream, HealthStreamUrn, Health
-from stackstate_checks.dynatrace.dynatrace_client import DynatraceClient
+from stackstate_checks.dynatrace.dynatrace_client import DynatraceClientFactory
 from stackstate_checks.dynatrace_topology.entity_data_types import HostEntity, ServiceEntity, QueueEntity, \
     ProcessGroupEntity, ProcessGroupInstanceEntity, ApplicationEntity, CustomDeviceEntity, Relationship
 from stackstate_checks.utils.identifiers import Identifiers
@@ -107,9 +108,10 @@ class DynatraceTopologyCheck(AgentCheck):
     SERVICE_CHECK_NAME = "dynatrace-topology"
     INSTANCE_SCHEMA = InstanceInfo
 
-    def __init__(self, name, init_config, agentConfig, instances=None):
-        AgentCheck.__init__(self, name, init_config, agentConfig, instances)
-        self.dynatrace_entities_cache = None
+    def __init__(self, name, init_config, instances):
+        super(DynatraceTopologyCheck, self).__init__(name, init_config, instances)
+        self.dynatrace_client_factory = DynatraceClientFactory()
+        self.dynatrace_entities_cache = []
 
     def get_instance_key(self, instance_info):
         return StackPackInstance(self.INSTANCE_TYPE, str(instance_info.url))
@@ -118,18 +120,22 @@ class DynatraceTopologyCheck(AgentCheck):
         return HealthStream(HealthStreamUrn(self.INSTANCE_TYPE, "dynatrace-monitored"))
 
     def check(self, instance_info):
-        self.dynatrace_entities_cache = []
         try:
-            dynatrace_client = DynatraceClient(instance_info.token,
-                                               instance_info.verify,
-                                               instance_info.cert,
-                                               instance_info.keyfile,
-                                               instance_info.timeout)
-            # topology snapshot
+            # Get the API client
+            dynatrace_client = self.dynatrace_client_factory.create_client(
+                instance_name=str(instance_info.url),
+                token=instance_info.token,
+                verify=instance_info.verify,
+                cert=instance_info.cert,
+                keyfile=instance_info.keyfile,
+                timeout=instance_info.timeout
+            )
+            if os.getenv('JWT_AUTH') == "true":
+                instance_info.token = dynatrace_client.get_token()
+
             self._process_topology(dynatrace_client, instance_info)
-            # monitored health snapshot
             self.monitored_health()
-            msg = "Dynatrace check processed successfully"
+            msg = "Dynatrace topology processed successfully"
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=instance_info.instance_tags, message=msg)
         except EventLimitReachedException as e:
             self.log.exception(str(e))
@@ -412,17 +418,11 @@ class DynatraceTopologyCheck(AgentCheck):
                     host_identifiers.append(Identifiers.create_host_identifier(ip))
                     if first_ip == "":
                         first_ip = ip
-            # if properties.get("detectedName"):
-            #     host_identifiers.append(Identifiers.create_host_identifier(properties.get("detectedName")))
             if properties.get("dnsNames"):
                 for dns in properties.get("dnsNames"):
                     host_identifiers.append(Identifiers.create_host_identifier(dns))
             if properties.get("gceHostName"):
                 host_identifiers.append(Identifiers.create_host_identifier(properties.get("gceHostName")))
-            # if properties.get("esxiHostName"):
-            #     host_identifiers.append(Identifiers.create_host_identifier(properties.get("esxiHostName")))
-            # if properties.get("hypervisorType"):
-            #     host_identifiers.append(Identifiers.create_host_identifier(properties.get("hypervisorType")))
 
         if first_ip != "":
             host_id = f"{component.displayName}-{first_ip}"
@@ -471,7 +471,6 @@ class DynatraceTopologyCheck(AgentCheck):
         :return: the list of added labels for a component
         """
         labels = []
-        # Check if dynatrace_component is an instance of DynatraceComponent or Entity
         if isinstance(dynatrace_component, DynatraceComponent):
             if dynatrace_component.get('monitoringState'):
                 if dynatrace_component.monitoringState.actualMonitoringState:
@@ -481,7 +480,6 @@ class DynatraceTopologyCheck(AgentCheck):
                     labels.append(
                         "expectedMonitoringState:%s" % dynatrace_component.monitoringState.expectedMonitoringState)
 
-            # append management zones in labels for each existing component
             for zone in dynatrace_component.managementZones:
                 if zone.get("name"):
                     labels.append("managementZones:%s" % zone.get("name"))
@@ -491,15 +489,12 @@ class DynatraceTopologyCheck(AgentCheck):
             if dynatrace_component.get('softwareTechnologies'):
                 for technologies in dynatrace_component.softwareTechnologies:
                     tech_label = ':'.join(filter(None, [technologies.get('type'), technologies.get('edition'),
-                                          technologies.get('version')]))
+                                                        technologies.get('version')]))
                     labels.append(tech_label)
         else:
-            # If dynatrace_component is not an instance of DynatraceComponent, it should be an instance of Entity
             if dynatrace_component.entityId:
                 labels.append(dynatrace_component.entityId)
             if dynatrace_component.properties:
-                # What would previously have been fields of DynatraceComponent are now properties of Entity
-                # append what would have been from DynatraceComponent, but now from Entity
                 for prop in dynatrace_component.properties:
                     if type(prop) is dict:
                         labels = self._process_labels(labels, prop)
