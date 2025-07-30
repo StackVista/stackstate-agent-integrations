@@ -45,12 +45,23 @@ class MsJWTAuth:
         response = requests.post(microsoft_url, data=microsoft_payload, headers=microsoft_headers, verify=self.verify,
                                  cert=(self.cert, self.keyfile) if self.cert else None, timeout=self.timeout)
         response.raise_for_status()
-        response_json = response.json()
-        self._token = response_json.get("access_token")
+        self._token = response.json().get("access_token")
 
-        # Store the expiry time for later checks
-        decoded_token = jwt.decode(self._token, options={"verify_signature": False})
-        self._token_expiry = datetime.fromtimestamp(decoded_token.get("exp"), timezone.utc)
+        # Decode the token to get the expiry time
+        # Signature and audience verification can be enabled through environment variables,
+        # but are disabled by default.
+        verify_signature_str = os.getenv('JWT_VERIFY_SIGNATURE', 'false')
+        verify_signature = verify_signature_str.lower() == 'true'
+
+        verify_audience_str = os.getenv('JWT_VERIFY_AUDIENCE', 'false')
+        verify_audience = verify_audience_str.lower() == 'true'
+
+        decoded_token = jwt.decode(self._token, options={"verify_signature": verify_signature,
+                                                         "verify_aud": verify_audience})
+        expiry = decoded_token.get("exp")
+
+        if expiry:
+            self._token_expiry = datetime.fromtimestamp(expiry, timezone.utc)
 
     def _is_token_expired(self):
         if not self._token:
