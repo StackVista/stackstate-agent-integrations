@@ -119,7 +119,7 @@ class SplunkClient:
         :return: days: the number of days between token expiration and current date
         """
         current_time = self._current_time()
-        decoded_token = jwt.decode(token, verify=False, algorithm='HS512')
+        decoded_token = jwt.decode(token, options={"verify_signature": False}, algorithms=['HS512'])
         expiry_time = decoded_token.get("exp")
         if expiry_time == 0 and is_initial_token:
             self.log.warning("Initial token provided in the configuration doesn't have an expiration value.")
