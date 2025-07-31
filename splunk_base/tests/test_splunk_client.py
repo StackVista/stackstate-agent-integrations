@@ -1,3 +1,5 @@
+import pytest
+
 # stdlib
 import unittest
 
@@ -11,6 +13,9 @@ import datetime
 # project
 from stackstate_checks.splunk.client import SplunkClient, FinalizeException, TokenExpiredException
 from stackstate_checks.splunk.config import AuthType, SplunkPersistentState
+
+# Mark the entire module as tests of type `unit`
+pytestmark = pytest.mark.unit
 
 
 class FakeInstanceConfig(object):
