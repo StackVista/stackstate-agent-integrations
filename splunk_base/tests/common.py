@@ -33,3 +33,24 @@ default_settings = {
         "dispatch.now": True
     }
 }
+
+
+def empty_instance_jwt(initial_token):
+    return {
+        'url': 'http://%s:%s' % (HOST, PORT),
+        'authentication': {
+            'basic_auth': {
+                'username': USER,
+                'password': PASSWORD
+            },
+            'token_auth': {
+                'audience': 'testing',
+                'token_expiration_days': 90,
+                'renewal_days': 90,
+                'name': 'admin',
+                'initial_token': initial_token
+            },
+        },
+        'saved_searches': [],
+        'collection_interval': 15
+    }
