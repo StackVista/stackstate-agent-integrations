@@ -21,6 +21,16 @@ class MsJWTAuth:
         self.log = logging.getLogger(__name__)
         self._token = None
         self._token_expiry = datetime.min.replace(tzinfo=timezone.utc)
+        
+        # Validate required environment variables
+        if not self.MICROSOFT_TENANT_ID:
+            raise ValueError("TENANT_ID environment variable is required")
+        if not self.MICROSOFT_CLIENT_ID:
+            raise ValueError("CLIENT_ID environment variable is required")
+        if not self.MICROSOFT_CLIENT_SECRET:
+            raise ValueError("CLIENT_SECRET environment variable is required")
+        if not self.MICROSOFT_SCOPE:
+            raise ValueError("SCOPE environment variable is required")
 
     def get_token(self):
         """
@@ -42,10 +52,33 @@ class MsJWTAuth:
         microsoft_headers = {
             "Content-Type": "application/x-www-form-urlencoded",
         }
-        response = requests.post(microsoft_url, data=microsoft_payload, headers=microsoft_headers, verify=self.verify,
-                                 cert=(self.cert, self.keyfile) if self.cert else None, timeout=self.timeout)
-        response.raise_for_status()
-        self._token = response.json().get("access_token")
+        
+        try:
+            self.log.debug(f"Requesting token from: {microsoft_url}")
+            self.log.debug(f"Client ID: {self.MICROSOFT_CLIENT_ID}")
+            self.log.debug(f"Scope: {self.MICROSOFT_SCOPE}")
+            
+            response = requests.post(microsoft_url, data=microsoft_payload, headers=microsoft_headers, verify=self.verify,
+                                     cert=(self.cert, self.keyfile) if self.cert else None, timeout=self.timeout)
+            response.raise_for_status()
+            
+            response_json = response.json()
+            self._token = response_json.get("access_token")
+            
+            if not self._token:
+                raise Exception("No access_token found in response")
+                
+            self.log.info("Successfully generated Microsoft token")
+            
+        except requests.exceptions.RequestException as e:
+            self.log.error(f"Failed to generate Microsoft token: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                self.log.error(f"Response status: {e.response.status_code}")
+                self.log.error(f"Response body: {e.response.text}")
+            raise
+        except Exception as e:
+            self.log.error(f"Unexpected error generating Microsoft token: {e}")
+            raise
 
         # Decode the token to get the expiry time
         # Signature and audience verification can be enabled through environment variables,
@@ -56,12 +89,22 @@ class MsJWTAuth:
         verify_audience_str = os.getenv('JWT_VERIFY_AUDIENCE', 'false')
         verify_audience = verify_audience_str.lower() == 'true'
 
-        decoded_token = jwt.decode(self._token, options={"verify_signature": verify_signature,
-                                                         "verify_aud": verify_audience})
-        expiry = decoded_token.get("exp")
+        try:
+            # Azure AD tokens use RS256 algorithm, not HS512
+            decoded_token = jwt.decode(self._token, options={"verify_signature": verify_signature,
+                                                           "verify_aud": verify_audience},
+                                     algorithms=['RS256'])
+            expiry = decoded_token.get("exp")
 
-        if expiry:
-            self._token_expiry = datetime.fromtimestamp(expiry, timezone.utc)
+            if expiry:
+                self._token_expiry = datetime.fromtimestamp(expiry, timezone.utc)
+            else:
+                self.log.warning("No expiry found in token, setting default expiry")
+                self._token_expiry = datetime.now(timezone.utc)
+        except jwt.InvalidTokenError as e:
+            self.log.error(f"Failed to decode JWT token: {e}")
+            # Fallback: set a default expiry time
+            self._token_expiry = datetime.now(timezone.utc)
 
     def _is_token_expired(self):
         if not self._token:

@@ -101,25 +101,42 @@ class DynatraceHealthCheck(AgentCheck):
         self.health.start_snapshot()
         for event in events:
             # Get the event Type definition from the API.
-            endpoint = f"{instance_info.url}/api/v2/eventTypes/{event.eventType}"
-            event_type_data = dynatrace_client.get_dynatrace_json_response(endpoint, None)
-            display_name = event_type_data.get('displayName', event.eventType)
-            severity_level = event_type_data.get('severityLevel', 'INFO')
+            event_type = event.eventType or 'UNKNOWN'
+            endpoint = f"{instance_info.url}/api/v2/eventTypes/{event_type}"
+            try:
+                event_type_data = dynatrace_client.get_dynatrace_json_response(endpoint, None)
+                display_name = event_type_data.get('displayName', event_type)
+                severity_level = event_type_data.get('severityLevel', 'INFO')
+            except Exception as e:
+                self.log.warning(f"Failed to fetch event type {event_type} for event {event.eventId or 'unknown'}: {e}")
+                # Use default values if event type fetch fails
+                display_name = event_type
+                severity_level = 'INFO'
+
             impact = "Unspecified"
             source = "builtin"
-            for ppty in event.properties:
-                if ppty.key == 'impactLevel':
-                    impact = ppty.value
-                if ppty.key == 'source':
-                    source = ppty.value
+            if event.properties:
+                for ppty in event.properties:
+                    if ppty.key == 'impactLevel':
+                        impact = ppty.value
+                    if ppty.key == 'source':
+                        source = ppty.value
             if severity_level == 'INFO':
                 # Events with a info severity are send as topology events
-                entity_id = event.entityId.entityId.id
+                if not event.entityId or not event.entityId.entityId:
+                    self.log.warning(f"Event {event.eventId or 'unknown'} has no valid entityId, skipping")
+                    continue
+                entity_id = event.entityId.entityId.id or 'unknown'
                 entity_endpoint = f"{instance_info.url}/api/v2/entities/{entity_id}"
-                entity_data = dynatrace_client.get_dynatrace_json_response(entity_endpoint, None)
-                link_to_entity = self.link_to_dynatrace(entity_id, instance_info.url)
-                self._create_topology_event(event, link_to_entity, severity_level, entity_data, impact, display_name)
-            elif event.status == 'OPEN':
+                try:
+                    entity_data = dynatrace_client.get_dynatrace_json_response(entity_endpoint, None)
+                    link_to_entity = self.link_to_dynatrace(entity_id, instance_info.url)
+                    self._create_topology_event(event, link_to_entity, severity_level, entity_data, impact, display_name)
+                except Exception as e:
+                    self.log.warning(f"Entity {entity_id or 'unknown'} referenced in event {event.eventId or 'unknown'} no longer exists: {e}")
+                    # Skip this event since the entity is no longer available
+                    continue
+            elif (event.status or 'UNKNOWN') == 'OPEN':
                 # Create health state for other events that are OPEN
                 if severity_level in severity_levels_that_maps_to_deviating_health_state:
                     health_value = Health.DEVIATING
@@ -127,18 +144,26 @@ class DynatraceHealthCheck(AgentCheck):
                     health_value = Health.CRITICAL
                 else:
                     health_value = Health.CLEAR
-                identifier = Identifiers.create_custom_identifier("dynatrace", event.entityId.entityId.id)
-                self.health.check_state(
-                    check_state_id=event.entityId.entityId.id,
-                    name='Dynatrace event',
-                    health_value=health_value,
-                    topology_element_identifier=identifier,
-                    message='Event: {} Severity: {} Impact: {} Open Since: {} Source: {}'.format(
-                        display_name, severity_level, impact,
-                        datetime.fromtimestamp(int(event.startTime) / 1000).strftime(
-                            "%b %-d, %Y, %H:%M:%S"), source
+                try:
+                    if not event.entityId or not event.entityId.entityId:
+                        self.log.warning(f"Event {event.eventId or 'unknown'} has no valid entityId, skipping health state creation")
+                        continue
+                    identifier = Identifiers.create_custom_identifier("dynatrace", event.entityId.entityId.id or 'unknown')
+                    self.health.check_state(
+                        check_state_id=event.entityId.entityId.id or 'unknown',
+                        name='Dynatrace event',
+                        health_value=health_value,
+                        topology_element_identifier=identifier,
+                        message='Event: {} Severity: {} Impact: {} Open Since: {} Source: {}'.format(
+                            display_name or 'Unknown Event', severity_level or 'INFO', impact or 'Unspecified',
+                            datetime.fromtimestamp(int(event.startTime or 0) / 1000).strftime(
+                                "%b %-d, %Y, %H:%M:%S"), source or 'builtin'
+                        )
                     )
-                )
+                except Exception as e:
+                    self.log.warning(f"Failed to create health state for event {event.eventId or 'unknown'} with entity {event.entityId.entityId.id if event.entityId and event.entityId.entityId and event.entityId.entityId.id else 'unknown'}: {e}")
+                    # Skip this event since we can't create the health state
+                    continue
         self.health.stop_snapshot()
         if events_limit_reached:
             raise EventLimitReachedException(events_limit_reached)
@@ -151,30 +176,30 @@ class DynatraceHealthCheck(AgentCheck):
         event = {
             "timestamp": int(time.time()),
             "source_type_name": "Dynatrace Events",
-            "msg_title": "%s on %s" % (event_display_name, entity_data.get('displayName')),
-            "msg_text": "%s on %s" % (event_display_name, entity_data.get('displayName')),
+            "msg_title": "%s on %s" % (event_display_name or 'Unknown Event', entity_data.get('displayName', 'Unknown Entity')),
+            "msg_text": "%s on %s" % (event_display_name or 'Unknown Event', entity_data.get('displayName', 'Unknown Entity')),
             "tags": [
-                "entityId:%s" % dynatrace_event.entityId,
-                "severityLevel:%s" % severity_level,
-                "eventType:%s" % dynatrace_event.eventType,
-                "impactLevel:%s" % impact,
-                "eventStatus:%s" % dynatrace_event.status,
-                "startTime:%s" % dynatrace_event.startTime,
-                "endTime:%s" % dynatrace_event.endTime,
+                "entityId:%s" % (dynatrace_event.entityId or 'Unknown'),
+                "severityLevel:%s" % (severity_level or 'INFO'),
+                "eventType:%s" % (dynatrace_event.eventType or 'UNKNOWN'),
+                "impactLevel:%s" % (impact or 'Unspecified'),
+                "eventStatus:%s" % (dynatrace_event.status or 'UNKNOWN'),
+                "startTime:%s" % (dynatrace_event.startTime or 0),
+                "endTime:%s" % (dynatrace_event.endTime or 0),
                 # "source:%s" % dynatrace_event.source,
-                "openSince:%s" % datetime.fromtimestamp(dynatrace_event.startTime / 1000).strftime(
+                "openSince:%s" % datetime.fromtimestamp((dynatrace_event.startTime or 0) / 1000).strftime(
                     "%b %-d, %Y, %H:%M:%S"),
             ],
             "context": {
                 "source_identifier": "source_identifier_value",
-                "element_identifiers": ["urn:%s" % dynatrace_event.entityId.entityId.id],
+                "element_identifiers": ["urn:%s" % (dynatrace_event.entityId.entityId.id if dynatrace_event.entityId and dynatrace_event.entityId.entityId and dynatrace_event.entityId.entityId.id else 'unknown')],
                 "source": "dynatrace",
                 "category": "info_event",
-                "data": dynatrace_event.dict(),
+                "data": dynatrace_event.dict() if hasattr(dynatrace_event, 'dict') else {},
                 "source_links": [
                     {
                         "title": "my_event_external_link",
-                        "url": link_to_entity
+                        "url": link_to_entity or "#"
                     }
                 ]
             }
@@ -198,10 +223,17 @@ class DynatraceHealthCheck(AgentCheck):
                 else:
                     events = events_response
                 for event in events:
-                    dynatrace_event = DynatraceEvent(**event)
-                    new_events.append(dynatrace_event)
-                    events_processed += 1
-                    self._check_event_limit_exceeded_condition(instance_info.events_process_limit, events_processed)
+                    try:
+                        self.log.debug(f"Processing event: {event}")
+                        dynatrace_event = DynatraceEvent(**event)
+                        new_events.append(dynatrace_event)
+                        events_processed += 1
+                        self._check_event_limit_exceeded_condition(instance_info.events_process_limit, events_processed)
+                    except Exception as e:
+                        self.log.error(f"Failed to process event {event.get('eventId', 'unknown')}: {e}")
+                        self.log.error(f"Event data: {event}")
+                        # Skip this event and continue with the next one
+                        continue
                 if events_response.get("nextPageKey"):
                     events_response = self._get_events(dynatrace_client, instance_info.url,
                                                        next_page_key=events_response.get("nextPageKey"))
