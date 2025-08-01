@@ -1,13 +1,11 @@
 import os
 from unittest.mock import patch
-import base64
-import json
-import time
 
 import pytest
 from requests_mock import Mocker
 
 from stackstate_checks.dynatrace.dynatrace_client import DynatraceClientFactory, _DynatraceClient
+from .conftest import set_jwt_mock, get_fake_jwt
 
 
 @pytest.fixture
@@ -22,18 +20,19 @@ def test_jwt_auth_enabled(client_args, requests_mock: Mocker):
     """
     Test that the DynatraceClientFactory correctly uses MsJWTAuth when JWT_AUTH is enabled.
     """
-    # Create a valid-looking fake JWT for the mock response
-    exp_time = int(time.time()) + 3600
-    header = {"alg": "RS256", "typ": "JWT"}
-    payload = {"exp": exp_time}
-    encoded_header = base64.urlsafe_b64encode(json.dumps(header).encode()).rstrip(b'=').decode()
-    encoded_payload = base64.urlsafe_b64encode(json.dumps(payload).encode()).rstrip(b'=').decode()
-    fake_signature = base64.urlsafe_b64encode(b'fakesignature').rstrip(b'=').decode()
-    fake_jwt = f"{encoded_header}.{encoded_payload}.{fake_signature}"
+    set_jwt_mock(requests_mock)
 
-    # Mock the Microsoft login response
-    requests_mock.post("https://login.microsoftonline.com/None/oauth2/v2.0/token",
-                       json={"access_token": fake_jwt, "expires_in": 3600})
+    # Set environment variables directly
+    os.environ["JWT_AUTH"] = "true"
+    os.environ["CLIENT_ID"] = "test"
+    os.environ["CLIENT_SECRET"] = "test"
+    os.environ["SCOPE"] = "test"
+    os.environ["TENANT_ID"] = "test-tenant-id"
+    fjwt = get_fake_jwt()
+    # Mock the Microsoft login response with a specific pattern
+    requests_mock.post("https://login.microsoftonline.com/test-tenant-id/oauth2/v2.0/token",
+                       json={"access_token": fjwt, "expires_in": 3600},
+                       status_code=200)
 
     with patch.dict(os.environ, {"JWT_AUTH": "true", "CLIENT_ID": "test", "CLIENT_SECRET": "test", "SCOPE": "test"}):
         factory = DynatraceClientFactory()
@@ -41,7 +40,12 @@ def test_jwt_auth_enabled(client_args, requests_mock: Mocker):
 
         assert client is not None
         assert isinstance(client, _DynatraceClient)
-        assert client.token == fake_jwt
+        assert client.token == fjwt
+
+    # Clean up environment variables
+    for key in ["JWT_AUTH", "CLIENT_ID", "CLIENT_SECRET", "SCOPE", "TENANT_ID"]:
+        if key in os.environ:
+            del os.environ[key]
 
 
 def test_jwt_auth_disabled(client_args):
