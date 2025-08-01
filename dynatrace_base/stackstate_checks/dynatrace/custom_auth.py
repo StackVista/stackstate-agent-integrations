@@ -6,12 +6,6 @@ import requests
 
 
 class MsJWTAuth:
-    # --- MS vars prep ---
-    MICROSOFT_TENANT_ID = os.getenv("TENANT_ID")
-    MICROSOFT_CLIENT_ID = os.getenv("CLIENT_ID")
-    MICROSOFT_CLIENT_SECRET = os.getenv("CLIENT_SECRET")
-    MICROSOFT_RENEWAL_MINUTES = int(os.getenv("RENEWAL_MINUTES", 10))
-    MICROSOFT_SCOPE = os.getenv("SCOPE")
 
     def __init__(self, verify=False, cert=None, keyfile=None, timeout=None):
         self.verify = verify
@@ -21,7 +15,14 @@ class MsJWTAuth:
         self.log = logging.getLogger(__name__)
         self._token = None
         self._token_expiry = datetime.min.replace(tzinfo=timezone.utc)
-        
+
+        # --- MS vars prep ---
+        self.MICROSOFT_TENANT_ID = os.getenv("TENANT_ID")
+        self.MICROSOFT_CLIENT_ID = os.getenv("CLIENT_ID")
+        self.MICROSOFT_CLIENT_SECRET = os.getenv("CLIENT_SECRET")
+        self.MICROSOFT_RENEWAL_MINUTES = int(os.getenv("RENEWAL_MINUTES", 10))
+        self.MICROSOFT_SCOPE = os.getenv("SCOPE")
+
         # Validate required environment variables
         if not self.MICROSOFT_TENANT_ID:
             raise ValueError("TENANT_ID environment variable is required")
@@ -52,24 +53,25 @@ class MsJWTAuth:
         microsoft_headers = {
             "Content-Type": "application/x-www-form-urlencoded",
         }
-        
+
         try:
             self.log.debug(f"Requesting token from: {microsoft_url}")
             self.log.debug(f"Client ID: {self.MICROSOFT_CLIENT_ID}")
             self.log.debug(f"Scope: {self.MICROSOFT_SCOPE}")
-            
-            response = requests.post(microsoft_url, data=microsoft_payload, headers=microsoft_headers, verify=self.verify,
+
+            response = requests.post(microsoft_url, data=microsoft_payload, headers=microsoft_headers,
+                                     verify=self.verify,
                                      cert=(self.cert, self.keyfile) if self.cert else None, timeout=self.timeout)
             response.raise_for_status()
-            
+
             response_json = response.json()
             self._token = response_json.get("access_token")
-            
+
             if not self._token:
                 raise Exception("No access_token found in response")
-                
+
             self.log.info("Successfully generated Microsoft token")
-            
+
         except requests.exceptions.RequestException as e:
             self.log.error(f"Failed to generate Microsoft token: {e}")
             if hasattr(e, 'response') and e.response is not None:
@@ -92,8 +94,8 @@ class MsJWTAuth:
         try:
             # Azure AD tokens use RS256 algorithm, not HS512
             decoded_token = jwt.decode(self._token, options={"verify_signature": verify_signature,
-                                                           "verify_aud": verify_audience},
-                                     algorithms=['RS256'])
+                                                             "verify_aud": verify_audience},
+                                       algorithms=['RS256'])
             expiry = decoded_token.get("exp")
 
             if expiry:

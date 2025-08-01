@@ -42,7 +42,7 @@ class _DynatraceClient:
             headers = {"Authorization": "Bearer %s" % self.token}
         else:
             headers = {"Authorization": "Api-Token %s" % self.token}
-            
+
         try:
             with Session() as session:
                 session.headers.update(headers)
@@ -89,6 +89,7 @@ class DynatraceClientFactory:
 
     def create_client(self, instance_name, token, verify=False, cert=None, keyfile=None, timeout=None):
         is_jwt_auth = os.getenv('JWT_AUTH', 'false').lower() == 'true'
+        print(f" --------------- is_jwt_auth:{is_jwt_auth} --------------- ")
         if is_jwt_auth:
             if not self._ms_jwt_auth:
                 self._ms_jwt_auth = MsJWTAuth(verify, cert, keyfile, timeout)
