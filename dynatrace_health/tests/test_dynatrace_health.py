@@ -4,6 +4,8 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import json
+import os
+
 import requests
 from freezegun import freeze_time
 
@@ -25,6 +27,7 @@ def _get_varied_event_by_type(event_type):
 
 @freeze_time('2025-07-22 08:26:24')
 def test_availability_event(dynatrace_check, test_instance, requests_mock, health, aggregator):
+    os.environ["JWT_AUTH"] = "false"
     event_type = "AVAILABILITY_EVENT"
     event = _get_varied_event_by_type(event_type)
     event_response = {"totalCount": 1, "pageSize": 1, "events": [event]}

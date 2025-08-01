@@ -4,6 +4,9 @@
 import re
 
 import pytest
+import base64
+import json
+import time
 
 from stackstate_checks.dynatrace_health import DynatraceHealthCheck
 
@@ -104,3 +107,29 @@ def set_http_responses(requests_mock, availability_event='{}', error_event='{}',
     deployment_changed_change_event_url_pattern = re.compile(r'/api/v2/eventTypes/DEPLOYMENT_CHANGED_CHANGE$')
     requests_mock.get(deployment_changed_change_event_url_pattern, text=deployment_changed_change_event,
                       status_code=200)
+
+
+def set_jwt_mock(requests_mock):
+    fjwt = get_fake_jwt()
+    # Mock the Microsoft login response with a specific pattern
+    requests_mock.post("https://login.microsoftonline.com/test-tenant-id/oauth2/v2.0/token",
+                       json={"access_token": fjwt, "expires_in": 3600},
+                       status_code=200)
+
+
+fake_jwt = ""
+
+
+def get_fake_jwt():
+    global fake_jwt
+
+    if fake_jwt == "":
+        # Create a valid-looking fake JWT for the mock response
+        exp_time = int(time.time()) + 3600
+        header = {"alg": "RS256", "typ": "JWT"}
+        payload = {"exp": exp_time}
+        encoded_header = base64.urlsafe_b64encode(json.dumps(header).encode()).rstrip(b'=').decode()
+        encoded_payload = base64.urlsafe_b64encode(json.dumps(payload).encode()).rstrip(b'=').decode()
+        fake_signature = base64.urlsafe_b64encode(b'fakesignature').rstrip(b'=').decode()
+        fake_jwt = f"{encoded_header}.{encoded_payload}.{fake_signature}"
+    return fake_jwt

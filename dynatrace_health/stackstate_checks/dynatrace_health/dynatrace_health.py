@@ -131,9 +131,12 @@ class DynatraceHealthCheck(AgentCheck):
                 try:
                     entity_data = dynatrace_client.get_dynatrace_json_response(entity_endpoint, None)
                     link_to_entity = self.link_to_dynatrace(entity_id, instance_info.url)
-                    self._create_topology_event(event, link_to_entity, severity_level, entity_data, impact, display_name)
+                    self._create_topology_event(event, link_to_entity, severity_level, entity_data, impact,
+                                                display_name)
                 except Exception as e:
-                    self.log.warning(f"Entity {entity_id or 'unknown'} referenced in event {event.eventId or 'unknown'} no longer exists: {e}")
+                    self.log.warning(
+                        f"Entity {entity_id or 'unknown'} referenced in event {event.eventId or 'unknown'} "
+                        f"no longer exists: {e}")
                     # Skip this event since the entity is no longer available
                     continue
             elif (event.status or 'UNKNOWN') == 'OPEN':
@@ -146,9 +149,11 @@ class DynatraceHealthCheck(AgentCheck):
                     health_value = Health.CLEAR
                 try:
                     if not event.entityId or not event.entityId.entityId:
-                        self.log.warning(f"Event {event.eventId or 'unknown'} has no valid entityId, skipping health state creation")
+                        self.log.warning(
+                            f"Event {event.eventId or 'unknown'} has no valid entityId, skipping health state creation")
                         continue
-                    identifier = Identifiers.create_custom_identifier("dynatrace", event.entityId.entityId.id or 'unknown')
+                    identifier = Identifiers.create_custom_identifier("dynatrace",
+                                                                      event.entityId.entityId.id or 'unknown')
                     self.health.check_state(
                         check_state_id=event.entityId.entityId.id or 'unknown',
                         name='Dynatrace event',
@@ -161,7 +166,12 @@ class DynatraceHealthCheck(AgentCheck):
                         )
                     )
                 except Exception as e:
-                    self.log.warning(f"Failed to create health state for event {event.eventId or 'unknown'} with entity {event.entityId.entityId.id if event.entityId and event.entityId.entityId and event.entityId.entityId.id else 'unknown'}: {e}")
+                    # Extract entity ID using helper method
+                    entity_id = self._get_entity_id(event)
+
+                    self.log.warning(
+                        f"Failed to create health state for event {event.eventId or 'unknown'} with entity "
+                        f"{entity_id}: {e}")
                     # Skip this event since we can't create the health state
                     continue
         self.health.stop_snapshot()
@@ -176,8 +186,10 @@ class DynatraceHealthCheck(AgentCheck):
         event = {
             "timestamp": int(time.time()),
             "source_type_name": "Dynatrace Events",
-            "msg_title": "%s on %s" % (event_display_name or 'Unknown Event', entity_data.get('displayName', 'Unknown Entity')),
-            "msg_text": "%s on %s" % (event_display_name or 'Unknown Event', entity_data.get('displayName', 'Unknown Entity')),
+            "msg_title": "%s on %s" % (event_display_name or 'Unknown Event',
+                                       entity_data.get('displayName', 'Unknown Entity')),
+            "msg_text": "%s on %s" % (event_display_name or 'Unknown Event',
+                                      entity_data.get('displayName', 'Unknown Entity')),
             "tags": [
                 "entityId:%s" % (dynatrace_event.entityId or 'Unknown'),
                 "severityLevel:%s" % (severity_level or 'INFO'),
@@ -192,7 +204,9 @@ class DynatraceHealthCheck(AgentCheck):
             ],
             "context": {
                 "source_identifier": "source_identifier_value",
-                "element_identifiers": ["urn:%s" % (dynatrace_event.entityId.entityId.id if dynatrace_event.entityId and dynatrace_event.entityId.entityId and dynatrace_event.entityId.entityId.id else 'unknown')],
+                # Extract entity ID for readability
+                "element_identifiers": ["urn:%s" % (
+                    self._get_entity_id(dynatrace_event))],
                 "source": "dynatrace",
                 "category": "info_event",
                 "data": dynatrace_event.dict() if hasattr(dynatrace_event, 'dict') else {},
@@ -229,6 +243,8 @@ class DynatraceHealthCheck(AgentCheck):
                         new_events.append(dynatrace_event)
                         events_processed += 1
                         self._check_event_limit_exceeded_condition(instance_info.events_process_limit, events_processed)
+                    except EventLimitReachedException:
+                        raise
                     except Exception as e:
                         self.log.error(f"Failed to process event {event.get('eventId', 'unknown')}: {e}")
                         self.log.error(f"Event data: {event}")
@@ -287,6 +303,18 @@ class DynatraceHealthCheck(AgentCheck):
             return f"{instance_url}/api/v2/entities/{entity_id}"
         else:
             return instance_url
+
+    @staticmethod
+    def _get_entity_id(event):
+        """
+        Safely extracts the entity ID from a Dynatrace event.
+        Returns 'unknown' if any part of the chain is missing.
+        :param event: Dynatrace event object
+        :return: entity ID or 'unknown'
+        """
+        if event.entityId and event.entityId.entityId and event.entityId.entityId.id:
+            return event.entityId.entityId.id
+        return 'unknown'
 
     @staticmethod
     def generate_bootstrap_timestamp(days):
