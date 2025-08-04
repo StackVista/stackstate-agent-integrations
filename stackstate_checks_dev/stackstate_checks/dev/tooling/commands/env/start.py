@@ -37,8 +37,8 @@ sts_agent_image_tag = read_agent_version()
 )
 @click.argument('check')
 @click.argument('env')
-@click.option('--agent', '-a', default=f'quay.io/stackstate/stackstate-k8s-agent:{sts_agent_image_tag}', show_default=True,
-              help='The docker image of the agent to use')
+@click.option('--agent', '-a', default=f'quay.io/stackstate/stackstate-k8s-agent:{sts_agent_image_tag}',
+              show_default=True, help='The docker image of the agent to use')
 @click.option('--dev/--prod', default=True, show_default=True,
               help='Use the latest version of a check (or else what is shipped with the agent package)')
 @click.option('--base', is_flag=True, help='Whether to use the latest version of the base check or what is shipped.\
