@@ -8,16 +8,26 @@ For information on how to develop your own integrations, see the [developer guid
 # Development
 
 Prerequisites:
-- python 3
-- bash
+- python 3 (we have a pyenv file that states a version. Leverage that.)
+- bash (a working shell will do)
 
 ## Setup
 
-To setup the environment:
+To setup the environment, first export some environment variables:
 
+    $ export GITLAB_PACKAGE_REGISTRY_USER=<your-work-email>
+    $ export GITLAB_PACKAGE_REGISTRY_PYPI_SIMPLE_URL=gitlab.com/api/v4/projects/71271774/packages/pypi/simple
+    $ export GITLAB_PACKAGE_REGISTRY_TOKEN=<your-gitlab-token>
+    $ export GITLAB_PACKAGE_REGISTRY_PYPI_URL=gitlab.com/api/v4/projects/71271774/packages/pypi
+
+In order to have a working setup the email you feed these environment variables should be the one you access our GitLab systems with, and the token should a personal access token with packages reading capabilities.
+
+Then proceed to source the setup scripts to correctly load the dependencies and setup the virtual environment:
+
+    $ source .setup-scripts/load_deps.sh
     $ source .setup-scripts/setup_env.sh
 
-From this point on the `checksdev` script is in scope and commands can be ran.
+From this point on the `checksdev` script is in scope (and in the `$PATH`) and commands can be ran.
 
 If you make any change to `checksdev`, you will need to reload it:
 
