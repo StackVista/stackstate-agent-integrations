@@ -17,7 +17,7 @@ def upgrade_to_jwt_auth(client, name):
 
     client.auth_session(state)
     # Ensure Splunk's KV store is ready
-    time.sleep(5)
+    time.sleep(10)
     response = client._do_post('/services/authorization/tokens?output_mode=json', payload, 30)
     response_json = response.json()
 
