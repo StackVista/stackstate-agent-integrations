@@ -1,0 +1,1902 @@
+{
+  "totalCount": 16,
+  "pageSize": 50,
+  "entities": [
+    {
+      "entityId": "PROCESS_GROUP_INSTANCE-01E533529CEAD5B9",
+      "type": "PROCESS_GROUP_INSTANCE",
+      "displayName": "OneAgent eBPF service discovery",
+      "properties": {
+        "detectedName": "OneAgent eBPF service discovery",
+        "bitness": "64",
+        "metadata": [
+          {
+            "key": "EXE_NAME",
+            "value": "oneagentebpfdiscovery"
+          },
+          {
+            "key": "EXE_PATH",
+            "value": "/opt/dynatrace/oneagent/agent/lib64/oneagentebpfdiscovery"
+          }
+        ],
+        "ebpfHasPublicTraffic": false,
+        "awsNameTag": "OneAgent eBPF service discovery",
+        "hasPublicTraffic": false,
+        "softwareTechnologies": [
+          {
+            "type": "DYNATRACE"
+          }
+        ],
+        "processType": "APMNG"
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP-4F6264254199189E",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "isProcessOf": [
+          {
+            "id": "HOST-A4FF55197C0F846E",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {}
+    },
+    {
+      "entityId": "PROCESS_GROUP_INSTANCE-19D9327B2A2AEDA2",
+      "type": "PROCESS_GROUP_INSTANCE",
+      "displayName": "containerd-shim-runc-v*",
+      "properties": {
+        "detectedName": "containerd-shim-runc-v*",
+        "bitness": "64",
+        "metadata": [
+          {
+            "key": "COMMAND_LINE_ARGS",
+            "value": "/usr/bin/containerd-shim-runc-v2 -namespace moby -id 8e9109914930c96369311866d26e8b5a47e331876ae8ab5bf957665a1c444322 -address /run/containerd/containerd.sock"
+          },
+          {
+            "key": "PG_ID_CALC_INPUT_KEY_LINKAGE",
+            "value": "static"
+          },
+          {
+            "key": "EXE_NAME",
+            "value": "containerd-shim-runc-v*"
+          },
+          {
+            "key": "EXE_PATH",
+            "value": "/usr/bin/containerd-shim-runc-v*"
+          }
+        ],
+        "ebpfHasPublicTraffic": false,
+        "awsNameTag": "containerd-shim-runc-v*",
+        "hasPublicTraffic": false,
+        "softwareTechnologies": [
+          {
+            "type": "GO"
+          }
+        ],
+        "processType": "GO"
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP-8A0DF0F9C446635C",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "isProcessOf": [
+          {
+            "id": "HOST-A4FF55197C0F846E",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {}
+    },
+    {
+      "entityId": "PROCESS_GROUP_INSTANCE-1EBE44734EFE4B0A",
+      "type": "PROCESS_GROUP_INSTANCE",
+      "displayName": "snapd",
+      "properties": {
+        "detectedName": "snapd",
+        "bitness": "64",
+        "metadata": [
+          {
+            "key": "PG_ID_CALC_INPUT_KEY_LINKAGE",
+            "value": "dynamic"
+          },
+          {
+            "key": "EXE_NAME",
+            "value": "snapd"
+          },
+          {
+            "key": "EXE_PATH",
+            "value": "/usr/lib/snapd/snapd"
+          },
+          {
+            "key": "COMMAND_LINE_ARGS",
+            "value": "/usr/lib/snapd/snapd"
+          }
+        ],
+        "ebpfHasPublicTraffic": false,
+        "awsNameTag": "snapd",
+        "hasPublicTraffic": false,
+        "softwareTechnologies": [
+          {
+            "type": "GO"
+          }
+        ],
+        "processType": "GO"
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "isNetworkClientOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-52FE4DF526CCD754",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ],
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP-DA52C7DE4DCF26C3",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "isProcessOf": [
+          {
+            "id": "HOST-A4FF55197C0F846E",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isNetworkClientOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-52FE4DF526CCD754",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "PROCESS_GROUP_INSTANCE-398C9F0CC1F23924",
+      "type": "PROCESS_GROUP_INSTANCE",
+      "displayName": "OneAgent network monitoring",
+      "properties": {
+        "detectedName": "OneAgent network monitoring",
+        "bitness": "64",
+        "metadata": [
+          {
+            "key": "EXE_PATH",
+            "value": "/opt/dynatrace/oneagent/agent/lib64/oneagentnetwork"
+          },
+          {
+            "key": "EXE_NAME",
+            "value": "oneagentnetwork"
+          }
+        ],
+        "ebpfHasPublicTraffic": false,
+        "awsNameTag": "OneAgent network monitoring",
+        "hasPublicTraffic": false,
+        "softwareTechnologies": [
+          {
+            "type": "DYNATRACE"
+          }
+        ],
+        "processType": "APMNG"
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP-55BB99EBACB51463",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "isProcessOf": [
+          {
+            "id": "HOST-A4FF55197C0F846E",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {}
+    },
+    {
+      "entityId": "PROCESS_GROUP_INSTANCE-463655540145E401",
+      "type": "PROCESS_GROUP_INSTANCE",
+      "displayName": "OneAgent log analytics",
+      "properties": {
+        "detectedName": "OneAgent log analytics",
+        "bitness": "64",
+        "metadata": [
+          {
+            "key": "EXE_PATH",
+            "value": "/opt/dynatrace/oneagent/agent/lib*/oneagentloganalytics"
+          },
+          {
+            "key": "EXE_NAME",
+            "value": "oneagentloganalytics"
+          },
+          {
+            "key": "COMMAND_LINE_ARGS",
+            "value": "oneagentloganalytics -Dcom.compuware.apm.WatchDogTimeout=900 -Dcom.compuware.apm.WatchDogPort=50000"
+          }
+        ],
+        "installerVersion": "1.299.50.20240930-123825",
+        "ebpfHasPublicTraffic": false,
+        "awsNameTag": "OneAgent log analytics",
+        "hasPublicTraffic": false,
+        "softwareTechnologies": [
+          {
+            "type": "DYNATRACE"
+          }
+        ],
+        "processType": "APMNG"
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "isNetworkClientOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-A0BD2F9B6FDE952F",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ],
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP-216FDBEF8325B5C6",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "isProcessOf": [
+          {
+            "id": "HOST-A4FF55197C0F846E",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {}
+    },
+    {
+      "entityId": "PROCESS_GROUP_INSTANCE-52FE4DF526CCD754",
+      "type": "PROCESS_GROUP_INSTANCE",
+      "displayName": "systemd-journald",
+      "properties": {
+        "detectedName": "systemd-journald",
+        "bitness": "64",
+        "metadata": [
+          {
+            "key": "EXE_NAME",
+            "value": "systemd-journald"
+          },
+          {
+            "key": "EXE_PATH",
+            "value": "/usr/lib/systemd/systemd-journald"
+          }
+        ],
+        "ebpfHasPublicTraffic": false,
+        "awsNameTag": "systemd-journald",
+        "hasPublicTraffic": false
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "isNetworkClientOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-EBF9775B0A5E9014",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-F3387CB87966E2B8",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-1EBE44734EFE4B0A",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ],
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP-FDF8B0C3ADA13017",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "isProcessOf": [
+          {
+            "id": "HOST-A4FF55197C0F846E",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isNetworkClientOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-EBF9775B0A5E9014",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-F3387CB87966E2B8",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-1EBE44734EFE4B0A",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "PROCESS_GROUP_INSTANCE-62A99A5B7659B311",
+      "type": "PROCESS_GROUP_INSTANCE",
+      "displayName": "main.py",
+      "properties": {
+        "detectedName": "main.py",
+        "bitness": "64",
+        "metadata": [
+          {
+            "key": "CONTAINER_IMAGE_VERSION",
+            "value": "9f79f4f2-us"
+          },
+          {
+            "key": "CONTAINER_NAME",
+            "value": "newsapp-us_app-newsscraper_1"
+          },
+          {
+            "key": "CONTAINER_IMAGE_NAME",
+            "value": "wolverminion/webscraper"
+          },
+          {
+            "key": "EXE_NAME",
+            "value": "python*"
+          },
+          {
+            "key": "EXE_PATH",
+            "value": "/usr/local/bin/python*"
+          },
+          {
+            "key": "COMMAND_LINE_ARGS",
+            "value": "python main.py"
+          }
+        ],
+        "ebpfHasPublicTraffic": false,
+        "awsNameTag": "main.py",
+        "hasPublicTraffic": false,
+        "softwareTechnologies": [
+          {
+            "type": "DOCKER"
+          },
+          {
+            "type": "PYTHON"
+          }
+        ],
+        "processType": "PYTHON",
+        "isDockerized": true
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "isNetworkClientOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-F75CAACD62B3C3B0",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ],
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP-BD788867042F0723",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "isProcessOf": [
+          {
+            "id": "HOST-A4FF55197C0F846E",
+            "type": "HOST"
+          }
+        ],
+        "isPgiOfCgi": [
+          {
+            "id": "CONTAINER_GROUP_INSTANCE-4811F7CAEFD303A2",
+            "type": "CONTAINER_GROUP_INSTANCE"
+          }
+        ]
+      },
+      "toRelationships": {}
+    },
+    {
+      "entityId": "PROCESS_GROUP_INSTANCE-83B45B30794CA9A5",
+      "type": "PROCESS_GROUP_INSTANCE",
+      "displayName": "nginx",
+      "properties": {
+        "detectedName": "nginx",
+        "bitness": "64",
+        "metadata": [
+          {
+            "key": "EXE_PATH",
+            "value": "/usr/sbin/nginx"
+          },
+          {
+            "key": "EXE_NAME",
+            "value": "nginx"
+          },
+          {
+            "key": "CONTAINER_NAME",
+            "value": "nginx"
+          },
+          {
+            "key": "CONTAINER_IMAGE_NAME",
+            "value": "nginx"
+          },
+          {
+            "key": "COMMAND_LINE_ARGS",
+            "value": "nginx -g daemon\\ off;"
+          }
+        ],
+        "appVersion": "nginx/1.27.0",
+        "installerVersion": "1.299.50.20240930-123825",
+        "ebpfHasPublicTraffic": false,
+        "hasPublicTraffic": false,
+        "softwareTechnologies": [
+          {
+            "type": "NGINX",
+            "version": "nginx/1.27.0"
+          },
+          {
+            "type": "DOCKER"
+          },
+          {
+            "type": "NGINX"
+          }
+        ],
+        "listenPorts": [
+          443
+        ],
+        "modules": [
+          "ngx_http_ssl_module",
+          "ngx_http_v2_filter_module",
+          "ngx_mail_ssl_module",
+          "ngx_http_sub_filter_module",
+          "ngx_openssl_module",
+          "ngx_event_core_module",
+          "ngx_stream_limit_conn_module",
+          "ngx_http_auth_request_module",
+          "ngx_http_fastcgi_module",
+          "ngx_http_limit_req_module",
+          "ngx_stream_pass_module",
+          "ngx_http_postpone_filter_module",
+          "ngx_stream_log_module",
+          "ngx_stream_core_module",
+          "ngx_stream_module",
+          "ngx_http_upstream_keepalive_module",
+          "ngx_stream_ssl_preread_module",
+          "ngx_http_upstream_least_conn_module",
+          "ngx_http_try_files_module",
+          "ngx_http_limit_conn_module",
+          "ngx_http_memcached_module",
+          "ngx_http_userid_filter_module",
+          "ngx_http_charset_filter_module",
+          "ngx_http_flv_module",
+          "ngx_http_log_module",
+          "ngx_http_stub_status_module",
+          "ngx_quic_bpf_module",
+          "ngx_http_rewrite_module",
+          "ngx_http_mirror_module",
+          "ngx_http_uwsgi_module",
+          "ngx_http_upstream_hash_module",
+          "ngx_http_secure_link_module",
+          "ngx_mail_module",
+          "ngx_http_index_module",
+          "ngx_http_ssi_filter_module",
+          "ngx_http_write_filter_module",
+          "ngx_stream_geo_module",
+          "ngx_http_referer_module",
+          "ngx_stream_map_module",
+          "ngx_http_upstream_module",
+          "ngx_mail_smtp_module",
+          "ngx_http_browser_module",
+          "ngx_http_gzip_static_module",
+          "ngx_quic_module",
+          "ngx_http_upstream_ip_hash_module",
+          "ngx_http_core_module",
+          "ngx_regex_module",
+          "ngx_http_auth_basic_module",
+          "ngx_conf_module",
+          "ngx_mail_pop3_module",
+          "ngx_stream_write_filter_module",
+          "ngx_http_split_clients_module",
+          "ngx_http_slice_filter_module",
+          "ngx_http_gzip_filter_module",
+          "ngx_http_access_module",
+          "ngx_http_upstream_random_module",
+          "ngx_stream_upstream_module",
+          "ngx_http_realip_module",
+          "ngx_http_gunzip_filter_module",
+          "ngx_http_addition_filter_module",
+          "ngx_core_module",
+          "ngx_mail_imap_module",
+          "ngx_http_static_module",
+          "ngx_http_v2_module",
+          "ngx_mail_core_module",
+          "ngx_stream_upstream_hash_module",
+          "ngx_http_v3_filter_module",
+          "ngx_stream_ssl_module",
+          "ngx_thread_pool_module",
+          "ngx_stream_upstream_least_conn_module",
+          "ngx_stream_upstream_random_module",
+          "ngx_stream_return_module",
+          "ngx_http_not_modified_filter_module",
+          "ngx_http_chunked_filter_module",
+          "ngx_http_grpc_module",
+          "ngx_mail_proxy_module",
+          "ngx_http_mp4_module",
+          "ngx_http_random_index_module",
+          "ngx_http_copy_filter_module",
+          "ngx_http_upstream_zone_module",
+          "ngx_stream_proxy_module",
+          "ngx_stream_split_clients_module",
+          "ngx_stream_access_module",
+          "dt_one_agent",
+          "ngx_http_headers_filter_module",
+          "ngx_http_map_module",
+          "ngx_mail_realip_module",
+          "ngx_mail_auth_http_module",
+          "ngx_http_autoindex_module",
+          "ngx_stream_realip_module",
+          "ngx_http_empty_gif_module",
+          "ngx_events_module",
+          "ngx_epoll_module",
+          "ngx_stream_upstream_zone_module",
+          "ngx_http_v3_module",
+          "ngx_http_dav_module",
+          "ngx_http_module",
+          "ngx_http_range_header_filter_module",
+          "ngx_http_scgi_module",
+          "ngx_http_range_body_filter_module",
+          "ngx_stream_set_module",
+          "ngx_errlog_module",
+          "ngx_http_geo_module",
+          "ngx_http_header_filter_module",
+          "ngx_http_proxy_module"
+        ],
+        "logPathLastUpdate": [
+          {
+            "value": 1729512000,
+            "key": "Container Output"
+          }
+        ],
+        "awsNameTag": "nginx",
+        "processType": "NGINX",
+        "isDockerized": true
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "isNetworkClientOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-A1CF3E0CF4DFC8D1",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ],
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP-B44AE6BE0CB555DA",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "isProcessOf": [
+          {
+            "id": "HOST-A4FF55197C0F846E",
+            "type": "HOST"
+          }
+        ],
+        "isPgiOfCgi": [
+          {
+            "id": "CONTAINER_GROUP_INSTANCE-12C7110D7329EF41",
+            "type": "CONTAINER_GROUP_INSTANCE"
+          }
+        ]
+      },
+      "toRelationships": {
+        "runsOnProcessGroupInstance": [
+          {
+            "id": "SERVICE-D4552C067BE873FC",
+            "type": "SERVICE"
+          }
+        ],
+        "runsOn": [
+          {
+            "id": "SERVICE_INSTANCE-0D0418929421FF85",
+            "type": "SERVICE_INSTANCE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "PROCESS_GROUP_INSTANCE-990D9D9DF5A08C0A",
+      "type": "PROCESS_GROUP_INSTANCE",
+      "displayName": "Linux System",
+      "properties": {
+        "detectedName": "Linux System",
+        "ebpfHasPublicTraffic": false,
+        "awsNameTag": "Linux System",
+        "hasPublicTraffic": false,
+        "softwareTechnologies": [
+          {
+            "type": "LINUX_SYSTEM"
+          }
+        ],
+        "processType": "LINUX_SYSTEM"
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP-EF1E81586EB8EDD6",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "isProcessOf": [
+          {
+            "id": "HOST-A4FF55197C0F846E",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {}
+    },
+    {
+      "entityId": "PROCESS_GROUP_INSTANCE-9B3AE107A6A9FAC5",
+      "type": "PROCESS_GROUP_INSTANCE",
+      "displayName": "Short-lived processes",
+      "properties": {
+        "detectedName": "Short-lived processes",
+        "ebpfHasPublicTraffic": false,
+        "awsNameTag": "Short-lived processes",
+        "hasPublicTraffic": false
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP-ECE82357AF59AF52",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "isProcessOf": [
+          {
+            "id": "HOST-A4FF55197C0F846E",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {}
+    },
+    {
+      "entityId": "PROCESS_GROUP_INSTANCE-A0BD2F9B6FDE952F",
+      "type": "PROCESS_GROUP_INSTANCE",
+      "displayName": "OneAgent system monitoring",
+      "properties": {
+        "detectedName": "OneAgent system monitoring",
+        "bitness": "64",
+        "metadata": [
+          {
+            "key": "EXE_PATH",
+            "value": "/opt/dynatrace/oneagent/agent/lib64/oneagentwatchdog"
+          },
+          {
+            "key": "EXE_NAME",
+            "value": "oneagentwatchdog"
+          }
+        ],
+        "installerVersion": "1.299.50.20240930-123825",
+        "ebpfHasPublicTraffic": false,
+        "awsNameTag": "OneAgent system monitoring",
+        "hasPublicTraffic": false,
+        "softwareTechnologies": [
+          {
+            "type": "DYNATRACE"
+          }
+        ],
+        "processType": "APMNG",
+        "listenPorts": [
+          50000,
+          50001
+        ]
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP-3AD9FB79C914520C",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "isProcessOf": [
+          {
+            "id": "HOST-A4FF55197C0F846E",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isNetworkClientOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-F8B1A1CB029E16C8",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-463655540145E401",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "PROCESS_GROUP_INSTANCE-A1CF3E0CF4DFC8D1",
+      "type": "PROCESS_GROUP_INSTANCE",
+      "displayName": "webserver",
+      "properties": {
+        "detectedName": "webserver",
+        "bitness": "64",
+        "metadata": [
+          {
+            "key": "PG_ID_CALC_INPUT_KEY_LINKAGE",
+            "value": "dynamic"
+          },
+          {
+            "key": "CONTAINER_IMAGE_VERSION",
+            "value": "40d71747"
+          },
+          {
+            "key": "CONTAINER_IMAGE_NAME",
+            "value": "wolverminion/newsscraper-host"
+          },
+          {
+            "key": "EXE_NAME",
+            "value": "webserver"
+          },
+          {
+            "key": "CONTAINER_NAME",
+            "value": "newsapp-uk_server-1_1"
+          },
+          {
+            "key": "EXE_PATH",
+            "value": "/usr/bin/webserver"
+          },
+          {
+            "key": "COMMAND_LINE_ARGS",
+            "value": "/usr/bin/webserver"
+          }
+        ],
+        "installerVersion": "1.299.50.20240930-123825",
+        "ebpfHasPublicTraffic": false,
+        "awsNameTag": "webserver",
+        "hasPublicTraffic": false,
+        "versionedModules": [
+          {
+            "name": "hash/crc32"
+          },
+          {
+            "name": "encoding/binary"
+          },
+          {
+            "name": "errors"
+          },
+          {
+            "name": "github.com/julienschmidt/httprouter"
+          },
+          {
+            "name": "gitlab.com/newsapps/newsscraper-host/controller"
+          },
+          {
+            "name": "vendor/golang.org/x/net/idna"
+          },
+          {
+            "name": "vendor/golang.org/x/net/http/httpguts"
+          },
+          {
+            "name": "runtime"
+          },
+          {
+            "name": "github.com/sirupsen/logrus"
+          },
+          {
+            "name": "encoding/asn1"
+          },
+          {
+            "name": "sort"
+          },
+          {
+            "name": "crypto/aes"
+          },
+          {
+            "name": "io/fs"
+          },
+          {
+            "name": "crypto/ed25519"
+          },
+          {
+            "name": "sync"
+          },
+          {
+            "name": "database/sql"
+          },
+          {
+            "name": "crypto"
+          },
+          {
+            "name": "internal/bytealg"
+          },
+          {
+            "name": "vendor/golang.org/x/net/http2/hpack"
+          },
+          {
+            "name": "crypto/internal/nistec/fiat"
+          },
+          {
+            "name": "math/big"
+          },
+          {
+            "name": "unicode/utf8"
+          },
+          {
+            "name": "crypto/x509"
+          },
+          {
+            "name": "encoding/base64"
+          },
+          {
+            "name": "net"
+          },
+          {
+            "name": "runtime/debug"
+          },
+          {
+            "name": "crypto/elliptic"
+          },
+          {
+            "name": "golang.org/x/sys/unix"
+          },
+          {
+            "name": "net/netip"
+          },
+          {
+            "name": "vendor/golang.org/x/text/transform"
+          },
+          {
+            "name": "path/filepath"
+          },
+          {
+            "name": "main"
+          },
+          {
+            "name": "fmt"
+          },
+          {
+            "name": "compress/flate"
+          },
+          {
+            "name": "crypto/tls"
+          },
+          {
+            "name": "crypto/rc4"
+          },
+          {
+            "name": "vendor/golang.org/x/text/unicode/bidi"
+          },
+          {
+            "name": "time"
+          },
+          {
+            "name": "encoding/json"
+          },
+          {
+            "name": "crypto/hmac"
+          },
+          {
+            "name": "crypto/sha512"
+          },
+          {
+            "name": "bytes"
+          },
+          {
+            "name": "crypto/des"
+          },
+          {
+            "name": "net/http"
+          },
+          {
+            "name": "internal/poll"
+          },
+          {
+            "name": "vendor/golang.org/x/crypto/chacha20poly1305"
+          },
+          {
+            "name": "os"
+          },
+          {
+            "name": "unicode/utf16"
+          },
+          {
+            "name": "vendor/golang.org/x/crypto/cryptobyte"
+          },
+          {
+            "name": "internal/oserror"
+          },
+          {
+            "name": "crypto/rsa"
+          },
+          {
+            "name": "crypto/x509/pkix"
+          },
+          {
+            "name": "internal/reflectlite"
+          },
+          {
+            "name": "net/http/internal"
+          },
+          {
+            "name": "vendor/golang.org/x/sys/cpu"
+          },
+          {
+            "name": "internal/testlog"
+          },
+          {
+            "name": "crypto/cipher"
+          },
+          {
+            "name": "runtime/internal/sys"
+          },
+          {
+            "name": "syscall"
+          },
+          {
+            "name": "vendor/golang.org/x/crypto/curve25519/internal/field"
+          },
+          {
+            "name": "crypto/internal/edwards25519/field"
+          },
+          {
+            "name": "math/rand"
+          },
+          {
+            "name": "unicode"
+          },
+          {
+            "name": "crypto/rand"
+          },
+          {
+            "name": "crypto/sha256"
+          },
+          {
+            "name": "math"
+          },
+          {
+            "name": "net/url"
+          },
+          {
+            "name": "vendor/golang.org/x/crypto/curve25519"
+          },
+          {
+            "name": "mime/multipart"
+          },
+          {
+            "name": "strconv"
+          },
+          {
+            "name": "io"
+          },
+          {
+            "name": "context"
+          },
+          {
+            "name": "crypto/sha1"
+          },
+          {
+            "name": "crypto/md5"
+          },
+          {
+            "name": "internal/singleflight"
+          },
+          {
+            "name": "path"
+          },
+          {
+            "name": "reflect"
+          },
+          {
+            "name": "compress/gzip"
+          },
+          {
+            "name": "encoding/pem"
+          },
+          {
+            "name": "encoding/hex"
+          },
+          {
+            "name": "github.com/go-sql-driver/mysql"
+          },
+          {
+            "name": "vendor/golang.org/x/crypto/hkdf"
+          },
+          {
+            "name": "vendor/golang.org/x/crypto/chacha20"
+          },
+          {
+            "name": "crypto/internal/randutil"
+          },
+          {
+            "name": "database/sql/driver"
+          },
+          {
+            "name": "runtime/internal/atomic"
+          },
+          {
+            "name": "mime"
+          },
+          {
+            "name": "vendor/golang.org/x/text/unicode/norm"
+          },
+          {
+            "name": "internal/itoa"
+          },
+          {
+            "name": "crypto/ecdsa"
+          },
+          {
+            "name": "internal/syscall/unix"
+          },
+          {
+            "name": "internal/cpu"
+          },
+          {
+            "name": "os/signal"
+          },
+          {
+            "name": "net/textproto"
+          },
+          {
+            "name": "crypto/internal/edwards25519"
+          },
+          {
+            "name": "internal/godebug"
+          },
+          {
+            "name": "internal/intern"
+          },
+          {
+            "name": "vendor/golang.org/x/net/http/httpproxy"
+          },
+          {
+            "name": "runtime/internal/syscall"
+          },
+          {
+            "name": "vendor/golang.org/x/net/dns/dnsmessage"
+          },
+          {
+            "name": "internal/fmtsort"
+          },
+          {
+            "name": "strings"
+          },
+          {
+            "name": "vendor/golang.org/x/text/secure/bidirule"
+          },
+          {
+            "name": "io/ioutil"
+          },
+          {
+            "name": "crypto/dsa"
+          },
+          {
+            "name": "internal/safefilepath"
+          },
+          {
+            "name": "crypto/internal/nistec"
+          },
+          {
+            "name": "gitlab.com/newsapps/newsscraper-host/pkg/util"
+          },
+          {
+            "name": "sync/atomic"
+          },
+          {
+            "name": "vendor/golang.org/x/crypto/internal/poly1305"
+          },
+          {
+            "name": "bufio"
+          },
+          {
+            "name": "crypto/internal/boring/sig"
+          },
+          {
+            "name": "log"
+          }
+        ],
+        "softwareTechnologies": [
+          {
+            "type": "DOCKER"
+          },
+          {
+            "type": "GO",
+            "version": "1.19.13"
+          },
+          {
+            "type": "GO"
+          }
+        ],
+        "processType": "GO",
+        "listenPorts": [
+          8080
+        ],
+        "isDockerized": true
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "isNetworkClientOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-F75CAACD62B3C3B0",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ],
+        "isMainPgiOfCgi": [
+          {
+            "id": "CONTAINER_GROUP_INSTANCE-3EC6A9BB010209FC",
+            "type": "CONTAINER_GROUP_INSTANCE"
+          }
+        ],
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP-51BD3694E190306C",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "isProcessOf": [
+          {
+            "id": "HOST-A4FF55197C0F846E",
+            "type": "HOST"
+          }
+        ],
+        "isPgiOfCgi": [
+          {
+            "id": "CONTAINER_GROUP_INSTANCE-3EC6A9BB010209FC",
+            "type": "CONTAINER_GROUP_INSTANCE"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isNetworkClientOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-83B45B30794CA9A5",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ],
+        "runsOnProcessGroupInstance": [
+          {
+            "id": "SERVICE-C364E91F84B8F254",
+            "type": "SERVICE"
+          }
+        ],
+        "isSoftwareComponentOfPgi": [
+          {
+            "id": "SOFTWARE_COMPONENT-69CE5B13B3D775AC",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-9D9FCB265ECF85D1",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-D93395C2931ADC12",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-613C33CB6952FEC7",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-4230AEA4B1B3468B",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-F5AF0D26998E99F3",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-74AAB21D01E3C9E2",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-1606CAC07311086C",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-F327C2FA3B638101",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-68BFAE662546D6E8",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-16276E28467C61DC",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-B5260E5EB02C489C",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-AEE96FFA938176DF",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-0FC994EAD50D4C6F",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-B3F63EC359295AAB",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-C734C3AD3F37066F",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-3ECF1CA8745C41FF",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-7B8C1F90221147F5",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-034AF9B556292B59",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-1333CCED1606372E",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-C1339F2DFF184A80",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-CFCD377AF6E3A1D2",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-6DAC0444C8D535AB",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-98A910E10A020FA1",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-579C81B774B77177",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-EB03CF6567676792",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-A8EDB71DF255423A",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-361DBE3952E69750",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-84F6D3B059808042",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-9B67BC52234A6AEB",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-C2C4EB3179D86D35",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-6249E85E48F195FD",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-2BAB4FAB238A9EA6",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-B45289A0FF360369",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-DBC1AF61A4C0CC8F",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-EE9AAC47E0A1C751",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-CB287C87BB2EAC82",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-3D05BF0D728F1B7A",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-88B9F04055D37497",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-5ED09B10D0211943",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-F1792ECB3028D37E",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-23EDCCEC44B02C44",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-2AAA76497B06273A",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-F9B8360D4E116E7E",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-9C2EF5C31B6E5B0F",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-75BEB8D09339F857",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-3447145910578A47",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-D77B6592E648666D",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-0F2711C7A648C06D",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-26C1A75D21C7D64D",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-4FFD99EBDA9B9553",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-3B942ABB5E1DF11E",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-5A4BEE3AB77FCED2",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-F00C9F00D2C1F656",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-97BFD0B05A7505ED",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-729A4D2AB7964732",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-973D1FDDE42ABAD2",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-B8B652F4C641AED9",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-82C646844E42752F",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-7252656A47CD5CAB",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-BF48E20C6CD9D0B6",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-6A3DD9FDDB415D6B",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-20A54F81BBBCFAB1",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-D1629B31A00081AB",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-D3536D4DC6FA7FA9",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-0CD6D133192C0020",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-D86FEC92B69018D0",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-FA06D91356F74306",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-41CED7BEBD609769",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-BE006C629B05162F",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-EB5E0F55F26BDE62",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-8B548A8B3ED53646",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-67174BEE5F4EEF4A",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-BAA11339C4009296",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-956F99B7565C2988",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-A32ED239A48E0E8A",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-17DDE1D6ABA543AD",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-F02A92704EAB80A6",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-E1353D01EE22CE47",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-35D7371B04A1726F",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-6F58FB759BDFC896",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-A2FEEF69C4106491",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-1607DF828B36F0B7",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-74831C9FA2BE5BB6",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-056CC56504CFA1A6",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-BAE45E20751C94C3",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-1590E4A0EE01035F",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-D065974800F38D4D",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-1BB45CD093784476",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-EC858E25B4A108BF",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-FB7A59BD1A57811E",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-DF46A12FE6908A82",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-39F86D861848528C",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-EF97A26CE8483FC0",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-A846E1BA13D92453",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-CD63F685663AA2A9",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-93A9821C53B33FBD",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-F2C5C559B955484E",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-868D9268DCBC9611",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-9213F6F6313EAD82",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-743E3CDEAFA168C2",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-67F98B8BEA6D4BA8",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-FF396254FD523B78",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-566156980E1DC0AF",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-40DDCD8378DDC210",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-3FD0471225E70A6D",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-C954262D03316C10",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-63D2F47EF2AB5B4B",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-4FEB6CD06F897B91",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-F3CC82FAFBF9DF94",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-79D53F872A046C52",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-651591897789C780",
+            "type": "SOFTWARE_COMPONENT"
+          },
+          {
+            "id": "SOFTWARE_COMPONENT-2F4095BD66BB6D14",
+            "type": "SOFTWARE_COMPONENT"
+          }
+        ],
+        "runsOn": [
+          {
+            "id": "SERVICE_INSTANCE-2598E86E9ADB5E9D",
+            "type": "SERVICE_INSTANCE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "PROCESS_GROUP_INSTANCE-EBF9775B0A5E9014",
+      "type": "PROCESS_GROUP_INSTANCE",
+      "displayName": "sshd",
+      "properties": {
+        "detectedName": "sshd",
+        "bitness": "64",
+        "metadata": [
+          {
+            "key": "EXE_NAME",
+            "value": "sshd"
+          },
+          {
+            "key": "EXE_PATH",
+            "value": "/usr/sbin/sshd"
+          }
+        ],
+        "ebpfHasPublicTraffic": false,
+        "awsNameTag": "sshd",
+        "hasPublicTraffic": false,
+        "listenPorts": [
+          22
+        ]
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "isNetworkClientOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-EBF9775B0A5E9014",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-52FE4DF526CCD754",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ],
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP-02B9992C264DE845",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "isProcessOf": [
+          {
+            "id": "HOST-A4FF55197C0F846E",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isNetworkClientOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-EBF9775B0A5E9014",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-52FE4DF526CCD754",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "PROCESS_GROUP_INSTANCE-F3387CB87966E2B8",
+      "type": "PROCESS_GROUP_INSTANCE",
+      "displayName": "systemd-resolved",
+      "properties": {
+        "detectedName": "systemd-resolved",
+        "bitness": "64",
+        "metadata": [
+          {
+            "key": "EXE_NAME",
+            "value": "systemd-resolved"
+          },
+          {
+            "key": "EXE_PATH",
+            "value": "/usr/lib/systemd/systemd-resolved"
+          }
+        ],
+        "ebpfHasPublicTraffic": false,
+        "awsNameTag": "systemd-resolved",
+        "hasPublicTraffic": false,
+        "listenPorts": [
+          53
+        ]
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "isNetworkClientOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-52FE4DF526CCD754",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ],
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP-68B404144F1EFBEA",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "isProcessOf": [
+          {
+            "id": "HOST-A4FF55197C0F846E",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isNetworkClientOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-52FE4DF526CCD754",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "PROCESS_GROUP_INSTANCE-F75CAACD62B3C3B0",
+      "type": "PROCESS_GROUP_INSTANCE",
+      "displayName": "MySQL",
+      "properties": {
+        "detectedName": "Default instance",
+        "bitness": "64",
+        "metadata": [
+          {
+            "key": "CONTAINER_IMAGE_NAME",
+            "value": "wolverminion/mysql"
+          },
+          {
+            "key": "EXE_NAME",
+            "value": "mysqld"
+          },
+          {
+            "key": "EXE_PATH",
+            "value": "/usr/sbin/mysqld"
+          }
+        ],
+        "ebpfHasPublicTraffic": false,
+        "awsNameTag": "MySQL",
+        "hasPublicTraffic": false,
+        "softwareTechnologies": [
+          {
+            "type": "MYSQL"
+          },
+          {
+            "type": "DOCKER"
+          }
+        ],
+        "processType": "MYSQL",
+        "listenPorts": [
+          3306
+        ],
+        "isDockerized": true
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP-31AE98E6D95C50FE",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "isProcessOf": [
+          {
+            "id": "HOST-A4FF55197C0F846E",
+            "type": "HOST"
+          }
+        ],
+        "isPgiOfCgi": [
+          {
+            "id": "CONTAINER_GROUP_INSTANCE-D778C324C2C7CABA",
+            "type": "CONTAINER_GROUP_INSTANCE"
+          }
+        ]
+      },
+      "toRelationships": {
+        "isNetworkClientOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-A1CF3E0CF4DFC8D1",
+            "type": "PROCESS_GROUP_INSTANCE"
+          },
+          {
+            "id": "PROCESS_GROUP_INSTANCE-62A99A5B7659B311",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ]
+      }
+    },
+    {
+      "entityId": "PROCESS_GROUP_INSTANCE-F8B1A1CB029E16C8",
+      "type": "PROCESS_GROUP_INSTANCE",
+      "displayName": "OneAgent monitoring extensions",
+      "properties": {
+        "detectedName": "OneAgent monitoring extensions",
+        "bitness": "64",
+        "metadata": [
+          {
+            "key": "EXE_NAME",
+            "value": "oneagentplugin"
+          },
+          {
+            "key": "EXE_PATH",
+            "value": "/opt/dynatrace/oneagent/agent/lib*/oneagentplugin"
+          },
+          {
+            "key": "COMMAND_LINE_ARGS",
+            "value": "oneagentplugin -Dcom.compuware.apm.WatchDogTimeout=900 -Dcom.compuware.apm.WatchDogPort=50001"
+          }
+        ],
+        "ebpfHasPublicTraffic": false,
+        "awsNameTag": "OneAgent monitoring extensions",
+        "hasPublicTraffic": false,
+        "softwareTechnologies": [
+          {
+            "type": "DYNATRACE"
+          }
+        ],
+        "processType": "APMNG"
+      },
+      "tags": [],
+      "managementZones": [],
+      "fromRelationships": {
+        "isNetworkClientOf": [
+          {
+            "id": "PROCESS_GROUP_INSTANCE-A0BD2F9B6FDE952F",
+            "type": "PROCESS_GROUP_INSTANCE"
+          }
+        ],
+        "isInstanceOf": [
+          {
+            "id": "PROCESS_GROUP-B27330900F0E858D",
+            "type": "PROCESS_GROUP"
+          }
+        ],
+        "isProcessOf": [
+          {
+            "id": "HOST-A4FF55197C0F846E",
+            "type": "HOST"
+          }
+        ]
+      },
+      "toRelationships": {}
+    }
+  ]
+}

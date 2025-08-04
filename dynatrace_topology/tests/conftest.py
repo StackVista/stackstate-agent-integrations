@@ -1,9 +1,12 @@
 # (C) StackState 2021
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
-import json
+
 
 import pytest
+import base64
+import json
+import time
 
 from stackstate_checks.dynatrace_topology import DynatraceTopologyCheck
 
@@ -41,8 +44,20 @@ def test_instance_relative_time():
 
 
 @pytest.fixture
-def dynatrace_check(test_instance, aggregator, telemetry, topology, health):
-    check = DynatraceTopologyCheck('dynatrace', {}, {}, instances=[test_instance])
+def dynatrace_check(test_instance, aggregator, telemetry, topology, health, mocker):
+    check = DynatraceTopologyCheck('dynatrace_topology', {}, instances=[test_instance])
+    # mock the factory to return a mock client
+    mocker.patch(
+        'stackstate_checks.dynatrace.dynatrace_client.DynatraceClientFactory.create_client',
+        return_value=check.dynatrace_client_factory.create_client(
+            instance_name=str(test_instance.get('url')),
+            token=test_instance.get('token'),
+            verify=test_instance.get('verify', False),
+            cert=test_instance.get('cert'),
+            keyfile=test_instance.get('keyfile'),
+            timeout=test_instance.get('timeout')
+        )
+    )
     yield check
     aggregator.reset()
     telemetry.reset()
@@ -51,14 +66,30 @@ def dynatrace_check(test_instance, aggregator, telemetry, topology, health):
     check.commit_state(None)
 
 
-def set_http_responses(requests_mock, hosts="[]", applications="[]", services="[]", processes="[]", process_groups="[]",
-                       entities='{"entities": []}', monitors='{"monitors": []}'):
-    requests_mock.get("/api/v1/entity/infrastructure/hosts", text=hosts, status_code=200)
-    requests_mock.get("/api/v1/entity/applications", text=applications, status_code=200)
-    requests_mock.get("/api/v1/entity/services", text=services, status_code=200)
-    requests_mock.get("/api/v1/entity/infrastructure/processes", text=processes, status_code=200)
-    requests_mock.get("/api/v1/entity/infrastructure/process-groups", text=process_groups, status_code=200)
-    requests_mock.get("/api/v2/entities", text=entities, status_code=200)
+def set_http_responses(requests_mock, hosts='{"entities": []}', applications='{"entities": []}',
+                       services='{"entities": []}', processes='{"entities": []}',
+                       process_groups='{"entities": []}', custom_devices='{"entities": []}', queues='{"entities": []}',
+                       monitors='{"monitors": []}'):
+    requests_mock.get("/api/v2/entities?entitySelector=type%28%22HOST%22%29&from=now-1h&fields=%2BfromRelationships%2C"
+                      "%2BtoRelationships%2C%2Btags%2C%2BmanagementZones%2C%2Bproperties", text=hosts, status_code=200)
+    requests_mock.get("/api/v2/entities?entitySelector=type%28%22APPLICATION%22%29&from=now-1h&fields=%2BfromRelations"
+                      "hips%2C%2BtoRelationships%2C%2Btags%2C%2BmanagementZones%2C%2Bproperties", text=applications,
+                      status_code=200)
+    requests_mock.get("/api/v2/entities?entitySelector=type%28%22SERVICE%22%29&from=now-1h&fields=%2BfromRelationships"
+                      "%2C%2BtoRelationships%2C%2Btags%2C%2BmanagementZones%2C%2Bproperties", text=services,
+                      status_code=200)
+    requests_mock.get("/api/v2/entities?entitySelector=type%28%22PROCESS_GROUP_INSTANCE%22%29&from=now-1h&fields=%2Bfr"
+                      "omRelationships%2C%2BtoRelationships%2C%2Btags%2C%2BmanagementZones%2C%2Bproperties",
+                      text=processes, status_code=200)
+    requests_mock.get("/api/v2/entities?entitySelector=type%28%22PROCESS_GROUP%22%29&from=now-1h&fields=%2BfromRelatio"
+                      "nships%2C%2BtoRelationships%2C%2Btags%2C%2BmanagementZones%2C%2Bproperties",
+                      text=process_groups, status_code=200)
+    requests_mock.get("/api/v2/entities?entitySelector=type%28%22CUSTOM_DEVICE%22%29&from=now-1h&fields=%2BfromRelatio"
+                      "nships%2C%2BtoRelationships%2C%2Btags%2C%2BmanagementZones%2C%2Bproperties.dnsNames%2C%2Bproper"
+                      "ties.ipAddress", text=custom_devices, status_code=200)
+    requests_mock.get("/api/v2/entities?entitySelector=type%28%22QUEUE%22%29&from=now-1h&fields=%2BfromRelatio"
+                      "nships%2C%2BtoRelationships%2C%2Btags%2C%2BmanagementZones%2C%2Bproperties",
+                      text=queues, status_code=200)
     requests_mock.get("/api/v1/synthetic/monitors", text=monitors, status_code=200)
 
 
@@ -86,3 +117,29 @@ def assert_topology(expected_topology, test_topology):
     assert len(relations) == len(expected_relations)
     for relation in relations:
         assert relation in expected_relations
+
+
+def set_jwt_mock(requests_mock):
+    fjwt = get_fake_jwt()
+    # Mock the Microsoft login response with a specific pattern
+    requests_mock.post("https://login.microsoftonline.com/test-tenant-id/oauth2/v2.0/token",
+                       json={"access_token": fjwt, "expires_in": 3600},
+                       status_code=200)
+
+
+fake_jwt = ""
+
+
+def get_fake_jwt():
+    global fake_jwt
+
+    if fake_jwt == "":
+        # Create a valid-looking fake JWT for the mock response
+        exp_time = int(time.time()) + 3600
+        header = {"alg": "RS256", "typ": "JWT"}
+        payload = {"exp": exp_time}
+        encoded_header = base64.urlsafe_b64encode(json.dumps(header).encode()).rstrip(b'=').decode()
+        encoded_payload = base64.urlsafe_b64encode(json.dumps(payload).encode()).rstrip(b'=').decode()
+        fake_signature = base64.urlsafe_b64encode(b'fakesignature').rstrip(b'=').decode()
+        fake_jwt = f"{encoded_header}.{encoded_payload}.{fake_signature}"
+    return fake_jwt

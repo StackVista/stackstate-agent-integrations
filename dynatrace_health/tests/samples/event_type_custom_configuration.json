@@ -1,0 +1,6 @@
+{
+  "type": "CUSTOM_CONFIGURATION",
+  "displayName": "Custom Configuration",
+  "severityLevel": "INFO",
+  "description": "A custom configuration event."
+} 

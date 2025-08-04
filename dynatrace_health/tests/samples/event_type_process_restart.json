@@ -1,0 +1,6 @@
+{
+  "type": "PROCESS_RESTART",
+  "displayName": "Process Restart",
+  "severityLevel": "INFO",
+  "description": "A process has been restarted."
+} 

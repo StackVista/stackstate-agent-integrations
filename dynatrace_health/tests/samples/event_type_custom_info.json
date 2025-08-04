@@ -1,0 +1,6 @@
+{
+  "type": "CUSTOM_INFO",
+  "displayName": "Custom Info",
+  "severityLevel": "INFO",
+  "description": "A custom info event."
+} 

@@ -1,0 +1,6 @@
+{
+  "type": "AVAILABILITY_EVENT",
+  "displayName": "Availability Event",
+  "severityLevel": "AVAILABILITY",
+  "description": "An availability event."
+} 

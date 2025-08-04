@@ -1,0 +1,1 @@
+cpu.usage,host=server1 75.5

@@ -1,0 +1,6 @@
+{
+  "type": "PERFORMANCE_EVENT",
+  "displayName": "Performance Event",
+  "severityLevel": "PERFORMANCE",
+  "description": "A performance event."
+} 

@@ -1,0 +1,6 @@
+{
+  "type": "FAILURE_RATE_INCREASED",
+  "displayName": "Failure Rate Increased",
+  "severityLevel": "ERROR",
+  "description": "The failure rate of the service has increased significantly."
+} 

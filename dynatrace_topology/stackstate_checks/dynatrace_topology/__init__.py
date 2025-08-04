@@ -6,5 +6,6 @@ from .dynatrace_topology import DynatraceTopologyCheck
 
 __all__ = [
     '__version__',
-    'DynatraceTopologyCheck'
+    'DynatraceTopologyCheck',
+    'entity_data_types'
 ]

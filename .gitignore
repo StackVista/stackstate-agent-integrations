@@ -131,3 +131,7 @@ splunk_health/splunk.d
 
 # mypy cache
 .mypy_cache
+
+setup_venv.sh
+*_old/
+*_old.py

@@ -1,6 +1,8 @@
 {
   "components": [
     {
+      "id": "CUSTOM_DEVICE-D3692A3DBB1B6420",
+      "type": "custom-device",
       "data": {
         "entityId": "CUSTOM_DEVICE-D3692A3DBB1B6420",
         "displayName": "Test Device",
@@ -26,12 +28,13 @@
           "foo:bar",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
-        ]
-      },
-      "id": "CUSTOM_DEVICE-D3692A3DBB1B6420",
-      "type": "custom-device"
+        ],
+        "type": "CUSTOM_DEVICE"
+      }
     },
     {
+      "id": "CUSTOM_DEVICE-D3692A3DBB1B6419",
+      "type": "custom-device",
       "data": {
         "entityId": "CUSTOM_DEVICE-D3692A3DBB1B6419",
         "displayName": "coffeeMachine",
@@ -57,10 +60,9 @@
           "foo:bar",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
-        ]
-      },
-      "id": "CUSTOM_DEVICE-D3692A3DBB1B6419",
-      "type": "custom-device"
+        ],
+        "type": "CUSTOM_DEVICE"
+      }
     }
   ],
   "relations": [

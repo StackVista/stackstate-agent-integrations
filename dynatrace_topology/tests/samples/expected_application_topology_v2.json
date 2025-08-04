@@ -1,0 +1,52 @@
+{
+   "components":[
+      {
+         "id":"APPLICATION-EA7C4B59F27D43EB",
+         "type":"application",
+         "data":{
+            "displayName":"My web application",
+            "domain":"dynatrace",
+            "entityId":"APPLICATION-EA7C4B59F27D43EB",
+            "environments":[
+               "production"
+            ],
+            "identifiers":[
+               "urn:dynatrace:/APPLICATION-EA7C4B59F27D43EB"
+            ],
+            "instance":"https://instance.live.dynatrace.com",
+            "managementZones":[
+
+            ],
+            "properties":{
+               "applicationInjectionType":"AUTO_INJECTED",
+               "applicationType":"DEFAULT",
+               "customizedName":"My web application",
+               "detectedName":"RUM Default Application"
+            },
+            "tags":[
+               "APPLICATION-EA7C4B59F27D43EB",
+               "integration-type:dynatrace",
+               "integration-url:https://instance.live.dynatrace.com"
+            ],
+            "type":"APPLICATION"
+         }
+      }
+   ],
+   "relations":[
+      {
+         "source_id":"APPLICATION-EA7C4B59F27D43EB",
+         "target_id":"SERVICE-7B2B45284091ED24",
+         "type":"calls",
+         "data":{}
+      },
+      {
+         "source_id":"APPLICATION_METHOD_GROUP-61E0931E1B82A315",
+         "target_id":"APPLICATION-EA7C4B59F27D43EB",
+         "type":"isGroupOf",
+         "data":{}
+      }
+   ],
+   "delete_ids":[
+
+   ]
+}

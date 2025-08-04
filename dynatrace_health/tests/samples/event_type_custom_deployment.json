@@ -1,0 +1,6 @@
+{
+  "type": "CUSTOM_DEPLOYMENT",
+  "displayName": "Custom Deployment",
+  "severityLevel": "INFO",
+  "description": "A custom deployment event."
+} 

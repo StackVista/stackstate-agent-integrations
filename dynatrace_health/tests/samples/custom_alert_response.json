@@ -1,0 +1,159 @@
+{
+  "totalCount": 2,
+  "pageSize": 100,
+  "events": [
+    {
+      "eventId": "-5040209576698850825_1753100820000",
+      "startTime": 1753100820000,
+      "endTime": -1,
+      "eventType": "CUSTOM_ALERT",
+      "title": "container memory alert",
+      "entityId": {
+        "entityId": {
+          "id": "ENVIRONMENT-0000000000000001",
+          "type": "ENVIRONMENT"
+        },
+        "name": "sin85135"
+      },
+      "properties": [
+        {
+          "key": "dt.davis.analysis_time_budget",
+          "value": "0"
+        },
+        {
+          "key": "dt.davis.analysis_trigger_delay",
+          "value": "3600"
+        },
+        {
+          "key": "dt.event.allow_davis_merge",
+          "value": "true"
+        },
+        {
+          "key": "dt.event.allow_frequent_issue_detection",
+          "value": "false"
+        },
+        {
+          "key": "dt.event.description",
+          "value": "The Containers: Memory usage, % of limit value was above normal behavior."
+        },
+        {
+          "key": "dt.event.group_label",
+          "value": "Custom alert"
+        },
+        {
+          "key": "dt.event.impact_level",
+          "value": "Environment"
+        },
+        {
+          "key": "dt.event.is_rootcause_relevant",
+          "value": "true"
+        },
+        {
+          "key": "dt.event.metric_selector",
+          "value": "builtin:containers.memory.usagePercent:splitBy()"
+        },
+        {
+          "key": "dt.event.metric_threshold",
+          "value": "8.1"
+        },
+        {
+          "key": "dt.event.timeout",
+          "value": "15"
+        },
+        {
+          "key": "dt.event.title",
+          "value": "container memory alert"
+        },
+        {
+          "key": "dt.settings.object_id",
+          "value": "vu9U3hXa3q0AAAABACdidWlsdGluOmFub21hbHktZGV0ZWN0aW9uLm1ldHJpYy1ldmVudHMABnRlbmFudAAGdGVuYW50ACQwZjY2ZDQ2OS1iOWQ3LTNkNDItOWM1ZS0yZWFlYjQwZGExNza-71TeFdrerQ"
+        }
+      ],
+      "status": "OPEN",
+      "correlationId": "dd48c57585a85a68",
+      "entityTags": [],
+      "managementZones": [],
+      "underMaintenance": false,
+      "suppressAlert": false,
+      "suppressProblem": false,
+      "frequentEvent": false
+    },
+    {
+      "eventId": "8844910891650886169_1753100460000",
+      "startTime": 1753100460000,
+      "endTime": -1,
+      "eventType": "CUSTOM_ALERT",
+      "title": "cpu usage alert",
+      "entityId": {
+        "entityId": {
+          "id": "ENVIRONMENT-0000000000000001",
+          "type": "ENVIRONMENT"
+        },
+        "name": "sin85135"
+      },
+      "properties": [
+        {
+          "key": "dt.davis.analysis_time_budget",
+          "value": "0"
+        },
+        {
+          "key": "dt.davis.analysis_trigger_delay",
+          "value": "3600"
+        },
+        {
+          "key": "dt.event.allow_davis_merge",
+          "value": "true"
+        },
+        {
+          "key": "dt.event.allow_frequent_issue_detection",
+          "value": "false"
+        },
+        {
+          "key": "dt.event.description",
+          "value": "The Containers: CPU usage, % of limit value was above normal behavior."
+        },
+        {
+          "key": "dt.event.group_label",
+          "value": "Custom alert"
+        },
+        {
+          "key": "dt.event.impact_level",
+          "value": "Environment"
+        },
+        {
+          "key": "dt.event.is_rootcause_relevant",
+          "value": "true"
+        },
+        {
+          "key": "dt.event.metric_selector",
+          "value": "builtin:containers.cpu.usagePercent:splitBy()"
+        },
+        {
+          "key": "dt.event.metric_threshold",
+          "value": "0.5"
+        },
+        {
+          "key": "dt.event.timeout",
+          "value": "15"
+        },
+        {
+          "key": "dt.event.title",
+          "value": "cpu usage alert"
+        },
+        {
+          "key": "dt.settings.object_id",
+          "value": "vu9U3hXa3q0AAAABACdidWlsdGluOmFub21hbHktZGV0ZWN0aW9uLm1ldHJpYy1ldmVudHMABnRlbmFudAAGdGVuYW50ACRlNGU0ZTUwNi0xOWJkLTM5ZDctOGQ3MC0xMTU2ZjhkZmI3ZWO-71TeFdrerQ"
+        }
+      ],
+      "status": "OPEN",
+      "correlationId": "d9c7c37207da88b8",
+      "entityTags": [],
+      "managementZones": [],
+      "underMaintenance": false,
+      "suppressAlert": false,
+      "suppressProblem": false,
+      "frequentEvent": false
+    }
+  ],
+  "warnings": []
+}
