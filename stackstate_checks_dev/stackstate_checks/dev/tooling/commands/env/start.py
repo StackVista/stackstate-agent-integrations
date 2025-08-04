@@ -15,6 +15,7 @@ from ...testing import get_available_tox_envs
 from ...utils import get_tox_file
 from ....utils import dir_exists, file_exists, path_join, read_file
 
+
 def read_agent_version():
     try:
         agent_tag = read_file('agent_version').strip()
@@ -25,6 +26,7 @@ def read_agent_version():
     except Exception as e:
         abort(f'An error occurred: {e}')
         return ''
+
 
 sts_agent_image_tag = read_agent_version()
 
