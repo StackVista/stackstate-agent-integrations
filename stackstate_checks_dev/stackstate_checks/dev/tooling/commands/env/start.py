@@ -13,7 +13,20 @@ from ..console import (
 from ...e2e import E2E_SUPPORTED_TYPES, derive_interface, start_environment, stop_environment
 from ...testing import get_available_tox_envs
 from ...utils import get_tox_file
-from ....utils import dir_exists, file_exists, path_join
+from ....utils import dir_exists, file_exists, path_join, read_file
+
+def read_agent_version():
+    try:
+        agent_tag = read_file('agent_version').strip()
+        return agent_tag
+    except FileNotFoundError:
+        abort('agent_version: file does not exist')
+        return ''
+    except Exception as e:
+        abort(f'An error occurred: {e}')
+        return ''
+
+sts_agent_image_tag = read_agent_version()
 
 
 @click.command(
@@ -22,7 +35,7 @@ from ....utils import dir_exists, file_exists, path_join
 )
 @click.argument('check')
 @click.argument('env')
-@click.option('--agent', '-a', default='quay.io/stackstate/stackstate-k8s-agent:a2f4d43a', show_default=True,
+@click.option('--agent', '-a', default=f'quay.io/stackstate/stackstate-k8s-agent:{sts_agent_image_tag}', show_default=True,
               help='The docker image of the agent to use')
 @click.option('--dev/--prod', default=True, show_default=True,
               help='Use the latest version of a check (or else what is shipped with the agent package)')
