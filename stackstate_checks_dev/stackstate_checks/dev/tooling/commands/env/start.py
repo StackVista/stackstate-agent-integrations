@@ -21,10 +21,10 @@ def read_agent_version():
         agent_tag = read_file('agent_version').strip()
         return agent_tag
     except FileNotFoundError:
-        abort('agent_version: file does not exist')
+        echo_info('agent_version: file does not exist')
         return ''
     except Exception as e:
-        abort(f'An error occurred: {e}')
+        echo_info(f'An error occurred: {e}')
         return ''
 
 
