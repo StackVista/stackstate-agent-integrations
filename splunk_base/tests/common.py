@@ -9,7 +9,7 @@ USER = 'admin'
 PASSWORD = 'admin12345'
 
 empty_instance = {
-    'url': 'http://%s:%s' % (HOST, PORT),
+    'url': 'https://%s:%s' % (HOST, PORT),
     'authentication': {
         'basic_auth': {
             'username': USER,
@@ -37,7 +37,7 @@ default_settings = {
 
 def empty_instance_jwt(initial_token):
     return {
-        'url': 'http://%s:%s' % (HOST, PORT),
+        'url': 'https://%s:%s' % (HOST, PORT),
         'authentication': {
             'basic_auth': {
                 'username': USER,
