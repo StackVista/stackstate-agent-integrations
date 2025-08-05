@@ -1,7 +1,6 @@
 version: '3'
 services:
   splunk:
-    # This image is defined in gitlab.com/stackvista/stackstate-installation/plugin-products/splunk
     image: "splunk/splunk:latest"
     environment:
       SPLUNK_START_ARGS: --accept-license
