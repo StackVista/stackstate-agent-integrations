@@ -98,10 +98,12 @@ class DynatraceHealthCheck(AgentCheck):
         closed_events_count = len(events) - open_events_count
         self.log.info("Collected %d events, %d are open and %d are closed.", len(events), open_events_count,
                       closed_events_count)
-        
+
         # Dictionary to accumulate 404 errors per entity type
         entity_404_errors = {}
-        
+        # Set to track entity types that have caused 404 errors in this run
+        problematic_entity_types = set()
+
         self.health.start_snapshot()
         for event in events:
             # Get the event Type definition from the API.
@@ -131,13 +133,13 @@ class DynatraceHealthCheck(AgentCheck):
                     self.log.warning(f"Event {event.eventId or 'unknown'} has no valid entityId, skipping")
                     continue
                 entity_id = event.entityId.entityId.id or 'unknown'
-                
-                # Skip PROCESS_GROUP_INSTANCE entities
+
+                # Skip PROCESS_GROUP_INSTANCE entities if they've caused 404 errors in this run
                 entity_type = self._extract_entity_type(entity_id)
-                if entity_type == 'PROCESS_GROUP_INSTANCE':
-                    self.log.debug(f"Skipping PROCESS_GROUP_INSTANCE entity {entity_id} for event {event.eventId or 'unknown'}")
+                if entity_type == 'PROCESS_GROUP_INSTANCE' and entity_type in problematic_entity_types:
+                    self.log.debug(f"Skipping PROCESS_GROUP_INSTANCE entity {entity_id} due to previous 404 errors")
                     continue
-                
+
                 entity_endpoint = f"{instance_info.url}/api/v2/entities/{entity_id}"
                 try:
                     entity_data = dynatrace_client.get_dynatrace_json_response(entity_endpoint, None)
@@ -152,6 +154,8 @@ class DynatraceHealthCheck(AgentCheck):
                         if entity_type not in entity_404_errors:
                             entity_404_errors[entity_type] = 0
                         entity_404_errors[entity_type] += 1
+                        # Mark this entity type as problematic for this run
+                        problematic_entity_types.add(entity_type)
                     else:
                         # Log non-404 errors as warnings
                         self.log.info(
@@ -172,15 +176,17 @@ class DynatraceHealthCheck(AgentCheck):
                         self.log.warning(
                             f"Event {event.eventId or 'unknown'} has no valid entityId, skipping health state creation")
                         continue
-                    
+
                     entity_id = event.entityId.entityId.id or 'unknown'
-                    
-                    # Skip PROCESS_GROUP_INSTANCE entities
+
+                    # Skip PROCESS_GROUP_INSTANCE entities if they've caused 404 errors in this run
                     entity_type = self._extract_entity_type(entity_id)
-                    if entity_type == 'PROCESS_GROUP_INSTANCE':
-                        self.log.debug(f"Skipping PROCESS_GROUP_INSTANCE entity {entity_id} for health state creation")
+                    if entity_type == 'PROCESS_GROUP_INSTANCE' and entity_type in problematic_entity_types:
+                        self.log.debug(
+                            f"Skipping PROCESS_GROUP_INSTANCE entity {entity_id} for health state creation due to "
+                            f"previous 404 errors")
                         continue
-                    
+
                     identifier = Identifiers.create_custom_identifier("dynatrace", entity_id)
                     self.health.check_state(
                         check_state_id=entity_id,
@@ -196,7 +202,7 @@ class DynatraceHealthCheck(AgentCheck):
                 except Exception as e:
                     # Extract entity ID using helper method
                     entity_id = self._get_entity_id(event)
-                    
+
                     # Check if this is a 404 error (entity no longer exists)
                     if "404" in str(e) or "not found" in str(e).lower():
                         # Extract entity type from entity_id if possible
@@ -204,6 +210,8 @@ class DynatraceHealthCheck(AgentCheck):
                         if entity_type not in entity_404_errors:
                             entity_404_errors[entity_type] = 0
                         entity_404_errors[entity_type] += 1
+                        # Mark this entity type as problematic for this run
+                        problematic_entity_types.add(entity_type)
                     else:
                         # Log non-404 errors as warnings
                         self.log.warning(
@@ -211,11 +219,11 @@ class DynatraceHealthCheck(AgentCheck):
                             f"{entity_id}: {e}")
                     # Skip this event since we can't create the health state
                     continue
-        
+
         # Log accumulated 404 errors as INFO messages per entity type
         for entity_type, count in entity_404_errors.items():
             self.log.info(f"Found {count} events referencing {entity_type} entities that no longer exist")
-        
+
         self.health.stop_snapshot()
         if events_limit_reached:
             raise EventLimitReachedException(events_limit_reached)
@@ -368,7 +376,7 @@ class DynatraceHealthCheck(AgentCheck):
         """
         if not entity_id or entity_id == 'unknown':
             return 'unknown'
-        
+
         # Try to extract entity type from the entity ID
         # Dynatrace entity IDs typically follow the pattern: TYPE-UNIQUE_ID
         parts = entity_id.split('-', 1)
