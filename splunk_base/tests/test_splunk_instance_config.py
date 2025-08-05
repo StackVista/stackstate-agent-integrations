@@ -1,3 +1,5 @@
+import pytest
+
 # stdlib
 import textwrap
 import unittest
@@ -6,6 +8,10 @@ import unittest
 from stackstate_checks.splunk.config import AuthType, SplunkInstanceConfig
 from stackstate_checks.base.errors import CheckException
 from pydantic import ValidationError
+
+# Mark the entire module as tests of type `unit`
+pytestmark = pytest.mark.unit
+
 
 mock_defaults = {
     'default_request_timeout_seconds': 5,

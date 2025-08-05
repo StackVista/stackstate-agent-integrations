@@ -28,12 +28,13 @@ DEFAULT_CONFIG = OrderedDict([
     ('integrations', os.path.join('~', 'stackvista', 'stackstate-agent-integrations')),
     ('core', os.path.join('~', 'stackvista', 'stackstate-agent')),
     ('agent', OrderedDict((
-      ('docker', 'stackstate/stackstate-agent-2:latest'),
+      ('docker', 'quay.io/stackstate/stackstate-k8s-agent:a2f4d43a'),
       ('local', 'latest')
     ))),
     ('sts_api_key', os.getenv('STS_API_KEY')),
     ('sts_sts_url', os.getenv('STS_STS_URL')),
     ('cluster_name', os.getenv('CLUSTER_NAME')),
+    ('sts_hostname', os.getenv('STS_HOSTNAME')),
     ('github', OrderedDict((
         ('user', ''),
         ('token', ''),

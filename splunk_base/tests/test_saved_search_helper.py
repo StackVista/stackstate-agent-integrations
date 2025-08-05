@@ -1,3 +1,5 @@
+import pytest
+
 # stdlib
 import unittest
 import logging
@@ -9,6 +11,9 @@ from test_splunk_instance_config import mock_defaults
 from stackstate_checks.splunk.saved_search_helper import SavedSearches
 from stackstate_checks.base import AgentCheck
 from stackstate_checks.base.errors import CheckException
+
+# Mark the entire module as tests of type `unit`
+pytestmark = pytest.mark.unit
 
 
 class MockSplunkClient(object):
