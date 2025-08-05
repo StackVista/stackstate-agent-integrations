@@ -8,7 +8,7 @@ from stackstate_checks.splunk.client import SplunkClient
 from stackstate_checks.splunk.config import AuthType, SplunkPersistentState
 from stackstate_checks.splunk.config.splunk_instance_config import SplunkInstanceConfig
 
-from common import empty_instance, empty_instance_jwt, default_settings
+from common import empty_instance, empty_instance_jwt, default_settings, JWT_UPGRADE_WAIT_TIME
 
 
 def upgrade_to_jwt_auth(client, name):
@@ -17,7 +17,7 @@ def upgrade_to_jwt_auth(client, name):
 
     client.auth_session(state)
     # Ensure Splunk's KV store is ready
-    time.sleep(10)
+    time.sleep(JWT_UPGRADE_WAIT_TIME)
     response = client._do_post('/services/authorization/tokens?output_mode=json', payload, 30)
     response_json = response.json()
 
