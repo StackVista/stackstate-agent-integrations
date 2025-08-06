@@ -8,8 +8,13 @@ PORT = '8089'
 USER = 'admin'
 PASSWORD = 'admin12345'
 
+# For a connection to be upgraded to a JWT powered one, Splunk's KV store
+# must be ready to accept connections. Sometimes this is not the case, so
+# we have to wait for a number of seconds.
+JWT_UPGRADE_WAIT_TIME = 60
+
 empty_instance = {
-    'url': 'http://%s:%s' % (HOST, PORT),
+    'url': 'https://%s:%s' % (HOST, PORT),
     'authentication': {
         'basic_auth': {
             'username': USER,
@@ -37,7 +42,7 @@ default_settings = {
 
 def empty_instance_jwt(initial_token):
     return {
-        'url': 'http://%s:%s' % (HOST, PORT),
+        'url': 'https://%s:%s' % (HOST, PORT),
         'authentication': {
             'basic_auth': {
                 'username': USER,
