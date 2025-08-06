@@ -1,8 +1,12 @@
 version: '3'
 services:
   splunk:
-    # This image is defined in gitlab.com/stackvista/stackstate-installation/plugin-products/splunk
-    image: "registry.tooling.stackstate.io/docker/stackstate/splunk-test:7.3"
+    # this image is defined in gitlab.com/stackvista/stackstate-installation/plugin-products/splunk
+    image: "splunk/splunk:latest"
+    environment:
+      SPLUNK_START_ARGS: --accept-license
+      SPLUNK_PASSWORD: admin12345
+      SPLUNK_GENERAL_TERMS: --accept-sgt-current-at-splunk-com
     ports:
       - 8000:8000
       - 8089:8089

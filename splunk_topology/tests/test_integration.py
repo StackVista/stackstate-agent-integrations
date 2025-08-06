@@ -22,7 +22,7 @@ def test_component_search(topology, splunk_components_instance):
                                      'data': {
                                          u"description": 'My important server 2',
                                          u"tags": ['integration-type:splunk',
-                                                   'integration-url:http://%s:8089' % HOST,
+                                                   'integration-url:https://%s:8089' % HOST,
                                                    'mytag', 'mytag2']
                                      }
                                  }, {
@@ -31,7 +31,7 @@ def test_component_search(topology, splunk_components_instance):
                                      'data': {
                                          u"description": 'My important server 1',
                                          u"tags": ['integration-type:splunk',
-                                                   'integration-url:http://%s:8089' % HOST,
+                                                   'integration-url:https://%s:8089' % HOST,
                                                    'mytag', 'mytag2']
                                      }
                                  }],

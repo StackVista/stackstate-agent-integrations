@@ -14,7 +14,7 @@ from .common import HOST, PORT, USER, PASSWORD
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 _empty_instance = {
-    'url': 'http://%s:%s' % (HOST, PORT),
+    'url': 'https://%s:%s' % (HOST, PORT),
     'authentication': {
         'basic_auth': {
             'username': USER,
@@ -49,7 +49,7 @@ def sts_environment(test_environment):
     """
     Start a standalone splunk server requiring authentication.
     """
-    url = 'http://%s:%s' % (HOST, PORT)
+    url = 'https://%s:%s' % (HOST, PORT)
     yield {
         'url': url,
         'authentication': {
@@ -70,7 +70,7 @@ def sts_environment(test_environment):
 
 @pytest.fixture
 def splunk_components_instance():
-    url = 'http://%s:%s' % (HOST, PORT)
+    url = 'https://%s:%s' % (HOST, PORT)
     return {
         'url': url,
         'authentication': {
@@ -89,7 +89,7 @@ def splunk_components_instance():
 
 @pytest.fixture
 def splunk_relations_instance():
-    url = 'http://%s:%s' % (HOST, PORT)
+    url = 'https://%s:%s' % (HOST, PORT)
     return {
         'url': url,
         'authentication': {
@@ -111,12 +111,15 @@ def _make_components_fixture(url, user, passw):
     search = {'name': search_name,
               'search': '* topo_type=component | dedup id | sort - id | fields id, type, description, running'}
     # Delete first to avoid 409 in case of tearing down the `checksdev env stop`
-    requests.delete("%s/services/saved/searches/%s" % (url, search_name), auth=(user, passw))
-    requests.post("%s/services/saved/searches" % url, data=search, auth=(user, passw)).raise_for_status()
+    requests.delete("%s/services/saved/searches/%s" % (url, search_name), verify=False, auth=(user, passw))
+    requests.post("%s/services/saved/searches" % url, verify=False,
+                  data=search, auth=(user, passw)).raise_for_status()
     json_data = {"topo_type": "component", "id": "server_1", "type": "server", "description": "My important server 1"}
-    requests.post("%s/services/receivers/simple" % url, json=json_data, auth=(user, passw)).raise_for_status()
+    requests.post("%s/services/receivers/simple" % url, verify=False,
+                  json=json_data, auth=(user, passw)).raise_for_status()
     json_data = {"topo_type": "component", "id": "server_2", "type": "server", "description": "My important server 2"}
-    requests.post("%s/services/receivers/simple" % url, json=json_data, auth=(user, passw)).raise_for_status()
+    requests.post("%s/services/receivers/simple" % url, verify=False,
+                  json=json_data, auth=(user, passw)).raise_for_status()
     return search_name
 
 
@@ -126,9 +129,11 @@ def _make_relations_fixture(url, user, passw):
               'search': '* topo_type=relation | dedup type, sourceId, targetId | \
 fields type, sourceId, targetId, description'}
     # Delete first to avoid 409 in case of tearing down the `checksdev env stop`
-    requests.delete("%s/services/saved/searches/%s" % (url, search_name), auth=(user, passw))
-    requests.post("%s/services/saved/searches" % url, data=search, auth=(user, passw)).raise_for_status()
+    requests.delete("%s/services/saved/searches/%s" % (url, search_name), verify=False, auth=(user, passw))
+    requests.post("%s/services/saved/searches" % url, verify=False,
+                  data=search, auth=(user, passw)).raise_for_status()
     json_data = {"topo_type": "relation", "type": "CONNECTED", "sourceId": "server_1", "targetId": "server_2",
                  "description": "Some relation"}
-    requests.post("%s/services/receivers/simple" % url, json=json_data, auth=(user, passw)).raise_for_status()
+    requests.post("%s/services/receivers/simple" % url, verify=False,
+                  json=json_data, auth=(user, passw)).raise_for_status()
     return search_name
