@@ -72,7 +72,7 @@ class TestSplunkCheck(unittest.TestCase):
     CHECK_NAME = "splunk"
 
     instance = {
-        'url': 'http://localhost:8089',
+        'url': 'https://localhost:8089',
         'authentication': {
             'basic_auth': {
                 'username': "admin",
@@ -83,7 +83,7 @@ class TestSplunkCheck(unittest.TestCase):
         'collection_interval': 15
     }
 
-    instance_key = TopologyInstance("splunk", "http://localhost:8089")
+    instance_key = TopologyInstance("splunk", "https://localhost:8089")
 
     def setUp(self):
         """
@@ -103,7 +103,7 @@ class TestSplunkCheck(unittest.TestCase):
 
     def test_health_data(self):
         instance = {
-            'url': 'http://localhost:8089',
+            'url': 'https://localhost:8089',
             'authentication': {
                 'basic_auth': {
                     'username': "admin",
@@ -137,7 +137,7 @@ class TestSplunkCheck(unittest.TestCase):
 
     def test_incomplete_health(self):
         instance = {
-            'url': 'http://localhost:8089',
+            'url': 'https://localhost:8089',
             'authentication': {
                 'basic_auth': {
                     'username': "admin",
@@ -160,7 +160,7 @@ class TestSplunkCheck(unittest.TestCase):
 
     def test_partially_incomplete(self):
         instance = {
-            'url': 'http://localhost:8089',
+            'url': 'https://localhost:8089',
             'authentication': {
                 'basic_auth': {
                     'username': "admin",
@@ -193,7 +193,7 @@ class TestSplunkCheck(unittest.TestCase):
 
     def test_wrong_health(self):
         instance = {
-            'url': 'http://localhost:8089',
+            'url': 'https://localhost:8089',
             'authentication': {
                 'basic_auth': {
                     'username': "admin",
@@ -226,7 +226,7 @@ class TestSplunkCheck(unittest.TestCase):
 
     def test_handle_saved_search_run_error(self):
         instance = {
-            'url': 'http://localhost:8089',
+            'url': 'https://localhost:8089',
             'authentication': {
                 'basic_auth': {
                     'username': "admin",
@@ -248,7 +248,7 @@ class TestSplunkCheck(unittest.TestCase):
 
     def test_ignore_saved_search_run_error(self):
         instance = {
-            'url': 'http://localhost:8089',
+            'url': 'https://localhost:8089',
             'authentication': {
                 'basic_auth': {
                     'username': "admin",
@@ -271,7 +271,7 @@ class TestSplunkCheck(unittest.TestCase):
 
     def test_default_parameters(self):
         instance = {
-            'url': 'http://localhost:8089',
+            'url': 'https://localhost:8089',
             'authentication': {
                 'basic_auth': {
                     'username': "admin",
@@ -292,7 +292,7 @@ class TestSplunkCheck(unittest.TestCase):
 
     def test_non_default_parameters(self):
         instance = {
-            'url': 'http://localhost:8089',
+            'url': 'https://localhost:8089',
             'authentication': {
                 'basic_auth': {
                     'username': "admin",
@@ -317,7 +317,7 @@ class TestSplunkCheck(unittest.TestCase):
 
     def test_non_default_parameters_override(self):
         instance = {
-            'url': 'http://localhost:8089',
+            'url': 'https://localhost:8089',
             'authentication': {
                 'basic_auth': {
                     'username': "admin",
@@ -349,7 +349,7 @@ class TestSplunkCheck(unittest.TestCase):
         """
 
         instance = {
-            'url': 'http://localhost:8089',
+            'url': 'https://localhost:8089',
             'authentication': {
                 'token_auth': {
                     'name': "admin",
@@ -370,7 +370,7 @@ class TestSplunkCheck(unittest.TestCase):
             Splunk check should not work with invalid initial token and stop the check
         """
         instance = {
-            'url': 'http://localhost:8089',
+            'url': 'https://localhost:8089',
             'authentication': {
                 'token_auth': {
                     'name': "admin",

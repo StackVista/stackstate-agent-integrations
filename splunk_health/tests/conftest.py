@@ -15,7 +15,7 @@ from .common import HOST, PORT, USER, PASSWORD
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 _empty_instance = {
-    'url': 'http://%s:%s' % (HOST, PORT),
+    'url': 'https://%s:%s' % (HOST, PORT),
     'authentication': {
         'basic_auth': {
             'username': USER,
@@ -49,7 +49,7 @@ def sts_environment(test_environment):
     """
     Start a standalone splunk server requiring authentication.
     """
-    url = 'http://%s:%s' % (HOST, PORT)
+    url = 'https://%s:%s' % (HOST, PORT)
     yield {
         'url': url,
         'authentication': {
@@ -67,7 +67,7 @@ def sts_environment(test_environment):
 
 @pytest.fixture
 def splunk_health_instance():
-    url = 'http://%s:%s' % (HOST, PORT)
+    url = 'https://%s:%s' % (HOST, PORT)
     return {
         'url': url,
         'authentication': {
@@ -89,17 +89,20 @@ def _make_health_fixture(url, user, passw):
               'search': '* | dedup check_state_id | sort - check_state_id | '
                         'fields check_state_id, name, health, topology_element_identifier, message'}
     # Delete first to avoid 409 in case of tearing down the `checksdev env stop`
-    requests.delete("%s/services/saved/searches/%s" % (url, search_name), auth=(user, passw))
-    requests.post("%s/services/saved/searches" % url, data=search, auth=(user, passw)).raise_for_status()
+    requests.delete("%s/services/saved/searches/%s" % (url, search_name), auth=(user, passw), verify=False)
+    requests.post("%s/services/saved/searches" % url, verify=False,
+                  data=search, auth=(user, passw)).raise_for_status()
     json_data = {"check_state_id": "disk_sda",
                  "name": "Disk sda",
                  "health": "clear",
                  "topology_element_identifier": "component1",
                  "message": "sda message"}
-    requests.post("%s/services/receivers/simple" % url, json=json_data, auth=(user, passw)).raise_for_status()
+    requests.post("%s/services/receivers/simple" % url, verify=False,
+                  json=json_data, auth=(user, passw)).raise_for_status()
     json_data = {"check_state_id": "disk_sdb",
                  "name": "Disk sdb",
                  "health": "critical",
                  "topology_element_identifier": "component2"}
-    requests.post("%s/services/receivers/simple" % url, json=json_data, auth=(user, passw)).raise_for_status()
+    requests.post("%s/services/receivers/simple" % url, verify=False,
+                  json=json_data, auth=(user, passw)).raise_for_status()
     return search_name
