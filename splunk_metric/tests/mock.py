@@ -47,7 +47,7 @@ def generate_mock_token(expire_time):
 
 
 def request_mock_post_token_authentication(requests_mock, logger):
-    url = "http://%s:%s/services/authorization/tokens?output_mode=json" % (HOST, PORT)
+    url = "https://%s:%s/services/authorization/tokens?output_mode=json" % (HOST, PORT)
     logger.debug("Mocking POST request URL for Token Authentication: %s" % url)
 
     token_expire_time = datetime.now() + timedelta(days=100)
@@ -81,7 +81,7 @@ def request_mock_post_token_authentication(requests_mock, logger):
 
 
 def request_mock_post_basic_authentication(requests_mock, logger):
-    url = "http://%s:%s/services/auth/login?output_mode=json" % (HOST, PORT)
+    url = "https://%s:%s/services/auth/login?output_mode=json" % (HOST, PORT)
     logger.debug("Mocking POST request URL for Basic Authentication: %s" % url)
 
     requests_mock.post(
@@ -92,7 +92,7 @@ def request_mock_post_basic_authentication(requests_mock, logger):
 
 
 def request_mock_get_save_searches(requests_mock, logger):
-    url = "http://%s:%s/services/saved/searches?output_mode=json&count=-1" % (HOST, PORT)
+    url = "https://%s:%s/services/saved/searches?output_mode=json&count=-1" % (HOST, PORT)
     logger.debug("Mocking GET request URL for Saved Searches: %s" % url)
 
     # List saved searches
@@ -110,7 +110,7 @@ def request_mock_get_save_searches(requests_mock, logger):
 
 
 def request_mock_get_search_alternative(requests_mock, request_id, logger, force_failure=False):
-    url = "http://%s:%s/servicesNS/-/-/search/jobs/%s/results?output_mode=json&offset=0&count=1000" \
+    url = "https://%s:%s/servicesNS/-/-/search/jobs/%s/results?output_mode=json&offset=0&count=1000" \
           % (HOST, PORT, request_id)
     logger.debug("Mocking GET request URL for Search with Alternative Request Id: %s" % url)
 
@@ -127,7 +127,7 @@ def request_mock_get_search_alternative(requests_mock, request_id, logger, force
 
 
 def request_mock_get_search(requests_mock, request_id, logger, force_failure=False):
-    url = "http://%s:%s/servicesNS/-/-/search/jobs/" \
+    url = "https://%s:%s/servicesNS/-/-/search/jobs/" \
           "stackstate_checks.base.checks.base.metric-check-name/results?output_mode=json&offset=0&count=1000" \
           % (HOST, PORT)
     logger.debug("Mocking GET request URL for Search: %s" % url)
@@ -145,7 +145,7 @@ def request_mock_get_search(requests_mock, request_id, logger, force_failure=Fal
 
 
 def request_mock_post_dispatch_saved_search(requests_mock, request_id, logger, audience, force_failure=False):
-    url = "http://%s:%s/servicesNS/%s/search/saved/searches/%s/dispatch" % (HOST, PORT, audience, request_id)
+    url = "https://%s:%s/servicesNS/%s/search/saved/searches/%s/dispatch" % (HOST, PORT, audience, request_id)
     logger.debug("Mocking POST request URL for Dispatch Saved Search: %s" % url)
 
     if force_failure is True:
@@ -159,7 +159,7 @@ def request_mock_post_dispatch_saved_search(requests_mock, request_id, logger, a
 
 
 def request_mock_post_finalize_sid(requests_mock, logger, finalize_search_id):
-    url = "http://%s:%s/services/search/jobs/%s/control" % (HOST, PORT, finalize_search_id)
+    url = "https://%s:%s/services/search/jobs/%s/control" % (HOST, PORT, finalize_search_id)
     logger.debug("Mocking POST request URL for Dispatch Saved Search: %s" % url)
 
     requests_mock.post(

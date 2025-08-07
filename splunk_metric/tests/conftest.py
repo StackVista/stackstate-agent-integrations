@@ -48,7 +48,7 @@ def splunk_config():  # type: () -> SplunkConfig
 @pytest.fixture
 def splunk_instance_basic_auth():  # type: () -> SplunkConfigInstance
     splunk_config = SplunkConfigInstance(**{
-        'url': 'http://%s:%s' % (HOST, PORT),
+        'url': 'https://%s:%s' % (HOST, PORT),
         'authentication': {
             'basic_auth': {
                 'username': USER,
@@ -65,7 +65,7 @@ def splunk_instance_token_auth():  # type: () -> SplunkConfigInstance
     token_expire_time = datetime.now() + timedelta(days=999)
 
     splunk_config = SplunkConfigInstance(**{
-        'url': 'http://%s:%s' % (HOST, PORT),
+        'url': 'https://%s:%s' % (HOST, PORT),
         'authentication': {
             'token_auth': {
                 'name': "api-admin",
@@ -1182,7 +1182,7 @@ def _connect_to_splunk():  # type: () -> None
     SplunkClient(
         SplunkInstanceConfig(
             {
-                'url': 'http://%s:%s' % (HOST, PORT),
+                'url': 'https://%s:%s' % (HOST, PORT),
                 'authentication': {
                     'basic_auth': {
                         'username': USER,
@@ -1217,7 +1217,7 @@ def sts_environment(test_environment  # type: Generator
     """
     This fixture is used for checksdev env start.
     """
-    url = 'http://%s:%s' % (HOST, PORT)
+    url = 'https://%s:%s' % (HOST, PORT)
     yield {
         'url': url,
         'authentication': {
@@ -1235,7 +1235,7 @@ def sts_environment(test_environment  # type: Generator
 
 @pytest.fixture
 def metric_integration_test_instance():  # type: () -> Dict
-    url = 'http://%s:%s' % (HOST, PORT)
+    url = 'https://%s:%s' % (HOST, PORT)
     return {
         'url': url,
         'authentication': {
@@ -1265,7 +1265,7 @@ def _make_event_fixture(url,  # type: str
     metric_values = range(10)
 
     # Delete first to avoid 409 in case of tearing down the `checksdev env stop`
-    requests.delete("%s/services/saved/searches/%s" % (url, saved_search), auth=(user, password))
+    requests.delete("%s/services/saved/searches/%s" % (url, saved_search), verify=False, auth=(user, password))
 
     requests.post("%s/services/saved/searches" % url,
                   data={"name": saved_search,
@@ -1274,9 +1274,10 @@ def _make_event_fixture(url,  # type: str
                                   'AND value!="" '
                                   'AND metric!="" '
                                   '| table _bkt _cd _time metric value host'.format(source_type, saved_search)},
-                  auth=(user, password)).raise_for_status()
+                  auth=(user, password), verify=False).raise_for_status()
     for value in metric_values:
         requests.post("%s/services/receivers/simple" % url,
+                      verify=False,
                       params={"host": "server_1", "sourcetype": source_type},
                       json={"topo_type": saved_search, "metric": "raw.metric", "value": value, "qa": "splunk"},
                       auth=(USER, PASSWORD)).raise_for_status()
