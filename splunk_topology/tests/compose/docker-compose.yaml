@@ -1,8 +1,7 @@
 version: '3'
 services:
   splunk:
-    # this image is defined in gitlab.com/stackvista/stackstate-installation/plugin-products/splunk
-    image: "splunk/splunk:latest"
+    image: "registry.tooling.stackstate.io/docker/splunk/splunk:latest"
     environment:
       SPLUNK_START_ARGS: --accept-license
       SPLUNK_PASSWORD: admin12345
