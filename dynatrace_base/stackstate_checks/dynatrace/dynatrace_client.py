@@ -56,7 +56,25 @@ class _DynatraceClient:
                         msg = response_json["error"].get("message")
                     else:
                         msg = "Got %s when hitting %s" % (response.status_code, endpoint)
-                    self.log.error(msg)
+
+                    # Downgrade logging level to INFO for 404s when retrieving PROCESS_GROUP_INSTANCE entities
+                    if (
+                        response.status_code == 404
+                        and "/api/v2/entities/" in endpoint
+                    ):
+                        try:
+                            entity_id_part = endpoint.split("/api/v2/entities/")[1]
+                            entity_id = entity_id_part.split("?")[0]
+                            if entity_id.startswith("PROCESS_GROUP_INSTANCE"):
+                                self.log.info(msg)
+                            else:
+                                self.log.error(msg)
+                        except Exception:
+                            # Fallback to error level if parsing fails
+                            self.log.error(msg)
+                    else:
+                        self.log.error(msg)
+
                     raise Exception(
                         'Got an unexpected error with status code %s and message: %s' % (response.status_code, msg))
                 return response_json

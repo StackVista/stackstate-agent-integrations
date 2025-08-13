@@ -314,6 +314,9 @@ class DynatraceTopologyCheck(AgentCheck):
             tags.extend(instance_info.instance_tags)
             data.update(item)
             self._filter_item_topology_data(data)
+            # Normalize API v2 process-group payloads to v1-style shape expected by StackPack/tests
+            if component_type == "process-group":
+                data = self._normalize_process_group_v2_to_v1(data)
             data.update({
                 "identifiers": identifiers,
                 "tags": tags,
@@ -400,6 +403,77 @@ class DynatraceTopologyCheck(AgentCheck):
         if "lastSeenTimestamp" in component:
             del component["lastSeenTimestamp"]
         return component
+
+    @staticmethod
+    def _normalize_process_group_v2_to_v1(data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Convert Dynatrace Entities API v2 process-group element shape into the Smartscape v1-like shape.
+        - Move properties.listenPorts -> listenPorts (top-level)
+        - Move properties.softwareTechnologies -> softwareTechnologies (top-level)
+        - Convert properties.metadata (list of {key,value}) -> metadata (dict of lists) with v1 field names
+        - Map properties.detectedName -> discoveredName (top-level) when absent
+        """
+        properties = data.get("properties") or {}
+        if not isinstance(properties, dict):
+            return data
+
+        # 1) Move listenPorts to top-level
+        listen_ports = properties.pop("listenPorts", None)
+        if listen_ports and isinstance(listen_ports, list):
+            data["listenPorts"] = listen_ports
+
+        # 2) Move softwareTechnologies to top-level
+        software_techs = properties.pop("softwareTechnologies", None)
+        if software_techs and isinstance(software_techs, list):
+            data["softwareTechnologies"] = software_techs
+
+        # 3) Map detectedName -> discoveredName if missing
+        detected_name = properties.get("detectedName")
+        if detected_name and not data.get("discoveredName"):
+            data["discoveredName"] = detected_name
+
+        # 4) Convert metadata entries list -> dict-of-arrays with v1 keys
+        metadata_entries = properties.pop("metadata", None)
+        if metadata_entries and isinstance(metadata_entries, list):
+            key_mapping = {
+                "COMMAND_LINE_ARGS": "commandLineArgs",
+                "EXE_NAME": "executables",
+                "EXE_PATH": "executablePaths",
+                "JAVA_MAIN_CLASS": "javaMainClasses",
+                # Common container/process extras (kept under metadata for backwards compatibility)
+                "CONTAINER_IMAGE_NAME": "containerImageNames",
+                "CONTAINER_IMAGE_VERSION": "containerImageVersions",
+                "CONTAINER_NAME": "containerNames",
+                # Elasticsearch specific
+                "ELASTIC_SEARCH_CLUSTER_NAMES": "elasticSearchClusterNames",
+                "ELASTIC_SEARCH_NODE_NAMES": "elasticSearchNodeNames",
+                # Misc linkage key often present in v2
+                "PG_ID_CALC_INPUT_KEY_LINKAGE": "pgIdCalcInputKeyLinkage",
+                # Java packaging
+                "JAVA_JAR_FILE": "javaJarFiles",
+                "JAVA_JAR_PATH": "javaJarPaths",
+            }
+            meta_out: Dict[str, List[Any]] = {}
+            for entry in metadata_entries:
+                if not isinstance(entry, dict):
+                    continue
+                raw_key = entry.get("key")
+                value = entry.get("value")
+                if not raw_key:
+                    continue
+                target_key = key_mapping.get(raw_key)
+                if not target_key:
+                    # If we don't recognize the key, keep it under a generic map using its raw name
+                    target_key = raw_key
+                if target_key not in meta_out:
+                    meta_out[target_key] = []
+                # Store non-null values
+                if value is not None:
+                    meta_out[target_key].append(value)
+            if meta_out:
+                data["metadata"] = meta_out
+
+        return data
 
     @staticmethod
     def _get_host_identifiers(component):
