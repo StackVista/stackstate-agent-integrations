@@ -56,9 +56,9 @@ class SplunkConfigInstance(ForgivingBaseModel):
     ignore_saved_search_errors: bool = False
     saved_searches: List[SplunkConfigSavedSearchDefault] = []
     verify_ssl_certificate: Optional[bool] = None
-    cert = Optional[str] = None
-    keyfile = Optional[str] = None
-    timeout = int = SPLUNK_TIMEOUT
+    cert: Optional[str] = None
+    keyfile: Optional[str] = None
+    timeout: int = SPLUNK_TIMEOUT
 
 
 class SplunkConfig(ForgivingBaseModel):
