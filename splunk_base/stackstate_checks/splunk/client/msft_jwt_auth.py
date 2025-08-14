@@ -115,4 +115,3 @@ class MsJWTAuth:
         else:
             self.log.info(f"Token is still valid for {expiry_minutes:.2f} minutes.")
             return False
-
