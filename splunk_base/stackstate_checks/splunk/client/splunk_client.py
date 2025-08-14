@@ -51,7 +51,11 @@ class SplunkClient:
         self.requests_session = requests.session()
         self.jwt_adapter = None
         if os.getenv("MS_JWT_AUTH"):
-            self.jwt_adapter = MsJWTAuth()
+            self.jwt_adapter = MsJWTAuth(
+                    instance_config.verify_ssl_certificate,
+                    instance_config.cert,
+                    instance_config.keyfile,
+                    instance_config.timeout)
         else:
             self.jwt_adapter = SplunkJWTAuth(instance_config, self._do_post)
 
