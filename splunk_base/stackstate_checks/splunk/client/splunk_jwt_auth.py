@@ -4,17 +4,20 @@ from datetime import datetime, timezone
 import jwt
 import requests
 
+
 class SplunkJWTAuth:
 
-    def __init__(self, instance_config, get_current_time, post_fn):
-        # Passing time function from the outside for easier mocking and integration
+    def __init__(self, instance_config, post_fn):
         self.log = logging.getLogger('%s' % __name__)
         self.instance_config = instance_config
-        self._get_current_time = get_current_time
         self._do_post = post_fn
 
+    def _current_time(self):
+        """ This method is mocked for testing. Do not change its behavior """
+        return datetime.utcnow()
+
     def _get_renewal_days(self, token, is_initial_token=False):
-        current_time = self._get_current_time()
+        current_time = self._current_time()
         decoded_token = jwt.decode(token, options={"verify_signature": False}, algorithms=['HS512'])
         expiry_time = decoded_token.get("exp")
         if expiry_time == 0 and is_initial_token:

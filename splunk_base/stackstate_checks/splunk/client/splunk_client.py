@@ -53,7 +53,7 @@ class SplunkClient:
         if os.getenv("MS_JWT_AUTH"):
             self.jwt_adapter = MsJWTAuth()
         else:
-            self.jwt_adapter = SplunkJWTAuth(instance_config, self._current_time, self._do_post)
+            self.jwt_adapter = SplunkJWTAuth(instance_config, self._do_post)
 
     def auth_session(self, committable_state):
         if self.instance_config.auth_type == AuthType.BasicAuth:
@@ -110,14 +110,10 @@ class SplunkClient:
     def _create_auth_token(self, token):
         self.log.debug("Creating a new authentication token")
         self.requests_session.headers.update({'Authorization': "Bearer %s" % token})
-        
+
         new_token = self.jwt_adapter.generate_token()
         self.requests_session.headers.update({'Authorization': "Bearer %s" % new_token})
         return new_token
-
-    def _current_time(self):
-        """ This method is mocked for testing. Do not change its behavior """
-        return datetime.datetime.utcnow()
 
     def saved_searches(self, splunk_app=None):
         """
