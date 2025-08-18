@@ -95,12 +95,17 @@ class MsJWTAuth:
             else:
                 self.log.warning("No expiry found in token, setting default expiry")
                 self._token_expiry = datetime.now(timezone.utc)
+
+            return self._token
         except jwt.InvalidTokenError as e:
             self.log.error(f"Failed to decode JWT token: {e}")
             # Fallback: set a default expiry time
             self._token_expiry = datetime.now(timezone.utc)
 
-    def is_token_expired(self):
+    def is_token_expired(self, _token, _is_initial_token):
+        return False
+
+    def token_needs_renewal(self, _token, _renewal_days, _is_initial_token):
         if not self._token:
             return True
 
