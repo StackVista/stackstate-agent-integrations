@@ -8,32 +8,20 @@ import mock
 import json
 from requests.exceptions import HTTPError, ConnectionError, Timeout
 from requests import Response
+
+import base64
 import datetime
+import time
+import os
 
 # project
 from stackstate_checks.splunk.client import SplunkClient, FinalizeException, TokenExpiredException
 from stackstate_checks.splunk.config import AuthType, SplunkPersistentState
 
+from common import FakeInstanceConfig
+
 # Mark the entire module as tests of type `unit`
 pytestmark = pytest.mark.unit
-
-
-class FakeInstanceConfig(object):
-    def __init__(self):
-        self.base_url = 'http://testhost:8089'
-        self.default_request_timeout_seconds = 10
-        self.verify_ssl_certificate = False
-        self.ignore_saved_search_errors = True
-        self.username = "admin"
-        self.audience = "test"
-        self.name = "admin"
-        self.token_expiration_days = 90
-        self.renewal_days = 10
-        self.initial_token = "asdfg"
-        self.auth_type = AuthType.BasicAuth
-
-    def get_auth_tuple(self):
-        return ('username', 'password')
 
 
 class FakeResponse(object):
