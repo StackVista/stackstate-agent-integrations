@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 
 import requests
@@ -10,12 +11,13 @@ if PY3:
 else:
     from urllib import urlencode, quote
 
-import jwt
 import datetime
 
 from urllib3.exceptions import InsecureRequestWarning
 from requests.exceptions import HTTPError, ConnectionError, Timeout
 from stackstate_checks.base.errors import CheckException
+from stackstate_checks.splunk.client.splunk_jwt_auth import SplunkJWTAuth
+from stackstate_checks.splunk.client.msft_jwt_auth import MsJWTAuth
 from stackstate_checks.splunk.config import AuthType
 
 urllib3.disable_warnings(InsecureRequestWarning)
@@ -47,6 +49,15 @@ class SplunkClient:
         self.instance_config = instance_config
         self.log = logging.getLogger('%s' % __name__)
         self.requests_session = requests.session()
+        self.jwt_adapter = None
+        if os.getenv("MS_JWT_AUTH"):
+            self.jwt_adapter = MsJWTAuth(
+                instance_config.verify_ssl_certificate,
+                instance_config.cert,
+                instance_config.keyfile,
+                instance_config.timeout)
+        else:
+            self.jwt_adapter = SplunkJWTAuth(instance_config, self._do_post)
 
     def auth_session(self, committable_state):
         if self.instance_config.auth_type == AuthType.BasicAuth:
@@ -85,12 +96,16 @@ class SplunkClient:
             # Since this is first time run, pick the token from conf.yaml
             token = self.instance_config.initial_token
             is_initial_token = True
-        if self._is_token_expired(token, is_initial_token):
+
+        if self.jwt_adapter.is_token_expired(token, is_initial_token):
             self.log.debug("Current in use authentication token is expired")
             msg = "Current in use authentication token is expired. Please provide a valid token in the YAML " \
                   "and restart the Agent"
             raise TokenExpiredException(msg)
-        if self._need_renewal(token, is_initial_token):
+        if self.jwt_adapter.token_needs_renewal(
+                token,
+                self.instance_config.renewal_days,
+                is_initial_token):
             self.log.debug("The token needs renewal as token is about to expire or this is initial token")
             token = self._create_auth_token(token)
             committable_state.set_auth_token(token)
@@ -98,63 +113,11 @@ class SplunkClient:
 
     def _create_auth_token(self, token):
         self.log.debug("Creating a new authentication token")
-        token_path = '/services/authorization/tokens?output_mode=json'
-        name = self.instance_config.name
-        audience = self.instance_config.audience
-        expiry_days = self.instance_config.token_expiration_days
-        payload = {'name': name, 'audience': audience, 'expires_on': "+{}d".format(str(expiry_days))}
         self.requests_session.headers.update({'Authorization': "Bearer %s" % token})
-        response = self._do_post(token_path, payload, self.instance_config.default_request_timeout_seconds)
-        response.raise_for_status()
-        response_json = response.json()
 
-        new_token = response_json.get("entry")[0].get("content").get("token")
+        new_token = self.jwt_adapter.generate_token()
+        self.requests_session.headers.update({'Authorization': "Bearer %s" % new_token})
         return new_token
-
-    def _decode_token_util(self, token, is_initial_token):
-        """
-        Method to decode the token and return the number of days token is valid or invalid
-        :param token: the token to decode
-        :param is_initial_token: boolean flag if it is first initial token, default is False
-        :return: days: the number of days between token expiration and current date
-        """
-        current_time = self._current_time()
-        decoded_token = jwt.decode(token, options={"verify_signature": False}, algorithms=['HS512'])
-        expiry_time = decoded_token.get("exp")
-        if expiry_time == 0 and is_initial_token:
-            self.log.warning("Initial token provided in the configuration doesn't have an expiration value.")
-            return 999
-        expiry_date = datetime.datetime.fromtimestamp(expiry_time)
-        days = (expiry_date.date() - current_time.date()).days
-        return days
-
-    def _is_token_expired(self, token, is_initial_token=False):
-        """
-        Method to check if the token is expired or not
-        :param token: the token used for validation
-        :param is_initial_token: boolean flag if it is first initial token, default is False
-        :return: boolean flag if token is valid or not
-        """
-        days = self._decode_token_util(token, is_initial_token)
-        return True if days < 0 else False
-
-    def _need_renewal(self, token, is_initial_token=False):
-        """
-        Method to check if token needs renewal
-        :param token: the previous in memory or initial valid token
-        :param is_initial_token: boolean flag if it is first initial token, default is False
-        :return: boolean flag if token needs renewal
-        """
-        days = self._decode_token_util(token, is_initial_token)
-        renewal_days = self.instance_config.renewal_days
-        if days <= renewal_days or is_initial_token:
-            return True
-        else:
-            return False
-
-    def _current_time(self):
-        """ This method is mocked for testing. Do not change its behavior """
-        return datetime.datetime.utcnow()
 
     def saved_searches(self, splunk_app=None):
         """

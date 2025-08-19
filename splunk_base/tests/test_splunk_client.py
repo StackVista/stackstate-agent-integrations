@@ -8,32 +8,20 @@ import mock
 import json
 from requests.exceptions import HTTPError, ConnectionError, Timeout
 from requests import Response
+
+import base64
 import datetime
+import time
+import os
 
 # project
 from stackstate_checks.splunk.client import SplunkClient, FinalizeException, TokenExpiredException
 from stackstate_checks.splunk.config import AuthType, SplunkPersistentState
 
+from common import FakeInstanceConfig
+
 # Mark the entire module as tests of type `unit`
 pytestmark = pytest.mark.unit
-
-
-class FakeInstanceConfig(object):
-    def __init__(self):
-        self.base_url = 'http://testhost:8089'
-        self.default_request_timeout_seconds = 10
-        self.verify_ssl_certificate = False
-        self.ignore_saved_search_errors = True
-        self.username = "admin"
-        self.audience = "test"
-        self.name = "admin"
-        self.token_expiration_days = 90
-        self.renewal_days = 10
-        self.initial_token = "asdfg"
-        self.auth_type = AuthType.BasicAuth
-
-    def get_auth_tuple(self):
-        return ('username', 'password')
 
 
 class FakeResponse(object):
@@ -194,84 +182,6 @@ class TestSplunkClient(unittest.TestCase):
         # return finalize exception when connection error occurs
         self.assertRaises(FinalizeException, helper.finalize_sid, "admin_comp1", mocked_saved_search())
 
-    @mock.patch('stackstate_checks.splunk.client.splunk_client.jwt.decode',
-                return_value={"exp": 1591797915, "iat": 1584021915, "aud": "stackstate"})
-    def test_decode_token_util(self, mocked_decode_token):
-        """
-        Test token decoding utility
-        """
-        helper = SplunkClient(FakeInstanceConfig())
-        helper._current_time = mock.MagicMock()
-        helper._current_time.return_value = datetime.datetime(2020, 5, 14, 15, 44, 51)
-        days = helper._decode_token_util("test", False)
-        self.assertEqual(days, 27)
-
-    @mock.patch('stackstate_checks.splunk.client.splunk_client.jwt.decode',
-                return_value={"exp": 0, "iat": 1584021915, "aud": "stackstate"})
-    def test_decode_token_util_when_exp_set_never(self, mocked_decode_token):
-        """
-        Should return 999 days if first initial token expiration set to never
-        """
-        helper = SplunkClient(FakeInstanceConfig())
-        helper._current_time = mock.MagicMock()
-        helper._current_time.return_value = datetime.datetime(2020, 5, 14, 15, 44, 51)
-        days = helper._decode_token_util("test", True)
-        self.assertEqual(days, 999)
-
-    @mock.patch('stackstate_checks.splunk.client.splunk_client.jwt.decode',
-                return_value={"exp": 1591797915, "iat": 1584021915, "aud": "stackstate"})
-    def test_is_token_expired_true(self, mocked_decode_token):
-        """
-        Test token validation method for invalid token
-        """
-        helper = SplunkClient(FakeInstanceConfig())
-        helper._current_time = mock.MagicMock()
-        helper._current_time.return_value = datetime.datetime(2020, 6, 20, 15, 44, 51)
-        valid = helper._is_token_expired("test")
-        # Token is expired
-        self.assertTrue(valid)
-        self.assertEqual(valid, True)
-
-    @mock.patch('stackstate_checks.splunk.client.splunk_client.jwt.decode',
-                return_value={"exp": 1591797915, "iat": 1584021915, "aud": "stackstate"})
-    def test_is_token_expired_false(self, mocked_decode_token):
-        """
-        Test token validation method for invalid token
-        """
-        helper = SplunkClient(FakeInstanceConfig())
-        helper._current_time = mock.MagicMock()
-        helper._current_time.return_value = datetime.datetime(2020, 5, 14, 15, 44, 51)
-        valid = helper._is_token_expired("test")
-        # Token is not expired
-        self.assertFalse(valid)
-        self.assertEqual(valid, False)
-
-    @mock.patch('stackstate_checks.splunk.client.splunk_client.jwt.decode',
-                return_value={"exp": 1591797915, "iat": 1584021915, "aud": "stackstate"})
-    def test_need_renewal_true(self, mocked_decode_token):
-        """
-        Test need renewal method when is_initial_token flag is True and should return True
-        """
-        helper = SplunkClient(FakeInstanceConfig())
-        helper._current_time = mock.MagicMock()
-        helper._current_time.return_value = datetime.datetime(2020, 5, 14, 15, 44, 51)
-        valid = helper._need_renewal("test", True)
-        # Need renewal should return True since flag is true
-        self.assertTrue(valid)
-
-    @mock.patch('stackstate_checks.splunk.client.splunk_client.jwt.decode',
-                return_value={"exp": 1591797915, "iat": 1584021915, "aud": "stackstate"})
-    def test_need_renewal_false(self, mocked_decode_token):
-        """
-        Test need renewal method when is_initial_token is false and should return False
-        """
-        helper = SplunkClient(FakeInstanceConfig())
-        helper._current_time = mock.MagicMock()
-        helper._current_time.return_value = datetime.datetime(2020, 5, 14, 15, 44, 51)
-        valid = helper._need_renewal("test")
-        # Need renewal should return True since flag is true
-        self.assertFalse(valid)
-
     @mock.patch('stackstate_checks.splunk.client.splunk_client.SplunkClient._do_post',
                 return_value=FakeResponse(mocked_token_create_response(), headers={}))
     def test_create_auth_token(self, mocked_response):
@@ -294,7 +204,7 @@ class TestSplunkClient(unittest.TestCase):
         # Initial token and new token should differ
         self.assertNotEqual("test", new_token)
 
-    @mock.patch('stackstate_checks.splunk.client.splunk_client.jwt.decode',
+    @mock.patch('stackstate_checks.splunk.client.splunk_jwt_auth.jwt.decode',
                 return_value={"exp": 1591797915, "iat": 1584021915, "aud": "stackstate"})
     def test_token_auth_session(self, mocked_decode_token):
         """
@@ -309,15 +219,15 @@ class TestSplunkClient(unittest.TestCase):
         helper = SplunkClient(config)
         # update headers with memory token
         helper.requests_session.headers.update({'Authorization': "Bearer memorytokenpresent"})
-        helper._current_time = mock.MagicMock()
-        helper._current_time.return_value = datetime.datetime(2020, 5, 14, 15, 44, 51)
+        helper.jwt_adapter._current_time = mock.MagicMock()
+        helper.jwt_adapter._current_time.return_value = datetime.datetime(2020, 5, 14, 15, 44, 51)
         helper.auth_session(status)
 
         # Header should be still with the memory token
         expected_header = helper.requests_session.headers.get("Authorization")
         self.assertEqual(expected_header, "Bearer {}".format("memorytokenpresent"))
 
-    @mock.patch('stackstate_checks.splunk.client.splunk_client.jwt.decode',
+    @mock.patch('stackstate_checks.splunk.client.splunk_jwt_auth.jwt.decode',
                 return_value={"exp": 1591797915, "iat": 1584021915, "aud": "stackstate"})
     @mock.patch('stackstate_checks.splunk.client.splunk_client.SplunkClient._do_post',
                 return_value=FakeResponse(mocked_token_create_response(), headers={}))
@@ -333,8 +243,8 @@ class TestSplunkClient(unittest.TestCase):
 
         helper = SplunkClient(config)
         helper.requests_session.headers.update({'Authorization': "Bearer memorytokenpresent"})
-        helper._current_time = mock.MagicMock()
-        helper._current_time.return_value = datetime.datetime(2020, 5, 14, 15, 44, 51)
+        helper.jwt_adapter._current_time = mock.MagicMock()
+        helper.jwt_adapter._current_time.return_value = datetime.datetime(2020, 5, 14, 15, 44, 51)
         helper._token_auth_session(status)
 
         # Header should be updated with the new token
@@ -343,7 +253,7 @@ class TestSplunkClient(unittest.TestCase):
         # persistence data will have new updated token
         self.assertEqual(status.get_auth_token(), new_token)
 
-    @mock.patch('stackstate_checks.splunk.client.splunk_client.jwt.decode',
+    @mock.patch('stackstate_checks.splunk.client.splunk_jwt_auth.jwt.decode',
                 return_value={"exp": 1591797915, "iat": 1584021915, "aud": "stackstate"})
     @mock.patch('stackstate_checks.splunk.client.splunk_client.SplunkClient._do_post',
                 return_value=FakeResponse(mocked_token_create_response(), headers={}))
@@ -361,8 +271,8 @@ class TestSplunkClient(unittest.TestCase):
 
         helper = SplunkClient(config)
         helper.requests_session.headers.update({'Authorization': "Bearer memorytokenpresent"})
-        helper._current_time = mock.MagicMock()
-        helper._current_time.return_value = datetime.datetime(2020, 6, 5, 15, 44, 51)
+        helper.jwt_adapter._current_time = mock.MagicMock()
+        helper.jwt_adapter._current_time.return_value = datetime.datetime(2020, 6, 5, 15, 44, 51)
         helper.auth_session(status)
 
         # Header should be updated with the new token
@@ -371,7 +281,7 @@ class TestSplunkClient(unittest.TestCase):
         # persistence data will have new token as well
         self.assertEqual(status.get_auth_token(), new_token)
 
-    @mock.patch('stackstate_checks.splunk.client.splunk_client.jwt.decode',
+    @mock.patch('stackstate_checks.splunk.client.splunk_jwt_auth.jwt.decode',
                 return_value={"exp": 1591797915, "iat": 1584021915, "aud": "stackstate"})
     def test_token_auth_session_invalid_initial_token(self, mocked_decode_token):
         """
@@ -394,7 +304,7 @@ class TestSplunkClient(unittest.TestCase):
               "and restart the Agent"
         self.assertTrue(check, msg)
 
-    @mock.patch('stackstate_checks.splunk.client.splunk_client.jwt.decode',
+    @mock.patch('stackstate_checks.splunk.client.splunk_jwt_auth.jwt.decode',
                 return_value={"exp": 1591797915, "iat": 1584021915, "aud": "stackstate"})
     def test_token_auth_session_invalid_memory_token(self, mocked_decode_token):
         """

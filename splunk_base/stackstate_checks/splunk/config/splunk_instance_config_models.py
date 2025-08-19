@@ -6,6 +6,9 @@ from stackstate_checks.base.utils.validations_utils import ForgivingBaseModel, S
 from typing import List, Optional
 
 
+SPLUNK_TIMEOUT = 10
+
+
 class SplunkConfigSavedSearchDefault(ForgivingBaseModel):
     name: Optional[str] = None
     match: Optional[str] = None
@@ -53,6 +56,9 @@ class SplunkConfigInstance(ForgivingBaseModel):
     ignore_saved_search_errors: bool = False
     saved_searches: List[SplunkConfigSavedSearchDefault] = []
     verify_ssl_certificate: Optional[bool] = None
+    cert: Optional[str] = None
+    keyfile: Optional[str] = None
+    timeout: int = SPLUNK_TIMEOUT
 
 
 class SplunkConfig(ForgivingBaseModel):
