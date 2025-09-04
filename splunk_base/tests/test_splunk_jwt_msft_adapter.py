@@ -31,7 +31,7 @@ def test_jwt_adapter_msft_client(requests_mock: Mocker):
     fake_signature = base64.urlsafe_b64encode(b'fakesignature').rstrip(b'=').decode()
     fake_jwt = f"{encoded_header}.{encoded_payload}.{fake_signature}"
 
-    os.environ["MS_JWT_AUTH"] = "true"
+    os.environ["SPLUNK_MS_JWT_AUTH"] = "true"
     os.environ["CLIENT_ID"] = "test"
     os.environ["CLIENT_SECRET"] = "test"
     os.environ["SCOPE"] = "test"
