@@ -50,7 +50,7 @@ class SplunkClient:
         self.log = logging.getLogger('%s' % __name__)
         self.requests_session = requests.session()
         self.jwt_adapter = None
-        if os.getenv("MS_JWT_AUTH"):
+        if os.getenv("SPLUNK_MS_JWT_AUTH"):
             self.jwt_adapter = MsJWTAuth(
                 instance_config.verify_ssl_certificate,
                 instance_config.cert,
