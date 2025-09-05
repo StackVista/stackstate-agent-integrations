@@ -81,3 +81,22 @@ class FakeInstanceConfig(object):
 
     def get_auth_tuple(self):
         return ('username', 'password')
+
+
+class FakePartialInstanceConfig(object):
+    def __init__(self):
+        self.base_url = 'http://testhost:8089'
+        self.default_request_timeout_seconds = 10
+        self.verify_ssl_certificate = False
+        self.ignore_saved_search_errors = True
+        self.username = "admin"
+        self.audience = "test"
+        self.name = "admin"
+        self.token_expiration_days = 90
+        self.renewal_days = 10
+        self.initial_token = "asdfg"
+        self.auth_type = AuthType.BasicAuth
+        self.timeout = 5000
+
+    def get_auth_tuple(self):
+        return ('username', 'password')
