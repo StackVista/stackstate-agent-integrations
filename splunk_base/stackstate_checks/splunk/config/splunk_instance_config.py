@@ -70,7 +70,6 @@ instead of username/password on top level')
         self.verify_ssl_certificate = instance.verify_ssl_certificate or self.default_verify_ssl_certificate
         self.cert = instance.cert or ""
         self.keyfile = instance.keyfile or ""
-        self.default_request_timeout_seconds = int(self.get_or_default('default_request_timeout_seconds'))
 
         self.base_url = instance.url
 
