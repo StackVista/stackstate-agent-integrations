@@ -125,9 +125,9 @@ class SplunkClient:
         :return: list of names of saved searches
         """
         if splunk_app is not None:
-            search_path = '/servicesNS/-/%s/saved/searches?output_mode=json&count=-1' % splunk_app
+            search_path = '/servicesNS/-/%s/saved/searches?output_mode=json&count=0' % splunk_app
         else:
-            search_path = '/services/saved/searches?output_mode=json&count=-1'
+            search_path = '/services/saved/searches?output_mode=json&count=0'
         response = self._do_get(search_path,
                                 self.instance_config.default_request_timeout_seconds,
                                 self.instance_config.verify_ssl_certificate)
