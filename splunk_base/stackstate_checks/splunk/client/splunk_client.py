@@ -248,7 +248,14 @@ class SplunkClient:
     def _do_get(self, path, request_timeout_seconds, verify_ssl_certificate):
         url = "%s%s" % (self.instance_config.base_url, path)
         response = self.requests_session.get(url, timeout=request_timeout_seconds, verify=verify_ssl_certificate)
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except HTTPError as error:
+            self.log.warning(
+                "Received response with status {} and body {}".format(
+                    response.status_code,
+                    response.content))
+            raise error
         return response
 
     def _do_post(self, path, payload, request_timeout_seconds, splunk_ignore_saved_search_errors=True):
