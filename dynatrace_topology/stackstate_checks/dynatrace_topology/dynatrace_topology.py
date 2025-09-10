@@ -135,6 +135,10 @@ class DynatraceTopologyCheck(AgentCheck):
 
             self._process_topology(dynatrace_client, instance_info)
             self.monitored_health()
+            
+            # Log summary of 404 errors if any occurred
+            dynatrace_client.log_entity_404_summary()
+            
             msg = "Dynatrace topology processed successfully"
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=instance_info.instance_tags, message=msg)
         except EventLimitReachedException as e:
@@ -400,6 +404,15 @@ class DynatraceTopologyCheck(AgentCheck):
             elif type(component[key]) is int:
                 component[key] = str(component[key])
                 self.log.debug('Converting %s from int to str.' % key)
+
+        # Handle nested properties
+        if "properties" in component and isinstance(component["properties"], dict):
+            properties = component["properties"]
+            # Handle releasesVersion field - convert string representation to empty dict if it's a string
+            if "releasesVersion" in properties and isinstance(properties["releasesVersion"], str):
+                self.log.debug('Converting releasesVersion from string representation to empty dict')
+                properties["releasesVersion"] = {}
+
         if "lastSeenTimestamp" in component:
             del component["lastSeenTimestamp"]
         return component

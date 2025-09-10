@@ -4,6 +4,7 @@
 
 import logging
 import os
+from collections import defaultdict
 
 from requests import Session, Timeout
 
@@ -29,6 +30,9 @@ class _DynatraceClient:
         self.timeout = timeout
         self.is_jwt_auth = is_jwt_auth
         self.log = logging.getLogger(__name__)
+        # Track 404 occurrences per entity type to avoid spam and provide summary
+        self._entity_404_counts = defaultdict(int)
+        self._entity_404_logged = set()
 
     def get_dynatrace_json_response(self, endpoint, params=None):
         """
@@ -57,21 +61,12 @@ class _DynatraceClient:
                     else:
                         msg = "Got %s when hitting %s" % (response.status_code, endpoint)
 
-                    # Downgrade logging level to INFO for 404s when retrieving PROCESS_GROUP_INSTANCE entities
+                    # Handle 404s for all entity types with smart logging and counting
                     if (
                         response.status_code == 404
                         and "/api/v2/entities/" in endpoint
                     ):
-                        try:
-                            entity_id_part = endpoint.split("/api/v2/entities/")[1]
-                            entity_id = entity_id_part.split("?")[0]
-                            if entity_id.startswith("PROCESS_GROUP_INSTANCE"):
-                                self.log.info(msg)
-                            else:
-                                self.log.error(msg)
-                        except Exception:
-                            # Fallback to error level if parsing fails
-                            self.log.error(msg)
+                        self._handle_entity_404(endpoint, msg)
                     else:
                         self.log.error(msg)
 
@@ -95,6 +90,66 @@ class _DynatraceClient:
         endpoint = sanitized_url + "/" + sanitized_path
         self.log.debug("Dynatrace URL endpoint %s", endpoint)
         return endpoint
+
+    def _handle_entity_404(self, endpoint, msg):
+        """
+        Handle 404 errors for entity endpoints with smart logging and counting.
+        Logs each entity type 404 only once at INFO level and keeps count of occurrences.
+
+        :param endpoint: The endpoint that returned 404
+        :param msg: The error message to log
+        """
+        try:
+            # Extract entity ID from endpoint
+            entity_id_part = endpoint.split("/api/v2/entities/")[1]
+            entity_id = entity_id_part.split("?")[0]
+
+            # Extract entity type (part before the hyphen)
+            if "-" in entity_id:
+                entity_type = entity_id.split("-")[0]
+            else:
+                entity_type = "UNKNOWN"
+
+            # Increment count for this entity type
+            self._entity_404_counts[entity_type] += 1
+
+            # Log only the first occurrence for each entity type at INFO level
+            if entity_type not in self._entity_404_logged:
+                self.log.info(
+                    "Entity type %s returned 404 (first occurrence). "
+                    "This message will not be repeated. Count: %d. Endpoint: %s",
+                    entity_type, self._entity_404_counts[entity_type], endpoint
+                )
+                self._entity_404_logged.add(entity_type)
+
+        except Exception:
+            # Fallback: if parsing fails, log as info level without counting
+            self.log.info("Entity 404 error (parsing failed): %s", msg)
+
+    def get_entity_404_summary(self):
+        """
+        Get a summary of all 404 errors encountered by entity type.
+
+        :return: Dictionary with entity types as keys and counts as values
+        """
+        return dict(self._entity_404_counts)
+
+    def log_entity_404_summary(self):
+        """
+        Log a summary of all 404 errors encountered, if any.
+        """
+        if self._entity_404_counts:
+            summary_lines = []
+            total_404s = sum(self._entity_404_counts.values())
+            summary_lines.append(f"Summary: {total_404s} total 404 errors across {len(self._entity_404_counts)} "
+                                 f"entity types:")
+
+            # Sort by count (descending) for better readability
+            sorted_counts = sorted(self._entity_404_counts.items(), key=lambda x: x[1], reverse=True)
+            for entity_type, count in sorted_counts:
+                summary_lines.append(f"  {entity_type}: {count} occurrences")
+
+            self.log.info("\n".join(summary_lines))
 
     def get_token(self):
         return self.token

@@ -4,6 +4,7 @@
 
 from stackstate_checks.base import AgentCheck
 from stackstate_checks.base.utils.common import read_file, load_json_from_file
+from stackstate_checks.dynatrace_topology.entity_data_types import ProcessGroupInstanceEntity
 from .conftest import set_http_responses, sort_topology_data, assert_topology
 
 
@@ -233,3 +234,49 @@ def test_applications_to_monitors_relations(requests_mock, dynatrace_check, topo
         if relation["type"] == "monitors":
             assert "APPLICATION" in relation["source_id"]
             assert "SYNTHETIC_TEST" in relation["target_id"]
+
+
+def test_process_group_instance_entity_releasesversion_string_handling():
+    """
+    Test that ProcessGroupInstanceEntity correctly handles releasesVersion field when it's a string
+    This reproduces the error:
+        "Input should be a valid dictionary [type=dict_type, input_value="ReleaseVersionInfo{...}"]"
+    """
+    # Test data that simulates the problematic case from the error
+    test_data = {
+        'entityId': 'PROCESS_GROUP_INSTANCE-TEST123',
+        'type': 'PROCESS_GROUP_INSTANCE',
+        'displayName': 'Test Process',
+        'properties': {
+            'releasesVersion': 'ReleaseVersionInfo{versi..._REGISTRY, timestamp=0}'
+        }
+    }
+
+    # This should not raise a validation error anymore
+    entity = ProcessGroupInstanceEntity.model_validate(test_data)
+
+    # The string should have been converted to an empty dict
+    assert isinstance(entity.properties.releasesVersion, dict)
+    assert entity.properties.releasesVersion == {}
+
+
+def test_process_group_instance_entity_releasesversion_dict_handling():
+    """
+    Test that ProcessGroupInstanceEntity still works correctly with dictionary releasesVersion
+    """
+    # Test data with a proper dictionary
+    test_data = {
+        'entityId': 'PROCESS_GROUP_INSTANCE-TEST123',
+        'type': 'PROCESS_GROUP_INSTANCE',
+        'displayName': 'Test Process',
+        'properties': {
+            'releasesVersion': {'version': '1.0', 'type': 'REGISTRY'}
+        }
+    }
+
+    # This should work as before
+    entity = ProcessGroupInstanceEntity.model_validate(test_data)
+
+    # The dict should remain unchanged
+    assert isinstance(entity.properties.releasesVersion, dict)
+    assert entity.properties.releasesVersion == {'version': '1.0', 'type': 'REGISTRY'}

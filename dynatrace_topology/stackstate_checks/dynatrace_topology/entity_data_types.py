@@ -1,5 +1,6 @@
 from dataclasses import field
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
+from pydantic import field_validator
 from stackstate_checks.base.utils.validations_utils import ForgivingBaseModel
 
 # Define your constants if they are not already defined elsewhere
@@ -184,7 +185,17 @@ class ProcessGroupInstanceProperties(ForgivingBaseModel):
     releasesBuildVersion: Optional[str] = None
     releasesProduct: Optional[str] = None
     releasesStage: Optional[str] = None
-    releasesVersion: Dict[str, Any] = field(default_factory=dict)
+    releasesVersion: Union[Dict[str, Any], str] = field(default_factory=dict)
+
+    @field_validator('releasesVersion', mode='before')
+    @classmethod
+    def convert_releases_version(cls, v):
+        """Convert string representation of ReleaseVersionInfo to dict"""
+        if isinstance(v, str):
+            # If it's a string representation of an object, convert to empty dict
+            # This handles cases like "ReleaseVersionInfo{versi..._REGISTRY, timestamp=0}"
+            return {}
+        return v if isinstance(v, dict) else {}
     softwareTechnologies: List[SoftwareTechnology] = field(default_factory=list)
     versionedModules: List[Dict[str, Any]] = field(default_factory=list)
 
