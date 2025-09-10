@@ -135,10 +135,10 @@ class DynatraceTopologyCheck(AgentCheck):
 
             self._process_topology(dynatrace_client, instance_info)
             self.monitored_health()
-            
+
             # Log summary of 404 errors if any occurred
             dynatrace_client.log_entity_404_summary()
-            
+
             msg = "Dynatrace topology processed successfully"
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=instance_info.instance_tags, message=msg)
         except EventLimitReachedException as e:
