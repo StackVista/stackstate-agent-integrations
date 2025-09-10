@@ -35,6 +35,17 @@ def test_splunk_client_auth_basic(test_environment):
 
 @pytest.mark.integration
 @pytest.mark.usefixtures("test_environment")
+def test_splunk_client_saved_searches(test_environment):
+    client = SplunkClient(SplunkInstanceConfig(empty_instance, {}, default_settings))
+    response = client.auth_session({})
+    assert response is None
+
+    saved_searches_response = client.saved_searches(None)
+    assert saved_searches_response[0] == 'Bucket Merge Retrieve Conf Settings'
+
+
+@pytest.mark.integration
+@pytest.mark.usefixtures("test_environment")
 def test_splunk_client_auth_jwt(test_environment):
     config = SplunkInstanceConfig(empty_instance, {}, default_settings)
     client = SplunkClient(config)
