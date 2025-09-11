@@ -131,7 +131,29 @@ class HostProperties(ForgivingBaseModel):
     networkZone: Optional[str] = None
     oneAgentCustomHostName: Optional[str] = None
     osArchitecture: Optional[str] = None
-    osServices: List[str] = field(default_factory=list)
+    osServices: Union[List[str], List[Dict[str, Any]]] = field(default_factory=list)
+
+    @field_validator('osServices', mode='before')
+    @classmethod
+    def convert_os_services(cls, v):
+        """Convert osServices dict format to list of service names (strings)"""
+        if isinstance(v, list):
+            converted_services = []
+            for service in v:
+                if isinstance(service, dict):
+                    # Extract service name from dictionary format
+                    service_name = (service.get('dt.osservice.name') or service.get('dt.osservice.display_name')
+                                    or 'unknown_service')
+                    converted_services.append(service_name)
+                elif isinstance(service, str):
+                    # Keep string format as-is
+                    converted_services.append(service)
+                else:
+                    # Convert other types to string
+                    converted_services.append(str(service))
+            return converted_services
+        return v if isinstance(v, list) else []
+
     osType: Optional[str] = None
     osVersion: Optional[str] = None
     paasMemoryLimit: Optional[int] = None
@@ -196,6 +218,7 @@ class ProcessGroupInstanceProperties(ForgivingBaseModel):
             # This handles cases like "ReleaseVersionInfo{versi..._REGISTRY, timestamp=0}"
             return {}
         return v if isinstance(v, dict) else {}
+
     softwareTechnologies: List[SoftwareTechnology] = field(default_factory=list)
     versionedModules: List[Dict[str, Any]] = field(default_factory=list)
 

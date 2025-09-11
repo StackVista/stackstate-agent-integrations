@@ -280,3 +280,135 @@ def test_process_group_instance_entity_releasesversion_dict_handling():
     # The dict should remain unchanged
     assert isinstance(entity.properties.releasesVersion, dict)
     assert entity.properties.releasesVersion == {'version': '1.0', 'type': 'REGISTRY'}
+
+
+def test_host_entity_osservices_dict_handling():
+    """
+    Test that HostEntity correctly handles osServices field when it's a list of dictionaries
+    This reproduces the error:
+      "Input should be a valid string [type=string_type, input_value={'dt.osservice.name': '...'}]"
+    """
+    from stackstate_checks.dynatrace_topology.entity_data_types import HostEntity
+
+    # Test data that simulates the problematic case from the error
+    test_data = {
+        'entityId': 'HOST-0EA7023215644A24',
+        'type': 'HOST',
+        'displayName': 'test.example.com',
+        'properties': {
+            'osServices': [
+                {
+                    'dt.osservice.name': 'conjur-cluster',
+                    'dt.osservice.startup_type': 'enabled',
+                    'dt.entity.process_group_instance': 'PROCESS_GROUP_INSTANCE-8C88449DB803E9E6',
+                    'dt.osservice.display_name': 'conjur-cluster',
+                    'dt.osservice.path': '/usr/bin/conmon',
+                    'dt.osservice.status': 'active',
+                    'dt.osservice.alerting': 'true'
+                },
+                {
+                    'dt.osservice.name': 'another-service',
+                    'dt.osservice.display_name': 'Another Service',
+                    'dt.osservice.status': 'inactive'
+                }
+            ]
+        }
+    }
+
+    # This should not raise a validation error anymore
+    entity = HostEntity.model_validate(test_data)
+
+    # The list should have been converted to service names (strings)
+    assert isinstance(entity.properties.osServices, list)
+    assert len(entity.properties.osServices) == 2
+    assert entity.properties.osServices[0] == 'conjur-cluster'
+    assert entity.properties.osServices[1] == 'another-service'
+
+
+def test_host_entity_osservices_string_handling():
+    """
+    Test that HostEntity still works correctly with string list osServices (original format)
+    """
+    from stackstate_checks.dynatrace_topology.entity_data_types import HostEntity
+
+    # Test data with the original string list format
+    test_data = {
+        'entityId': 'HOST-TEST123',
+        'type': 'HOST',
+        'displayName': 'test.example.com',
+        'properties': {
+            'osServices': ['service1', 'service2', 'service3']
+        }
+    }
+
+    # This should work as before
+    entity = HostEntity.model_validate(test_data)
+
+    # The string list should remain unchanged
+    assert isinstance(entity.properties.osServices, list)
+    assert entity.properties.osServices == ['service1', 'service2', 'service3']
+
+
+def test_host_entity_osservices_mixed_handling():
+    """
+    Test that HostEntity handles mixed osServices formats (both dict and string)
+    """
+    from stackstate_checks.dynatrace_topology.entity_data_types import HostEntity
+
+    # Test data with mixed formats
+    test_data = {
+        'entityId': 'HOST-TEST123',
+        'type': 'HOST',
+        'displayName': 'test.example.com',
+        'properties': {
+            'osServices': [
+                'existing-string-service',
+                {
+                    'dt.osservice.name': 'new-dict-service',
+                    'dt.osservice.display_name': 'New Dict Service'
+                },
+                'another-string-service'
+            ]
+        }
+    }
+
+    # This should handle both formats correctly
+    entity = HostEntity.model_validate(test_data)
+
+    # Both formats should be converted to strings
+    assert isinstance(entity.properties.osServices, list)
+    assert len(entity.properties.osServices) == 3
+    assert entity.properties.osServices[0] == 'existing-string-service'
+    assert entity.properties.osServices[1] == 'new-dict-service'
+    assert entity.properties.osServices[2] == 'another-string-service'
+
+
+def test_host_entity_osservices_fallback_name():
+    """
+    Test that HostEntity handles osServices dict without proper name fields
+    """
+    from stackstate_checks.dynatrace_topology.entity_data_types import HostEntity
+
+    # Test data with dict missing both name and display_name
+    test_data = {
+        'entityId': 'HOST-TEST123',
+        'type': 'HOST',
+        'displayName': 'test.example.com',
+        'properties': {
+            'osServices': [
+                {
+                    'dt.osservice.status': 'active',
+                    'dt.osservice.path': '/some/path'
+                    # Missing both dt.osservice.name and dt.osservice.display_name
+                }
+            ]
+        }
+    }
+
+    # This should use fallback name
+    entity = HostEntity.model_validate(test_data)
+
+    # Should use the fallback 'unknown_service'
+    assert isinstance(entity.properties.osServices, list)
+    assert len(entity.properties.osServices) == 1
+    assert entity.properties.osServices[0] == 'unknown_service'

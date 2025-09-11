@@ -413,6 +413,22 @@ class DynatraceTopologyCheck(AgentCheck):
                 self.log.debug('Converting releasesVersion from string representation to empty dict')
                 properties["releasesVersion"] = {}
 
+            # Handle osServices field - convert dict format to list of service names for backward compatibility
+            if "osServices" in properties and isinstance(properties["osServices"], list):
+                converted_services = []
+                for service in properties["osServices"]:
+                    if isinstance(service, dict):
+                        # Extract service name from dictionary format
+                        service_name = (service.get('dt.osservice.name') or service.get('dt.osservice.display_name')
+                                        or 'unknown_service')
+                        converted_services.append(service_name)
+                        self.log.debug('Converting osServices dict to service name: %s', service_name)
+                    elif isinstance(service, str):
+                        converted_services.append(service)
+                    else:
+                        converted_services.append(str(service))
+                properties["osServices"] = converted_services
+
         if "lastSeenTimestamp" in component:
             del component["lastSeenTimestamp"]
         return component
