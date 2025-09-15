@@ -412,3 +412,98 @@ def test_host_entity_osservices_fallback_name():
     assert isinstance(entity.properties.osServices, list)
     assert len(entity.properties.osServices) == 1
     assert entity.properties.osServices[0] == 'unknown_service_0'
+
+
+def test_process_group_entity_custompgmetadata_list_handling():
+    """
+    Test that ProcessGroupEntity correctly handles customPgMetadata field when it's a list of key-value objects
+    This reproduces the error: "Input should be a valid dictionary [type=dict_type,
+    input_value=[{'value': 'nginx', 'key': '...'}]]"
+    """
+    from stackstate_checks.dynatrace_topology.entity_data_types import ProcessGroupEntity
+
+    # Test data that simulates the problematic case from the error
+    test_data = {
+        'entityId': 'PROCESS_GROUP-TEST123',
+        'type': 'PROCESS_GROUP',
+        'displayName': 'Test Process Group',
+        'properties': {
+            'customPgMetadata': [
+                {'key': 'application', 'value': 'nginx'},
+                {'key': 'foundryBuildpackVersion', 'value': '1.2.3'},
+                {'key': 'environment', 'value': 'production'}
+            ]
+        }
+    }
+
+    # This should not raise a validation error anymore
+    entity = ProcessGroupEntity.model_validate(test_data)
+
+    # The list should have been converted to a dictionary
+    assert isinstance(entity.properties.customPgMetadata, dict)
+    assert len(entity.properties.customPgMetadata) == 3
+    assert entity.properties.customPgMetadata['application'] == 'nginx'
+    assert entity.properties.customPgMetadata['foundryBuildpackVersion'] == '1.2.3'
+    assert entity.properties.customPgMetadata['environment'] == 'production'
+
+
+def test_process_group_entity_custompgmetadata_dict_handling():
+    """
+    Test that ProcessGroupEntity still works correctly with dictionary customPgMetadata (original format)
+    """
+    from stackstate_checks.dynatrace_topology.entity_data_types import ProcessGroupEntity
+
+    # Test data with the original dictionary format
+    test_data = {
+        'entityId': 'PROCESS_GROUP-TEST123',
+        'type': 'PROCESS_GROUP',
+        'displayName': 'Test Process Group',
+        'properties': {
+            'customPgMetadata': {
+                'application': 'nginx',
+                'version': '1.2.3',
+                'environment': 'production'
+            }
+        }
+    }
+
+    # This should work as before
+    entity = ProcessGroupEntity.model_validate(test_data)
+
+    # The dictionary should remain unchanged
+    assert isinstance(entity.properties.customPgMetadata, dict)
+    assert entity.properties.customPgMetadata['application'] == 'nginx'
+    assert entity.properties.customPgMetadata['version'] == '1.2.3'
+    assert entity.properties.customPgMetadata['environment'] == 'production'
+
+
+def test_process_group_entity_custompgmetadata_fallback_handling():
+    """
+    Test that ProcessGroupEntity handles customPgMetadata list with missing key/value fields
+    """
+    from stackstate_checks.dynatrace_topology.entity_data_types import ProcessGroupEntity
+
+    # Test data with malformed list items
+    test_data = {
+        'entityId': 'PROCESS_GROUP-TEST123',
+        'type': 'PROCESS_GROUP',
+        'displayName': 'Test Process Group',
+        'properties': {
+            'customPgMetadata': [
+                {'key': 'valid_key', 'value': 'valid_value'},
+                {'missing_key': 'something'},  # Missing 'key' field
+                {'key': 'no_value_key'},  # Missing 'value' field
+                'string_item'  # Not even a dict
+            ]
+        }
+    }
+
+    # This should handle malformed data gracefully
+    entity = ProcessGroupEntity.model_validate(test_data)
+
+    # Should create a dictionary with fallback keys/values
+    assert isinstance(entity.properties.customPgMetadata, dict)
+    assert entity.properties.customPgMetadata['valid_key'] == 'valid_value'
+    assert 'unknown_key_1' in entity.properties.customPgMetadata  # Fallback for missing key
+    assert entity.properties.customPgMetadata['no_value_key'] == 'unknown_value_2'  # Fallback for missing value
+    assert 'item_3' in entity.properties.customPgMetadata  # Fallback for non-dict item

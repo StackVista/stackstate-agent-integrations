@@ -437,6 +437,26 @@ class DynatraceTopologyCheck(AgentCheck):
                     self.log.warning('osServices is not a list, type: %s, value: %s', type(properties["osServices"]),
                                      properties["osServices"])
 
+            # Handle customPgMetadata field - convert list of key-value objects to dictionary
+            if "customPgMetadata" in properties:
+                self.log.debug('Found customPgMetadata field, type: %s', type(properties["customPgMetadata"]))
+                if isinstance(properties["customPgMetadata"], list):
+                    converted_dict = {}
+                    for i, item in enumerate(properties["customPgMetadata"]):
+                        if isinstance(item, dict):
+                            key = item.get('key', f'unknown_key_{i}')
+                            value = item.get('value', item.get('val', f'unknown_value_{i}'))
+                            converted_dict[key] = value
+                            self.log.info('Converting customPgMetadata item: %s = %s', key, value)
+                        else:
+                            converted_dict[f'item_{i}'] = str(item)
+                    properties["customPgMetadata"] = converted_dict
+                    self.log.debug('Converted customPgMetadata: %s', converted_dict)
+                elif not isinstance(properties["customPgMetadata"], dict):
+                    self.log.warning('customPgMetadata is not a dict or list, type: %s, converting to empty dict',
+                                     type(properties["customPgMetadata"]))
+                    properties["customPgMetadata"] = {}
+
         if "lastSeenTimestamp" in component:
             del component["lastSeenTimestamp"]
         return component

@@ -240,6 +240,33 @@ class ProcessGroupProperties(ForgivingBaseModel):
     boshName: Optional[str] = None
     conditionalName: Optional[str] = None
     customPgMetadata: Dict[str, Any] = field(default_factory=dict)
+
+    @field_validator('customPgMetadata', mode='before')
+    @classmethod
+    def convert_custom_pg_metadata(cls, v):
+        """Convert customPgMetadata from list of key-value objects to dictionary"""
+        if v is None:
+            return {}
+        if isinstance(v, dict):
+            # Already in the correct format
+            return v
+        if isinstance(v, list):
+            # Convert list of {'key': 'name', 'value': 'data'} to {'name': 'data'}
+            converted_dict = {}
+            for i, item in enumerate(v):
+                try:
+                    if isinstance(item, dict):
+                        key = item.get('key', f'unknown_key_{i}')
+                        value = item.get('value', item.get('val', f'unknown_value_{i}'))
+                        converted_dict[key] = value
+                    else:
+                        converted_dict[f'item_{i}'] = str(item)
+                except Exception:
+                    converted_dict[f'error_key_{i}'] = 'conversion_error'
+            return converted_dict
+        # For any other type, return empty dict
+        return {}
+
     customizedName: Optional[str] = None
     detectedName: Optional[str] = None
     dt_security_context: List[str] = field(default_factory=list)
