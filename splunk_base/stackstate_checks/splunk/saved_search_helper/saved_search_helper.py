@@ -24,14 +24,11 @@ class SavedSearches(object):
         self.matches = list(filter(lambda ss: ss.match is not None, saved_searches))
 
     def run_saved_searches(self, process_data, service_check, log, persisted_state, update_status=None):
-        try:
-            if self.instance_config.app is not None and self.instance_config.app != "":
-                new_saved_searches = self.splunk_client.saved_searches(self.instance_config.app)
-            else:
-                new_saved_searches = self.splunk_client.saved_searches()
-        except AttributeError:
-            # This happens when the splunk instance config does not contain an app field, so we just do the same as
-            # the else clause
+        app = getattr(self.instance_config, 'app', None)
+
+        if app is not None and app != "":
+            new_saved_searches = self.splunk_client.saved_searches(app)
+        else:
             new_saved_searches = self.splunk_client.saved_searches()
 
         self._update_searches(log, new_saved_searches)
