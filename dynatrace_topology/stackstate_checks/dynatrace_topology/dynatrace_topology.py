@@ -414,20 +414,28 @@ class DynatraceTopologyCheck(AgentCheck):
                 properties["releasesVersion"] = {}
 
             # Handle osServices field - convert dict format to list of service names for backward compatibility
-            if "osServices" in properties and isinstance(properties["osServices"], list):
-                converted_services = []
-                for service in properties["osServices"]:
-                    if isinstance(service, dict):
-                        # Extract service name from dictionary format
-                        service_name = (service.get('dt.osservice.name') or service.get('dt.osservice.display_name')
-                                        or 'unknown_service')
-                        converted_services.append(service_name)
-                        self.log.debug('Converting osServices dict to service name: %s', service_name)
-                    elif isinstance(service, str):
-                        converted_services.append(service)
-                    else:
-                        converted_services.append(str(service))
-                properties["osServices"] = converted_services
+            if "osServices" in properties:
+                self.log.debug('Found osServices field, type: %s, value: %s', type(properties["osServices"]),
+                               properties["osServices"])
+                if isinstance(properties["osServices"], list):
+                    converted_services = []
+                    for i, service in enumerate(properties["osServices"]):
+                        if isinstance(service, dict):
+                            # Extract service name from dictionary format
+                            service_name = (service.get('dt.osservice.name') or service.get('dt.osservice.display_name')
+                                            or f'unknown_service_{i}')
+                            converted_services.append(service_name)
+                            self.log.info('Converting osServices dict to service name: %s (from %s)', service_name,
+                                          service)
+                        elif isinstance(service, str):
+                            converted_services.append(service)
+                        else:
+                            converted_services.append(str(service))
+                    properties["osServices"] = converted_services
+                    self.log.debug('Converted osServices: %s', converted_services)
+                else:
+                    self.log.warning('osServices is not a list, type: %s, value: %s', type(properties["osServices"]),
+                                     properties["osServices"])
 
         if "lastSeenTimestamp" in component:
             del component["lastSeenTimestamp"]

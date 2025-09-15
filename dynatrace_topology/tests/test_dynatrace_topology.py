@@ -408,7 +408,7 @@ def test_host_entity_osservices_fallback_name():
     # This should use fallback name
     entity = HostEntity.model_validate(test_data)
 
-    # Should use the fallback 'unknown_service'
+    # Should use the fallback 'unknown_service_0' (with index for debugging)
     assert isinstance(entity.properties.osServices, list)
     assert len(entity.properties.osServices) == 1
-    assert entity.properties.osServices[0] == 'unknown_service'
+    assert entity.properties.osServices[0] == 'unknown_service_0'
