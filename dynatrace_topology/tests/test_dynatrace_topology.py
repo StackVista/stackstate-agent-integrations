@@ -524,6 +524,7 @@ def test_process_group_entity_custompgmetadata_nonscalar_key():
             'customPgMetadata': [
                 {'key': {'nested': 'dict'}, 'value': 'val1'},
                 {'key': ['list', 'key'], 'value': 'val2'},
+                {'key': {'source': 'KUBERNETES', 'key': 'cni.projectcalico.org/podIPs'}, 'value': '10.7.3.85/32'},
             ]
         }
     }
@@ -531,6 +532,8 @@ def test_process_group_entity_custompgmetadata_nonscalar_key():
     entity = ProcessGroupEntity.model_validate(test_data)
 
     assert isinstance(entity.properties.customPgMetadata, dict)
-    # Both non-scalar keys should map to fallback keys
+    # Non-scalar keys without inner 'key' should map to fallback keys
     assert 'unknown_key_0' in entity.properties.customPgMetadata
     assert 'unknown_key_1' in entity.properties.customPgMetadata
+    # Nested key dicts with inner 'key' should extract the string key
+    assert entity.properties.customPgMetadata['cni.projectcalico.org/podIPs'] == '10.7.3.85/32'

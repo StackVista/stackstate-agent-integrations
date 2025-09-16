@@ -257,8 +257,14 @@ class ProcessGroupProperties(ForgivingBaseModel):
                 try:
                     if isinstance(item, dict):
                         raw_key = item.get('key')
-                        # Ensure key is hashable and string
-                        if isinstance(raw_key, (str, int, float, bool)):
+                        # Support nested key structure like {'source': 'KUBERNETES', 'key': '...'}
+                        if isinstance(raw_key, dict):
+                            nested_key = raw_key.get('key')
+                            if isinstance(nested_key, (str, int, float, bool)):
+                                key = str(nested_key)
+                            else:
+                                key = f'unknown_key_{i}'
+                        elif isinstance(raw_key, (str, int, float, bool)):
                             key = str(raw_key)
                         else:
                             key = f'unknown_key_{i}'

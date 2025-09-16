@@ -445,8 +445,20 @@ class DynatraceTopologyCheck(AgentCheck):
                     for i, item in enumerate(properties["customPgMetadata"]):
                         if isinstance(item, dict):
                             raw_key = item.get('key')
-                            # Ensure the dictionary key is hashable and stringified
-                            if isinstance(raw_key, (str, int, float, bool)):
+                            # Handle nested key structure like {'source': 'KUBERNETES',
+                            # 'key': 'cni.projectcalico.org/podIPs'}
+                            if isinstance(raw_key, dict):
+                                nested_key = raw_key.get('key')
+                                if isinstance(nested_key, (str, int, float, bool)):
+                                    key = str(nested_key)
+                                else:
+                                    self.log.warning(
+                                        'customPgMetadata key dict has non-scalar inner key '
+                                        '(type=%s, value=%s); using fallback key',
+                                        type(nested_key), nested_key
+                                    )
+                                    key = f'unknown_key_{i}'
+                            elif isinstance(raw_key, (str, int, float, bool)):
                                 key = str(raw_key)
                             else:
                                 self.log.warning(
