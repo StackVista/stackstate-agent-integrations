@@ -256,7 +256,12 @@ class ProcessGroupProperties(ForgivingBaseModel):
             for i, item in enumerate(v):
                 try:
                     if isinstance(item, dict):
-                        key = item.get('key', f'unknown_key_{i}')
+                        raw_key = item.get('key')
+                        # Ensure key is hashable and string
+                        if isinstance(raw_key, (str, int, float, bool)):
+                            key = str(raw_key)
+                        else:
+                            key = f'unknown_key_{i}'
                         value = item.get('value', item.get('val', f'unknown_value_{i}'))
                         converted_dict[key] = value
                     else:

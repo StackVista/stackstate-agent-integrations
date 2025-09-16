@@ -444,7 +444,16 @@ class DynatraceTopologyCheck(AgentCheck):
                     converted_dict = {}
                     for i, item in enumerate(properties["customPgMetadata"]):
                         if isinstance(item, dict):
-                            key = item.get('key', f'unknown_key_{i}')
+                            raw_key = item.get('key')
+                            # Ensure the dictionary key is hashable and stringified
+                            if isinstance(raw_key, (str, int, float, bool)):
+                                key = str(raw_key)
+                            else:
+                                self.log.warning(
+                                    'customPgMetadata key is non-scalar (type=%s, value=%s); using fallback key',
+                                    type(raw_key), raw_key
+                                )
+                                key = f'unknown_key_{i}'
                             value = item.get('value', item.get('val', f'unknown_value_{i}'))
                             converted_dict[key] = value
                             self.log.info('Converting customPgMetadata item: %s = %s', key, value)

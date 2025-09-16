@@ -507,3 +507,30 @@ def test_process_group_entity_custompgmetadata_fallback_handling():
     assert 'unknown_key_1' in entity.properties.customPgMetadata  # Fallback for missing key
     assert entity.properties.customPgMetadata['no_value_key'] == 'unknown_value_2'  # Fallback for missing value
     assert 'item_3' in entity.properties.customPgMetadata  # Fallback for non-dict item
+
+
+def test_process_group_entity_custompgmetadata_nonscalar_key():
+    """
+    Test that ProcessGroupEntity handles customPgMetadata list with a non-scalar key
+    (e.g., dict or list) by falling back to an auto-generated key name.
+    """
+    from stackstate_checks.dynatrace_topology.entity_data_types import ProcessGroupEntity
+
+    test_data = {
+        'entityId': 'PROCESS_GROUP-TEST123',
+        'type': 'PROCESS_GROUP',
+        'displayName': 'Test Process Group',
+        'properties': {
+            'customPgMetadata': [
+                {'key': {'nested': 'dict'}, 'value': 'val1'},
+                {'key': ['list', 'key'], 'value': 'val2'},
+            ]
+        }
+    }
+
+    entity = ProcessGroupEntity.model_validate(test_data)
+
+    assert isinstance(entity.properties.customPgMetadata, dict)
+    # Both non-scalar keys should map to fallback keys
+    assert 'unknown_key_0' in entity.properties.customPgMetadata
+    assert 'unknown_key_1' in entity.properties.customPgMetadata
