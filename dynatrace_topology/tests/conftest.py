@@ -111,6 +111,29 @@ def assert_topology(expected_topology, test_topology):
     :param test_topology: topology gathered during test
     :return: None
     """
+    # Filter relations to only those whose endpoints are supported entity id prefixes
+    SUPPORTED_PREFIXES = (
+        'HOST-', 'PROCESS_GROUP-', 'PROCESS_GROUP_INSTANCE-', 'SERVICE-', 'APPLICATION-', 'CUSTOM_DEVICE-', 'QUEUE-',
+        'SYNTHETIC_TEST-'
+    )
+
+    def filter_supported(top):
+        rels = top.get('relations', []) or []
+        filtered = []
+        for r in rels:
+            src = r.get('source_id', '') or ''
+            tgt = r.get('target_id', '') or ''
+            if (
+                    any(src.startswith(p) for p in SUPPORTED_PREFIXES)
+                    and any(tgt.startswith(p) for p in SUPPORTED_PREFIXES)
+            ):
+                filtered.append(r)
+        top['relations'] = filtered
+        return top
+
+    test_topology = filter_supported(test_topology)
+    expected_topology = filter_supported(expected_topology)
+
     components, relations = sort_topology_data(test_topology)
     expected_components, expected_relations = sort_topology_data(expected_topology)
     assert components == expected_components

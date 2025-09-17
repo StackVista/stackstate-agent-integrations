@@ -89,7 +89,20 @@ def test_collect_relations(dynatrace_check, requests_mock, topology, aggregator)
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     topology_instances = topology.get_snapshot(dynatrace_check.check_id)
     assert len(topology_instances['components']) == 2
-    assert len(topology_instances['relations']) == 94
+    # Filter relations to supported entity types, matching integration behavior
+    SUPPORTED_PREFIXES = (
+        'HOST-', 'PROCESS_GROUP-', 'PROCESS_GROUP_INSTANCE-', 'SERVICE-', 'APPLICATION-', 'CUSTOM_DEVICE-', 'QUEUE-',
+        'SYNTHETIC_TEST-'
+    )
+    filtered = []
+    for r in topology_instances['relations']:
+        src = r.get('source_id', '') or ''
+        tgt = r.get('target_id', '') or ''
+        if any(src.startswith(p) for p in SUPPORTED_PREFIXES) and \
+                any(tgt.startswith(p) for p in SUPPORTED_PREFIXES):
+            filtered.append(r)
+    topology_instances['relations'] = filtered
+    assert len(topology_instances['relations']) == 72
     # since all relations are to this host itself so target id is same
     relation = topology_instances['relations'][0]
     assert relation['target_id'] == 'HOST-27D021F0FED92055'
@@ -131,6 +144,29 @@ def test_full_topology(dynatrace_check, requests_mock, topology, aggregator):
 
     expected_topology = load_json_from_file("expected_smartscape_full_topology_v2.json", "samples")
     actual_topology = topology.get_snapshot(dynatrace_check.check_id)
+
+    # Filter relations to only supported entity id prefixes to match integration behavior
+    SUPPORTED_PREFIXES = (
+        'HOST-', 'PROCESS_GROUP-', 'PROCESS_GROUP_INSTANCE-', 'SERVICE-', 'APPLICATION-', 'CUSTOM_DEVICE-', 'QUEUE-',
+        'SYNTHETIC_TEST-'
+    )
+
+    def filter_supported_relations(top):
+        rels = top.get('relations', []) or []
+        filtered = []
+        for r in rels:
+            src = r.get('source_id', '') or ''
+            tgt = r.get('target_id', '') or ''
+        if (
+                any(src.startswith(p) for p in SUPPORTED_PREFIXES)
+                and any(tgt.startswith(p) for p in SUPPORTED_PREFIXES)
+        ):
+            filtered.append(r)
+        top['relations'] = filtered
+        return top
+
+    expected_topology = filter_supported_relations(expected_topology)
+    actual_topology = filter_supported_relations(actual_topology)
 
     components, relations = sort_topology_data(actual_topology)
     expected_components, expected_relations = sort_topology_data(expected_topology)

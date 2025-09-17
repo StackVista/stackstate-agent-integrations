@@ -376,9 +376,15 @@ class DynatraceTopologyCheck(AgentCheck):
                         self.relation(actual_target, actual_source, relation_type, {})
                     elif component_type != 'synthetic-monitor':
                         entity_id = relation_id.get('id')
-                        # Skip relations pointing to unsupported entity types (e.g., SOFTWARE_COMPONENT, RUNTIME_COMPONENT, HOST_GROUP)
+                        # Skip relations pointing to unsupported entity types (e.g., SOFTWARE_COMPONENT,
+                        # RUNTIME_COMPONENT, HOST_GROUP)
                         if not any(entity_id.startswith(prefix) for prefix in SUPPORTED_ENTITY_ID_PREFIXES):
-                            self.log.debug('Skipping relation %s from %s to unsupported %s', relation_type, component_id, entity_id)
+                            self.log.debug(
+                                'Skipping relation %s from %s to unsupported %s',
+                                relation_type,
+                                component_id,
+                                entity_id,
+                            )
                             continue
                         if is_target_component:
                             self.relation(entity_id, component_id, relation_type, {})
