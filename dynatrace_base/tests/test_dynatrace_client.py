@@ -3,6 +3,8 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import pytest
 
+from stackstate_checks.dynatrace.dynatrace_client import DynatraceClientFactory
+
 
 def test_endpoint_generation(dynatrace_client):
     """
@@ -168,3 +170,96 @@ def test_entity_404_no_summary_when_no_errors(dynatrace_client, caplog):
     # Should have no log messages
     info_logs = [record for record in caplog.records if record.levelname == 'INFO']
     assert len(info_logs) == 0
+
+
+def test_jwt_401_refresh_and_retry_success(requests_mock, monkeypatch, test_instance):
+    """On 401 with JWT enabled, client should refresh and retry once, then succeed."""
+    # Enable JWT mode
+    monkeypatch.setenv('JWT_AUTH', 'true')
+    # Provide required MS JWT envs
+    monkeypatch.setenv('TENANT_ID', 't')
+    monkeypatch.setenv('CLIENT_ID', 'c')
+    monkeypatch.setenv('CLIENT_SECRET', 's')
+    monkeypatch.setenv('SCOPE', 'api/.default')
+    # Stub MsJWTAuth.get_token to return a refreshed token
+    monkeypatch.setattr(
+        'stackstate_checks.dynatrace.custom_auth.MsJWTAuth.get_token',
+        lambda self: 'refreshed-token'
+    )
+    # Create client under JWT mode
+    factory = DynatraceClientFactory()
+    client = factory.create_client(
+        instance_name=test_instance.get('url'),
+        token=test_instance.get('token'),
+        verify=False,
+        cert=None,
+        keyfile=None,
+        timeout=5,
+    )
+
+    endpoint = client.get_endpoint(test_instance.get('url'), '/api/v2/entities/HOST-123')
+    # First response 401, second response 200
+    requests_mock.get(endpoint, [
+        {'text': '{"error": {"message": "unauthorized"}}', 'status_code': 401},
+        {'text': '{"result": "ok"}', 'status_code': 200},
+    ])
+
+    resp = client.get_dynatrace_json_response(endpoint)
+    assert resp['result'] == 'ok'
+    # Ensure only two calls happened (one initial + one retry)
+    assert requests_mock.call_count == 2
+
+
+def test_jwt_401_refresh_then_401_raises_no_loop(requests_mock, monkeypatch, test_instance):
+    """If retry also returns 401, client should raise and not loop indefinitely."""
+    monkeypatch.setenv('JWT_AUTH', 'true')
+    # Provide required MS JWT envs
+    monkeypatch.setenv('TENANT_ID', 't')
+    monkeypatch.setenv('CLIENT_ID', 'c')
+    monkeypatch.setenv('CLIENT_SECRET', 's')
+    monkeypatch.setenv('SCOPE', 'api/.default')
+    monkeypatch.setattr(
+        'stackstate_checks.dynatrace.custom_auth.MsJWTAuth.get_token',
+        lambda self: 'refreshed-token'
+    )
+    factory = DynatraceClientFactory()
+    client = factory.create_client(
+        instance_name=test_instance.get('url'),
+        token=test_instance.get('token'),
+        verify=False,
+        cert=None,
+        keyfile=None,
+        timeout=5,
+    )
+
+    endpoint = client.get_endpoint(test_instance.get('url'), '/api/v2/entities/HOST-456')
+    # Two 401 responses -> should raise after retry, no more attempts
+    requests_mock.get(endpoint, [
+        {'text': '{"error": {"message": "unauthorized"}}', 'status_code': 401},
+        {'text': '{"error": {"message": "unauthorized"}}', 'status_code': 401},
+    ])
+
+    with pytest.raises(Exception) as exc:
+        client.get_dynatrace_json_response(endpoint)
+    assert '401 unauthorized' in str(exc.value)
+    assert requests_mock.call_count == 2
+
+
+def test_api_token_401_raises_without_retry(requests_mock, monkeypatch, test_instance):
+    """With API token (non-JWT), a 401 should raise immediately with guidance message."""
+    monkeypatch.setenv('JWT_AUTH', 'false')
+    factory = DynatraceClientFactory()
+    client = factory.create_client(
+        instance_name=test_instance.get('url'),
+        token=test_instance.get('token'),
+        verify=False,
+        cert=None,
+        keyfile=None,
+        timeout=5,
+    )
+    endpoint = client.get_endpoint(test_instance.get('url'), '/api/v2/entities/HOST-789')
+    requests_mock.get(endpoint, text='{"error": {"message": "unauthorized"}}', status_code=401)
+    with pytest.raises(Exception) as exc:
+        client.get_dynatrace_json_response(endpoint)
+    assert 'Verify token validity' in str(exc.value)
+    assert requests_mock.call_count == 1

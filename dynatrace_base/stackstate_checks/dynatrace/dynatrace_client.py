@@ -47,32 +47,71 @@ class _DynatraceClient:
         else:
             headers = {"Authorization": "Api-Token %s" % self.token}
 
-        try:
+        def do_request(session_headers):
             with Session() as session:
-                session.headers.update(headers)
+                session.headers.update(session_headers)
                 session.verify = self.verify
                 if self.cert:
                     session.cert = (self.cert, self.keyfile)
                 response = session.get(endpoint, params=params, timeout=self.timeout)
-                response_json = response.json()
-                if response.status_code != 200:
-                    if "error" in response_json:
-                        msg = response_json["error"].get("message")
-                    else:
-                        msg = "Got %s when hitting %s" % (response.status_code, endpoint)
+                return response
 
-                    # Handle 404s for all entity types with smart logging and counting
-                    if (
+        try:
+            response = do_request(headers)
+            # If unauthorized and using JWT auth, refresh once and retry
+            if response.status_code == 401 and self.is_jwt_auth:
+                self.log.warning(
+                    "401 unauthorized for %s; refreshing JWT and retrying once",
+                    endpoint,
+                )
+                try:
+                    from stackstate_checks.dynatrace.custom_auth import MsJWTAuth  # local import to avoid cycles
+                    refresher = MsJWTAuth(self.verify, self.cert, self.keyfile, self.timeout)
+                    self.token = refresher.get_token()
+                except Exception as refresh_err:
+                    raise Exception(
+                        (
+                            "401 unauthorized and token refresh failed: %s. "
+                            "Ensure OAuth/JWT configuration is valid."
+                        )
+                        % refresh_err
+                    )
+                # Retry with new token
+                retry_headers = {"Authorization": "Bearer %s" % self.token}
+                response = do_request(retry_headers)
+
+            response_json = response.json()
+            if response.status_code != 200:
+                if "error" in response_json:
+                    msg = response_json["error"].get("message")
+                else:
+                    msg = "Got %s when hitting %s" % (response.status_code, endpoint)
+
+                # Handle 404s for all entity types with smart logging and counting
+                if (
                         response.status_code == 404
                         and "/api/v2/entities/" in endpoint
-                    ):
-                        self._handle_entity_404(endpoint, msg)
-                    else:
-                        self.log.error(msg)
-
+                ):
+                    self._handle_entity_404(endpoint, msg)
+                    # Always raise after handling 404 so callers can react and tests assert
+                    raise Exception(
+                        'Got an unexpected error with status code %s and message: %s'
+                        % (response.status_code, msg)
+                    )
+                elif response.status_code == 401:
+                    # Provide clearer guidance for non-JWT (or failed refresh) 401s
+                    raise Exception(
+                        (
+                            "401 unauthorized for %s. Verify token validity and required API v2 scopes "
+                            "(entities.read, events.read, eventTypes.read). Message: %s"
+                        )
+                        % (endpoint, msg)
+                    )
+                else:
+                    self.log.error(msg)
                     raise Exception(
                         'Got an unexpected error with status code %s and message: %s' % (response.status_code, msg))
-                return response_json
+            return response_json
         except Timeout:
             msg = "%d seconds timeout" % self.timeout
             self.log.error(msg)
