@@ -447,8 +447,8 @@ class DynatraceTopologyCheck(AgentCheck):
                             service_name = (service.get('dt.osservice.name') or service.get('dt.osservice.display_name')
                                             or f'unknown_service_{i}')
                             converted_services.append(service_name)
-                            self.log.info('Converting osServices dict to service name: %s (from %s)', service_name,
-                                          service)
+                            self.log.debug('Converting osServices dict to service name: %s (from %s)', service_name,
+                                           service)
                         elif isinstance(service, str):
                             converted_services.append(service)
                         else:
@@ -490,7 +490,7 @@ class DynatraceTopologyCheck(AgentCheck):
                                 key = f'unknown_key_{i}'
                             value = item.get('value', item.get('val', f'unknown_value_{i}'))
                             converted_dict[key] = value
-                            self.log.info('Converting customPgMetadata item: %s = %s', key, value)
+                            self.log.debug('Converting customPgMetadata item: %s = %s', key, value)
                         else:
                             converted_dict[f'item_{i}'] = str(item)
                     properties["customPgMetadata"] = converted_dict

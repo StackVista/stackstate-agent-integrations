@@ -222,7 +222,7 @@ class DynatraceHealthCheck(AgentCheck):
 
         # Log accumulated 404 errors as INFO messages per entity type
         for entity_type, count in entity_404_errors.items():
-            self.log.info(f"Found {count} events referencing {entity_type} entities that no longer exist")
+            self.log.debug(f"Found {count} events referencing {entity_type} entities that no longer exist")
 
         self.health.stop_snapshot()
         if events_limit_reached:
