@@ -263,3 +263,47 @@ def test_api_token_401_raises_without_retry(requests_mock, monkeypatch, test_ins
         client.get_dynatrace_json_response(endpoint)
     assert 'Verify token validity' in str(exc.value)
     assert requests_mock.call_count == 1
+
+
+def test_5xx_retries_then_success(requests_mock, test_instance):
+    factory = DynatraceClientFactory()
+    client = factory.create_client(
+        instance_name=test_instance.get('url'),
+        token=test_instance.get('token'),
+        verify=False,
+        cert=None,
+        keyfile=None,
+        timeout=5,
+    )
+    endpoint = client.get_endpoint(test_instance.get('url'), '/api/v2/events')
+    # Two transient 502s then success
+    requests_mock.get(endpoint, [
+        {'text': '{"error": {"message": "bad gateway"}}', 'status_code': 502},
+        {'text': '{"error": {"message": "bad gateway"}}', 'status_code': 502},
+        {'text': '{"events": []}', 'status_code': 200},
+    ])
+    resp = client.get_dynatrace_json_response(endpoint)
+    assert 'events' in resp
+    assert requests_mock.call_count == 3
+
+
+def test_5xx_retries_then_fail(requests_mock, test_instance):
+    factory = DynatraceClientFactory()
+    client = factory.create_client(
+        instance_name=test_instance.get('url'),
+        token=test_instance.get('token'),
+        verify=False,
+        cert=None,
+        keyfile=None,
+        timeout=5,
+    )
+    endpoint = client.get_endpoint(test_instance.get('url'), '/api/v2/events')
+    # Two transient 502s then still 502 -> should raise after retries
+    requests_mock.get(endpoint, [
+        {'text': '{"error": {"message": "bad gateway"}}', 'status_code': 502},
+        {'text': '{"error": {"message": "bad gateway"}}', 'status_code': 502},
+        {'text': '{"error": {"message": "bad gateway"}}', 'status_code': 502},
+    ])
+    with pytest.raises(Exception):
+        client.get_dynatrace_json_response(endpoint)
+    assert requests_mock.call_count == 3
