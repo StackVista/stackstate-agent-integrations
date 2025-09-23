@@ -89,6 +89,10 @@ class SplunkClient:
         session_key = response_json["sessionKey"]
         self.requests_session.headers.update({'Authentication': "Splunk %s" % session_key})
 
+    def _get_splunk_ns_user(self):
+        splunk_ns_user = os.getenv('SPLUNK_NS_USER', '-')
+        return splunk_ns_user
+
     def _token_auth_session(self, committable_state):
         is_initial_token = False
         token = committable_state.get_auth_token()
@@ -124,8 +128,9 @@ class SplunkClient:
         Retrieves a list of saved searches from splunk
         :return: list of names of saved searches
         """
+        splunk_ns_user = self._get_splunk_ns_user()
         if splunk_app is not None:
-            search_path = '/servicesNS/-/%s/saved/searches?output_mode=json&count=0' % splunk_app
+            search_path = '/servicesNS/%s/%s/saved/searches?output_mode=json&count=0' % (splunk_ns_user, splunk_app)
         else:
             search_path = '/services/saved/searches?output_mode=json&count=0'
         response = self._do_get(search_path,
@@ -142,8 +147,10 @@ class SplunkClient:
         :param count: the maximum number of elements expecting to be returned by the API call
         :return: raw json response from splunk
         """
-        search_path = '/servicesNS/-/-/search/jobs/%s/results?output_mode=json&offset=%s&count=%s' % \
-                      (search_id, offset, count)
+        splunk_ns_user = self._get_splunk_ns_user()
+        search_app = getattr(saved_search, 'app', '-')
+        search_path = '/servicesNS/%s/%s/search/jobs/%s/results?output_mode=json&offset=%s&count=%s' % \
+                      (splunk_ns_user, search_app, search_id, offset, count)
 
         response = self._do_get(search_path,
                                 saved_search.request_timeout_seconds,
