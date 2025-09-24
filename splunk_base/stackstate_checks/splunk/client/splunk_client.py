@@ -129,6 +129,8 @@ class SplunkClient:
         :return: list of names of saved searches
         """
         splunk_ns_user = self._get_splunk_ns_user()
+        self.log.debug("splunk NS user: {}", splunk_ns_user)
+        self.log.debug("splunk namespaced app: {}", splunk_app)
         if splunk_app is not None:
             search_path = '/servicesNS/%s/%s/saved/searches?output_mode=json&count=0' % (splunk_ns_user, splunk_app)
         else:
