@@ -22,6 +22,8 @@ from stackstate_checks.splunk.config import AuthType
 
 urllib3.disable_warnings(InsecureRequestWarning)
 
+DEFAULT_SPLUNK_SAVED_SEARCH_APP = os.getenv("DEFAULT_SPLUNK_SAVED_SEARCHES_APP", None)
+
 
 class FinalizeException(Exception):
     """
@@ -123,7 +125,7 @@ class SplunkClient:
         self.requests_session.headers.update({'Authorization': "Bearer %s" % new_token})
         return new_token
 
-    def saved_searches(self, splunk_app=None):
+    def saved_searches(self, splunk_app=DEFAULT_SPLUNK_SAVED_SEARCH_APP):
         """
         Retrieves a list of saved searches from splunk
         :return: list of names of saved searches
