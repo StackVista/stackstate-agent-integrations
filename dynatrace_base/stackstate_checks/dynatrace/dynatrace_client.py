@@ -5,7 +5,6 @@
 import logging
 import os
 from collections import defaultdict
-import time
 
 from requests import Session, Timeout
 
@@ -80,24 +79,6 @@ class _DynatraceClient:
                 # Retry with new token
                 retry_headers = {"Authorization": "Bearer %s" % self.token}
                 response = do_request(retry_headers)
-
-            # Retry transient server errors (5xx) with simple backoff
-            if 500 <= response.status_code < 600:
-                max_retries = 2
-                for attempt in range(1, max_retries + 1):
-                    sleep_s = 2 ** (attempt - 1)
-                    self.log.warning(
-                        "Got %s for %s; retrying in %ss (attempt %d/%d)",
-                        response.status_code,
-                        endpoint,
-                        sleep_s,
-                        attempt,
-                        max_retries,
-                    )
-                    time.sleep(sleep_s)
-                    response = do_request(headers)
-                    if response.status_code < 500 or response.status_code >= 600:
-                        break
 
             response_json = response.json()
             if response.status_code != 200:
