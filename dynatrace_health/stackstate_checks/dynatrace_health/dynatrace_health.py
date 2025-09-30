@@ -45,6 +45,9 @@ class DynatraceHealthCheck(AgentCheck):
     def __init__(self, name, init_config, instances):
         super(DynatraceHealthCheck, self).__init__(name, init_config, instances)
         self.dynatrace_client_factory = DynatraceClientFactory()
+        # Simple in-memory cache for event type definitions within the check lifecycle
+        # key: event type string, value: dict returned by the Dynatrace API
+        self._event_type_cache = {}
 
     def get_instance_key(self, instance_info):
         return StackPackInstance(self.INSTANCE_TYPE, str(instance_info.url))
@@ -94,6 +97,13 @@ class DynatraceHealthCheck(AgentCheck):
         if events_limit_reached:
             events = events[:instance_info.events_process_limit]
 
+        # Warm the event type cache with unique event types from this batch
+        try:
+            unique_event_types = {e.eventType or 'UNKNOWN' for e in events}
+            self._warm_event_type_cache(dynatrace_client, str(instance_info.url), unique_event_types)
+        except Exception as e:
+            self.log.debug(f"Failed to warm event type cache: {e}")
+
         open_events_count = len([e for e in events if e.status == 'OPEN'])
         closed_events_count = len(events) - open_events_count
         self.log.info("Collected %d events, %d are open and %d are closed.", len(events), open_events_count,
@@ -108,9 +118,10 @@ class DynatraceHealthCheck(AgentCheck):
         for event in events:
             # Get the event Type definition from the API.
             event_type = event.eventType or 'UNKNOWN'
-            endpoint = f"{instance_info.url}/api/v2/eventTypes/{event_type}"
             try:
-                event_type_data = dynatrace_client.get_dynatrace_json_response(endpoint, None)
+                event_type_data = self._get_event_type_definition(
+                    dynatrace_client, str(instance_info.url), event_type
+                )
                 display_name = event_type_data.get('displayName', event_type)
                 severity_level = event_type_data.get('severityLevel', 'INFO')
             except Exception as e:
@@ -227,6 +238,34 @@ class DynatraceHealthCheck(AgentCheck):
         self.health.stop_snapshot()
         if events_limit_reached:
             raise EventLimitReachedException(events_limit_reached)
+
+    def _get_event_type_definition(self, dynatrace_client, base_url, event_type):
+        """
+        Return the event type definition from cache if present, otherwise fetch and cache it.
+        """
+        if event_type in self._event_type_cache:
+            return self._event_type_cache[event_type]
+
+        endpoint = f"{base_url}/api/v2/eventTypes/{event_type}"
+        data = dynatrace_client.get_dynatrace_json_response(endpoint, None)
+        # Only cache successful responses
+        self._event_type_cache[event_type] = data
+        return data
+
+    def _warm_event_type_cache(self, dynatrace_client, base_url, event_types):
+        """
+        Pre-fetch and cache event type definitions for a set of event types.
+        Failures are logged at debug and ignored to avoid blocking processing.
+        """
+        for et in event_types:
+            if et in self._event_type_cache:
+                continue
+            try:
+                endpoint = f"{base_url}/api/v2/eventTypes/{et}"
+                data = dynatrace_client.get_dynatrace_json_response(endpoint, None)
+                self._event_type_cache[et] = data
+            except Exception as e:
+                self.log.debug(f"Warming cache for event type {et} failed: {e}")
 
     def _create_topology_event(self, dynatrace_event, link_to_entity, severity_level, entity_data, impact,
                                event_display_name):

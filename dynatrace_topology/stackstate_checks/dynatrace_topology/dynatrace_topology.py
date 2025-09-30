@@ -14,6 +14,8 @@ from stackstate_checks.dynatrace.dynatrace_client import DynatraceClientFactory
 from stackstate_checks.dynatrace_topology.entity_data_types import HostEntity, ServiceEntity, QueueEntity, \
     ProcessGroupEntity, ProcessGroupInstanceEntity, ApplicationEntity, CustomDeviceEntity, Relationship
 from stackstate_checks.utils.identifiers import Identifiers
+# Only emit relations to entity IDs we materialize as components
+from stackstate_checks.dynatrace.constants import is_supported_entity_id
 
 VERIFY_HTTPS = True
 TIMEOUT = 10
@@ -38,18 +40,6 @@ TOPOLOGY_API_SPEC = {
 }
 
 DynatraceCachedEntity = namedtuple('DynatraceCachedEntity', 'identifier external_id name type')
-
-# Only emit relations to entity IDs we materialize as components
-SUPPORTED_ENTITY_ID_PREFIXES = (
-    'HOST-',
-    'PROCESS_GROUP-',
-    'PROCESS_GROUP_INSTANCE-',
-    'SERVICE-',
-    'APPLICATION-',
-    'CUSTOM_DEVICE-',
-    'QUEUE-',
-    'SYNTHETIC_TEST-',
-)
 
 
 class MonitoringState(ForgivingBaseModel):
@@ -378,7 +368,7 @@ class DynatraceTopologyCheck(AgentCheck):
                         entity_id = relation_id.get('id')
                         # Skip relations pointing to unsupported entity types (e.g., SOFTWARE_COMPONENT,
                         # RUNTIME_COMPONENT, HOST_GROUP)
-                        if not any(entity_id.startswith(prefix) for prefix in SUPPORTED_ENTITY_ID_PREFIXES):
+                        if not is_supported_entity_id(entity_id):
                             self.log.debug(
                                 'Skipping relation %s from %s to unsupported %s',
                                 relation_type,
