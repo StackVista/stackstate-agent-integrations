@@ -22,8 +22,6 @@ from stackstate_checks.splunk.config import AuthType
 
 urllib3.disable_warnings(InsecureRequestWarning)
 
-DEFAULT_SPLUNK_SAVED_SEARCH_APP = os.getenv("DEFAULT_SPLUNK_SAVED_SEARCHES_APP", None)
-
 
 class FinalizeException(Exception):
     """
@@ -125,7 +123,14 @@ class SplunkClient:
         self.requests_session.headers.update({'Authorization': "Bearer %s" % new_token})
         return new_token
 
-    def saved_searches(self, splunk_app=DEFAULT_SPLUNK_SAVED_SEARCH_APP):
+    def _get_saved_search_path(self, splunk_ns_user, splunk_app=None):
+        computed_splunk_app = splunk_app or os.getenv('DEFAULT_SPLUNK_SAVED_SEARCH_APP')
+        if computed_splunk_app is not None:
+            return '/servicesNS/%s/%s/saved/searches?output_mode=json&count=0' % (splunk_ns_user, computed_splunk_app)
+        else:
+            return '/services/saved/searches?output_mode=json&count=0'
+
+    def saved_searches(self, splunk_app=None):
         """
         Retrieves a list of saved searches from splunk
         :return: list of names of saved searches
@@ -133,10 +138,8 @@ class SplunkClient:
         splunk_ns_user = self._get_splunk_ns_user()
         self.log.info("splunk NS user: {}", splunk_ns_user)
         self.log.info("splunk namespaced app: {}", splunk_app)
-        if splunk_app is not None:
-            search_path = '/servicesNS/%s/%s/saved/searches?output_mode=json&count=0' % (splunk_ns_user, splunk_app)
-        else:
-            search_path = '/services/saved/searches?output_mode=json&count=0'
+        search_path = self._get_saved_search_path(splunk_ns_user, splunk_app)
+
         response = self._do_get(search_path,
                                 self.instance_config.default_request_timeout_seconds,
                                 self.instance_config.verify_ssl_certificate)

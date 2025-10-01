@@ -328,3 +328,28 @@ class TestSplunkClient(unittest.TestCase):
         msg = "Current in use authentication token is expired. Please provide a valid token in the YAML " \
               "and restart the Agent"
         self.assertTrue(check, msg)
+
+    def test_client_get_saved_search_path(self):
+        """
+        Test token_auth_session to throw TokenExpiredException when memory token is expired
+        """
+        status = SplunkPersistentState({})
+        # load a token in memory for validation
+        status.set_auth_token('memorytokenpresent')
+        config = FakeInstanceConfig()
+        config.auth_type = AuthType.TokenAuth
+        client = SplunkClient(config)
+        client.requests_session.headers.update({'Authorization': "Bearer memorytokenpresent"})
+        client._current_time = mock.MagicMock()
+        client._current_time.return_value = datetime.datetime(2020, 6, 16, 15, 44, 51)
+
+        search_path = client._get_saved_search_path("-")
+        self.assertEqual(search_path, "/services/saved/searches?output_mode=json&count=0")
+
+        search_path = client._get_saved_search_path("nobody", "test_app")
+        self.assertEqual(search_path, "/servicesNS/nobody/test_app/saved/searches?output_mode=json&count=0")
+
+        os.environ['DEFAULT_SPLUNK_SAVED_SEARCH_APP'] = "pasta_carbonara"
+
+        search_path = client._get_saved_search_path("opensuse")
+        self.assertEqual(search_path, "/servicesNS/opensuse/pasta_carbonara/saved/searches?output_mode=json&count=0")
