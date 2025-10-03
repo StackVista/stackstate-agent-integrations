@@ -33,6 +33,15 @@ class _DynatraceClient:
         # Track 404 occurrences per entity type to avoid spam and provide summary
         self._entity_404_counts = defaultdict(int)
         self._entity_404_logged = set()
+        # Reusable HTTP session for connection pooling/keep-alive
+        self._session = Session()
+        self._session.verify = self.verify
+        if self.cert:
+            self._session.cert = (self.cert, self.keyfile)
+        # Default headers
+        self._session.headers.update({
+            "Accept-Encoding": "gzip, deflate",
+        })
 
     def get_dynatrace_json_response(self, endpoint, params=None):
         """
@@ -43,21 +52,18 @@ class _DynatraceClient:
         """
         # Use Bearer for JWT tokens, Api-Token for API tokens
         if self.is_jwt_auth:
-            headers = {"Authorization": "Bearer %s" % self.token}
+            auth_header = {"Authorization": "Bearer %s" % self.token}
         else:
-            headers = {"Authorization": "Api-Token %s" % self.token}
+            auth_header = {"Authorization": "Api-Token %s" % self.token}
 
-        def do_request(session_headers):
-            with Session() as session:
-                session.headers.update(session_headers)
-                session.verify = self.verify
-                if self.cert:
-                    session.cert = (self.cert, self.keyfile)
-                response = session.get(endpoint, params=params, timeout=self.timeout)
-                return response
+        def do_request(current_headers):
+            # Update per-request auth header (cheap dict update)
+            self._session.headers.update(current_headers)
+            response = self._session.get(endpoint, params=params, timeout=self.timeout)
+            return response
 
         try:
-            response = do_request(headers)
+            response = do_request(auth_header)
             # If unauthorized and using JWT auth, refresh once and retry
             if response.status_code == 401 and self.is_jwt_auth:
                 self.log.warning(
