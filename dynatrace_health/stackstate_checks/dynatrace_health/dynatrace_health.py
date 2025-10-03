@@ -151,9 +151,10 @@ class DynatraceHealthCheck(AgentCheck):
                     self.log.debug(f"Skipping PROCESS_GROUP_INSTANCE entity {entity_id} due to previous 404 errors")
                     continue
 
-                entity_endpoint = f"{instance_info.url}/api/v2/entities/{entity_id}"
                 try:
-                    entity_data = dynatrace_client.get_dynatrace_json_response(entity_endpoint, None)
+                    entity_data = self._get_entity_definition(
+                        dynatrace_client, str(instance_info.url), entity_id
+                    )
                     link_to_entity = self.link_to_dynatrace(entity_id, instance_info.url)
                     self._create_topology_event(event, link_to_entity, severity_level, entity_data, impact,
                                                 display_name)
@@ -250,6 +251,19 @@ class DynatraceHealthCheck(AgentCheck):
         data = dynatrace_client.get_dynatrace_json_response(endpoint, None)
         # Only cache successful responses
         self._event_type_cache[event_type] = data
+        return data
+
+    def _get_entity_definition(self, dynatrace_client, base_url, entity_id):
+        """
+        Return the entity definition from cache if present, otherwise fetch and cache it.
+        """
+        if not hasattr(self, '_entity_cache'):
+            self._entity_cache = {}
+        if entity_id in self._entity_cache:
+            return self._entity_cache[entity_id]
+        endpoint = f"{base_url}/api/v2/entities/{entity_id}"
+        data = dynatrace_client.get_dynatrace_json_response(endpoint, None)
+        self._entity_cache[entity_id] = data
         return data
 
     def _warm_event_type_cache(self, dynatrace_client, base_url, event_types):
