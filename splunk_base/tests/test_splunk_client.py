@@ -344,12 +344,12 @@ class TestSplunkClient(unittest.TestCase):
         client._current_time.return_value = datetime.datetime(2020, 6, 16, 15, 44, 51)
 
         search_path = client._get_saved_search_path("-")
-        self.assertEqual(search_path, "/services/saved/searches?output_mode=json&count=0")
+        self.assertEqual(search_path, "/services/saved/searches/?output_mode=json&count=-1")
 
         search_path = client._get_saved_search_path("nobody", "test_app")
-        self.assertEqual(search_path, "/servicesNS/nobody/test_app/saved/searches?output_mode=json&count=0")
+        self.assertEqual(search_path, "/servicesNS/nobody/test_app/saved/searches/?output_mode=json&count=-1")
 
         os.environ['DEFAULT_SPLUNK_SAVED_SEARCH_APP'] = "pasta_carbonara"
 
         search_path = client._get_saved_search_path("opensuse")
-        self.assertEqual(search_path, "/servicesNS/opensuse/pasta_carbonara/saved/searches?output_mode=json&count=0")
+        self.assertEqual(search_path, "/servicesNS/opensuse/pasta_carbonara/saved/searches/?output_mode=json&count=-1")

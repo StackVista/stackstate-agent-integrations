@@ -126,9 +126,9 @@ class SplunkClient:
     def _get_saved_search_path(self, splunk_ns_user, splunk_app=None):
         computed_splunk_app = splunk_app or os.getenv('DEFAULT_SPLUNK_SAVED_SEARCH_APP')
         if computed_splunk_app is not None:
-            return '/servicesNS/%s/%s/saved/searches?output_mode=json&count=0' % (splunk_ns_user, computed_splunk_app)
+            return '/servicesNS/%s/%s/saved/searches/?output_mode=json&count=-1' % (splunk_ns_user, computed_splunk_app)
         else:
-            return '/services/saved/searches?output_mode=json&count=0'
+            return '/services/saved/searches/?output_mode=json&count=-1'
 
     def saved_searches(self, splunk_app=None):
         """
