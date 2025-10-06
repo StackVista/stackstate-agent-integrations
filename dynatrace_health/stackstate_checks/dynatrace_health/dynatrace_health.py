@@ -86,6 +86,13 @@ class DynatraceHealthCheck(AgentCheck):
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=instance_info.instance_tags,
                                message=str(e))
 
+    @staticmethod
+    def _is_warmup_enabled():
+        """
+        Toggle cache warm-ups via env var DYNATRACE_HEALTH_ENABLE_WARMUP (default: true)
+        """
+        return os.getenv('DYNATRACE_HEALTH_ENABLE_WARMUP', 'true').lower() == 'true'
+
     def _process_events(self, dynatrace_client, instance_info):
         """
         Wrapper to collect events, filters those events and persist the state
@@ -99,25 +106,27 @@ class DynatraceHealthCheck(AgentCheck):
             events = events[:instance_info.events_process_limit]
 
         # Warm the event type cache with unique event types from this batch
-        try:
-            unique_event_types = {e.eventType or 'UNKNOWN' for e in events}
-            start_ts = time.time()
-            self._warm_event_type_cache(dynatrace_client, str(instance_info.url), unique_event_types)
-            self.log.info("Warmed event types cache, took %d seconds", int(time.time() - start_ts))
-        except Exception as e:
-            self.log.debug(f"Failed to warm event type cache: {e}")
+        if self._is_warmup_enabled():
+            try:
+                unique_event_types = {e.eventType or 'UNKNOWN' for e in events}
+                start_ts = time.time()
+                self._warm_event_type_cache(dynatrace_client, str(instance_info.url), unique_event_types)
+                self.log.info("Warmed event types cache, took %d seconds", int(time.time() - start_ts))
+            except Exception as e:
+                self.log.debug(f"Failed to warm event type cache: {e}")
 
         # Warm the entity cache by fetching ALL entities for supported types (store only displayName)
-        try:
-            start_ts = time.time()
-            self._warm_all_supported_entities(
-                dynatrace_client,
-                str(instance_info.url),
-                instance_info.relative_time or '1h'
-            )
-            self.log.info("Warmed entities cache, took %d seconds", int(time.time() - start_ts))
-        except Exception as e:
-            self.log.debug(f"Failed to warm all supported entities: {e}")
+        if self._is_warmup_enabled():
+            try:
+                start_ts = time.time()
+                self._warm_all_supported_entities(
+                    dynatrace_client,
+                    str(instance_info.url),
+                    instance_info.relative_time or '1h'
+                )
+                self.log.info("Warmed entities cache, took %d seconds", int(time.time() - start_ts))
+            except Exception as e:
+                self.log.debug(f"Failed to warm all supported entities: {e}")
 
         open_events_count = len([e for e in events if e.status == 'OPEN'])
         closed_events_count = len(events) - open_events_count
@@ -368,6 +377,10 @@ class DynatraceHealthCheck(AgentCheck):
         Checks for EventLimitReachedException and process each event API response for next cursor
         until is None or it reach events_process_limit
         """
+        self.log.info(
+            "Calling _get_events with from_time=%s",
+            instance_info.state.last_processed_event_timestamp,
+        )
         events_response = self._get_events(dynatrace_client, instance_info.url,
                                            from_time=instance_info.state.last_processed_event_timestamp)
         new_events = []

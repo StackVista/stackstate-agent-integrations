@@ -30,7 +30,6 @@ SUPPORTED_ENTITY_TYPES_PARAM_SELECTORS = (
 )
 
 
-
 def is_supported_entity_id(entity_id: str) -> bool:
     """Return True if the id starts with a supported component prefix."""
     if not isinstance(entity_id, str):
