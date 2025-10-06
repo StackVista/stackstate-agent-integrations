@@ -10,6 +10,7 @@ from stackstate_checks.base.utils.validations_utils import ForgivingBaseModel, A
 from stackstate_checks.base import StackPackInstance, HealthStream, HealthStreamUrn, Health, Identifiers
 from stackstate_checks.checks import AgentCheck
 from stackstate_checks.dynatrace.dynatrace_client import DynatraceClientFactory
+from stackstate_checks.dynatrace.constants import SUPPORTED_ENTITY_TYPES_PARAM_SELECTORS
 from stackstate_checks.dynatrace_health.event_data_types import DynatraceEvent
 
 VERIFY_HTTPS = True
@@ -100,9 +101,23 @@ class DynatraceHealthCheck(AgentCheck):
         # Warm the event type cache with unique event types from this batch
         try:
             unique_event_types = {e.eventType or 'UNKNOWN' for e in events}
+            start_ts = time.time()
             self._warm_event_type_cache(dynatrace_client, str(instance_info.url), unique_event_types)
+            self.log.info("Warmed event types cache, took %d seconds", int(time.time() - start_ts))
         except Exception as e:
             self.log.debug(f"Failed to warm event type cache: {e}")
+
+        # Warm the entity cache by fetching ALL entities for supported types (store only displayName)
+        try:
+            start_ts = time.time()
+            self._warm_all_supported_entities(
+                dynatrace_client,
+                str(instance_info.url),
+                instance_info.relative_time or '1h'
+            )
+            self.log.info("Warmed entities cache, took %d seconds", int(time.time() - start_ts))
+        except Exception as e:
+            self.log.debug(f"Failed to warm all supported entities: {e}")
 
         open_events_count = len([e for e in events if e.status == 'OPEN'])
         closed_events_count = len(events) - open_events_count
@@ -263,8 +278,9 @@ class DynatraceHealthCheck(AgentCheck):
             return self._entity_cache[entity_id]
         endpoint = f"{base_url}/api/v2/entities/{entity_id}"
         data = dynatrace_client.get_dynatrace_json_response(endpoint, None)
-        self._entity_cache[entity_id] = data
-        return data
+        minimal = {"displayName": data.get("displayName")}
+        self._entity_cache[entity_id] = minimal
+        return minimal
 
     def _warm_event_type_cache(self, dynatrace_client, base_url, event_types):
         """
@@ -280,6 +296,30 @@ class DynatraceHealthCheck(AgentCheck):
                 self._event_type_cache[et] = data
             except Exception as e:
                 self.log.debug(f"Warming cache for event type {et} failed: {e}")
+
+    def _warm_all_supported_entities(self, dynatrace_client, base_url, relative_time):
+        """
+        Prefetch and cache displayName for ALL entities of supported types.
+        Uses pagination via nextPageKey. Stores only {'displayName'} to minimize memory.
+        """
+        if not hasattr(self, '_entity_cache'):
+            self._entity_cache = {}
+        endpoint = dynatrace_client.get_endpoint(base_url, "api/v2/entities")
+        for selector in SUPPORTED_ENTITY_TYPES_PARAM_SELECTORS:
+            next_key = None
+            while True:
+                params = {"entitySelector": selector, "from": f"now-{relative_time}"}
+                if next_key:
+                    params = {"nextPageKey": next_key}
+                resp = dynatrace_client.get_dynatrace_json_response(endpoint, params)
+                entities = resp.get("entities", []) if isinstance(resp, dict) else (resp or [])
+                for ent in entities:
+                    ent_id = ent.get("entityId")
+                    if ent_id and ent_id not in self._entity_cache:
+                        self._entity_cache[ent_id] = {"displayName": ent.get("displayName")}
+                next_key = resp.get("nextPageKey") if isinstance(resp, dict) else None
+                if not next_key:
+                    break
 
     def _create_topology_event(self, dynatrace_event, link_to_entity, severity_level, entity_data, impact,
                                event_display_name):

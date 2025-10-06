@@ -18,6 +18,18 @@ SUPPORTED_ENTITY_ID_PREFIXES = (
     'SYNTHETIC_TEST-',
 )
 
+SUPPORTED_ENTITY_TYPES_PARAM_SELECTORS = (
+    'type("PROCESS_GROUP_INSTANCE")',
+    'type("HOST")',
+    'type("APPLICATION")',
+    'type("PROCESS_GROUP")',
+    'type("SERVICE")',
+    'type("CUSTOM_DEVICE")',
+    'type("QUEUE")',
+    'type("SYNTHETIC_TEST")',
+)
+
+
 
 def is_supported_entity_id(entity_id: str) -> bool:
     """Return True if the id starts with a supported component prefix."""
