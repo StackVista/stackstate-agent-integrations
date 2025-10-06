@@ -114,13 +114,16 @@ class SplunkClient:
             token = self._create_auth_token(token)
             committable_state.set_auth_token(token)
         self.requests_session.headers.update({'Authorization': "Bearer %s" % token})
+        self.requests_session.headers.update({'x-backend-auth': "Bearer %s" % token})
 
     def _create_auth_token(self, token):
         self.log.debug("Creating a new authentication token")
         self.requests_session.headers.update({'Authorization': "Bearer %s" % token})
+        self.requests_session.headers.update({'x-backend-auth': "Bearer %s" % token})
 
         new_token = self.jwt_adapter.generate_token()
         self.requests_session.headers.update({'Authorization': "Bearer %s" % new_token})
+        self.requests_session.headers.update({'x-backend-auth': "Bearer %s" % new_token})
         return new_token
 
     def _get_saved_search_path(self, splunk_ns_user, splunk_app=None):
