@@ -113,7 +113,8 @@ class SplunkClient:
                 is_initial_token):
             self.log.debug("The token needs renewal as token is about to expire or this is initial token")
             new_token = self._create_auth_token(token)
-            # Only commit the token
+            # Only commit the token if COMMIT_JWT_TOKEN_STATE is set to True.
+            # There are cases of users that do not want the token to be committed to state
             if os.getenv("COMMIT_JWT_TOKEN_STATE", True):
                 committable_state.set_auth_token(new_token)
         # Update the Authorization header falling back on the original token provided
