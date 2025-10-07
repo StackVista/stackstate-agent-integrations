@@ -28,6 +28,7 @@ class InstanceInfo(ForgivingBaseModel):
     url: AnyUrlStr
     token: str
     instance_tags: List[str] = []
+    collection_interval: int = 300  # Check interval in seconds, default 300s
     events_boostrap_days: int = EVENTS_BOOSTRAP_DAYS
     events_process_limit: int = EVENTS_PROCESS_LIMIT
     verify: bool = VERIFY_HTTPS
@@ -58,11 +59,44 @@ class DynatraceHealthCheck(AgentCheck):
 
     def check(self, instance_info):
         try:
+            self.log.info("State at check start: %s", instance_info.state)
+            if instance_info.state:
+                self.log.info("State.last_processed_event_timestamp: %s",
+                              instance_info.state.last_processed_event_timestamp)
+
             if not instance_info.state or not instance_info.state.last_processed_event_timestamp:
                 # Create state on the first run
                 empty_state_timestamp = self.generate_bootstrap_timestamp(instance_info.events_boostrap_days)
-                self.log.debug('Creating new empty state with timestamp: %s', empty_state_timestamp)
+                self.log.info('Creating new empty state with timestamp: %s', empty_state_timestamp)
                 instance_info.state = State(**{'last_processed_event_timestamp': empty_state_timestamp})
+            else:
+                # Validate that timestamp isn't too old (more than double the check interval)
+                # This prevents processing too many events if state gets stale or corrupted
+                current_time_ms = int(time.time() * 1000)
+                last_timestamp_ms = instance_info.state.last_processed_event_timestamp
+
+                # Use collection_interval from instance config (in seconds)
+                collection_interval_sec = instance_info.collection_interval
+                max_time_diff_ms = collection_interval_sec * 2 * 1000  # Double interval in milliseconds
+
+                time_diff_ms = current_time_ms - last_timestamp_ms
+
+                if time_diff_ms > max_time_diff_ms:
+                    old_timestamp = last_timestamp_ms
+                    new_timestamp = current_time_ms - max_time_diff_ms
+                    instance_info.state.last_processed_event_timestamp = new_timestamp
+                    self.log.info(
+                        "Timestamp was too old (%d ms = %.1f days ago). "
+                        "Capped to double check interval (%d seconds = %d ms). "
+                        "Old timestamp: %d, New timestamp: %d",
+                        time_diff_ms,
+                        time_diff_ms / (1000 * 60 * 60 * 24),
+                        collection_interval_sec * 2,
+                        max_time_diff_ms,
+                        old_timestamp,
+                        new_timestamp
+                    )
+
             dynatrace_client = self.dynatrace_client_factory.create_client(
                 instance_name=str(instance_info.url),
                 token=instance_info.token,
