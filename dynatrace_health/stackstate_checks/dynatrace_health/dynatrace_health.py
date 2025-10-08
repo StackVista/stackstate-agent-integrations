@@ -63,7 +63,7 @@ class DynatraceHealthCheck(AgentCheck):
             self.log.debug("State at check start: %s", instance_info.state)
             if instance_info.state:
                 self.log.debug("State.last_processed_event_timestamp: %s",
-                              instance_info.state.last_processed_event_timestamp)
+                               instance_info.state.last_processed_event_timestamp)
                 self.log.debug("State.checks_in_flight: %s", instance_info.state.checks_in_flight)
 
             if not instance_info.state or not instance_info.state.last_processed_event_timestamp:
@@ -139,7 +139,7 @@ class DynatraceHealthCheck(AgentCheck):
             self.log.debug("State at check end (before persistence): %s", instance_info.state)
             if instance_info.state:
                 self.log.debug("Final last_processed_event_timestamp: %s",
-                              instance_info.state.last_processed_event_timestamp)
+                               instance_info.state.last_processed_event_timestamp)
 
             msg = "Dynatrace health check processed successfully"
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=instance_info.instance_tags, message=msg)
@@ -148,7 +148,7 @@ class DynatraceHealthCheck(AgentCheck):
             if instance_info.state:
                 instance_info.state.checks_in_flight -= 1
                 self.log.debug("Decremented checks_in_flight to: %s (EventLimitReachedException)",
-                              instance_info.state.checks_in_flight)
+                               instance_info.state.checks_in_flight)
             self.log.exception(str(e))
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.WARNING, tags=instance_info.instance_tags,
                                message=str(e))
@@ -157,7 +157,7 @@ class DynatraceHealthCheck(AgentCheck):
             if instance_info.state:
                 instance_info.state.checks_in_flight -= 1
                 self.log.debug("Decremented checks_in_flight to: %s (Exception)",
-                              instance_info.state.checks_in_flight)
+                               instance_info.state.checks_in_flight)
             self.log.exception(str(e))
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=instance_info.instance_tags,
                                message=str(e))

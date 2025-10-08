@@ -595,3 +595,233 @@ def test_checks_in_flight_with_event_limit_exception(dynatrace_check, test_insta
     final_state = dynatrace_check.state_manager.get_state(dynatrace_check._get_state_descriptor())
     assert final_state is not None
     assert final_state['checks_in_flight'] == 0
+
+
+# Cache Warming Tests
+@freeze_time('2025-07-22 08:26:24')
+def test_is_warmup_enabled_default_false(dynatrace_check):
+    """
+    Test that _is_warmup_enabled() returns False by default when env var is not set
+    """
+    # Ensure env var is not set
+    if 'DYNATRACE_HEALTH_ENABLE_WARMUP' in os.environ:
+        del os.environ['DYNATRACE_HEALTH_ENABLE_WARMUP']
+
+    assert dynatrace_check._is_warmup_enabled() is False
+
+
+@freeze_time('2025-07-22 08:26:24')
+def test_is_warmup_enabled_case_insensitive(dynatrace_check):
+    """
+    Test that _is_warmup_enabled() is case insensitive for various true values
+    """
+    test_values = ['true', 'True', 'TRUE', 'TrUe', 'tRuE']
+
+    for value in test_values:
+        os.environ['DYNATRACE_HEALTH_ENABLE_WARMUP'] = value
+        assert dynatrace_check._is_warmup_enabled() is True, f"Failed for value: {value}"
+
+    # Test false values
+    false_values = ['false', 'False', 'FALSE', 'anything_else', '1', '0']
+    for value in false_values:
+        os.environ['DYNATRACE_HEALTH_ENABLE_WARMUP'] = value
+        assert dynatrace_check._is_warmup_enabled() is False, f"Failed for value: {value}"
+
+
+@freeze_time('2025-07-22 08:26:24')
+def test_cache_warming_enabled_executes(dynatrace_check, test_instance, requests_mock, aggregator, mocker):
+    """
+    Test that cache warming methods are called when DYNATRACE_HEALTH_ENABLE_WARMUP=true
+    """
+    os.environ["JWT_AUTH"] = "false"
+    os.environ['DYNATRACE_HEALTH_ENABLE_WARMUP'] = 'true'
+
+    # Mock cache warming methods
+    warm_event_type_cache_mock = mocker.patch.object(dynatrace_check, '_warm_event_type_cache')
+    warm_all_supported_entities_mock = mocker.patch.object(dynatrace_check, '_warm_all_supported_entities')
+
+    # Mock events response with some events to trigger cache warming
+    event_response = {
+        "totalCount": 2,
+        "pageSize": 2,
+        "events": [
+            {
+                "eventId": "event-1",
+                "startTime": 1750649000000,
+                "eventType": "PROCESS_RESTART",
+                "status": "CLOSED",
+                "properties": [],
+                "title": "process-1",
+                "entityId": {
+                    "entityId": {"id": "PGI-1", "type": "PROCESS_GROUP_INSTANCE"},
+                    "name": "process-1"
+                },
+                "correlationId": "",
+                "entityTags": [],
+                "managementZones": [],
+                "underMaintenance": False,
+                "suppressAlert": False,
+                "suppressProblem": False,
+                "frequentEvent": False,
+                "endTime": 0
+            },
+            {
+                "eventId": "event-2",
+                "startTime": 1750649001000,
+                "eventType": "ERROR_EVENT",
+                "status": "CLOSED",
+                "properties": [],
+                "title": "error-1",
+                "entityId": {
+                    "entityId": {"id": "PGI-2", "type": "PROCESS_GROUP_INSTANCE"},
+                    "name": "process-2"
+                },
+                "correlationId": "",
+                "entityTags": [],
+                "managementZones": [],
+                "underMaintenance": False,
+                "suppressAlert": False,
+                "suppressProblem": False,
+                "frequentEvent": False,
+                "endTime": 0
+            }
+        ]
+    }
+
+    # Mock event type responses
+    event_type_response = read_file('event_type_process_restart.json', 'samples')
+    set_http_responses(requests_mock, process_restart_event=event_type_response)
+
+    # Mock entities endpoint
+    requests_mock.get(f"{test_instance['url']}/api/v2/entities?entitySelector=type(PROCESS_GROUP_INSTANCE)",
+                      status_code=200, text='{"totalCount": 0, "entities": []}')
+    requests_mock.get(f"{test_instance['url']}/api/v2/entities?entitySelector=type(HOST)",
+                      status_code=200, text='{"totalCount": 0, "entities": []}')
+
+    _mock_events_endpoint(requests_mock, test_instance, event_response)
+
+    # Run the check
+    dynatrace_check.run()
+
+    # Verify cache warming methods were called
+    warm_event_type_cache_mock.assert_called_once()
+    warm_all_supported_entities_mock.assert_called_once()
+
+    # Verify service check is OK
+    aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
+
+
+@freeze_time('2025-07-22 08:26:24')
+def test_cache_warming_disabled_skips(dynatrace_check, test_instance, requests_mock, aggregator, mocker):
+    """
+    Test that cache warming methods are NOT called when DYNATRACE_HEALTH_ENABLE_WARMUP=false
+    """
+    os.environ["JWT_AUTH"] = "false"
+    os.environ['DYNATRACE_HEALTH_ENABLE_WARMUP'] = 'false'
+
+    # Mock cache warming methods
+    warm_event_type_cache_mock = mocker.patch.object(dynatrace_check, '_warm_event_type_cache')
+    warm_all_supported_entities_mock = mocker.patch.object(dynatrace_check, '_warm_all_supported_entities')
+
+    # Mock events response with some events
+    event_response = {
+        "totalCount": 1,
+        "pageSize": 1,
+        "events": [
+            {
+                "eventId": "event-1",
+                "startTime": 1750649000000,
+                "eventType": "PROCESS_RESTART",
+                "status": "CLOSED",
+                "properties": [],
+                "title": "process-1",
+                "entityId": {
+                    "entityId": {"id": "PGI-1", "type": "PROCESS_GROUP_INSTANCE"},
+                    "name": "process-1"
+                },
+                "correlationId": "",
+                "entityTags": [],
+                "managementZones": [],
+                "underMaintenance": False,
+                "suppressAlert": False,
+                "suppressProblem": False,
+                "frequentEvent": False,
+                "endTime": 0
+            }
+        ]
+    }
+
+    event_type_response = read_file('event_type_process_restart.json', 'samples')
+    set_http_responses(requests_mock, process_restart_event=event_type_response)
+
+    _mock_events_endpoint(requests_mock, test_instance, event_response)
+
+    # Run the check
+    dynatrace_check.run()
+
+    # Verify cache warming methods were NOT called
+    warm_event_type_cache_mock.assert_not_called()
+    warm_all_supported_entities_mock.assert_not_called()
+
+    # Verify service check is OK
+    aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
+
+
+@freeze_time('2025-07-22 08:26:24')
+def test_cache_warming_exception_handling(dynatrace_check, test_instance, requests_mock, aggregator, mocker):
+    """
+    Test that cache warming exceptions don't break the main check logic
+    """
+    os.environ["JWT_AUTH"] = "false"
+    os.environ['DYNATRACE_HEALTH_ENABLE_WARMUP'] = 'true'
+
+    # Mock cache warming methods to raise exceptions
+    mocker.patch.object(dynatrace_check, '_warm_event_type_cache', side_effect=Exception("Event type warming failed"))
+    mocker.patch.object(dynatrace_check, '_warm_all_supported_entities', side_effect=Exception("Entity warming failed"))
+
+    # Mock events response
+    event_response = {"totalCount": 0, "pageSize": 0, "events": []}
+    _mock_events_endpoint(requests_mock, test_instance, event_response)
+
+    # Run the check - should not raise exception despite cache warming failures
+    dynatrace_check.run()
+
+    # Verify service check is still OK despite cache warming failures
+    aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
+
+
+@freeze_time('2025-07-22 08:26:24')
+def test_cache_warming_with_no_events(dynatrace_check, test_instance, requests_mock, aggregator, mocker):
+    """
+    Test cache warming behavior when there are no events to process
+    """
+    os.environ["JWT_AUTH"] = "false"
+    os.environ['DYNATRACE_HEALTH_ENABLE_WARMUP'] = 'true'
+
+    # Mock cache warming methods
+    warm_event_type_cache_mock = mocker.patch.object(dynatrace_check, '_warm_event_type_cache')
+    warm_all_supported_entities_mock = mocker.patch.object(dynatrace_check, '_warm_all_supported_entities')
+
+    # Mock empty events response
+    event_response = {"totalCount": 0, "pageSize": 0, "events": []}
+    _mock_events_endpoint(requests_mock, test_instance, event_response)
+
+    # Mock entities endpoint for entity warming
+    requests_mock.get(f"{test_instance['url']}/api/v2/entities?entitySelector=type(PROCESS_GROUP_INSTANCE)",
+                      status_code=200, text='{"totalCount": 0, "entities": []}')
+    requests_mock.get(f"{test_instance['url']}/api/v2/entities?entitySelector=type(HOST)",
+                      status_code=200, text='{"totalCount": 0, "entities": []}')
+
+    # Run the check
+    dynatrace_check.run()
+
+    # Verify event type cache warming was called with empty set (no unique event types)
+    warm_event_type_cache_mock.assert_called_once()
+    args, kwargs = warm_event_type_cache_mock.call_args
+    assert args[2] == set()  # unique_event_types should be empty set
+
+    # Verify entity cache warming was still called
+    warm_all_supported_entities_mock.assert_called_once()
+
+    # Verify service check is OK
+    aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
