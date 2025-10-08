@@ -33,7 +33,7 @@ def test_availability_event(dynatrace_check, test_instance, requests_mock, healt
     event_response = {"totalCount": 1, "pageSize": 1, "events": [event]}
     event_type_response = read_file('event_type_availability.json', 'samples')
     set_http_responses(requests_mock, availability_event=event_type_response)
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
+    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
     requests_mock.get(f"{test_instance['url']}/api/v2/events?from={timestamp}", status_code=200,
                       text=json.dumps(event_response))
 
@@ -57,7 +57,7 @@ def test_error_event(dynatrace_check, test_instance, requests_mock, health, aggr
     event_response = {"totalCount": 1, "pageSize": 1, "events": [event]}
     event_type_response = read_file('event_type_error.json', 'samples')
     set_http_responses(requests_mock, error_event=event_type_response)
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
+    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
     requests_mock.get(f"{test_instance['url']}/api/v2/events?from={timestamp}", status_code=200,
                       text=json.dumps(event_response))
 
@@ -81,7 +81,7 @@ def test_performance_event(dynatrace_check, test_instance, requests_mock, health
     event_response = {"totalCount": 1, "pageSize": 1, "events": [event]}
     event_type_response = read_file('event_type_performance.json', 'samples')
     set_http_responses(requests_mock, performance_event=event_type_response)
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
+    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
     requests_mock.get(f"{test_instance['url']}/api/v2/events?from={timestamp}", status_code=200,
                       text=json.dumps(event_response))
 
@@ -98,7 +98,7 @@ def test_resource_contention_event(dynatrace_check, test_instance, requests_mock
     event_response = {"totalCount": 1, "pageSize": 1, "events": [event]}
     event_type_response = read_file('event_type_resource_contention.json', 'samples')
     set_http_responses(requests_mock, resource_contention_event=event_type_response)
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
+    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
     requests_mock.get(f"{test_instance['url']}/api/v2/events?from={timestamp}", status_code=200,
                       text=json.dumps(event_response))
 
@@ -128,7 +128,7 @@ def test_custom_deployment_event(dynatrace_check, test_instance, requests_mock, 
     requests_mock.get(f"{test_instance['url']}/api/v2/entities/{entity_id}",
                       text=json.dumps({"displayName": entity_name}))
 
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
+    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
     requests_mock.get(f"{test_instance['url']}/api/v2/events?from={timestamp}", status_code=200,
                       text=json.dumps(event_response))
 
@@ -153,7 +153,7 @@ def test_custom_annotation_event(dynatrace_check, test_instance, requests_mock, 
     requests_mock.get(f"{test_instance['url']}/api/v2/entities/{entity_id}",
                       text=json.dumps({"displayName": entity_name}))
 
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
+    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
     requests_mock.get(f"{test_instance['url']}/api/v2/events?from={timestamp}", status_code=200,
                       text=json.dumps(event_response))
 
@@ -178,7 +178,7 @@ def test_custom_info_event(dynatrace_check, test_instance, requests_mock, health
     requests_mock.get(f"{test_instance['url']}/api/v2/entities/{entity_id}",
                       text=json.dumps({"displayName": entity_name}))
 
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
+    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
     requests_mock.get(f"{test_instance['url']}/api/v2/events?from={timestamp}", status_code=200,
                       text=json.dumps(event_response))
 
@@ -203,7 +203,7 @@ def test_marked_for_termination_event(dynatrace_check, test_instance, requests_m
     requests_mock.get(f"{test_instance['url']}/api/v2/entities/{entity_id}",
                       text=json.dumps({"displayName": entity_name}))
 
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
+    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
     requests_mock.get(f"{test_instance['url']}/api/v2/events?from={timestamp}", status_code=200,
                       text=json.dumps(event_response))
 
@@ -220,7 +220,7 @@ def test_custom_alert_event(dynatrace_check, test_instance, requests_mock, healt
     event_response = {"totalCount": 1, "pageSize": 1, "events": [event]}
     event_type_response = read_file('event_type_custom_alert.json', 'samples')
     set_http_responses(requests_mock, custom_alert_event=event_type_response)
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
+    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
     requests_mock.get(f"{test_instance['url']}/api/v2/events?from={timestamp}", status_code=200,
                       text=json.dumps(event_response))
 
@@ -250,7 +250,7 @@ def test_custom_configuration_event(dynatrace_check, test_instance, requests_moc
     requests_mock.get(f"{test_instance['url']}/api/v2/entities/{entity_id}",
                       text=json.dumps({"displayName": entity_name}))
 
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
+    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
     requests_mock.get(f"{test_instance['url']}/api/v2/events?from={timestamp}", status_code=200,
                       text=json.dumps(event_response))
 
@@ -267,7 +267,7 @@ def test_no_events_means_empty_health_snapshot(dynatrace_check, test_instance, r
     """
     Dynatrace health check should not produce any health states when there are no events
     """
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
+    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
     requests_mock.get('{}/api/v2/events?from={}'.format(test_instance['url'], timestamp), status_code=200,
                       text=read_file('no_events_response_v2.json', 'samples'))
     assert dynatrace_check.run() == ""
@@ -284,7 +284,7 @@ def test_raise_exception_for_response_code_not_200(dynatrace_check, test_instanc
     """
     Test to raise a check exception when API endpoint when status code is not 200
     """
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
+    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
     requests_mock.get('{}/api/v2/events?from={}'.format(test_instance['url'], timestamp),
                       status_code=500, text='{"error": {"code": 500, "message": "Simulated error!"}}')
     dynatrace_check.run()
@@ -299,7 +299,7 @@ def test_timeout(dynatrace_check, test_instance, requests_mock, aggregator):
     """
     Gracefully handle requests timeout exception
     """
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
+    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
     requests_mock.get('{}/api/v2/events?from={}'.format(test_instance['url'], timestamp),
                       exc=requests.exceptions.ConnectTimeout)
     dynatrace_check.run()
@@ -360,7 +360,7 @@ def test_events_process_limit(dynatrace_check, test_instance, requests_mock, hea
             requests_mock.get(f"{test_instance['url']}/api/v2/entities/{entity_id}",
                               text=json.dumps({"displayName": entity_name}))
 
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
+    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
     requests_mock.get(f"{test_instance['url']}/api/v2/events?from={timestamp}", status_code=200,
                       text=json.dumps(events_response))
 
@@ -413,7 +413,7 @@ def test_events_process_limit_with_batches(dynatrace_check, test_instance, reque
             requests_mock.get(f"{test_instance['url']}/api/v2/entities/{entity_id}",
                               text=json.dumps({"displayName": entity_name}))
 
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
+    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
     requests_mock.get(f"{test_instance['url']}/api/v2/events?from={timestamp}", status_code=200,
                       text=json.dumps(events_batch_1))
     requests_mock.get(f"{test_instance['url']}/api/v2/events?nextPageKey=nextPageKey_mock_123", status_code=200,
@@ -456,7 +456,7 @@ def test_unicode_in_response_text(dynatrace_check, test_instance, requests_mock,
     requests_mock.get(f"{test_instance['url']}/api/v2/entities/{entity_id}",
                       text=json.dumps({"displayName": entity_name}))
 
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_boostrap_days'])
+    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
     requests_mock.get(f"{test_instance['url']}/api/v2/events?from={timestamp}", status_code=200,
                       text=read_file('unicode_event_response.json', 'samples'))
 

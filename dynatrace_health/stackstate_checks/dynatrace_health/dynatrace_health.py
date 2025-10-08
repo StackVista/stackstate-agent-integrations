@@ -29,7 +29,7 @@ class InstanceInfo(ForgivingBaseModel):
     token: str
     instance_tags: List[str] = []
     collection_interval: int = 300  # Check interval in seconds, default 300s
-    events_boostrap_days: int = EVENTS_BOOSTRAP_DAYS
+    events_bootstrap_days: int = EVENTS_BOOSTRAP_DAYS
     events_process_limit: int = EVENTS_PROCESS_LIMIT
     verify: bool = VERIFY_HTTPS
     cert: Optional[str] = None
@@ -66,7 +66,7 @@ class DynatraceHealthCheck(AgentCheck):
 
             if not instance_info.state or not instance_info.state.last_processed_event_timestamp:
                 # Create state on the first run
-                empty_state_timestamp = self.generate_bootstrap_timestamp(instance_info.events_boostrap_days)
+                empty_state_timestamp = self.generate_bootstrap_timestamp(instance_info.events_bootstrap_days)
                 self.log.info('Creating new empty state with timestamp: %s', empty_state_timestamp)
                 instance_info.state = State(**{'last_processed_event_timestamp': empty_state_timestamp})
             else:
@@ -109,6 +109,13 @@ class DynatraceHealthCheck(AgentCheck):
                 instance_info.token = dynatrace_client.get_token()
 
             self._process_events(dynatrace_client, instance_info)
+
+            # Log final state before framework persists it
+            self.log.info("State at check end (before persistence): %s", instance_info.state)
+            if instance_info.state:
+                self.log.info("Final last_processed_event_timestamp: %s",
+                              instance_info.state.last_processed_event_timestamp)
+
             msg = "Dynatrace health check processed successfully"
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=instance_info.instance_tags, message=msg)
         except EventLimitReachedException as e:
@@ -444,10 +451,28 @@ class DynatraceHealthCheck(AgentCheck):
                     events_response = self._get_events(dynatrace_client, instance_info.url,
                                                        next_page_key=events_response.get("nextPageKey"))
                 else:
-                    instance_info.state.last_processed_event_timestamp = events_response.get("to")
+                    # Update timestamp to (current_time - check_interval) to ensure overlap and no missed events
+                    # Dynatrace Events API v2 doesn't provide a 'to' field, so we calculate based on check interval
+                    current_time_ms = int(time.time() * 1000)
+                    check_interval_ms = instance_info.collection_interval * 1000
+                    new_timestamp = current_time_ms - check_interval_ms
+                    instance_info.state.last_processed_event_timestamp = new_timestamp
+                    self.log.info(
+                        "Finished processing events. Updated state timestamp to (current_time - check_interval): %s "
+                        "(current: %s, interval: %d seconds)",
+                        new_timestamp, current_time_ms, instance_info.collection_interval
+                    )
                     events_response = None
         except EventLimitReachedException as e:
-            instance_info.state.last_processed_event_timestamp = events_response.get("to")
+            # Update to (current_time - check_interval) even when limit reached
+            current_time_ms = int(time.time() * 1000)
+            check_interval_ms = instance_info.collection_interval * 1000
+            new_timestamp = current_time_ms - check_interval_ms
+            instance_info.state.last_processed_event_timestamp = new_timestamp
+            self.log.info(
+                "EventLimitReached - updated state timestamp to (current_time - check_interval): %s",
+                new_timestamp
+            )
             event_limit_reached = str(e)
         return new_events, event_limit_reached
 
