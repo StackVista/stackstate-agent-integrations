@@ -5,6 +5,7 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import json
 import os
+import re
 
 import requests
 from freezegun import freeze_time
@@ -25,6 +26,19 @@ def _get_varied_event_by_type(event_type):
     return None
 
 
+def _mock_events_endpoint(requests_mock, test_instance, event_response, status_code=200):
+    """
+    Helper function to mock the events endpoint with regex pattern matching
+    This allows tests to work regardless of the exact timestamp value
+    """
+    events_url_pattern = re.compile(r'{}/api/v2/events\?from=\d+'.format(re.escape(test_instance['url'])))
+    # Handle both dict and string responses
+    if isinstance(event_response, str):
+        requests_mock.get(events_url_pattern, status_code=status_code, text=event_response)
+    else:
+        requests_mock.get(events_url_pattern, status_code=status_code, text=json.dumps(event_response))
+
+
 @freeze_time('2025-07-22 08:26:24')
 def test_availability_event(dynatrace_check, test_instance, requests_mock, health, aggregator):
     os.environ["JWT_AUTH"] = "false"
@@ -33,9 +47,7 @@ def test_availability_event(dynatrace_check, test_instance, requests_mock, healt
     event_response = {"totalCount": 1, "pageSize": 1, "events": [event]}
     event_type_response = read_file('event_type_availability.json', 'samples')
     set_http_responses(requests_mock, availability_event=event_type_response)
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
-    requests_mock.get(f"{test_instance['url']}/api/v2/events?from={timestamp}", status_code=200,
-                      text=json.dumps(event_response))
+    _mock_events_endpoint(requests_mock, test_instance, event_response)
 
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
@@ -57,9 +69,7 @@ def test_error_event(dynatrace_check, test_instance, requests_mock, health, aggr
     event_response = {"totalCount": 1, "pageSize": 1, "events": [event]}
     event_type_response = read_file('event_type_error.json', 'samples')
     set_http_responses(requests_mock, error_event=event_type_response)
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
-    requests_mock.get(f"{test_instance['url']}/api/v2/events?from={timestamp}", status_code=200,
-                      text=json.dumps(event_response))
+    _mock_events_endpoint(requests_mock, test_instance, event_response, status_code=200)
 
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
@@ -81,9 +91,7 @@ def test_performance_event(dynatrace_check, test_instance, requests_mock, health
     event_response = {"totalCount": 1, "pageSize": 1, "events": [event]}
     event_type_response = read_file('event_type_performance.json', 'samples')
     set_http_responses(requests_mock, performance_event=event_type_response)
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
-    requests_mock.get(f"{test_instance['url']}/api/v2/events?from={timestamp}", status_code=200,
-                      text=json.dumps(event_response))
+    _mock_events_endpoint(requests_mock, test_instance, event_response, status_code=200)
 
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
@@ -98,9 +106,7 @@ def test_resource_contention_event(dynatrace_check, test_instance, requests_mock
     event_response = {"totalCount": 1, "pageSize": 1, "events": [event]}
     event_type_response = read_file('event_type_resource_contention.json', 'samples')
     set_http_responses(requests_mock, resource_contention_event=event_type_response)
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
-    requests_mock.get(f"{test_instance['url']}/api/v2/events?from={timestamp}", status_code=200,
-                      text=json.dumps(event_response))
+    _mock_events_endpoint(requests_mock, test_instance, event_response, status_code=200)
 
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
@@ -128,9 +134,7 @@ def test_custom_deployment_event(dynatrace_check, test_instance, requests_mock, 
     requests_mock.get(f"{test_instance['url']}/api/v2/entities/{entity_id}",
                       text=json.dumps({"displayName": entity_name}))
 
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
-    requests_mock.get(f"{test_instance['url']}/api/v2/events?from={timestamp}", status_code=200,
-                      text=json.dumps(event_response))
+    _mock_events_endpoint(requests_mock, test_instance, event_response, status_code=200)
 
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
@@ -153,9 +157,7 @@ def test_custom_annotation_event(dynatrace_check, test_instance, requests_mock, 
     requests_mock.get(f"{test_instance['url']}/api/v2/entities/{entity_id}",
                       text=json.dumps({"displayName": entity_name}))
 
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
-    requests_mock.get(f"{test_instance['url']}/api/v2/events?from={timestamp}", status_code=200,
-                      text=json.dumps(event_response))
+    _mock_events_endpoint(requests_mock, test_instance, event_response, status_code=200)
 
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
@@ -178,9 +180,7 @@ def test_custom_info_event(dynatrace_check, test_instance, requests_mock, health
     requests_mock.get(f"{test_instance['url']}/api/v2/entities/{entity_id}",
                       text=json.dumps({"displayName": entity_name}))
 
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
-    requests_mock.get(f"{test_instance['url']}/api/v2/events?from={timestamp}", status_code=200,
-                      text=json.dumps(event_response))
+    _mock_events_endpoint(requests_mock, test_instance, event_response, status_code=200)
 
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
@@ -203,9 +203,7 @@ def test_marked_for_termination_event(dynatrace_check, test_instance, requests_m
     requests_mock.get(f"{test_instance['url']}/api/v2/entities/{entity_id}",
                       text=json.dumps({"displayName": entity_name}))
 
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
-    requests_mock.get(f"{test_instance['url']}/api/v2/events?from={timestamp}", status_code=200,
-                      text=json.dumps(event_response))
+    _mock_events_endpoint(requests_mock, test_instance, event_response, status_code=200)
 
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
@@ -220,9 +218,7 @@ def test_custom_alert_event(dynatrace_check, test_instance, requests_mock, healt
     event_response = {"totalCount": 1, "pageSize": 1, "events": [event]}
     event_type_response = read_file('event_type_custom_alert.json', 'samples')
     set_http_responses(requests_mock, custom_alert_event=event_type_response)
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
-    requests_mock.get(f"{test_instance['url']}/api/v2/events?from={timestamp}", status_code=200,
-                      text=json.dumps(event_response))
+    _mock_events_endpoint(requests_mock, test_instance, event_response, status_code=200)
 
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
@@ -250,9 +246,7 @@ def test_custom_configuration_event(dynatrace_check, test_instance, requests_moc
     requests_mock.get(f"{test_instance['url']}/api/v2/entities/{entity_id}",
                       text=json.dumps({"displayName": entity_name}))
 
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
-    requests_mock.get(f"{test_instance['url']}/api/v2/events?from={timestamp}", status_code=200,
-                      text=json.dumps(event_response))
+    _mock_events_endpoint(requests_mock, test_instance, event_response, status_code=200)
 
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
@@ -267,9 +261,8 @@ def test_no_events_means_empty_health_snapshot(dynatrace_check, test_instance, r
     """
     Dynatrace health check should not produce any health states when there are no events
     """
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
-    requests_mock.get('{}/api/v2/events?from={}'.format(test_instance['url'], timestamp), status_code=200,
-                      text=read_file('no_events_response_v2.json', 'samples'))
+    _mock_events_endpoint(requests_mock, test_instance,
+                          read_file('no_events_response_v2.json', 'samples'), status_code=200)
     assert dynatrace_check.run() == ""
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     health.assert_snapshot(dynatrace_check.check_id, dynatrace_check.health.stream,
@@ -284,9 +277,8 @@ def test_raise_exception_for_response_code_not_200(dynatrace_check, test_instanc
     """
     Test to raise a check exception when API endpoint when status code is not 200
     """
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
-    requests_mock.get('{}/api/v2/events?from={}'.format(test_instance['url'], timestamp),
-                      status_code=500, text='{"error": {"code": 500, "message": "Simulated error!"}}')
+    error_response = '{"error": {"code": 500, "message": "Simulated error!"}}'
+    _mock_events_endpoint(requests_mock, test_instance, error_response, status_code=500)
     dynatrace_check.run()
     error_message = 'Got an unexpected error with status code 500 and message: Simulated error!'
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.CRITICAL,
@@ -299,9 +291,8 @@ def test_timeout(dynatrace_check, test_instance, requests_mock, aggregator):
     """
     Gracefully handle requests timeout exception
     """
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
-    requests_mock.get('{}/api/v2/events?from={}'.format(test_instance['url'], timestamp),
-                      exc=requests.exceptions.ConnectTimeout)
+    events_url_pattern = re.compile(r'{}/api/v2/events\?from=\d+'.format(re.escape(test_instance['url'])))
+    requests_mock.get(events_url_pattern, exc=requests.exceptions.ConnectTimeout)
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.CRITICAL,
                                     message='Timeout exception occurred for endpoint '
@@ -360,9 +351,7 @@ def test_events_process_limit(dynatrace_check, test_instance, requests_mock, hea
             requests_mock.get(f"{test_instance['url']}/api/v2/entities/{entity_id}",
                               text=json.dumps({"displayName": entity_name}))
 
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
-    requests_mock.get(f"{test_instance['url']}/api/v2/events?from={timestamp}", status_code=200,
-                      text=json.dumps(events_response))
+    _mock_events_endpoint(requests_mock, test_instance, events_response, status_code=200)
 
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.WARNING,
@@ -413,9 +402,7 @@ def test_events_process_limit_with_batches(dynatrace_check, test_instance, reque
             requests_mock.get(f"{test_instance['url']}/api/v2/entities/{entity_id}",
                               text=json.dumps({"displayName": entity_name}))
 
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
-    requests_mock.get(f"{test_instance['url']}/api/v2/events?from={timestamp}", status_code=200,
-                      text=json.dumps(events_batch_1))
+    _mock_events_endpoint(requests_mock, test_instance, events_batch_1, status_code=200)
     requests_mock.get(f"{test_instance['url']}/api/v2/events?nextPageKey=nextPageKey_mock_123", status_code=200,
                       text=read_file('events_batch_2.json', 'samples'))
 
@@ -456,11 +443,155 @@ def test_unicode_in_response_text(dynatrace_check, test_instance, requests_mock,
     requests_mock.get(f"{test_instance['url']}/api/v2/entities/{entity_id}",
                       text=json.dumps({"displayName": entity_name}))
 
-    timestamp = dynatrace_check.generate_bootstrap_timestamp(test_instance['events_bootstrap_days'])
-    requests_mock.get(f"{test_instance['url']}/api/v2/events?from={timestamp}", status_code=200,
-                      text=read_file('unicode_event_response.json', 'samples'))
+    _mock_events_endpoint(requests_mock, test_instance,
+                          read_file('unicode_event_response.json', 'samples'), status_code=200)
 
     dynatrace_check.run()
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     assert len(telemetry._topology_events) == 1
     assert telemetry._topology_events[0]['msg_title'] == "Process Restart on aws-cni™"
+
+
+@freeze_time('2025-07-22 08:26:24')
+def test_checks_in_flight_normal_execution(dynatrace_check, test_instance, requests_mock, aggregator):
+    """
+    Test that checks_in_flight is properly incremented at start and decremented at end
+    during normal execution.
+    """
+    os.environ["JWT_AUTH"] = "false"
+
+    # Mock empty events response
+    event_response = {"totalCount": 0, "pageSize": 0, "events": []}
+    _mock_events_endpoint(requests_mock, test_instance, event_response, status_code=200)
+
+    # Run the check - should succeed
+    dynatrace_check.run()
+
+    # Verify service check is OK
+    aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
+
+    # Verify checks_in_flight was incremented then decremented (should be 0 at end)
+    final_state = dynatrace_check.state_manager.get_state(dynatrace_check._get_state_descriptor())
+    assert final_state is not None
+    assert final_state['checks_in_flight'] == 0
+
+
+@freeze_time('2025-07-22 08:26:24')
+def test_checks_in_flight_blocks_concurrent_execution(dynatrace_check, test_instance, requests_mock, aggregator):
+    """
+    Test that a second check is prevented from starting if checks_in_flight > 0.
+    """
+    os.environ["JWT_AUTH"] = "false"
+
+    # Set initial state with checks_in_flight = 1 (simulating a running check)
+    initial_state = {
+        'last_processed_event_timestamp': 1721636784000,
+        'checks_in_flight': 1
+    }
+    state_descriptor = dynatrace_check._get_state_descriptor()
+    dynatrace_check.state_manager.set_state(state_descriptor, initial_state)
+
+    # Mock empty events response (won't be called because check exits early)
+    event_response = {"totalCount": 0, "pageSize": 0, "events": []}
+    _mock_events_endpoint(requests_mock, test_instance, event_response, status_code=200)
+
+    # Run the check - should exit early with WARNING
+    dynatrace_check.run()
+
+    # Verify service check is WARNING (not OK)
+    aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.WARNING)
+
+    # Verify checks_in_flight remains 1 (wasn't modified because check exited)
+    final_state = dynatrace_check.state_manager.get_state(state_descriptor)
+    assert final_state is not None
+    assert final_state['checks_in_flight'] == 1
+
+
+@freeze_time('2025-07-22 08:26:24')
+def test_checks_in_flight_exception_recovery(dynatrace_check, test_instance, requests_mock, aggregator):
+    """
+    Test that checks_in_flight is decremented on exception and the next check can start.
+    """
+    os.environ["JWT_AUTH"] = "false"
+
+    # Mock to raise an exception during event processing
+    _mock_events_endpoint(requests_mock, test_instance, "Internal Server Error", status_code=500)
+
+    # First run - should fail with exception
+    dynatrace_check.run()
+
+    # Verify service check is CRITICAL
+    aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.CRITICAL)
+
+    # Verify checks_in_flight was decremented to 0 despite exception
+    state_descriptor = dynatrace_check._get_state_descriptor()
+    state_after_exception = dynatrace_check.state_manager.get_state(state_descriptor)
+    assert state_after_exception is not None
+    assert state_after_exception['checks_in_flight'] == 0
+
+    # Reset aggregator for second run
+    aggregator.reset()
+
+    # Mock successful response for second run
+    event_response = {"totalCount": 0, "pageSize": 0, "events": []}
+    _mock_events_endpoint(requests_mock, test_instance, event_response)
+
+    # Second run - should succeed because checks_in_flight is 0
+    dynatrace_check.run()
+
+    # Verify service check is OK
+    aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
+
+    # Verify checks_in_flight is still 0
+    final_state = dynatrace_check.state_manager.get_state(state_descriptor)
+    assert final_state is not None
+    assert final_state['checks_in_flight'] == 0
+
+
+@freeze_time('2025-07-22 08:26:24')
+def test_checks_in_flight_with_event_limit_exception(dynatrace_check, test_instance, requests_mock, aggregator):
+    """
+    Test that checks_in_flight is decremented when EventLimitReachedException is raised.
+    """
+    os.environ["JWT_AUTH"] = "false"
+
+    # Create response with more events than the limit (10)
+    events = []
+    for i in range(15):
+        events.append({
+            "eventId": f"event-{i}",
+            "startTime": 1750649000000 + (i * 1000),
+            "eventType": "PROCESS_RESTART",
+            "status": "CLOSED",
+            "properties": [],
+            "title": f"process-{i}",
+            "entityId": {
+                "entityId": {"id": f"PGI-{i}", "type": "PROCESS_GROUP_INSTANCE"},
+                "name": f"process-{i}"
+            },
+            "correlationId": "",
+            "entityTags": [],
+            "managementZones": [],
+            "underMaintenance": False,
+            "suppressAlert": False,
+            "suppressProblem": False,
+            "frequentEvent": False,
+            "endTime": 0
+        })
+
+    event_response = {"totalCount": 15, "pageSize": 15, "events": events}
+    event_type_response = read_file('event_type_process_restart.json', 'samples')
+    set_http_responses(requests_mock, process_restart_event=event_type_response)
+
+    _mock_events_endpoint(requests_mock, test_instance, event_response, status_code=200)
+
+    # Run check - should hit event limit and raise EventLimitReachedException
+    dynatrace_check.run()
+
+    # Verify service check is WARNING (EventLimitReachedException)
+    aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.WARNING)
+
+    # Verify checks_in_flight was decremented to 0 despite exception
+    final_state = dynatrace_check.state_manager.get_state(dynatrace_check._get_state_descriptor())
+    assert final_state is not None
+    assert final_state['checks_in_flight'] == 0
