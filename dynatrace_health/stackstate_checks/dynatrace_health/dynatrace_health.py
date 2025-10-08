@@ -167,7 +167,7 @@ class DynatraceHealthCheck(AgentCheck):
         """
         Toggle cache warm-ups via env var DYNATRACE_HEALTH_ENABLE_WARMUP (default: true)
         """
-        return os.getenv('DYNATRACE_HEALTH_ENABLE_WARMUP', 'true').lower() == 'true'
+        return os.getenv('DYNATRACE_HEALTH_ENABLE_WARMUP', 'false').lower() == 'true'
 
     def _process_events(self, dynatrace_client, instance_info):
         """
