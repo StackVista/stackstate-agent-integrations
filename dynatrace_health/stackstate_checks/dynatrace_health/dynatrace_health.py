@@ -60,16 +60,16 @@ class DynatraceHealthCheck(AgentCheck):
 
     def check(self, instance_info):
         try:
-            self.log.info("State at check start: %s", instance_info.state)
+            self.log.debug("State at check start: %s", instance_info.state)
             if instance_info.state:
-                self.log.info("State.last_processed_event_timestamp: %s",
+                self.log.debug("State.last_processed_event_timestamp: %s",
                               instance_info.state.last_processed_event_timestamp)
-                self.log.info("State.checks_in_flight: %s", instance_info.state.checks_in_flight)
+                self.log.debug("State.checks_in_flight: %s", instance_info.state.checks_in_flight)
 
             if not instance_info.state or not instance_info.state.last_processed_event_timestamp:
                 # Create state on the first run
                 empty_state_timestamp = self.generate_bootstrap_timestamp(instance_info.events_bootstrap_days)
-                self.log.info('Creating new empty state with timestamp: %s', empty_state_timestamp)
+                self.log.debug('Creating new empty state with timestamp: %s', empty_state_timestamp)
                 instance_info.state = State(**{
                     'last_processed_event_timestamp': empty_state_timestamp,
                     'checks_in_flight': 0
@@ -87,7 +87,7 @@ class DynatraceHealthCheck(AgentCheck):
 
             # Increment checks_in_flight at the start
             instance_info.state.checks_in_flight += 1
-            self.log.info("Incremented checks_in_flight to: %s", instance_info.state.checks_in_flight)
+            self.log.debug("Incremented checks_in_flight to: %s", instance_info.state.checks_in_flight)
 
             # Validate that timestamp isn't too old (more than double the check interval)
             # This prevents processing too many events if state gets stale or corrupted
@@ -106,7 +106,7 @@ class DynatraceHealthCheck(AgentCheck):
                     old_timestamp = last_timestamp_ms
                     new_timestamp = current_time_ms - max_time_diff_ms
                     instance_info.state.last_processed_event_timestamp = new_timestamp
-                    self.log.info(
+                    self.log.debug(
                         "Timestamp was too old (%d ms = %.1f days ago). "
                         "Capped to double check interval (%d seconds = %d ms). "
                         "Old timestamp: %d, New timestamp: %d",
@@ -133,12 +133,12 @@ class DynatraceHealthCheck(AgentCheck):
 
             # Decrement checks_in_flight on successful completion
             instance_info.state.checks_in_flight -= 1
-            self.log.info("Decremented checks_in_flight to: %s", instance_info.state.checks_in_flight)
+            self.log.debug("Decremented checks_in_flight to: %s", instance_info.state.checks_in_flight)
 
             # Log final state before framework persists it
-            self.log.info("State at check end (before persistence): %s", instance_info.state)
+            self.log.debug("State at check end (before persistence): %s", instance_info.state)
             if instance_info.state:
-                self.log.info("Final last_processed_event_timestamp: %s",
+                self.log.debug("Final last_processed_event_timestamp: %s",
                               instance_info.state.last_processed_event_timestamp)
 
             msg = "Dynatrace health check processed successfully"
@@ -147,7 +147,7 @@ class DynatraceHealthCheck(AgentCheck):
             # Decrement checks_in_flight on exception
             if instance_info.state:
                 instance_info.state.checks_in_flight -= 1
-                self.log.info("Decremented checks_in_flight to: %s (EventLimitReachedException)",
+                self.log.debug("Decremented checks_in_flight to: %s (EventLimitReachedException)",
                               instance_info.state.checks_in_flight)
             self.log.exception(str(e))
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.WARNING, tags=instance_info.instance_tags,
@@ -156,7 +156,7 @@ class DynatraceHealthCheck(AgentCheck):
             # Decrement checks_in_flight on exception
             if instance_info.state:
                 instance_info.state.checks_in_flight -= 1
-                self.log.info("Decremented checks_in_flight to: %s (Exception)",
+                self.log.debug("Decremented checks_in_flight to: %s (Exception)",
                               instance_info.state.checks_in_flight)
             self.log.exception(str(e))
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=instance_info.instance_tags,
@@ -187,7 +187,7 @@ class DynatraceHealthCheck(AgentCheck):
                 unique_event_types = {e.eventType or 'UNKNOWN' for e in events}
                 start_ts = time.time()
                 self._warm_event_type_cache(dynatrace_client, str(instance_info.url), unique_event_types)
-                self.log.info("Warmed event types cache, took %d seconds", int(time.time() - start_ts))
+                self.log.debug("Warmed event types cache, took %d seconds", int(time.time() - start_ts))
             except Exception as e:
                 self.log.debug(f"Failed to warm event type cache: {e}")
 
@@ -200,7 +200,7 @@ class DynatraceHealthCheck(AgentCheck):
                     str(instance_info.url),
                     instance_info.relative_time or '1h'
                 )
-                self.log.info("Warmed entities cache, took %d seconds", int(time.time() - start_ts))
+                self.log.debug("Warmed entities cache, took %d seconds", int(time.time() - start_ts))
             except Exception as e:
                 self.log.debug(f"Failed to warm all supported entities: {e}")
 
@@ -453,7 +453,7 @@ class DynatraceHealthCheck(AgentCheck):
         Checks for EventLimitReachedException and process each event API response for next cursor
         until is None or it reach events_process_limit
         """
-        self.log.info(
+        self.log.debug(
             "Calling _get_events with from_time=%s",
             instance_info.state.last_processed_event_timestamp,
         )
@@ -492,7 +492,7 @@ class DynatraceHealthCheck(AgentCheck):
                     check_interval_ms = instance_info.collection_interval * 1000
                     new_timestamp = current_time_ms - check_interval_ms
                     instance_info.state.last_processed_event_timestamp = new_timestamp
-                    self.log.info(
+                    self.log.debug(
                         "Finished processing events. Updated state timestamp to (current_time - check_interval): %s "
                         "(current: %s, interval: %d seconds)",
                         new_timestamp, current_time_ms, instance_info.collection_interval
@@ -504,7 +504,7 @@ class DynatraceHealthCheck(AgentCheck):
             check_interval_ms = instance_info.collection_interval * 1000
             new_timestamp = current_time_ms - check_interval_ms
             instance_info.state.last_processed_event_timestamp = new_timestamp
-            self.log.info(
+            self.log.debug(
                 "EventLimitReached - updated state timestamp to (current_time - check_interval): %s",
                 new_timestamp
             )
