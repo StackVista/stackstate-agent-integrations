@@ -14,6 +14,8 @@ from stackstate_checks.dynatrace.dynatrace_client import DynatraceClientFactory
 from stackstate_checks.dynatrace_topology.entity_data_types import HostEntity, ServiceEntity, QueueEntity, \
     ProcessGroupEntity, ProcessGroupInstanceEntity, ApplicationEntity, CustomDeviceEntity, Relationship
 from stackstate_checks.utils.identifiers import Identifiers
+# Only emit relations to entity IDs we materialize as components
+from stackstate_checks.dynatrace.constants import is_supported_entity_id
 
 VERIFY_HTTPS = True
 TIMEOUT = 10
@@ -135,6 +137,10 @@ class DynatraceTopologyCheck(AgentCheck):
 
             self._process_topology(dynatrace_client, instance_info)
             self.monitored_health()
+
+            # Log summary of 404 errors if any occurred
+            dynatrace_client.log_entity_404_summary()
+
             msg = "Dynatrace topology processed successfully"
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=instance_info.instance_tags, message=msg)
         except EventLimitReachedException as e:
@@ -360,6 +366,16 @@ class DynatraceTopologyCheck(AgentCheck):
                         self.relation(actual_target, actual_source, relation_type, {})
                     elif component_type != 'synthetic-monitor':
                         entity_id = relation_id.get('id')
+                        # Skip relations pointing to unsupported entity types (e.g., SOFTWARE_COMPONENT,
+                        # RUNTIME_COMPONENT, HOST_GROUP)
+                        if not is_supported_entity_id(entity_id):
+                            self.log.debug(
+                                'Skipping relation %s from %s to unsupported %s',
+                                relation_type,
+                                component_id,
+                                entity_id,
+                            )
+                            continue
                         if is_target_component:
                             self.relation(entity_id, component_id, relation_type, {})
                         else:
@@ -400,6 +416,80 @@ class DynatraceTopologyCheck(AgentCheck):
             elif type(component[key]) is int:
                 component[key] = str(component[key])
                 self.log.debug('Converting %s from int to str.' % key)
+
+        # Handle nested properties
+        if "properties" in component and isinstance(component["properties"], dict):
+            properties = component["properties"]
+            # Handle releasesVersion field - convert string representation to empty dict if it's a string
+            if "releasesVersion" in properties and isinstance(properties["releasesVersion"], str):
+                self.log.debug('Converting releasesVersion from string representation to empty dict')
+                properties["releasesVersion"] = {}
+
+            # Handle osServices field - convert dict format to list of service names for backward compatibility
+            if "osServices" in properties:
+                self.log.debug('Found osServices field, type: %s, value: %s', type(properties["osServices"]),
+                               properties["osServices"])
+                if isinstance(properties["osServices"], list):
+                    converted_services = []
+                    for i, service in enumerate(properties["osServices"]):
+                        if isinstance(service, dict):
+                            # Extract service name from dictionary format
+                            service_name = (service.get('dt.osservice.name') or service.get('dt.osservice.display_name')
+                                            or f'unknown_service_{i}')
+                            converted_services.append(service_name)
+                            self.log.debug('Converting osServices dict to service name: %s (from %s)', service_name,
+                                           service)
+                        elif isinstance(service, str):
+                            converted_services.append(service)
+                        else:
+                            converted_services.append(str(service))
+                    properties["osServices"] = converted_services
+                    self.log.debug('Converted osServices: %s', converted_services)
+                else:
+                    self.log.warning('osServices is not a list, type: %s, value: %s', type(properties["osServices"]),
+                                     properties["osServices"])
+
+            # Handle customPgMetadata field - convert list of key-value objects to dictionary
+            if "customPgMetadata" in properties:
+                self.log.debug('Found customPgMetadata field, type: %s', type(properties["customPgMetadata"]))
+                if isinstance(properties["customPgMetadata"], list):
+                    converted_dict = {}
+                    for i, item in enumerate(properties["customPgMetadata"]):
+                        if isinstance(item, dict):
+                            raw_key = item.get('key')
+                            # Handle nested key structure like {'source': 'KUBERNETES',
+                            # 'key': 'cni.projectcalico.org/podIPs'}
+                            if isinstance(raw_key, dict):
+                                nested_key = raw_key.get('key')
+                                if isinstance(nested_key, (str, int, float, bool)):
+                                    key = str(nested_key)
+                                else:
+                                    self.log.warning(
+                                        'customPgMetadata key dict has non-scalar inner key '
+                                        '(type=%s, value=%s); using fallback key',
+                                        type(nested_key), nested_key
+                                    )
+                                    key = f'unknown_key_{i}'
+                            elif isinstance(raw_key, (str, int, float, bool)):
+                                key = str(raw_key)
+                            else:
+                                self.log.warning(
+                                    'customPgMetadata key is non-scalar (type=%s, value=%s); using fallback key',
+                                    type(raw_key), raw_key
+                                )
+                                key = f'unknown_key_{i}'
+                            value = item.get('value', item.get('val', f'unknown_value_{i}'))
+                            converted_dict[key] = value
+                            self.log.debug('Converting customPgMetadata item: %s = %s', key, value)
+                        else:
+                            converted_dict[f'item_{i}'] = str(item)
+                    properties["customPgMetadata"] = converted_dict
+                    self.log.debug('Converted customPgMetadata: %s', converted_dict)
+                elif not isinstance(properties["customPgMetadata"], dict):
+                    self.log.warning('customPgMetadata is not a dict or list, type: %s, converting to empty dict',
+                                     type(properties["customPgMetadata"]))
+                    properties["customPgMetadata"] = {}
+
         if "lastSeenTimestamp" in component:
             del component["lastSeenTimestamp"]
         return component

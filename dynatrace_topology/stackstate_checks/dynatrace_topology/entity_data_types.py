@@ -1,5 +1,6 @@
 from dataclasses import field
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
+from pydantic import field_validator
 from stackstate_checks.base.utils.validations_utils import ForgivingBaseModel
 
 # Define your constants if they are not already defined elsewhere
@@ -131,6 +132,38 @@ class HostProperties(ForgivingBaseModel):
     oneAgentCustomHostName: Optional[str] = None
     osArchitecture: Optional[str] = None
     osServices: List[str] = field(default_factory=list)
+
+    @field_validator('osServices', mode='before')
+    @classmethod
+    def convert_os_services(cls, v):
+        """Convert osServices dict format to list of service names (strings)"""
+        # Handle None or non-list values
+        if v is None:
+            return []
+        if not isinstance(v, list):
+            return []
+
+        converted_services = []
+        for i, service in enumerate(v):
+            try:
+                if isinstance(service, dict):
+                    # Extract service name from dictionary format
+                    service_name = (service.get('dt.osservice.name') or
+                                    service.get('dt.osservice.display_name') or
+                                    f'unknown_service_{i}')
+                    converted_services.append(str(service_name))
+                elif isinstance(service, str):
+                    # Keep string format as-is
+                    converted_services.append(service)
+                else:
+                    # Convert other types to string
+                    converted_services.append(str(service))
+            except Exception:
+                # Fallback for any conversion errors
+                converted_services.append(f'service_error_{i}')
+
+        return converted_services
+
     osType: Optional[str] = None
     osVersion: Optional[str] = None
     paasMemoryLimit: Optional[int] = None
@@ -184,7 +217,18 @@ class ProcessGroupInstanceProperties(ForgivingBaseModel):
     releasesBuildVersion: Optional[str] = None
     releasesProduct: Optional[str] = None
     releasesStage: Optional[str] = None
-    releasesVersion: Dict[str, Any] = field(default_factory=dict)
+    releasesVersion: Union[Dict[str, Any], str] = field(default_factory=dict)
+
+    @field_validator('releasesVersion', mode='before')
+    @classmethod
+    def convert_releases_version(cls, v):
+        """Convert string representation of ReleaseVersionInfo to dict"""
+        if isinstance(v, str):
+            # If it's a string representation of an object, convert to empty dict
+            # This handles cases like "ReleaseVersionInfo{versi..._REGISTRY, timestamp=0}"
+            return {}
+        return v if isinstance(v, dict) else {}
+
     softwareTechnologies: List[SoftwareTechnology] = field(default_factory=list)
     versionedModules: List[Dict[str, Any]] = field(default_factory=list)
 
@@ -196,6 +240,44 @@ class ProcessGroupProperties(ForgivingBaseModel):
     boshName: Optional[str] = None
     conditionalName: Optional[str] = None
     customPgMetadata: Dict[str, Any] = field(default_factory=dict)
+
+    @field_validator('customPgMetadata', mode='before')
+    @classmethod
+    def convert_custom_pg_metadata(cls, v):
+        """Convert customPgMetadata from list of key-value objects to dictionary"""
+        if v is None:
+            return {}
+        if isinstance(v, dict):
+            # Already in the correct format
+            return v
+        if isinstance(v, list):
+            # Convert list of {'key': 'name', 'value': 'data'} to {'name': 'data'}
+            converted_dict = {}
+            for i, item in enumerate(v):
+                try:
+                    if isinstance(item, dict):
+                        raw_key = item.get('key')
+                        # Support nested key structure like {'source': 'KUBERNETES', 'key': '...'}
+                        if isinstance(raw_key, dict):
+                            nested_key = raw_key.get('key')
+                            if isinstance(nested_key, (str, int, float, bool)):
+                                key = str(nested_key)
+                            else:
+                                key = f'unknown_key_{i}'
+                        elif isinstance(raw_key, (str, int, float, bool)):
+                            key = str(raw_key)
+                        else:
+                            key = f'unknown_key_{i}'
+                        value = item.get('value', item.get('val', f'unknown_value_{i}'))
+                        converted_dict[key] = value
+                    else:
+                        converted_dict[f'item_{i}'] = str(item)
+                except Exception:
+                    converted_dict[f'error_key_{i}'] = 'conversion_error'
+            return converted_dict
+        # For any other type, return empty dict
+        return {}
+
     customizedName: Optional[str] = None
     detectedName: Optional[str] = None
     dt_security_context: List[str] = field(default_factory=list)

@@ -4,6 +4,7 @@
 
 from stackstate_checks.base import AgentCheck
 from stackstate_checks.base.utils.common import read_file, load_json_from_file
+from stackstate_checks.dynatrace_topology.entity_data_types import ProcessGroupInstanceEntity
 from .conftest import set_http_responses, sort_topology_data, assert_topology
 
 
@@ -88,7 +89,20 @@ def test_collect_relations(dynatrace_check, requests_mock, topology, aggregator)
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
     topology_instances = topology.get_snapshot(dynatrace_check.check_id)
     assert len(topology_instances['components']) == 2
-    assert len(topology_instances['relations']) == 94
+    # Filter relations to supported entity types, matching integration behavior
+    SUPPORTED_PREFIXES = (
+        'HOST-', 'PROCESS_GROUP-', 'PROCESS_GROUP_INSTANCE-', 'SERVICE-', 'APPLICATION-', 'CUSTOM_DEVICE-', 'QUEUE-',
+        'SYNTHETIC_TEST-'
+    )
+    filtered = []
+    for r in topology_instances['relations']:
+        src = r.get('source_id', '') or ''
+        tgt = r.get('target_id', '') or ''
+        if any(src.startswith(p) for p in SUPPORTED_PREFIXES) and \
+                any(tgt.startswith(p) for p in SUPPORTED_PREFIXES):
+            filtered.append(r)
+    topology_instances['relations'] = filtered
+    assert len(topology_instances['relations']) == 72
     # since all relations are to this host itself so target id is same
     relation = topology_instances['relations'][0]
     assert relation['target_id'] == 'HOST-27D021F0FED92055'
@@ -130,6 +144,29 @@ def test_full_topology(dynatrace_check, requests_mock, topology, aggregator):
 
     expected_topology = load_json_from_file("expected_smartscape_full_topology_v2.json", "samples")
     actual_topology = topology.get_snapshot(dynatrace_check.check_id)
+
+    # Filter relations to only supported entity id prefixes to match integration behavior
+    SUPPORTED_PREFIXES = (
+        'HOST-', 'PROCESS_GROUP-', 'PROCESS_GROUP_INSTANCE-', 'SERVICE-', 'APPLICATION-', 'CUSTOM_DEVICE-', 'QUEUE-',
+        'SYNTHETIC_TEST-'
+    )
+
+    def filter_supported_relations(top):
+        rels = top.get('relations', []) or []
+        filtered = []
+        for r in rels:
+            src = r.get('source_id', '') or ''
+            tgt = r.get('target_id', '') or ''
+        if (
+                any(src.startswith(p) for p in SUPPORTED_PREFIXES)
+                and any(tgt.startswith(p) for p in SUPPORTED_PREFIXES)
+        ):
+            filtered.append(r)
+        top['relations'] = filtered
+        return top
+
+    expected_topology = filter_supported_relations(expected_topology)
+    actual_topology = filter_supported_relations(actual_topology)
 
     components, relations = sort_topology_data(actual_topology)
     expected_components, expected_relations = sort_topology_data(expected_topology)
@@ -233,3 +270,306 @@ def test_applications_to_monitors_relations(requests_mock, dynatrace_check, topo
         if relation["type"] == "monitors":
             assert "APPLICATION" in relation["source_id"]
             assert "SYNTHETIC_TEST" in relation["target_id"]
+
+
+def test_process_group_instance_entity_releasesversion_string_handling():
+    """
+    Test that ProcessGroupInstanceEntity correctly handles releasesVersion field when it's a string
+    This reproduces the error:
+        "Input should be a valid dictionary [type=dict_type, input_value="ReleaseVersionInfo{...}"]"
+    """
+    # Test data that simulates the problematic case from the error
+    test_data = {
+        'entityId': 'PROCESS_GROUP_INSTANCE-TEST123',
+        'type': 'PROCESS_GROUP_INSTANCE',
+        'displayName': 'Test Process',
+        'properties': {
+            'releasesVersion': 'ReleaseVersionInfo{versi..._REGISTRY, timestamp=0}'
+        }
+    }
+
+    # This should not raise a validation error anymore
+    entity = ProcessGroupInstanceEntity.model_validate(test_data)
+
+    # The string should have been converted to an empty dict
+    assert isinstance(entity.properties.releasesVersion, dict)
+    assert entity.properties.releasesVersion == {}
+
+
+def test_process_group_instance_entity_releasesversion_dict_handling():
+    """
+    Test that ProcessGroupInstanceEntity still works correctly with dictionary releasesVersion
+    """
+    # Test data with a proper dictionary
+    test_data = {
+        'entityId': 'PROCESS_GROUP_INSTANCE-TEST123',
+        'type': 'PROCESS_GROUP_INSTANCE',
+        'displayName': 'Test Process',
+        'properties': {
+            'releasesVersion': {'version': '1.0', 'type': 'REGISTRY'}
+        }
+    }
+
+    # This should work as before
+    entity = ProcessGroupInstanceEntity.model_validate(test_data)
+
+    # The dict should remain unchanged
+    assert isinstance(entity.properties.releasesVersion, dict)
+    assert entity.properties.releasesVersion == {'version': '1.0', 'type': 'REGISTRY'}
+
+
+def test_host_entity_osservices_dict_handling():
+    """
+    Test that HostEntity correctly handles osServices field when it's a list of dictionaries
+    This reproduces the error:
+      "Input should be a valid string [type=string_type, input_value={'dt.osservice.name': '...'}]"
+    """
+    from stackstate_checks.dynatrace_topology.entity_data_types import HostEntity
+
+    # Test data that simulates the problematic case from the error
+    test_data = {
+        'entityId': 'HOST-0EA7023215644A24',
+        'type': 'HOST',
+        'displayName': 'test.example.com',
+        'properties': {
+            'osServices': [
+                {
+                    'dt.osservice.name': 'conjur-cluster',
+                    'dt.osservice.startup_type': 'enabled',
+                    'dt.entity.process_group_instance': 'PROCESS_GROUP_INSTANCE-8C88449DB803E9E6',
+                    'dt.osservice.display_name': 'conjur-cluster',
+                    'dt.osservice.path': '/usr/bin/conmon',
+                    'dt.osservice.status': 'active',
+                    'dt.osservice.alerting': 'true'
+                },
+                {
+                    'dt.osservice.name': 'another-service',
+                    'dt.osservice.display_name': 'Another Service',
+                    'dt.osservice.status': 'inactive'
+                }
+            ]
+        }
+    }
+
+    # This should not raise a validation error anymore
+    entity = HostEntity.model_validate(test_data)
+
+    # The list should have been converted to service names (strings)
+    assert isinstance(entity.properties.osServices, list)
+    assert len(entity.properties.osServices) == 2
+    assert entity.properties.osServices[0] == 'conjur-cluster'
+    assert entity.properties.osServices[1] == 'another-service'
+
+
+def test_host_entity_osservices_string_handling():
+    """
+    Test that HostEntity still works correctly with string list osServices (original format)
+    """
+    from stackstate_checks.dynatrace_topology.entity_data_types import HostEntity
+
+    # Test data with the original string list format
+    test_data = {
+        'entityId': 'HOST-TEST123',
+        'type': 'HOST',
+        'displayName': 'test.example.com',
+        'properties': {
+            'osServices': ['service1', 'service2', 'service3']
+        }
+    }
+
+    # This should work as before
+    entity = HostEntity.model_validate(test_data)
+
+    # The string list should remain unchanged
+    assert isinstance(entity.properties.osServices, list)
+    assert entity.properties.osServices == ['service1', 'service2', 'service3']
+
+
+def test_host_entity_osservices_mixed_handling():
+    """
+    Test that HostEntity handles mixed osServices formats (both dict and string)
+    """
+    from stackstate_checks.dynatrace_topology.entity_data_types import HostEntity
+
+    # Test data with mixed formats
+    test_data = {
+        'entityId': 'HOST-TEST123',
+        'type': 'HOST',
+        'displayName': 'test.example.com',
+        'properties': {
+            'osServices': [
+                'existing-string-service',
+                {
+                    'dt.osservice.name': 'new-dict-service',
+                    'dt.osservice.display_name': 'New Dict Service'
+                },
+                'another-string-service'
+            ]
+        }
+    }
+
+    # This should handle both formats correctly
+    entity = HostEntity.model_validate(test_data)
+
+    # Both formats should be converted to strings
+    assert isinstance(entity.properties.osServices, list)
+    assert len(entity.properties.osServices) == 3
+    assert entity.properties.osServices[0] == 'existing-string-service'
+    assert entity.properties.osServices[1] == 'new-dict-service'
+    assert entity.properties.osServices[2] == 'another-string-service'
+
+
+def test_host_entity_osservices_fallback_name():
+    """
+    Test that HostEntity handles osServices dict without proper name fields
+    """
+    from stackstate_checks.dynatrace_topology.entity_data_types import HostEntity
+
+    # Test data with dict missing both name and display_name
+    test_data = {
+        'entityId': 'HOST-TEST123',
+        'type': 'HOST',
+        'displayName': 'test.example.com',
+        'properties': {
+            'osServices': [
+                {
+                    'dt.osservice.status': 'active',
+                    'dt.osservice.path': '/some/path'
+                    # Missing both dt.osservice.name and dt.osservice.display_name
+                }
+            ]
+        }
+    }
+
+    # This should use fallback name
+    entity = HostEntity.model_validate(test_data)
+
+    # Should use the fallback 'unknown_service_0' (with index for debugging)
+    assert isinstance(entity.properties.osServices, list)
+    assert len(entity.properties.osServices) == 1
+    assert entity.properties.osServices[0] == 'unknown_service_0'
+
+
+def test_process_group_entity_custompgmetadata_list_handling():
+    """
+    Test that ProcessGroupEntity correctly handles customPgMetadata field when it's a list of key-value objects
+    This reproduces the error: "Input should be a valid dictionary [type=dict_type,
+    input_value=[{'value': 'nginx', 'key': '...'}]]"
+    """
+    from stackstate_checks.dynatrace_topology.entity_data_types import ProcessGroupEntity
+
+    # Test data that simulates the problematic case from the error
+    test_data = {
+        'entityId': 'PROCESS_GROUP-TEST123',
+        'type': 'PROCESS_GROUP',
+        'displayName': 'Test Process Group',
+        'properties': {
+            'customPgMetadata': [
+                {'key': 'application', 'value': 'nginx'},
+                {'key': 'foundryBuildpackVersion', 'value': '1.2.3'},
+                {'key': 'environment', 'value': 'production'}
+            ]
+        }
+    }
+
+    # This should not raise a validation error anymore
+    entity = ProcessGroupEntity.model_validate(test_data)
+
+    # The list should have been converted to a dictionary
+    assert isinstance(entity.properties.customPgMetadata, dict)
+    assert len(entity.properties.customPgMetadata) == 3
+    assert entity.properties.customPgMetadata['application'] == 'nginx'
+    assert entity.properties.customPgMetadata['foundryBuildpackVersion'] == '1.2.3'
+    assert entity.properties.customPgMetadata['environment'] == 'production'
+
+
+def test_process_group_entity_custompgmetadata_dict_handling():
+    """
+    Test that ProcessGroupEntity still works correctly with dictionary customPgMetadata (original format)
+    """
+    from stackstate_checks.dynatrace_topology.entity_data_types import ProcessGroupEntity
+
+    # Test data with the original dictionary format
+    test_data = {
+        'entityId': 'PROCESS_GROUP-TEST123',
+        'type': 'PROCESS_GROUP',
+        'displayName': 'Test Process Group',
+        'properties': {
+            'customPgMetadata': {
+                'application': 'nginx',
+                'version': '1.2.3',
+                'environment': 'production'
+            }
+        }
+    }
+
+    # This should work as before
+    entity = ProcessGroupEntity.model_validate(test_data)
+
+    # The dictionary should remain unchanged
+    assert isinstance(entity.properties.customPgMetadata, dict)
+    assert entity.properties.customPgMetadata['application'] == 'nginx'
+    assert entity.properties.customPgMetadata['version'] == '1.2.3'
+    assert entity.properties.customPgMetadata['environment'] == 'production'
+
+
+def test_process_group_entity_custompgmetadata_fallback_handling():
+    """
+    Test that ProcessGroupEntity handles customPgMetadata list with missing key/value fields
+    """
+    from stackstate_checks.dynatrace_topology.entity_data_types import ProcessGroupEntity
+
+    # Test data with malformed list items
+    test_data = {
+        'entityId': 'PROCESS_GROUP-TEST123',
+        'type': 'PROCESS_GROUP',
+        'displayName': 'Test Process Group',
+        'properties': {
+            'customPgMetadata': [
+                {'key': 'valid_key', 'value': 'valid_value'},
+                {'missing_key': 'something'},  # Missing 'key' field
+                {'key': 'no_value_key'},  # Missing 'value' field
+                'string_item'  # Not even a dict
+            ]
+        }
+    }
+
+    # This should handle malformed data gracefully
+    entity = ProcessGroupEntity.model_validate(test_data)
+
+    # Should create a dictionary with fallback keys/values
+    assert isinstance(entity.properties.customPgMetadata, dict)
+    assert entity.properties.customPgMetadata['valid_key'] == 'valid_value'
+    assert 'unknown_key_1' in entity.properties.customPgMetadata  # Fallback for missing key
+    assert entity.properties.customPgMetadata['no_value_key'] == 'unknown_value_2'  # Fallback for missing value
+    assert 'item_3' in entity.properties.customPgMetadata  # Fallback for non-dict item
+
+
+def test_process_group_entity_custompgmetadata_nonscalar_key():
+    """
+    Test that ProcessGroupEntity handles customPgMetadata list with a non-scalar key
+    (e.g., dict or list) by falling back to an auto-generated key name.
+    """
+    from stackstate_checks.dynatrace_topology.entity_data_types import ProcessGroupEntity
+
+    test_data = {
+        'entityId': 'PROCESS_GROUP-TEST123',
+        'type': 'PROCESS_GROUP',
+        'displayName': 'Test Process Group',
+        'properties': {
+            'customPgMetadata': [
+                {'key': {'nested': 'dict'}, 'value': 'val1'},
+                {'key': ['list', 'key'], 'value': 'val2'},
+                {'key': {'source': 'KUBERNETES', 'key': 'cni.projectcalico.org/podIPs'}, 'value': '10.7.3.85/32'},
+            ]
+        }
+    }
+
+    entity = ProcessGroupEntity.model_validate(test_data)
+
+    assert isinstance(entity.properties.customPgMetadata, dict)
+    # Non-scalar keys without inner 'key' should map to fallback keys
+    assert 'unknown_key_0' in entity.properties.customPgMetadata
+    assert 'unknown_key_1' in entity.properties.customPgMetadata
+    # Nested key dicts with inner 'key' should extract the string key
+    assert entity.properties.customPgMetadata['cni.projectcalico.org/podIPs'] == '10.7.3.85/32'

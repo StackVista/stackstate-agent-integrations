@@ -10,24 +10,27 @@ from stackstate_checks.base.utils.validations_utils import ForgivingBaseModel, A
 from stackstate_checks.base import StackPackInstance, HealthStream, HealthStreamUrn, Health, Identifiers
 from stackstate_checks.checks import AgentCheck
 from stackstate_checks.dynatrace.dynatrace_client import DynatraceClientFactory
+from stackstate_checks.dynatrace.constants import SUPPORTED_ENTITY_TYPES_PARAM_SELECTORS
 from stackstate_checks.dynatrace_health.event_data_types import DynatraceEvent
 
 VERIFY_HTTPS = True
 TIMEOUT = 10
-EVENTS_BOOSTRAP_DAYS = 5
+EVENTS_BOOTSTRAP_DAYS = 5
 EVENTS_PROCESS_LIMIT = 10000
 RELATIVE_TIME = '1h'
 
 
 class State(ForgivingBaseModel):
     last_processed_event_timestamp: Optional[int] = None
+    checks_in_flight: int = 0
 
 
 class InstanceInfo(ForgivingBaseModel):
     url: AnyUrlStr
     token: str
     instance_tags: List[str] = []
-    events_boostrap_days: int = EVENTS_BOOSTRAP_DAYS
+    collection_interval: int = 60  # Check interval in seconds, config file default is 60s
+    events_bootstrap_days: int = EVENTS_BOOTSTRAP_DAYS
     events_process_limit: int = EVENTS_PROCESS_LIMIT
     verify: bool = VERIFY_HTTPS
     cert: Optional[str] = None
@@ -45,6 +48,9 @@ class DynatraceHealthCheck(AgentCheck):
     def __init__(self, name, init_config, instances):
         super(DynatraceHealthCheck, self).__init__(name, init_config, instances)
         self.dynatrace_client_factory = DynatraceClientFactory()
+        # Simple in-memory cache for event type definitions within the check lifecycle
+        # key: event type string, value: dict returned by the Dynatrace API
+        self._event_type_cache = {}
 
     def get_instance_key(self, instance_info):
         return StackPackInstance(self.INSTANCE_TYPE, str(instance_info.url))
@@ -54,11 +60,64 @@ class DynatraceHealthCheck(AgentCheck):
 
     def check(self, instance_info):
         try:
+            self.log.debug("State at check start: %s", instance_info.state)
+            if instance_info.state:
+                self.log.debug("State.last_processed_event_timestamp: %s",
+                               instance_info.state.last_processed_event_timestamp)
+                self.log.debug("State.checks_in_flight: %s", instance_info.state.checks_in_flight)
+
             if not instance_info.state or not instance_info.state.last_processed_event_timestamp:
                 # Create state on the first run
-                empty_state_timestamp = self.generate_bootstrap_timestamp(instance_info.events_boostrap_days)
+                empty_state_timestamp = self.generate_bootstrap_timestamp(instance_info.events_bootstrap_days)
                 self.log.debug('Creating new empty state with timestamp: %s', empty_state_timestamp)
-                instance_info.state = State(**{'last_processed_event_timestamp': empty_state_timestamp})
+                instance_info.state = State(**{
+                    'last_processed_event_timestamp': empty_state_timestamp,
+                    'checks_in_flight': 0
+                })
+
+            # Check if another check is already running
+            if instance_info.state.checks_in_flight > 0:
+                msg = (f"Another check is already in flight "
+                       f"(checks_in_flight={instance_info.state.checks_in_flight}). "
+                       f"Skipping this run to prevent concurrent execution.")
+                self.log.warning(msg)
+                self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.WARNING,
+                                   tags=instance_info.instance_tags, message=msg)
+                return
+
+            # Increment checks_in_flight at the start
+            instance_info.state.checks_in_flight += 1
+            self.log.debug("Incremented checks_in_flight to: %s", instance_info.state.checks_in_flight)
+
+            # This prevents processing too many events if state gets stale or corrupted
+            # Only applies if state already exists (not first run)
+            if instance_info.state.last_processed_event_timestamp:
+                current_time_ms = int(time.time() * 1000)
+                last_timestamp_ms = instance_info.state.last_processed_event_timestamp
+
+                # Use collection_interval from instance config (in seconds)
+                collection_interval_sec = instance_info.collection_interval
+                max_time_diff_ms = collection_interval_sec * 2 * 1000  # Double interval in milliseconds
+
+                time_diff_ms = current_time_ms - last_timestamp_ms
+
+                # Validate that timestamp isn't too old (more than double the check interval)
+                if time_diff_ms > max_time_diff_ms:
+                    old_timestamp = last_timestamp_ms
+                    new_timestamp = current_time_ms - max_time_diff_ms
+                    instance_info.state.last_processed_event_timestamp = new_timestamp
+                    self.log.debug(
+                        "Timestamp was too old (%d ms = %.1f days ago). "
+                        "Capped to double check interval (%d seconds = %d ms). "
+                        "Old timestamp: %d, New timestamp: %d",
+                        time_diff_ms,
+                        time_diff_ms / (1000 * 60 * 60 * 24),
+                        collection_interval_sec * 2,
+                        max_time_diff_ms,
+                        old_timestamp,
+                        new_timestamp
+                    )
+
             dynatrace_client = self.dynatrace_client_factory.create_client(
                 instance_name=str(instance_info.url),
                 token=instance_info.token,
@@ -71,16 +130,44 @@ class DynatraceHealthCheck(AgentCheck):
                 instance_info.token = dynatrace_client.get_token()
 
             self._process_events(dynatrace_client, instance_info)
+
+            # Decrement checks_in_flight on successful completion
+            instance_info.state.checks_in_flight -= 1
+            self.log.debug("Decremented checks_in_flight to: %s", instance_info.state.checks_in_flight)
+
+            # Log final state before framework persists it
+            self.log.debug("State at check end (before persistence): %s", instance_info.state)
+            if instance_info.state:
+                self.log.debug("Final last_processed_event_timestamp: %s",
+                               instance_info.state.last_processed_event_timestamp)
+
             msg = "Dynatrace health check processed successfully"
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=instance_info.instance_tags, message=msg)
         except EventLimitReachedException as e:
+            # Decrement checks_in_flight on exception
+            if instance_info.state:
+                instance_info.state.checks_in_flight -= 1
+                self.log.debug("Decremented checks_in_flight to: %s (EventLimitReachedException)",
+                               instance_info.state.checks_in_flight)
             self.log.exception(str(e))
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.WARNING, tags=instance_info.instance_tags,
                                message=str(e))
         except Exception as e:
+            # Decrement checks_in_flight on exception
+            if instance_info.state:
+                instance_info.state.checks_in_flight -= 1
+                self.log.debug("Decremented checks_in_flight to: %s (Exception)",
+                               instance_info.state.checks_in_flight)
             self.log.exception(str(e))
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=instance_info.instance_tags,
                                message=str(e))
+
+    @staticmethod
+    def _is_warmup_enabled():
+        """
+        Toggle cache warm-ups via env var DYNATRACE_HEALTH_ENABLE_WARMUP (default: true)
+        """
+        return os.getenv('DYNATRACE_HEALTH_ENABLE_WARMUP', 'false').lower() == 'true'
 
     def _process_events(self, dynatrace_client, instance_info):
         """
@@ -93,6 +180,29 @@ class DynatraceHealthCheck(AgentCheck):
 
         if events_limit_reached:
             events = events[:instance_info.events_process_limit]
+
+        # Warm the event type cache with unique event types from this batch
+        if self._is_warmup_enabled():
+            try:
+                unique_event_types = {e.eventType or 'UNKNOWN' for e in events}
+                start_ts = time.time()
+                self._warm_event_type_cache(dynatrace_client, str(instance_info.url), unique_event_types)
+                self.log.debug("Warmed event types cache, took %d seconds", int(time.time() - start_ts))
+            except Exception as e:
+                self.log.debug(f"Failed to warm event type cache: {e}")
+
+        # Warm the entity cache by fetching ALL entities for supported types (store only displayName)
+        if self._is_warmup_enabled():
+            try:
+                start_ts = time.time()
+                self._warm_all_supported_entities(
+                    dynatrace_client,
+                    str(instance_info.url),
+                    instance_info.relative_time or '1h'
+                )
+                self.log.debug("Warmed entities cache, took %d seconds", int(time.time() - start_ts))
+            except Exception as e:
+                self.log.debug(f"Failed to warm all supported entities: {e}")
 
         open_events_count = len([e for e in events if e.status == 'OPEN'])
         closed_events_count = len(events) - open_events_count
@@ -108,9 +218,10 @@ class DynatraceHealthCheck(AgentCheck):
         for event in events:
             # Get the event Type definition from the API.
             event_type = event.eventType or 'UNKNOWN'
-            endpoint = f"{instance_info.url}/api/v2/eventTypes/{event_type}"
             try:
-                event_type_data = dynatrace_client.get_dynatrace_json_response(endpoint, None)
+                event_type_data = self._get_event_type_definition(
+                    dynatrace_client, str(instance_info.url), event_type
+                )
                 display_name = event_type_data.get('displayName', event_type)
                 severity_level = event_type_data.get('severityLevel', 'INFO')
             except Exception as e:
@@ -140,9 +251,10 @@ class DynatraceHealthCheck(AgentCheck):
                     self.log.debug(f"Skipping PROCESS_GROUP_INSTANCE entity {entity_id} due to previous 404 errors")
                     continue
 
-                entity_endpoint = f"{instance_info.url}/api/v2/entities/{entity_id}"
                 try:
-                    entity_data = dynatrace_client.get_dynatrace_json_response(entity_endpoint, None)
+                    entity_data = self._get_entity_definition(
+                        dynatrace_client, str(instance_info.url), entity_id
+                    )
                     link_to_entity = self.link_to_dynatrace(entity_id, instance_info.url)
                     self._create_topology_event(event, link_to_entity, severity_level, entity_data, impact,
                                                 display_name)
@@ -222,11 +334,77 @@ class DynatraceHealthCheck(AgentCheck):
 
         # Log accumulated 404 errors as INFO messages per entity type
         for entity_type, count in entity_404_errors.items():
-            self.log.info(f"Found {count} events referencing {entity_type} entities that no longer exist")
+            self.log.debug(f"Found {count} events referencing {entity_type} entities that no longer exist")
 
         self.health.stop_snapshot()
         if events_limit_reached:
             raise EventLimitReachedException(events_limit_reached)
+
+    def _get_event_type_definition(self, dynatrace_client, base_url, event_type):
+        """
+        Return the event type definition from cache if present, otherwise fetch and cache it.
+        """
+        if event_type in self._event_type_cache:
+            return self._event_type_cache[event_type]
+
+        endpoint = f"{base_url}/api/v2/eventTypes/{event_type}"
+        data = dynatrace_client.get_dynatrace_json_response(endpoint, None)
+        # Only cache successful responses
+        self._event_type_cache[event_type] = data
+        return data
+
+    def _get_entity_definition(self, dynatrace_client, base_url, entity_id):
+        """
+        Return the entity definition from cache if present, otherwise fetch and cache it.
+        """
+        if not hasattr(self, '_entity_cache'):
+            self._entity_cache = {}
+        if entity_id in self._entity_cache:
+            return self._entity_cache[entity_id]
+        endpoint = f"{base_url}/api/v2/entities/{entity_id}"
+        data = dynatrace_client.get_dynatrace_json_response(endpoint, None)
+        minimal = {"displayName": data.get("displayName")}
+        self._entity_cache[entity_id] = minimal
+        return minimal
+
+    def _warm_event_type_cache(self, dynatrace_client, base_url, event_types):
+        """
+        Pre-fetch and cache event type definitions for a set of event types.
+        Failures are logged at debug and ignored to avoid blocking processing.
+        """
+        for et in event_types:
+            if et in self._event_type_cache:
+                continue
+            try:
+                endpoint = f"{base_url}/api/v2/eventTypes/{et}"
+                data = dynatrace_client.get_dynatrace_json_response(endpoint, None)
+                self._event_type_cache[et] = data
+            except Exception as e:
+                self.log.debug(f"Warming cache for event type {et} failed: {e}")
+
+    def _warm_all_supported_entities(self, dynatrace_client, base_url, relative_time):
+        """
+        Prefetch and cache displayName for ALL entities of supported types.
+        Uses pagination via nextPageKey. Stores only {'displayName'} to minimize memory.
+        """
+        if not hasattr(self, '_entity_cache'):
+            self._entity_cache = {}
+        endpoint = dynatrace_client.get_endpoint(base_url, "api/v2/entities")
+        for selector in SUPPORTED_ENTITY_TYPES_PARAM_SELECTORS:
+            next_key = None
+            while True:
+                params = {"entitySelector": selector, "from": f"now-{relative_time}"}
+                if next_key:
+                    params = {"nextPageKey": next_key}
+                resp = dynatrace_client.get_dynatrace_json_response(endpoint, params)
+                entities = resp.get("entities", []) if isinstance(resp, dict) else (resp or [])
+                for ent in entities:
+                    ent_id = ent.get("entityId")
+                    if ent_id and ent_id not in self._entity_cache:
+                        self._entity_cache[ent_id] = {"displayName": ent.get("displayName")}
+                next_key = resp.get("nextPageKey") if isinstance(resp, dict) else None
+                if not next_key:
+                    break
 
     def _create_topology_event(self, dynatrace_event, link_to_entity, severity_level, entity_data, impact,
                                event_display_name):
@@ -275,6 +453,10 @@ class DynatraceHealthCheck(AgentCheck):
         Checks for EventLimitReachedException and process each event API response for next cursor
         until is None or it reach events_process_limit
         """
+        self.log.debug(
+            "Calling _get_events with from_time=%s",
+            instance_info.state.last_processed_event_timestamp,
+        )
         events_response = self._get_events(dynatrace_client, instance_info.url,
                                            from_time=instance_info.state.last_processed_event_timestamp)
         new_events = []
@@ -304,10 +486,28 @@ class DynatraceHealthCheck(AgentCheck):
                     events_response = self._get_events(dynatrace_client, instance_info.url,
                                                        next_page_key=events_response.get("nextPageKey"))
                 else:
-                    instance_info.state.last_processed_event_timestamp = events_response.get("to")
+                    # Update timestamp to (current_time - check_interval) to ensure overlap and no missed events
+                    # Dynatrace Events API v2 doesn't provide a 'to' field, so we calculate based on check interval
+                    current_time_ms = int(time.time() * 1000)
+                    check_interval_ms = instance_info.collection_interval * 1000
+                    new_timestamp = current_time_ms - check_interval_ms
+                    instance_info.state.last_processed_event_timestamp = new_timestamp
+                    self.log.debug(
+                        "Finished processing events. Updated state timestamp to (current_time - check_interval): %s "
+                        "(current: %s, interval: %d seconds)",
+                        new_timestamp, current_time_ms, instance_info.collection_interval
+                    )
                     events_response = None
         except EventLimitReachedException as e:
-            instance_info.state.last_processed_event_timestamp = events_response.get("to")
+            # Update to (current_time - check_interval) even when limit reached
+            current_time_ms = int(time.time() * 1000)
+            check_interval_ms = instance_info.collection_interval * 1000
+            new_timestamp = current_time_ms - check_interval_ms
+            instance_info.state.last_processed_event_timestamp = new_timestamp
+            self.log.debug(
+                "EventLimitReached - updated state timestamp to (current_time - check_interval): %s",
+                new_timestamp
+            )
             event_limit_reached = str(e)
         return new_events, event_limit_reached
 

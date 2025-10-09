@@ -29,7 +29,7 @@ def test_instance():
         "url": "https://instance.live.dynatrace.com",
         "token": "some_token",
         "events_process_limit": 10,
-        "events_boostrap_days": 5,
+        "events_bootstrap_days": 5,
         "timeout": 20,
         'collection_interval': 15
     }
@@ -50,12 +50,20 @@ def dynatrace_check(test_instance, health, aggregator, telemetry, topology, mock
             timeout=test_instance.get('timeout')
         )
     )
+    # Clear state BEFORE the test runs to ensure consistent bootstrap timestamp
+    state_descriptor = check._get_state_descriptor()
+    check.state_manager.clear(state_descriptor)
+
     yield check
+
+    # Clean up after test
     aggregator.reset()
     telemetry.reset()
     topology.reset()
     health.reset()
-    check.commit_state(None)
+    # Clear state again for next test
+    state_descriptor = check._get_state_descriptor()
+    check.state_manager.clear(state_descriptor)
 
 
 def set_http_responses(requests_mock, availability_event='{}', error_event='{}', performance_event='{}',
