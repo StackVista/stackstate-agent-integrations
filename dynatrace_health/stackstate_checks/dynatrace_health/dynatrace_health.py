@@ -15,7 +15,7 @@ from stackstate_checks.dynatrace_health.event_data_types import DynatraceEvent
 
 VERIFY_HTTPS = True
 TIMEOUT = 10
-EVENTS_BOOSTRAP_DAYS = 5
+EVENTS_BOOTSTRAP_DAYS = 5
 EVENTS_PROCESS_LIMIT = 10000
 RELATIVE_TIME = '1h'
 
@@ -29,8 +29,8 @@ class InstanceInfo(ForgivingBaseModel):
     url: AnyUrlStr
     token: str
     instance_tags: List[str] = []
-    collection_interval: int = 300  # Check interval in seconds, default 300s
-    events_bootstrap_days: int = EVENTS_BOOSTRAP_DAYS
+    collection_interval: int = 60  # Check interval in seconds, config file default is 60s
+    events_bootstrap_days: int = EVENTS_BOOTSTRAP_DAYS
     events_process_limit: int = EVENTS_PROCESS_LIMIT
     verify: bool = VERIFY_HTTPS
     cert: Optional[str] = None
@@ -89,7 +89,6 @@ class DynatraceHealthCheck(AgentCheck):
             instance_info.state.checks_in_flight += 1
             self.log.debug("Incremented checks_in_flight to: %s", instance_info.state.checks_in_flight)
 
-            # Validate that timestamp isn't too old (more than double the check interval)
             # This prevents processing too many events if state gets stale or corrupted
             # Only applies if state already exists (not first run)
             if instance_info.state.last_processed_event_timestamp:
@@ -102,6 +101,7 @@ class DynatraceHealthCheck(AgentCheck):
 
                 time_diff_ms = current_time_ms - last_timestamp_ms
 
+                # Validate that timestamp isn't too old (more than double the check interval)
                 if time_diff_ms > max_time_diff_ms:
                     old_timestamp = last_timestamp_ms
                     new_timestamp = current_time_ms - max_time_diff_ms

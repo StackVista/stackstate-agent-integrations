@@ -13,7 +13,7 @@ from stackstate_checks.dynatrace.custom_auth import MsJWTAuth
 
 class _DynatraceClient:
 
-    def __init__(self, token, verify=False, cert=None, keyfile=None, timeout=None, is_jwt_auth=False):
+    def __init__(self, token, verify=False, cert=None, keyfile=None, timeout=None, is_ms_jwt_auth=False):
         """
         Client for Dynatrace rest API. It's used by dynatrace_topology and dynatrace_health check.
         :param token: token from Dynatrace platform which has access to read the API endpoints
@@ -21,14 +21,14 @@ class _DynatraceClient:
         :param cert: path to certificate file for https verification
         :param keyfile: path to public key of certificate for https verification
         :param timeout: request timeout in seconds
-        :param is_jwt_auth: whether this is using JWT authentication
+        :param is_ms_jwt_auth: whether this is using JWT authentication
         """
         self.token = token
         self.verify = verify
         self.cert = cert
         self.keyfile = keyfile
         self.timeout = timeout
-        self.is_jwt_auth = is_jwt_auth
+        self.is_ms_jwt_auth = is_ms_jwt_auth
         self.log = logging.getLogger(__name__)
         # Track 404 occurrences per entity type to avoid spam and provide summary
         self._entity_404_counts = defaultdict(int)
@@ -51,7 +51,7 @@ class _DynatraceClient:
         :return: dictionary from API json response
         """
         # Use Bearer for JWT tokens, Api-Token for API tokens
-        if self.is_jwt_auth:
+        if self.is_ms_jwt_auth:
             auth_header = {"Authorization": "Bearer %s" % self.token}
         else:
             auth_header = {"Authorization": "Api-Token %s" % self.token}
@@ -65,7 +65,7 @@ class _DynatraceClient:
         try:
             response = do_request(auth_header)
             # If unauthorized and using JWT auth, refresh once and retry
-            if response.status_code == 401 and self.is_jwt_auth:
+            if response.status_code == 401 and self.is_ms_jwt_auth:
                 self.log.warning(
                     "401 unauthorized for %s; refreshing JWT and retrying once",
                     endpoint,
@@ -206,17 +206,17 @@ class DynatraceClientFactory:
         self._ms_jwt_auth = None
 
     def create_client(self, instance_name, token, verify=False, cert=None, keyfile=None, timeout=None):
-        is_jwt_auth = os.getenv('JWT_AUTH', 'false').lower() == 'true'
+        is_ms_jwt_auth = os.getenv('JWT_AUTH', 'false').lower() == 'true'
 
-        if is_jwt_auth:
+        if is_ms_jwt_auth:
             if not self._ms_jwt_auth:
                 self._ms_jwt_auth = MsJWTAuth(verify, cert, keyfile, timeout)
             token = self._ms_jwt_auth.get_token()
 
         if instance_name not in self._instances:
-            client = _DynatraceClient(token, verify, cert, keyfile, timeout, is_jwt_auth)
+            client = _DynatraceClient(token, verify, cert, keyfile, timeout, is_ms_jwt_auth)
             self._instances[instance_name] = client
         # Always update the token in case it has been renewed
         self._instances[instance_name].token = token
-        self._instances[instance_name].is_jwt_auth = is_jwt_auth
+        self._instances[instance_name].is_ms_jwt_auth = is_ms_jwt_auth
         return self._instances[instance_name]
