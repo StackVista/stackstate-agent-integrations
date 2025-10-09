@@ -135,6 +135,9 @@ class DynatraceTopologyCheck(AgentCheck):
             if os.getenv('JWT_AUTH') == "true":
                 instance_info.token = dynatrace_client.get_token()
 
+            # Reset entity cache so counts/logs reflect this run only
+            self.dynatrace_entities_cache = []
+
             self._process_topology(dynatrace_client, instance_info)
             self.monitored_health()
 
