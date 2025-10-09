@@ -825,3 +825,53 @@ def test_cache_warming_with_no_events(dynatrace_check, test_instance, requests_m
 
     # Verify service check is OK
     aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
+
+
+@freeze_time('2025-07-22 08:26:24')
+def test_caches_reset_between_runs(dynatrace_check, test_instance, requests_mock, aggregator):
+    """
+    Verify that _event_type_cache and _entity_cache are cleared at the start of each run.
+    """
+    os.environ["JWT_AUTH"] = "false"
+
+    # First run: one PROCESS_RESTART event; mock event type and entity lookups
+    event = {
+        "eventId": "event-1",
+        "startTime": 1750649000000,
+        "eventType": "PROCESS_RESTART",
+        "status": "CLOSED",
+        "properties": [],
+        "title": "process-1",
+        "entityId": {"entityId": {"id": "PGI-1", "type": "PROCESS_GROUP_INSTANCE"}, "name": "process-1"},
+        "correlationId": "",
+        "entityTags": [],
+        "managementZones": [],
+        "underMaintenance": False,
+        "suppressAlert": False,
+        "suppressProblem": False,
+        "frequentEvent": False,
+        "endTime": 0,
+    }
+    _mock_events_endpoint(requests_mock, test_instance, {"totalCount": 1, "pageSize": 1, "events": [event]})
+    # Event type and entity endpoints
+    from stackstate_checks.base.utils.common import read_file as _rf
+    set_http_responses(requests_mock, process_restart_event=_rf('event_type_process_restart.json', 'samples'))
+    requests_mock.get(
+        f"{test_instance['url']}/api/v2/entities/PGI-1", status_code=200, text=json.dumps({"displayName": "pgi-1"})
+    )
+
+    dynatrace_check.run()
+    # After first run, caches should contain entries
+    assert len(getattr(dynatrace_check, "_event_type_cache", {})) > 0
+    assert len(getattr(dynatrace_check, "_entity_cache", {})) > 0
+
+    # Second run: reset mocks and return no events
+    aggregator.reset()
+    requests_mock.reset()
+    _mock_events_endpoint(requests_mock, test_instance, {"totalCount": 0, "pageSize": 0, "events": []})
+
+    dynatrace_check.run()
+
+    # Caches must be empty at the start of this run (cleared in check()) and remain empty after no activity
+    assert getattr(dynatrace_check, "_event_type_cache", None) == {}
+    assert getattr(dynatrace_check, "_entity_cache", None) == {}

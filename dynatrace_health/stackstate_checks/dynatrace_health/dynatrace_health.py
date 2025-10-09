@@ -66,6 +66,11 @@ class DynatraceHealthCheck(AgentCheck):
                                instance_info.state.last_processed_event_timestamp)
                 self.log.debug("State.checks_in_flight: %s", instance_info.state.checks_in_flight)
 
+            # Reset in-memory caches so each run is independent
+            self._event_type_cache = {}
+            if hasattr(self, '_entity_cache'):
+                self._entity_cache = {}
+
             if not instance_info.state or not instance_info.state.last_processed_event_timestamp:
                 # Create state on the first run
                 empty_state_timestamp = self.generate_bootstrap_timestamp(instance_info.events_bootstrap_days)
