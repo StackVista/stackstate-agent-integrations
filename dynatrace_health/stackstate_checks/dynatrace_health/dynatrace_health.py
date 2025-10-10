@@ -22,7 +22,6 @@ RELATIVE_TIME = '1h'
 
 class State(ForgivingBaseModel):
     last_processed_event_timestamp: Optional[int] = None
-    checks_in_flight: int = 0
 
 
 class InstanceInfo(ForgivingBaseModel):
@@ -64,7 +63,6 @@ class DynatraceHealthCheck(AgentCheck):
             if instance_info.state:
                 self.log.debug("State.last_processed_event_timestamp: %s",
                                instance_info.state.last_processed_event_timestamp)
-                self.log.debug("State.checks_in_flight: %s", instance_info.state.checks_in_flight)
 
             # Reset in-memory caches so each run is independent
             self._event_type_cache = {}
@@ -76,23 +74,8 @@ class DynatraceHealthCheck(AgentCheck):
                 empty_state_timestamp = self.generate_bootstrap_timestamp(instance_info.events_bootstrap_days)
                 self.log.debug('Creating new empty state with timestamp: %s', empty_state_timestamp)
                 instance_info.state = State(**{
-                    'last_processed_event_timestamp': empty_state_timestamp,
-                    'checks_in_flight': 0
+                    'last_processed_event_timestamp': empty_state_timestamp
                 })
-
-            # Check if another check is already running
-            if instance_info.state.checks_in_flight > 0:
-                msg = (f"Another check is already in flight "
-                       f"(checks_in_flight={instance_info.state.checks_in_flight}). "
-                       f"Skipping this run to prevent concurrent execution.")
-                self.log.warning(msg)
-                self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.WARNING,
-                                   tags=instance_info.instance_tags, message=msg)
-                return
-
-            # Increment checks_in_flight at the start
-            instance_info.state.checks_in_flight += 1
-            self.log.debug("Incremented checks_in_flight to: %s", instance_info.state.checks_in_flight)
 
             # This prevents processing too many events if state gets stale or corrupted
             # Only applies if state already exists (not first run)
@@ -136,10 +119,6 @@ class DynatraceHealthCheck(AgentCheck):
 
             self._process_events(dynatrace_client, instance_info)
 
-            # Decrement checks_in_flight on successful completion
-            instance_info.state.checks_in_flight -= 1
-            self.log.debug("Decremented checks_in_flight to: %s", instance_info.state.checks_in_flight)
-
             # Log final state before framework persists it
             self.log.debug("State at check end (before persistence): %s", instance_info.state)
             if instance_info.state:
@@ -149,20 +128,10 @@ class DynatraceHealthCheck(AgentCheck):
             msg = "Dynatrace health check processed successfully"
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.OK, tags=instance_info.instance_tags, message=msg)
         except EventLimitReachedException as e:
-            # Decrement checks_in_flight on exception
-            if instance_info.state:
-                instance_info.state.checks_in_flight -= 1
-                self.log.debug("Decremented checks_in_flight to: %s (EventLimitReachedException)",
-                               instance_info.state.checks_in_flight)
             self.log.exception(str(e))
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.WARNING, tags=instance_info.instance_tags,
                                message=str(e))
         except Exception as e:
-            # Decrement checks_in_flight on exception
-            if instance_info.state:
-                instance_info.state.checks_in_flight -= 1
-                self.log.debug("Decremented checks_in_flight to: %s (Exception)",
-                               instance_info.state.checks_in_flight)
             self.log.exception(str(e))
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=instance_info.instance_tags,
                                message=str(e))
