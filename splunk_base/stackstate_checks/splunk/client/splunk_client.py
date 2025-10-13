@@ -115,7 +115,7 @@ class SplunkClient:
             new_token = self._create_auth_token(token)
             # Only commit the token if COMMIT_JWT_TOKEN_STATE is set to True.
             # There are cases of users that do not want the token to be committed to state
-            if os.getenv("COMMIT_JWT_TOKEN_STATE", True):
+            if os.getenv("COMMIT_JWT_TOKEN_STATE", "true") == "true":
                 committable_state.set_auth_token(new_token)
         # Update the Authorization header falling back on the original token provided
         self.requests_session.headers.update({'Authorization': "Bearer %s" % (new_token or token)})
