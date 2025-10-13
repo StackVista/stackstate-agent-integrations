@@ -38,6 +38,13 @@ class SplunkConfigTokenAuthStructure(StrictBaseModel):
     renewal_days: int = 10
 
 
+class SplunkConfigTokenAuthMSStructure(StrictBaseModel):
+    name: str
+    cert: Optional[str] = None
+    keyfile: Optional[str] = None
+    request_timeout_seconds: int = SPLUNK_TIMEOUT
+
+
 class SplunkConfigBasicAuthStructure(StrictBaseModel):
     username: str
     password: str
@@ -45,6 +52,7 @@ class SplunkConfigBasicAuthStructure(StrictBaseModel):
 
 class SplunkConfigAuthentication(StrictBaseModel):
     token_auth: Optional[SplunkConfigTokenAuthStructure] = None
+    token_auth_ms: Optional[SplunkConfigTokenAuthMSStructure] = None
     basic_auth: Optional[SplunkConfigBasicAuthStructure] = None
 
 
@@ -56,9 +64,6 @@ class SplunkConfigInstance(ForgivingBaseModel):
     ignore_saved_search_errors: bool = False
     saved_searches: List[SplunkConfigSavedSearchDefault] = []
     verify_ssl_certificate: Optional[bool] = None
-    cert: Optional[str] = None
-    keyfile: Optional[str] = None
-    timeout: int = SPLUNK_TIMEOUT
 
 
 class SplunkConfig(ForgivingBaseModel):

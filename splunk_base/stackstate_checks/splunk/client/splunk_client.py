@@ -11,8 +11,6 @@ if PY3:
 else:
     from urllib import urlencode, quote
 
-import datetime
-
 from urllib3.exceptions import InsecureRequestWarning
 from requests.exceptions import HTTPError, ConnectionError, Timeout
 from stackstate_checks.base.errors import CheckException
@@ -60,15 +58,10 @@ class SplunkClient:
             else:
                 self.static_header_value = os.getenv("SPLUNK_AUTH_STATIC_HEADER_VALUE")
 
-        if instance_config.auth_type == AuthType.TokenAuth:
-            if os.getenv("SPLUNK_MS_JWT_AUTH"):
-                self.jwt_adapter = MsJWTAuth(
-                    getattr(instance_config, 'verify_ssl_certificate', None),
-                    getattr(instance_config, 'cert', None),
-                    getattr(instance_config, 'keyfile', None),
-                    getattr(instance_config, 'timeout', None))
-            else:
-                self.jwt_adapter = SplunkJWTAuth(instance_config, self._do_post)
+        if instance_config.auth_type == AuthType.TokenAuthMS:
+            self.jwt_adapter = MsJWTAuth(instance_config)
+        elif instance_config.auth_type == AuthType.TokenAuth:
+            self.jwt_adapter = SplunkJWTAuth(instance_config, self._do_post)
 
     def auth_session(self, committable_state):
         if self.instance_config.auth_type == AuthType.BasicAuth:
@@ -76,6 +69,9 @@ class SplunkClient:
             self._basic_auth()
         elif self.instance_config.auth_type == AuthType.TokenAuth:
             self.log.debug("Using token based authentication mechanism")
+            self._token_auth_session(committable_state)
+        elif self.instance_config.auth_type == AuthType.TokenAuthMS:
+            self.log.debug("Using Micro$oft token based authentication mechanism")
             self._token_auth_session(committable_state)
 
     def _basic_auth(self):
@@ -90,8 +86,7 @@ class SplunkClient:
         :return: nothing
         """
         auth_path = '/services/auth/login?output_mode=json'
-        auth_username, auth_password = self.instance_config.get_auth_tuple()
-        payload = urlencode([('username', auth_username), ('password', auth_password), ('cookie', 1)], doseq=True)
+        payload = urlencode([('username', self.instance_config.auth_config.username), ('password', self.instance_config.auth_config.password), ('cookie', 1)], doseq=True)
         response = self._do_post(auth_path, payload, self.instance_config.default_request_timeout_seconds)
         response.raise_for_status()
         response_json = response.json()
@@ -119,16 +114,13 @@ class SplunkClient:
                   "and restart the Agent"
             raise TokenExpiredException(msg)
 
-        if self.jwt_adapter.token_needs_renewal(
-                token,
-                self.instance_config.renewal_days):
-            self.log.error("The token needs renewal as token is about to expire or this is initial token")
+        if self.jwt_adapter.token_needs_renewal(token):
+            self.log.info("The token needs renewal as token is about to expire or this is initial token")
             new_jwt_token = self._create_auth_token(token)
             committable_state.set_auth_token(new_jwt_token)
         else:
             new_jwt_token = token
 
-        self.log.error("The token: %s" % new_jwt_token)
         self.requests_session.headers.update({'Authorization': "Bearer %s" % new_jwt_token})
         self.add_static_header()
 
@@ -224,10 +216,13 @@ class SplunkClient:
 
     def _get_dispatch_user(self):
         if self.instance_config.auth_type == AuthType.BasicAuth:
-            return self.instance_config.username
+            return self.instance_config.auth_config.username
         elif self.instance_config.auth_type == AuthType.TokenAuth:
             # in case of token based mechanism, username won't exist and need to use `name` from token config
-            return self.instance_config.name
+            return self.instance_config.auth_config.name
+        elif self.instance_config.auth_type == AuthType.TokenAuthMS:
+            # same in MS based token auth config
+            return self.instance_config.auth_config.name
 
     def dispatch(self, saved_search, splunk_app, ignore_saved_search_errors, parameters):
         """

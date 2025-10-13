@@ -41,6 +41,7 @@ class SplunkPersistentState(object):
 class AuthType(Enum):
     BasicAuth = "BasicAuth"
     TokenAuth = "TokenAuth"
+    TokenAuthMS = "TokenAuthMS"
 
 
 class SplunkInstanceConfig(object):
@@ -68,25 +69,19 @@ instead of username/password on top level')
         self.default_parameters = self.get_or_default('default_parameters')
 
         self.verify_ssl_certificate = instance.verify_ssl_certificate or self.default_verify_ssl_certificate
-        self.cert = instance.cert or ""
-        self.keyfile = instance.keyfile or ""
 
         self.base_url = instance.url
 
         authentication = instance.authentication
         if instance.authentication.token_auth is not None:
-            token_auth = authentication.token_auth
             self.auth_type = AuthType.TokenAuth
-            self.audience = token_auth.audience
-            self.initial_token = token_auth.initial_token
-            self.name = token_auth.name
-            self.token_expiration_days = token_auth.token_expiration_days
-            self.renewal_days = token_auth.renewal_days
+            self.auth_config = authentication.token_auth
+        elif authentication.token_auth_ms is not None:
+            self.auth_type = AuthType.TokenAuthMS
+            self.auth_config = authentication.token_auth_ms
         elif authentication.basic_auth is not None:
-            basic_auth = authentication.basic_auth
             self.auth_type = AuthType.BasicAuth
-            self.username = basic_auth.username
-            self.password = basic_auth.password
+            self.auth_config = authentication.basic_auth
         else:
             raise CheckException('Instance missing "authentication.basic_auth" or '
                                  '"authentication.token_auth" value')
@@ -97,9 +92,6 @@ instead of username/password on top level')
 
     def get_or_default(self, field):
         return self.init_config.get(field, self.defaults[field])
-
-    def get_auth_tuple(self):
-        return self.username, self.password
 
 
 class SplunkSavedSearch(object):

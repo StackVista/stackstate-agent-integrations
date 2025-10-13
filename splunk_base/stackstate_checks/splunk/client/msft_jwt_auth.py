@@ -7,11 +7,9 @@ import requests
 
 class MsJWTAuth:
 
-    def __init__(self, verify=False, cert=None, keyfile=None, timeout=None):
-        self.verify = verify
-        self.cert = cert
-        self.keyfile = keyfile
-        self.timeout = timeout
+    def __init__(self, instance_config):
+        self.verify = getattr(instance_config, 'verify_ssl_certificate', None)
+        self.auth_config = instance_config.auth_config
         self.log = logging.getLogger(__name__)
         self._token = None
         self._token_expiry = datetime.min.replace(tzinfo=timezone.utc)
@@ -56,7 +54,8 @@ class MsJWTAuth:
 
             response = requests.post(microsoft_url, data=microsoft_payload, headers=microsoft_headers,
                                      verify=self.verify,
-                                     cert=(self.cert, self.keyfile) if self.cert else None, timeout=self.timeout)
+                                     cert=(self.auth_config.cert, self.auth_config.keyfile) if self.auth_config.cert else None,
+                                     timeout=self.auth_config.request_timeout_seconds)
             response.raise_for_status()
 
             response_json = response.json()
@@ -110,7 +109,7 @@ class MsJWTAuth:
     def is_token_expired(self, _token):
         return False
 
-    def token_needs_renewal(self, _token, _renewal_days):
+    def token_needs_renewal(self, _token):
         if not self._token:
             return True
 
@@ -120,8 +119,8 @@ class MsJWTAuth:
         self.log.info(f"Checking if Microsoft token needs renewal. Time left: {expiry_minutes:.2f} minutes")
 
         if expiry_minutes < self.MICROSOFT_RENEWAL_MINUTES:
-            self.log.info("Token has expired or is nearing expiration. Renewing.")
+            self.log.error("Token has expired or is nearing expiration. Renewing.")
             return True
         else:
-            self.log.info(f"Token is still valid for {expiry_minutes:.2f} minutes.")
+            self.log.error(f"Token is still valid for {expiry_minutes:.2f} minutes.")
             return False

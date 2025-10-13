@@ -18,7 +18,7 @@ import os
 from stackstate_checks.splunk.client import SplunkClient, FinalizeException, TokenExpiredException
 from stackstate_checks.splunk.config import AuthType, SplunkPersistentState
 
-from common import FakeInstanceConfig
+from common import FakeInstanceConfig, FakeTokenInstanceConfig
 
 # Mark the entire module as tests of type `unit`
 pytestmark = pytest.mark.unit
@@ -190,15 +190,12 @@ class TestSplunkClient(unittest.TestCase):
         """
         new_token = json.loads(mocked_token_create_response()).get('entry')[0].get('content').get('token')
 
-        config = FakeInstanceConfig()
-        config.auth_type = AuthType.TokenAuth
-
-        helper = SplunkClient(config)
+        helper = SplunkClient(FakeTokenInstanceConfig())
         generated_token = helper._create_auth_token("test")
-        username = helper.instance_config.username
-        audience = helper.instance_config.audience
-        expiry_days = helper.instance_config.token_expiration_days
-        payload = {'name': username, 'audience': audience, 'expires_on': "+{}d".format(str(expiry_days))}
+        name = helper.instance_config.auth_config.name
+        audience = helper.instance_config.auth_config.audience
+        expiry_days = helper.instance_config.auth_config.token_expiration_days
+        payload = {'name': name, 'audience': audience, 'expires_on': "+{}d".format(str(expiry_days))}
         mocked_response.assert_called_with("/services/authorization/tokens?output_mode=json", payload, 10)
         mocked_response.assert_called_once()
 
@@ -216,10 +213,8 @@ class TestSplunkClient(unittest.TestCase):
         # load a token in memory for validation
         status = SplunkPersistentState({})
         status.set_auth_token('memorytokenpresent')
-        config = FakeInstanceConfig()
-        config.auth_type = AuthType.TokenAuth
 
-        helper = SplunkClient(config)
+        helper = SplunkClient(FakeTokenInstanceConfig())
         # update headers with memory token
         helper.requests_session.headers.update({'Authorization': "Bearer memorytokenpresent"})
         helper.jwt_adapter._current_time = mock.MagicMock()
@@ -241,10 +236,7 @@ class TestSplunkClient(unittest.TestCase):
         new_token = json.loads(mocked_token_create_response()).get('entry')[0].get('content').get('token')
 
         status = SplunkPersistentState({})
-        config = FakeInstanceConfig()
-        config.auth_type = AuthType.TokenAuth
-
-        helper = SplunkClient(config)
+        helper = SplunkClient(FakeTokenInstanceConfig())
         helper.requests_session.headers.update({'Authorization': "Bearer memorytokenpresent"})
         helper.jwt_adapter._current_time = mock.MagicMock()
         helper.jwt_adapter._current_time.return_value = datetime.datetime(2020, 6, 5, 15, 44, 51)
@@ -266,10 +258,7 @@ class TestSplunkClient(unittest.TestCase):
         """
 
         status = SplunkPersistentState({})
-        config = FakeInstanceConfig()
-        config.auth_type = AuthType.TokenAuth
-
-        helper = SplunkClient(config)
+        helper = SplunkClient(FakeTokenInstanceConfig())
         helper.requests_session.headers.update({'Authorization': "Bearer memorytokenpresent"})
         helper.jwt_adapter._current_time = mock.MagicMock()
         helper.jwt_adapter._current_time.return_value = datetime.datetime(2020, 5, 14, 15, 44, 51)
@@ -277,7 +266,7 @@ class TestSplunkClient(unittest.TestCase):
 
         # Header should be updated with the new token
         expected_header = helper.requests_session.headers.get("Authorization")
-        self.assertEqual(expected_header, "Bearer {}".format(config.initial_token))
+        self.assertEqual(expected_header, "Bearer {}".format(FakeTokenInstanceConfig().auth_config.initial_token))
         # initial token should not be stored in state
         self.assertEqual(status.get_auth_token(), None)
 
@@ -294,10 +283,7 @@ class TestSplunkClient(unittest.TestCase):
         status = SplunkPersistentState({})
         # load a token in memory for validation
         status.set_auth_token('memorytokenpresent')
-        config = FakeInstanceConfig()
-        config.auth_type = AuthType.TokenAuth
-
-        helper = SplunkClient(config)
+        helper = SplunkClient(FakeTokenInstanceConfig())
         helper.requests_session.headers.update({'Authorization': "Bearer memorytokenpresent"})
         helper.jwt_adapter._current_time = mock.MagicMock()
         helper.jwt_adapter._current_time.return_value = datetime.datetime(2020, 6, 5, 15, 44, 51)
@@ -316,10 +302,7 @@ class TestSplunkClient(unittest.TestCase):
         Test token_auth_session to throw TokenExpiredException when initial token is expired
         """
         status = SplunkPersistentState({})
-        config = FakeInstanceConfig()
-        config.auth_type = AuthType.TokenAuth
-
-        helper = SplunkClient(config)
+        helper = SplunkClient(FakeTokenInstanceConfig())
         helper.requests_session.headers.update({'Authorization': "Bearer memorytokenpresent"})
         helper._current_time = mock.MagicMock()
         helper._current_time.return_value = datetime.datetime(2020, 6, 16, 15, 44, 51)
@@ -341,10 +324,7 @@ class TestSplunkClient(unittest.TestCase):
         status = SplunkPersistentState({})
         # load a token in memory for validation
         status.set_auth_token('memorytokenpresent')
-        config = FakeInstanceConfig()
-        config.auth_type = AuthType.TokenAuth
-
-        helper = SplunkClient(config)
+        helper = SplunkClient(FakeTokenInstanceConfig())
         helper.requests_session.headers.update({'Authorization': "Bearer memorytokenpresent"})
         helper._current_time = mock.MagicMock()
         helper._current_time.return_value = datetime.datetime(2020, 6, 16, 15, 44, 51)
@@ -364,9 +344,7 @@ class TestSplunkClient(unittest.TestCase):
         status = SplunkPersistentState({})
         # load a token in memory for validation
         status.set_auth_token('memorytokenpresent')
-        config = FakeInstanceConfig()
-        config.auth_type = AuthType.TokenAuth
-        client = SplunkClient(config)
+        client = SplunkClient(FakeTokenInstanceConfig())
         client.requests_session.headers.update({'Authorization': "Bearer memorytokenpresent"})
         client._current_time = mock.MagicMock()
         client._current_time.return_value = datetime.datetime(2020, 6, 16, 15, 44, 51)

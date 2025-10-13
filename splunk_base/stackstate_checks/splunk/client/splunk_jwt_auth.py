@@ -12,9 +12,10 @@ class SplunkJWTAuth:
     def __init__(self, instance_config, post_fn):
         self.log = logging.getLogger('%s' % __name__)
         self.instance_config = instance_config
-        if not os.getenv("SPLUNK_AUTH_JWT_INITIAL_TOKEN", self.instance_config.initial_token):
+        self.auth_config = instance_config.auth_config
+        if not os.getenv("SPLUNK_AUTH_JWT_INITIAL_TOKEN", self.auth_config.initial_token):
             raise Exception("SPLUNK_AUTH_JWT_INITIAL_TOKEN is not set, please specify the value through the SPLUNK_AUTH_JWT_INITIAL_TOKEN or instance_config.initial_token .")
-        self.initial_token = os.getenv("SPLUNK_AUTH_JWT_INITIAL_TOKEN", self.instance_config.initial_token)
+        self.initial_token = os.getenv("SPLUNK_AUTH_JWT_INITIAL_TOKEN", self.auth_config.initial_token)
         self._do_post = post_fn
 
     def _current_time(self):
@@ -41,9 +42,9 @@ class SplunkJWTAuth:
     def generate_token(self):
         self.log.debug("Creating a new authentication token")
         token_path = '/services/authorization/tokens?output_mode=json'
-        name = self.instance_config.name
-        audience = self.instance_config.audience
-        expiry_days = self.instance_config.token_expiration_days
+        name = self.auth_config.name
+        audience = self.auth_config.audience
+        expiry_days = self.auth_config.token_expiration_days
         payload = {'name': name, 'audience': audience, 'expires_on': "+{}d".format(str(expiry_days))}
         response = self._do_post(token_path, payload, self.instance_config.default_request_timeout_seconds)
         response.raise_for_status()
@@ -52,10 +53,10 @@ class SplunkJWTAuth:
         new_token = response_json.get("entry")[0].get("content").get("token")
         return new_token
 
-    def token_needs_renewal(self, token, renewal_days):
+    def token_needs_renewal(self, token):
         days = self._get_renewal_days(token)
-        self.log.error(f"Checking if token needs renewal. Time left: {days:.2f} days")
-        if days <= renewal_days and days != SplunkJWTAuth.NO_EXPIRY:
+        self.log.debug(f"Checking if token needs renewal. Time left: {days:.2f} days")
+        if days <= self.auth_config.renewal_days and days != SplunkJWTAuth.NO_EXPIRY:
             return True
         else:
             return False

@@ -12,7 +12,7 @@ import os
 from stackstate_checks.splunk.client import SplunkClient
 from stackstate_checks.splunk.config import AuthType, SplunkPersistentState
 
-from common import FakeInstanceConfig, FakePartialInstanceConfig
+from common import FakeInstanceConfig, FakeMinimalTokenMSInstanceConfig, FakeTokenMSInstanceConfig
 
 # Mark the entire module as tests of type `unit`
 pytestmark = pytest.mark.unit
@@ -31,17 +31,14 @@ def test_jwt_adapter_msft_client(requests_mock: Mocker):
     fake_signature = base64.urlsafe_b64encode(b'fakesignature').rstrip(b'=').decode()
     fake_jwt = f"{encoded_header}.{encoded_payload}.{fake_signature}"
 
-    os.environ["SPLUNK_MS_JWT_AUTH"] = "true"
     os.environ["CLIENT_ID"] = "test"
     os.environ["CLIENT_SECRET"] = "test"
     os.environ["SCOPE"] = "test"
     os.environ["TENANT_ID"] = "test-tenant-id"
 
     status = SplunkPersistentState({})
-    config = FakeInstanceConfig()
-    config.auth_type = AuthType.TokenAuth
 
-    client = SplunkClient(config)
+    client = SplunkClient(FakeTokenMSInstanceConfig())
     client.requests_session.headers.update({'Authorization': "Bearer memorytokenpresent"})
 
     requests_mock.post("https://login.microsoftonline.com/test-tenant-id/oauth2/v2.0/token",
@@ -66,17 +63,14 @@ def test_jwt_adapter_msft_client_partial_config(requests_mock: Mocker):
     fake_signature = base64.urlsafe_b64encode(b'fakesignature').rstrip(b'=').decode()
     fake_jwt = f"{encoded_header}.{encoded_payload}.{fake_signature}"
 
-    os.environ["SPLUNK_MS_JWT_AUTH"] = "true"
     os.environ["CLIENT_ID"] = "test"
     os.environ["CLIENT_SECRET"] = "test"
     os.environ["SCOPE"] = "test"
     os.environ["TENANT_ID"] = "test-tenant-id"
 
     status = SplunkPersistentState({})
-    config = FakePartialInstanceConfig()
-    config.auth_type = AuthType.TokenAuth
 
-    client = SplunkClient(config)
+    client = SplunkClient(FakeMinimalTokenMSInstanceConfig())
     client.requests_session.headers.update({'Authorization': "Bearer memorytokenpresent"})
 
     requests_mock.post("https://login.microsoftonline.com/test-tenant-id/oauth2/v2.0/token",

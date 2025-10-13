@@ -85,33 +85,6 @@ class TestSplunkInstanceConfig(unittest.TestCase):
             assert str(e) == "Instance username/password should be configured using \"authentication.basic_auth\" \
 instead of username/password on top level"
 
-    def test_combine_old_and_new_conf(self):
-        instance = {
-            'url': 'http://localhost:8089',
-            'username': 'admin',
-            'password': 'admin',
-            'authentication': {
-                'basic_auth': {
-                    'username': "adminNew",
-                    'password': "adminNew"
-                }
-            },
-            'component_saved_searches': [{
-                "name": "components",
-                "parameters": {}
-            }],
-            'relation_saved_searches': [{
-                "name": "relations",
-                "parameters": {}
-            }],
-            'tags': ['mytag', 'mytag2']
-        }
-
-        instance_config = SplunkInstanceConfig(instance, {}, mock_defaults)
-        assert instance_config.auth_type == AuthType.BasicAuth
-        assert instance_config.username == "adminNew"
-        assert instance_config.password == "adminNew"
-
     def test_check_audience_param_not_set(self):
         """
             Splunk topology check should fail and raise exception when audience param is not set
