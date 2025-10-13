@@ -14,7 +14,9 @@ class SplunkJWTAuth:
         self.instance_config = instance_config
         self.auth_config = instance_config.auth_config
         if not os.getenv("SPLUNK_AUTH_JWT_INITIAL_TOKEN", self.auth_config.initial_token):
-            raise Exception("SPLUNK_AUTH_JWT_INITIAL_TOKEN is not set, please specify the value through the SPLUNK_AUTH_JWT_INITIAL_TOKEN or instance_config.initial_token .")
+            raise Exception(
+                "SPLUNK_AUTH_JWT_INITIAL_TOKEN is not set, please specify it."
+            )
         self.initial_token = os.getenv("SPLUNK_AUTH_JWT_INITIAL_TOKEN", self.auth_config.initial_token)
         self._do_post = post_fn
 
@@ -28,7 +30,8 @@ class SplunkJWTAuth:
         expiry_time = decoded_token.get("exp")
 
         if expiry_time == 0 and token == self.initial_token:
-            self.log.warning("Initial token provided in the configuration doesn't have an expiration value. Using initial_token as JWT token")
+            self.log.warning("Initial token provided in the configuration doesn't have an expiration value. "
+                             "Using initial_token as JWT token")
             return SplunkJWTAuth.NO_EXPIRY
 
         expiry_date = datetime.fromtimestamp(expiry_time)

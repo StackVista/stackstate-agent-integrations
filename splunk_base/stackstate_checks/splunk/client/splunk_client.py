@@ -54,7 +54,9 @@ class SplunkClient:
         if os.getenv("SPLUNK_AUTH_STATIC_HEADER_NAME"):
             self.static_header_name = os.getenv("SPLUNK_AUTH_STATIC_HEADER_NAME")
             if not os.getenv("SPLUNK_AUTH_STATIC_HEADER_VALUE"):
-                raise Exception("SPLUNK_AUTH_STATIC_HEADER_VALUE is not set, while SPLUNK_AUTH_STATIC_HEADER_NAME was set, please specify the value.")
+                raise Exception(
+                    "SPLUNK_AUTH_STATIC_HEADER_VALUE is not set, while SPLUNK_AUTH_STATIC_HEADER_NAME was set."
+                )
             else:
                 self.static_header_value = os.getenv("SPLUNK_AUTH_STATIC_HEADER_VALUE")
 
@@ -86,7 +88,10 @@ class SplunkClient:
         :return: nothing
         """
         auth_path = '/services/auth/login?output_mode=json'
-        payload = urlencode([('username', self.instance_config.auth_config.username), ('password', self.instance_config.auth_config.password), ('cookie', 1)], doseq=True)
+        payload = urlencode([
+            ('username', self.instance_config.auth_config.username),
+            ('password', self.instance_config.auth_config.password),
+            ('cookie', 1)], doseq=True)
         response = self._do_post(auth_path, payload, self.instance_config.default_request_timeout_seconds)
         response.raise_for_status()
         response_json = response.json()
@@ -140,7 +145,9 @@ class SplunkClient:
     def _get_saved_search_path(self, splunk_ns_user, splunk_app=None):
         computed_splunk_app = splunk_app or os.getenv('DEFAULT_SPLUNK_SAVED_SEARCH_APP')
         if computed_splunk_app is not None:
-            return '/servicesNS/%s/%s/saved/searches/?output_mode=json&count=-1' % (splunk_ns_user, computed_splunk_app)
+            return '/servicesNS/%s/%s/saved/searches/?output_mode=json&count=-1' % (
+                splunk_ns_user, computed_splunk_app
+            )
         else:
             return '/services/saved/searches/?output_mode=json&count=-1'
 

@@ -54,7 +54,8 @@ class MsJWTAuth:
 
             response = requests.post(microsoft_url, data=microsoft_payload, headers=microsoft_headers,
                                      verify=self.verify,
-                                     cert=(self.auth_config.cert, self.auth_config.keyfile) if self.auth_config.cert else None,
+                                     cert=(self.auth_config.cert,
+                                           self.auth_config.keyfile) if self.auth_config.cert else None,
                                      timeout=self.auth_config.request_timeout_seconds)
             response.raise_for_status()
 

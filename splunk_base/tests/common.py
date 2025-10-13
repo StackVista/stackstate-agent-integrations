@@ -81,7 +81,9 @@ class FakeTokenInstanceConfig(object):
         self.verify_ssl_certificate = False
         self.ignore_saved_search_errors = True
         self.auth_type = AuthType.TokenAuth
-        self.auth_config = SplunkConfigTokenAuthStructure(name="admin", audience="test", initial_token="asdfg", token_expiration_days=90, renewal_days=10)
+        self.auth_config = SplunkConfigTokenAuthStructure(
+            name="admin", audience="test", initial_token="asdfg", token_expiration_days=90, renewal_days=10
+        )
 
 
 class FakeTokenMSInstanceConfig(object):
@@ -91,7 +93,9 @@ class FakeTokenMSInstanceConfig(object):
         self.verify_ssl_certificate = False
         self.ignore_saved_search_errors = True
         self.auth_type = AuthType.TokenAuthMS
-        self.auth_config = SplunkConfigTokenAuthMSStructure(name="admin", cert="cert", keyfile="keyfile", request_timeout_seconds=5000)
+        self.auth_config = SplunkConfigTokenAuthMSStructure(
+            name="admin", cert="cert", keyfile="keyfile", request_timeout_seconds=5000
+        )
 
 
 class FakeMinimalTokenMSInstanceConfig(object):
@@ -101,5 +105,6 @@ class FakeMinimalTokenMSInstanceConfig(object):
         self.verify_ssl_certificate = False
         self.ignore_saved_search_errors = True
         self.auth_type = AuthType.TokenAuthMS
-        self.auth_config = SplunkConfigTokenAuthMSStructure(name="admin", cert=None, keyfile=None, request_timeout_seconds=5000)
-
+        self.auth_config = SplunkConfigTokenAuthMSStructure(
+            name="admin", cert=None, keyfile=None, request_timeout_seconds=5000
+        )
