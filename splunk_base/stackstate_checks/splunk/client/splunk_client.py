@@ -60,14 +60,15 @@ class SplunkClient:
             else:
                 self.static_header_value = os.getenv("SPLUNK_AUTH_STATIC_HEADER_VALUE")
 
-        if os.getenv("SPLUNK_MS_JWT_AUTH"):
-            self.jwt_adapter = MsJWTAuth(
-                getattr(instance_config, 'verify_ssl_certificate', None),
-                getattr(instance_config, 'cert', None),
-                getattr(instance_config, 'keyfile', None),
-                getattr(instance_config, 'timeout', None))
-        else:
-            self.jwt_adapter = SplunkJWTAuth(instance_config, self._do_post)
+        if instance_config.auth_type == AuthType.TokenAuth:
+            if os.getenv("SPLUNK_MS_JWT_AUTH"):
+                self.jwt_adapter = MsJWTAuth(
+                    getattr(instance_config, 'verify_ssl_certificate', None),
+                    getattr(instance_config, 'cert', None),
+                    getattr(instance_config, 'keyfile', None),
+                    getattr(instance_config, 'timeout', None))
+            else:
+                self.jwt_adapter = SplunkJWTAuth(instance_config, self._do_post)
 
     def auth_session(self, committable_state):
         if self.instance_config.auth_type == AuthType.BasicAuth:
