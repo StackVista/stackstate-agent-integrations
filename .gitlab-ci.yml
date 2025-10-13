@@ -240,8 +240,16 @@ test_postgres:
   tags:
     - sts-k8s-xl-no-docker-runner
 
+splunk_base_build_rule: &splunk_base_build_rule
+  rules:
+    - if: $CI_EXTERNAL_PULL_REQUEST_IID
+    - changes:
+      - splunk_base/*
+      - splunk_base/**/*
+
 test_splunk_topology:
   <<: *linux_test
+  <<: *splunk_base_build_rule
   variables:
     CHECK: "splunk_topology"
     PYTHON3: "true"
@@ -253,6 +261,7 @@ test_splunk_topology:
 
 test_splunk_health:
   <<: *linux_test
+  <<: *splunk_base_build_rule
   variables:
     CHECK: "splunk_health"
     PYTHON3: "true"
@@ -264,6 +273,7 @@ test_splunk_health:
 
 test_splunk_metric:
   <<: *linux_test
+  <<: *splunk_base_build_rule
   variables:
     CHECK: "splunk_metric"
     PYTHON3: "true"
