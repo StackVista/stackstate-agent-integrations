@@ -83,6 +83,8 @@ def test_collect_process_groups(dynatrace_check, requests_mock, topology, aggreg
 def test_collect_relations(dynatrace_check, requests_mock, topology, aggregator):
     """
     Test to check if relations are collected properly
+    With the new two-pass approach, only relations between entities in the cache are created.
+    When only hosts are loaded, we only get isNetworkClientOfHost relations between hosts.
     """
     set_http_responses(requests_mock, hosts=read_file("host_response_v2.json", "samples"))
     dynatrace_check.run()
@@ -102,7 +104,9 @@ def test_collect_relations(dynatrace_check, requests_mock, topology, aggregator)
                 any(tgt.startswith(p) for p in SUPPORTED_PREFIXES):
             filtered.append(r)
     topology_instances['relations'] = filtered
-    assert len(topology_instances['relations']) == 72
+    # With cache verification, only relations between hosts are created
+    # (no relations to non-existent process groups, services, etc.)
+    assert len(topology_instances['relations']) == 4
     # since all relations are to this host itself so target id is same
     relation = topology_instances['relations'][0]
     assert relation['target_id'] == 'HOST-27D021F0FED92055'

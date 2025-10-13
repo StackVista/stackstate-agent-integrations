@@ -1,1320 +1,1078 @@
 {
-   "components":[
-      {
-         "id":"PROCESS_GROUP-02B9992C264DE845",
-         "type":"process-group",
-         "data":{
-            "displayName":"sshd",
-            "discoveredName":"sshd",
-            "domain":"dynatrace",
-            "entityId":"PROCESS_GROUP-02B9992C264DE845",
-            "environments":[
-               "production"
-            ],
-            "identifiers":[
-               "urn:dynatrace:/PROCESS_GROUP-02B9992C264DE845"
-            ],
-            "instance":"https://instance.live.dynatrace.com",
-            "managementZones":[
-               
-            ],
-            "listenPorts":[
-               22
-            ],
-            "metadata":{
-               "executables":["sshd"],
-               "executablePaths":["/usr/sbin/sshd"]
-            },
-            "properties":{
-               "detectedName":"sshd"
-            },
-            "tags":[
-               "PROCESS_GROUP-02B9992C264DE845",
-               "integration-type:dynatrace",
-               "integration-url:https://instance.live.dynatrace.com"
-            ],
-            "type":"PROCESS_GROUP"
-         }
-      },
-      {
-         "id":"PROCESS_GROUP-213FB355CA5E6C74",
-         "type":"process-group",
-         "data":{
-            "displayName":"activemq.jar",
-            "discoveredName":"activemq.jar",
-            "domain":"dynatrace",
-            "entityId":"PROCESS_GROUP-213FB355CA5E6C74",
-            "environments":[
-               "production"
-            ],
-            "identifiers":[
-               "urn:dynatrace:/PROCESS_GROUP-213FB355CA5E6C74"
-            ],
-            "instance":"https://instance.live.dynatrace.com",
-            "managementZones":[
-               
-            ],
-            "listenPorts":[
-               61616,
-               8161,
-               41523,
-               5672,
-               1883,
-               61613,
-               61614
-            ],
-            "metadata":{
-               "javaMainClasses":["/opt/apache-activemq/bin/activemq.jar"],
-               "commandLineArgs":["/opt/java/openjdk/bin/java -Xms64M -Xmx1G -Djava.util.logging.config.file=logging.properties -Djava.security.auth.login.config=/opt/apache-activemq/conf/login.config -Djetty.host=0.0.0.0 -Dcom.sun.management.jmxremote -Djava.awt.headless=true -Djava.io.tmpdir=/opt/apache-activemq/tmp --add-reads=java.xml=java.logging --add-opens java.base/java.security=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.naming/javax.naming.spi=ALL-UNNAMED --add-opens java.rmi/sun.rmi.transport.tcp=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED --add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-exports=java.base/sun.net.www.protocol.http=ALL-UNNAMED --add-exports=java.base/sun.net.www.protocol.https=ALL-UNNAMED --add-exports=java.base/sun.net.www.protocol.jar=ALL-UNNAMED --add-exports=jdk.xml.dom/org.w3c.dom.html=ALL-UNNAMED --add-exports=jdk.naming.rmi/com.sun.jndi.url.rmi=ALL-UNNAMED -Dactivemq.classpath=/opt/apache-activemq/conf:/opt/apache-activemq/../lib/: -Dactivemq.home=/opt/apache-activemq -Dactivemq.base=/opt/apache-activemq -Dactivemq.conf=/opt/apache-activemq/conf -Dactivemq.data=/opt/apache-activemq/data -Djolokia.conf=file:/opt/apache-activemq/conf/jolokia-access.xml -jar /opt/apache-activemq/bin/activemq.jar start"],
-               "javaJarFiles":["activemq.jar"],
-               "containerNames":["activemq"],
-               "javaJarPaths":["/opt/apache-activemq/bin/activemq.jar"],
-               "containerImageNames":["apache/activemq-classic"],
-               "executables":["java"],
-               "executablePaths":["/opt/java/openjdk/bin/java"]
-            },
-            "properties":{
-               "detectedName":"activemq.jar"
-            },
-            "softwareTechnologies":[
-               {"edition":"ActiveMQ :: Client, jakarta.jms","type":"ACTIVEMQ_CLIENT","version":"6.1.2"},
-               {"edition":"Adoptium","type":"JAVA","version":"17.0.11"},
-               {"type":"AMQP"},
-               {"edition":"Eclipse Adoptium","type":"JAVA","version":"17.0.11"},
-               {"type":"APACHE_LOG4J","version":"2.23.1"},
-               {"type":"ACTIVE_MQ"},
-               {"edition":"HTTP Server","type":"JETTY","version":"11.0.20"},
-               {"type":"DOCKER"}
-            ],
-            "tags":[
-               "PROCESS_GROUP-213FB355CA5E6C74",
-               "integration-type:dynatrace",
-               "integration-url:https://instance.live.dynatrace.com"
-            ],
-            "type":"PROCESS_GROUP"
-         }
-      },
-      {
-         "id":"PROCESS_GROUP-216FDBEF8325B5C6",
-         "type":"process-group",
-         "data":{
-            "displayName":"OneAgent log analytics",
-            "discoveredName":"OneAgent log analytics",
-            "domain":"dynatrace",
-            "entityId":"PROCESS_GROUP-216FDBEF8325B5C6",
-            "environments":[
-               "production"
-            ],
-            "identifiers":[
-               "urn:dynatrace:/PROCESS_GROUP-216FDBEF8325B5C6"
-            ],
-            "instance":"https://instance.live.dynatrace.com",
-            "managementZones":[
-               
-            ],
-            "metadata":{
-               "commandLineArgs":[
-                  "oneagentloganalytics -Dcom.compuware.apm.WatchDogTimeout=900 -Dcom.compuware.apm.WatchDogPipe=/var/lib/dynatrace/oneagent/agent/watchdog/oneagentloganalytics_pipe_793",
-                  "oneagentloganalytics -Dcom.compuware.apm.WatchDogTimeout=900 -Dcom.compuware.apm.WatchDogPipe=/var/lib/dynatrace/oneagent/agent/watchdog/oneagentloganalytics_pipe_784"
-               ],
-               "executables":["oneagentloganalytics"],
-               "executablePaths":["/opt/dynatrace/oneagent/agent/lib*/oneagentloganalytics"]
-            },
-            "softwareTechnologies":[
-               {"type":"DYNATRACE"}
-            ],
-            "properties":{
-               "detectedName":"OneAgent log analytics"
-            },
-            "tags":[
-               "PROCESS_GROUP-216FDBEF8325B5C6",
-               "integration-type:dynatrace",
-               "integration-url:https://instance.live.dynatrace.com"
-            ],
-            "type":"PROCESS_GROUP"
-         }
-      },
-      {
-         "id":"PROCESS_GROUP-30DCB5EACE59580B",
-         "type":"process-group",
-         "data":{
-            "displayName":"MySQL",
-            "discoveredName":"MySQL",
-            "domain":"dynatrace",
-            "entityId":"PROCESS_GROUP-30DCB5EACE59580B",
-            "environments":[
-               "production"
-            ],
-            "identifiers":[
-               "urn:dynatrace:/PROCESS_GROUP-30DCB5EACE59580B"
-            ],
-            "instance":"https://instance.live.dynatrace.com",
-            "managementZones":[
-               
-            ],
-            "listenPorts":[3306],
-            "metadata":{
-               "executables":["mysqld"],
-               "containerImageNames":["mysql"],
-               "executablePaths":["/usr/sbin/mysqld"]
-            },
-            "softwareTechnologies":[
-               {"type":"MYSQL"},
-               {"type":"DOCKER"}
-            ],
-            "properties":{
-               "detectedName":"MySQL"
-            },
-            "tags":[
-               "PROCESS_GROUP-30DCB5EACE59580B",
-               "integration-type:dynatrace",
-               "integration-url:https://instance.live.dynatrace.com"
-            ],
-            "type":"PROCESS_GROUP"
-         }
-      },
-      {
-         "id":"PROCESS_GROUP-31AE98E6D95C50FE",
-         "type":"process-group",
-         "data":{
-            "displayName":"MySQL",
-            "discoveredName":"MySQL",
-            "domain":"dynatrace",
-            "entityId":"PROCESS_GROUP-31AE98E6D95C50FE",
-            "environments":[
-               "production"
-            ],
-            "identifiers":[
-               "urn:dynatrace:/PROCESS_GROUP-31AE98E6D95C50FE"
-            ],
-            "instance":"https://instance.live.dynatrace.com",
-            "managementZones":[
-               
-            ],
-            "listenPorts":[3306],
-            "metadata":{
-               "executables":["mysqld"],
-               "containerImageNames":["wolverminion/mysql"],
-               "executablePaths":["/usr/sbin/mysqld"]
-            },
-            "softwareTechnologies":[
-               {"type":"MYSQL"},
-               {"type":"DOCKER"}
-            ],
-            "properties":{
-               "detectedName":"MySQL"
-            },
-            "tags":[
-               "PROCESS_GROUP-31AE98E6D95C50FE",
-               "integration-type:dynatrace",
-               "integration-url:https://instance.live.dynatrace.com"
-            ],
-            "type":"PROCESS_GROUP"
-         }
-      },
-      {
-         "id":"PROCESS_GROUP-3AD9FB79C914520C",
-         "type":"process-group",
-         "data":{
-            "displayName":"OneAgent system monitoring",
-            "discoveredName":"OneAgent system monitoring",
-            "domain":"dynatrace",
-            "entityId":"PROCESS_GROUP-3AD9FB79C914520C",
-            "environments":[
-               "production"
-            ],
-            "identifiers":[
-               "urn:dynatrace:/PROCESS_GROUP-3AD9FB79C914520C"
-            ],
-            "instance":"https://instance.live.dynatrace.com",
-            "managementZones":[
-               
-            ],
-            "metadata":{
-               "executablePaths":["/opt/dynatrace/oneagent/agent/lib64/oneagentwatchdog"],
-               "executables":["oneagentwatchdog"]
-            },
-            "softwareTechnologies":[
-               {"type":"DYNATRACE"}
-            ],
-            "properties":{
-               "detectedName":"OneAgent system monitoring"
-            },
-            "tags":[
-               "PROCESS_GROUP-3AD9FB79C914520C",
-               "integration-type:dynatrace",
-               "integration-url:https://instance.live.dynatrace.com"
-            ],
-            "type":"PROCESS_GROUP"
-         }
-      },
-      {
-         "id":"PROCESS_GROUP-4F6264254199189E",
-         "type":"process-group",
-         "data":{
-            "displayName":"OneAgent eBPF service discovery",
-            "discoveredName":"OneAgent eBPF service discovery",
-            "domain":"dynatrace",
-            "entityId":"PROCESS_GROUP-4F6264254199189E",
-            "environments":[
-               "production"
-            ],
-            "identifiers":[
-               "urn:dynatrace:/PROCESS_GROUP-4F6264254199189E"
-            ],
-            "instance":"https://instance.live.dynatrace.com",
-            "managementZones":[
-               
-            ],
-            "metadata":{
-               "executablePaths":["/opt/dynatrace/oneagent/agent/lib64/oneagentebpfdiscovery"],
-               "executables":["oneagentebpfdiscovery"]
-            },
-            "softwareTechnologies":[
-               {"type":"DYNATRACE"}
-            ],
-            "properties":{
-               "detectedName":"OneAgent eBPF service discovery"
-            },
-            "tags":[
-               "PROCESS_GROUP-4F6264254199189E",
-               "integration-type:dynatrace",
-               "integration-url:https://instance.live.dynatrace.com"
-            ],
-            "type":"PROCESS_GROUP"
-         }
-      },
-      {
-         "id":"PROCESS_GROUP-51BD3694E190306C",
-         "type":"process-group",
-         "data":{
-            "displayName":"webserver",
-            "discoveredName":"webserver",
-            "domain":"dynatrace",
-            "entityId":"PROCESS_GROUP-51BD3694E190306C",
-            "environments":[
-               "production"
-            ],
-            "identifiers":[
-               "urn:dynatrace:/PROCESS_GROUP-51BD3694E190306C"
-            ],
-            "instance":"https://instance.live.dynatrace.com",
-            "managementZones":[
-               
-            ],
-            "listenPorts":[8080],
-            "metadata":{
-               "containerImageNames":["wolverminion/newsscraper-host"],
-               "containerNames":["newsapp-us_server-1_1"],
-               "executables":["webserver"],
-               "commandLineArgs":["/usr/bin/webserver"],
-               "pgIdCalcInputKeyLinkage":["dynamic"],
-               "containerImageVersions":["40d71747"],
-               "executablePaths":["/usr/bin/webserver"]
-            },
-            "softwareTechnologies":[
-               {"type":"GO","version":"1.19.13"},
-               {"type":"GO"},
-               {"type":"DOCKER"}
-            ],
-            "properties":{
-               "detectedName":"webserver"
-            },
-            "tags":[
-               "PROCESS_GROUP-51BD3694E190306C",
-               "integration-type:dynatrace",
-               "integration-url:https://instance.live.dynatrace.com"
-            ],
-            "type":"PROCESS_GROUP"
-         }
-      },
-      {
-         "id":"PROCESS_GROUP-55BB99EBACB51463",
-         "type":"process-group",
-         "data":{
-            "displayName":"OneAgent network monitoring",
-            "discoveredName":"OneAgent network monitoring",
-            "domain":"dynatrace",
-            "entityId":"PROCESS_GROUP-55BB99EBACB51463",
-            "environments":[
-               "production"
-            ],
-            "identifiers":[
-               "urn:dynatrace:/PROCESS_GROUP-55BB99EBACB51463"
-            ],
-            "instance":"https://instance.live.dynatrace.com",
-            "managementZones":[
-               
-            ],
-            "metadata":{
-               "executablePaths":["/opt/dynatrace/oneagent/agent/lib64/oneagentnetwork"],
-               "executables":["oneagentnetwork"]
-            },
-            "softwareTechnologies":[
-               {"type":"DYNATRACE"}
-            ],
-            "properties":{
-               "detectedName":"OneAgent network monitoring"
-            },
-            "tags":[
-               "PROCESS_GROUP-55BB99EBACB51463",
-               "integration-type:dynatrace",
-               "integration-url:https://instance.live.dynatrace.com"
-            ],
-            "type":"PROCESS_GROUP"
-         }
-      },
-      {
-         "id":"PROCESS_GROUP-5A22F6D7F2447FBB",
-         "type":"process-group",
-         "data":{
-            "displayName":"Erlang Port Mapper",
-            "discoveredName":"Erlang Port Mapper",
-            "domain":"dynatrace",
-            "entityId":"PROCESS_GROUP-5A22F6D7F2447FBB",
-            "environments":[
-               "production"
-            ],
-            "identifiers":[
-               "urn:dynatrace:/PROCESS_GROUP-5A22F6D7F2447FBB"
-            ],
-            "instance":"https://instance.live.dynatrace.com",
-            "managementZones":[
-               
-            ],
-            "listenPorts":[4369],
-            "metadata":{
-               "executables":["epmd"],
-               "containerImageNames":["rabbitmq"],
-               "executablePaths":["/opt/erlang/lib/erlang/erts-14.2.5.4/bin/epmd"]
-            },
-            "softwareTechnologies":[
-               {"type":"ERLANG"},
-               {"type":"DOCKER"}
-            ],
-            "properties":{
-               "detectedName":"Erlang Port Mapper"
-            },
-            "tags":[
-               "PROCESS_GROUP-5A22F6D7F2447FBB",
-               "integration-type:dynatrace",
-               "integration-url:https://instance.live.dynatrace.com"
-            ],
-            "type":"PROCESS_GROUP"
-         }
-      },
-      {
-         "id":"PROCESS_GROUP-5B15E632EDAA5373",
-         "type":"process-group",
-         "data":{
-            "displayName":"PHP-FPM",
-            "discoveredName":"PHP-FPM",
-            "domain":"dynatrace",
-            "entityId":"PROCESS_GROUP-5B15E632EDAA5373",
-            "environments":[
-               "production"
-            ],
-            "identifiers":[
-               "urn:dynatrace:/PROCESS_GROUP-5B15E632EDAA5373"
-            ],
-            "instance":"https://instance.live.dynatrace.com",
-            "managementZones":[
-               
-            ],
-            "listenPorts":[9000],
-            "metadata":{
-               "commandLineArgs":["php-fpm"],
-               "executables":["php-fpm"],
-               "executablePaths":["/usr/local/sbin/php-fpm"],
-               "containerImageVersions":["4.5.17-php7.2-fpm"],
-               "containerImageNames":["invoiceninja/invoiceninja"],
-               "containerNames":["mastering_app_1"]
-            },
-            "softwareTechnologies":[
-               {"type":"PHP_FPM"},
-               {"type":"LARAVEL"},
-               {"type":"SYMFONY"},
-               {"type":"DOCKER"},
-               {"edition":"FPM","type":"PHP","version":"7.2.10"}
-            ],
-            "properties":{
-               "detectedName":"PHP-FPM"
-            },
-            "tags":[
-               "PROCESS_GROUP-5B15E632EDAA5373",
-               "integration-type:dynatrace",
-               "integration-url:https://instance.live.dynatrace.com"
-            ],
-            "type":"PROCESS_GROUP"
-         }
-      },
-      {
-         "id":"PROCESS_GROUP-68B404144F1EFBEA",
-         "type":"process-group",
-         "data":{
-            "displayName":"systemd-resolved",
-            "discoveredName":"systemd-resolved",
-            "domain":"dynatrace",
-            "entityId":"PROCESS_GROUP-68B404144F1EFBEA",
-            "environments":[
-               "production"
-            ],
-            "identifiers":[
-               "urn:dynatrace:/PROCESS_GROUP-68B404144F1EFBEA"
-            ],
-            "instance":"https://instance.live.dynatrace.com",
-            "managementZones":[
-               
-            ],
-            "listenPorts":[53],
-            "metadata":{
-               "executables":["systemd-resolved"],
-               "executablePaths":["/usr/lib/systemd/systemd-resolved"]
-            },
-            "properties":{
-               "detectedName":"systemd-resolved"
-            },
-            "tags":[
-               "PROCESS_GROUP-68B404144F1EFBEA",
-               "integration-type:dynatrace",
-               "integration-url:https://instance.live.dynatrace.com"
-            ],
-            "type":"PROCESS_GROUP"
-         }
-      },
-      {
-         "id":"PROCESS_GROUP-8A0DF0F9C446635C",
-         "type":"process-group",
-         "data":{
-            "displayName":"containerd-shim-runc-v*",
-            "discoveredName":"containerd-shim-runc-v*",
-            "domain":"dynatrace",
-            "entityId":"PROCESS_GROUP-8A0DF0F9C446635C",
-            "environments":[
-               "production"
-            ],
-            "identifiers":[
-               "urn:dynatrace:/PROCESS_GROUP-8A0DF0F9C446635C"
-            ],
-            "instance":"https://instance.live.dynatrace.com",
-            "managementZones":[
-               
-            ],
-            "metadata":{
-               "pgIdCalcInputKeyLinkage":["static"],
-               "commandLineArgs":[
-                  "/usr/bin/containerd-shim-runc-v2 -namespace moby -id bd1991a03800a5c94343310f00eb4683ad51f03078fcc6459c6d908f832aea54 -address /run/containerd/containerd.sock",
-                  "/usr/bin/containerd-shim-runc-v2 -namespace moby -id 9d00f8c664ff76af4b3e616f28805384c5b29f92639c11fb0abe7d522b65dfad -address /run/containerd/containerd.sock"
-               ],
-               "executables":["containerd-shim-runc-v*"],
-               "executablePaths":["/usr/bin/containerd-shim-runc-v*"]
-            },
-            "softwareTechnologies":[
-               {"type":"GO"}
-            ],
-            "properties":{
-               "detectedName":"containerd-shim-runc-v*"
-            },
-            "tags":[
-               "PROCESS_GROUP-8A0DF0F9C446635C",
-               "integration-type:dynatrace",
-               "integration-url:https://instance.live.dynatrace.com"
-            ],
-            "type":"PROCESS_GROUP"
-         }
-      },
-      {
-         "id":"PROCESS_GROUP-B44AE6BE0CB555DA",
-         "type":"process-group",
-         "data":{
-            "displayName":"nginx",
-            "discoveredName":"nginx",
-            "domain":"dynatrace",
-            "entityId":"PROCESS_GROUP-B44AE6BE0CB555DA",
-            "environments":[
-               "production"
-            ],
-            "identifiers":[
-               "urn:dynatrace:/PROCESS_GROUP-B44AE6BE0CB555DA"
-            ],
-            "instance":"https://instance.live.dynatrace.com",
-            "managementZones":[
-               
-            ],
-            "listenPorts":[443],
-            "metadata":{
-               "containerImageNames":["nginx"],
-               "commandLineArgs":["nginx -g daemon\\ off;"],
-               "executables":["nginx"],
-               "executablePaths":["/usr/sbin/nginx"],
-               "containerNames":["nginx"]
-            },
-            "softwareTechnologies":[
-               {"type":"NGINX"},
-               {"type":"NGINX","version":"nginx/1.27.0"},
-               {"type":"DOCKER"}
-            ],
-            "properties":{
-               "detectedName":"nginx"
-            },
-            "tags":[
-               "PROCESS_GROUP-B44AE6BE0CB555DA",
-               "integration-type:dynatrace",
-               "integration-url:https://instance.live.dynatrace.com"
-            ],
-            "type":"PROCESS_GROUP"
-         }
-      },
-      {
-         "id":"PROCESS_GROUP-BD788867042F0723",
-         "type":"process-group",
-         "data":{
-            "displayName":"main.py",
-            "discoveredName":"main.py",
-            "domain":"dynatrace",
-            "entityId":"PROCESS_GROUP-BD788867042F0723",
-            "environments":[
-               "production"
-            ],
-            "identifiers":[
-               "urn:dynatrace:/PROCESS_GROUP-BD788867042F0723"
-            ],
-            "instance":"https://instance.live.dynatrace.com",
-            "managementZones":[
-               
-            ],
-            "metadata":{
-               "executablePaths":["/usr/local/bin/python*"],
-               "containerNames":["newsapp-uk_app-newsscraper_1"],
-               "executables":["python*"],
-               "containerImageNames":["wolverminion/webscraper"],
-               "commandLineArgs":["python main.py"],
-               "containerImageVersions":["9f79f4f2-uk"]
-            },
-            "softwareTechnologies":[
-               {"type":"PYTHON"},
-               {"type":"DOCKER"}
-            ],
-            "properties":{
-               "detectedName":"main.py"
-            },
-            "tags":[
-               "PROCESS_GROUP-BD788867042F0723",
-               "integration-type:dynatrace",
-               "integration-url:https://instance.live.dynatrace.com"
-            ],
-            "type":"PROCESS_GROUP"
-         }
-      },
-      {
-         "id":"PROCESS_GROUP-D319A5EAB816D403",
-         "type":"process-group",
-         "data":{
-            "displayName":"RabbitMQ",
-            "discoveredName":"RabbitMQ",
-            "domain":"dynatrace",
-            "entityId":"PROCESS_GROUP-D319A5EAB816D403",
-            "environments":[
-               "production"
-            ],
-            "identifiers":[
-               "urn:dynatrace:/PROCESS_GROUP-D319A5EAB816D403"
-            ],
-            "instance":"https://instance.live.dynatrace.com",
-            "managementZones":[
-               
-            ],
-            "listenPorts":[5672,15672,25672,15692],
-            "metadata":{
-               "executablePaths":["/opt/erlang/lib/erlang/erts-14.2.5.4/bin/beam.smp"],
-               "containerImageNames":["rabbitmq"],
-               "executables":["beam.smp"]
-            },
-            "softwareTechnologies":[
-               {"type":"AMQP"},
-               {"type":"ERLANG"},
-               {"type":"RABBIT_MQ"},
-               {"type":"DOCKER"}
-            ],
-            "properties":{
-               "detectedName":"RabbitMQ"
-            },
-            "tags":[
-               "PROCESS_GROUP-D319A5EAB816D403",
-               "integration-type:dynatrace",
-               "integration-url:https://instance.live.dynatrace.com"
-            ],
-            "type":"PROCESS_GROUP"
-         }
-      },
-      {
-         "id":"PROCESS_GROUP-D3CFC41B5F609A03",
-         "type":"process-group",
-         "data":{
-            "displayName":"nginx",
-            "discoveredName":"nginx",
-            "domain":"dynatrace",
-            "entityId":"PROCESS_GROUP-D3CFC41B5F609A03",
-            "environments":[
-               "production"
-            ],
-            "identifiers":[
-               "urn:dynatrace:/PROCESS_GROUP-D3CFC41B5F609A03"
-            ],
-            "instance":"https://instance.live.dynatrace.com",
-            "managementZones":[
-               
-            ],
-            "listenPorts":[80,443],
-            "metadata":{
-               "containerNames":["softserve_web_1"],
-               "commandLineArgs":["nginx -g daemon\\ off;"],
-               "executables":["nginx"],
-               "containerImageNames":["wolverminion/nginx"],
-               "executablePaths":["/usr/sbin/nginx"],
-               "containerImageVersions":["1"]
-            },
-            "softwareTechnologies":[
-               {"type":"NGINX","version":"nginx/1.15.2"},
-               {"type":"NGINX"},
-               {"type":"DOCKER"}
-            ],
-            "properties":{
-               "detectedName":"nginx"
-            },
-            "tags":[
-               "PROCESS_GROUP-D3CFC41B5F609A03",
-               "integration-type:dynatrace",
-               "integration-url:https://instance.live.dynatrace.com"
-            ],
-            "type":"PROCESS_GROUP"
-         }
-      },
-      {
-         "id":"PROCESS_GROUP-DA52C7DE4DCF26C3",
-         "type":"process-group",
-         "data":{
-            "displayName":"snapd",
-            "discoveredName":"snapd",
-            "domain":"dynatrace",
-            "entityId":"PROCESS_GROUP-DA52C7DE4DCF26C3",
-            "environments":[
-               "production"
-            ],
-            "identifiers":[
-               "urn:dynatrace:/PROCESS_GROUP-DA52C7DE4DCF26C3"
-            ],
-            "instance":"https://instance.live.dynatrace.com",
-            "managementZones":[
-               
-            ],
-            "metadata":{
-               "executablePaths":["/usr/lib/snapd/snapd"],
-               "pgIdCalcInputKeyLinkage":["dynamic"],
-               "commandLineArgs":["/usr/lib/snapd/snapd"],
-               "executables":["snapd"]
-            },
-            "softwareTechnologies":[
-               {"type":"GO"}
-            ],
-            "properties":{
-               "detectedName":"snapd"
-            },
-            "tags":[
-               "PROCESS_GROUP-DA52C7DE4DCF26C3",
-               "integration-type:dynatrace",
-               "integration-url:https://instance.live.dynatrace.com"
-            ],
-            "type":"PROCESS_GROUP"
-         }
-      },
-      {
-         "id":"PROCESS_GROUP-ECE82357AF59AF52",
-         "type":"process-group",
-         "data":{
-            "displayName":"Short-lived processes",
-            "discoveredName":"Short-lived processes",
-            "domain":"dynatrace",
-            "entityId":"PROCESS_GROUP-ECE82357AF59AF52",
-            "environments":[
-               "production"
-            ],
-            "identifiers":[
-               "urn:dynatrace:/PROCESS_GROUP-ECE82357AF59AF52"
-            ],
-            "instance":"https://instance.live.dynatrace.com",
-            "managementZones":[
-               
-            ],
-            "properties":{
-               "detectedName":"Short-lived processes"
-            },
-            "tags":[
-               "PROCESS_GROUP-ECE82357AF59AF52",
-               "integration-type:dynatrace",
-               "integration-url:https://instance.live.dynatrace.com"
-            ],
-            "type":"PROCESS_GROUP"
-         }
-      },
-      {
-         "id":"PROCESS_GROUP-EF1E81586EB8EDD6",
-         "type":"process-group",
-         "data":{
-            "displayName":"Linux System",
-            "discoveredName":"Linux System",
-            "domain":"dynatrace",
-            "entityId":"PROCESS_GROUP-EF1E81586EB8EDD6",
-            "environments":[
-               "production"
-            ],
-            "identifiers":[
-               "urn:dynatrace:/PROCESS_GROUP-EF1E81586EB8EDD6"
-            ],
-            "instance":"https://instance.live.dynatrace.com",
-            "managementZones":[
-               
-            ],
-            "softwareTechnologies":[
-               {"type":"LINUX_SYSTEM"}
-            ],
-            "properties":{
-               "detectedName":"Linux System"
-            },
-            "tags":[
-               "PROCESS_GROUP-EF1E81586EB8EDD6",
-               "integration-type:dynatrace",
-               "integration-url:https://instance.live.dynatrace.com"
-            ],
-            "type":"PROCESS_GROUP"
-         }
+  "start_snapshot": true,
+  "stop_snapshot": true,
+  "instance_key": {
+    "type": "dynatrace",
+    "url": "https://instance.live.dynatrace.com"
+  },
+  "components": [
+    {
+      "id": "PROCESS_GROUP-02B9992C264DE845",
+      "type": "process-group",
+      "data": {
+        "entityId": "PROCESS_GROUP-02B9992C264DE845",
+        "type": "PROCESS_GROUP",
+        "displayName": "sshd",
+        "properties": {
+          "detectedName": "sshd"
+        },
+        "managementZones": [],
+        "listenPorts": [
+          22
+        ],
+        "discoveredName": "sshd",
+        "metadata": {
+          "executables": [
+            "sshd"
+          ],
+          "executablePaths": [
+            "/usr/sbin/sshd"
+          ]
+        },
+        "identifiers": [
+          "urn:dynatrace:/PROCESS_GROUP-02B9992C264DE845"
+        ],
+        "tags": [
+          "PROCESS_GROUP-02B9992C264DE845",
+          "integration-type:dynatrace",
+          "integration-url:https://instance.live.dynatrace.com"
+        ],
+        "domain": "dynatrace",
+        "environments": [
+          "production"
+        ],
+        "instance": "https://instance.live.dynatrace.com"
       }
-   ],
-   "relations":[
-      {
-         "source_id":"PROCESS_GROUP-02B9992C264DE845",
-         "target_id":"PROCESS_GROUP-02B9992C264DE845",
-         "type":"isNetworkClientOfProcessGroup",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-02B9992C264DE845",
-         "target_id":"HOST-27D021F0FED92055",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-02B9992C264DE845",
-         "target_id":"HOST-CCAF57403E126C46",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-02B9992C264DE845",
-         "target_id":"PROCESS_GROUP-02B9992C264DE845",
-         "type":"isNetworkClientOfProcessGroup",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-7D52E74879BE6940",
-         "target_id":"PROCESS_GROUP-02B9992C264DE845",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-0E55A1E56A6E898E",
-         "target_id":"PROCESS_GROUP-02B9992C264DE845",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-213FB355CA5E6C74",
-         "target_id":"HOST-27D021F0FED92055",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-213FB355CA5E6C74",
-         "target_id":"CONTAINER_GROUP-878477CD4C8318D3",
-         "type":"isPgOfCg",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-DE6BBC832B4468B0",
-         "target_id":"PROCESS_GROUP-213FB355CA5E6C74",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-216FDBEF8325B5C6",
-         "target_id":"HOST-27D021F0FED92055",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-216FDBEF8325B5C6",
-         "target_id":"HOST-CCAF57403E126C46",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-C51921BD8393403A",
-         "target_id":"PROCESS_GROUP-216FDBEF8325B5C6",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-2E66570D43580C29",
-         "target_id":"PROCESS_GROUP-216FDBEF8325B5C6",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-30DCB5EACE59580B",
-         "target_id":"HOST-27D021F0FED92055",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-30DCB5EACE59580B",
-         "target_id":"CONTAINER_GROUP-FFD35018A09EC2F0",
-         "type":"isPgOfCg",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-E2683B14FA408D19",
-         "target_id":"PROCESS_GROUP-30DCB5EACE59580B",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-31AE98E6D95C50FE",
-         "target_id":"HOST-CCAF57403E126C46",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-31AE98E6D95C50FE",
-         "target_id":"CONTAINER_GROUP-461B2DC619CBFE7A",
-         "type":"isPgOfCg",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-BD788867042F0723",
-         "target_id":"PROCESS_GROUP-31AE98E6D95C50FE",
-         "type":"isNetworkClientOfProcessGroup",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-51BD3694E190306C",
-         "target_id":"PROCESS_GROUP-31AE98E6D95C50FE",
-         "type":"isNetworkClientOfProcessGroup",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-46F4DCE90AE5FC99",
-         "target_id":"PROCESS_GROUP-31AE98E6D95C50FE",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-3AD9FB79C914520C",
-         "target_id":"HOST-27D021F0FED92055",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-3AD9FB79C914520C",
-         "target_id":"HOST-CCAF57403E126C46",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-EA5429DAFCEFA055",
-         "target_id":"PROCESS_GROUP-3AD9FB79C914520C",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-D8E522DD9F9877E0",
-         "target_id":"PROCESS_GROUP-3AD9FB79C914520C",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-4F6264254199189E",
-         "target_id":"HOST-27D021F0FED92055",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-4F6264254199189E",
-         "target_id":"HOST-CCAF57403E126C46",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-39C09EA6259E757D",
-         "target_id":"PROCESS_GROUP-4F6264254199189E",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-7DEE56A819F0B76D",
-         "target_id":"PROCESS_GROUP-4F6264254199189E",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-51BD3694E190306C",
-         "target_id":"PROCESS_GROUP-31AE98E6D95C50FE",
-         "type":"isNetworkClientOfProcessGroup",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-51BD3694E190306C",
-         "target_id":"HOST-CCAF57403E126C46",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-51BD3694E190306C",
-         "target_id":"CONTAINER_GROUP-090F28AC20E99344",
-         "type":"isPgOfCg",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-B44AE6BE0CB555DA",
-         "target_id":"PROCESS_GROUP-51BD3694E190306C",
-         "type":"isNetworkClientOfProcessGroup",
-         "data":{}
-      },
-      {
-         "source_id":"SERVICE-C364E91F84B8F254",
-         "target_id":"PROCESS_GROUP-51BD3694E190306C",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-C99F3C55B6C220F9",
-         "target_id":"PROCESS_GROUP-51BD3694E190306C",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-55BB99EBACB51463",
-         "target_id":"HOST-27D021F0FED92055",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-55BB99EBACB51463",
-         "target_id":"HOST-CCAF57403E126C46",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-E011E6F91F5C0BFC",
-         "target_id":"PROCESS_GROUP-55BB99EBACB51463",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-44BCD2A37B650B83",
-         "target_id":"PROCESS_GROUP-55BB99EBACB51463",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-5A22F6D7F2447FBB",
-         "target_id":"HOST-27D021F0FED92055",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-5A22F6D7F2447FBB",
-         "target_id":"CONTAINER_GROUP-BCB844B4C4E4F06C",
-         "type":"isPgOfCg",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-F10D7DD3820A3A1F",
-         "target_id":"PROCESS_GROUP-5A22F6D7F2447FBB",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-5B15E632EDAA5373",
-         "target_id":"HOST-27D021F0FED92055",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-5B15E632EDAA5373",
-         "target_id":"CONTAINER_GROUP-2F3FB2C79A1E7141",
-         "type":"isPgOfCg",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-D3CFC41B5F609A03",
-         "target_id":"PROCESS_GROUP-5B15E632EDAA5373",
-         "type":"isNetworkClientOfProcessGroup",
-         "data":{}
-      },
-      {
-         "source_id":"SERVICE-201FFEDBAAA46C08",
-         "target_id":"PROCESS_GROUP-5B15E632EDAA5373",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-7CC5C7C213737326",
-         "target_id":"PROCESS_GROUP-5B15E632EDAA5373",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-68B404144F1EFBEA",
-         "target_id":"HOST-27D021F0FED92055",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-68B404144F1EFBEA",
-         "target_id":"HOST-CCAF57403E126C46",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-FFF5251A6A806135",
-         "target_id":"PROCESS_GROUP-68B404144F1EFBEA",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-DA980B8E0D5C5AB7",
-         "target_id":"PROCESS_GROUP-68B404144F1EFBEA",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-8A0DF0F9C446635C",
-         "target_id":"HOST-27D021F0FED92055",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-8A0DF0F9C446635C",
-         "target_id":"HOST-CCAF57403E126C46",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-718930226837058A",
-         "target_id":"PROCESS_GROUP-8A0DF0F9C446635C",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-9AF64692A8FC4999",
-         "target_id":"PROCESS_GROUP-8A0DF0F9C446635C",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-B44AE6BE0CB555DA",
-         "target_id":"PROCESS_GROUP-51BD3694E190306C",
-         "type":"isNetworkClientOfProcessGroup",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-B44AE6BE0CB555DA",
-         "target_id":"HOST-27D021F0FED92055",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-B44AE6BE0CB555DA",
-         "target_id":"HOST-CCAF57403E126C46",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-B44AE6BE0CB555DA",
-         "target_id":"CONTAINER_GROUP-5C5C23F580864AAB",
-         "type":"isPgOfCg",
-         "data":{}
-      },
-      {
-         "source_id":"SERVICE-7B2B45284091ED24",
-         "target_id":"PROCESS_GROUP-B44AE6BE0CB555DA",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"SERVICE-D4552C067BE873FC",
-         "target_id":"PROCESS_GROUP-B44AE6BE0CB555DA",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-009B2FD9FB9A0D9E",
-         "target_id":"PROCESS_GROUP-B44AE6BE0CB555DA",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-EBE459693B51418D",
-         "target_id":"PROCESS_GROUP-B44AE6BE0CB555DA",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-BD788867042F0723",
-         "target_id":"PROCESS_GROUP-31AE98E6D95C50FE",
-         "type":"isNetworkClientOfProcessGroup",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-BD788867042F0723",
-         "target_id":"HOST-CCAF57403E126C46",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-BD788867042F0723",
-         "target_id":"CONTAINER_GROUP-DFE950F214066240",
-         "type":"isPgOfCg",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-FAFF9812C50A76CA",
-         "target_id":"PROCESS_GROUP-BD788867042F0723",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-D319A5EAB816D403",
-         "target_id":"HOST-27D021F0FED92055",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-D319A5EAB816D403",
-         "target_id":"CONTAINER_GROUP-BCB844B4C4E4F06C",
-         "type":"isPgOfCg",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-A2FFB340144A4372",
-         "target_id":"PROCESS_GROUP-D319A5EAB816D403",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-D3CFC41B5F609A03",
-         "target_id":"PROCESS_GROUP-5B15E632EDAA5373",
-         "type":"isNetworkClientOfProcessGroup",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-D3CFC41B5F609A03",
-         "target_id":"HOST-27D021F0FED92055",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-D3CFC41B5F609A03",
-         "target_id":"CONTAINER_GROUP-F824455F51288D9E",
-         "type":"isPgOfCg",
-         "data":{}
-      },
-      {
-         "source_id":"SERVICE-54C8B660D2ACD52B",
-         "target_id":"PROCESS_GROUP-D3CFC41B5F609A03",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-671E0D7CA84FC247",
-         "target_id":"PROCESS_GROUP-D3CFC41B5F609A03",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-DA52C7DE4DCF26C3",
-         "target_id":"HOST-27D021F0FED92055",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-DA52C7DE4DCF26C3",
-         "target_id":"HOST-CCAF57403E126C46",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-76EE462A0CE3A322",
-         "target_id":"PROCESS_GROUP-DA52C7DE4DCF26C3",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-9D91309ACC28EF31",
-         "target_id":"PROCESS_GROUP-DA52C7DE4DCF26C3",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-ECE82357AF59AF52",
-         "target_id":"HOST-27D021F0FED92055",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-ECE82357AF59AF52",
-         "target_id":"HOST-CCAF57403E126C46",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-B65E01FA15EA1BE2",
-         "target_id":"PROCESS_GROUP-ECE82357AF59AF52",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-CAD774CA5C98E786",
-         "target_id":"PROCESS_GROUP-ECE82357AF59AF52",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-EF1E81586EB8EDD6",
-         "target_id":"HOST-27D021F0FED92055",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP-EF1E81586EB8EDD6",
-         "target_id":"HOST-CCAF57403E126C46",
-         "type":"runsOn",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-9FB696F3447E78A7",
-         "target_id":"PROCESS_GROUP-EF1E81586EB8EDD6",
-         "type":"isInstanceOf",
-         "data":{}
-      },
-      {
-         "source_id":"PROCESS_GROUP_INSTANCE-54D06710958DD6D1",
-         "target_id":"PROCESS_GROUP-EF1E81586EB8EDD6",
-         "type":"isInstanceOf",
-         "data":{}
+    },
+    {
+      "id": "PROCESS_GROUP-213FB355CA5E6C74",
+      "type": "process-group",
+      "data": {
+        "entityId": "PROCESS_GROUP-213FB355CA5E6C74",
+        "type": "PROCESS_GROUP",
+        "displayName": "activemq.jar",
+        "properties": {
+          "detectedName": "activemq.jar"
+        },
+        "managementZones": [],
+        "listenPorts": [
+          61616,
+          8161,
+          41523,
+          5672,
+          1883,
+          61613,
+          61614
+        ],
+        "softwareTechnologies": [
+          {
+            "type": "ACTIVEMQ_CLIENT",
+            "edition": "ActiveMQ :: Client, jakarta.jms",
+            "version": "6.1.2"
+          },
+          {
+            "type": "JAVA",
+            "edition": "Adoptium",
+            "version": "17.0.11"
+          },
+          {
+            "type": "AMQP"
+          },
+          {
+            "type": "JAVA",
+            "edition": "Eclipse Adoptium",
+            "version": "17.0.11"
+          },
+          {
+            "type": "APACHE_LOG4J",
+            "version": "2.23.1"
+          },
+          {
+            "type": "ACTIVE_MQ"
+          },
+          {
+            "type": "JETTY",
+            "edition": "HTTP Server",
+            "version": "11.0.20"
+          },
+          {
+            "type": "DOCKER"
+          }
+        ],
+        "discoveredName": "activemq.jar",
+        "metadata": {
+          "javaMainClasses": [
+            "/opt/apache-activemq/bin/activemq.jar"
+          ],
+          "commandLineArgs": [
+            "/opt/java/openjdk/bin/java -Xms64M -Xmx1G -Djava.util.logging.config.file=logging.properties -Djava.security.auth.login.config=/opt/apache-activemq/conf/login.config -Djetty.host=0.0.0.0 -Dcom.sun.management.jmxremote -Djava.awt.headless=true -Djava.io.tmpdir=/opt/apache-activemq/tmp --add-reads=java.xml=java.logging --add-opens java.base/java.security=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.naming/javax.naming.spi=ALL-UNNAMED --add-opens java.rmi/sun.rmi.transport.tcp=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED --add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-exports=java.base/sun.net.www.protocol.http=ALL-UNNAMED --add-exports=java.base/sun.net.www.protocol.https=ALL-UNNAMED --add-exports=java.base/sun.net.www.protocol.jar=ALL-UNNAMED --add-exports=jdk.xml.dom/org.w3c.dom.html=ALL-UNNAMED --add-exports=jdk.naming.rmi/com.sun.jndi.url.rmi=ALL-UNNAMED -Dactivemq.classpath=/opt/apache-activemq/conf:/opt/apache-activemq/../lib/: -Dactivemq.home=/opt/apache-activemq -Dactivemq.base=/opt/apache-activemq -Dactivemq.conf=/opt/apache-activemq/conf -Dactivemq.data=/opt/apache-activemq/data -Djolokia.conf=file:/opt/apache-activemq/conf/jolokia-access.xml -jar /opt/apache-activemq/bin/activemq.jar start"
+          ],
+          "javaJarFiles": [
+            "activemq.jar"
+          ],
+          "containerNames": [
+            "activemq"
+          ],
+          "javaJarPaths": [
+            "/opt/apache-activemq/bin/activemq.jar"
+          ],
+          "containerImageNames": [
+            "apache/activemq-classic"
+          ],
+          "executables": [
+            "java"
+          ],
+          "executablePaths": [
+            "/opt/java/openjdk/bin/java"
+          ]
+        },
+        "identifiers": [
+          "urn:dynatrace:/PROCESS_GROUP-213FB355CA5E6C74"
+        ],
+        "tags": [
+          "PROCESS_GROUP-213FB355CA5E6C74",
+          "integration-type:dynatrace",
+          "integration-url:https://instance.live.dynatrace.com"
+        ],
+        "domain": "dynatrace",
+        "environments": [
+          "production"
+        ],
+        "instance": "https://instance.live.dynatrace.com"
       }
-   ],
-   "delete_ids":[
-      
-   ]
+    },
+    {
+      "id": "PROCESS_GROUP-216FDBEF8325B5C6",
+      "type": "process-group",
+      "data": {
+        "entityId": "PROCESS_GROUP-216FDBEF8325B5C6",
+        "type": "PROCESS_GROUP",
+        "displayName": "OneAgent log analytics",
+        "properties": {
+          "detectedName": "OneAgent log analytics"
+        },
+        "managementZones": [],
+        "softwareTechnologies": [
+          {
+            "type": "DYNATRACE"
+          }
+        ],
+        "discoveredName": "OneAgent log analytics",
+        "metadata": {
+          "commandLineArgs": [
+            "oneagentloganalytics -Dcom.compuware.apm.WatchDogTimeout=900 -Dcom.compuware.apm.WatchDogPipe=/var/lib/dynatrace/oneagent/agent/watchdog/oneagentloganalytics_pipe_793",
+            "oneagentloganalytics -Dcom.compuware.apm.WatchDogTimeout=900 -Dcom.compuware.apm.WatchDogPipe=/var/lib/dynatrace/oneagent/agent/watchdog/oneagentloganalytics_pipe_784"
+          ],
+          "executables": [
+            "oneagentloganalytics"
+          ],
+          "executablePaths": [
+            "/opt/dynatrace/oneagent/agent/lib*/oneagentloganalytics"
+          ]
+        },
+        "identifiers": [
+          "urn:dynatrace:/PROCESS_GROUP-216FDBEF8325B5C6"
+        ],
+        "tags": [
+          "PROCESS_GROUP-216FDBEF8325B5C6",
+          "integration-type:dynatrace",
+          "integration-url:https://instance.live.dynatrace.com"
+        ],
+        "domain": "dynatrace",
+        "environments": [
+          "production"
+        ],
+        "instance": "https://instance.live.dynatrace.com"
+      }
+    },
+    {
+      "id": "PROCESS_GROUP-30DCB5EACE59580B",
+      "type": "process-group",
+      "data": {
+        "entityId": "PROCESS_GROUP-30DCB5EACE59580B",
+        "type": "PROCESS_GROUP",
+        "displayName": "MySQL",
+        "properties": {
+          "detectedName": "MySQL"
+        },
+        "managementZones": [],
+        "listenPorts": [
+          3306
+        ],
+        "softwareTechnologies": [
+          {
+            "type": "MYSQL"
+          },
+          {
+            "type": "DOCKER"
+          }
+        ],
+        "discoveredName": "MySQL",
+        "metadata": {
+          "executables": [
+            "mysqld"
+          ],
+          "containerImageNames": [
+            "mysql"
+          ],
+          "executablePaths": [
+            "/usr/sbin/mysqld"
+          ]
+        },
+        "identifiers": [
+          "urn:dynatrace:/PROCESS_GROUP-30DCB5EACE59580B"
+        ],
+        "tags": [
+          "PROCESS_GROUP-30DCB5EACE59580B",
+          "integration-type:dynatrace",
+          "integration-url:https://instance.live.dynatrace.com"
+        ],
+        "domain": "dynatrace",
+        "environments": [
+          "production"
+        ],
+        "instance": "https://instance.live.dynatrace.com"
+      }
+    },
+    {
+      "id": "PROCESS_GROUP-31AE98E6D95C50FE",
+      "type": "process-group",
+      "data": {
+        "entityId": "PROCESS_GROUP-31AE98E6D95C50FE",
+        "type": "PROCESS_GROUP",
+        "displayName": "MySQL",
+        "properties": {
+          "detectedName": "MySQL"
+        },
+        "managementZones": [],
+        "listenPorts": [
+          3306
+        ],
+        "softwareTechnologies": [
+          {
+            "type": "MYSQL"
+          },
+          {
+            "type": "DOCKER"
+          }
+        ],
+        "discoveredName": "MySQL",
+        "metadata": {
+          "executables": [
+            "mysqld"
+          ],
+          "containerImageNames": [
+            "wolverminion/mysql"
+          ],
+          "executablePaths": [
+            "/usr/sbin/mysqld"
+          ]
+        },
+        "identifiers": [
+          "urn:dynatrace:/PROCESS_GROUP-31AE98E6D95C50FE"
+        ],
+        "tags": [
+          "PROCESS_GROUP-31AE98E6D95C50FE",
+          "integration-type:dynatrace",
+          "integration-url:https://instance.live.dynatrace.com"
+        ],
+        "domain": "dynatrace",
+        "environments": [
+          "production"
+        ],
+        "instance": "https://instance.live.dynatrace.com"
+      }
+    },
+    {
+      "id": "PROCESS_GROUP-3AD9FB79C914520C",
+      "type": "process-group",
+      "data": {
+        "entityId": "PROCESS_GROUP-3AD9FB79C914520C",
+        "type": "PROCESS_GROUP",
+        "displayName": "OneAgent system monitoring",
+        "properties": {
+          "detectedName": "OneAgent system monitoring"
+        },
+        "managementZones": [],
+        "softwareTechnologies": [
+          {
+            "type": "DYNATRACE"
+          }
+        ],
+        "discoveredName": "OneAgent system monitoring",
+        "metadata": {
+          "executablePaths": [
+            "/opt/dynatrace/oneagent/agent/lib64/oneagentwatchdog"
+          ],
+          "executables": [
+            "oneagentwatchdog"
+          ]
+        },
+        "identifiers": [
+          "urn:dynatrace:/PROCESS_GROUP-3AD9FB79C914520C"
+        ],
+        "tags": [
+          "PROCESS_GROUP-3AD9FB79C914520C",
+          "integration-type:dynatrace",
+          "integration-url:https://instance.live.dynatrace.com"
+        ],
+        "domain": "dynatrace",
+        "environments": [
+          "production"
+        ],
+        "instance": "https://instance.live.dynatrace.com"
+      }
+    },
+    {
+      "id": "PROCESS_GROUP-4F6264254199189E",
+      "type": "process-group",
+      "data": {
+        "entityId": "PROCESS_GROUP-4F6264254199189E",
+        "type": "PROCESS_GROUP",
+        "displayName": "OneAgent eBPF service discovery",
+        "properties": {
+          "detectedName": "OneAgent eBPF service discovery"
+        },
+        "managementZones": [],
+        "softwareTechnologies": [
+          {
+            "type": "DYNATRACE"
+          }
+        ],
+        "discoveredName": "OneAgent eBPF service discovery",
+        "metadata": {
+          "executablePaths": [
+            "/opt/dynatrace/oneagent/agent/lib64/oneagentebpfdiscovery"
+          ],
+          "executables": [
+            "oneagentebpfdiscovery"
+          ]
+        },
+        "identifiers": [
+          "urn:dynatrace:/PROCESS_GROUP-4F6264254199189E"
+        ],
+        "tags": [
+          "PROCESS_GROUP-4F6264254199189E",
+          "integration-type:dynatrace",
+          "integration-url:https://instance.live.dynatrace.com"
+        ],
+        "domain": "dynatrace",
+        "environments": [
+          "production"
+        ],
+        "instance": "https://instance.live.dynatrace.com"
+      }
+    },
+    {
+      "id": "PROCESS_GROUP-51BD3694E190306C",
+      "type": "process-group",
+      "data": {
+        "entityId": "PROCESS_GROUP-51BD3694E190306C",
+        "type": "PROCESS_GROUP",
+        "displayName": "webserver",
+        "properties": {
+          "detectedName": "webserver"
+        },
+        "managementZones": [],
+        "listenPorts": [
+          8080
+        ],
+        "softwareTechnologies": [
+          {
+            "type": "GO",
+            "version": "1.19.13"
+          },
+          {
+            "type": "GO"
+          },
+          {
+            "type": "DOCKER"
+          }
+        ],
+        "discoveredName": "webserver",
+        "metadata": {
+          "containerImageNames": [
+            "wolverminion/newsscraper-host"
+          ],
+          "containerNames": [
+            "newsapp-us_server-1_1"
+          ],
+          "executables": [
+            "webserver"
+          ],
+          "commandLineArgs": [
+            "/usr/bin/webserver"
+          ],
+          "pgIdCalcInputKeyLinkage": [
+            "dynamic"
+          ],
+          "containerImageVersions": [
+            "40d71747"
+          ],
+          "executablePaths": [
+            "/usr/bin/webserver"
+          ]
+        },
+        "identifiers": [
+          "urn:dynatrace:/PROCESS_GROUP-51BD3694E190306C"
+        ],
+        "tags": [
+          "PROCESS_GROUP-51BD3694E190306C",
+          "integration-type:dynatrace",
+          "integration-url:https://instance.live.dynatrace.com"
+        ],
+        "domain": "dynatrace",
+        "environments": [
+          "production"
+        ],
+        "instance": "https://instance.live.dynatrace.com"
+      }
+    },
+    {
+      "id": "PROCESS_GROUP-55BB99EBACB51463",
+      "type": "process-group",
+      "data": {
+        "entityId": "PROCESS_GROUP-55BB99EBACB51463",
+        "type": "PROCESS_GROUP",
+        "displayName": "OneAgent network monitoring",
+        "properties": {
+          "detectedName": "OneAgent network monitoring"
+        },
+        "managementZones": [],
+        "softwareTechnologies": [
+          {
+            "type": "DYNATRACE"
+          }
+        ],
+        "discoveredName": "OneAgent network monitoring",
+        "metadata": {
+          "executablePaths": [
+            "/opt/dynatrace/oneagent/agent/lib64/oneagentnetwork"
+          ],
+          "executables": [
+            "oneagentnetwork"
+          ]
+        },
+        "identifiers": [
+          "urn:dynatrace:/PROCESS_GROUP-55BB99EBACB51463"
+        ],
+        "tags": [
+          "PROCESS_GROUP-55BB99EBACB51463",
+          "integration-type:dynatrace",
+          "integration-url:https://instance.live.dynatrace.com"
+        ],
+        "domain": "dynatrace",
+        "environments": [
+          "production"
+        ],
+        "instance": "https://instance.live.dynatrace.com"
+      }
+    },
+    {
+      "id": "PROCESS_GROUP-5A22F6D7F2447FBB",
+      "type": "process-group",
+      "data": {
+        "entityId": "PROCESS_GROUP-5A22F6D7F2447FBB",
+        "type": "PROCESS_GROUP",
+        "displayName": "Erlang Port Mapper",
+        "properties": {
+          "detectedName": "Erlang Port Mapper"
+        },
+        "managementZones": [],
+        "listenPorts": [
+          4369
+        ],
+        "softwareTechnologies": [
+          {
+            "type": "ERLANG"
+          },
+          {
+            "type": "DOCKER"
+          }
+        ],
+        "discoveredName": "Erlang Port Mapper",
+        "metadata": {
+          "executables": [
+            "epmd"
+          ],
+          "containerImageNames": [
+            "rabbitmq"
+          ],
+          "executablePaths": [
+            "/opt/erlang/lib/erlang/erts-14.2.5.4/bin/epmd"
+          ]
+        },
+        "identifiers": [
+          "urn:dynatrace:/PROCESS_GROUP-5A22F6D7F2447FBB"
+        ],
+        "tags": [
+          "PROCESS_GROUP-5A22F6D7F2447FBB",
+          "integration-type:dynatrace",
+          "integration-url:https://instance.live.dynatrace.com"
+        ],
+        "domain": "dynatrace",
+        "environments": [
+          "production"
+        ],
+        "instance": "https://instance.live.dynatrace.com"
+      }
+    },
+    {
+      "id": "PROCESS_GROUP-5B15E632EDAA5373",
+      "type": "process-group",
+      "data": {
+        "entityId": "PROCESS_GROUP-5B15E632EDAA5373",
+        "type": "PROCESS_GROUP",
+        "displayName": "PHP-FPM",
+        "properties": {
+          "detectedName": "PHP-FPM"
+        },
+        "managementZones": [],
+        "listenPorts": [
+          9000
+        ],
+        "softwareTechnologies": [
+          {
+            "type": "PHP_FPM"
+          },
+          {
+            "type": "LARAVEL"
+          },
+          {
+            "type": "SYMFONY"
+          },
+          {
+            "type": "DOCKER"
+          },
+          {
+            "type": "PHP",
+            "edition": "FPM",
+            "version": "7.2.10"
+          }
+        ],
+        "discoveredName": "PHP-FPM",
+        "metadata": {
+          "commandLineArgs": [
+            "php-fpm"
+          ],
+          "executables": [
+            "php-fpm"
+          ],
+          "executablePaths": [
+            "/usr/local/sbin/php-fpm"
+          ],
+          "containerImageVersions": [
+            "4.5.17-php7.2-fpm"
+          ],
+          "containerImageNames": [
+            "invoiceninja/invoiceninja"
+          ],
+          "containerNames": [
+            "mastering_app_1"
+          ]
+        },
+        "identifiers": [
+          "urn:dynatrace:/PROCESS_GROUP-5B15E632EDAA5373"
+        ],
+        "tags": [
+          "PROCESS_GROUP-5B15E632EDAA5373",
+          "integration-type:dynatrace",
+          "integration-url:https://instance.live.dynatrace.com"
+        ],
+        "domain": "dynatrace",
+        "environments": [
+          "production"
+        ],
+        "instance": "https://instance.live.dynatrace.com"
+      }
+    },
+    {
+      "id": "PROCESS_GROUP-68B404144F1EFBEA",
+      "type": "process-group",
+      "data": {
+        "entityId": "PROCESS_GROUP-68B404144F1EFBEA",
+        "type": "PROCESS_GROUP",
+        "displayName": "systemd-resolved",
+        "properties": {
+          "detectedName": "systemd-resolved"
+        },
+        "managementZones": [],
+        "listenPorts": [
+          53
+        ],
+        "discoveredName": "systemd-resolved",
+        "metadata": {
+          "executables": [
+            "systemd-resolved"
+          ],
+          "executablePaths": [
+            "/usr/lib/systemd/systemd-resolved"
+          ]
+        },
+        "identifiers": [
+          "urn:dynatrace:/PROCESS_GROUP-68B404144F1EFBEA"
+        ],
+        "tags": [
+          "PROCESS_GROUP-68B404144F1EFBEA",
+          "integration-type:dynatrace",
+          "integration-url:https://instance.live.dynatrace.com"
+        ],
+        "domain": "dynatrace",
+        "environments": [
+          "production"
+        ],
+        "instance": "https://instance.live.dynatrace.com"
+      }
+    },
+    {
+      "id": "PROCESS_GROUP-8A0DF0F9C446635C",
+      "type": "process-group",
+      "data": {
+        "entityId": "PROCESS_GROUP-8A0DF0F9C446635C",
+        "type": "PROCESS_GROUP",
+        "displayName": "containerd-shim-runc-v*",
+        "properties": {
+          "detectedName": "containerd-shim-runc-v*"
+        },
+        "managementZones": [],
+        "softwareTechnologies": [
+          {
+            "type": "GO"
+          }
+        ],
+        "discoveredName": "containerd-shim-runc-v*",
+        "metadata": {
+          "pgIdCalcInputKeyLinkage": [
+            "static"
+          ],
+          "commandLineArgs": [
+            "/usr/bin/containerd-shim-runc-v2 -namespace moby -id bd1991a03800a5c94343310f00eb4683ad51f03078fcc6459c6d908f832aea54 -address /run/containerd/containerd.sock",
+            "/usr/bin/containerd-shim-runc-v2 -namespace moby -id 9d00f8c664ff76af4b3e616f28805384c5b29f92639c11fb0abe7d522b65dfad -address /run/containerd/containerd.sock"
+          ],
+          "executables": [
+            "containerd-shim-runc-v*"
+          ],
+          "executablePaths": [
+            "/usr/bin/containerd-shim-runc-v*"
+          ]
+        },
+        "identifiers": [
+          "urn:dynatrace:/PROCESS_GROUP-8A0DF0F9C446635C"
+        ],
+        "tags": [
+          "PROCESS_GROUP-8A0DF0F9C446635C",
+          "integration-type:dynatrace",
+          "integration-url:https://instance.live.dynatrace.com"
+        ],
+        "domain": "dynatrace",
+        "environments": [
+          "production"
+        ],
+        "instance": "https://instance.live.dynatrace.com"
+      }
+    },
+    {
+      "id": "PROCESS_GROUP-B44AE6BE0CB555DA",
+      "type": "process-group",
+      "data": {
+        "entityId": "PROCESS_GROUP-B44AE6BE0CB555DA",
+        "type": "PROCESS_GROUP",
+        "displayName": "nginx",
+        "properties": {
+          "detectedName": "nginx"
+        },
+        "managementZones": [],
+        "listenPorts": [
+          443
+        ],
+        "softwareTechnologies": [
+          {
+            "type": "NGINX"
+          },
+          {
+            "type": "NGINX",
+            "version": "nginx/1.27.0"
+          },
+          {
+            "type": "DOCKER"
+          }
+        ],
+        "discoveredName": "nginx",
+        "metadata": {
+          "containerImageNames": [
+            "nginx"
+          ],
+          "commandLineArgs": [
+            "nginx -g daemon\\ off;"
+          ],
+          "executables": [
+            "nginx"
+          ],
+          "executablePaths": [
+            "/usr/sbin/nginx"
+          ],
+          "containerNames": [
+            "nginx"
+          ]
+        },
+        "identifiers": [
+          "urn:dynatrace:/PROCESS_GROUP-B44AE6BE0CB555DA"
+        ],
+        "tags": [
+          "PROCESS_GROUP-B44AE6BE0CB555DA",
+          "integration-type:dynatrace",
+          "integration-url:https://instance.live.dynatrace.com"
+        ],
+        "domain": "dynatrace",
+        "environments": [
+          "production"
+        ],
+        "instance": "https://instance.live.dynatrace.com"
+      }
+    },
+    {
+      "id": "PROCESS_GROUP-BD788867042F0723",
+      "type": "process-group",
+      "data": {
+        "entityId": "PROCESS_GROUP-BD788867042F0723",
+        "type": "PROCESS_GROUP",
+        "displayName": "main.py",
+        "properties": {
+          "detectedName": "main.py"
+        },
+        "managementZones": [],
+        "softwareTechnologies": [
+          {
+            "type": "PYTHON"
+          },
+          {
+            "type": "DOCKER"
+          }
+        ],
+        "discoveredName": "main.py",
+        "metadata": {
+          "executablePaths": [
+            "/usr/local/bin/python*"
+          ],
+          "containerNames": [
+            "newsapp-uk_app-newsscraper_1"
+          ],
+          "executables": [
+            "python*"
+          ],
+          "containerImageNames": [
+            "wolverminion/webscraper"
+          ],
+          "commandLineArgs": [
+            "python main.py"
+          ],
+          "containerImageVersions": [
+            "9f79f4f2-uk"
+          ]
+        },
+        "identifiers": [
+          "urn:dynatrace:/PROCESS_GROUP-BD788867042F0723"
+        ],
+        "tags": [
+          "PROCESS_GROUP-BD788867042F0723",
+          "integration-type:dynatrace",
+          "integration-url:https://instance.live.dynatrace.com"
+        ],
+        "domain": "dynatrace",
+        "environments": [
+          "production"
+        ],
+        "instance": "https://instance.live.dynatrace.com"
+      }
+    },
+    {
+      "id": "PROCESS_GROUP-D319A5EAB816D403",
+      "type": "process-group",
+      "data": {
+        "entityId": "PROCESS_GROUP-D319A5EAB816D403",
+        "type": "PROCESS_GROUP",
+        "displayName": "RabbitMQ",
+        "properties": {
+          "detectedName": "RabbitMQ"
+        },
+        "managementZones": [],
+        "listenPorts": [
+          5672,
+          15672,
+          25672,
+          15692
+        ],
+        "softwareTechnologies": [
+          {
+            "type": "AMQP"
+          },
+          {
+            "type": "ERLANG"
+          },
+          {
+            "type": "RABBIT_MQ"
+          },
+          {
+            "type": "DOCKER"
+          }
+        ],
+        "discoveredName": "RabbitMQ",
+        "metadata": {
+          "executablePaths": [
+            "/opt/erlang/lib/erlang/erts-14.2.5.4/bin/beam.smp"
+          ],
+          "containerImageNames": [
+            "rabbitmq"
+          ],
+          "executables": [
+            "beam.smp"
+          ]
+        },
+        "identifiers": [
+          "urn:dynatrace:/PROCESS_GROUP-D319A5EAB816D403"
+        ],
+        "tags": [
+          "PROCESS_GROUP-D319A5EAB816D403",
+          "integration-type:dynatrace",
+          "integration-url:https://instance.live.dynatrace.com"
+        ],
+        "domain": "dynatrace",
+        "environments": [
+          "production"
+        ],
+        "instance": "https://instance.live.dynatrace.com"
+      }
+    },
+    {
+      "id": "PROCESS_GROUP-D3CFC41B5F609A03",
+      "type": "process-group",
+      "data": {
+        "entityId": "PROCESS_GROUP-D3CFC41B5F609A03",
+        "type": "PROCESS_GROUP",
+        "displayName": "nginx",
+        "properties": {
+          "detectedName": "nginx"
+        },
+        "managementZones": [],
+        "listenPorts": [
+          80,
+          443
+        ],
+        "softwareTechnologies": [
+          {
+            "type": "NGINX",
+            "version": "nginx/1.15.2"
+          },
+          {
+            "type": "NGINX"
+          },
+          {
+            "type": "DOCKER"
+          }
+        ],
+        "discoveredName": "nginx",
+        "metadata": {
+          "containerNames": [
+            "softserve_web_1"
+          ],
+          "commandLineArgs": [
+            "nginx -g daemon\\ off;"
+          ],
+          "executables": [
+            "nginx"
+          ],
+          "containerImageNames": [
+            "wolverminion/nginx"
+          ],
+          "executablePaths": [
+            "/usr/sbin/nginx"
+          ],
+          "containerImageVersions": [
+            "1"
+          ]
+        },
+        "identifiers": [
+          "urn:dynatrace:/PROCESS_GROUP-D3CFC41B5F609A03"
+        ],
+        "tags": [
+          "PROCESS_GROUP-D3CFC41B5F609A03",
+          "integration-type:dynatrace",
+          "integration-url:https://instance.live.dynatrace.com"
+        ],
+        "domain": "dynatrace",
+        "environments": [
+          "production"
+        ],
+        "instance": "https://instance.live.dynatrace.com"
+      }
+    },
+    {
+      "id": "PROCESS_GROUP-DA52C7DE4DCF26C3",
+      "type": "process-group",
+      "data": {
+        "entityId": "PROCESS_GROUP-DA52C7DE4DCF26C3",
+        "type": "PROCESS_GROUP",
+        "displayName": "snapd",
+        "properties": {
+          "detectedName": "snapd"
+        },
+        "managementZones": [],
+        "softwareTechnologies": [
+          {
+            "type": "GO"
+          }
+        ],
+        "discoveredName": "snapd",
+        "metadata": {
+          "executablePaths": [
+            "/usr/lib/snapd/snapd"
+          ],
+          "pgIdCalcInputKeyLinkage": [
+            "dynamic"
+          ],
+          "commandLineArgs": [
+            "/usr/lib/snapd/snapd"
+          ],
+          "executables": [
+            "snapd"
+          ]
+        },
+        "identifiers": [
+          "urn:dynatrace:/PROCESS_GROUP-DA52C7DE4DCF26C3"
+        ],
+        "tags": [
+          "PROCESS_GROUP-DA52C7DE4DCF26C3",
+          "integration-type:dynatrace",
+          "integration-url:https://instance.live.dynatrace.com"
+        ],
+        "domain": "dynatrace",
+        "environments": [
+          "production"
+        ],
+        "instance": "https://instance.live.dynatrace.com"
+      }
+    },
+    {
+      "id": "PROCESS_GROUP-ECE82357AF59AF52",
+      "type": "process-group",
+      "data": {
+        "entityId": "PROCESS_GROUP-ECE82357AF59AF52",
+        "type": "PROCESS_GROUP",
+        "displayName": "Short-lived processes",
+        "properties": {
+          "detectedName": "Short-lived processes"
+        },
+        "managementZones": [],
+        "discoveredName": "Short-lived processes",
+        "identifiers": [
+          "urn:dynatrace:/PROCESS_GROUP-ECE82357AF59AF52"
+        ],
+        "tags": [
+          "PROCESS_GROUP-ECE82357AF59AF52",
+          "integration-type:dynatrace",
+          "integration-url:https://instance.live.dynatrace.com"
+        ],
+        "domain": "dynatrace",
+        "environments": [
+          "production"
+        ],
+        "instance": "https://instance.live.dynatrace.com"
+      }
+    },
+    {
+      "id": "PROCESS_GROUP-EF1E81586EB8EDD6",
+      "type": "process-group",
+      "data": {
+        "entityId": "PROCESS_GROUP-EF1E81586EB8EDD6",
+        "type": "PROCESS_GROUP",
+        "displayName": "Linux System",
+        "properties": {
+          "detectedName": "Linux System"
+        },
+        "managementZones": [],
+        "softwareTechnologies": [
+          {
+            "type": "LINUX_SYSTEM"
+          }
+        ],
+        "discoveredName": "Linux System",
+        "identifiers": [
+          "urn:dynatrace:/PROCESS_GROUP-EF1E81586EB8EDD6"
+        ],
+        "tags": [
+          "PROCESS_GROUP-EF1E81586EB8EDD6",
+          "integration-type:dynatrace",
+          "integration-url:https://instance.live.dynatrace.com"
+        ],
+        "domain": "dynatrace",
+        "environments": [
+          "production"
+        ],
+        "instance": "https://instance.live.dynatrace.com"
+      }
+    }
+  ],
+  "relations": [
+    {
+      "source_id": "PROCESS_GROUP-02B9992C264DE845",
+      "target_id": "PROCESS_GROUP-02B9992C264DE845",
+      "type": "isNetworkClientOfProcessGroup",
+      "data": {}
+    },
+    {
+      "source_id": "PROCESS_GROUP-02B9992C264DE845",
+      "target_id": "PROCESS_GROUP-02B9992C264DE845",
+      "type": "isNetworkClientOfProcessGroup",
+      "data": {}
+    },
+    {
+      "source_id": "PROCESS_GROUP-BD788867042F0723",
+      "target_id": "PROCESS_GROUP-31AE98E6D95C50FE",
+      "type": "isNetworkClientOfProcessGroup",
+      "data": {}
+    },
+    {
+      "source_id": "PROCESS_GROUP-51BD3694E190306C",
+      "target_id": "PROCESS_GROUP-31AE98E6D95C50FE",
+      "type": "isNetworkClientOfProcessGroup",
+      "data": {}
+    },
+    {
+      "source_id": "PROCESS_GROUP-51BD3694E190306C",
+      "target_id": "PROCESS_GROUP-31AE98E6D95C50FE",
+      "type": "isNetworkClientOfProcessGroup",
+      "data": {}
+    },
+    {
+      "source_id": "PROCESS_GROUP-B44AE6BE0CB555DA",
+      "target_id": "PROCESS_GROUP-51BD3694E190306C",
+      "type": "isNetworkClientOfProcessGroup",
+      "data": {}
+    },
+    {
+      "source_id": "PROCESS_GROUP-D3CFC41B5F609A03",
+      "target_id": "PROCESS_GROUP-5B15E632EDAA5373",
+      "type": "isNetworkClientOfProcessGroup",
+      "data": {}
+    },
+    {
+      "source_id": "PROCESS_GROUP-B44AE6BE0CB555DA",
+      "target_id": "PROCESS_GROUP-51BD3694E190306C",
+      "type": "isNetworkClientOfProcessGroup",
+      "data": {}
+    },
+    {
+      "source_id": "PROCESS_GROUP-BD788867042F0723",
+      "target_id": "PROCESS_GROUP-31AE98E6D95C50FE",
+      "type": "isNetworkClientOfProcessGroup",
+      "data": {}
+    },
+    {
+      "source_id": "PROCESS_GROUP-D3CFC41B5F609A03",
+      "target_id": "PROCESS_GROUP-5B15E632EDAA5373",
+      "type": "isNetworkClientOfProcessGroup",
+      "data": {}
+    }
+  ],
+  "delete_ids": []
 }
