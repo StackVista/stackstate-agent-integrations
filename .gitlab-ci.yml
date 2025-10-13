@@ -240,7 +240,7 @@ test_postgres:
   tags:
     - sts-k8s-xl-no-docker-runner
 
-splunk_base_build_rule: &splunk_base_build_rule
+.splunk_base_build_rule: &splunk_base_build_rule
   rules:
     - if: $CI_EXTERNAL_PULL_REQUEST_IID
     - changes:
