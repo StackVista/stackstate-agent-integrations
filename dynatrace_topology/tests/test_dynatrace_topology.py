@@ -83,6 +83,8 @@ def test_collect_process_groups(dynatrace_check, requests_mock, topology, aggreg
 def test_collect_relations(dynatrace_check, requests_mock, topology, aggregator):
     """
     Test to check if relations are collected properly
+    With the new two-pass approach, only relations between entities in the cache are created.
+    When only hosts are loaded, we only get isNetworkClientOfHost relations between hosts.
     """
     set_http_responses(requests_mock, hosts=read_file("host_response_v2.json", "samples"))
     dynatrace_check.run()
@@ -102,7 +104,9 @@ def test_collect_relations(dynatrace_check, requests_mock, topology, aggregator)
                 any(tgt.startswith(p) for p in SUPPORTED_PREFIXES):
             filtered.append(r)
     topology_instances['relations'] = filtered
-    assert len(topology_instances['relations']) == 72
+    # With cache verification, only relations between hosts are created
+    # (no relations to non-existent process groups, services, etc.)
+    assert len(topology_instances['relations']) == 4
     # since all relations are to this host itself so target id is same
     relation = topology_instances['relations'][0]
     assert relation['target_id'] == 'HOST-27D021F0FED92055'
@@ -573,3 +577,23 @@ def test_process_group_entity_custompgmetadata_nonscalar_key():
     assert 'unknown_key_1' in entity.properties.customPgMetadata
     # Nested key dicts with inner 'key' should extract the string key
     assert entity.properties.customPgMetadata['cni.projectcalico.org/podIPs'] == '10.7.3.85/32'
+
+
+def test_entity_cache_resets_between_runs(requests_mock, dynatrace_check, topology, aggregator):
+    """
+    Verify that the in-memory entity cache is cleared at the start of each check run.
+    First run: provide some entities -> cache should be > 0 after run.
+    Second run: provide no entities -> cache should be exactly 0, proving it was reset.
+    """
+    # First run with hosts payload (non-empty)
+    set_http_responses(requests_mock, hosts=read_file("host_response_v2.json", "samples"))
+    dynatrace_check.run()
+    assert len(dynatrace_check.dynatrace_entities_cache) > 0
+
+    # Second run with empty responses
+    aggregator.reset()
+    topology.reset()
+    requests_mock.reset()
+    set_http_responses(requests_mock)  # defaults to empty for all endpoints
+    dynatrace_check.run()
+    assert len(dynatrace_check.dynatrace_entities_cache) == 0

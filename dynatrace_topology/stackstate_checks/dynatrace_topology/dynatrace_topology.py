@@ -39,7 +39,7 @@ TOPOLOGY_API_SPEC = {
     "queue": ("api/v2/entities", 'type("QUEUE")', f'{API_V2_DEFAULT_FIELDS_STRING}'),
 }
 
-DynatraceCachedEntity = namedtuple('DynatraceCachedEntity', 'identifier external_id name type')
+DynatraceCachedEntity = namedtuple('DynatraceCachedEntity', 'identifier external_id type component')
 
 
 class MonitoringState(ForgivingBaseModel):
@@ -113,7 +113,7 @@ class DynatraceTopologyCheck(AgentCheck):
     def __init__(self, name, init_config, instances):
         super(DynatraceTopologyCheck, self).__init__(name, init_config, instances)
         self.dynatrace_client_factory = DynatraceClientFactory()
-        self.dynatrace_entities_cache = []
+        self.dynatrace_entities_cache = {}
 
     def get_instance_key(self, instance_info):
         return StackPackInstance(self.INSTANCE_TYPE, str(instance_info.url))
@@ -134,6 +134,9 @@ class DynatraceTopologyCheck(AgentCheck):
             )
             if os.getenv('JWT_AUTH') == "true":
                 instance_info.token = dynatrace_client.get_token()
+
+            # Reset entity cache so counts/logs reflect this run only
+            self.dynatrace_entities_cache = {}
 
             self._process_topology(dynatrace_client, instance_info)
             self.monitored_health()
@@ -244,6 +247,16 @@ class DynatraceTopologyCheck(AgentCheck):
         time_taken = end_time - start_time
         self.log.info("Collected %d topology entities.", len(self.dynatrace_entities_cache))
         self.log.debug("Time taken to collect the topology is: %d seconds" % time_taken.total_seconds())
+
+        # Second pass: create relations now that all components exist
+        self.log.debug("Starting second pass to create relations")
+        relation_start_time = datetime.now()
+        for external_id, cached_entity in self.dynatrace_entities_cache.items():
+            self._collect_relations(cached_entity.component, external_id, cached_entity.type)
+        relation_end_time = datetime.now()
+        relation_time_taken = relation_end_time - relation_start_time
+        self.log.debug("Time taken to create relations is: %d seconds" % relation_time_taken.total_seconds())
+
         self.stop_snapshot()
 
     @staticmethod
@@ -305,9 +318,6 @@ class DynatraceTopologyCheck(AgentCheck):
             data = {}
             external_id = dynatrace_component.entityId
             identifiers = [Identifiers.create_custom_identifier("dynatrace", external_id)]
-            self.dynatrace_entities_cache.append(
-                DynatraceCachedEntity(identifiers[0], external_id, dynatrace_component.displayName, component_type)
-            )
             if component_type == "host":
                 host_identifiers = self._get_host_identifiers(dynatrace_component)
                 identifiers.extend(host_identifiers)
@@ -331,15 +341,19 @@ class DynatraceTopologyCheck(AgentCheck):
                 "instance": instance_info.url,
             })
             self.component(external_id, component_type, data)
-            self._collect_relations(dynatrace_component, external_id, component_type)
+            # Cache entity with component for relation creation in second pass
+            self.dynatrace_entities_cache[external_id] = DynatraceCachedEntity(
+                identifiers[0], external_id, component_type, dynatrace_component
+            )
 
-    def _set_relations(self, relationship_items, component_id, component_type, is_target_component):
+    def _set_relations(self, relationship_items, component_id, component_type, is_target_component, entity_cache):
         """
         Sets relationships for different component-types
         :param relationship_items: the component for which relationships need to be extracted and processed
         :param component_id: the component externalId the for and from relationship will be created
         :param component_type: the component type
         :param is_target_component: boolean indicating the diretion of the relationship
+        :param entity_cache: dictionary of cached entities to verify relation targets exist
         :return: None
         """
         for relation_type, relation_value in relationship_items:
@@ -363,7 +377,16 @@ class DynatraceTopologyCheck(AgentCheck):
                             actual_source = source_id.get('id')
                         elif type(source_id) is str:
                             actual_source = source_id
-                        self.relation(actual_target, actual_source, relation_type, {})
+                        # Verify both entities exist in cache before creating relation
+                        if actual_source in entity_cache and actual_target in entity_cache:
+                            self.relation(actual_target, actual_source, relation_type, {})
+                        else:
+                            self.log.debug(
+                                'Skipping relation %s from %s to %s - one or both entities not in cache',
+                                relation_type,
+                                actual_source,
+                                actual_target,
+                            )
                     elif component_type != 'synthetic-monitor':
                         entity_id = relation_id.get('id')
                         # Skip relations pointing to unsupported entity types (e.g., SOFTWARE_COMPONENT,
@@ -376,12 +399,38 @@ class DynatraceTopologyCheck(AgentCheck):
                                 entity_id,
                             )
                             continue
+                        # Verify both entities exist in cache before creating relation
                         if is_target_component:
-                            self.relation(entity_id, component_id, relation_type, {})
+                            if entity_id in entity_cache and component_id in entity_cache:
+                                self.relation(entity_id, component_id, relation_type, {})
+                            else:
+                                self.log.debug(
+                                    'Skipping relation %s from %s to %s - one or both entities not in cache',
+                                    relation_type,
+                                    entity_id,
+                                    component_id,
+                                )
                         else:
-                            self.relation(component_id, entity_id, relation_type, {})
+                            if component_id in entity_cache and entity_id in entity_cache:
+                                self.relation(component_id, entity_id, relation_type, {})
+                            else:
+                                self.log.debug(
+                                    'Skipping relation %s from %s to %s - one or both entities not in cache',
+                                    relation_type,
+                                    component_id,
+                                    entity_id,
+                                )
                     else:
-                        self.relation(source_id, target_id, relation_type, {})
+                        # For synthetic-monitor, verify both entities exist in cache
+                        if source_id in entity_cache and target_id in entity_cache:
+                            self.relation(source_id, target_id, relation_type, {})
+                        else:
+                            self.log.debug(
+                                'Skipping relation %s from %s to %s - one or both entities not in cache',
+                                relation_type,
+                                source_id,
+                                target_id,
+                            )
 
     def _collect_relations(self, dynatrace_component, external_id, component_type):
         """
@@ -395,9 +444,9 @@ class DynatraceTopologyCheck(AgentCheck):
         # dynatrace_component.fromRelationships are 'outgoing relations', thus 'source components' in StackState
         # dynatrace_component.toRelationships are 'incoming relations', thus 'target components' in StackState
         self._set_relations(dynatrace_component.fromRelationships.items(), external_id, component_type,
-                            is_target_component=False)
+                            is_target_component=False, entity_cache=self.dynatrace_entities_cache)
         self._set_relations(dynatrace_component.toRelationships.items(), external_id, component_type,
-                            is_target_component=True)
+                            is_target_component=True, entity_cache=self.dynatrace_entities_cache)
 
     def _clean_unsupported_metadata(self, component):
         """
@@ -709,13 +758,13 @@ class DynatraceTopologyCheck(AgentCheck):
         :return: None
         """
         self.health.start_snapshot()
-        for entity in self.dynatrace_entities_cache:
+        for entity in self.dynatrace_entities_cache.values():
             self.health.check_state(
                 check_state_id=entity.external_id,
                 name='Dynatrace monitored',
                 health_value=Health.CLEAR,
                 topology_element_identifier=entity.identifier,
-                message='{} is monitored by Dynatrace'.format(entity.name)
+                message='{} is monitored by Dynatrace'.format(entity.component.displayName)
             )
         self.health.stop_snapshot()
 
