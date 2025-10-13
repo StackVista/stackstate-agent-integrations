@@ -106,7 +106,6 @@ class TestSplunkClient(unittest.TestCase):
         The expected HTTP header is Authentication when Set-Cookie is not present
         """
         instance = FakeInstanceConfig()
-        instance.auth_type = AuthType.BasicAuth
         helper = SplunkClient(instance)
         helper.auth_session({})
 
