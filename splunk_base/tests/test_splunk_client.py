@@ -190,7 +190,10 @@ class TestSplunkClient(unittest.TestCase):
         """
         new_token = json.loads(mocked_token_create_response()).get('entry')[0].get('content').get('token')
 
-        helper = SplunkClient(FakeInstanceConfig())
+        config = FakeInstanceConfig()
+        config.auth_type = AuthType.TokenAuth
+
+        helper = SplunkClient(config)
         generated_token = helper._create_auth_token("test")
         username = helper.instance_config.username
         audience = helper.instance_config.audience
