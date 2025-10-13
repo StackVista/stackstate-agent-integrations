@@ -157,8 +157,8 @@ class SplunkClient:
         :return: list of names of saved searches
         """
         splunk_ns_user = self._get_splunk_ns_user()
-        self.log.info("splunk NS user: {}".format(splunk_ns_user))
-        self.log.info("splunk namespaced app: {}".format(splunk_app))
+        self.log.debug("splunk NS user: {}".format(splunk_ns_user))
+        self.log.debug("splunk namespaced app: {}".format(splunk_app))
         search_path = self._get_saved_search_path(splunk_ns_user, splunk_app)
 
         response = self._do_get(search_path,

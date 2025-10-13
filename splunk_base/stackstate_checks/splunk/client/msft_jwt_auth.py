@@ -65,9 +65,7 @@ class MsJWTAuth:
             if not self._token:
                 raise Exception("No access_token found in response")
 
-            self.log.info("Successfully generated Microsoft token: {}, {}".format(
-                self.MICROSOFT_CLIENT_ID,
-                self.MICROSOFT_SCOPE))
+            self.log.info("Successfully generated Microsoft token.")
 
         except requests.exceptions.RequestException as e:
             self.log.error(f"Failed to generate Microsoft token: {e}")
