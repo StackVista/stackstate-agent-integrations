@@ -244,7 +244,7 @@ class TestSplunkClient(unittest.TestCase):
         helper = SplunkClient(config)
         helper.requests_session.headers.update({'Authorization': "Bearer memorytokenpresent"})
         helper.jwt_adapter._current_time = mock.MagicMock()
-        helper.jwt_adapter._current_time.return_value = datetime.datetime(2020, 5, 14, 15, 44, 51)
+        helper.jwt_adapter._current_time.return_value = datetime.datetime(2020, 6, 5, 15, 44, 51)
         helper._token_auth_session(status)
 
         # Header should be updated with the new token
@@ -252,6 +252,31 @@ class TestSplunkClient(unittest.TestCase):
         self.assertEqual(expected_header, "Bearer {}".format(new_token))
         # persistence data will have new updated token
         self.assertEqual(status.get_auth_token(), new_token)
+
+    @mock.patch('stackstate_checks.splunk.client.splunk_jwt_auth.jwt.decode',
+                return_value={"exp": 0, "iat": 1584021915, "aud": "stackstate"})
+    @mock.patch('stackstate_checks.splunk.client.splunk_client.SplunkClient._do_post',
+                return_value=FakeResponse(mocked_token_create_response(), headers={}))
+    def test_token_auth_session_use_initial_token_no_expiry(self, mocked_decode_token, moccked_post):
+        """
+        Test token_auth_session when initial token has unlimited expiration
+        """
+
+        status = SplunkPersistentState({})
+        config = FakeInstanceConfig()
+        config.auth_type = AuthType.TokenAuth
+
+        helper = SplunkClient(config)
+        helper.requests_session.headers.update({'Authorization': "Bearer memorytokenpresent"})
+        helper.jwt_adapter._current_time = mock.MagicMock()
+        helper.jwt_adapter._current_time.return_value = datetime.datetime(2020, 5, 14, 15, 44, 51)
+        helper._token_auth_session(status)
+
+        # Header should be updated with the new token
+        expected_header = helper.requests_session.headers.get("Authorization")
+        self.assertEqual(expected_header, "Bearer {}".format(config.initial_token))
+        # initial token should not be stored in state
+        self.assertEqual(status.get_auth_token(), None)
 
     @mock.patch('stackstate_checks.splunk.client.splunk_jwt_auth.jwt.decode',
                 return_value={"exp": 1591797915, "iat": 1584021915, "aud": "stackstate"})

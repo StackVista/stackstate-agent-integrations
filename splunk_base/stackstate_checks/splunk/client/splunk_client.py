@@ -50,6 +50,16 @@ class SplunkClient:
         self.log = logging.getLogger('%s' % __name__)
         self.requests_session = requests.session()
         self.jwt_adapter = None
+        self.static_header_name = None
+        self.static_header_value = None
+
+        if os.getenv("SPLUNK_AUTH_STATIC_HEADER_NAME"):
+            self.static_header_name = os.getenv("SPLUNK_AUTH_STATIC_HEADER_NAME")
+            if not os.getenv("SPLUNK_AUTH_STATIC_HEADER_VALUE"):
+                raise Exception("SPLUNK_AUTH_STATIC_HEADER_VALUE is not set, while SPLUNK_AUTH_STATIC_HEADER_NAME was set, please specify the value.")
+            else:
+                self.static_header_value = os.getenv("SPLUNK_AUTH_STATIC_HEADER_VALUE")
+
         if os.getenv("SPLUNK_MS_JWT_AUTH"):
             self.jwt_adapter = MsJWTAuth(
                 getattr(instance_config, 'verify_ssl_certificate', None),
@@ -88,46 +98,51 @@ class SplunkClient:
         # Fallback mechanism in case no cookies were passed by splunk.
         session_key = response_json["sessionKey"]
         self.requests_session.headers.update({'Authentication': "Splunk %s" % session_key})
+        self.add_static_header()
 
     def _get_splunk_ns_user(self):
         splunk_ns_user = os.getenv("SPLUNK_NS_USER", "-")
         return splunk_ns_user
 
     def _token_auth_session(self, committable_state):
-        is_initial_token = False
         token = committable_state.get_auth_token()
-        new_token = ""
-        if token is None:
-            # Since this is first time run, pick the token from conf.yaml
-            token = os.getenv("INITIAL_TOKEN", self.instance_config.initial_token)
-            is_initial_token = True
 
-        if self.jwt_adapter.is_token_expired(token, is_initial_token):
+        if token is None:
+            token = self.jwt_adapter.get_initial_token()
+
+        new_jwt_token = ""
+
+        if self.jwt_adapter.is_token_expired(token):
             self.log.debug("Current in use authentication token is expired")
             msg = "Current in use authentication token is expired. Please provide a valid token in the YAML " \
                   "and restart the Agent"
             raise TokenExpiredException(msg)
+
         if self.jwt_adapter.token_needs_renewal(
                 token,
-                self.instance_config.renewal_days,
-                is_initial_token):
-            self.log.debug("The token needs renewal as token is about to expire or this is initial token")
-            new_token = self._create_auth_token(token)
-            # Only commit the token if COMMIT_JWT_TOKEN_STATE is set to True.
-            # There are cases of users that do not want the token to be committed to state
-            if os.getenv("COMMIT_JWT_TOKEN_STATE", "true") == "true":
-                committable_state.set_auth_token(new_token)
-        # Update the Authorization header falling back on the original token provided
-        self.requests_session.headers.update({'Authorization': "Bearer %s" % (new_token or token)})
-        self.requests_session.headers.update({'x-backend-auth': "Bearer %s" % token})
+                self.instance_config.renewal_days):
+            self.log.error("The token needs renewal as token is about to expire or this is initial token")
+            new_jwt_token = self._create_auth_token(token)
+            committable_state.set_auth_token(new_jwt_token)
+        else:
+            new_jwt_token = token
+
+        self.log.error("The token: %s" % new_jwt_token)
+        self.requests_session.headers.update({'Authorization': "Bearer %s" % new_jwt_token})
+        self.add_static_header()
+
+    def add_static_header(self):
+        if self.static_header_name is not None:
+            self.log.info("Adding static header `%s` to the request" % self.static_header_name)
+            self.requests_session.headers.update({self.static_header_name: self.static_header_value})
 
     def _create_auth_token(self, token):
-        self.log.debug("Creating a new authentication token")
-        self.requests_session.headers.update({'Authorization': "Bearer %s" % token})
+        self.log.info("Creating a new authentication token")
 
-        new_token = self.jwt_adapter.generate_token()
-        self.requests_session.headers.update({'Authorization': "Bearer %s" % new_token})
-        return new_token
+        if token is not None:
+            self.requests_session.headers.update({'Authorization': "Bearer %s" % token})
+
+        return self.jwt_adapter.generate_token()
 
     def _get_saved_search_path(self, splunk_ns_user, splunk_app=None):
         computed_splunk_app = splunk_app or os.getenv('DEFAULT_SPLUNK_SAVED_SEARCH_APP')

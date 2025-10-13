@@ -33,6 +33,9 @@ class MsJWTAuth:
         if not self.MICROSOFT_SCOPE:
             raise ValueError("SCOPE environment variable is required")
 
+    def get_initial_token(self):
+        return None
+
     def generate_token(self):
         self.log.info("Generating new Microsoft token")
         microsoft_url = f"https://login.microsoftonline.com/{self.MICROSOFT_TENANT_ID}/oauth2/v2.0/token"
@@ -104,10 +107,10 @@ class MsJWTAuth:
             # Fallback: set a default expiry time
             self._token_expiry = datetime.now(timezone.utc)
 
-    def is_token_expired(self, _token, _is_initial_token):
+    def is_token_expired(self, _token):
         return False
 
-    def token_needs_renewal(self, _token, _renewal_days, _is_initial_token):
+    def token_needs_renewal(self, _token, _renewal_days):
         if not self._token:
             return True
 
