@@ -127,7 +127,6 @@ class SplunkSavedSearch(object):
 
         self.app = saved_search_instance.app or instance_config.default_app
 
-
     def retrieve_fields(self, data):
         retrieved_data = {}
 

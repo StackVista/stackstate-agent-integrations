@@ -42,7 +42,7 @@ class MockSplunkClient(object):
         # sid is set to saved search name
         return [load_fixture("%s.json" % search_id)]
 
-    def dispatch(self, saved_search, splunk_app, ignore_saved_search_errors, parameters):
+    def dispatch(self, saved_search, ignore_saved_search_errors, parameters):
         if saved_search.name == "dispatch_exception":
             raise Exception("BOOM")
         self._dispatch_parameters = parameters
