@@ -35,7 +35,8 @@ default_settings = {
     'default_verify_ssl_certificate': False,
     'default_batch_size': 1000,
     'default_saved_searches_parallel': 3,
-    'default_app': "search",
+    'default_app': "-",
+    'default_ns_user': "-",
     'default_parameters': {
         "force_dispatch": True,
         "dispatch.now": True
@@ -72,6 +73,8 @@ class FakeInstanceConfig(object):
         self.ignore_saved_search_errors = True
         self.auth_type = AuthType.BasicAuth
         self.auth_config = SplunkConfigBasicAuthStructure(username="username", password="password")
+        self.app = "-"
+        self.ns_user = "-"
 
 
 class FakeTokenInstanceConfig(object):
@@ -84,6 +87,8 @@ class FakeTokenInstanceConfig(object):
         self.auth_config = SplunkConfigTokenAuthStructure(
             name="admin", audience="test", initial_token="asdfg", token_expiration_days=90, renewal_days=10
         )
+        self.app = "-"
+        self.ns_user = "-"
 
 
 class FakeTokenMSInstanceConfig(object):
@@ -94,8 +99,10 @@ class FakeTokenMSInstanceConfig(object):
         self.ignore_saved_search_errors = True
         self.auth_type = AuthType.TokenAuthMS
         self.auth_config = SplunkConfigTokenAuthMSStructure(
-            name="admin", cert="cert", keyfile="keyfile", request_timeout_seconds=5000
+            cert="cert", keyfile="keyfile", request_timeout_seconds=5000
         )
+        self.app = "-"
+        self.ns_user = "-"
 
 
 class FakeMinimalTokenMSInstanceConfig(object):
@@ -106,5 +113,7 @@ class FakeMinimalTokenMSInstanceConfig(object):
         self.ignore_saved_search_errors = True
         self.auth_type = AuthType.TokenAuthMS
         self.auth_config = SplunkConfigTokenAuthMSStructure(
-            name="admin", cert=None, keyfile=None, request_timeout_seconds=5000
+            cert=None, keyfile=None, request_timeout_seconds=5000
         )
+        self.app = "-"
+        self.ns_user = "-"

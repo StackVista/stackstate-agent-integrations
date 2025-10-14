@@ -40,7 +40,9 @@ def test_splunk_client_saved_searches(test_environment):
     response = client.auth_session({})
     assert response is None
 
-    saved_searches_response = client.saved_searches(None)
+    saved_searches_response = client.saved_searches("-")
+    print(saved_searches_response)
+    assert len(saved_searches_response) == 1
     assert saved_searches_response[0] == 'Bucket Merge Retrieve Conf Settings'
 
 

@@ -18,7 +18,10 @@ init_config:
   default_verify_ssl_certificate: false
 
   # the Splunk app in where the saved searches are located
-  default_app: "search"
+  default_app: "-"
+
+  # the Splunk namespace in where the saved searches are located
+  default_ns: "-"
 
   # default parameters for the Splunk saved search query, these parameters make sure the query refreshes.
   default_parameters:
@@ -70,6 +73,8 @@ instances:
 
     # make the agent less strict and allow for saved searches to be failing or missing
     ignore_saved_search_errors: true
+
+    # ns_user: "nobody"
 
     saved_searches:
       - name: "health"

@@ -45,6 +45,7 @@ class mocked_saved_search:
     def __init__(self):
         self.name = "components"
         self.request_timeout_seconds = 10
+        self.app = "-"
 
 
 class MockResponse(Response):
@@ -130,7 +131,7 @@ class TestSplunkClient(unittest.TestCase):
         helper.requests_session.post.return_value =\
             MockResponse({"reason": "Not Found", "status_code": 404, "url": path})
 
-        res = helper.dispatch(mocked_saved_search(), "search",
+        res = helper.dispatch(mocked_saved_search(),
                               helper.instance_config.ignore_saved_search_errors, None)
 
         self.assertEqual(res, None)
@@ -150,7 +151,7 @@ class TestSplunkClient(unittest.TestCase):
             MockResponse({"reason": "Not Found", "status_code": 404, "url": path})
 
         self.assertRaises(HTTPError, helper.dispatch, mocked_saved_search(),
-                          "search", helper.instance_config.ignore_saved_search_errors, None)
+                          helper.instance_config.ignore_saved_search_errors, None)
 
     def test_finalize_sid(self):
         """
@@ -348,13 +349,5 @@ class TestSplunkClient(unittest.TestCase):
         client._current_time = mock.MagicMock()
         client._current_time.return_value = datetime.datetime(2020, 6, 16, 15, 44, 51)
 
-        search_path = client._get_saved_search_path("-")
-        self.assertEqual(search_path, "/services/saved/searches/?output_mode=json&count=-1")
-
         search_path = client._get_saved_search_path("nobody", "test_app")
         self.assertEqual(search_path, "/servicesNS/nobody/test_app/saved/searches/?output_mode=json&count=-1")
-
-        os.environ['DEFAULT_SPLUNK_SAVED_SEARCH_APP'] = "pasta_carbonara"
-
-        search_path = client._get_saved_search_path("opensuse")
-        self.assertEqual(search_path, "/servicesNS/opensuse/pasta_carbonara/saved/searches/?output_mode=json&count=-1")

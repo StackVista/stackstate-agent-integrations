@@ -18,12 +18,12 @@ from test_splunk_client import FakeResponse
 pytestmark = pytest.mark.unit
 
 
-def test_static_header_with_basic_auth(requests_mock: Mocker):
+def test_extra_header_with_basic_auth(requests_mock: Mocker):
     """
     Test adding a static header to the requests session
     """
-    os.environ["SPLUNK_AUTH_STATIC_HEADER_NAME"] = "x-backend-auth"
-    os.environ["SPLUNK_AUTH_STATIC_HEADER_VALUE"] = "Bearer token"
+    os.environ["SPLUNK_AUTH_EXTRA_HEADER_NAME"] = "x-backend-auth"
+    os.environ["SPLUNK_AUTH_EXTRA_HEADER_VALUE"] = "Bearer token"
 
     instance = FakeInstanceConfig()
     helper = SplunkClient(instance)
@@ -37,11 +37,11 @@ def test_static_header_with_basic_auth(requests_mock: Mocker):
     expected_header = helper.requests_session.headers.get("Authentication")
     assert expected_header == "Splunk MySessionKeyForThisSession"
 
-    expected_static_header = helper.requests_session.headers.get("x-backend-auth")
-    assert expected_static_header == "Bearer token"
+    expected_extra_header = helper.requests_session.headers.get("x-backend-auth")
+    assert expected_extra_header == "Bearer token"
 
 
-def test_static_header_with_token_ms(requests_mock: Mocker):
+def test_extra_header_with_token_ms(requests_mock: Mocker):
     """
     Test JWT adapter Microsoft AD JWT client
     """
@@ -58,8 +58,8 @@ def test_static_header_with_token_ms(requests_mock: Mocker):
     os.environ["CLIENT_SECRET"] = "test"
     os.environ["SCOPE"] = "test"
     os.environ["TENANT_ID"] = "test-tenant-id"
-    os.environ["SPLUNK_AUTH_STATIC_HEADER_NAME"] = "x-backend-auth"
-    os.environ["SPLUNK_AUTH_STATIC_HEADER_VALUE"] = "Bearer token"
+    os.environ["SPLUNK_AUTH_EXTRA_HEADER_NAME"] = "x-backend-auth"
+    os.environ["SPLUNK_AUTH_EXTRA_HEADER_VALUE"] = "Bearer token"
 
     status = SplunkPersistentState({})
 
@@ -73,5 +73,5 @@ def test_static_header_with_token_ms(requests_mock: Mocker):
     client.auth_session(status)
     assert client.requests_session.headers['Authorization'] == f"Bearer {fake_jwt}"
 
-    expected_static_header = client.requests_session.headers.get("x-backend-auth")
-    assert expected_static_header == "Bearer token"
+    expected_extra_header = client.requests_session.headers.get("x-backend-auth")
+    assert expected_extra_header == "Bearer token"

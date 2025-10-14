@@ -25,14 +25,14 @@ class MockSplunkClient(object):
         self.max_parallel_searches = 999
         self.parallel_searches = 0
 
-    def saved_searches(self):
+    def saved_searches(self, splunk_app):
         return self.saved_searches_result
 
     def saved_search_results(self, search_id, saved_search):
         self.parallel_searches -= 1
         return self.saved_search_results_results[search_id]
 
-    def dispatch(self, saved_search, splunk_app, ignore_saved_search_errors, parameters):
+    def dispatch(self, saved_search, ignore_saved_search_errors, parameters):
         self.parallel_searches += 1
         assert self.parallel_searches <= self.max_parallel_searches
         return self.dispatch_results[saved_search.name]

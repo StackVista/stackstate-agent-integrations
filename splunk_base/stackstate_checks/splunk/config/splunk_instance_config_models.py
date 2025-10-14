@@ -39,7 +39,6 @@ class SplunkConfigTokenAuthStructure(StrictBaseModel):
 
 
 class SplunkConfigTokenAuthMSStructure(StrictBaseModel):
-    name: str
     cert: Optional[str] = None
     keyfile: Optional[str] = None
     request_timeout_seconds: int = SPLUNK_TIMEOUT
@@ -64,6 +63,7 @@ class SplunkConfigInstance(ForgivingBaseModel):
     ignore_saved_search_errors: bool = False
     saved_searches: List[SplunkConfigSavedSearchDefault] = []
     verify_ssl_certificate: Optional[bool] = None
+    ns_user: Optional[str] = None
 
 
 class SplunkConfig(ForgivingBaseModel):

@@ -48,17 +48,17 @@ class SplunkClient:
         self.log = logging.getLogger('%s' % __name__)
         self.requests_session = requests.session()
         self.jwt_adapter = None
-        self.static_header_name = None
-        self.static_header_value = None
+        self.extra_header_name = None
+        self.extra_header_value = None
 
-        if os.getenv("SPLUNK_AUTH_STATIC_HEADER_NAME"):
-            self.static_header_name = os.getenv("SPLUNK_AUTH_STATIC_HEADER_NAME")
-            if not os.getenv("SPLUNK_AUTH_STATIC_HEADER_VALUE"):
+        if os.getenv("SPLUNK_AUTH_EXTRA_HEADER_NAME"):
+            self.extra_header_name = os.getenv("SPLUNK_AUTH_EXTRA_HEADER_NAME")
+            if not os.getenv("SPLUNK_AUTH_EXTRA_HEADER_VALUE"):
                 raise Exception(
-                    "SPLUNK_AUTH_STATIC_HEADER_VALUE is not set, while SPLUNK_AUTH_STATIC_HEADER_NAME was set."
+                    "SPLUNK_AUTH_EXTRA_HEADER_VALUE is not set, while SPLUNK_AUTH_EXTRA_HEADER_NAME was set."
                 )
             else:
-                self.static_header_value = os.getenv("SPLUNK_AUTH_STATIC_HEADER_VALUE")
+                self.extra_header_value = os.getenv("SPLUNK_AUTH_EXTRA_HEADER_VALUE")
 
         if instance_config.auth_type == AuthType.TokenAuthMS:
             self.jwt_adapter = MsJWTAuth(instance_config)
@@ -99,11 +99,7 @@ class SplunkClient:
         # Fallback mechanism in case no cookies were passed by splunk.
         session_key = response_json["sessionKey"]
         self.requests_session.headers.update({'Authentication': "Splunk %s" % session_key})
-        self.add_static_header()
-
-    def _get_splunk_ns_user(self):
-        splunk_ns_user = os.getenv("SPLUNK_NS_USER", "-")
-        return splunk_ns_user
+        self.add_extra_header()
 
     def _token_auth_session(self, committable_state):
         token = committable_state.get_auth_token()
@@ -127,12 +123,12 @@ class SplunkClient:
             new_jwt_token = token
 
         self.requests_session.headers.update({'Authorization': "Bearer %s" % new_jwt_token})
-        self.add_static_header()
+        self.add_extra_header()
 
-    def add_static_header(self):
-        if self.static_header_name is not None:
-            self.log.info("Adding static header `%s` to the request" % self.static_header_name)
-            self.requests_session.headers.update({self.static_header_name: self.static_header_value})
+    def add_extra_header(self):
+        if self.extra_header_name is not None:
+            self.log.info("Adding static header `%s` to the request" % self.extra_header_name)
+            self.requests_session.headers.update({self.extra_header_name: self.extra_header_value})
 
     def _create_auth_token(self, token):
         self.log.info("Creating a new authentication token")
@@ -142,24 +138,17 @@ class SplunkClient:
 
         return self.jwt_adapter.generate_token()
 
-    def _get_saved_search_path(self, splunk_ns_user, splunk_app=None):
-        computed_splunk_app = splunk_app or os.getenv('DEFAULT_SPLUNK_SAVED_SEARCH_APP')
-        if computed_splunk_app is not None:
-            return '/servicesNS/%s/%s/saved/searches/?output_mode=json&count=-1' % (
-                splunk_ns_user, computed_splunk_app
-            )
-        else:
-            return '/services/saved/searches/?output_mode=json&count=-1'
+    def _get_saved_search_path(self, splunk_ns_user, splunk_app):
+        return '/servicesNS/%s/%s/saved/searches/?output_mode=json&count=-1' % (
+            splunk_ns_user, splunk_app
+        )
 
-    def saved_searches(self, splunk_app=None):
+    def saved_searches(self, splunk_app):
         """
         Retrieves a list of saved searches from splunk
         :return: list of names of saved searches
         """
-        splunk_ns_user = self._get_splunk_ns_user()
-        self.log.debug("splunk NS user: {}".format(splunk_ns_user))
-        self.log.debug("splunk namespaced app: {}".format(splunk_app))
-        search_path = self._get_saved_search_path(splunk_ns_user, splunk_app)
+        search_path = self._get_saved_search_path(self.instance_config.ns_user, splunk_app)
 
         response = self._do_get(search_path,
                                 self.instance_config.default_request_timeout_seconds,
@@ -175,10 +164,8 @@ class SplunkClient:
         :param count: the maximum number of elements expecting to be returned by the API call
         :return: raw json response from splunk
         """
-        splunk_ns_user = self._get_splunk_ns_user()
-        search_app = getattr(saved_search, 'app', '-')
         search_path = '/servicesNS/%s/%s/search/jobs/%s/results?output_mode=json&offset=%s&count=%s' % \
-                      (splunk_ns_user, search_app, search_id, offset, count)
+                      (self.instance_config.ns_user, saved_search.app, search_id, offset, count)
 
         response = self._do_get(search_path,
                                 saved_search.request_timeout_seconds,
@@ -221,27 +208,15 @@ class SplunkClient:
             offset += nr_of_results
         return results
 
-    def _get_dispatch_user(self):
-        if self.instance_config.auth_type == AuthType.BasicAuth:
-            return self.instance_config.auth_config.username
-        elif self.instance_config.auth_type == AuthType.TokenAuth:
-            # in case of token based mechanism, username won't exist and need to use `name` from token config
-            return self.instance_config.auth_config.name
-        elif self.instance_config.auth_type == AuthType.TokenAuthMS:
-            # same in MS based token auth config
-            return self.instance_config.auth_config.name
-
-    def dispatch(self, saved_search, splunk_app, ignore_saved_search_errors, parameters):
+    def dispatch(self, saved_search, ignore_saved_search_errors, parameters):
         """
         :param saved_search: The saved search to dispatch
-        :param splunk_app: Splunk App under which the saved search is located
         :param ignore_saved_search_errors: Ignore saved search errors
         :param parameters: Parameters of the saved search
         :return: the sid of the saved search
         """
-        splunk_user = self._get_dispatch_user()
         dispatch_path = '/servicesNS/%s/%s/saved/searches/%s/dispatch?output_mode=json' % \
-                        (splunk_user, splunk_app, quote(saved_search.name))
+                        (self.instance_config.ns_user, saved_search.app, quote(saved_search.name))
         self.log.debug("Searching on Dispatch Path: " + dispatch_path)
 
         response_body = self._do_post(dispatch_path,
