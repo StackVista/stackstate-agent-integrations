@@ -92,7 +92,7 @@ def request_mock_post_basic_authentication(requests_mock, logger):
 
 
 def request_mock_get_save_searches(requests_mock, logger):
-    url = "https://%s:%s/services/saved/searches?output_mode=json&count=-1" % (HOST, PORT)
+    url = "https://%s:%s/services/saved/searches/?output_mode=json&count=-1" % (HOST, PORT)
     logger.debug("Mocking GET request URL for Saved Searches: %s" % url)
 
     # List saved searches
