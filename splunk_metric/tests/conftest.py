@@ -151,7 +151,6 @@ def check(requests_mock,  # type: Mocker
     apply_request_mock_routes(requests_mock,
                               logger=get_logger,
                               request_id=config.get("request_id"),
-                              audience=config.get("audience", "admin"),
                               finalize_search_id=config.get("finalize_search_id", None),
                               ignore_search=config.get("ignore_search", False),
                               force_search_failure=config.get("force_search_failure", False),
@@ -165,7 +164,6 @@ def check(requests_mock,  # type: Mocker
             apply_request_mock_routes(requests_mock,
                                       logger=get_logger,
                                       request_id=route.get("request_id"),
-                                      audience=route.get("audience", "admin"),
                                       finalize_search_id=route.get("finalize_search_id", None),
                                       ignore_search=route.get("ignore_search", False),
                                       force_search_failure=route.get("force_search_failure", False),
@@ -328,7 +326,7 @@ def patch_max_restart_time(monkeypatch):  # type: (...) -> Dict[str, any]
         "earliest_time": ""
     }
 
-    def mock_dispatch_saved_search_dispatch(self, saved_search, splunk_app, ignore_saved_search_errors, parameters):
+    def mock_dispatch_saved_search_dispatch(self, saved_search, ignore_saved_search_errors, parameters):
         earliest_time = parameters['dispatch.earliest_time']
         if test_data["earliest_time"] != "":
             assert earliest_time == test_data["earliest_time"]
@@ -434,7 +432,7 @@ def patch_earliest_time_and_duplicates(monkeypatch,  # type: any
         "throw": False
     }
 
-    def mock_dispatch_saved_search_dispatch(self, saved_search, splunk_app, ignore_saved_search_errors, parameters):
+    def mock_dispatch_saved_search_dispatch(self, saved_search, ignore_saved_search_errors, parameters):
         print("Running Mock: mock_dispatch_saved_search_dispatch")
 
         if test_data["throw"]:
@@ -485,7 +483,7 @@ def patch_continue_after_restart(monkeypatch,  # type: any
         "latest_time": None
     }
 
-    def dispatch(self, saved_search, splunk_app, ignore_saved_search_errors, parameters):
+    def dispatch(self, saved_search, ignore_saved_search_errors, parameters):
         earliest_time = parameters['dispatch.earliest_time']
         if test_data["earliest_time"] != "":
             assert earliest_time == test_data["earliest_time"]
@@ -586,7 +584,7 @@ def patch_query_initial_history(monkeypatch,  # type: any
         "latest_time": ""
     }
 
-    def mock_dispatch_saved_search_dispatch(self, saved_search, splunk_app, ignore_saved_search_errors, parameters):
+    def mock_dispatch_saved_search_dispatch(self, saved_search, ignore_saved_search_errors, parameters):
         earliest_time = parameters['dispatch.earliest_time']
         if test_data["earliest_time"] != "":
             assert earliest_time == test_data["earliest_time"]
@@ -625,7 +623,7 @@ def patch_keep_time_on_failure(monkeypatch,  # type: any
         "earliest_time": ""
     }
 
-    def mock_dispatch_saved_search_dispatch(self, saved_search, splunk_app, ignore_saved_search_errors, parameters):
+    def mock_dispatch_saved_search_dispatch(self, saved_search, ignore_saved_search_errors, parameters):
         earliest_time = parameters['dispatch.earliest_time']
         if test_data["earliest_time"] != "":
             assert earliest_time == test_data["earliest_time"]
@@ -658,7 +656,7 @@ def patch_advance_time_on_success(monkeypatch,  # type: any
         "earliest_time": ""
     }
 
-    def mock_dispatch_saved_search_dispatch(self, saved_search, splunk_app, ignore_saved_search_errors, parameters):
+    def mock_dispatch_saved_search_dispatch(self, saved_search, ignore_saved_search_errors, parameters):
         earliest_time = parameters['dispatch.earliest_time']
         if test_data["earliest_time"] != "":
             assert earliest_time == test_data["earliest_time"]
@@ -1124,9 +1122,9 @@ def max_query_chunk_sec_history_check(monkeypatch,  # type: any
     splunk_config_name_alt = 'past_metrics'
 
     # Mock the HTTP Requests
-    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger, audience="admin",
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name, logger=get_logger,
                               finalize_search_id=splunk_config_name)
-    apply_request_mock_routes(requests_mock, request_id=splunk_config_name_alt, logger=get_logger, audience="admin",
+    apply_request_mock_routes(requests_mock, request_id=splunk_config_name_alt, logger=get_logger,
                               finalize_search_id=splunk_config_name_alt)
 
     # Set the splunk tags
@@ -1244,9 +1242,10 @@ def metric_integration_test_instance():  # type: () -> Dict
                 'password': PASSWORD
             },
         },
+        'ns_user': USER,
         'saved_searches': [{
             "name": _make_event_fixture(url, USER, PASSWORD),
-            "initial_history_time_seconds": 300
+            "initial_history_time_seconds": 300,
         }],
         'collection_interval': 15
     }

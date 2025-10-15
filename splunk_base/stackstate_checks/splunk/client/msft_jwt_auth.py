@@ -10,6 +10,7 @@ class MsJWTAuth:
     def __init__(self, instance_config):
         self.verify = getattr(instance_config, 'verify_ssl_certificate', None)
         self.auth_config = instance_config.auth_config
+        self.request_timeout_seconds = instance_config.default_request_timeout_seconds
         self.log = logging.getLogger(__name__)
         self._token = None
         self._token_expiry = datetime.min.replace(tzinfo=timezone.utc)
@@ -56,7 +57,7 @@ class MsJWTAuth:
                                      verify=self.verify,
                                      cert=(self.auth_config.cert,
                                            self.auth_config.keyfile) if self.auth_config.cert else None,
-                                     timeout=self.auth_config.request_timeout_seconds)
+                                     timeout=self.request_timeout_seconds)
             response.raise_for_status()
 
             response_json = response.json()

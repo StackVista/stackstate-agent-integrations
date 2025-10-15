@@ -79,6 +79,7 @@ def splunk_components_instance():
                 'password': PASSWORD
             },
         },
+        'ns_user': USER,
         'component_saved_searches': [{
             "name": _make_components_fixture(url, USER, PASSWORD),
         }],
@@ -98,6 +99,7 @@ def splunk_relations_instance():
                 'password': PASSWORD
             },
         },
+        'ns_user': USER,
         'component_saved_searches': [],
         'relation_saved_searches': [{
             "name": _make_relations_fixture(url, USER, PASSWORD),

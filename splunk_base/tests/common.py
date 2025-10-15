@@ -35,8 +35,8 @@ default_settings = {
     'default_verify_ssl_certificate': False,
     'default_batch_size': 1000,
     'default_saved_searches_parallel': 3,
-    'default_app': "-",
-    'default_ns_user': "-",
+    'default_app': "search",
+    'default_ns_user': "nobody",
     'default_parameters': {
         "force_dispatch": True,
         "dispatch.now": True
@@ -99,7 +99,7 @@ class FakeTokenMSInstanceConfig(object):
         self.ignore_saved_search_errors = True
         self.auth_type = AuthType.TokenAuthMS
         self.auth_config = SplunkConfigTokenAuthMSStructure(
-            cert="cert", keyfile="keyfile", request_timeout_seconds=5000
+            cert="cert", keyfile="keyfile"
         )
         self.app = "-"
         self.ns_user = "-"
@@ -113,7 +113,7 @@ class FakeMinimalTokenMSInstanceConfig(object):
         self.ignore_saved_search_errors = True
         self.auth_type = AuthType.TokenAuthMS
         self.auth_config = SplunkConfigTokenAuthMSStructure(
-            cert=None, keyfile=None, request_timeout_seconds=5000
+            cert=None, keyfile=None
         )
         self.app = "-"
         self.ns_user = "-"

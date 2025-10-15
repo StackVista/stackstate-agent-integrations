@@ -40,10 +40,24 @@ def test_splunk_client_saved_searches(test_environment):
     response = client.auth_session({})
     assert response is None
 
+    saved_searches_response = client.saved_searches("search")
+
+    assert saved_searches_response == ['Bucket Merge Retrieve Conf Settings', 'Errors in the last 24 hours',
+                                       'Errors in the last hour', 'License Usage Data Cube',
+                                       'Messages by minute last 3 hours', 'Orphaned scheduled searches',
+                                       'Splunk errors last 24 hours']
+
+
+@pytest.mark.integration
+@pytest.mark.usefixtures("test_environment")
+def test_splunk_client_saved_searches_all(test_environment):
+    client = SplunkClient(SplunkInstanceConfig(empty_instance, {}, default_settings))
+    response = client.auth_session({})
+    assert response is None
+
     saved_searches_response = client.saved_searches("-")
-    print(saved_searches_response)
+
     assert len(saved_searches_response) == 144
-    assert saved_searches_response[3] == 'Bucket Merge Retrieve Conf Settings'
 
 
 @pytest.mark.integration
