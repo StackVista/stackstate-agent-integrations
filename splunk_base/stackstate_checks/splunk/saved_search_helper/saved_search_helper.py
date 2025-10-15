@@ -56,7 +56,6 @@ class SavedSearches(object):
                     search.name = new_search
                     log.debug("Added saved search '%s'" % new_search)
                     self.searches.append(search)
-                    break
 
         self.searches = list(
             filter(lambda s: s.match is None or (s.app in searches_cache and s.name in searches_cache[s.app]),

@@ -76,6 +76,7 @@ def splunk_health_instance():
                 'password': PASSWORD
             },
         },
+        'ns_user': USER,
         'saved_searches': [{
             "name": _make_health_fixture(url, USER, PASSWORD),
         }],
