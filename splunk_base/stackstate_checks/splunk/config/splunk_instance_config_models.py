@@ -41,7 +41,6 @@ class SplunkConfigTokenAuthStructure(StrictBaseModel):
 class SplunkConfigTokenAuthMSStructure(StrictBaseModel):
     cert: Optional[str] = None
     keyfile: Optional[str] = None
-    request_timeout_seconds: int = SPLUNK_TIMEOUT
 
 
 class SplunkConfigBasicAuthStructure(StrictBaseModel):

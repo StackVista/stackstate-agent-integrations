@@ -22,8 +22,8 @@ DEFAULT_SETTINGS = {
     'default_max_query_chunk_seconds': 300,
     'default_initial_delay_seconds': 0,
     'default_unique_key_fields': ["_bkt", "_cd"],
-    'default_app': "-",
-    'default_ns_user': "-",
+    'default_app': "search",
+    'default_ns_user': "nobody",
     'default_parameters': {
         "force_dispatch": True,
         "dispatch.now": True

@@ -20,8 +20,8 @@ mock_defaults = {
     'default_verify_ssl_certificate': False,
     'default_batch_size': 1000,
     'default_saved_searches_parallel': 3,
-    'default_app': "-",
-    'default_ns_user': "-",
+    'default_app': "search",
+    'default_ns_user': "nobody",
     'default_parameters': {
         "force_dispatch": True,
         "dispatch.now": True

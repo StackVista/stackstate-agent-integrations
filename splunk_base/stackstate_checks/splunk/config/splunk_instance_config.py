@@ -66,7 +66,7 @@ instead of username/password on top level')
         self.default_batch_size = int(self.get_or_default('default_batch_size'))
         self.default_saved_searches_parallel = int(self.get_or_default('default_saved_searches_parallel'))
         self.default_app = self.get_or_default('default_app')
-        self.default_ns = self.get_or_default('default_ns_user')
+        self.default_ns_user = self.get_or_default('default_ns_user')
         self.default_parameters = self.get_or_default('default_parameters')
 
         self.verify_ssl_certificate = instance.verify_ssl_certificate or self.default_verify_ssl_certificate
@@ -90,7 +90,7 @@ instead of username/password on top level')
         self.ignore_saved_search_errors = instance.ignore_saved_search_errors
         self.saved_searches_parallel = instance.saved_searches_parallel or self.default_saved_searches_parallel
         self.tags = instance.tags
-        self.ns_user = instance.ns_user or self.default_ns
+        self.ns_user = instance.ns_user or self.default_ns_user
 
     def get_or_default(self, field):
         return self.init_config.get(field, self.defaults[field])
