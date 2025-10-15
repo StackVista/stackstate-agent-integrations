@@ -121,5 +121,5 @@ class MsJWTAuth:
             self.log.error("Token has expired or is nearing expiration. Renewing.")
             return True
         else:
-            self.log.error(f"Token is still valid for {expiry_minutes:.2f} minutes.")
+            self.log.info(f"Token is still valid for {expiry_minutes:.2f} minutes.")
             return False
