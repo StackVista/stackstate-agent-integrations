@@ -32,7 +32,7 @@ default_settings = {
 
 
 class Instance(object):
-    INSTANCE_TYPE = "splunk"
+    INSTANCE_TYPE = "splunk_health"
 
     def __init__(self, instance, init_config):
         self.instance_config = SplunkInstanceConfig(instance, init_config, default_settings)

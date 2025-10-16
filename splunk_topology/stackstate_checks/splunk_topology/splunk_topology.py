@@ -46,7 +46,7 @@ class InstanceConfig(SplunkInstanceConfig):
 
 
 class Instance(object):
-    INSTANCE_TYPE = "splunk"
+    INSTANCE_TYPE = "splunk_topology"
 
     def __init__(self, instance, init_config):
         self.instance_config = InstanceConfig(instance, init_config)

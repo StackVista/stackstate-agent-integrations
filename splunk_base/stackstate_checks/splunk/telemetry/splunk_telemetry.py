@@ -43,7 +43,7 @@ class SplunkTelemetrySavedSearch(SplunkSavedSearch):
 
 
 class SplunkTelemetryInstance(object):
-    INSTANCE_TYPE = "splunk"
+    INSTANCE_TYPE = "splunk_telemetry"
 
     def __init__(self, current_time, instance, instance_config, create_saved_search):
         self.instance_config = instance_config
