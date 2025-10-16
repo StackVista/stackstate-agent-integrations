@@ -4,7 +4,7 @@
 from stackstate_checks.dev import get_docker_hostname
 from stackstate_checks.splunk.config import AuthType
 from stackstate_checks.splunk.config.splunk_instance_config_models import SplunkConfigBasicAuthStructure, \
-    SplunkConfigTokenAuthStructure, SplunkConfigTokenAuthMSStructure
+    SplunkConfigTokenAuthStructure, SplunkConfigTokenAuthMSStructure, SavedSearchErrorBehavior
 
 HOST = get_docker_hostname()
 PORT = '8089'
@@ -70,7 +70,7 @@ class FakeInstanceConfig(object):
         self.base_url = 'http://testhost:8089'
         self.default_request_timeout_seconds = 10
         self.verify_ssl_certificate = False
-        self.ignore_saved_search_errors = True
+        self.on_saved_search_error = SavedSearchErrorBehavior.ignore
         self.auth_type = AuthType.BasicAuth
         self.auth_config = SplunkConfigBasicAuthStructure(username="username", password="password")
         self.app = "-"
@@ -82,7 +82,7 @@ class FakeTokenInstanceConfig(object):
         self.base_url = 'http://testhost:8089'
         self.default_request_timeout_seconds = 10
         self.verify_ssl_certificate = False
-        self.ignore_saved_search_errors = True
+        self.on_saved_search_error = SavedSearchErrorBehavior.ignore
         self.auth_type = AuthType.TokenAuth
         self.auth_config = SplunkConfigTokenAuthStructure(
             name="admin", audience="test", initial_token="asdfg", token_expiration_days=90, renewal_days=10
@@ -96,7 +96,7 @@ class FakeTokenMSInstanceConfig(object):
         self.base_url = 'http://testhost:8089'
         self.default_request_timeout_seconds = 10
         self.verify_ssl_certificate = False
-        self.ignore_saved_search_errors = True
+        self.on_saved_search_error = SavedSearchErrorBehavior.ignore
         self.auth_type = AuthType.TokenAuthMS
         self.auth_config = SplunkConfigTokenAuthMSStructure(
             cert="cert", keyfile="keyfile"
@@ -110,7 +110,7 @@ class FakeMinimalTokenMSInstanceConfig(object):
         self.base_url = 'http://testhost:8089'
         self.default_request_timeout_seconds = 10
         self.verify_ssl_certificate = False
-        self.ignore_saved_search_errors = True
+        self.on_saved_search_error = SavedSearchErrorBehavior.ignore
         self.auth_type = AuthType.TokenAuthMS
         self.auth_config = SplunkConfigTokenAuthMSStructure(
             cert=None, keyfile=None

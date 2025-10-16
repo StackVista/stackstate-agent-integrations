@@ -9,6 +9,7 @@ from stackstate_checks.base import AgentCheck
 from stackstate_checks.base.errors import CheckException
 from stackstate_checks.splunk.client import FinalizeException
 from stackstate_checks.splunk.config.splunk_instance_config import get_utc_time
+from stackstate_checks.splunk.config.splunk_instance_config_models import SavedSearchErrorBehavior
 
 
 class SavedSearches(object):
@@ -74,9 +75,9 @@ class SavedSearches(object):
             except FinalizeException as e:
                 log.exception(
                     "Got an error %s while finalizing the saved search %s" % (e.message, saved_search.name))
-                if not self.instance_config.ignore_saved_search_errors:
+                if self.instance_config.on_saved_search_error == SavedSearchErrorBehavior.abort:
                     raise e
-                log.warning("Ignoring finalize exception as ignore_saved_search_errors flag is true.")
+                log.warning("Ignoring finalize exception as on_saved_search_error flag is set to 'ignore'.")
 
         search_ids = [(self._dispatch_saved_search(log, persisted_state, saved_search), saved_search)
                       for saved_search in saved_searches]
@@ -135,13 +136,13 @@ class SavedSearches(object):
             log.warning(
                 "Check exception occurred %s while processing saved search name %s" % (str(e), saved_search.name))
             service_check(AgentCheck.WARNING, tags=self.instance_config.tags, message=str(e))
-            if not self.instance_config.ignore_saved_search_errors:
+            if self.instance_config.on_saved_search_error == SavedSearchErrorBehavior.abort:
                 raise e
             return False
         except Exception as e:
             log.warning("Got an error %s while processing saved search name %s" % (str(e), saved_search.name))
             service_check(AgentCheck.WARNING, tags=self.instance_config.tags, message=str(e))
-            if not self.instance_config.ignore_saved_search_errors:
+            if self.instance_config.on_saved_search_error == SavedSearchErrorBehavior.abort:
                 log.error("Received an exception while processing saved search " + saved_search.name)
                 raise e
             return False
@@ -158,7 +159,7 @@ class SavedSearches(object):
 
         log.debug("Dispatching saved search: %s." % saved_search.name)
         sid = self.splunk_client.dispatch(saved_search,
-                                          self.instance_config.ignore_saved_search_errors,
+                                          self.instance_config.on_saved_search_error,
                                           parameters)
         persisted_state.set_sid(saved_search.name, sid)
         return sid
@@ -199,9 +200,9 @@ class SavedSearchesTelemetry(SavedSearches):
             except FinalizeException as e:
                 log.exception(
                     "Got an error %s while finalizing the saved search %s" % (e.message, saved_search.name))
-                if not self.instance_config.ignore_saved_search_errors:
+                if self.instance_config.on_saved_search_error == SavedSearchErrorBehavior.abort:
                     raise e
-                log.warning("Ignoring the finalize exception as ignore_saved_search_errors flag is true")
+                log.warning("Ignoring the finalize exception as on_saved_search_error flag is true")
             except Exception as e:
                 log.warning("Failed to dispatch saved search '%s' due to: %s" % (saved_search.name, e))
                 service_check(AgentCheck.WARNING, tags=self.instance_config.tags, message=str(e))
@@ -251,7 +252,7 @@ class SavedSearchesTelemetry(SavedSearches):
             "Dispatching saved search: %s starting at %s." % (saved_search.name, parameters["dispatch.earliest_time"]))
 
         sid = self.splunk_client.dispatch(saved_search,
-                                          self.instance_config.ignore_saved_search_errors,
+                                          self.instance_config.on_saved_search_error,
                                           parameters)
         persisted_state.set_sid(saved_search.name, sid)
         return sid

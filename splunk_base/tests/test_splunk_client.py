@@ -19,6 +19,7 @@ from stackstate_checks.splunk.client import SplunkClient, FinalizeException, Tok
 from stackstate_checks.splunk.config import AuthType, SplunkPersistentState
 
 from common import FakeInstanceConfig, FakeTokenInstanceConfig
+from stackstate_checks.splunk.config.splunk_instance_config_models import SavedSearchErrorBehavior
 
 # Mark the entire module as tests of type `unit`
 pytestmark = pytest.mark.unit
@@ -118,9 +119,9 @@ class TestSplunkClient(unittest.TestCase):
         expected_header = helper.requests_session.headers.get("Authentication")
         self.assertEqual(expected_header, "Splunk MySessionKeyForThisSession")
 
-    def test_dispatch_with_ignore_saved_search_errors_true(self):
+    def test_dispatch_with_on_saved_search_error_ignore(self):
         """
-        Test dispatch method to get value None in case of flag ignore_saved_search_errors=True
+        Test dispatch method to get value None in case of flag on_saved_search_error='ignore'
         """
 
         path = '/servicesNS/%s/%s/saved/searches/%s/dispatch' % ("admin", "search", "component")
@@ -132,18 +133,18 @@ class TestSplunkClient(unittest.TestCase):
             MockResponse({"reason": "Not Found", "status_code": 404, "url": path})
 
         res = helper.dispatch(mocked_saved_search(),
-                              helper.instance_config.ignore_saved_search_errors, None)
+                              helper.instance_config.on_saved_search_error, None)
 
         self.assertEqual(res, None)
 
-    def test_dispatch_with_ignore_saved_search_errors_false(self):
+    def test_dispatch_with_on_saved_search_error_abort(self):
         """
-        Test dispatch method to get value None in case of flag ignore_saved_search_errors=False
+        Test dispatch method to get value None in case of flag on_saved_search_error='abort'
         """
 
         path = '/servicesNS/%s/%s/saved/searches/%s/dispatch' % ("admin", "search", "component")
         helper = SplunkClient(FakeInstanceConfig())
-        helper.instance_config.ignore_saved_search_errors = False
+        helper.instance_config.on_saved_search_error = SavedSearchErrorBehavior.abort
 
         # Mock the post response of request_session
         helper.requests_session.post = mock.MagicMock()
@@ -151,7 +152,7 @@ class TestSplunkClient(unittest.TestCase):
             MockResponse({"reason": "Not Found", "status_code": 404, "url": path})
 
         self.assertRaises(HTTPError, helper.dispatch, mocked_saved_search(),
-                          helper.instance_config.ignore_saved_search_errors, None)
+                          helper.instance_config.on_saved_search_error, None)
 
     def test_finalize_sid(self):
         """

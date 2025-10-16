@@ -27,7 +27,7 @@ from stackstate_checks.splunk_metric import SplunkMetric, DEFAULT_SETTINGS
 from .common import HOST, PORT, USER, PASSWORD
 from .mock import mock_finalize_sid_exception, mock_polling_search, generate_mock_token, apply_request_mock_routes
 from stackstate_checks.splunk.config.splunk_instance_config_models import SplunkConfigInstance, SplunkConfig, \
-    SplunkConfigSavedSearchDefault
+    SplunkConfigSavedSearchDefault, SavedSearchErrorBehavior
 
 
 @pytest.fixture
@@ -326,7 +326,7 @@ def patch_max_restart_time(monkeypatch):  # type: (...) -> Dict[str, any]
         "earliest_time": ""
     }
 
-    def mock_dispatch_saved_search_dispatch(self, saved_search, ignore_saved_search_errors, parameters):
+    def mock_dispatch_saved_search_dispatch(self, saved_search, on_saved_search_error, parameters):
         earliest_time = parameters['dispatch.earliest_time']
         if test_data["earliest_time"] != "":
             assert earliest_time == test_data["earliest_time"]
@@ -432,7 +432,7 @@ def patch_earliest_time_and_duplicates(monkeypatch,  # type: any
         "throw": False
     }
 
-    def mock_dispatch_saved_search_dispatch(self, saved_search, ignore_saved_search_errors, parameters):
+    def mock_dispatch_saved_search_dispatch(self, saved_search, on_saved_search_error, parameters):
         print("Running Mock: mock_dispatch_saved_search_dispatch")
 
         if test_data["throw"]:
@@ -441,7 +441,7 @@ def patch_earliest_time_and_duplicates(monkeypatch,  # type: any
         earliest_time = parameters['dispatch.earliest_time']
 
         # make sure the ignore search flag is always false
-        assert ignore_saved_search_errors is False
+        assert on_saved_search_error == SavedSearchErrorBehavior.abort
 
         if test_data["earliest_time"] != "":
             assert earliest_time == test_data["earliest_time"]
@@ -483,7 +483,7 @@ def patch_continue_after_restart(monkeypatch,  # type: any
         "latest_time": None
     }
 
-    def dispatch(self, saved_search, ignore_saved_search_errors, parameters):
+    def dispatch(self, saved_search, on_saved_search_error, parameters):
         earliest_time = parameters['dispatch.earliest_time']
         if test_data["earliest_time"] != "":
             assert earliest_time == test_data["earliest_time"]
@@ -584,7 +584,7 @@ def patch_query_initial_history(monkeypatch,  # type: any
         "latest_time": ""
     }
 
-    def mock_dispatch_saved_search_dispatch(self, saved_search, ignore_saved_search_errors, parameters):
+    def mock_dispatch_saved_search_dispatch(self, saved_search, on_saved_search_error, parameters):
         earliest_time = parameters['dispatch.earliest_time']
         if test_data["earliest_time"] != "":
             assert earliest_time == test_data["earliest_time"]
@@ -623,7 +623,7 @@ def patch_keep_time_on_failure(monkeypatch,  # type: any
         "earliest_time": ""
     }
 
-    def mock_dispatch_saved_search_dispatch(self, saved_search, ignore_saved_search_errors, parameters):
+    def mock_dispatch_saved_search_dispatch(self, saved_search, on_saved_search_error, parameters):
         earliest_time = parameters['dispatch.earliest_time']
         if test_data["earliest_time"] != "":
             assert earliest_time == test_data["earliest_time"]
@@ -656,7 +656,7 @@ def patch_advance_time_on_success(monkeypatch,  # type: any
         "earliest_time": ""
     }
 
-    def mock_dispatch_saved_search_dispatch(self, saved_search, ignore_saved_search_errors, parameters):
+    def mock_dispatch_saved_search_dispatch(self, saved_search, on_saved_search_error, parameters):
         earliest_time = parameters['dispatch.earliest_time']
         if test_data["earliest_time"] != "":
             assert earliest_time == test_data["earliest_time"]
@@ -729,7 +729,7 @@ def config_saved_searches_ignore_error(config,  # type: any
                                        splunk_instance_basic_auth  # type: SplunkConfigInstance
                                        ):  # type: (...) -> None
     splunk_instance_basic_auth.tags = ["checktag:checktagvalue"]
-    splunk_instance_basic_auth.ignore_saved_search_errors = True
+    splunk_instance_basic_auth.on_saved_search_error = SavedSearchErrorBehavior.ignore
 
     config["request_id"] = "full_metrics"
     config["audience"] = "admin"
@@ -754,7 +754,7 @@ def config_individual_dispatch_failures(config,  # type: any
                                         splunk_instance_basic_auth  # type: SplunkConfigInstance
                                         ):  # type: (...) -> None
     splunk_instance_basic_auth.tags = ["checktag:checktagvalue"]
-    splunk_instance_basic_auth.ignore_saved_search_errors = True
+    splunk_instance_basic_auth.on_saved_search_error = SavedSearchErrorBehavior.ignore
 
     config["request_id"] = "minimal_metrics"
     config["audience"] = "admin"
@@ -800,7 +800,7 @@ def config_individual_search_failures(config,  # type: any
                                       splunk_instance_basic_auth  # type: SplunkConfigInstance
                                       ):  # type: (...) -> None
     splunk_instance_basic_auth.tags = ["checktag:checktagvalue"]
-    splunk_instance_basic_auth.ignore_saved_search_errors = True
+    splunk_instance_basic_auth.on_saved_search_error = SavedSearchErrorBehavior.ignore
 
     saved_search_config["match"] = ".*metrics"
 

@@ -32,7 +32,7 @@ class MockSplunkClient(object):
         self.parallel_searches -= 1
         return self.saved_search_results_results[search_id]
 
-    def dispatch(self, saved_search, ignore_saved_search_errors, parameters):
+    def dispatch(self, saved_search, on_saved_search_error, parameters):
         self.parallel_searches += 1
         assert self.parallel_searches <= self.max_parallel_searches
         return self.dispatch_results[saved_search.name]
@@ -360,14 +360,14 @@ class TestSplunkInstanceConfig(unittest.TestCase):
         assert self.mock_process_data.results == []
         assert self.mock_service_check.results == [[AgentCheck.OK, None, None, None]]
 
-    def test_ignore_saved_search_errors_continue(self):
+    def test_on_saved_search_error_continue(self):
         """
         When 1 saved search fails with Check Exception, the code should continue and send
         topology if issues are ignored.
         """
         instance = {
             'url': 'http://localhost:8089',
-            'ignore_saved_search_errors': True,
+            'on_saved_search_error': 'ignore',
             'authentication': {
                 'basic_auth': {
                     'username': "adminNew",
@@ -392,14 +392,14 @@ class TestSplunkInstanceConfig(unittest.TestCase):
         assert self.mock_process_data.results == [data1]
         assert self.mock_service_check.results == [[AgentCheck.WARNING, ['mytag', 'mytag2'], None, "'sid_broken'"]]
 
-    def test_no_ignore_saved_search_errors_breaks(self):
+    def test_no_on_saved_search_error_breaks(self):
         """
         When 1 saved search fails with Check Exception, the code
         should continue and send topology if issues are ignored.
         """
         instance = {
             'url': 'http://localhost:8089',
-            'ignore_saved_search_errors': False,
+            'on_saved_search_error': 'abort',
             'authentication': {
                 'basic_auth': {
                     'username': "adminNew",
@@ -442,7 +442,7 @@ class TestSplunkInstanceConfig(unittest.TestCase):
                     'password': "admin"
                 }
             },
-            'ignore_saved_search_errors': True,
+            'on_saved_search_error': 'ignore',
         }
 
         instance = SplunkInstanceConfig(instance, {}, mock_defaults)

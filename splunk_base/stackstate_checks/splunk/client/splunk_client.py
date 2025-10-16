@@ -6,6 +6,8 @@ import requests
 import urllib3
 from six import PY3
 
+from stackstate_checks.splunk.config.splunk_instance_config_models import SavedSearchErrorBehavior
+
 if PY3:
     from urllib.parse import urlencode, quote
 else:
@@ -208,10 +210,10 @@ class SplunkClient:
             offset += nr_of_results
         return results
 
-    def dispatch(self, saved_search, ignore_saved_search_errors, parameters):
+    def dispatch(self, saved_search, on_saved_search_error, parameters):
         """
         :param saved_search: The saved search to dispatch
-        :param ignore_saved_search_errors: Ignore saved search errors
+        :param on_saved_search_error: Ignore saved search errors
         :param parameters: Parameters of the saved search
         :return: the sid of the saved search
         """
@@ -222,7 +224,7 @@ class SplunkClient:
         response_body = self._do_post(dispatch_path,
                                       parameters,
                                       saved_search.request_timeout_seconds,
-                                      ignore_saved_search_errors).json()
+                                      on_saved_search_error).json()
 
         return response_body.get("sid")
 
@@ -238,7 +240,7 @@ class SplunkClient:
             res = self._do_post(finish_path,
                                 payload,
                                 saved_search.request_timeout_seconds,
-                                splunk_ignore_saved_search_errors=False)
+                                on_saved_search_error=SavedSearchErrorBehavior.abort)
             # api returns 200 in general and even in case when saved search is already finalized
             if res.status_code == 200:
                 self.log.info("Saved Search ID %s finished successfully." % search_id)
@@ -271,7 +273,7 @@ class SplunkClient:
             raise error
         return response
 
-    def _do_post(self, path, payload, request_timeout_seconds, splunk_ignore_saved_search_errors=True):
+    def _do_post(self, path, payload, request_timeout_seconds, on_saved_search_error=SavedSearchErrorBehavior.ignore):
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
@@ -284,19 +286,19 @@ class SplunkClient:
         try:
             resp.raise_for_status()
         except HTTPError as error:
-            if not splunk_ignore_saved_search_errors:
+            if on_saved_search_error == SavedSearchErrorBehavior.abort:
                 raise error
             self.log.warning("Received response with status {} and body {}".format(resp.status_code, resp.content))
         except Timeout as error:
-            if not splunk_ignore_saved_search_errors:
+            if on_saved_search_error == SavedSearchErrorBehavior.abort:
                 self.log.error("Got a timeout error")
                 raise error
-            self.log.warning("Ignoring the timeout error as the flag ignore_saved_search_errors is true")
+            self.log.warning("Ignoring the timeout error as the flag on_saved_search_error is set to 'ignore'")
         except ConnectionError as error:
-            if not splunk_ignore_saved_search_errors:
+            if on_saved_search_error == SavedSearchErrorBehavior.abort:
                 self.log.error(
                     "Received error response with status {} and body {}".format(resp.status_code, resp.content)
                 )
                 raise error
-            self.log.warning("Ignoring the connection error as the flag ignore_saved_search_errors is true")
+            self.log.warning("Ignoring the connection error as the flag on_saved_search_error is set to 'ignore'")
         return resp

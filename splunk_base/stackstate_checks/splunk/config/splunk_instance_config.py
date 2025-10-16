@@ -87,7 +87,8 @@ instead of username/password on top level')
             raise CheckException('Instance missing "authentication.basic_auth" or '
                                  '"authentication.token_auth" value')
 
-        self.ignore_saved_search_errors = instance.ignore_saved_search_errors
+        print()
+        self.on_saved_search_error = instance.on_saved_search_error
         self.saved_searches_parallel = instance.saved_searches_parallel or self.default_saved_searches_parallel
         self.tags = instance.tags
         self.ns_user = instance.ns_user or self.default_ns_user
