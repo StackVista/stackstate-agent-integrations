@@ -32,7 +32,7 @@ default_settings = {
 
 
 class Instance(object):
-    INSTANCE_TYPE = "splunk_health"
+    INSTANCE_TYPE = "splunk"
 
     def __init__(self, instance, init_config):
         self.instance_config = SplunkInstanceConfig(instance, init_config, default_settings)
@@ -51,6 +51,8 @@ class Instance(object):
 
 class SplunkHealth(StatefulAgentCheck):
     SERVICE_CHECK_NAME = "splunk.health_information"
+
+    PERSISTENT_CACHE_KEY = "splunk_health_state"
 
     def __init__(self, name, init_config, agentConfig, instances=None):
         super(SplunkHealth, self).__init__(name, init_config, agentConfig, instances)

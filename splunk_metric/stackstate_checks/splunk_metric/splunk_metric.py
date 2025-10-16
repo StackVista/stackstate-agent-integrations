@@ -71,6 +71,7 @@ class MetricSavedSearch(SplunkTelemetrySavedSearch):
 class SplunkMetric(SplunkTelemetryBase):
     CHECK_NAME = "splunk.metric_information"
     SERVICE_CHECK_NAME = "splunk.metric_information"
+    PERSISTENT_CACHE_KEY = "splunk_metric_state"
 
     def __init__(self, name, init_config, agentConfig, instances=None):
         super(SplunkMetric, self).__init__(name, init_config, agentConfig, instances)

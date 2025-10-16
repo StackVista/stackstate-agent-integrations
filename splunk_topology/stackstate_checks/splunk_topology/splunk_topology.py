@@ -46,7 +46,7 @@ class InstanceConfig(SplunkInstanceConfig):
 
 
 class Instance(object):
-    INSTANCE_TYPE = "splunk_topology"
+    INSTANCE_TYPE = "splunk"
 
     def __init__(self, instance, init_config):
         self.instance_config = InstanceConfig(instance, init_config)
@@ -80,6 +80,8 @@ class Instance(object):
 class SplunkTopology(StatefulAgentCheck):
     SERVICE_CHECK_NAME = "splunk.topology_information"
     EXCLUDE_FIELDS = set(['_raw', '_indextime', '_cd', '_serial', '_sourcetype', '_bkt', '_si'])
+
+    PERSISTENT_CACHE_KEY = "splunk_topology_state"
 
     def __init__(self, name, init_config, agentConfig, instances=None):
         super(SplunkTopology, self).__init__(name, init_config, agentConfig, instances)
