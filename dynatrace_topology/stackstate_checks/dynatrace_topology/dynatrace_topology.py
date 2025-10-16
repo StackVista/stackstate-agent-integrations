@@ -539,6 +539,30 @@ class DynatraceTopologyCheck(AgentCheck):
                                      type(properties["customPgMetadata"]))
                     properties["customPgMetadata"] = {}
 
+            # Handle logFileStatus field - wrap list in expected structure
+            if "logFileStatus" in properties:
+                self.log.debug('Found logFileStatus field, type: %s', type(properties["logFileStatus"]))
+                if isinstance(properties["logFileStatus"], list):
+                    # Wrap the list in the expected structure
+                    properties["logFileStatus"] = {"logFileStatus": properties["logFileStatus"]}
+                    self.log.debug('Converted logFileStatus list to wrapped structure')
+                elif not isinstance(properties["logFileStatus"], dict):
+                    self.log.warning('logFileStatus is not a dict or list, type: %s, converting to None',
+                                     type(properties["logFileStatus"]))
+                    properties["logFileStatus"] = None
+
+            # Handle logSourceState field - wrap list in expected structure
+            if "logSourceState" in properties:
+                self.log.debug('Found logSourceState field, type: %s', type(properties["logSourceState"]))
+                if isinstance(properties["logSourceState"], list):
+                    # Wrap the list in the expected structure
+                    properties["logSourceState"] = {"logSourceState": properties["logSourceState"]}
+                    self.log.debug('Converted logSourceState list to wrapped structure')
+                elif not isinstance(properties["logSourceState"], dict):
+                    self.log.warning('logSourceState is not a dict or list, type: %s, converting to None',
+                                     type(properties["logSourceState"]))
+                    properties["logSourceState"] = None
+
         if "lastSeenTimestamp" in component:
             del component["lastSeenTimestamp"]
         return component
