@@ -97,7 +97,7 @@ class MsJWTAuth:
             if expiry:
                 self._token_expiry = datetime.fromtimestamp(expiry, timezone.utc)
             else:
-                self.log.warning("No expiry found in token, setting default expiry")
+                self.log.info("No expiry found in token, setting default expiry")
                 self._token_expiry = datetime.now(timezone.utc)
 
             return self._token
@@ -119,7 +119,7 @@ class MsJWTAuth:
         self.log.info(f"Checking if Microsoft token needs renewal. Time left: {expiry_minutes:.2f} minutes")
 
         if expiry_minutes < self.MICROSOFT_RENEWAL_MINUTES:
-            self.log.error("Token has expired or is nearing expiration. Renewing.")
+            self.log.info("Token has expired or is nearing expiration. Renewing.")
             return True
         else:
             self.log.debug(f"Token is still valid for {expiry_minutes:.2f} minutes.")
