@@ -708,3 +708,69 @@ def test_host_entity_logfilestatus_and_logsourcestate_combined():
     assert host_entity.entityId == "HOST-CUSTOMER123"
     assert host_entity.properties.logFileStatus is not None
     assert host_entity.properties.logSourceState is not None
+
+
+def test_validation_error_skips_entity_gracefully(requests_mock, dynatrace_check, topology, aggregator):
+    """
+    Test that when an entity fails validation, it's skipped with a warning instead of crashing.
+    The integration should continue processing other valid entities.
+    """
+    # Create a response with one invalid host (missing required 'type' field) and one valid host
+    invalid_and_valid_hosts = {
+        "totalCount": 2,
+        "pageSize": 2,
+        "entities": [
+            {
+                # Invalid host - missing required 'type' field
+                "entityId": "HOST-INVALID123",
+                # "type": "HOST",  # <- intentionally missing to cause validation error
+                "displayName": "invalid-host.example.com",
+                "properties": {},
+                "tags": [],
+                "managementZones": [],
+                "fromRelationships": {},
+                "toRelationships": {}
+            },
+            {
+                # Valid host
+                "entityId": "HOST-VALID456",
+                "type": "HOST",
+                "displayName": "valid-host.example.com",
+                "properties": {},
+                "tags": [],
+                "managementZones": [],
+                "fromRelationships": {},
+                "toRelationships": {}
+            }
+        ]
+    }
+
+    import json
+    set_http_responses(requests_mock, hosts=json.dumps(invalid_and_valid_hosts))
+    dynatrace_check.run()
+
+    # Check should still succeed (not crash)
+    aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
+
+    # Should have logged a warning about the invalid entity
+    # (Note: can't easily assert log messages in this test framework, but the check shouldn't crash)
+
+    # Should have processed the valid host
+    test_topology = topology.get_snapshot(dynatrace_check.check_id)
+
+    # At least the valid host should be in the topology
+    assert len(test_topology['components']) >= 1
+
+    # Verify the valid host is present
+    valid_host_found = any(
+        comp['id'] == 'HOST-VALID456'
+        for comp in test_topology['components']
+    )
+    assert valid_host_found, "Valid host should be present in topology"
+
+    # Invalid host should NOT be in topology
+    invalid_host_found = any(
+        comp['id'] == 'HOST-INVALID123'
+        for comp in test_topology['components']
+    )
+    assert not invalid_host_found, "Invalid host should have been skipped"

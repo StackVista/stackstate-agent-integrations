@@ -311,9 +311,22 @@ class DynatraceTopologyCheck(AgentCheck):
                 else:
                     dynatrace_component = DynatraceComponent.model_validate(item)
             except Exception as e:
-                self.log.warn("Couldn't create topology component: %s" % e)
-                print(f"{item}")
-                raise e
+                # Extract entity ID for better error context
+                entity_id = item.get('entityId', 'UNKNOWN')
+                display_name = item.get('displayName', 'UNKNOWN')
+
+                # Log a friendly warning with context
+                self.log.warning(
+                    "Skipping %s entity '%s' (ID: %s) due to validation error. "
+                    "This entity will not appear in topology. Error: %s",
+                    component_type, display_name, entity_id, str(e)
+                )
+
+                # Log the full item data at debug level for troubleshooting
+                self.log.debug("Failed entity data: %s", item)
+
+                # Skip this entity and continue processing others
+                continue
 
             data = {}
             external_id = dynatrace_component.entityId
