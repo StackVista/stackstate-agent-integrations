@@ -8,6 +8,7 @@ from stackstate_checks.base.errors import CheckException
 from stackstate_checks.splunk.client import TokenExpiredException
 from stackstate_checks.splunk.config import SplunkPersistentState
 from stackstate_checks.splunk.config.splunk_instance_config import time_to_seconds, take_required_field
+from stackstate_checks.splunk.config.splunk_instance_config_models import SavedSearchErrorBehavior
 from stackstate_checks.splunk.telemetry.splunk_telemetry import SplunkTelemetryInstance
 
 
@@ -90,7 +91,7 @@ class SplunkTelemetryBase(TransactionalAgentCheck):
                                tags=self.splunk_telemetry_instance.instance_config.tags,
                                message=str(e))
             self.log.exception("Splunk metric exception: %s" % str(e))
-            if not self.splunk_telemetry_instance.instance_config.ignore_saved_search_errors:
+            if self.splunk_telemetry_instance.instance_config.on_saved_search_error == SavedSearchErrorBehavior.abort:
                 return CheckResponse(transactional_state=transactional_state,
                                      persistent_state=splunk_persistent_state.state,
                                      check_error=CheckException(

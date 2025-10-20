@@ -23,6 +23,7 @@ DEFAULT_SETTINGS = {
     'default_initial_delay_seconds': 0,
     'default_unique_key_fields': ["_bkt", "_cd"],
     'default_app': "search",
+    'default_ns_user': "nobody",
     'default_parameters': {
         "force_dispatch": True,
         "dispatch.now": True
@@ -70,6 +71,7 @@ class MetricSavedSearch(SplunkTelemetrySavedSearch):
 class SplunkMetric(SplunkTelemetryBase):
     CHECK_NAME = "splunk.metric_information"
     SERVICE_CHECK_NAME = "splunk.metric_information"
+    PERSISTENT_CACHE_KEY = "splunk_metric_state"
 
     def __init__(self, name, init_config, agentConfig, instances=None):
         super(SplunkMetric, self).__init__(name, init_config, agentConfig, instances)

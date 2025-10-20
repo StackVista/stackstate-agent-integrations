@@ -7,11 +7,10 @@ import requests
 
 class MsJWTAuth:
 
-    def __init__(self, verify=False, cert=None, keyfile=None, timeout=None):
-        self.verify = verify
-        self.cert = cert
-        self.keyfile = keyfile
-        self.timeout = timeout
+    def __init__(self, instance_config):
+        self.verify = getattr(instance_config, 'verify_ssl_certificate', None)
+        self.auth_config = instance_config.auth_config
+        self.request_timeout_seconds = instance_config.default_request_timeout_seconds
         self.log = logging.getLogger(__name__)
         self._token = None
         self._token_expiry = datetime.min.replace(tzinfo=timezone.utc)
@@ -33,6 +32,9 @@ class MsJWTAuth:
         if not self.MICROSOFT_SCOPE:
             raise ValueError("SCOPE environment variable is required")
 
+    def get_initial_token(self):
+        return None
+
     def generate_token(self):
         self.log.info("Generating new Microsoft token")
         microsoft_url = f"https://login.microsoftonline.com/{self.MICROSOFT_TENANT_ID}/oauth2/v2.0/token"
@@ -53,7 +55,9 @@ class MsJWTAuth:
 
             response = requests.post(microsoft_url, data=microsoft_payload, headers=microsoft_headers,
                                      verify=self.verify,
-                                     cert=(self.cert, self.keyfile) if self.cert else None, timeout=self.timeout)
+                                     cert=(self.auth_config.cert,
+                                           self.auth_config.keyfile) if self.auth_config.cert else None,
+                                     timeout=self.request_timeout_seconds)
             response.raise_for_status()
 
             response_json = response.json()
@@ -62,7 +66,7 @@ class MsJWTAuth:
             if not self._token:
                 raise Exception("No access_token found in response")
 
-            self.log.info("Successfully generated Microsoft token")
+            self.log.info("Successfully generated Microsoft token.")
 
         except requests.exceptions.RequestException as e:
             self.log.error(f"Failed to generate Microsoft token: {e}")
@@ -93,7 +97,7 @@ class MsJWTAuth:
             if expiry:
                 self._token_expiry = datetime.fromtimestamp(expiry, timezone.utc)
             else:
-                self.log.warning("No expiry found in token, setting default expiry")
+                self.log.info("No expiry found in token, setting default expiry")
                 self._token_expiry = datetime.now(timezone.utc)
 
             return self._token
@@ -102,10 +106,10 @@ class MsJWTAuth:
             # Fallback: set a default expiry time
             self._token_expiry = datetime.now(timezone.utc)
 
-    def is_token_expired(self, _token, _is_initial_token):
+    def is_token_expired(self, _token):
         return False
 
-    def token_needs_renewal(self, _token, _renewal_days, _is_initial_token):
+    def token_needs_renewal(self, _token):
         if not self._token:
             return True
 
@@ -118,5 +122,5 @@ class MsJWTAuth:
             self.log.info("Token has expired or is nearing expiration. Renewing.")
             return True
         else:
-            self.log.info(f"Token is still valid for {expiry_minutes:.2f} minutes.")
+            self.log.debug(f"Token is still valid for {expiry_minutes:.2f} minutes.")
             return False

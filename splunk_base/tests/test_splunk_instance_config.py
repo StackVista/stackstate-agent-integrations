@@ -21,6 +21,7 @@ mock_defaults = {
     'default_batch_size': 1000,
     'default_saved_searches_parallel': 3,
     'default_app': "search",
+    'default_ns_user': "nobody",
     'default_parameters': {
         "force_dispatch": True,
         "dispatch.now": True
@@ -84,33 +85,6 @@ class TestSplunkInstanceConfig(unittest.TestCase):
         except CheckException as e:
             assert str(e) == "Instance username/password should be configured using \"authentication.basic_auth\" \
 instead of username/password on top level"
-
-    def test_combine_old_and_new_conf(self):
-        instance = {
-            'url': 'http://localhost:8089',
-            'username': 'admin',
-            'password': 'admin',
-            'authentication': {
-                'basic_auth': {
-                    'username': "adminNew",
-                    'password': "adminNew"
-                }
-            },
-            'component_saved_searches': [{
-                "name": "components",
-                "parameters": {}
-            }],
-            'relation_saved_searches': [{
-                "name": "relations",
-                "parameters": {}
-            }],
-            'tags': ['mytag', 'mytag2']
-        }
-
-        instance_config = SplunkInstanceConfig(instance, {}, mock_defaults)
-        assert instance_config.auth_type == AuthType.BasicAuth
-        assert instance_config.username == "adminNew"
-        assert instance_config.password == "adminNew"
 
     def test_check_audience_param_not_set(self):
         """

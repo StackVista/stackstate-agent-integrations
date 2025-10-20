@@ -12,6 +12,7 @@ from stackstate_checks.base.errors import CheckException
 from stackstate_checks.splunk.client import TokenExpiredException, SplunkClient
 from stackstate_checks.splunk.config import SplunkPersistentState
 from stackstate_checks.splunk.config.splunk_instance_config import SplunkSavedSearch, SplunkInstanceConfig
+from stackstate_checks.splunk.config.splunk_instance_config_models import SavedSearchErrorBehavior
 from stackstate_checks.splunk.saved_search_helper import SavedSearches
 
 default_settings = {
@@ -22,6 +23,7 @@ default_settings = {
     'default_batch_size': 1000,
     'default_saved_searches_parallel': 3,
     'default_app': "search",
+    'default_ns_user': "nobody",
     'default_parameters': {
         "force_dispatch": True,
         "dispatch.now": True
@@ -49,6 +51,8 @@ class Instance(object):
 
 class SplunkHealth(StatefulAgentCheck):
     SERVICE_CHECK_NAME = "splunk.health_information"
+
+    PERSISTENT_CACHE_KEY = "splunk_health_state"
 
     def __init__(self, name, init_config, agentConfig, instances=None):
         super(SplunkHealth, self).__init__(name, init_config, agentConfig, instances)
@@ -96,7 +100,7 @@ class SplunkHealth(StatefulAgentCheck):
             self.service_check(self.SERVICE_CHECK_NAME, AgentCheck.CRITICAL, tags=instance.instance_config.tags,
                                message=str(e))
             self.log.exception("Splunk health exception: %s" % str(e))
-            if not instance.instance_config.ignore_saved_search_errors:
+            if instance.instance_config.on_saved_search_error == SavedSearchErrorBehavior.abort:
                 # raise CheckException("Splunk health failed with message: %s" % e, None, sys.exc_info()[2])
                 return CheckResponse(persistent_state=pstate.state,
                                      check_error=CheckException("Splunk health failed with message: %s" % e, None,

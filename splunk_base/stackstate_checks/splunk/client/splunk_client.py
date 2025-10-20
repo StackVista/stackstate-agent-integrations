@@ -6,12 +6,12 @@ import requests
 import urllib3
 from six import PY3
 
+from stackstate_checks.splunk.config.splunk_instance_config_models import SavedSearchErrorBehavior
+
 if PY3:
     from urllib.parse import urlencode, quote
 else:
     from urllib import urlencode, quote
-
-import datetime
 
 from urllib3.exceptions import InsecureRequestWarning
 from requests.exceptions import HTTPError, ConnectionError, Timeout
@@ -50,13 +50,21 @@ class SplunkClient:
         self.log = logging.getLogger('%s' % __name__)
         self.requests_session = requests.session()
         self.jwt_adapter = None
-        if os.getenv("SPLUNK_MS_JWT_AUTH"):
-            self.jwt_adapter = MsJWTAuth(
-                instance_config.verify_ssl_certificate,
-                instance_config.cert,
-                instance_config.keyfile,
-                instance_config.timeout)
-        else:
+        self.extra_header_name = None
+        self.extra_header_value = None
+
+        if os.getenv("SPLUNK_AUTH_EXTRA_HEADER_NAME"):
+            self.extra_header_name = os.getenv("SPLUNK_AUTH_EXTRA_HEADER_NAME")
+            if not os.getenv("SPLUNK_AUTH_EXTRA_HEADER_VALUE"):
+                raise Exception(
+                    "SPLUNK_AUTH_EXTRA_HEADER_VALUE is not set, while SPLUNK_AUTH_EXTRA_HEADER_NAME was set."
+                )
+            else:
+                self.extra_header_value = os.getenv("SPLUNK_AUTH_EXTRA_HEADER_VALUE")
+
+        if instance_config.auth_type == AuthType.TokenAuthMS:
+            self.jwt_adapter = MsJWTAuth(instance_config)
+        elif instance_config.auth_type == AuthType.TokenAuth:
             self.jwt_adapter = SplunkJWTAuth(instance_config, self._do_post)
 
     def auth_session(self, committable_state):
@@ -65,6 +73,9 @@ class SplunkClient:
             self._basic_auth()
         elif self.instance_config.auth_type == AuthType.TokenAuth:
             self.log.debug("Using token based authentication mechanism")
+            self._token_auth_session(committable_state)
+        elif self.instance_config.auth_type == AuthType.TokenAuthMS:
+            self.log.debug("Using Micro$oft token based authentication mechanism")
             self._token_auth_session(committable_state)
 
     def _basic_auth(self):
@@ -79,8 +90,10 @@ class SplunkClient:
         :return: nothing
         """
         auth_path = '/services/auth/login?output_mode=json'
-        auth_username, auth_password = self.instance_config.get_auth_tuple()
-        payload = urlencode([('username', auth_username), ('password', auth_password), ('cookie', 1)], doseq=True)
+        payload = urlencode([
+            ('username', self.instance_config.auth_config.username),
+            ('password', self.instance_config.auth_config.password),
+            ('cookie', 1)], doseq=True)
         response = self._do_post(auth_path, payload, self.instance_config.default_request_timeout_seconds)
         response.raise_for_status()
         response_json = response.json()
@@ -88,46 +101,57 @@ class SplunkClient:
         # Fallback mechanism in case no cookies were passed by splunk.
         session_key = response_json["sessionKey"]
         self.requests_session.headers.update({'Authentication': "Splunk %s" % session_key})
+        self.add_extra_header()
 
     def _token_auth_session(self, committable_state):
-        is_initial_token = False
         token = committable_state.get_auth_token()
-        if token is None:
-            # Since this is first time run, pick the token from conf.yaml
-            token = self.instance_config.initial_token
-            is_initial_token = True
 
-        if self.jwt_adapter.is_token_expired(token, is_initial_token):
+        if token is None:
+            token = self.jwt_adapter.get_initial_token()
+
+        new_jwt_token = ""
+
+        if self.jwt_adapter.is_token_expired(token):
             self.log.debug("Current in use authentication token is expired")
             msg = "Current in use authentication token is expired. Please provide a valid token in the YAML " \
                   "and restart the Agent"
             raise TokenExpiredException(msg)
-        if self.jwt_adapter.token_needs_renewal(
-                token,
-                self.instance_config.renewal_days,
-                is_initial_token):
-            self.log.debug("The token needs renewal as token is about to expire or this is initial token")
-            token = self._create_auth_token(token)
-            committable_state.set_auth_token(token)
-        self.requests_session.headers.update({'Authorization': "Bearer %s" % token})
+
+        if self.jwt_adapter.token_needs_renewal(token):
+            self.log.info("The token needs renewal as token is about to expire or this is initial token")
+            new_jwt_token = self._create_auth_token(token)
+            committable_state.set_auth_token(new_jwt_token)
+        else:
+            new_jwt_token = token
+
+        self.requests_session.headers.update({'Authorization': "Bearer %s" % new_jwt_token})
+        self.add_extra_header()
+
+    def add_extra_header(self):
+        if self.extra_header_name is not None:
+            self.log.info("Adding static header `%s` to the request" % self.extra_header_name)
+            self.requests_session.headers.update({self.extra_header_name: self.extra_header_value})
 
     def _create_auth_token(self, token):
-        self.log.debug("Creating a new authentication token")
-        self.requests_session.headers.update({'Authorization': "Bearer %s" % token})
+        self.log.info("Creating a new authentication token")
 
-        new_token = self.jwt_adapter.generate_token()
-        self.requests_session.headers.update({'Authorization': "Bearer %s" % new_token})
-        return new_token
+        if token is not None:
+            self.requests_session.headers.update({'Authorization': "Bearer %s" % token})
 
-    def saved_searches(self, splunk_app=None):
+        return self.jwt_adapter.generate_token()
+
+    def _get_saved_search_path(self, splunk_ns_user, splunk_app):
+        return '/servicesNS/%s/%s/saved/searches/?output_mode=json&count=-1' % (
+            splunk_ns_user, splunk_app
+        )
+
+    def saved_searches(self, splunk_app):
         """
         Retrieves a list of saved searches from splunk
         :return: list of names of saved searches
         """
-        if splunk_app is not None:
-            search_path = '/servicesNS/-/%s/saved/searches?output_mode=json&count=-1' % splunk_app
-        else:
-            search_path = '/services/saved/searches?output_mode=json&count=-1'
+        search_path = self._get_saved_search_path(self.instance_config.ns_user, splunk_app)
+
         response = self._do_get(search_path,
                                 self.instance_config.default_request_timeout_seconds,
                                 self.instance_config.verify_ssl_certificate)
@@ -142,8 +166,8 @@ class SplunkClient:
         :param count: the maximum number of elements expecting to be returned by the API call
         :return: raw json response from splunk
         """
-        search_path = '/servicesNS/-/-/search/jobs/%s/results?output_mode=json&offset=%s&count=%s' % \
-                      (search_id, offset, count)
+        search_path = '/servicesNS/%s/%s/search/jobs/%s/results?output_mode=json&offset=%s&count=%s' % \
+                      (self.instance_config.ns_user, saved_search.app, search_id, offset, count)
 
         response = self._do_get(search_path,
                                 saved_search.request_timeout_seconds,
@@ -186,30 +210,21 @@ class SplunkClient:
             offset += nr_of_results
         return results
 
-    def _get_dispatch_user(self):
-        if self.instance_config.auth_type == AuthType.BasicAuth:
-            return self.instance_config.username
-        elif self.instance_config.auth_type == AuthType.TokenAuth:
-            # in case of token based mechanism, username won't exist and need to use `name` from token config
-            return self.instance_config.name
-
-    def dispatch(self, saved_search, splunk_app, ignore_saved_search_errors, parameters):
+    def dispatch(self, saved_search, on_saved_search_error, parameters):
         """
         :param saved_search: The saved search to dispatch
-        :param splunk_app: Splunk App under which the saved search is located
-        :param ignore_saved_search_errors: Ignore saved search errors
+        :param on_saved_search_error: Ignore saved search errors
         :param parameters: Parameters of the saved search
         :return: the sid of the saved search
         """
-        splunk_user = self._get_dispatch_user()
         dispatch_path = '/servicesNS/%s/%s/saved/searches/%s/dispatch?output_mode=json' % \
-                        (splunk_user, splunk_app, quote(saved_search.name))
+                        (self.instance_config.ns_user, saved_search.app, quote(saved_search.name))
         self.log.debug("Searching on Dispatch Path: " + dispatch_path)
 
         response_body = self._do_post(dispatch_path,
                                       parameters,
                                       saved_search.request_timeout_seconds,
-                                      ignore_saved_search_errors).json()
+                                      on_saved_search_error).json()
 
         return response_body.get("sid")
 
@@ -225,7 +240,7 @@ class SplunkClient:
             res = self._do_post(finish_path,
                                 payload,
                                 saved_search.request_timeout_seconds,
-                                splunk_ignore_saved_search_errors=False)
+                                on_saved_search_error=SavedSearchErrorBehavior.abort)
             # api returns 200 in general and even in case when saved search is already finalized
             if res.status_code == 200:
                 self.log.info("Saved Search ID %s finished successfully." % search_id)
@@ -248,10 +263,17 @@ class SplunkClient:
     def _do_get(self, path, request_timeout_seconds, verify_ssl_certificate):
         url = "%s%s" % (self.instance_config.base_url, path)
         response = self.requests_session.get(url, timeout=request_timeout_seconds, verify=verify_ssl_certificate)
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except HTTPError as error:
+            self.log.warning(
+                "Received response with status {} and body {}".format(
+                    response.status_code,
+                    response.content))
+            raise error
         return response
 
-    def _do_post(self, path, payload, request_timeout_seconds, splunk_ignore_saved_search_errors=True):
+    def _do_post(self, path, payload, request_timeout_seconds, on_saved_search_error=SavedSearchErrorBehavior.ignore):
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
@@ -264,19 +286,19 @@ class SplunkClient:
         try:
             resp.raise_for_status()
         except HTTPError as error:
-            if not splunk_ignore_saved_search_errors:
+            if on_saved_search_error == SavedSearchErrorBehavior.abort:
                 raise error
             self.log.warning("Received response with status {} and body {}".format(resp.status_code, resp.content))
         except Timeout as error:
-            if not splunk_ignore_saved_search_errors:
+            if on_saved_search_error == SavedSearchErrorBehavior.abort:
                 self.log.error("Got a timeout error")
                 raise error
-            self.log.warning("Ignoring the timeout error as the flag ignore_saved_search_errors is true")
+            self.log.warning("Ignoring the timeout error as the flag on_saved_search_error is set to 'ignore'")
         except ConnectionError as error:
-            if not splunk_ignore_saved_search_errors:
+            if on_saved_search_error == SavedSearchErrorBehavior.abort:
                 self.log.error(
                     "Received error response with status {} and body {}".format(resp.status_code, resp.content)
                 )
                 raise error
-            self.log.warning("Ignoring the connection error as the flag ignore_saved_search_errors is true")
+            self.log.warning("Ignoring the connection error as the flag on_saved_search_error is set to 'ignore'")
         return resp

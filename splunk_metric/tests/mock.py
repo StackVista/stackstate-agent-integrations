@@ -92,7 +92,7 @@ def request_mock_post_basic_authentication(requests_mock, logger):
 
 
 def request_mock_get_save_searches(requests_mock, logger):
-    url = "https://%s:%s/services/saved/searches?output_mode=json&count=-1" % (HOST, PORT)
+    url = "https://%s:%s/services/saved/searches/?output_mode=json&count=-1" % (HOST, PORT)
     logger.debug("Mocking GET request URL for Saved Searches: %s" % url)
 
     # List saved searches
@@ -110,7 +110,7 @@ def request_mock_get_save_searches(requests_mock, logger):
 
 
 def request_mock_get_search_alternative(requests_mock, request_id, logger, force_failure=False):
-    url = "https://%s:%s/servicesNS/-/-/search/jobs/%s/results?output_mode=json&offset=0&count=1000" \
+    url = "https://%s:%s/servicesNS/nobody/search/search/jobs/%s/results?output_mode=json&offset=0&count=1000" \
           % (HOST, PORT, request_id)
     logger.debug("Mocking GET request URL for Search with Alternative Request Id: %s" % url)
 
@@ -127,7 +127,7 @@ def request_mock_get_search_alternative(requests_mock, request_id, logger, force
 
 
 def request_mock_get_search(requests_mock, request_id, logger, force_failure=False):
-    url = "https://%s:%s/servicesNS/-/-/search/jobs/" \
+    url = "https://%s:%s/servicesNS/nobody/search/search/jobs/" \
           "stackstate_checks.base.checks.base.metric-check-name/results?output_mode=json&offset=0&count=1000" \
           % (HOST, PORT)
     logger.debug("Mocking GET request URL for Search: %s" % url)
@@ -144,8 +144,8 @@ def request_mock_get_search(requests_mock, request_id, logger, force_failure=Fal
             )
 
 
-def request_mock_post_dispatch_saved_search(requests_mock, request_id, logger, audience, force_failure=False):
-    url = "https://%s:%s/servicesNS/%s/search/saved/searches/%s/dispatch" % (HOST, PORT, audience, request_id)
+def request_mock_post_dispatch_saved_search(requests_mock, request_id, logger, force_failure=False):
+    url = "https://%s:%s/servicesNS/nobody/search/saved/searches/%s/dispatch" % (HOST, PORT, request_id)
     logger.debug("Mocking POST request URL for Dispatch Saved Search: %s" % url)
 
     if force_failure is True:
@@ -187,12 +187,12 @@ def force_request_post_error(requests_mock, url):
     )
 
 
-def apply_request_mock_routes(requests_mock, request_id, audience, logger, finalize_search_id=None, ignore_search=False,
+def apply_request_mock_routes(requests_mock, request_id, logger, finalize_search_id=None, ignore_search=False,
                               force_search_failure=False, force_dispatch_search_failure=False):
     request_mock_post_token_authentication(requests_mock, logger)
     request_mock_post_basic_authentication(requests_mock, logger)
     request_mock_get_save_searches(requests_mock, logger)
-    request_mock_post_dispatch_saved_search(requests_mock, request_id, logger, audience, force_dispatch_search_failure)
+    request_mock_post_dispatch_saved_search(requests_mock, request_id, logger, force_dispatch_search_failure)
 
     if ignore_search is not True:
         request_mock_get_search(requests_mock, request_id, logger, force_search_failure)

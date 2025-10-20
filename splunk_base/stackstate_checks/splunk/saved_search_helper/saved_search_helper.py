@@ -9,6 +9,7 @@ from stackstate_checks.base import AgentCheck
 from stackstate_checks.base.errors import CheckException
 from stackstate_checks.splunk.client import FinalizeException
 from stackstate_checks.splunk.config.splunk_instance_config import get_utc_time
+from stackstate_checks.splunk.config.splunk_instance_config_models import SavedSearchErrorBehavior
 
 
 class SavedSearches(object):
@@ -24,17 +25,7 @@ class SavedSearches(object):
         self.matches = list(filter(lambda ss: ss.match is not None, saved_searches))
 
     def run_saved_searches(self, process_data, service_check, log, persisted_state, update_status=None):
-        try:
-            if self.instance_config.app is not None and self.instance_config.app != "":
-                new_saved_searches = self.splunk_client.saved_searches(self.instance_config.app)
-            else:
-                new_saved_searches = self.splunk_client.saved_searches()
-        except AttributeError:
-            # This happens when the splunk instance config does not contain an app field, so we just do the same as
-            # the else clause
-            new_saved_searches = self.splunk_client.saved_searches()
-
-        self._update_searches(log, new_saved_searches)
+        self._update_searches(log)
         all_success = True
 
         if callable(update_status):
@@ -47,26 +38,29 @@ class SavedSearches(object):
         if all_success:
             service_check(AgentCheck.OK)
 
-    def _update_searches(self, log, saved_searches):  # same as v1 SavedSearches.update_searches
+    def _update_searches(self, log):  # same as v1 SavedSearches.update_searches
         """
-        Take an existing list of saved searches and update the current state with that list
-        :param saved_searches: List of strings with names of observed saved searches
+        Go through the 'match' save dseraches, find the searches for the app and add them to the list of searches
         """
-        # Drop missing matches
-        self.searches = list(filter(lambda s: s.match is None or s.name in saved_searches, self.searches))
-
-        # Filter already instantiated searches
-        new_searches = set(saved_searches).difference([s.name for s in self.searches])
+        searches_cache = {}
 
         # Match new searches
-        for new_search in new_searches:
-            for match in self.matches:
+        for match in self.matches:
+            if match.app not in searches_cache:
+                searches_cache[match.app] = self.splunk_client.saved_searches(match.app)
+
+            new_searches = set(searches_cache[match.app]).difference([s.name for s in self.searches])
+
+            for new_search in new_searches:
                 if re.match(match.match, new_search) is not None:
                     search = copy.deepcopy(match)
                     search.name = new_search
                     log.debug("Added saved search '%s'" % new_search)
                     self.searches.append(search)
-                    break
+
+        self.searches = list(
+            filter(lambda s: s.match is None or (s.app in searches_cache and s.name in searches_cache[s.app]),
+                   self.searches))
 
     def _dispatch_and_await_search(self, process_data, service_check, log, persisted_state, saved_searches):
         start_time = time.time()
@@ -81,9 +75,9 @@ class SavedSearches(object):
             except FinalizeException as e:
                 log.exception(
                     "Got an error %s while finalizing the saved search %s" % (e.message, saved_search.name))
-                if not self.instance_config.ignore_saved_search_errors:
+                if self.instance_config.on_saved_search_error == SavedSearchErrorBehavior.abort:
                     raise e
-                log.warning("Ignoring finalize exception as ignore_saved_search_errors flag is true.")
+                log.warning("Ignoring finalize exception as on_saved_search_error flag is set to 'ignore'.")
 
         search_ids = [(self._dispatch_saved_search(log, persisted_state, saved_search), saved_search)
                       for saved_search in saved_searches]
@@ -142,13 +136,13 @@ class SavedSearches(object):
             log.warning(
                 "Check exception occurred %s while processing saved search name %s" % (str(e), saved_search.name))
             service_check(AgentCheck.WARNING, tags=self.instance_config.tags, message=str(e))
-            if not self.instance_config.ignore_saved_search_errors:
+            if self.instance_config.on_saved_search_error == SavedSearchErrorBehavior.abort:
                 raise e
             return False
         except Exception as e:
             log.warning("Got an error %s while processing saved search name %s" % (str(e), saved_search.name))
             service_check(AgentCheck.WARNING, tags=self.instance_config.tags, message=str(e))
-            if not self.instance_config.ignore_saved_search_errors:
+            if self.instance_config.on_saved_search_error == SavedSearchErrorBehavior.abort:
                 log.error("Received an exception while processing saved search " + saved_search.name)
                 raise e
             return False
@@ -163,11 +157,9 @@ class SavedSearches(object):
         """
         parameters = saved_search.parameters
 
-        splunk_app = saved_search.app
-
         log.debug("Dispatching saved search: %s." % saved_search.name)
-        sid = self.splunk_client.dispatch(saved_search, splunk_app,
-                                          self.instance_config.ignore_saved_search_errors,
+        sid = self.splunk_client.dispatch(saved_search,
+                                          self.instance_config.on_saved_search_error,
                                           parameters)
         persisted_state.set_sid(saved_search.name, sid)
         return sid
@@ -177,18 +169,7 @@ class SavedSearchesTelemetry(SavedSearches):
     TIME_FMT = "%Y-%m-%dT%H:%M:%S.%f%z"
 
     def run_saved_searches(self, process_data, service_check, log, persisted_state, update_status=None):
-        try:
-            if self.instance_config.app is not None and self.instance_config.app != "":
-                new_saved_searches = self.splunk_client.saved_searches(self.instance_config.app)
-            else:
-                new_saved_searches = self.splunk_client.saved_searches()
-
-        except AttributeError:
-            # This happens when the splunk instance config does not contain an app field, so we just do the same as
-            # the else clause
-            new_saved_searches = self.splunk_client.saved_searches()
-
-        self._update_searches(log, new_saved_searches)
+        self._update_searches(log)
 
         if callable(update_status):
             update_status()  # update transactional state
@@ -219,9 +200,9 @@ class SavedSearchesTelemetry(SavedSearches):
             except FinalizeException as e:
                 log.exception(
                     "Got an error %s while finalizing the saved search %s" % (e.message, saved_search.name))
-                if not self.instance_config.ignore_saved_search_errors:
+                if self.instance_config.on_saved_search_error == SavedSearchErrorBehavior.abort:
                     raise e
-                log.warning("Ignoring the finalize exception as ignore_saved_search_errors flag is true")
+                log.warning("Ignoring the finalize exception as on_saved_search_error flag is true")
             except Exception as e:
                 log.warning("Failed to dispatch saved search '%s' due to: %s" % (saved_search.name, e))
                 service_check(AgentCheck.WARNING, tags=self.instance_config.tags, message=str(e))
@@ -244,7 +225,6 @@ class SavedSearchesTelemetry(SavedSearches):
         parameters = saved_search.parameters
 
         earliest_epoch_datetime = get_utc_time(saved_search.last_observed_timestamp)
-        splunk_app = saved_search.app
 
         parameters["dispatch.time_format"] = self.TIME_FMT
         parameters["dispatch.earliest_time"] = earliest_epoch_datetime.strftime(self.TIME_FMT)
@@ -271,8 +251,8 @@ class SavedSearchesTelemetry(SavedSearches):
         log.debug(
             "Dispatching saved search: %s starting at %s." % (saved_search.name, parameters["dispatch.earliest_time"]))
 
-        sid = self.splunk_client.dispatch(saved_search, splunk_app,
-                                          self.instance_config.ignore_saved_search_errors,
+        sid = self.splunk_client.dispatch(saved_search,
+                                          self.instance_config.on_saved_search_error,
                                           parameters)
         persisted_state.set_sid(saved_search.name, sid)
         return sid

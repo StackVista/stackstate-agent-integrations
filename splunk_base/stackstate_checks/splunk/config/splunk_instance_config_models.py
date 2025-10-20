@@ -4,6 +4,7 @@
 
 from stackstate_checks.base.utils.validations_utils import ForgivingBaseModel, StrictBaseModel
 from typing import List, Optional
+from enum import Enum
 
 
 SPLUNK_TIMEOUT = 10
@@ -38,6 +39,11 @@ class SplunkConfigTokenAuthStructure(StrictBaseModel):
     renewal_days: int = 10
 
 
+class SplunkConfigTokenAuthMSStructure(StrictBaseModel):
+    cert: Optional[str] = None
+    keyfile: Optional[str] = None
+
+
 class SplunkConfigBasicAuthStructure(StrictBaseModel):
     username: str
     password: str
@@ -45,7 +51,13 @@ class SplunkConfigBasicAuthStructure(StrictBaseModel):
 
 class SplunkConfigAuthentication(StrictBaseModel):
     token_auth: Optional[SplunkConfigTokenAuthStructure] = None
+    token_auth_ms: Optional[SplunkConfigTokenAuthMSStructure] = None
     basic_auth: Optional[SplunkConfigBasicAuthStructure] = None
+
+
+class SavedSearchErrorBehavior(str, Enum):
+    ignore = 'ignore'
+    abort = 'abort'
 
 
 class SplunkConfigInstance(ForgivingBaseModel):
@@ -53,12 +65,10 @@ class SplunkConfigInstance(ForgivingBaseModel):
     tags: List[str] = []
     authentication: SplunkConfigAuthentication
     saved_searches_parallel: int = 3
-    ignore_saved_search_errors: bool = False
+    on_saved_search_error: SavedSearchErrorBehavior = SavedSearchErrorBehavior.abort
     saved_searches: List[SplunkConfigSavedSearchDefault] = []
     verify_ssl_certificate: Optional[bool] = None
-    cert: Optional[str] = None
-    keyfile: Optional[str] = None
-    timeout: int = SPLUNK_TIMEOUT
+    ns_user: Optional[str] = None
 
 
 class SplunkConfig(ForgivingBaseModel):

@@ -20,6 +20,9 @@ init_config:
   # the Splunk app in where the saved searches are located
   default_app: "search"
 
+  # the Splunk namespace where the saved searches are located
+  default_ns_user: "nobody"
+
   # default parameters for the Splunk saved search query, these parameters make sure the query refreshes.
   default_parameters:
     force_dispatch: true
@@ -66,8 +69,10 @@ instances:
     # collection_interval: 300
     # saved_searches_parallel: 5
 
-    # make the agent less strict and allow for saved searches to be failing or missing
-    ignore_saved_search_errors: true
+    # We have two behavior when a saved search fails:
+    #   - "ignore": ignore the error and continue (discarding the data) until next scheduled run
+    #   - "abort": abort the splunk check and do not complete the snapshot until next scheduled run
+    on_saved_search_error: "ignore"
 
     component_saved_searches:
       - name: "components"

@@ -3,6 +3,8 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 from stackstate_checks.dev import get_docker_hostname
 from stackstate_checks.splunk.config import AuthType
+from stackstate_checks.splunk.config.splunk_instance_config_models import SplunkConfigBasicAuthStructure, \
+    SplunkConfigTokenAuthStructure, SplunkConfigTokenAuthMSStructure, SavedSearchErrorBehavior
 
 HOST = get_docker_hostname()
 PORT = '8089'
@@ -34,6 +36,7 @@ default_settings = {
     'default_batch_size': 1000,
     'default_saved_searches_parallel': 3,
     'default_app': "search",
+    'default_ns_user': "nobody",
     'default_parameters': {
         "force_dispatch": True,
         "dispatch.now": True
@@ -67,17 +70,50 @@ class FakeInstanceConfig(object):
         self.base_url = 'http://testhost:8089'
         self.default_request_timeout_seconds = 10
         self.verify_ssl_certificate = False
-        self.ignore_saved_search_errors = True
-        self.username = "admin"
-        self.audience = "test"
-        self.name = "admin"
-        self.token_expiration_days = 90
-        self.renewal_days = 10
-        self.initial_token = "asdfg"
+        self.on_saved_search_error = SavedSearchErrorBehavior.ignore
         self.auth_type = AuthType.BasicAuth
-        self.keyfile = ""
-        self.cert = ""
-        self.timeout = 5000
+        self.auth_config = SplunkConfigBasicAuthStructure(username="username", password="password")
+        self.app = "-"
+        self.ns_user = "-"
 
-    def get_auth_tuple(self):
-        return ('username', 'password')
+
+class FakeTokenInstanceConfig(object):
+    def __init__(self):
+        self.base_url = 'http://testhost:8089'
+        self.default_request_timeout_seconds = 10
+        self.verify_ssl_certificate = False
+        self.on_saved_search_error = SavedSearchErrorBehavior.ignore
+        self.auth_type = AuthType.TokenAuth
+        self.auth_config = SplunkConfigTokenAuthStructure(
+            name="admin", audience="test", initial_token="asdfg", token_expiration_days=90, renewal_days=10
+        )
+        self.app = "-"
+        self.ns_user = "-"
+
+
+class FakeTokenMSInstanceConfig(object):
+    def __init__(self):
+        self.base_url = 'http://testhost:8089'
+        self.default_request_timeout_seconds = 10
+        self.verify_ssl_certificate = False
+        self.on_saved_search_error = SavedSearchErrorBehavior.ignore
+        self.auth_type = AuthType.TokenAuthMS
+        self.auth_config = SplunkConfigTokenAuthMSStructure(
+            cert="cert", keyfile="keyfile"
+        )
+        self.app = "-"
+        self.ns_user = "-"
+
+
+class FakeMinimalTokenMSInstanceConfig(object):
+    def __init__(self):
+        self.base_url = 'http://testhost:8089'
+        self.default_request_timeout_seconds = 10
+        self.verify_ssl_certificate = False
+        self.on_saved_search_error = SavedSearchErrorBehavior.ignore
+        self.auth_type = AuthType.TokenAuthMS
+        self.auth_config = SplunkConfigTokenAuthMSStructure(
+            cert=None, keyfile=None
+        )
+        self.app = "-"
+        self.ns_user = "-"

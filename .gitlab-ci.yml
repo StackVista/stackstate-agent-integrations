@@ -24,7 +24,7 @@ variables:
       - $CHECK/*
       - $CHECK/**/*
   - &master_branch
-    if: '$CI_COMMIT_BRANCH == "master"'
+    if: '$CI_COMMIT_BRANCH == "stackstate-7.51.1"'
   - &release_branch
     if: $CI_COMMIT_TAG
   - &base_manual_changes
@@ -43,7 +43,7 @@ variables:
     when: manual
     allow_failure: true
   - &master_manual_branch
-    if: '$CI_COMMIT_BRANCH == "master"'
+    if: '$CI_COMMIT_BRANCH == "stackstate-7.51.1"'
     when: manual
     allow_failure: true
   - &release_manual_branch
@@ -118,7 +118,7 @@ docker:
     - cd .setup-scripts/image
     - make build
     - make push
-    - if [ "${CI_COMMIT_REF_NAME}" = "master" ]; then make tag_latest; make push_latest; fi
+    - if [ "${CI_COMMIT_REF_NAME}" = "stackstate-7.51.1" ]; then make tag_latest; make push_latest; fi
   services:
     - alias: docker
       command:
@@ -240,8 +240,16 @@ test_postgres:
   tags:
     - sts-k8s-xl-no-docker-runner
 
+.splunk_base_build_rule: &splunk_base_build_rule
+  rules:
+    - if: $CI_EXTERNAL_PULL_REQUEST_IID
+    - changes:
+      - splunk_base/*
+      - splunk_base/**/*
+
 test_splunk_topology:
   <<: *linux_test
+  <<: *splunk_base_build_rule
   variables:
     CHECK: "splunk_topology"
     PYTHON3: "true"
@@ -253,6 +261,7 @@ test_splunk_topology:
 
 test_splunk_health:
   <<: *linux_test
+  <<: *splunk_base_build_rule
   variables:
     CHECK: "splunk_health"
     PYTHON3: "true"
@@ -264,6 +273,7 @@ test_splunk_health:
 
 test_splunk_metric:
   <<: *linux_test
+  <<: *splunk_base_build_rule
   variables:
     CHECK: "splunk_metric"
     PYTHON3: "true"
