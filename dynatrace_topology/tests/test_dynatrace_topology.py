@@ -597,3 +597,180 @@ def test_entity_cache_resets_between_runs(requests_mock, dynatrace_check, topolo
     set_http_responses(requests_mock)  # defaults to empty for all endpoints
     dynatrace_check.run()
     assert len(dynatrace_check.dynatrace_entities_cache) == 0
+
+
+def test_host_entity_logfilestatus_list_handling():
+    """
+    Test that logFileStatus as a list is properly wrapped into expected structure.
+    Dynatrace API can return logFileStatus as a list, but the model expects a dict wrapper.
+    """
+    from stackstate_checks.dynatrace_topology.entity_data_types import HostEntity
+
+    # Simulate the raw data structure from Dynatrace API
+    raw_host = {
+        "entityId": "HOST-123456789",
+        "type": "HOST",
+        "displayName": "test-host",
+        "properties": {
+            "logFileStatus": [
+                {"value": "FILE_STATUS_OK", "key": "/var/log/application/PMA_batch.log"}
+            ]
+        }
+    }
+
+    # Apply the transformation that _clean_unsupported_metadata would do
+    from stackstate_checks.dynatrace_topology import DynatraceTopologyCheck
+    check = DynatraceTopologyCheck('dynatrace', {}, [])
+    cleaned = check._clean_unsupported_metadata(raw_host)
+
+    # Verify the transformation wrapped the list
+    assert "logFileStatus" in cleaned["properties"]
+    assert isinstance(cleaned["properties"]["logFileStatus"], dict)
+    assert "logFileStatus" in cleaned["properties"]["logFileStatus"]
+    assert isinstance(cleaned["properties"]["logFileStatus"]["logFileStatus"], list)
+
+    # Now validate it with the model
+    host_entity = HostEntity.model_validate(cleaned)
+    assert host_entity.entityId == "HOST-123456789"
+    assert host_entity.properties.logFileStatus is not None
+    assert hasattr(host_entity.properties.logFileStatus, 'logFileStatus')
+
+
+def test_host_entity_logsourcestate_list_handling():
+    """
+    Test that logSourceState as a list is properly wrapped into expected structure.
+    Dynatrace API can return logSourceState as a list, but the model expects a dict wrapper.
+    """
+    from stackstate_checks.dynatrace_topology.entity_data_types import HostEntity
+
+    # Simulate the raw data structure from Dynatrace API
+    raw_host = {
+        "entityId": "HOST-987654321",
+        "type": "HOST",
+        "displayName": "test-host-2",
+        "properties": {
+            "logSourceState": [
+                {"value": {"storageStatus": "STORAGE_OK"}, "key": "/var/log/application/PMA_batch.log"}
+            ]
+        }
+    }
+
+    # Apply the transformation that _clean_unsupported_metadata would do
+    from stackstate_checks.dynatrace_topology import DynatraceTopologyCheck
+    check = DynatraceTopologyCheck('dynatrace', {}, [])
+    cleaned = check._clean_unsupported_metadata(raw_host)
+
+    # Verify the transformation wrapped the list
+    assert "logSourceState" in cleaned["properties"]
+    assert isinstance(cleaned["properties"]["logSourceState"], dict)
+    assert "logSourceState" in cleaned["properties"]["logSourceState"]
+    assert isinstance(cleaned["properties"]["logSourceState"]["logSourceState"], list)
+
+    # Now validate it with the model
+    host_entity = HostEntity.model_validate(cleaned)
+    assert host_entity.entityId == "HOST-987654321"
+    assert host_entity.properties.logSourceState is not None
+    assert hasattr(host_entity.properties.logSourceState, 'logSourceState')
+
+
+def test_host_entity_logfilestatus_and_logsourcestate_combined():
+    """
+    Test handling both logFileStatus and logSourceState together (as in customer's error).
+    """
+    from stackstate_checks.dynatrace_topology.entity_data_types import HostEntity
+
+    # Simulate the exact scenario from the customer's error
+    raw_host = {
+        "entityId": "HOST-CUSTOMER123",
+        "type": "HOST",
+        "displayName": "customer-host",
+        "properties": {
+            "logFileStatus": [
+                {"value": "FILE_STATUS_OK", "key": "/var/log/application/PMA_batch.log"}
+            ],
+            "logSourceState": [
+                {"value": {"storageStatus": "STORAGE_OK"}, "key": "/var/log/application/PMA_batch.log"}
+            ]
+        }
+    }
+
+    # Apply the transformation
+    from stackstate_checks.dynatrace_topology import DynatraceTopologyCheck
+    check = DynatraceTopologyCheck('dynatrace', {}, [])
+    cleaned = check._clean_unsupported_metadata(raw_host)
+
+    # Verify both transformations
+    assert isinstance(cleaned["properties"]["logFileStatus"], dict)
+    assert isinstance(cleaned["properties"]["logSourceState"], dict)
+
+    # Validate with the model - this should not raise validation errors
+    host_entity = HostEntity.model_validate(cleaned)
+    assert host_entity.entityId == "HOST-CUSTOMER123"
+    assert host_entity.properties.logFileStatus is not None
+    assert host_entity.properties.logSourceState is not None
+
+
+def test_validation_error_skips_entity_gracefully(requests_mock, dynatrace_check, topology, aggregator):
+    """
+    Test that when an entity fails validation, it's skipped with a warning instead of crashing.
+    The integration should continue processing other valid entities.
+    """
+    # Create a response with one invalid host (missing required 'type' field) and one valid host
+    invalid_and_valid_hosts = {
+        "totalCount": 2,
+        "pageSize": 2,
+        "entities": [
+            {
+                # Invalid host - missing required 'type' field
+                "entityId": "HOST-INVALID123",
+                # "type": "HOST",  # <- intentionally missing to cause validation error
+                "displayName": "invalid-host.example.com",
+                "properties": {},
+                "tags": [],
+                "managementZones": [],
+                "fromRelationships": {},
+                "toRelationships": {}
+            },
+            {
+                # Valid host
+                "entityId": "HOST-VALID456",
+                "type": "HOST",
+                "displayName": "valid-host.example.com",
+                "properties": {},
+                "tags": [],
+                "managementZones": [],
+                "fromRelationships": {},
+                "toRelationships": {}
+            }
+        ]
+    }
+
+    import json
+    set_http_responses(requests_mock, hosts=json.dumps(invalid_and_valid_hosts))
+    dynatrace_check.run()
+
+    # Check should still succeed (not crash)
+    aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
+
+    # Should have logged a warning about the invalid entity
+    # (Note: can't easily assert log messages in this test framework, but the check shouldn't crash)
+
+    # Should have processed the valid host
+    test_topology = topology.get_snapshot(dynatrace_check.check_id)
+
+    # At least the valid host should be in the topology
+    assert len(test_topology['components']) >= 1
+
+    # Verify the valid host is present
+    valid_host_found = any(
+        comp['id'] == 'HOST-VALID456'
+        for comp in test_topology['components']
+    )
+    assert valid_host_found, "Valid host should be present in topology"
+
+    # Invalid host should NOT be in topology
+    invalid_host_found = any(
+        comp['id'] == 'HOST-INVALID123'
+        for comp in test_topology['components']
+    )
+    assert not invalid_host_found, "Invalid host should have been skipped"

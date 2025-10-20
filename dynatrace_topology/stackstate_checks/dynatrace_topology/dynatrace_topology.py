@@ -311,9 +311,22 @@ class DynatraceTopologyCheck(AgentCheck):
                 else:
                     dynatrace_component = DynatraceComponent.model_validate(item)
             except Exception as e:
-                self.log.warn("Couldn't create topology component: %s" % e)
-                print(f"{item}")
-                raise e
+                # Extract entity ID for better error context
+                entity_id = item.get('entityId', 'UNKNOWN')
+                display_name = item.get('displayName', 'UNKNOWN')
+
+                # Log a friendly warning with context
+                self.log.warning(
+                    "Skipping %s entity '%s' (ID: %s) due to validation error. "
+                    "This entity will not appear in topology. Error: %s",
+                    component_type, display_name, entity_id, str(e)
+                )
+
+                # Log the full item data at debug level for troubleshooting
+                self.log.debug("Failed entity data: %s", item)
+
+                # Skip this entity and continue processing others
+                continue
 
             data = {}
             external_id = dynatrace_component.entityId
@@ -538,6 +551,30 @@ class DynatraceTopologyCheck(AgentCheck):
                     self.log.warning('customPgMetadata is not a dict or list, type: %s, converting to empty dict',
                                      type(properties["customPgMetadata"]))
                     properties["customPgMetadata"] = {}
+
+            # Handle logFileStatus field - wrap list in expected structure
+            if "logFileStatus" in properties:
+                self.log.debug('Found logFileStatus field, type: %s', type(properties["logFileStatus"]))
+                if isinstance(properties["logFileStatus"], list):
+                    # Wrap the list in the expected structure
+                    properties["logFileStatus"] = {"logFileStatus": properties["logFileStatus"]}
+                    self.log.debug('Converted logFileStatus list to wrapped structure')
+                elif not isinstance(properties["logFileStatus"], dict):
+                    self.log.warning('logFileStatus is not a dict or list, type: %s, converting to None',
+                                     type(properties["logFileStatus"]))
+                    properties["logFileStatus"] = None
+
+            # Handle logSourceState field - wrap list in expected structure
+            if "logSourceState" in properties:
+                self.log.debug('Found logSourceState field, type: %s', type(properties["logSourceState"]))
+                if isinstance(properties["logSourceState"], list):
+                    # Wrap the list in the expected structure
+                    properties["logSourceState"] = {"logSourceState": properties["logSourceState"]}
+                    self.log.debug('Converted logSourceState list to wrapped structure')
+                elif not isinstance(properties["logSourceState"], dict):
+                    self.log.warning('logSourceState is not a dict or list, type: %s, converting to None',
+                                     type(properties["logSourceState"]))
+                    properties["logSourceState"] = None
 
         if "lastSeenTimestamp" in component:
             del component["lastSeenTimestamp"]
