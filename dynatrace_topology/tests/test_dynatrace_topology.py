@@ -613,7 +613,7 @@ def test_host_entity_logfilestatus_list_handling():
         "displayName": "test-host",
         "properties": {
             "logFileStatus": [
-                {"value": "FILE_STATUS_OK", "key": "/var/log/application/PMA_batch.log"}
+                {"value": "FILE_STATUS_OK", "key": "/var/log/application/app_batch.log"}
             ]
         }
     }
@@ -650,7 +650,7 @@ def test_host_entity_logsourcestate_list_handling():
         "displayName": "test-host-2",
         "properties": {
             "logSourceState": [
-                {"value": {"storageStatus": "STORAGE_OK"}, "key": "/var/log/application/PMA_batch.log"}
+                {"value": {"storageStatus": "STORAGE_OK"}, "key": "/var/log/application/app_batch.log"}
             ]
         }
     }
@@ -686,10 +686,10 @@ def test_host_entity_logfilestatus_and_logsourcestate_combined():
         "displayName": "customer-host",
         "properties": {
             "logFileStatus": [
-                {"value": "FILE_STATUS_OK", "key": "/var/log/application/PMA_batch.log"}
+                {"value": "FILE_STATUS_OK", "key": "/var/log/application/app_batch.log"}
             ],
             "logSourceState": [
-                {"value": {"storageStatus": "STORAGE_OK"}, "key": "/var/log/application/PMA_batch.log"}
+                {"value": {"storageStatus": "STORAGE_OK"}, "key": "/var/log/application/app_batch.log"}
             ]
         }
     }
@@ -774,3 +774,130 @@ def test_validation_error_skips_entity_gracefully(requests_mock, dynatrace_check
         for comp in test_topology['components']
     )
     assert not invalid_host_found, "Invalid host should have been skipped"
+
+
+def test_problematic_host_data():
+    """
+    Test with the exact problematic data from customer that was causing validation errors.
+    This ensures our fix handles the real-world scenario with logFileStatus and logSourceState as lists.
+    """
+    from stackstate_checks.dynatrace_topology.entity_data_types import HostEntity
+    from stackstate_checks.dynatrace_topology import DynatraceTopologyCheck
+
+    # Exact problematic data from customer
+    customer_host_data = {
+        'entityId': 'HOST-E150D16FDF9B703F',
+        'type': 'HOST',
+        'displayName': 'host001.eu.yournamehere.com',
+        'properties': {
+            'bitness': '64',
+            'installerTrackedDownload': False,
+            'autoInjection': 'ENABLED',
+            'additionalSystemInfo': [
+                {'value': '0', 'key': 'system.processor.frequency.max'},
+                {'value': 'No Enclosure', 'key': 'system.vendor'},
+                {'value': 'None', 'key': 'system.serial'},
+                {'value': 'Intel Corporation', 'key': 'system.board.vendor'},
+                {'value': 'None', 'key': 'system.board.serial'},
+                {'value': '0', 'key': 'system.processor.frequency.min'},
+                {'value': '3810144256', 'key': 'system.memory.size'},
+                {'value': 'Intel(R) Xeon(R) Gold 6342 CPU @ 2.80GHz', 'key': 'system.processor.model'},
+                {'value': 'VMware Virtual Platform', 'key': 'system.model'},
+                {'value': 'x86', 'key': 'system.architecture'}
+            ],
+            'monitoringMode': 'FULL_STACK',
+            'osArchitecture': 'X86',
+            'logFileStatus': [{'value': 'FILE_STATUS_OK', 'key': '/appl/tzx/p01/logs/application/app_batch.log'}],
+            'osVersion': 'Red Hat Enterprise Linux 8.10 (Ootpa) (kernel 4.18.0-553.77.1.el8_10.x86_64)',
+            'installerPotentialProblem': False,
+            'macAddresses': ['00:50:56:8B:A5:FE'],
+            'osType': 'LINUX',
+            'state': 'RUNNING',
+            'logSourceState': [
+                {
+                    'value': {'storageStatus': 'LOG_STORAGE_CONFIGURATION_STATUS_NOT_SEND_TO_STORAGE'},
+                    'key': '/appl/tzx/p01/logs/application/app_batch.log'
+                }
+            ],
+            'physicalMemory': 3810144256,
+            'detectedName': 'host001.eu.yournamehere.com',
+            'installerVersion': '1.321.51.20250905-075429',
+            'standalone': False,
+            'ipAddress': ['10.251.108.227'],
+            'hypervisorType': 'VMWARE',
+            'hostGroupName': 'PROD_APP_GROUP',
+            'networkZone': 'default',
+            'standaloneSpecialAgentsOnly': False,
+            'isMonitoringCandidate': False,
+            'logicalCpuCores': 2,
+            'cpuCores': 2,
+            'ebpfDiscoveryMonitored': False,
+            'memoryTotal': 3810144256,
+            'installerSupportAlert': False
+        },
+        'tags': [],
+        'managementZones': [
+            {
+                'id': '2414109248746337189',
+                'name': 'PROD_ZONE',
+                'sourceSetting': (
+                    'api/v2/settings/objects/'
+                    'vu9U3hXa3q0AAAABABhidWlsdGluOm1hbmFnZW1lbnQtem9uZXMABnRlbmFudAAGdGVuYW50ACRjYWNlOTVjOC1jN2U0LTQ3N'
+                    'DYtYWVkZi1iZDAwZDE4MDQzMjm-71TeFdrerQ'
+                )
+            },
+            {
+                'id': '5849059329244275694',
+                'name': 'APP_PROD_ZONE',
+                'sourceSetting': (
+                    'api/v2/settings/objects/'
+                    'vu9U3hXa3q0AAAABABhidWlsdGluOm1hbmFnZW1lbnQtem9uZXMABnRlbmFudAAGdGVuYW50ACRkYzhmZDFkYy04YzllLTRk'
+                    'YzYtYTYyZi0zMDlmODRhY2EyMDG-71TeFdrerQ'
+                )
+            }
+        ],
+        'fromRelationships': {
+            'isNetworkClientOfHost': [{'id': 'HOST-E150D16FDF9B703F', 'type': 'HOST'}],
+            'isInstanceOf': [{'id': 'HOST_GROUP-E7C43DD053FA4A06', 'type': 'HOST_GROUP'}]
+        },
+        'toRelationships': {
+            'isSiteOf': [{'id': 'GEOLOC_SITE-E6604F565A4E0689', 'type': 'GEOLOC_SITE'}],
+            'isNetworkClientOfHost': [{'id': 'HOST-E150D16FDF9B703F', 'type': 'HOST'}],
+            'runsOn': [{'id': 'PROCESS_GROUP-F3202EC588CC331F', 'type': 'PROCESS_GROUP'}],
+            'isProcessOf': [{'id': 'PROCESS_GROUP_INSTANCE-3B022A3E5375F37E', 'type': 'PROCESS_GROUP_INSTANCE'}],
+            'isDiskOf': [{'id': 'DISK-F5C353D06BCB7AC6', 'type': 'DISK'}],
+            'isNetworkInterfaceOf': [{'id': 'NETWORK_INTERFACE-E150D13F8910D5C1', 'type': 'NETWORK_INTERFACE'}]
+        }
+    }
+
+    # Apply the transformation that _clean_unsupported_metadata would do
+    check = DynatraceTopologyCheck('dynatrace', {}, [])
+    cleaned = check._clean_unsupported_metadata(customer_host_data)
+
+    # Verify the transformation worked
+    assert "logFileStatus" in cleaned["properties"]
+    assert isinstance(cleaned["properties"]["logFileStatus"], dict)
+    assert "logFileStatus" in cleaned["properties"]["logFileStatus"]
+    assert isinstance(cleaned["properties"]["logFileStatus"]["logFileStatus"], list)
+
+    assert "logSourceState" in cleaned["properties"]
+    assert isinstance(cleaned["properties"]["logSourceState"], dict)
+    assert "logSourceState" in cleaned["properties"]["logSourceState"]
+    assert isinstance(cleaned["properties"]["logSourceState"]["logSourceState"], list)
+
+    # Now validate it with the model - this should NOT raise validation errors
+    host_entity = HostEntity.model_validate(cleaned)
+    assert host_entity.entityId == "HOST-E150D16FDF9B703F"
+    assert host_entity.displayName == "host001.eu.yournamehere.com"
+    assert host_entity.properties.logFileStatus is not None
+    assert host_entity.properties.logSourceState is not None
+
+    # Verify the data structure is correct
+    assert len(host_entity.properties.logFileStatus.logFileStatus) == 1
+    assert host_entity.properties.logFileStatus.logFileStatus[0].value == "FILE_STATUS_OK"
+    assert host_entity.properties.logFileStatus.logFileStatus[0].key == "/appl/tzx/p01/logs/application/app_batch.log"
+
+    assert len(host_entity.properties.logSourceState.logSourceState) == 1
+    assert (host_entity.properties.logSourceState.logSourceState[0].value.storageStatus ==
+            "LOG_STORAGE_CONFIGURATION_STATUS_NOT_SEND_TO_STORAGE")
+    assert host_entity.properties.logSourceState.logSourceState[0].key == "/appl/tzx/p01/logs/application/app_batch.log"

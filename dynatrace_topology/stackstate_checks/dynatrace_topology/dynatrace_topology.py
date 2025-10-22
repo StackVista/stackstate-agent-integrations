@@ -289,8 +289,23 @@ class DynatraceTopologyCheck(AgentCheck):
         :return: create the component on stackstate API
         """
         for item in response:
-            item = self._clean_unsupported_metadata(item)
             try:
+                # Clean and transform the data
+                item = self._clean_unsupported_metadata(item)
+
+                # Additional safety check for logFileStatus and logSourceState
+                if component_type == "host" and "properties" in item and isinstance(item["properties"], dict):
+                    properties = item["properties"]
+
+                    # Ensure logFileStatus is properly wrapped
+                    if "logFileStatus" in properties and isinstance(properties["logFileStatus"], list):
+                        properties["logFileStatus"] = {"logFileStatus": properties["logFileStatus"]}
+                        self.log.debug("Transformed logFileStatus from list to wrapped structure")
+
+                    # Ensure logSourceState is properly wrapped
+                    if "logSourceState" in properties and isinstance(properties["logSourceState"], list):
+                        properties["logSourceState"] = {"logSourceState": properties["logSourceState"]}
+                        self.log.debug("Transformed logSourceState from list to wrapped structure")
                 if component_type != "synthetic-monitor":
                     if component_type == "host":
                         dynatrace_component = HostEntity.model_validate(item)
