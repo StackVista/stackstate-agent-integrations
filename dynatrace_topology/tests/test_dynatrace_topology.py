@@ -675,11 +675,11 @@ def test_host_entity_logsourcestate_list_handling():
 
 def test_host_entity_logfilestatus_and_logsourcestate_combined():
     """
-    Test handling both logFileStatus and logSourceState together (as in customer's error).
+    Test handling both logFileStatus and logSourceState together.
     """
     from stackstate_checks.dynatrace_topology.entity_data_types import HostEntity
 
-    # Simulate the exact scenario from the customer's error
+    # Simulate the exact scenario
     raw_host = {
         "entityId": "HOST-CUSTOMER123",
         "type": "HOST",
@@ -778,14 +778,13 @@ def test_validation_error_skips_entity_gracefully(requests_mock, dynatrace_check
 
 def test_problematic_host_data():
     """
-    Test with the exact problematic data from customer that was causing validation errors.
-    This ensures our fix handles the real-world scenario with logFileStatus and logSourceState as lists.
+    Test with the exact problematic data that was causing validation errors.
+    This ensures our fix handles the scenario with logFileStatus and logSourceState as lists.
     """
     from stackstate_checks.dynatrace_topology.entity_data_types import HostEntity
     from stackstate_checks.dynatrace_topology import DynatraceTopologyCheck
 
-    # Exact problematic data from customer
-    customer_host_data = {
+    host_data = {
         'entityId': 'HOST-E150D16FDF9B703F',
         'type': 'HOST',
         'displayName': 'host001.eu.yournamehere.com',
@@ -872,7 +871,7 @@ def test_problematic_host_data():
 
     # Apply the transformation that _clean_unsupported_metadata would do
     check = DynatraceTopologyCheck('dynatrace', {}, [])
-    cleaned = check._clean_unsupported_metadata(customer_host_data)
+    cleaned = check._clean_unsupported_metadata(host_data)
 
     # Verify the transformation worked
     assert "logFileStatus" in cleaned["properties"]
