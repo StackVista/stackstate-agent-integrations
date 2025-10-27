@@ -180,6 +180,15 @@ linux_deps:
 .linux_splunk_test: &linux_splunk_test
   <<: *linux_test
   <<: *base_splunk_integration_rules
+  script:
+    - .setup-scripts/setup_vsphere_artifactory_publishing.sh
+    - .setup-scripts/setup_artifactory_docker.sh
+    - docker pull registry.tooling.stackstate.io/docker/splunk/splunk:latest # Pull splunk to aovid pulling during compose, which breaks in python
+    - export COMPOSE_HTTP_TIMEOUT=300 # Increase timeout in case splunk is slow to start up.
+    - checksdev test --cov ${CHECK}
+    - checksdev test ${CHECK} --bench || true
+      # [BS] we skip this until https://github.com/PyCQA/pylint/pull/2681/commits/253e5d05e3943d3bc8e4470804a138cb20049548 lands in pylint stable version
+    # - if [ -n "$PYTHON3" ]; then checksdev validate py3 ${CHECK}; fi
 
 test_stackstate_checks_base:
   <<: *linux_test
