@@ -42,6 +42,11 @@ variables:
       - $CHECK/**/*
     when: manual
     allow_failure: true
+  - &splunk_base_build_rule
+    if: $CI_EXTERNAL_PULL_REQUEST_IID
+    changes:
+      - splunk_base/*
+      - splunk_base/**/*
   - &master_manual_branch
     if: '$CI_COMMIT_BRANCH == "stackstate-7.51.1"'
     when: manual
@@ -57,6 +62,14 @@ variables:
     - <<: *base_changes
     - <<: *master_branch
     - <<: *release_branch
+
+.base_splunk_integration_rules:
+  &base_splunk_integration_rules
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
+    - <<: *splunk_base_build_rule
 
 .base_integration_manual_rules:
   &base_integration_manual_rules
@@ -162,6 +175,10 @@ linux_deps:
       # - if [ -n "$PYTHON3" ]; then checksdev validate py3 ${CHECK}; fi
   interruptible: true
 
+.linux_splunk_test: &linux_splunk_test
+  <<: *linux_test
+  <<: *base_splunk_integration_rules
+
 test_stackstate_checks_base:
   <<: *linux_test
   variables:
@@ -240,16 +257,8 @@ test_postgres:
   tags:
     - sts-k8s-xl-no-docker-runner
 
-.splunk_base_build_rule: &splunk_base_build_rule
-  rules:
-    - if: $CI_EXTERNAL_PULL_REQUEST_IID
-    - changes:
-      - splunk_base/*
-      - splunk_base/**/*
-
 test_splunk_topology:
-  <<: *linux_test
-  <<: *splunk_base_build_rule
+  <<: *linux_splunk_test
   variables:
     CHECK: "splunk_topology"
     PYTHON3: "true"
@@ -260,8 +269,7 @@ test_splunk_topology:
     - sts-k8s-xl-no-docker-runner
 
 test_splunk_health:
-  <<: *linux_test
-  <<: *splunk_base_build_rule
+  <<: *linux_splunk_test
   variables:
     CHECK: "splunk_health"
     PYTHON3: "true"
@@ -272,8 +280,7 @@ test_splunk_health:
     - sts-k8s-xl-no-docker-runner
 
 test_splunk_metric:
-  <<: *linux_test
-  <<: *splunk_base_build_rule
+  <<: *linux_splunk_test
   variables:
     CHECK: "splunk_metric"
     PYTHON3: "true"
