@@ -171,7 +171,6 @@ linux_deps:
   script:
     - .setup-scripts/setup_vsphere_artifactory_publishing.sh
     - .setup-scripts/setup_artifactory_docker.sh
-    - .setup-scripts/wait_for_docker.sh
     - export COMPOSE_HTTP_TIMEOUT=300 # Increase timeout in case containers are slow to start up.
     - checksdev test --cov ${CHECK}
     - checksdev test ${CHECK} --bench || true
@@ -185,7 +184,6 @@ linux_deps:
   script:
     - .setup-scripts/setup_vsphere_artifactory_publishing.sh
     - .setup-scripts/setup_artifactory_docker.sh
-    - .setup-scripts/wait_for_docker.sh
     - docker pull registry.tooling.stackstate.io/docker/splunk/splunk:latest # Pull splunk to aovid pulling during compose, which breaks in python
     - export COMPOSE_HTTP_TIMEOUT=300 # Increase timeout in case splunk is slow to start up.
     - checksdev test --cov ${CHECK}
