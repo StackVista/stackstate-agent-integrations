@@ -357,7 +357,10 @@ test_splunk_base:
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
-
+    DOCKER_TLS_CERTDIR: ""
+  tags:
+    - sts-k8s-xl-no-docker-runner
+    
 test_servicenow:
   <<: *linux_test
   variables:
