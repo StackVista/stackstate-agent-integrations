@@ -1,4 +1,4 @@
-image: registry.tooling.stackstate.io/docker/stackstate/stackstate-agent-integrations-runner:20241120-py311
+image: ${REGISTRY_DOCKER_URL}/stackstate/stackstate-agent-integrations-runner:20241120-py311
 stages:
   - build
   - test
@@ -42,6 +42,11 @@ variables:
       - $CHECK/**/*
     when: manual
     allow_failure: true
+  - &splunk_base_build_rule
+    if: $CI_EXTERNAL_PULL_REQUEST_IID
+    changes:
+      - splunk_base/*
+      - splunk_base/**/*
   - &master_manual_branch
     if: '$CI_COMMIT_BRANCH == "stackstate-7.51.1"'
     when: manual
@@ -57,6 +62,14 @@ variables:
     - <<: *base_changes
     - <<: *master_branch
     - <<: *release_branch
+
+.base_splunk_integration_rules:
+  &base_splunk_integration_rules
+  rules:
+    - <<: *base_changes
+    - <<: *master_branch
+    - <<: *release_branch
+    - <<: *splunk_base_build_rule
 
 .base_integration_manual_rules:
   &base_integration_manual_rules
@@ -108,7 +121,7 @@ print_env:
 
 docker:
   <<: *manual_job_rules
-  image: ${DOCKER_PROXY_URL}/docker:20-git
+  image: ${REGISTRY_DOCKER_URL}/docker:20-git
   stage: build
   script:
     - echo "${docker_password}" | docker login --username=${docker_user} --password-stdin docker.io
@@ -124,7 +137,7 @@ docker:
       command:
         - --experimental
         - --tls=false
-      name: ${DOCKER_PROXY_URL}/docker:20-dind
+      name: ${REGISTRY_DOCKER_URL}/docker:20-dind
   variables:
     DOCKER_DRIVER: overlay2
     DOCKER_HOST: tcp://docker:2375
@@ -150,17 +163,33 @@ linux_deps:
   needs:
     - linux_deps
   services:
-    - name: docker:19.03.5-dind
-      ## Overriding the entrypoint to exclude the /var/run/docker.sock because we also mount it
-      entrypoint: ["dockerd-entrypoint.sh", "/usr/local/bin/dockerd", "--host=tcp://0.0.0.0:2375" ]
+    - alias: docker
+      command:
+        - --experimental
+        - --tls=false
+      name: ${REGISTRY_DOCKER_URL}/docker:24-dind
   script:
     - .setup-scripts/setup_vsphere_artifactory_publishing.sh
     - .setup-scripts/setup_artifactory_docker.sh
+    - export COMPOSE_HTTP_TIMEOUT=300 # Increase timeout in case containers are slow to start up.
     - checksdev test --cov ${CHECK}
     - checksdev test ${CHECK} --bench || true
       # [BS] we skip this until https://github.com/PyCQA/pylint/pull/2681/commits/253e5d05e3943d3bc8e4470804a138cb20049548 lands in pylint stable version
       # - if [ -n "$PYTHON3" ]; then checksdev validate py3 ${CHECK}; fi
   interruptible: true
+
+.linux_splunk_test: &linux_splunk_test
+  <<: *linux_test
+  <<: *base_splunk_integration_rules
+  script:
+    - .setup-scripts/setup_vsphere_artifactory_publishing.sh
+    - .setup-scripts/setup_artifactory_docker.sh
+    - docker pull registry.tooling.stackstate.io/docker/splunk/splunk:latest # Pull splunk to aovid pulling during compose, which breaks in python
+    - export COMPOSE_HTTP_TIMEOUT=300 # Increase timeout in case splunk is slow to start up.
+    - checksdev test --cov ${CHECK}
+    - checksdev test ${CHECK} --bench || true
+      # [BS] we skip this until https://github.com/PyCQA/pylint/pull/2681/commits/253e5d05e3943d3bc8e4470804a138cb20049548 lands in pylint stable version
+    # - if [ -n "$PYTHON3" ]; then checksdev validate py3 ${CHECK}; fi
 
 test_stackstate_checks_base:
   <<: *linux_test
@@ -240,16 +269,8 @@ test_postgres:
   tags:
     - sts-k8s-xl-no-docker-runner
 
-.splunk_base_build_rule: &splunk_base_build_rule
-  rules:
-    - if: $CI_EXTERNAL_PULL_REQUEST_IID
-    - changes:
-      - splunk_base/*
-      - splunk_base/**/*
-
 test_splunk_topology:
-  <<: *linux_test
-  <<: *splunk_base_build_rule
+  <<: *linux_splunk_test
   variables:
     CHECK: "splunk_topology"
     PYTHON3: "true"
@@ -260,8 +281,7 @@ test_splunk_topology:
     - sts-k8s-xl-no-docker-runner
 
 test_splunk_health:
-  <<: *linux_test
-  <<: *splunk_base_build_rule
+  <<: *linux_splunk_test
   variables:
     CHECK: "splunk_health"
     PYTHON3: "true"
@@ -272,8 +292,7 @@ test_splunk_health:
     - sts-k8s-xl-no-docker-runner
 
 test_splunk_metric:
-  <<: *linux_test
-  <<: *splunk_base_build_rule
+  <<: *linux_splunk_test
   variables:
     CHECK: "splunk_metric"
     PYTHON3: "true"
@@ -332,13 +351,16 @@ test_zabbix:
     DOCKER_DRIVER: overlay2
 
 test_splunk_base:
-  <<: *linux_test
+  <<: *linux_splunk_test
   variables:
     CHECK: "splunk_base"
     PYTHON3: "true"
     DOCKER_HOST: tcp://docker:2375/
     DOCKER_DRIVER: overlay2
-
+    DOCKER_TLS_CERTDIR: ""
+  tags:
+    - sts-k8s-xl-no-docker-runner
+    
 test_servicenow:
   <<: *linux_test
   variables:
