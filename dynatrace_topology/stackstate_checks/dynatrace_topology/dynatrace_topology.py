@@ -289,8 +289,35 @@ class DynatraceTopologyCheck(AgentCheck):
         :return: create the component on stackstate API
         """
         for item in response:
-            item = self._clean_unsupported_metadata(item)
             try:
+                # Clean and transform the data
+                item = self._clean_unsupported_metadata(item)
+
+                # Additional safety check for logFileStatus and logSourceState
+                if "properties" in item and isinstance(item["properties"], dict):
+                    properties = item["properties"]
+
+                    if component_type == "host":
+                        # For hosts: ensure logFileStatus and logSourceState are properly wrapped
+                        if "logFileStatus" in properties and isinstance(properties["logFileStatus"], list):
+                            properties["logFileStatus"] = {"logFileStatus": properties["logFileStatus"]}
+                            self.log.debug("Transformed logFileStatus from list to wrapped structure")
+
+                        if "logSourceState" in properties and isinstance(properties["logSourceState"], list):
+                            properties["logSourceState"] = {"logSourceState": properties["logSourceState"]}
+                            self.log.debug("Transformed logSourceState from list to wrapped structure")
+
+                    elif component_type == "process":
+                        # For processes: ensure logFileStatus and logSourceState are unwrapped to lists
+                        if ("logFileStatus" in properties and isinstance(properties["logFileStatus"], dict) and
+                                "logFileStatus" in properties["logFileStatus"]):
+                            properties["logFileStatus"] = properties["logFileStatus"]["logFileStatus"]
+                            self.log.debug("Transformed logFileStatus from wrapped structure to list")
+
+                        if ("logSourceState" in properties and isinstance(properties["logSourceState"], dict) and
+                                "logSourceState" in properties["logSourceState"]):
+                            properties["logSourceState"] = properties["logSourceState"]["logSourceState"]
+                            self.log.debug("Transformed logSourceState from wrapped structure to list")
                 if component_type != "synthetic-monitor":
                     if component_type == "host":
                         dynatrace_component = HostEntity.model_validate(item)
@@ -316,7 +343,7 @@ class DynatraceTopologyCheck(AgentCheck):
                 display_name = item.get('displayName', 'UNKNOWN')
 
                 # Log a friendly warning with context
-                self.log.warning(
+                self.log.info(
                     "Skipping %s entity '%s' (ID: %s) due to validation error. "
                     "This entity will not appear in topology. Error: %s",
                     component_type, display_name, entity_id, str(e)
