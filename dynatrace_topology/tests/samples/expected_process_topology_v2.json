@@ -41,6 +41,7 @@
           "urn:dynatrace:/PROCESS_GROUP_INSTANCE-01E533529CEAD5B9"
         ],
         "tags": [
+          "DYNATRACE",
           "PROCESS_GROUP_INSTANCE-01E533529CEAD5B9",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
@@ -95,6 +96,7 @@
           "urn:dynatrace:/PROCESS_GROUP_INSTANCE-19D9327B2A2AEDA2"
         ],
         "tags": [
+          "GO",
           "PROCESS_GROUP_INSTANCE-19D9327B2A2AEDA2",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
@@ -149,6 +151,7 @@
           "urn:dynatrace:/PROCESS_GROUP_INSTANCE-1EBE44734EFE4B0A"
         ],
         "tags": [
+          "GO",
           "PROCESS_GROUP_INSTANCE-1EBE44734EFE4B0A",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
@@ -195,6 +198,7 @@
           "urn:dynatrace:/PROCESS_GROUP_INSTANCE-398C9F0CC1F23924"
         ],
         "tags": [
+          "DYNATRACE",
           "PROCESS_GROUP_INSTANCE-398C9F0CC1F23924",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
@@ -246,6 +250,7 @@
           "urn:dynatrace:/PROCESS_GROUP_INSTANCE-463655540145E401"
         ],
         "tags": [
+          "DYNATRACE",
           "PROCESS_GROUP_INSTANCE-463655540145E401",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
@@ -352,7 +357,9 @@
           "urn:dynatrace:/PROCESS_GROUP_INSTANCE-62A99A5B7659B311"
         ],
         "tags": [
+          "DOCKER",
           "PROCESS_GROUP_INSTANCE-62A99A5B7659B311",
+          "PYTHON",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
         ],
@@ -536,6 +543,9 @@
           "urn:dynatrace:/PROCESS_GROUP_INSTANCE-83B45B30794CA9A5"
         ],
         "tags": [
+          "DOCKER",
+          "NGINX",
+          "NGINX:nginx/1.27.0",
           "PROCESS_GROUP_INSTANCE-83B45B30794CA9A5",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
@@ -571,6 +581,7 @@
           "urn:dynatrace:/PROCESS_GROUP_INSTANCE-990D9D9DF5A08C0A"
         ],
         "tags": [
+          "LINUX_SYSTEM",
           "PROCESS_GROUP_INSTANCE-990D9D9DF5A08C0A",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
@@ -651,6 +662,7 @@
           "urn:dynatrace:/PROCESS_GROUP_INSTANCE-A0BD2F9B6FDE952F"
         ],
         "tags": [
+          "DYNATRACE",
           "PROCESS_GROUP_INSTANCE-A0BD2F9B6FDE952F",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
@@ -1070,6 +1082,9 @@
           "urn:dynatrace:/PROCESS_GROUP_INSTANCE-A1CF3E0CF4DFC8D1"
         ],
         "tags": [
+          "DOCKER",
+          "GO",
+          "GO:1.19.13",
           "PROCESS_GROUP_INSTANCE-A1CF3E0CF4DFC8D1",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
@@ -1213,6 +1228,8 @@
           "urn:dynatrace:/PROCESS_GROUP_INSTANCE-F75CAACD62B3C3B0"
         ],
         "tags": [
+          "DOCKER",
+          "MYSQL",
           "PROCESS_GROUP_INSTANCE-F75CAACD62B3C3B0",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
@@ -1263,6 +1280,7 @@
           "urn:dynatrace:/PROCESS_GROUP_INSTANCE-F8B1A1CB029E16C8"
         ],
         "tags": [
+          "DYNATRACE",
           "PROCESS_GROUP_INSTANCE-F8B1A1CB029E16C8",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"

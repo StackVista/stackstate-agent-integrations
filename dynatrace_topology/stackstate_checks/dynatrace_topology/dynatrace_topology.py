@@ -769,10 +769,7 @@ class DynatraceTopologyCheck(AgentCheck):
                 labels.append(dynatrace_component.entityId)
 
             if dynatrace_component.get('softwareTechnologies'):
-                for technologies in dynatrace_component.softwareTechnologies:
-                    tech_label = ':'.join(filter(None, [technologies.get('type'), technologies.get('edition'),
-                                                        technologies.get('version')]))
-                    labels.append(tech_label)
+                labels.extend(self._build_software_technology_labels(dynatrace_component.softwareTechnologies))
         else:
             component_dict = self._component_to_dictionary(dynatrace_component)
             entity_id = component_dict.get("entityId")
@@ -784,6 +781,10 @@ class DynatraceTopologyCheck(AgentCheck):
                 for zone in management_zones:
                     if isinstance(zone, dict) and zone.get("name"):
                         labels.append(f"managementZones:{zone['name']}")
+
+            software_techs = component_dict.get("softwareTechnologies")
+            if isinstance(software_techs, list):
+                labels.extend(self._build_software_technology_labels(software_techs))
 
             monitoring_state = component_dict.get("monitoringState")
             if isinstance(monitoring_state, dict):
@@ -811,17 +812,29 @@ class DynatraceTopologyCheck(AgentCheck):
 
     def _extract_labels_from_properties(self, labels, properties):
         if isinstance(properties, dict):
-            for prop_value in properties.values():
-                if isinstance(prop_value, dict):
-                    labels = self._process_labels(labels, prop_value)
-                elif isinstance(prop_value, list):
-                    for item in prop_value:
-                        if isinstance(item, dict):
-                            labels = self._process_labels(labels, item)
+            for prop_key, prop_value in properties.items():
+                labels = self._add_labels_from_property(labels, prop_key, prop_value)
         elif isinstance(properties, list):
             for item in properties:
-                if isinstance(item, dict):
-                    labels = self._process_labels(labels, item)
+                labels = self._add_labels_from_property(labels, None, item)
+        return labels
+
+    def _add_labels_from_property(self, labels, prop_key, prop_value):
+        if prop_key == "softwareTechnologies" and isinstance(prop_value, list):
+            labels.extend(self._build_software_technology_labels(prop_value))
+        elif prop_key == "managementZones" and isinstance(prop_value, list):
+            for zone in prop_value:
+                if isinstance(zone, dict) and zone.get("name"):
+                    labels.append(f"managementZones:{zone['name']}")
+
+        if isinstance(prop_value, dict):
+            labels = self._process_labels(labels, prop_value)
+            for nested_key, nested_value in prop_value.items():
+                labels = self._add_labels_from_property(labels, nested_key, nested_value)
+        elif isinstance(prop_value, list):
+            for item in prop_value:
+                labels = self._add_labels_from_property(labels, None, item)
+
         return labels
 
     @staticmethod
@@ -843,19 +856,27 @@ class DynatraceTopologyCheck(AgentCheck):
         elif dynatrace_component_property_dict.get("key") == "managementZones":
             labels_out.append("managementZones:%s" % dynatrace_component_property_dict.get("value"))
         elif dynatrace_component_property_dict.get("key") == "softwareTechnologies":
-            sp_type = "undefined"
-            sp_version = "undefined"
-            sp_edition = "undefined"
-            if dynatrace_component_property_dict.get("type"):
-                sp_type = dynatrace_component_property_dict.get("type")
-            if dynatrace_component_property_dict.get("version"):
-                sp_version = dynatrace_component_property_dict.get("version")
-            if dynatrace_component_property_dict.get("edition"):
-                sp_edition = dynatrace_component_property_dict.get("edition")
-            tech_label = ':'.join(filter(None, [sp_type, sp_edition,
-                                                sp_version]))
-            labels_out.append(tech_label)
+            technologies = dynatrace_component_property_dict.get("value", [])
+            if isinstance(technologies, list):
+                labels_out.extend(DynatraceTopologyCheck._build_software_technology_labels(technologies))
         return labels_out
+
+    @staticmethod
+    def _build_software_technology_labels(technologies):
+        labels = []
+        for tech in technologies:
+            if isinstance(tech, dict):
+                tech_type = tech.get("type")
+                tech_edition = tech.get("edition")
+                tech_version = tech.get("version")
+                label = ':'.join(filter(None, [tech_type, tech_edition, tech_version]))
+                if label:
+                    labels.append(label)
+                elif tech_type:
+                    labels.append(tech_type)
+            elif isinstance(tech, str) and tech:
+                labels.append(tech)
+        return labels
 
     def monitored_health(self):
         """

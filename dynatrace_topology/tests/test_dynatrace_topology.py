@@ -4,7 +4,7 @@
 
 from stackstate_checks.base import AgentCheck
 from stackstate_checks.base.utils.common import read_file, load_json_from_file
-from stackstate_checks.dynatrace_topology.entity_data_types import ProcessGroupInstanceEntity
+from stackstate_checks.dynatrace_topology.entity_data_types import ProcessGroupInstanceEntity, ServiceEntity
 from .conftest import set_http_responses, sort_topology_data, assert_topology
 
 
@@ -752,6 +752,38 @@ def test_management_zones_in_labels():
     assert "managementZones:PROD_ZONE" in labels
     assert "managementZones:APP_PROD_ZONE" in labels
     assert host_entity.entityId in labels
+
+
+def test_software_technologies_labels_from_properties():
+    """
+    Ensure labels include software technologies present only inside properties.
+    """
+    from stackstate_checks.dynatrace_topology import DynatraceTopologyCheck
+
+    service_data = {
+        "entityId": "SERVICE-EXAMPLE",
+        "type": "SERVICE",
+        "displayName": "example-service",
+        "properties": {
+            "softwareTechnologies": [
+                {"type": "MYSQL"},
+                {"type": "GO", "version": "1.19.13"},
+                {"type": "NGINX", "edition": "FPM", "version": "1.27.0"}
+            ]
+        },
+        "tags": [],
+        "managementZones": [],
+        "fromRelationships": {},
+        "toRelationships": {}
+    }
+
+    service_entity = ServiceEntity.model_validate(service_data)
+    check = DynatraceTopologyCheck('dynatrace', {}, [])
+
+    labels = check._get_labels(service_entity)
+
+    expected_labels = {"MYSQL", "GO:1.19.13", "NGINX:1.27.0", service_entity.entityId}
+    assert expected_labels.issubset(set(labels))
 
 
 def test_validation_error_skips_entity_gracefully(requests_mock, dynatrace_check, topology, aggregator):

@@ -41,6 +41,7 @@
           "urn:dynatrace:/SERVICE-93E117D7DDAD5AA7"
         ],
         "tags": [
+          "MYSQL",
           "SERVICE-93E117D7DDAD5AA7",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
@@ -88,6 +89,9 @@
           "urn:dynatrace:/SERVICE-C364E91F84B8F254"
         ],
         "tags": [
+          "DOCKER",
+          "GO",
+          "GO:1.19.13",
           "SERVICE-C364E91F84B8F254",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
@@ -135,6 +139,9 @@
           "urn:dynatrace:/SERVICE-D4552C067BE873FC"
         ],
         "tags": [
+          "DOCKER",
+          "NGINX",
+          "NGINX:nginx/1.27.0",
           "SERVICE-D4552C067BE873FC",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
