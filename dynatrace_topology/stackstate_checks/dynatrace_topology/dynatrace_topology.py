@@ -730,7 +730,12 @@ class DynatraceTopologyCheck(AgentCheck):
         :return: list of added tags as labels
         """
         tags = []
-        for tag in dynatrace_component.tags:
+        if isinstance(dynatrace_component, dict):
+            tag_source = dynatrace_component.get("tags", [])
+        else:
+            tag_source = getattr(dynatrace_component, "tags", [])
+
+        for tag in tag_source:
             tag_label = ''
             if tag.get('context') and tag.get('context') != 'CONTEXTLESS':
                 tag_label += "[%s]" % tag['context']
@@ -769,18 +774,54 @@ class DynatraceTopologyCheck(AgentCheck):
                                                         technologies.get('version')]))
                     labels.append(tech_label)
         else:
-            if dynatrace_component.entityId:
-                labels.append(dynatrace_component.entityId)
-            if dynatrace_component.properties:
-                for prop in dynatrace_component.properties:
-                    if type(prop) is dict:
-                        labels = self._process_labels(labels, prop)
-                    elif type(prop) is list:
-                        for item in prop:
-                            if type(item) is dict:
-                                labels = self._process_labels(labels, item)
+            component_dict = self._component_to_dictionary(dynatrace_component)
+            entity_id = component_dict.get("entityId")
+            if entity_id:
+                labels.append(entity_id)
+
+            management_zones = component_dict.get("managementZones")
+            if isinstance(management_zones, list):
+                for zone in management_zones:
+                    if isinstance(zone, dict) and zone.get("name"):
+                        labels.append(f"managementZones:{zone['name']}")
+
+            monitoring_state = component_dict.get("monitoringState")
+            if isinstance(monitoring_state, dict):
+                actual_state = monitoring_state.get("actualMonitoringState")
+                expected_state = monitoring_state.get("expectedMonitoringState")
+                if actual_state:
+                    labels.append(f"actualMonitoringState:{actual_state}")
+                if expected_state:
+                    labels.append(f"expectedMonitoringState:{expected_state}")
+
+            properties = component_dict.get("properties")
+            labels = self._extract_labels_from_properties(labels, properties)
+
         labels_from_tags = self._get_labels_from_dynatrace_tags(dynatrace_component)
         labels.extend(labels_from_tags)
+        return labels
+
+    @staticmethod
+    def _component_to_dictionary(dynatrace_component):
+        if isinstance(dynatrace_component, dict):
+            return dynatrace_component
+        if isinstance(dynatrace_component, ForgivingBaseModel):
+            return dynatrace_component.model_dump(mode="json", exclude_none=True)
+        return {}
+
+    def _extract_labels_from_properties(self, labels, properties):
+        if isinstance(properties, dict):
+            for prop_value in properties.values():
+                if isinstance(prop_value, dict):
+                    labels = self._process_labels(labels, prop_value)
+                elif isinstance(prop_value, list):
+                    for item in prop_value:
+                        if isinstance(item, dict):
+                            labels = self._process_labels(labels, item)
+        elif isinstance(properties, list):
+            for item in properties:
+                if isinstance(item, dict):
+                    labels = self._process_labels(labels, item)
         return labels
 
     @staticmethod

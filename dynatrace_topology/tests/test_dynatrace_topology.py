@@ -710,6 +710,50 @@ def test_host_entity_logfilestatus_and_logsourcestate_combined():
     assert host_entity.properties.logSourceState is not None
 
 
+def test_management_zones_in_labels():
+    """
+    Test handling both logFileStatus and logSourceState together.
+    """
+    from stackstate_checks.dynatrace_topology.entity_data_types import HostEntity
+
+    # Simulate the exact scenario
+    raw_host = {
+        "entityId": "HOST-CUSTOMER123",
+        "type": "HOST",
+        "displayName": "customer-host",
+        "properties": {
+            "logFileStatus": [
+                {"value": "FILE_STATUS_OK", "key": "/var/log/application/app_batch.log"}
+            ],
+            "logSourceState": [
+                {"value": {"storageStatus": "STORAGE_OK"}, "key": "/var/log/application/app_batch.log"}
+            ]
+        },
+        "managementZones": [
+            {
+                "id": "2414109248746337189",
+                "name": "PROD_ZONE"
+            },
+            {
+                "id": "5849059329244275694",
+                "name": "APP_PROD_ZONE"
+            }
+        ]
+    }
+
+    # Apply the transformation
+    from stackstate_checks.dynatrace_topology import DynatraceTopologyCheck
+    check = DynatraceTopologyCheck('dynatrace', {}, [])
+    cleaned = check._clean_unsupported_metadata(raw_host)
+
+    host_entity = HostEntity.model_validate(cleaned)
+
+    labels = check._get_labels(host_entity)
+    assert "managementZones:PROD_ZONE" in labels
+    assert "managementZones:APP_PROD_ZONE" in labels
+    assert host_entity.entityId in labels
+
+
 def test_validation_error_skips_entity_gracefully(requests_mock, dynatrace_check, topology, aggregator):
     """
     Test that when an entity fails validation, it's skipped with a warning instead of crashing.
