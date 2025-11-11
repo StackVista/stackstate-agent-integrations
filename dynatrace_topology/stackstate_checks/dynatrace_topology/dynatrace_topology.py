@@ -5,6 +5,7 @@ from collections import namedtuple
 from dataclasses import field
 from datetime import datetime
 import os
+import re
 
 from typing import Optional, List, Dict, Any
 from stackstate_checks.base.utils.validations_utils import ForgivingBaseModel, AnyUrlStr
@@ -78,12 +79,12 @@ class InstanceInfo(ForgivingBaseModel):
     verify: bool = field(default=True)  # Replace VERIFY_HTTPS with appropriate default
     cert: Optional[str] = None
     keyfile: Optional[str] = None
-    timeout: int = field(default=30)  # Replace TIMEOUT with actual default value
+    timeout: int = field(default=TIMEOUT)  # Replace TIMEOUT with actual default value
     domain: str = field(default="dynatrace")  # Replace DOMAIN with actual default
     environment: str = field(default="production")  # Replace ENVIRONMENT with actual default
     relative_time: str = field(default="1h")  # Replace RELATIVE_TIME with actual default
-    custom_device_fields: str = field(default="default_fields")  # Replace API_V2_DEFAULT_FIELDS_STRING
-    custom_device_relative_time: str = field(default="1h")  # Replace API_V2_DEFAULT_RELATIVE_TIME
+    custom_device_fields: str = field(default=API_V2_CUSTOM_DEVICE_FIELDS_STRING)
+    custom_device_relative_time: str = field(default=API_V2_DEFAULT_RELATIVE_TIME)
     custom_device_ip: bool = True
 
 
@@ -156,7 +157,7 @@ class DynatraceTopologyCheck(AgentCheck):
                                message=str(e))
 
     @staticmethod
-    def get_entity_params(custom_device_relative_time, entity_type_fields, component_type, next_page_key=None):
+    def get_entity_params(relative_time, entity_type_fields, component_type, next_page_key=None):
         """
         Process the default parameters needed for custom device
         @param
@@ -169,14 +170,14 @@ class DynatraceTopologyCheck(AgentCheck):
             params = {'nextPageKey': next_page_key}
         else:
             params = {'entitySelector': TOPOLOGY_API_SPEC[component_type][1]}
-            relative_time = {'from': 'now-{}'.format(custom_device_relative_time)}
-            params.update(relative_time)
+            relative_time_param = {'from': 'now-{}'.format(relative_time)}
+            params.update(relative_time_param)
             fields = {'fields': '{}'.format(entity_type_fields)}
             params.update(fields)
         return params
 
     def collect_entities_get_next_key(self, dynatrace_client, instance_info, endpoint, component_type,
-                                      entity_type_fields, next_page_key=None):
+                                      entity_type_fields, relative_time, next_page_key=None):
         """
         Process custom device response & topology and returns the next page key for result
         @param
@@ -187,7 +188,7 @@ class DynatraceTopologyCheck(AgentCheck):
         @return
         Returns the next_page_key value from API response
         """
-        params = self.get_entity_params(instance_info.relative_time,
+        params = self.get_entity_params(relative_time,
                                         entity_type_fields,
                                         component_type,
                                         next_page_key)
@@ -209,12 +210,20 @@ class DynatraceTopologyCheck(AgentCheck):
         @return
         None
         """
+        if component_type == "custom-device":
+            relative_time = instance_info.custom_device_relative_time or API_V2_DEFAULT_RELATIVE_TIME
+            fields = instance_info.custom_device_fields or API_V2_CUSTOM_DEVICE_FIELDS_STRING
+        else:
+            relative_time = instance_info.relative_time
+            fields = entity_type_fields
+
         next_page_key = self.collect_entities_get_next_key(dynatrace_client, instance_info, endpoint,
-                                                           component_type, entity_type_fields)
+                                                           component_type, fields, relative_time)
         while next_page_key:
             next_page_key = self.collect_entities_get_next_key(dynatrace_client, instance_info, endpoint,
                                                                component_type,
-                                                               entity_type_fields,
+                                                               fields,
+                                                               relative_time,
                                                                next_page_key)
 
     def _process_topology(self, dynatrace_client, instance_info):
@@ -231,7 +240,7 @@ class DynatraceTopologyCheck(AgentCheck):
                 # process the custom device topology separately because of pagination
                 self.process_entity_topology(dynatrace_client, instance_info, endpoint, component_type, data_tuple[2])
             else:
-                params = {"relativeTime": instance_info.relative_time}
+                params = {"relativeTime": self._format_synthetic_relative_time(instance_info.relative_time)}
                 response = dynatrace_client.get_dynatrace_json_response(endpoint, params)
                 if component_type == "synthetic-monitor":
                     self.log.debug("Starting the collection of synthetics")
@@ -258,6 +267,49 @@ class DynatraceTopologyCheck(AgentCheck):
         self.log.debug("Time taken to create relations is: %d seconds" % relation_time_taken.total_seconds())
 
         self.stop_snapshot()
+
+    @staticmethod
+    def _format_synthetic_relative_time(relative_time: Optional[str]) -> str:
+        """
+        Dynatrace Synthetic Monitors API v1 expects relativeTime in one of the following forms:
+        - now-<value><unit> (for example now-1h, now-15m, now-7d)
+        - ISO 8601 timestamps
+        - unix epoch milliseconds
+
+        To preserve backwards compatibility with existing configuration values (such as '1h' or 'hour'),
+        this helper normalises the input to the now-<value><unit> format.
+        """
+        fallback = "now-1h"
+        if not relative_time:
+            return fallback
+
+        value = relative_time.strip()
+        if value.startswith("now-"):
+            return value
+
+        human_keyword_map = {
+            "minute": "now-1m",
+            "minutes": "now-1m",
+            "hour": "now-1h",
+            "hours": "now-1h",
+            "day": "now-1d",
+            "days": "now-1d",
+            "week": "now-1w",
+            "weeks": "now-1w",
+            "month": "now-1M",
+            "months": "now-1M",
+            "year": "now-1y",
+            "years": "now-1y",
+        }
+        normalised_keyword = human_keyword_map.get(value.lower())
+        if normalised_keyword:
+            return normalised_keyword
+
+        timeframe_pattern = re.compile(r"^\d+[mhdwMy]$")
+        if timeframe_pattern.match(value):
+            return f"now-{value}"
+
+        return fallback
 
     @staticmethod
     def process_custom_device_identifiers(custom_device, create_identifier_based_on_custom_device_ip):
