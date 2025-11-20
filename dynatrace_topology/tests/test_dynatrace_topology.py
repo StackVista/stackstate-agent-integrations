@@ -4,7 +4,8 @@
 
 from stackstate_checks.base import AgentCheck
 from stackstate_checks.base.utils.common import read_file, load_json_from_file
-from stackstate_checks.dynatrace_topology.entity_data_types import ProcessGroupInstanceEntity
+from stackstate_checks.dynatrace_topology.entity_data_types import ProcessGroupInstanceEntity, ServiceEntity
+from stackstate_checks.dynatrace_topology import DynatraceTopologyCheck
 from .conftest import set_http_responses, sort_topology_data, assert_topology
 
 
@@ -241,6 +242,52 @@ def test_collect_custom_devices_with_pagination(dynatrace_check, requests_mock, 
                                             "samples")
     assert_topology(expected_topology, snapshot)
 
+
+def test_custom_device_override_params(requests_mock, test_instance, aggregator, telemetry, topology, health, mocker):
+    """
+    Ensure custom device collection uses instance overrides for relative time and fields.
+    """
+    custom_instance = dict(test_instance)
+    custom_instance["custom_device_relative_time"] = "30m"
+    custom_instance["custom_device_fields"] = "+fromRelationships,+properties.customField"
+
+    check = DynatraceTopologyCheck('dynatrace_topology', {}, instances=[custom_instance])
+    mocker.patch(
+        'stackstate_checks.dynatrace.dynatrace_client.DynatraceClientFactory.create_client',
+        return_value=check.dynatrace_client_factory.create_client(
+            instance_name=str(custom_instance.get('url')),
+            token=custom_instance.get('token'),
+            verify=custom_instance.get('verify', False),
+            cert=custom_instance.get('cert'),
+            keyfile=custom_instance.get('keyfile'),
+            timeout=custom_instance.get('timeout')
+        )
+    )
+
+    # Register default responses for all endpoints with a focus on the custom device query parameters.
+    set_http_responses(requests_mock)
+    custom_url = (
+        custom_instance['url']
+        + "/api/v2/entities?entitySelector=type%28%22CUSTOM_DEVICE%22%29&from=now-30m&fields=%2BfromRelationships"
+          "%2C%2Bproperties.customField"
+    )
+    requests_mock.get(custom_url, status_code=200, text=read_file("custom_device_response.json", "samples"))
+
+    check.run()
+
+    custom_requests = [
+        request for request in requests_mock.request_history
+        if "api/v2/entities" in request.url and "CUSTOM_DEVICE" in request.url
+    ]
+    assert custom_requests, "Expected at least one custom device request"
+    assert "from=now-30m" in custom_requests[0].url
+    assert "%2Bproperties.customField" in custom_requests[0].url
+
+    aggregator.reset()
+    telemetry.reset()
+    topology.reset()
+    health.reset()
+    check.commit_state(None)
 
 # def test_relative_time_param(aggregator, requests_mock, test_instance, test_instance_relative_time):
 #     # create check with instance that has 'day' relative time setting
@@ -708,6 +755,82 @@ def test_host_entity_logfilestatus_and_logsourcestate_combined():
     assert host_entity.entityId == "HOST-CUSTOMER123"
     assert host_entity.properties.logFileStatus is not None
     assert host_entity.properties.logSourceState is not None
+
+
+def test_management_zones_in_labels():
+    """
+    Test handling both logFileStatus and logSourceState together.
+    """
+    from stackstate_checks.dynatrace_topology.entity_data_types import HostEntity
+
+    # Simulate the exact scenario
+    raw_host = {
+        "entityId": "HOST-CUSTOMER123",
+        "type": "HOST",
+        "displayName": "customer-host",
+        "properties": {
+            "logFileStatus": [
+                {"value": "FILE_STATUS_OK", "key": "/var/log/application/app_batch.log"}
+            ],
+            "logSourceState": [
+                {"value": {"storageStatus": "STORAGE_OK"}, "key": "/var/log/application/app_batch.log"}
+            ]
+        },
+        "managementZones": [
+            {
+                "id": "2414109248746337189",
+                "name": "PROD_ZONE"
+            },
+            {
+                "id": "5849059329244275694",
+                "name": "APP_PROD_ZONE"
+            }
+        ]
+    }
+
+    # Apply the transformation
+    from stackstate_checks.dynatrace_topology import DynatraceTopologyCheck
+    check = DynatraceTopologyCheck('dynatrace', {}, [])
+    cleaned = check._clean_unsupported_metadata(raw_host)
+
+    host_entity = HostEntity.model_validate(cleaned)
+
+    labels = check._get_labels(host_entity)
+    assert "managementZones:PROD_ZONE" in labels
+    assert "managementZones:APP_PROD_ZONE" in labels
+    assert host_entity.entityId in labels
+
+
+def test_software_technologies_labels_from_properties():
+    """
+    Ensure labels include software technologies present only inside properties.
+    """
+    from stackstate_checks.dynatrace_topology import DynatraceTopologyCheck
+
+    service_data = {
+        "entityId": "SERVICE-EXAMPLE",
+        "type": "SERVICE",
+        "displayName": "example-service",
+        "properties": {
+            "softwareTechnologies": [
+                {"type": "MYSQL"},
+                {"type": "GO", "version": "1.19.13"},
+                {"type": "NGINX", "edition": "FPM", "version": "1.27.0"}
+            ]
+        },
+        "tags": [],
+        "managementZones": [],
+        "fromRelationships": {},
+        "toRelationships": {}
+    }
+
+    service_entity = ServiceEntity.model_validate(service_data)
+    check = DynatraceTopologyCheck('dynatrace', {}, [])
+
+    labels = check._get_labels(service_entity)
+
+    expected_labels = {"MYSQL", "GO:1.19.13", "NGINX:1.27.0", service_entity.entityId}
+    assert expected_labels.issubset(set(labels))
 
 
 def test_validation_error_skips_entity_gracefully(requests_mock, dynatrace_check, topology, aggregator):

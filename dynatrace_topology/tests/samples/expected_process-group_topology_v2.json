@@ -130,6 +130,13 @@
           "urn:dynatrace:/PROCESS_GROUP-213FB355CA5E6C74"
         ],
         "tags": [
+          "ACTIVEMQ_CLIENT:6.1.2",
+          "ACTIVE_MQ",
+          "AMQP",
+          "APACHE_LOG4J:2.23.1",
+          "DOCKER",
+          "JAVA:17.0.11",
+          "JETTY:11.0.20",
           "PROCESS_GROUP-213FB355CA5E6C74",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
@@ -174,6 +181,7 @@
           "urn:dynatrace:/PROCESS_GROUP-216FDBEF8325B5C6"
         ],
         "tags": [
+          "DYNATRACE",
           "PROCESS_GROUP-216FDBEF8325B5C6",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
@@ -223,6 +231,8 @@
           "urn:dynatrace:/PROCESS_GROUP-30DCB5EACE59580B"
         ],
         "tags": [
+          "DOCKER",
+          "MYSQL",
           "PROCESS_GROUP-30DCB5EACE59580B",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
@@ -272,6 +282,8 @@
           "urn:dynatrace:/PROCESS_GROUP-31AE98E6D95C50FE"
         ],
         "tags": [
+          "DOCKER",
+          "MYSQL",
           "PROCESS_GROUP-31AE98E6D95C50FE",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
@@ -312,6 +324,7 @@
           "urn:dynatrace:/PROCESS_GROUP-3AD9FB79C914520C"
         ],
         "tags": [
+          "DYNATRACE",
           "PROCESS_GROUP-3AD9FB79C914520C",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
@@ -352,6 +365,7 @@
           "urn:dynatrace:/PROCESS_GROUP-4F6264254199189E"
         ],
         "tags": [
+          "DYNATRACE",
           "PROCESS_GROUP-4F6264254199189E",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
@@ -417,6 +431,9 @@
           "urn:dynatrace:/PROCESS_GROUP-51BD3694E190306C"
         ],
         "tags": [
+          "DOCKER",
+          "GO",
+          "GO:1.19.13",
           "PROCESS_GROUP-51BD3694E190306C",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
@@ -457,6 +474,7 @@
           "urn:dynatrace:/PROCESS_GROUP-55BB99EBACB51463"
         ],
         "tags": [
+          "DYNATRACE",
           "PROCESS_GROUP-55BB99EBACB51463",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
@@ -506,6 +524,8 @@
           "urn:dynatrace:/PROCESS_GROUP-5A22F6D7F2447FBB"
         ],
         "tags": [
+          "DOCKER",
+          "ERLANG",
           "PROCESS_GROUP-5A22F6D7F2447FBB",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
@@ -575,7 +595,12 @@
           "urn:dynatrace:/PROCESS_GROUP-5B15E632EDAA5373"
         ],
         "tags": [
+          "DOCKER",
+          "LARAVEL",
+          "PHP:7.2.10",
+          "PHP_FPM",
           "PROCESS_GROUP-5B15E632EDAA5373",
+          "SYMFONY",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
         ],
@@ -660,6 +685,7 @@
           "urn:dynatrace:/PROCESS_GROUP-8A0DF0F9C446635C"
         ],
         "tags": [
+          "GO",
           "PROCESS_GROUP-8A0DF0F9C446635C",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
@@ -719,6 +745,9 @@
           "urn:dynatrace:/PROCESS_GROUP-B44AE6BE0CB555DA"
         ],
         "tags": [
+          "DOCKER",
+          "NGINX",
+          "NGINX:nginx/1.27.0",
           "PROCESS_GROUP-B44AE6BE0CB555DA",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
@@ -774,7 +803,9 @@
           "urn:dynatrace:/PROCESS_GROUP-BD788867042F0723"
         ],
         "tags": [
+          "DOCKER",
           "PROCESS_GROUP-BD788867042F0723",
+          "PYTHON",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
         ],
@@ -832,7 +863,11 @@
           "urn:dynatrace:/PROCESS_GROUP-D319A5EAB816D403"
         ],
         "tags": [
+          "AMQP",
+          "DOCKER",
+          "ERLANG",
           "PROCESS_GROUP-D319A5EAB816D403",
+          "RABBIT_MQ",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
         ],
@@ -895,6 +930,9 @@
           "urn:dynatrace:/PROCESS_GROUP-D3CFC41B5F609A03"
         ],
         "tags": [
+          "DOCKER",
+          "NGINX",
+          "NGINX:nginx/1.15.2",
           "PROCESS_GROUP-D3CFC41B5F609A03",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
@@ -941,6 +979,7 @@
           "urn:dynatrace:/PROCESS_GROUP-DA52C7DE4DCF26C3"
         ],
         "tags": [
+          "GO",
           "PROCESS_GROUP-DA52C7DE4DCF26C3",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
@@ -1000,6 +1039,7 @@
           "urn:dynatrace:/PROCESS_GROUP-EF1E81586EB8EDD6"
         ],
         "tags": [
+          "LINUX_SYSTEM",
           "PROCESS_GROUP-EF1E81586EB8EDD6",
           "integration-type:dynatrace",
           "integration-url:https://instance.live.dynatrace.com"
