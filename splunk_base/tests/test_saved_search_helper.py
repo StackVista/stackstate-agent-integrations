@@ -19,6 +19,7 @@ pytestmark = pytest.mark.unit
 class MockSplunkClient(object):
     def __init__(self):
         self.saved_searches_result = []
+        self.disabled_saved_searches_result = []
         self.saved_search_results_results = {}
         self.dispatch_results = {}
         self.finalized = []
@@ -26,7 +27,9 @@ class MockSplunkClient(object):
         self.parallel_searches = 0
 
     def saved_searches(self, splunk_app):
-        return self.saved_searches_result
+        return [{'name': ss, 'content': {'disabled': False}} for ss in self.saved_searches_result
+                ] + [{'name': ss, 'content': {'disabled': True}} for ss in self.disabled_saved_searches_result
+                     ]
 
     def saved_search_results(self, search_id, saved_search):
         self.parallel_searches -= 1
@@ -106,6 +109,7 @@ class TestSplunkInstanceConfig(unittest.TestCase):
         instance = SplunkInstanceConfig(base_instance, {}, mock_defaults)
         searches = SavedSearches(instance, self.mock_splunk_client, [SplunkSavedSearch(instance, {'name': 'search1'}),
                                                                      SplunkSavedSearch(instance, {'name': 'search2'})])
+        self.mock_splunk_client.saved_searches_result = ["search1", "search2"]
         self.mock_splunk_client.dispatch_results['search1'] = 'sid1'
         self.mock_splunk_client.dispatch_results['search2'] = 'sid2'
 
@@ -124,6 +128,7 @@ class TestSplunkInstanceConfig(unittest.TestCase):
         searches = SavedSearches(instance, self.mock_splunk_client,
                                  [SplunkSavedSearch(instance, {'name': 'search1', 'app': 'myapp1'}),
                                   SplunkSavedSearch(instance, {'name': 'search2', 'app': 'myapp2'})])
+        self.mock_splunk_client.saved_searches_result = ["search1", "search2"]
         self.mock_splunk_client.dispatch_results['search1'] = 'sid1'
         self.mock_splunk_client.dispatch_results['search2'] = 'sid2'
 
@@ -142,6 +147,7 @@ class TestSplunkInstanceConfig(unittest.TestCase):
         searches = SavedSearches(instance, self.mock_splunk_client,
                                  [SplunkSavedSearch(instance, {'name': 'search1', 'app': 'myapp1'}),
                                   SplunkSavedSearch(instance, {'name': 'search2'})])
+        self.mock_splunk_client.saved_searches_result = ["search1", "search2"]
         self.mock_splunk_client.dispatch_results['search1'] = 'sid1'
         self.mock_splunk_client.dispatch_results['search2'] = 'sid2'
 
@@ -158,7 +164,7 @@ class TestSplunkInstanceConfig(unittest.TestCase):
     def test_store_and_finalize_sids(self):
         instance = SplunkInstanceConfig(base_instance, {}, mock_defaults)
         searches = SavedSearches(instance, self.mock_splunk_client, [SplunkSavedSearch(instance, {'name': 'breaking'})])
-
+        self.mock_splunk_client.saved_searches_result = ["breaking"]
         # Dispatch should succeed, but not the result retrieval
         self.mock_splunk_client.dispatch_results['breaking'] = 'sid1'
 
@@ -190,7 +196,7 @@ class TestSplunkInstanceConfig(unittest.TestCase):
         instance = SplunkInstanceConfig(base_instance, {}, mock_defaults)
         mock_splunk_client = MockSplunkClientFailFinalize()
         searches = SavedSearches(instance, mock_splunk_client, [SplunkSavedSearch(instance, {'name': 'breaking'})])
-
+        mock_splunk_client.saved_searches_result = ["breaking"]
         # Dispatch should succeed, but not the result retrieval
         mock_splunk_client.dispatch_results['breaking'] = 'sid1'
 
@@ -223,6 +229,7 @@ class TestSplunkInstanceConfig(unittest.TestCase):
         instance = SplunkInstanceConfig(base_instance, {}, mock_defaults)
         searches = SavedSearches(instance, self.mock_splunk_client, [SplunkSavedSearch(instance, {'name': 'search1'}),
                                                                      SplunkSavedSearch(instance, {'name': 'search2'})])
+        self.mock_splunk_client.saved_searches_result = ["search1", "search2"]
         self.mock_splunk_client.dispatch_results['search1'] = 'sid1'
         self.mock_splunk_client.dispatch_results['search2'] = 'sid2'
 
@@ -248,6 +255,7 @@ class TestSplunkInstanceConfig(unittest.TestCase):
     def test_partially_incomplete_data(self):
         instance = SplunkInstanceConfig(base_instance, {}, mock_defaults)
         searches = SavedSearches(instance, self.mock_splunk_client, [SplunkSavedSearch(instance, {'name': 'search1'})])
+        self.mock_splunk_client.saved_searches_result = ["search1", "search2"]
         self.mock_splunk_client.dispatch_results['search1'] = 'sid1'
         self.mock_splunk_client.dispatch_results['search2'] = 'sid2'
 
@@ -266,6 +274,7 @@ class TestSplunkInstanceConfig(unittest.TestCase):
         instance = SplunkInstanceConfig(base_instance, {}, mock_defaults)
         searches = SavedSearches(instance, self.mock_splunk_client, [SplunkSavedSearch(instance, {'name': 'search1'}),
                                                                      SplunkSavedSearch(instance, {'name': 'search2'})])
+        self.mock_splunk_client.saved_searches_result = ["search1", "search2"]
         self.mock_splunk_client.dispatch_results['search1'] = 'sid1'
         self.mock_splunk_client.dispatch_results['search2'] = 'sid2'
 
@@ -344,6 +353,7 @@ class TestSplunkInstanceConfig(unittest.TestCase):
                                                                      SplunkSavedSearch(instance, {'name': 'search4'})
                                                                      ])
         self.mock_splunk_client.max_parallel_searches = saved_searches_parallel
+        self.mock_splunk_client.saved_searches_result = ["search1", "search2", "search3", "search4"]
 
         self.mock_splunk_client.dispatch_results['search1'] = 'sid1'
         self.mock_splunk_client.dispatch_results['search2'] = 'sid2'
@@ -381,6 +391,7 @@ class TestSplunkInstanceConfig(unittest.TestCase):
         searches = SavedSearches(instance, self.mock_splunk_client,
                                  [SplunkSavedSearch(instance, {'name': 'search_broken'}),
                                   SplunkSavedSearch(instance, {'name': 'search1'})])
+        self.mock_splunk_client.saved_searches_result = ["search1", "search_broken"]
         self.mock_splunk_client.dispatch_results['search_broken'] = 'sid_broken'
         self.mock_splunk_client.dispatch_results['search1'] = 'sid1'
 
@@ -413,6 +424,7 @@ class TestSplunkInstanceConfig(unittest.TestCase):
         searches = SavedSearches(instance, self.mock_splunk_client,
                                  [SplunkSavedSearch(instance, {'name': 'search_broken'}),
                                   SplunkSavedSearch(instance, {'name': 'search1'})])
+        self.mock_splunk_client.saved_searches_result = ["search1", "search_broken"]
         self.mock_splunk_client.dispatch_results['search_broken'] = 'sid_broken'
         self.mock_splunk_client.dispatch_results['search1'] = 'sid1'
 
@@ -449,6 +461,7 @@ class TestSplunkInstanceConfig(unittest.TestCase):
         searches = SavedSearches(instance, self.mock_splunk_client, [SplunkSavedSearch(instance, {'name': 'search1'}),
                                                                      SplunkSavedSearch(instance,
                                                                                        {'name': 'search_broken'})])
+        self.mock_splunk_client.saved_searches_result = ["search1", "search_broken"]
         self.mock_splunk_client.dispatch_results['search1'] = 'sid1'
         self.mock_splunk_client.dispatch_results['search_broken'] = 'broken_sid'
 
@@ -462,3 +475,54 @@ class TestSplunkInstanceConfig(unittest.TestCase):
         assert self.mock_service_check.results == [[AgentCheck.WARNING, [], None,
                                                     "All result of saved search 'search1' contained incomplete data"],
                                                    [AgentCheck.WARNING, [], None, "'broken_sid'"]]
+
+    def test_saved_search_enable_disable(self):
+        instance = SplunkInstanceConfig(base_instance, {}, mock_defaults)
+        searches = SavedSearches(instance, self.mock_splunk_client, [SplunkSavedSearch(instance, {'name': 'search'})])
+
+        self.mock_splunk_client.dispatch_results['search'] = 'sid1'
+        data1 = {'messages': [], 'results': [{'data': 'result1'}]}
+        self.mock_splunk_client.saved_search_results_results['sid1'] = [data1]
+
+        # Start with the search enabled
+        self.mock_splunk_client.saved_searches_result = ["search"]
+        searches.run_saved_searches(self.mock_process_data.function, self.mock_service_check.function, self.log,
+                                    self.committable_state)
+        assert len(self.mock_process_data.results) == 1
+        assert self.mock_service_check.results == [[AgentCheck.OK, None, None, None]]
+
+        assert len(searches.searches) == 1
+        assert searches.disabled_searches == set()
+
+        # Cleanup
+        self.mock_process_data = MockProcessData()
+        self.mock_service_check = MockServiceCheck()
+
+        # Disable it
+
+        self.mock_splunk_client.saved_searches_result = []
+        self.mock_splunk_client.disabled_saved_searches_result = ["search"]
+
+        searches.run_saved_searches(self.mock_process_data.function, self.mock_service_check.function, self.log,
+                                    self.committable_state)
+        assert len(self.mock_process_data.results) == 0
+        assert self.mock_service_check.results == [[AgentCheck.OK, None, None, None]]
+
+        assert len(searches.searches) == 0
+        assert searches.disabled_searches == set(["search"])
+
+        # Cleanup
+        self.mock_process_data = MockProcessData()
+        self.mock_service_check = MockServiceCheck()
+
+        # Reenable it
+        self.mock_splunk_client.saved_searches_result = ["search"]
+        self.mock_splunk_client.disabled_saved_searches_result = []
+
+        searches.run_saved_searches(self.mock_process_data.function, self.mock_service_check.function, self.log,
+                                    self.committable_state)
+        assert len(self.mock_process_data.results) == 1
+        assert self.mock_service_check.results == [[AgentCheck.OK, None, None, None]]
+
+        assert len(searches.searches) == 1
+        assert searches.disabled_searches == set()

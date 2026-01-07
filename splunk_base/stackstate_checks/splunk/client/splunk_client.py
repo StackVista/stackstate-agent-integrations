@@ -155,7 +155,7 @@ class SplunkClient:
         response = self._do_get(search_path,
                                 self.instance_config.default_request_timeout_seconds,
                                 self.instance_config.verify_ssl_certificate)
-        return [entry["name"] for entry in response.json()["entry"]]
+        return response.json()["entry"]
 
     def _search_chunk(self, saved_search, search_id, offset, count):
         """

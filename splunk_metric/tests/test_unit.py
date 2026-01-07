@@ -433,7 +433,8 @@ def test_advance_time_on_success(config_advance_time_on_success, patch_advance_t
 def test_wildcard_searches(config_wildcard_searches, patch_wildcard_searches, check, telemetry, aggregator):
     data = patch_wildcard_searches
 
-    data['saved_searches'] = ["minimal_metrics", "blaat"]
+    data['saved_searches'] = [{'name': "minimal_metrics", 'content': {'disabled': False}},
+                              {'name': "blaat", 'content': {'disabled': False}}]
     check_response = check.run()
 
     assert check_response == '', "The check run cycle SHOULD NOT produce a error"

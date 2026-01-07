@@ -775,7 +775,8 @@ def config_individual_dispatch_failures(config,  # type: any
 def patch_individual_dispatch_failures(monkeypatch,  # type: any
                                        ):  # type: (...) -> None
     data = {
-        'saved_searches': ["minimal_metrics", "full_metrics"]
+        'saved_searches': [{'name': "full_metrics", 'content': {'disabled': False}},
+                           {'name': "minimal_metrics", 'content': {'disabled': False}}]
     }
 
     def _mocked_saved_searches(*args, **kwargs):
@@ -827,7 +828,8 @@ def patch_individual_search_failures(monkeypatch,  # type: any
     def _mocked_saved_searches(*args, **kwargs):
         return data['saved_searches']
 
-    data['saved_searches'] = ["minimal_metrics", "full_metrics"]
+    data['saved_searches'] = [{'name': "full_metrics", 'content': {'disabled': False}},
+                              {'name': "minimal_metrics", 'content': {'disabled': False}}]
 
     # Monkey Patches for Mock Functions
     monkeypatch.setattr(SplunkClient, "saved_searches", _mocked_saved_searches)
@@ -849,7 +851,7 @@ def config_search_full_failure(config,  # type: any
 def patch_search_full_failure(monkeypatch,  # type: any
                               ):  # type: (...) -> None
     data = {
-        'saved_searches': ["full_metrics"]
+        'saved_searches': [{'name': "full_metrics", 'content': {'disabled': False}}]
     }
 
     def mocked_saved_searches(*args, **kwargs):

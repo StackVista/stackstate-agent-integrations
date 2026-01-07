@@ -16,6 +16,8 @@ PASSWORD = 'admin12345'
 # we have to wait for a number of seconds.
 JWT_UPGRADE_WAIT_TIME = 60
 
+DISABLED_SEARCH_NAME = "disabled_search"
+
 empty_instance = {
     'url': 'https://%s:%s' % (HOST, PORT),
     'authentication': {
@@ -41,6 +43,36 @@ default_settings = {
         "force_dispatch": True,
         "dispatch.now": True
     }
+}
+
+match_disabled_instance = {
+    'url': 'https://%s:%s' % (HOST, PORT),
+    'authentication': {
+        'basic_auth': {
+            'username': USER,
+            'password': PASSWORD
+        },
+    },
+    'saved_searches': [{
+        'match': DISABLED_SEARCH_NAME,
+        'app': 'search'
+    }],
+    'collection_interval': 15
+}
+
+name_disabled_instance = {
+    'url': 'https://%s:%s' % (HOST, PORT),
+    'authentication': {
+        'basic_auth': {
+            'username': USER,
+            'password': PASSWORD
+        },
+    },
+    'saved_searches': [{
+        'name': DISABLED_SEARCH_NAME,
+        'app': 'search'
+    }],
+    'collection_interval': 15
 }
 
 
