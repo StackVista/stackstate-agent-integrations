@@ -33,8 +33,12 @@ class MockSplunkClient(object):
                                         "token in the YAML and restart the Agent")
         return
 
-    def saved_searches(self):
-        return []
+    def saved_searches(self, app):
+        return [{'name': ss, 'content': {'disabled': False}} for ss in
+                ["components", "empty", "error", "relations", "incomplete_components", "incomplete_relations",
+                 "minimal_components", "minimal_relations", "partially_incomplete_components",
+                 "partially_incomplete_relations", "dispatch_exception"]
+                ]
 
     def saved_search_results(self, search_id, saved_search):
         if search_id == "exception":

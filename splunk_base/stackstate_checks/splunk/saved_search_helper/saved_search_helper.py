@@ -21,8 +21,9 @@ class SavedSearches(object):
     def __init__(self, instance_config, splunk_client, saved_searches):
         self.instance_config = instance_config
         self.splunk_client = splunk_client
-        self.searches = list(filter(lambda ss: ss.name is not None, saved_searches))
-        self.matches = list(filter(lambda ss: ss.match is not None, saved_searches))
+        self.searches = list()
+        self.disabled_searches = set()
+        self.configured_searches = saved_searches
 
     def run_saved_searches(self, process_data, service_check, log, persisted_state, update_status=None):
         self._update_searches(log)
@@ -40,27 +41,49 @@ class SavedSearches(object):
 
     def _update_searches(self, log):  # same as v1 SavedSearches.update_searches
         """
-        Go through the 'match' save dseraches, find the searches for the app and add them to the list of searches
+        Go through the saved searches, find the searches for the app and add them to the list of searches if
+        they are not disabled
         """
         searches_cache = {}
+        active_searches = set([entry.name for entry in self.searches])
+        found_searches = set()
 
-        # Match new searches
-        for match in self.matches:
-            if match.app not in searches_cache:
-                searches_cache[match.app] = self.splunk_client.saved_searches(match.app)
+        # Match new searches and look whether there are any disabled searches
+        for configured_search in self.configured_searches:
+            if configured_search.app not in searches_cache:
+                searches_cache[configured_search.app] = self.splunk_client.saved_searches(configured_search.app)
 
-            new_searches = set(searches_cache[match.app]).difference([s.name for s in self.searches])
+            for found_search in searches_cache[configured_search.app]:
+                if (configured_search.match is not None
+                    and re.match(configured_search.match, found_search["name"]) is not None
+                    ) or (configured_search.name is not None
+                          and configured_search.name == found_search["name"]
+                          ):
+                    if found_search["name"] not in found_searches:
+                        found_searches.add(found_search["name"])
 
-            for new_search in new_searches:
-                if re.match(match.match, new_search) is not None:
-                    search = copy.deepcopy(match)
-                    search.name = new_search
-                    log.debug("Added saved search '%s'" % new_search)
-                    self.searches.append(search)
+                        if found_search["content"]["disabled"]:
+                            if found_search["name"] not in self.disabled_searches:
+                                log.info("Saved search '%s' is disabled on splunk side, ignoring.." %
+                                         found_search["name"])
+                                self.disabled_searches.add(found_search["name"])
+                        else:
+                            if found_search["name"] in self.disabled_searches:
+                                log.info("Re-enabling saved search '%s', it was enabled on splunk side." %
+                                         found_search["name"])
+                                self.disabled_searches.remove(found_search["name"])
 
+                            search = copy.deepcopy(configured_search)
+                            search.name = found_search["name"]
+                            # Only add a search if it is not active yet.
+                            if search.name not in active_searches:
+                                log.debug("Added saved search '%s'" % found_search["name"])
+                                self.searches.append(search)
+
+        # Remove searches that were not found. We go for adding/deleting to this list due to the saved searches
+        # keeping state while they are running.
         self.searches = list(
-            filter(lambda s: s.match is None or (s.app in searches_cache and s.name in searches_cache[s.app]),
-                   self.searches))
+            filter(lambda s: s.name in found_searches and s.name not in self.disabled_searches, self.searches))
 
     def _dispatch_and_await_search(self, process_data, service_check, log, persisted_state, saved_searches):
         start_time = time.time()

@@ -132,7 +132,7 @@ class SplunkTopology(StatefulAgentCheck):
             self.log.exception("Splunk topology exception: %s" % str(e))
             if instance.instance_config.on_saved_search_error == SavedSearchErrorBehavior.abort:
                 return CheckResponse(persistent_state=pstate.state,
-                                     check_error=CheckException("Splunk health failed with message: %s" % e, None,
+                                     check_error=CheckException("Splunk topology failed with message: %s" % e, None,
                                                                 sys.exc_info()[2])
                                      )
         return CheckResponse(persistent_state=pstate.state)

@@ -92,7 +92,7 @@ def request_mock_post_basic_authentication(requests_mock, logger):
 
 
 def request_mock_get_save_searches(requests_mock, logger):
-    url = "https://%s:%s/services/saved/searches/?output_mode=json&count=-1" % (HOST, PORT)
+    url = "https://%s:%s/servicesNS/nobody/search/saved/searches/?output_mode=json&count=-1" % (HOST, PORT)
     logger.debug("Mocking GET request URL for Saved Searches: %s" % url)
 
     # List saved searches
@@ -100,10 +100,15 @@ def request_mock_get_save_searches(requests_mock, logger):
         url=url,
         status_code=200,
         text=json.dumps(
-            {"entry": [{"name": "Errors in the last 24 hours"},
-                       {"name": "Errors in the last hour"},
-                       {"name": "test_events"}],
-             "paging": {"total": 3, "perPage": 18446744073709552000, "offset": 0},
+            {"entry": [{'name': ss, 'content': {'disabled': False}} for ss in
+                       ["alternative_fields_metrics", "duplicate_metrics", "empty", "error", "error_response",
+                        "full_metrics", "illegal_metrics", "incomplete_metrics", "metrics",
+                        "metrics_identification_fields_all", "metrics_identification_fields_selective",
+                        "minimal_metrics", "partially_incomplete_metrics", "past_metrics",
+                        "poll", "poll1"
+                        ]
+                       ],
+             "paging": {"total": 50, "perPage": 18446744073709552000, "offset": 0},
              "messages": []}
         )
     )
