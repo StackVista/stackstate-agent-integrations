@@ -58,6 +58,10 @@ instead of username/password on top level')
         self.init_config = init_config
 
         self.default_request_timeout_seconds = int(self.get_or_default('default_request_timeout_seconds'))
+        self.request_max_retry_count = int(self.get_or_default('default_request_max_retry_count'))
+        self.request_retry_backoff_factor = float(
+            self.get_or_default('default_request_retry_backoff_factor')
+        )
         self.default_search_max_retry_count = int(self.get_or_default('default_search_max_retry_count'))
         self.default_search_seconds_between_retries = int(
             self.get_or_default('default_search_seconds_between_retries')

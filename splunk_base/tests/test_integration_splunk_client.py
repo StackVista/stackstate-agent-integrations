@@ -45,7 +45,9 @@ def test_splunk_client_saved_searches(test_environment):
 
     saved_searches_response = [entry["name"] for entry in client.saved_searches("search")]
 
-    assert saved_searches_response == ['Bucket Merge Retrieve Conf Settings', DISABLED_SEARCH_NAME,
+    assert saved_searches_response == ['Bucket Merge Retrieve Conf Settings',
+                                       'Bulk Data Move Retrieve Conf Settings',
+                                       DISABLED_SEARCH_NAME,
                                        'Errors in the last 24 hours',
                                        'Errors in the last hour', 'License Usage Data Cube',
                                        'Messages by minute last 3 hours', 'Orphaned scheduled searches',
@@ -62,7 +64,7 @@ def test_splunk_client_saved_searches_all(test_environment):
     saved_searches_response = client.saved_searches("-")
 
     # This includes disabled searches
-    assert len(saved_searches_response) == 146
+    assert len(saved_searches_response) == 168
 
 
 @pytest.mark.integration

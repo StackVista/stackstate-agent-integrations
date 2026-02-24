@@ -26,6 +26,8 @@ class InstanceConfig(SplunkInstanceConfig):
     def __init__(self, instance, init_config):
         super(InstanceConfig, self).__init__(instance, init_config, {
             'default_request_timeout_seconds': 5,
+            'default_request_max_retry_count': 3,
+            'default_request_retry_backoff_factor': 1.0,
             'default_search_max_retry_count': 3,
             'default_search_seconds_between_retries': 1,
             'default_verify_ssl_certificate': False,

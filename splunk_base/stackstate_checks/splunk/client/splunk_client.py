@@ -1,6 +1,8 @@
 import logging
 import os
 import time
+import typing
+from typing import Self
 
 import requests
 import urllib3
@@ -19,6 +21,8 @@ from stackstate_checks.base.errors import CheckException
 from stackstate_checks.splunk.client.splunk_jwt_auth import SplunkJWTAuth
 from stackstate_checks.splunk.client.msft_jwt_auth import MsJWTAuth
 from stackstate_checks.splunk.config import AuthType
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 urllib3.disable_warnings(InsecureRequestWarning)
 
@@ -41,6 +45,30 @@ class TokenExpiredException(Exception):
     def __init__(self, message, code=None):
         self.message = message
         self.code = code
+
+
+class LoggingRetry(Retry):
+    def __init__(self, log, *args, **kwargs):
+        self.log = log
+        super(LoggingRetry, self).__init__(*args, **kwargs)
+
+    def new(self, **kw: typing.Any) -> Self:
+        return super(LoggingRetry, self).new(log=self.log, **kw)
+
+    """
+    A custom Retry class that intercepts the retry event to inject custom logging.
+    """
+    def increment(self, method=None, url=None, response=None, error=None, _pool=None, _stacktrace=None):
+        self.log.warning(f"🔄 Retrying {method} request to {url}...")
+
+        return super().increment(
+            method=method,
+            url=url,
+            response=response,
+            error=error,
+            _pool=_pool,
+            _stacktrace=_stacktrace
+        )
 
 
 class SplunkClient:
@@ -66,6 +94,20 @@ class SplunkClient:
             self.jwt_adapter = MsJWTAuth(instance_config)
         elif instance_config.auth_type == AuthType.TokenAuth:
             self.jwt_adapter = SplunkJWTAuth(instance_config, self._do_post)
+
+        # Setup retries
+        retry_strategy = LoggingRetry(
+            log=self.log,
+            total=instance_config.request_max_retry_count,
+            backoff_factor=instance_config.request_retry_backoff_factor,
+            status_forcelist=[500, 502, 503, 504],  # Only retryable 500s
+            allowed_methods=["GET", "POST"],
+            raise_on_status=False,  # Allow our code to handle the last produced issue.
+        )
+
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        self.requests_session.mount("http://", adapter)
+        self.requests_session.mount("https://", adapter)
 
     def auth_session(self, committable_state):
         if self.instance_config.auth_type == AuthType.BasicAuth:
