@@ -9,10 +9,7 @@ import json
 from requests.exceptions import HTTPError, ConnectionError, Timeout
 from requests import Response
 
-import base64
 import datetime
-import time
-import os
 
 # project
 from stackstate_checks.splunk.client import SplunkClient, FinalizeException, TokenExpiredException

@@ -2,6 +2,12 @@ init_config:
   # time before a HTTP request times out
   default_request_timeout_seconds: 10
 
+  # retry behavior when the server produces a retryable 5xx response
+  default_request_max_retry_count: 3
+  # retry backoff, calculated as the number of seconds (default_request_retry_backoff_factor * (2 ^ (n - 1)) where n is
+  # the amount of retries.
+  default_request_retry_backoff_factor: 1.0
+
   # a search on a saved search does not immediately return results, one has to retry until data is received,
   # search_max_retry_count specifies the number of retries in which it expects results to be available.
   # Between each retry some time is waited before retrying, specified by search_seconds_between_retries.

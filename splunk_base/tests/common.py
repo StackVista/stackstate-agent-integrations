@@ -32,6 +32,8 @@ empty_instance = {
 
 default_settings = {
     'default_request_timeout_seconds': 5,
+    'default_request_max_retry_count': 3,
+    'default_request_retry_backoff_factor': 1.0,
     'default_search_max_retry_count': 3,
     'default_search_seconds_between_retries': 1,
     'default_verify_ssl_certificate': False,
@@ -101,6 +103,8 @@ class FakeInstanceConfig(object):
     def __init__(self):
         self.base_url = 'http://testhost:8089'
         self.default_request_timeout_seconds = 10
+        self.request_max_retry_count = 4
+        self.request_retry_backoff_factor = 1.0
         self.verify_ssl_certificate = False
         self.on_saved_search_error = SavedSearchErrorBehavior.ignore
         self.auth_type = AuthType.BasicAuth
@@ -113,6 +117,8 @@ class FakeTokenInstanceConfig(object):
     def __init__(self):
         self.base_url = 'http://testhost:8089'
         self.default_request_timeout_seconds = 10
+        self.request_max_retry_count = 3
+        self.request_retry_backoff_factor = 1.0
         self.verify_ssl_certificate = False
         self.on_saved_search_error = SavedSearchErrorBehavior.ignore
         self.auth_type = AuthType.TokenAuth
@@ -127,6 +133,8 @@ class FakeTokenMSInstanceConfig(object):
     def __init__(self):
         self.base_url = 'http://testhost:8089'
         self.default_request_timeout_seconds = 10
+        self.request_max_retry_count = 3
+        self.request_retry_backoff_factor = 1.0
         self.verify_ssl_certificate = False
         self.on_saved_search_error = SavedSearchErrorBehavior.ignore
         self.auth_type = AuthType.TokenAuthMS
@@ -141,6 +149,8 @@ class FakeMinimalTokenMSInstanceConfig(object):
     def __init__(self):
         self.base_url = 'http://testhost:8089'
         self.default_request_timeout_seconds = 10
+        self.request_max_retry_count = 3
+        self.request_retry_backoff_factor = 1.0
         self.verify_ssl_certificate = False
         self.on_saved_search_error = SavedSearchErrorBehavior.ignore
         self.auth_type = AuthType.TokenAuthMS
