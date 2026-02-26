@@ -24,6 +24,8 @@ def test_successful_retry_after_two_500s(mocker):
     mock_sleep = mocker.patch("time.sleep")
     # Mocking connection pool to test the configured retry of the requests library.
     getconn_mock = mocker.patch("urllib3.connectionpool.HTTPConnectionPool._get_conn")
+    # Newer urllib3 versions inspect Retry-After headers; avoid interacting with mocked headers.
+    mocker.patch("urllib3.util.retry.Retry.get_retry_after", return_value=None)
 
     helper = SplunkClient(FakeInstanceConfig())
 
@@ -47,6 +49,7 @@ def test_produce_failure_after_retries(mocker):
     mock_sleep = mocker.patch("time.sleep")
     # Mocking connection pool to test the configured retry of the requests library.
     getconn_mock = mocker.patch("urllib3.connectionpool.HTTPConnectionPool._get_conn")
+    mocker.patch("urllib3.util.retry.Retry.get_retry_after", return_value=None)
 
     helper = SplunkClient(FakeInstanceConfig())
 
