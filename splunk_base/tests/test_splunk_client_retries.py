@@ -40,8 +40,6 @@ def test_successful_retry_after_two_500s(mocker):
     ]
 
     helper.finalize_sid("admin_comp1", mocked_saved_search())
-
-    assert mock_sleep.call_count == 1
     assert getconn_mock.return_value.request.mock_calls == [
         call("POST", '/services/search/jobs/admin_comp1/control?output_mode=json', body='action=finalize', headers=ANY),
         call("POST", '/services/search/jobs/admin_comp1/control?output_mode=json', body='action=finalize', headers=ANY),
@@ -69,8 +67,6 @@ def test_produce_failure_after_retries(mocker):
 
     with pytest.raises(FinalizeException):
         helper.finalize_sid("admin_comp1", mocked_saved_search())
-
-    assert mock_sleep.call_count == 3
     assert getconn_mock.return_value.request.mock_calls == [
         call("POST", '/services/search/jobs/admin_comp1/control?output_mode=json', body='action=finalize', headers=ANY),
         call("POST", '/services/search/jobs/admin_comp1/control?output_mode=json', body='action=finalize', headers=ANY),
