@@ -3,7 +3,8 @@ from stackstate_checks.splunk.client import SplunkClient, FinalizeException
 
 from common import FakeInstanceConfig
 from http.client import HTTPMessage
-from unittest.mock import ANY, Mock, patch, call
+from unittest.mock import ANY, Mock, patch, call, PropertyMock
+import requests
 
 
 # Mark the entire module as tests of type `unit`
@@ -26,6 +27,9 @@ def test_successful_retry_after_two_500s(mocker):
     getconn_mock = mocker.patch("urllib3.connectionpool.HTTPConnectionPool._get_conn")
     # Newer urllib3 versions inspect Retry-After headers; avoid interacting with mocked headers.
     mocker.patch("urllib3.util.retry.Retry.get_retry_after", return_value=None)
+
+    # Avoid reading response content in requests, which would try to iterate our mock raw stream
+    mocker.patch.object(requests.models.Response, "content", new_callable=PropertyMock, return_value=b"")
 
     helper = SplunkClient(FakeInstanceConfig())
 
@@ -50,6 +54,8 @@ def test_produce_failure_after_retries(mocker):
     # Mocking connection pool to test the configured retry of the requests library.
     getconn_mock = mocker.patch("urllib3.connectionpool.HTTPConnectionPool._get_conn")
     mocker.patch("urllib3.util.retry.Retry.get_retry_after", return_value=None)
+
+    mocker.patch.object(requests.models.Response, "content", new_callable=PropertyMock, return_value=b"")
 
     helper = SplunkClient(FakeInstanceConfig())
 
