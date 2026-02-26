@@ -30,9 +30,9 @@ def test_successful_retry_after_two_500s(mocker):
     helper = SplunkClient(FakeInstanceConfig())
 
     getconn_mock.return_value.getresponse.side_effect = [
-        Mock(status=500, msg=HTTPMessage()),
-        Mock(status=500, msg=HTTPMessage()),
-        Mock(status=200, msg=HTTPMessage()),
+        Mock(status=500, msg=HTTPMessage(), headers={}),
+        Mock(status=500, msg=HTTPMessage(), headers={}),
+        Mock(status=200, msg=HTTPMessage(), headers={}),
     ]
 
     helper.finalize_sid("admin_comp1", mocked_saved_search())
@@ -54,11 +54,11 @@ def test_produce_failure_after_retries(mocker):
     helper = SplunkClient(FakeInstanceConfig())
 
     getconn_mock.return_value.getresponse.side_effect = [
-        Mock(status=500, msg=HTTPMessage()),
-        Mock(status=500, msg=HTTPMessage()),
-        Mock(status=500, msg=HTTPMessage()),
-        Mock(status=500, msg=HTTPMessage()),
-        Mock(status=500, msg=HTTPMessage()),
+        Mock(status=500, msg=HTTPMessage(), headers={}),
+        Mock(status=500, msg=HTTPMessage(), headers={}),
+        Mock(status=500, msg=HTTPMessage(), headers={}),
+        Mock(status=500, msg=HTTPMessage(), headers={}),
+        Mock(status=500, msg=HTTPMessage(), headers={}),
     ]
 
     with pytest.raises(FinalizeException):
