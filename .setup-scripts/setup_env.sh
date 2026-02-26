@@ -18,7 +18,7 @@ if [ ! -d $VENV_PATH ]; then
   pip install docker==6.1.3
   pip install --upgrade pip setuptools
   pip install 'cython<3.0.0'
-  pip install "pyyaml==5.4.1" --no-build-isolation
+  pip install "pyyaml==6.0.1" --no-build-isolation
   pip install --upgrade wheel
   source $INTEGRATIONS_DIR_TMP/.setup-scripts/load_deps.sh
 else
