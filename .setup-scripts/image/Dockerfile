@@ -1,4 +1,4 @@
-FROM registry.tooling.stackstate.io/docker/python:3.11.14-bullseye
+FROM registry.tooling.stackstate.io/docker/python:3.14.3-bullseye
 RUN apt-get update && \
     apt-get install -y virtualenv apt-transport-https ca-certificates curl gnupg2 software-properties-common && \
     apt-get clean && \
