@@ -9,7 +9,7 @@ from .config import is_affirmative
 from .errors import ConfigurationError
 from .utils.common import ensure_string, ensure_unicode, to_string
 from .utils.identifiers import Identifiers
-from .utils.telemetry import MetricStream, MetricHealthChecks, EventStream, EventHealthChecks, HealthState,\
+from .utils.telemetry import MetricStream, MetricHealthChecks, EventStream, EventHealthChecks, HealthState, \
     ServiceCheckStream, ServiceCheckHealthChecks, TopologyEventContext, SourceLink, Event
 from .utils.health_api import Health, HealthStream, HealthStreamUrn, HealthType, HealthApiCommon
 from .utils.agent_integration_test_util import AgentIntegrationTestUtil
