@@ -146,9 +146,9 @@ class DockerInterface(object):
         volumes = [
             # Mount the config directory, not the file, to ensure updates are propagated
             # https://github.com/moby/moby/issues/15793#issuecomment-135411504
-            '{}:{}'.format(self.config_dir, get_agent_conf_dir(self.check)),
+            '{}:{}:z'.format(self.config_dir, get_agent_conf_dir(self.check)),
             # Mount the check directory
-            '{}:{}'.format(path_join(get_root(), self.check), self.check_mount_dir),
+            '{}:{}:z'.format(path_join(get_root(), self.check), self.check_mount_dir),
         ]
         volumes.extend(self.metadata.get('docker_volumes', []))
 
@@ -172,14 +172,14 @@ class DockerInterface(object):
         if self.base_package:
             # Mount the check directory
             command.append('-v')
-            command.append('{}:{}'.format(self.base_package, self.base_mount_dir))
+            command.append('{}:{}:z'.format(self.base_package, self.base_mount_dir))
 
             # Include shared libraries
             with open(path_join(get_root(), "shared_libraries.in"), "r") as shared_file:
                 for line in shared_file:
                     shared_lib = line.strip()
                     command.append('-v')
-                    command.append('{}:{}'.format(path_join(get_root(), shared_lib), self.mount_dir(shared_lib)))
+                    command.append('{}:{}:z'.format(path_join(get_root(), shared_lib), self.mount_dir(shared_lib)))
 
         # The chosen tag
         command.append(self.agent_build)
