@@ -169,7 +169,7 @@ linux_deps:
         - --tls=false
       name: ${REGISTRY_DOCKER_URL}/library/docker:24-dind
   script:
-    - .setup-scripts/setup_vsphere_artifactory_publishing.sh
+    - .setup-scripts/setup_artifact_registry.sh
     - .setup-scripts/setup_artifactory_docker.sh
     - export COMPOSE_HTTP_TIMEOUT=300 # Increase timeout in case containers are slow to start up.
     - checksdev test --cov ${CHECK}
@@ -182,7 +182,7 @@ linux_deps:
   <<: *linux_test
   <<: *base_splunk_integration_rules
   script:
-    - .setup-scripts/setup_vsphere_artifactory_publishing.sh
+    - .setup-scripts/setup_artifact_registry.sh
     - .setup-scripts/setup_artifactory_docker.sh
     - docker pull registry.tooling.stackstate.io/docker/splunk/splunk:latest # Pull splunk to aovid pulling during compose, which breaks in python
     - export COMPOSE_HTTP_TIMEOUT=300 # Increase timeout in case splunk is slow to start up.
@@ -389,7 +389,8 @@ publish-checks-dev:
   stage: publish
   interruptible: true
   script:
-    - source .setup-scripts/setup_artifactory_publishing.sh
+    - .setup-scripts/setup_artifact_registry.sh
+    - .setup-scripts/setup_artifact_publishing.sh
     - export VERSION=`./.setup-scripts/version.sh`
     - echo "__version__ = \"$VERSION\"" > stackstate_checks_dev/stackstate_checks/dev/__about__.py
     - cd stackstate_checks_dev && python setup.py sdist bdist_wheel upload -r gitlab
