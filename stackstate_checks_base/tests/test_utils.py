@@ -153,7 +153,7 @@ class TestPersistentState:
             1 validation error for StateDescriptorSchema
             instance_key
               String should have at least 1 character [type=string_too_short, input_value='', input_type=str]
-                For further information visit https://errors.pydantic.dev/2.9/v/string_too_short""")
+                For further information visit https://errors.pydantic.dev/2.12/v/string_too_short""")
 
         instance = StateDescriptor("test", "this")
         # set an invalid file_location for this test

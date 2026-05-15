@@ -561,7 +561,7 @@ def test_authentication_token_no_audience_parameter_check(set_authentication_mod
             authentication.token_auth.audience
               Field required [type=missing, input_value={'name': 'api-admin', 'in... 90, \
 'renewal_days': 10}, input_type=dict]
-                For further information visit https://errors.pydantic.dev/2.9/v/missing"""))
+                For further information visit https://errors.pydantic.dev/2.12/v/missing"""))
 
 
 def test_authentication_token_no_name_parameter_check(set_authentication_mode_to_token,
@@ -576,7 +576,7 @@ def test_authentication_token_no_name_parameter_check(set_authentication_mode_to
             authentication.token_auth.name
               Field required [type=missing, input_value={'audience': 'search', 'i... 90, \
 'renewal_days': 10}, input_type=dict]
-                For further information visit https://errors.pydantic.dev/2.9/v/missing"""))
+                For further information visit https://errors.pydantic.dev/2.12/v/missing"""))
 
 
 def test_authentication_prefer_token_over_basic_check(config_authentication_prefer_token_over_basic_check,

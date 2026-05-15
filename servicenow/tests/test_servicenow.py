@@ -562,7 +562,7 @@ class TestServicenow(unittest.TestCase):
             1 validation error for InstanceInfo
             url
               Field required [type=missing, input_value={'user': 'name', 'password': 'secret'}, input_type=dict]
-                For further information visit https://errors.pydantic.dev/2.9/v/missing""")
+                For further information visit https://errors.pydantic.dev/2.12/v/missing""")
             },
             {
                 'instance': {'user': 'name', 'url': "https://website.com"},
@@ -570,7 +570,7 @@ class TestServicenow(unittest.TestCase):
             1 validation error for InstanceInfo
             password
               Field required [type=missing, input_value={'user': 'name', 'url': 'https://website.com'}, input_type=dict]
-                For further information visit https://errors.pydantic.dev/2.9/v/missing""")
+                For further information visit https://errors.pydantic.dev/2.12/v/missing""")
             },
             {
                 'instance': {'password': 'secret', 'url': "https://website.com"},
@@ -579,7 +579,7 @@ class TestServicenow(unittest.TestCase):
             user
               Field required [type=missing, input_value={'password': \
 'secret', 'u...: 'https://website.com'}, input_type=dict]
-                For further information visit https://errors.pydantic.dev/2.9/v/missing""")
+                For further information visit https://errors.pydantic.dev/2.12/v/missing""")
             }
         ]
         for test in tests:
@@ -696,7 +696,7 @@ class TestServicenow(unittest.TestCase):
               Input should be less than or equal to 10000 [type=less_than_equal, \
 input_value=20000, input_type=int]
                 For further information visit \
-https://errors.pydantic.dev/2.9/v/less_than_equal"""), result[0]['message'])
+https://errors.pydantic.dev/2.12/v/less_than_equal"""), result[0]['message'])
 
     @mock.patch('requests.Session.get')
     def test_get_json_timeout(self, mock_request_get):
