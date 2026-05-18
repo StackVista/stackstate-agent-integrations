@@ -1151,7 +1151,7 @@ class TestHealthStreamUrn:
                 1 validation error for HealthStreamUrn
                 source
                   Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-                    For further information visit https://errors.pydantic.dev/2.9/v/string_type""")
+                    For further information visit https://errors.pydantic.dev/2.12/v/string_type""")
 
         with pytest.raises(ValidationError) as e2:
             HealthStreamUrn("source", None)
@@ -1159,7 +1159,7 @@ class TestHealthStreamUrn:
                 1 validation error for HealthStreamUrn
                 stream_id
                   Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-                    For further information visit https://errors.pydantic.dev/2.9/v/string_type""")
+                    For further information visit https://errors.pydantic.dev/2.12/v/string_type""")
 
 
 class TestHealthStream:
@@ -1170,7 +1170,7 @@ class TestHealthStream:
             1 validation error for HealthStream
               Value error, Expiry cannot be disabled if a substream is specified \
 [type=value_error, input_value={'urn': HealthStreamUrn(s...ne, 'expiry_seconds': 0}, input_type=dict]
-                For further information visit https://errors.pydantic.dev/2.9/v/value_error""")
+                For further information visit https://errors.pydantic.dev/2.12/v/value_error""")
 
     def test_verify_types(self):
         with pytest.raises(ValidationError) as e:
@@ -1180,7 +1180,7 @@ class TestHealthStream:
             urn
               Input should be a valid dictionary or instance of HealthStreamUrn \
 [type=model_type, input_value='str', input_type=str]
-                For further information visit https://errors.pydantic.dev/2.9/v/model_type""")
+                For further information visit https://errors.pydantic.dev/2.12/v/model_type""")
 
         with pytest.raises(ValidationError) as e:
             HealthStream(HealthStreamUrn("source", "urn"), sub_stream=1)
@@ -1189,7 +1189,7 @@ class TestHealthStream:
             sub_stream
               Input should be a valid string \
 [type=string_type, input_value=1, input_type=int]
-                For further information visit https://errors.pydantic.dev/2.9/v/string_type""")
+                For further information visit https://errors.pydantic.dev/2.12/v/string_type""")
 
         with pytest.raises(ValidationError) as e:
             HealthStream(HealthStreamUrn("source", "urn"), repeat_interval_seconds="")
@@ -1198,7 +1198,7 @@ class TestHealthStream:
             repeat_interval_seconds
               Input should be a valid integer, unable to parse \
 string as an integer [type=int_parsing, input_value='', input_type=str]
-                For further information visit https://errors.pydantic.dev/2.9/v/int_parsing""")
+                For further information visit https://errors.pydantic.dev/2.12/v/int_parsing""")
 
         with pytest.raises(ValidationError) as e:
             HealthStream(HealthStreamUrn("source", "urn"), expiry_seconds="")
@@ -1207,7 +1207,7 @@ string as an integer [type=int_parsing, input_value='', input_type=str]
             expiry_seconds
               Input should be a valid integer, unable to parse string as \
 an integer [type=int_parsing, input_value='', input_type=str]
-                For further information visit https://errors.pydantic.dev/2.9/v/int_parsing""")
+                For further information visit https://errors.pydantic.dev/2.12/v/int_parsing""")
 
 
 class TestHealth:
@@ -1474,7 +1474,7 @@ class TestStatefulCheck:
                 1 validation error for State
                 key_that_is_not_in_schema
                   Extra inputs are not permitted [type=extra_forbidden, input_value='some_value', input_type=str]
-                    For further information visit https://errors.pydantic.dev/2.9/v/extra_forbidden""")
+                    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden""")
 
 
 class NormalCheck(AgentCheckV2):
