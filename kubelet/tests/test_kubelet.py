@@ -359,7 +359,7 @@ def test_prometheus_filtering(monkeypatch, aggregator):
         mock_method.assert_called_once()
         metric = mock_method.call_args[0][0]
         assert len(metric.samples) == 12
-        for name, labels, _, _, _ in metric.samples:
+        for name, labels, *_ in metric.samples:  # [sts] tolerate prometheus-client Sample tuple growth (0.19 had 5 fields, 0.24 has 6 with native_histogram)
             assert name == "container_cpu_usage_seconds_total"
             assert labels["pod_name"] != ""
 
