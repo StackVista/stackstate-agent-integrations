@@ -77,7 +77,7 @@ setup(
             'click',
             'colorama',
             'datadog-a7',
-            'in-toto==0.2.3',
+            'in-toto==2.0.0',
             'pip-tools==7.3.0',
             'pylint==2.17.2',
             'lazy_object_proxy<=1.12.0',
