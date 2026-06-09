@@ -208,10 +208,22 @@ class OpenMetricsScraperMixin(object):
         # Additional tags to be sent with each metric
         config['_metric_tags'] = []
 
-        # List of strings to filter the input text payload on. If any line contains
-        # one of these strings, it will be filtered out before being parsed.
-        # INTERNAL FEATURE, might be removed in future versions
-        config['_text_filter_blacklist'] = []
+        # List of substrings to filter out of the input text payload BEFORE parsing. Any
+        # raw line containing one of these substrings is dropped (the parser never sees it).
+        # Useful when a scrape target emits a malformed value (e.g. ZooKeeper's metrics
+        # provider serializing a null Long as the literal string `null`) that would otherwise
+        # abort the entire prometheus parse and lose every metric after the bad line.
+        # The wildcard is substring match, not glob — `"synced_observers"` will also drop
+        # `"synced_observers_total"` if present. Prefer the most-specific token possible.
+        # The instance config key is `text_filter_blacklist`; the underscore-prefixed key
+        # below is the internal field name.
+        # STS-extended in STAC-24699: previously this was an internal-only feature for the
+        # kubelet check, now exposed as a public instance config so any openmetrics scrape
+        # can defend against broken exposition payloads.
+        config['_text_filter_blacklist'] = (
+            default_instance.get('text_filter_blacklist', [])
+            + instance.get('text_filter_blacklist', [])
+        )
 
         return config
 
@@ -226,12 +238,47 @@ class OpenMetricsScraperMixin(object):
         if scraper_config['_text_filter_blacklist']:
             input_gen = self._text_filter_input(input_gen, scraper_config)
 
-        for metric in text_fd_to_metric_families(input_gen):
-            metric.type = scraper_config['type_overrides'].get(metric.name, metric.type)
-            if metric.type not in self.METRIC_TYPES:
-                metric.type = "gauge"
-            metric.name = self._remove_metric_prefix(metric.name, scraper_config)
-            yield metric
+        # STS (STAC-24699): wrap the input generator so we remember the most recently
+        # yielded line. When the prometheus parser raises mid-payload (e.g. on a literal
+        # `null` value emitted by a broken exporter), we use the captured line to log an
+        # actionable ERROR identifying the metric name + scrape endpoint, instead of
+        # leaving operators with only a Python traceback that names neither.
+        tracker = {'last_line': None}
+
+        def _track_lines(gen):
+            for line in gen:
+                tracker['last_line'] = line
+                yield line
+
+        tracked_gen = _track_lines(input_gen)
+
+        try:
+            for metric in text_fd_to_metric_families(tracked_gen):
+                metric.type = scraper_config['type_overrides'].get(metric.name, metric.type)
+                if metric.type not in self.METRIC_TYPES:
+                    metric.type = "gauge"
+                metric.name = self._remove_metric_prefix(metric.name, scraper_config)
+                yield metric
+        except (ValueError, KeyError) as e:
+            bad_line = tracker['last_line']
+            # The first whitespace-separated token of a prometheus exposition line is the
+            # metric name (optionally followed by `{labels}` then the value).
+            metric_name = '<unknown>'
+            if isinstance(bad_line, str) and bad_line and not bad_line.startswith('#'):
+                first_token = bad_line.split(None, 1)[0]
+                metric_name = first_token.split('{', 1)[0] or '<unknown>'
+            self.log.error(
+                "Openmetrics parse aborted for scrape target %s. "
+                "Offending metric: %s. Raw line: %r. Parser error: %s. "
+                "All metrics emitted after this line in the same payload are lost. "
+                "To suppress and recover the remaining metrics, add the offending metric "
+                "name to the instance's `text_filter_blacklist` config.",
+                scraper_config.get('prometheus_url', '<unknown>'),
+                metric_name,
+                bad_line,
+                e,
+            )
+            raise
 
     def _text_filter_input(self, input_gen, scraper_config):
         """

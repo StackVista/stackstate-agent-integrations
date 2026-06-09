@@ -80,7 +80,7 @@ class TestStaticCSVHealth(unittest.TestCase):
               Field required [type=missing, input_value={'type': 'csv', \
 'delimite...ollection_interval': 15}, input_type=dict]
                 For further information visit \
-https://errors.pydantic.dev/2.9/v/missing""")
+https://errors.pydantic.dev/2.12/v/missing""")
 
     def test_empty_health_file(self):
         instance = {
