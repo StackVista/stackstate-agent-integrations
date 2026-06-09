@@ -1535,3 +1535,98 @@ def test_text_filter_input(mocked_prometheus_check, mocked_prometheus_scraper_co
 
     filtered = [x for x in check._text_filter_input(lines_in, mocked_prometheus_scraper_config)]
     assert filtered == expected_out
+
+
+# STAC-24699: tests for the public `text_filter_blacklist` instance config and the
+# ERROR-on-parse-failure logging.
+
+def test_text_filter_blacklist_from_instance_config():
+    """An instance with `text_filter_blacklist: [...]` populates the internal
+    `_text_filter_blacklist` so the pre-parse line filter is active."""
+    check = OpenMetricsBaseCheck('prometheus_check', {}, {})
+    instance = dict(PROMETHEUS_CHECK_INSTANCE, text_filter_blacklist=["synced_observers", "broken_metric"])
+    config = check.get_scraper_config(instance)
+    assert config['_text_filter_blacklist'] == ["synced_observers", "broken_metric"]
+
+
+def test_text_filter_blacklist_merges_default_and_instance():
+    """`text_filter_blacklist` entries from `default_instances` and `instances`
+    are concatenated, mirroring the behavior of `exclude_labels` and
+    `extra_headers`."""
+    check = OpenMetricsBaseCheck('prometheus_check', {}, {})
+    check.default_instances = {
+        'prometheus': {'text_filter_blacklist': ["from_default"]},
+    }
+    instance = dict(PROMETHEUS_CHECK_INSTANCE, text_filter_blacklist=["from_instance"])
+    config = check.get_scraper_config(instance)
+    assert config['_text_filter_blacklist'] == ["from_default", "from_instance"]
+
+
+def test_text_filter_blacklist_defaults_to_empty():
+    """No `text_filter_blacklist` config → empty list, preserving the previous
+    default behavior (no pre-parse filtering)."""
+    check = OpenMetricsBaseCheck('prometheus_check', {}, {})
+    config = check.get_scraper_config(PROMETHEUS_CHECK_INSTANCE)
+    assert config['_text_filter_blacklist'] == []
+
+
+def test_text_filter_blacklist_suppresses_zookeeper_null(p_check, mocked_prometheus_scraper_config):
+    """Real-shape reproducer: a ZooKeeper-style payload with `synced_observers null`
+    aborts the parse without `text_filter_blacklist`, but parses cleanly when
+    the offending metric name is filtered out."""
+    payload = (
+        "# HELP avg_latency Avg latency\n"
+        "# TYPE avg_latency gauge\n"
+        "avg_latency 1.5\n"
+        "# HELP synced_observers Number of synced observers\n"
+        "# TYPE synced_observers gauge\n"
+        "synced_observers null\n"
+        "# HELP watch_count Number of watches\n"
+        "# TYPE watch_count gauge\n"
+        "watch_count 42\n"
+    )
+    response = MockResponse(payload, text_content_type)
+    check = p_check
+
+    # Without the filter: parse aborts on synced_observers, watch_count is lost.
+    with pytest.raises(ValueError):
+        list(check.parse_metric_family(response, mocked_prometheus_scraper_config))
+
+    # With the filter: synced_observers is dropped pre-parse, both other metrics flow.
+    mocked_prometheus_scraper_config['_text_filter_blacklist'] = ["synced_observers"]
+    response = MockResponse(payload, text_content_type)
+    metric_names = [m.name for m in check.parse_metric_family(response, mocked_prometheus_scraper_config)]
+    assert "avg_latency" in metric_names
+    assert "watch_count" in metric_names
+    assert "synced_observers" not in metric_names
+
+
+def test_parse_metric_family_logs_error_with_endpoint_and_metric_name(
+    p_check, mocked_prometheus_scraper_config, caplog
+):
+    """On parser failure, the agent log surfaces an ERROR with the scrape endpoint
+    and the offending metric name. Without this, operators only see a Python
+    traceback that names neither — making the failing scrape target invisible."""
+    payload = (
+        "# HELP good_metric A working metric\n"
+        "# TYPE good_metric gauge\n"
+        "good_metric 1.0\n"
+        "# HELP synced_observers Number of synced observers\n"
+        "# TYPE synced_observers gauge\n"
+        "synced_observers null\n"
+    )
+    response = MockResponse(payload, text_content_type)
+
+    with caplog.at_level(logging.ERROR):
+        with pytest.raises(ValueError):
+            list(p_check.parse_metric_family(response, mocked_prometheus_scraper_config))
+
+    error_records = [r for r in caplog.records if r.levelno == logging.ERROR]
+    assert len(error_records) == 1
+    msg = error_records[0].getMessage()
+    # Endpoint URL must appear so the operator knows which target failed
+    assert mocked_prometheus_scraper_config['prometheus_url'] in msg
+    # Offending metric name must appear so the operator knows what to filter
+    assert "synced_observers" in msg
+    # The remediation hint must be present so the operator knows what to do next
+    assert "text_filter_blacklist" in msg
