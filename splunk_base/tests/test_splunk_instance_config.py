@@ -119,7 +119,7 @@ instead of username/password on top level"
             authentication.token_auth.audience
               Field required [type=missing, input_value={'name': 'admin', 'initia...dx', \
 'renewal_days': 10}, input_type=dict]
-                For further information visit https://errors.pydantic.dev/2.9/v/missing""")
+                For further information visit https://errors.pydantic.dev/2.12/v/missing""")
 
     def test_check_name_param_not_set(self):
         """
@@ -152,4 +152,4 @@ instead of username/password on top level"
             authentication.token_auth.name
               Field required [type=missing, input_value={'initial_token': 'dsfdgf...ch', \
 'renewal_days': 10}, input_type=dict]
-                For further information visit https://errors.pydantic.dev/2.9/v/missing""")
+                For further information visit https://errors.pydantic.dev/2.12/v/missing""")
