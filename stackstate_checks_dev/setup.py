@@ -33,7 +33,7 @@ REQUIRES = [
     'six==1.16.0',
     'Deprecated==1.2.10',
     "enum34==1.1.10; python_version < '3.4'",
-    'pydantic==2.9.1'
+    'pydantic==2.12.5'
 ]
 
 
