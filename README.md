@@ -79,7 +79,29 @@ You can optionally pass a log level parameter, if not passed logging is disabled
 
 ## CI image
 
-The CI image is built from `.setup-scripts/image`.
+The CI image is built from `.setup-scripts/image` and published to
+`registry.tooling.stackstate.io` (referenced by `RUNNER_IMAGE_TAG` in
+`.gitlab-ci.yml`). **Do not build or push it locally** except for ad-hoc
+validation — use the GitLab CI `docker` job (build stage, manual).
+
+Its Python **must match the CPython that the StackState Agent embeds** — the
+agent's `omnibus/config/software/python3.rb` `default_version`, mirrored here in
+`.python-version`. Bumping it is part of the **agent upstream-merge process**,
+not ad-hoc work: see the agent repo's `UPSTREAM_MERGE.md`, section "Integrations
+repo: CI runner image (embedded Python bump)".
+
+After merging Dockerfile / Makefile changes:
+
+1. Run the manual **`docker`** job on the pipeline (it builds from
+   `python:3.13.14-bookworm` and pushes `YYYYMMDD-py313` to the registry).
+2. In a follow-up commit, set `RUNNER_IMAGE_TAG` in `.gitlab-ci.yml` to the tag
+   the job prints, and ensure `setup_env.sh` uses `python3.13` and
+   `conda_env.ps1` defaults to `3.13.14` (must land together with the runner switch).
+3. Re-run the pipeline so test jobs use the new runner.
+
+Keeping runner Python in sync ensures CI tests run on the same interpreter the
+agent ships, so version-specific bugs (e.g. pydantic validation differences) are
+caught before release rather than in production.
 
 ## Dynatrace feeder
 We also expose a script to feed some fake data into Dynatrace. It reads logs and metrics from inside a provided directory and shoots them to the Dynatrace API to have a reproducible setup.

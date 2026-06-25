@@ -13,7 +13,6 @@ from copy import copy
 import mock
 import pytest
 import requests
-from six import PY3
 
 from stackstate_checks.base import AgentIntegrationTestUtil, AgentCheck, TopologyInstance
 from stackstate_checks.base.errors import CheckException
@@ -723,12 +722,14 @@ https://errors.pydantic.dev/2.12/v/less_than_equal"""), result[0]['message'])
                                                        url='http://test.org')
         msg_py3 = 'Json parse error: "Expecting property name enclosed in double quotes: ' \
                   'line 11 column 5 (char 232)" in response from url http://test.org'
+        msg_py3_13 = 'Json parse error: "Illegal trailing comma before end of object: ' \
+                     'line 10 column 8 (char 226)" in response from url http://test.org'
         msg_py2 = 'Json parse error: "Expecting property name: ' \
                   'line 11 column 5 (char 232)" in response from url http://test.org'
-        expected_msg = msg_py3 if PY3 else msg_py2
+        expected_msgs = {msg_py2, msg_py3, msg_py3_13}
         with self.assertRaises(CheckException) as context:
             self.check._get_json(url, 10, {}, auth)
-        self.assertEqual(expected_msg, str(context.exception))
+        self.assertIn(str(context.exception), expected_msgs)
 
     def test_process_components_encoding_errors(self):
         """

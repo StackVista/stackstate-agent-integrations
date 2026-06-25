@@ -13,7 +13,12 @@ if [ -n "$missing" ]; then
 fi
 
 echo "→ Configuring .pypirc for publishing to GitLab Package Registry..."
-echo "GitLab PyPI URL: $GITLAB_PACKAGE_REGISTRY_PYPI_URL"
+
+PYPI_REPOSITORY_URL="${GITLAB_PACKAGE_REGISTRY_PYPI_URL}"
+if [[ "${PYPI_REPOSITORY_URL}" != http://* && "${PYPI_REPOSITORY_URL}" != https://* ]]; then
+  PYPI_REPOSITORY_URL="https://${PYPI_REPOSITORY_URL}"
+fi
+echo "GitLab PyPI URL: ${PYPI_REPOSITORY_URL}"
 
 # setup .pypirc
 cat > ~/.pypirc <<EOF
@@ -22,9 +27,9 @@ index-servers =
     gitlab
 
 [gitlab]
-repository = https://GITLAB_PACKAGE_REGISTRY_PYPI_URL
+repository = ${PYPI_REPOSITORY_URL}
 username   = $GITLAB_PACKAGE_REGISTRY_USER
-password   = GITLAB_PACKAGE_REGISTRY_PASSWORD
+password   = $GITLAB_PACKAGE_REGISTRY_PASSWORD
 EOF
 
 echo "✔ GitLab PyPI registry has been configured for publishing."
