@@ -626,6 +626,112 @@ def test_process_group_entity_custompgmetadata_nonscalar_key():
     assert entity.properties.customPgMetadata['cni.projectcalico.org/podIPs'] == '10.7.3.85/32'
 
 
+def test_host_entity_customhostmetadata_list_handling():
+    """
+    Test that HostEntity tolerates customHostMetadata as a list of key-value objects.
+    Reproduces the Rabobank production error (STAC-25137):
+      "Input should be a valid dictionary [type=dict_type,
+       input_value=[{'value': 'VM4', 'key': 'ENVIRONMENT'}, ...], input_type=list]"
+    """
+    from stackstate_checks.dynatrace_topology.entity_data_types import HostEntity
+
+    test_data = {
+        'entityId': 'HOST-0C4456C4494C5BF5',
+        'type': 'HOST',
+        'displayName': 'lspe003490.eu.rabonet.com',
+        'properties': {
+            'customHostMetadata': [
+                {'value': 'VM4', 'key': 'ENVIRONMENT'},
+                {'value': 'VM', 'key': 'VM'},
+            ]
+        }
+    }
+
+    # This must no longer raise a validation error; the host must not be dropped.
+    entity = HostEntity.model_validate(test_data)
+
+    # The list shape is preserved as-is (tolerant parse: dict -> list -> str).
+    assert isinstance(entity.properties.customHostMetadata, list)
+    assert entity.properties.customHostMetadata == [
+        {'value': 'VM4', 'key': 'ENVIRONMENT'},
+        {'value': 'VM', 'key': 'VM'},
+    ]
+    # Downstream serialization (used to build topology) must succeed and keep the shape.
+    dumped = entity.model_dump(mode="json", exclude_none=True)
+    assert dumped['properties']['customHostMetadata'] == [
+        {'value': 'VM4', 'key': 'ENVIRONMENT'},
+        {'value': 'VM', 'key': 'VM'},
+    ]
+
+
+def test_host_entity_customhostmetadata_dict_handling():
+    """
+    Test that HostEntity still accepts customHostMetadata as a dict (original/mock format).
+    """
+    from stackstate_checks.dynatrace_topology.entity_data_types import HostEntity
+
+    test_data = {
+        'entityId': 'HOST-0C4456C4494C5BF5',
+        'type': 'HOST',
+        'displayName': 'lspe003490.eu.rabonet.com',
+        'properties': {
+            'customHostMetadata': {
+                'ENVIRONMENT': 'VM4',
+                'VM': 'VM',
+            }
+        }
+    }
+
+    entity = HostEntity.model_validate(test_data)
+
+    assert isinstance(entity.properties.customHostMetadata, dict)
+    assert entity.properties.customHostMetadata['ENVIRONMENT'] == 'VM4'
+    assert entity.properties.customHostMetadata['VM'] == 'VM'
+
+
+def test_host_entity_customhostmetadata_string_handling():
+    """
+    Test that HostEntity tolerates customHostMetadata delivered as a plain string.
+    """
+    from stackstate_checks.dynatrace_topology.entity_data_types import HostEntity
+
+    test_data = {
+        'entityId': 'HOST-0C4456C4494C5BF5',
+        'type': 'HOST',
+        'displayName': 'lspe003490.eu.rabonet.com',
+        'properties': {
+            'customHostMetadata': 'ENVIRONMENT=VM4'
+        }
+    }
+
+    entity = HostEntity.model_validate(test_data)
+
+    assert isinstance(entity.properties.customHostMetadata, str)
+    assert entity.properties.customHostMetadata == 'ENVIRONMENT=VM4'
+
+
+def test_host_entity_customhostmetadata_other_type_fallback():
+    """
+    Test that a customHostMetadata value that is neither dict, list nor string falls back
+    to its string representation instead of dropping the host entity.
+    """
+    from stackstate_checks.dynatrace_topology.entity_data_types import HostEntity
+
+    test_data = {
+        'entityId': 'HOST-0C4456C4494C5BF5',
+        'type': 'HOST',
+        'displayName': 'lspe003490.eu.rabonet.com',
+        'properties': {
+            'customHostMetadata': 42
+        }
+    }
+
+    entity = HostEntity.model_validate(test_data)
+
+    assert isinstance(entity.properties.customHostMetadata, str)
+    assert entity.properties.customHostMetadata == '42'
+
+
 def test_entity_cache_resets_between_runs(requests_mock, dynatrace_check, topology, aggregator):
     """
     Verify that the in-memory entity cache is cleared at the start of each check run.

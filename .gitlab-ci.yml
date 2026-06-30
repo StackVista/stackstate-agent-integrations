@@ -1,4 +1,4 @@
-image: ${REGISTRY_DOCKER_URL}/stackstate/stackstate-agent-integrations-runner:20241120-py311
+image: ${REGISTRY_DOCKER_URL}/stackstate/stackstate-agent-integrations-runner:${RUNNER_IMAGE_TAG}
 stages:
   - build
   - test
@@ -6,7 +6,8 @@ stages:
 
 variables:
   CONDA_ENV: "stackstate-agent-integrations-py-3"
-  PYTHON_VERSION: 3.13.13
+  PYTHON_VERSION: 3.13.14
+  RUNNER_IMAGE_TAG: "20260625-py313"
 
 .rules:
   - &pull_requests
@@ -24,7 +25,7 @@ variables:
       - $CHECK/*
       - $CHECK/**/*
   - &master_branch
-    if: '$CI_COMMIT_BRANCH == "stackstate-7.71.2"'
+    if: '$CI_COMMIT_BRANCH == "stackstate-7.78.2"'
   - &release_branch
     if: $CI_COMMIT_TAG
   - &base_manual_changes
@@ -48,7 +49,7 @@ variables:
       - splunk_base/*
       - splunk_base/**/*
   - &master_manual_branch
-    if: '$CI_COMMIT_BRANCH == "stackstate-7.71.2"'
+    if: '$CI_COMMIT_BRANCH == "stackstate-7.78.2"'
     when: manual
     allow_failure: true
   - &release_manual_branch
@@ -120,18 +121,41 @@ print_env:
   interruptible: true
 
 docker:
-  <<: *manual_job_rules
   image: ${REGISTRY_DOCKER_URL}/library/docker:20-git
   stage: build
+  rules:
+    - if: $CI_COMMIT_MESSAGE =~ /Build new docker image/i
+      when: on_success
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - .setup-scripts/image/**/*
+        - .setup-scripts/setup_env.sh
+      when: manual
+      allow_failure: true
+    - if: $CI_EXTERNAL_PULL_REQUEST_IID
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_BRANCH == "stackstate-7.78.2"'
+      when: manual
+      allow_failure: true
+    - if: $CI_COMMIT_TAG
+      when: manual
+      allow_failure: true
   script:
     - echo "${docker_password}" | docker login --username=${docker_user} --password-stdin docker.io
     - echo "${quay_password}" | docker login --username=${quay_user} --password-stdin quay.io
     - echo "${REGISTRY_PASSWORD}" | docker login --username=${REGISTRY_USER} --password-stdin ${REGISTRY_HOST}
     - apk add make
     - cd .setup-scripts/image
-    - make build
-    - make push
-    - if [ "${CI_COMMIT_REF_NAME}" = "stackstate-7.71.2" ]; then make tag_latest; make push_latest; fi
+    # Pull base from docker.io during build; mirror may not have 3.13.14-bookworm yet.
+    - make build push PYTHON_BASE_IMAGE=python:3.13.14-bookworm
+    - RUNNER_TAG=$(make -s print_tag)
+    - echo "Published ${REGISTRY_DOCKER_URL}/stackstate/stackstate-agent-integrations-runner:${RUNNER_TAG}"
+    - echo "Set RUNNER_IMAGE_TAG to ${RUNNER_TAG} (setup_env.sh/conda_env.ps1 already target python3.13/3.13.14), then re-run the pipeline."
+    - |
+      if [ "${CI_COMMIT_REF_NAME}" = "stackstate-7.78.2" ]; then
+        make tag_latest push_latest
+      fi
   services:
     - alias: docker
       command:
@@ -386,12 +410,29 @@ test_static_health:
     DOCKER_DRIVER: overlay2
 
 publish-checks-dev:
+  <<: *linux_env
   stage: publish
   interruptible: true
+  needs:
+    - job: linux_deps
+      artifacts: true
   script:
     - .setup-scripts/setup_artifact_registry.sh
     - .setup-scripts/setup_artifact_publishing.sh
     - export VERSION=`./.setup-scripts/version.sh`
     - echo "__version__ = \"$VERSION\"" > stackstate_checks_dev/stackstate_checks/dev/__about__.py
-    - cd stackstate_checks_dev && python setup.py sdist bdist_wheel upload -r gitlab
-  <<: *manual_job_rules
+    - pip install twine
+    - cd stackstate_checks_dev && python setup.py sdist bdist_wheel && twine upload --repository gitlab dist/*
+  rules:
+    - if: '$CI_COMMIT_BRANCH =~ /^STAC-/'
+      when: manual
+      allow_failure: true
+    - <<: *pull_requests
+      when: manual
+      allow_failure: true
+    - <<: *master_branch
+      when: manual
+      allow_failure: true
+    - <<: *release_branch
+      when: manual
+      allow_failure: true

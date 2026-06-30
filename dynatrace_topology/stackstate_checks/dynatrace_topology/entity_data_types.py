@@ -95,7 +95,23 @@ class HostProperties(ForgivingBaseModel):
     cloudType: Optional[str] = None
     conditionalName: Optional[str] = None
     cpuCores: Optional[int] = None
-    customHostMetadata: Dict[str, Any] = field(default_factory=dict)
+    customHostMetadata: Union[Dict[str, Any], List[Any], str] = field(default_factory=dict)
+
+    @field_validator('customHostMetadata', mode='before')
+    @classmethod
+    def coerce_custom_host_metadata(cls, v):
+        """Parse customHostMetadata tolerantly: as a dict, else a list, else a string.
+
+        Dynatrace returns this field inconsistently across environments: as a
+        ``{key: value}`` dict in some, and as a list of ``{'key':.., 'value':..}``
+        objects in others. Accept either shape as-is, falling back to a string
+        representation for any other (non-null) type, so a single type mismatch does
+        not cause the whole host entity to be dropped from topology (STAC-25137).
+        """
+        if v is None or isinstance(v, (dict, list, str)):
+            return v
+        return str(v)
+
     customizedName: Optional[str] = None
     detectedName: Optional[str] = None
     dnsNames: List[str] = field(default_factory=list)
