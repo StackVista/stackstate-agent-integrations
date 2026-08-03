@@ -17,7 +17,9 @@ name: Check tests
 #       drive a real Splunk container via docker-compose; checks_dev tests the
 #       toolkit's own Docker helpers). Both public ARC runners ship a DinD
 #       sidecar, so this is about exercising that path rather than provisioning
-#       anything -- phase 2.
+#       anything -- phase 2. That phase also brings across
+#       .setup-scripts/setup_artifactory_docker.sh (the registry docker login)
+#       and COMPOSE_HTTP_TIMEOUT, which only those suites need.
 #   test_postgres
 #       Dead config: .gitlab-ci.yml tests a `postgres` check that does not exist
 #       in this repository. Dropped, not pending.
@@ -44,11 +46,19 @@ name: Check tests
 # CREDENTIALS
 #   Pulling the runner image needs vars.REGISTRY_HOST / vars.REGISTRY_USER and
 #   secrets.REGISTRY_PASSWORD, which are org-level visibility=all (STAC-25350)
-#   and therefore already reach this PUBLIC repo -- phase 1 needs no new secret
-#   provisioning. Note it composes vars.REGISTRY_HOST + /docker rather than using
-#   vars.REGISTRY_DOCKER_URL: that variable is private-visibility and so is NOT
-#   readable here. Org secrets are never exposed to fork PRs, hence the same-repo
-#   guard on every job that pulls the image.
+#   and therefore already reach this PUBLIC repo. Note it composes
+#   vars.REGISTRY_HOST + /docker rather than using vars.REGISTRY_DOCKER_URL: that
+#   variable is private-visibility and so is NOT readable here. Org secrets are
+#   never exposed to fork PRs, hence the same-repo guard on every job that pulls
+#   the image.
+#
+#   Resolving check requirements additionally needs the private PyPI index, for
+#   the handful of pins that are not on public PyPI. That is
+#   vars.GITLAB_PACKAGE_REGISTRY_PYPI_SIMPLE_URL and
+#   secrets.GITLAB_PACKAGE_REGISTRY_USER, granted to this repo in pulumi-infra
+#   (StackVista/pulumi-infra#263), alongside the already-org-wide
+#   secrets.GITLAB_PACKAGE_REGISTRY_READONLY_PASSWORD. Pull-only: this repo's
+#   *publishing* role is still deferred, per the note above.
 
 on:
   pull_request:
@@ -193,6 +203,31 @@ jobs:
           set -eo pipefail
           git config --global --add safe.directory '*'
           source .setup-scripts/setup_env.sh
+
+      - name: Configure the private PyPI index (GitLab Package Registry)
+        env:
+          GITLAB_PACKAGE_REGISTRY_PYPI_SIMPLE_URL: ${{ vars.GITLAB_PACKAGE_REGISTRY_PYPI_SIMPLE_URL }}
+          GITLAB_PACKAGE_REGISTRY_USER: ${{ secrets.GITLAB_PACKAGE_REGISTRY_USER }}
+          GITLAB_PACKAGE_REGISTRY_READONLY_PASSWORD: ${{ secrets.GITLAB_PACKAGE_REGISTRY_READONLY_PASSWORD }}
+        # A few checks pin wheels that are not on public PyPI and are served from the
+        # central registry instead (currently only vsphere, which pins
+        # vsphere-automation-sdk). This mirrors what the GitLab `.linux_test` anchor did
+        # immediately before `checksdev test`. The script writes ~/.pip/pip.conf and a
+        # 0600 ~/.netrc, keeping credentials out of the index URL.
+        #
+        # Guarded rather than unconditional: only one suite actually needs the private
+        # index, so a missing credential should not fail the fourteen that resolve
+        # everything from public PyPI. When it is missing we say so loudly, and the
+        # affected suite still fails visibly on its own unresolvable pin.
+        run: |
+          set -eo pipefail
+          if [ -z "${GITLAB_PACKAGE_REGISTRY_PYPI_SIMPLE_URL}" ] \
+            || [ -z "${GITLAB_PACKAGE_REGISTRY_USER}" ] \
+            || [ -z "${GITLAB_PACKAGE_REGISTRY_READONLY_PASSWORD}" ]; then
+            echo "::warning title=Private PyPI index not configured::GitLab Package Registry credentials are not available to this job. Checks that pin wheels absent from public PyPI (currently 'vsphere') will fail to resolve their requirements."
+            exit 0
+          fi
+          .setup-scripts/setup_artifact_registry.sh
 
       - name: checksdev test ${{ matrix.check }}
         env:
