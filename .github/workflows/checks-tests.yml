@@ -1,0 +1,214 @@
+name: Check tests
+
+# Ported from .gitlab-ci.yml as part of the GitLab -> GitHub migration
+# (STAC-25142 / STAC-25463), phase 1: the pure-Python check suites.
+#
+# WHAT MOVED
+#   linux_deps + the `test_<check>` job family -> the `check-tests` matrix below.
+#   The per-job `changes:` rules      -> .github/scripts/select-checks.sh.
+#   The validate suite that rode along inside `test_stackstate_checks_base`
+#                                     -> its own `validate` job, so a metadata
+#                                        failure is legible as its own PR check
+#                                        instead of hiding inside a test job.
+#
+# WHAT IS DELIBERATELY NOT HERE
+#   splunk_{base,health,metric,topology} and stackstate_checks_dev
+#       The only five suites that need a Docker daemon (the four splunk suites
+#       drive a real Splunk container via docker-compose; checks_dev tests the
+#       toolkit's own Docker helpers). Both public ARC runners ship a DinD
+#       sidecar, so this is about exercising that path rather than provisioning
+#       anything -- phase 2.
+#   test_postgres
+#       Dead config: .gitlab-ci.yml tests a `postgres` check that does not exist
+#       in this repository. Dropped, not pending.
+#   print_env
+#       A bare `printenv`. This repository is PUBLIC, so that job publishes every
+#       CI credential in scope to a world-readable log. Not ported at any phase;
+#       `secrets: inherit` is likewise never used here.
+#   The Windows lane
+#       There is none to port. `.gitlab-ci.yml` defines a `.windows_env` anchor
+#       but no job has ever referenced it, and Windows is not a supported target,
+#       so the orphaned .setup-scripts/conda_env.ps1 + windows_*.cmd helpers can
+#       be retired with the GitLab pipeline (STAC-25464).
+#   publish-checks-dev / the runner-image `docker` job
+#       Publishing needs write credentials this repo does not hold; pulumi-infra
+#       schedules integrations' publishing role for its section 7.4. Until then
+#       releases keep running from GitLab, so the GitLab pipeline stays live.
+#   A Cerberus failure notification
+#       Unlike stackstate-agent, this pipeline has never had one -- there is no
+#       notify job in .gitlab-ci.yml and no .cerberus directory -- so adding it
+#       would be new capability, not a port. It also needs CERBERUS_LAMBDA_URL,
+#       which is a private-visibility org secret and so unreadable from this
+#       PUBLIC repo without a pulumi-infra grant. Tracked as a follow-up.
+#
+# CREDENTIALS
+#   Pulling the runner image needs vars.REGISTRY_HOST / vars.REGISTRY_USER and
+#   secrets.REGISTRY_PASSWORD, which are org-level visibility=all (STAC-25350)
+#   and therefore already reach this PUBLIC repo -- phase 1 needs no new secret
+#   provisioning. Note it composes vars.REGISTRY_HOST + /docker rather than using
+#   vars.REGISTRY_DOCKER_URL: that variable is private-visibility and so is NOT
+#   readable here. Org secrets are never exposed to fork PRs, hence the same-repo
+#   guard on every job that pulls the image.
+
+on:
+  pull_request:
+  # Mirrors GitLab's `master_branch` rule, which hardcoded the release branch the
+  # same way: the full matrix runs there regardless of what a given commit
+  # touched, so the branch always has a complete verdict.
+  push:
+    branches:
+      - stackstate-7.78.2
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  # Tag of the prebuilt test image. Kept in lockstep with RUNNER_IMAGE_TAG in
+  # .gitlab-ci.yml until the GitLab pipeline is retired; the image is still built
+  # and published by that pipeline's `docker` job.
+  RUNNER_IMAGE_TAG: 20260625-py313
+
+jobs:
+  select-checks:
+    name: Select check suites to run
+    # Not strictly credential-bound, but there is nothing to select for a fork PR
+    # whose downstream jobs cannot pull the image anyway.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: docker-public
+    timeout-minutes: 10
+    outputs:
+      checks: ${{ steps.select.outputs.checks }}
+      runner_image: ${{ steps.image.outputs.ref }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          # Full history: the selector diffs against the merge base with the base
+          # branch, which a shallow clone cannot resolve.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Resolve the runner image reference
+        id: image
+        env:
+          REGISTRY_HOST: ${{ vars.REGISTRY_HOST }}
+        run: |
+          set -euo pipefail
+          # Same image the GitLab pipeline runs on, via the same read-only proxy:
+          # GitLab's ${REGISTRY_DOCKER_URL} is registry.tooling.stackstate.io/docker.
+          echo "ref=${REGISTRY_HOST}/docker/stackstate/stackstate-agent-integrations-runner:${RUNNER_IMAGE_TAG}" >>"${GITHUB_OUTPUT}"
+
+      - name: Select check suites
+        id: select
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          # The ARC work volume is owned by the runner uid; mark it safe so the
+          # selector's git calls are not rejected as "dubious ownership".
+          git config --global --add safe.directory '*'
+          bash .github/scripts/select-checks.sh
+
+  validate:
+    name: Check metadata validation (checksdev validate)
+    # Ported from the `checksdev validate *` commands that opened
+    # test_stackstate_checks_base. Cheap, repo-wide, and independent of the
+    # matrix, so it runs on every change rather than per suite.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    needs: select-checks
+    runs-on: docker-public
+    timeout-minutes: 30
+    container:
+      # Tag-pinned rather than digest-pinned: the tag is produced by the GitLab
+      # `docker` job and updated in lockstep with .gitlab-ci.yml, so pinning a
+      # digest here would silently drift from the pipeline that builds it.
+      image: ${{ needs.select-checks.outputs.runner_image }} # zizmor: ignore[unpinned-images]
+      credentials:
+        username: ${{ vars.REGISTRY_USER }}
+        password: ${{ secrets.REGISTRY_PASSWORD }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Build the toolchain virtualenv
+        run: |
+          set -eo pipefail
+          git config --global --add safe.directory '*'
+          # Creates venv/ and installs checksdev; the GitLab `linux_deps` job did
+          # this once and shipped venv/ as an artifact. Here each job builds its
+          # own: the matrix legs run in parallel, so repeating it costs runner
+          # time but no wall-clock, and it avoids relocating a venv through the
+          # artifact store. Worth revisiting with real timings, the way the
+          # agent's cache image was justified (STAC-25429).
+          source .setup-scripts/setup_env.sh
+
+      - name: checksdev validate
+        run: |
+          set -eo pipefail
+          source venv/bin/activate
+          checksdev validate config
+          checksdev validate dep
+          checksdev validate manifest --include-extras
+          checksdev validate metadata
+          checksdev validate service-checks
+
+  check-tests:
+    name: Check tests (${{ matrix.check }})
+    if: >-
+      ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+      && needs.select-checks.outputs.checks != '[]' }}
+    needs: select-checks
+    runs-on: docker-public
+    timeout-minutes: 45
+    strategy:
+      # One suite's failure should not mask the state of the other fourteen.
+      fail-fast: false
+      matrix:
+        check: ${{ fromJson(needs.select-checks.outputs.checks) }}
+    container:
+      image: ${{ needs.select-checks.outputs.runner_image }} # zizmor: ignore[unpinned-images]
+      credentials:
+        username: ${{ vars.REGISTRY_USER }}
+        password: ${{ secrets.REGISTRY_PASSWORD }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Build the toolchain virtualenv
+        run: |
+          set -eo pipefail
+          git config --global --add safe.directory '*'
+          source .setup-scripts/setup_env.sh
+
+      - name: checksdev test ${{ matrix.check }}
+        env:
+          CHECK: ${{ matrix.check }}
+        run: |
+          set -eo pipefail
+          source venv/bin/activate
+          checksdev test --cov "${CHECK}"
+
+      - name: checksdev benchmarks ${{ matrix.check }}
+        env:
+          CHECK: ${{ matrix.check }}
+        # Non-blocking, matching GitLab's `|| true`: benchmarks are reported for
+        # information and have never gated a merge.
+        continue-on-error: true
+        run: |
+          set -eo pipefail
+          source venv/bin/activate
+          checksdev test "${CHECK}" --bench
