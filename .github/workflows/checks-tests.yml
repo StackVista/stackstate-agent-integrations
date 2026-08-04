@@ -23,6 +23,14 @@ name: Check tests
 #   test_postgres
 #       Dead config: .gitlab-ci.yml tests a `postgres` check that does not exist
 #       in this repository. Dropped, not pending.
+#   vsphere
+#       Blocked upstream, not by this port. It pins vsphere-automation-sdk==1.82.0,
+#       which public PyPI does not serve (only a 0.0.1 placeholder) and which the
+#       private index does not serve either -- pip reports no auth error and the
+#       same credentials work for stackstate-agent, so the index is reachable and
+#       simply does not carry it. requirements.in says the wheel was to be built and
+#       published to the since-retired artifactory.tooling.stackstate.io, so where it
+#       lives now needs settling before this suite can run anywhere.
 #   print_env
 #       A bare `printenv`. This repository is PUBLIC, so that job publishes every
 #       CI credential in scope to a world-readable log. Not ported at any phase;
@@ -183,7 +191,7 @@ jobs:
     runs-on: docker-public
     timeout-minutes: 45
     strategy:
-      # One suite's failure should not mask the state of the other fourteen.
+      # One suite's failure should not mask the state of the others.
       fail-fast: false
       matrix:
         check: ${{ fromJson(needs.select-checks.outputs.checks) }}
@@ -209,22 +217,21 @@ jobs:
           GITLAB_PACKAGE_REGISTRY_PYPI_SIMPLE_URL: ${{ vars.GITLAB_PACKAGE_REGISTRY_PYPI_SIMPLE_URL }}
           GITLAB_PACKAGE_REGISTRY_USER: ${{ secrets.GITLAB_PACKAGE_REGISTRY_USER }}
           GITLAB_PACKAGE_REGISTRY_READONLY_PASSWORD: ${{ secrets.GITLAB_PACKAGE_REGISTRY_READONLY_PASSWORD }}
-        # A few checks pin wheels that are not on public PyPI and are served from the
-        # central registry instead (currently only vsphere, which pins
-        # vsphere-automation-sdk). This mirrors what the GitLab `.linux_test` anchor did
-        # immediately before `checksdev test`. The script writes ~/.pip/pip.conf and a
-        # 0600 ~/.netrc, keeping credentials out of the index URL.
+        # Mirrors what the GitLab `.linux_test` anchor did immediately before
+        # `checksdev test`. The script writes ~/.pip/pip.conf and a 0600 ~/.netrc,
+        # keeping credentials out of the index URL.
         #
-        # Guarded rather than unconditional: only one suite actually needs the private
-        # index, so a missing credential should not fail the fourteen that resolve
-        # everything from public PyPI. When it is missing we say so loudly, and the
-        # affected suite still fails visibly on its own unresolvable pin.
+        # No phase-1 suite depends on this today -- all fourteen resolve from public
+        # PyPI -- but the deferred Docker suites will, and keeping it here means the
+        # index is configured wherever `checksdev test` runs. Guarded rather than
+        # unconditional so an absent credential cannot fail suites that do not use it;
+        # when it is missing we say so loudly rather than failing obscurely later.
         run: |
           set -eo pipefail
           if [ -z "${GITLAB_PACKAGE_REGISTRY_PYPI_SIMPLE_URL}" ] \
             || [ -z "${GITLAB_PACKAGE_REGISTRY_USER}" ] \
             || [ -z "${GITLAB_PACKAGE_REGISTRY_READONLY_PASSWORD}" ]; then
-            echo "::warning title=Private PyPI index not configured::GitLab Package Registry credentials are not available to this job. Checks that pin wheels absent from public PyPI (currently 'vsphere') will fail to resolve their requirements."
+            echo "::warning title=Private PyPI index not configured::GitLab Package Registry credentials are not available to this job. Any check pinning a wheel that public PyPI does not serve will fail to resolve its requirements."
             exit 0
           fi
           .setup-scripts/setup_artifact_registry.sh

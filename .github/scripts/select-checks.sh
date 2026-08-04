@@ -24,8 +24,9 @@
 
 set -euo pipefail
 
-# Suites currently running on GitHub Actions. Phase 1 is the 15 pure-Python
-# suites: they need no Docker daemon, so they are the low-risk half of the port.
+# Suites currently running on GitHub Actions. Phase 1 is the 14 pure-Python
+# suites that resolve entirely from public PyPI, so they need neither a Docker
+# daemon nor the private package index.
 #
 # Deliberately NOT here yet (phase 2, needs the DinD story exercised first):
 #   splunk_base, splunk_health, splunk_metric, splunk_topology
@@ -34,6 +35,17 @@ set -euo pipefail
 #       -- its tests exercise the toolkit's own Docker helpers.
 # Both public ARC runners provide a DinD sidecar, so this is a matter of proving
 # it rather than provisioning anything.
+#
+#   vsphere
+#       -- blocked on sourcing vsphere-automation-sdk==1.82.0, which public PyPI
+#          does not carry (it serves only a 0.0.1 placeholder). The private index
+#          is wired up correctly and authenticates -- pip reports no 401 and the
+#          same credentials work for stackstate-agent -- but the registry does not
+#          serve this package either, so pip still sees only 0.0.1. requirements.in
+#          says the wheel was to be built and published to
+#          artifactory.tooling.stackstate.io, which has since been retired, so
+#          where it lives now is an open question that needs GitLab API access to
+#          settle. Tracked separately rather than left failing here.
 #
 # Deliberately dropped, not pending:
 #   postgres -- .gitlab-ci.yml carried a `test_postgres` job for a check that does
@@ -52,7 +64,6 @@ CHECKS=(
   stackstate_checks_base
   static_health
   static_topology
-  vsphere
   zabbix
 )
 
@@ -81,8 +92,9 @@ emit() {
 }
 
 # Anything that is not a pull request is a full run. On the release branch the
-# whole matrix is the point (it is what Cerberus reports on), and a manual
-# dispatch is an explicit request for everything.
+# whole matrix is the point -- the branch should always carry a complete verdict,
+# regardless of what a given commit touched -- and a manual dispatch is an
+# explicit request for everything.
 if [ "${EVENT_NAME}" != "pull_request" ]; then
   echo "Event '${EVENT_NAME}' is not a pull request: running every suite."
   emit "${CHECKS[@]}"
