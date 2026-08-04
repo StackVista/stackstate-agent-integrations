@@ -23,14 +23,6 @@ name: Check tests
 #   test_postgres
 #       Dead config: .gitlab-ci.yml tests a `postgres` check that does not exist
 #       in this repository. Dropped, not pending.
-#   vsphere
-#       Blocked upstream, not by this port. It pins vsphere-automation-sdk==1.82.0,
-#       which public PyPI does not serve (only a 0.0.1 placeholder) and which the
-#       private index does not serve either -- pip reports no auth error and the
-#       same credentials work for stackstate-agent, so the index is reachable and
-#       simply does not carry it. requirements.in says the wheel was to be built and
-#       published to the since-retired artifactory.tooling.stackstate.io, so where it
-#       lives now needs settling before this suite can run anywhere.
 #   print_env
 #       A bare `printenv`. This repository is PUBLIC, so that job publishes every
 #       CI credential in scope to a world-readable log. Not ported at any phase;
@@ -221,11 +213,19 @@ jobs:
         # `checksdev test`. The script writes ~/.pip/pip.conf and a 0600 ~/.netrc,
         # keeping credentials out of the index URL.
         #
-        # No phase-1 suite depends on this today -- all fourteen resolve from public
-        # PyPI -- but the deferred Docker suites will, and keeping it here means the
-        # index is configured wherever `checksdev test` runs. Guarded rather than
-        # unconditional so an absent credential cannot fail suites that do not use it;
-        # when it is missing we say so loudly rather than failing obscurely later.
+        # `vsphere` is the one phase-1 suite that needs this; the deferred Docker
+        # suites will too. Guarded rather than unconditional so an absent credential
+        # cannot fail the suites that do not use it; when it is missing we say so
+        # loudly rather than failing obscurely later.
+        #
+        # NOTE: writing these under $HOME is only half the job. tox drops every
+        # variable absent from a testenv's `passenv`, HOME included, and pip then
+        # resolves `~` from the passwd database rather than the environment. Because
+        # a container job here runs with HOME=/github/home instead of the account
+        # default, a testenv that installs from this index must list HOME in its
+        # passenv or it will silently read a pip.conf that was never written and fall
+        # back to public PyPI alone -- with no auth error to show for it. See
+        # vsphere/tox.ini.
         run: |
           set -eo pipefail
           if [ -z "${GITLAB_PACKAGE_REGISTRY_PYPI_SIMPLE_URL}" ] \
