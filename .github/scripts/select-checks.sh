@@ -27,10 +27,11 @@
 #
 # The split is a security boundary, not a convenience. The credential-free suites
 # run on GitHub-hosted runners with no secrets in scope at all, so a fork PR can
-# run them safely. The private-index suites need a registry password written to
-# ~/.netrc, which any test code executing afterwards can read, so they run behind
-# a protected GitHub Environment that requires a human approval first (STAC-25463
-# review). Keeping them in one matrix would hand that credential to every suite.
+# run them safely. The private-index suites need a registry password, and any test
+# code executing alongside it could read it, so they run in a separate job that
+# downloads the private packages into a local wheelhouse and destroys the
+# credential before the suite starts (STAC-25463 review, STAC-25540). Keeping them
+# in one matrix would hand that credential to every suite.
 
 set -euo pipefail
 
