@@ -71,33 +71,46 @@ name: Check tests
 #   least-privilege by construction; this repo's *publishing* role is still
 #   deferred, per the note above.
 #
-#   Scoping it to a single step was not enough on its own, because the old setup
-#   script wrote it to ~/.netrc and the suite's own test code runs afterwards in
-#   the same job and could read it. So the suites that need it are split into
-#   their own job, `check-tests-private-index`, and that job now downloads the
-#   private packages into a local wheelhouse and deletes the credential before any
-#   repository code runs (STAC-25540). The remaining suites never see it.
+#   No pull request ever receives it. `pull_request` runs execute the pull
+#   request's own copy of this workflow and of every script it calls, so a run
+#   that holds a secret can always be made to disclose it -- by editing the
+#   fetching script, reordering steps, or adding one. A repository secret and
+#   pull-request-controlled code cannot be arranged into a boundary. The suites
+#   that need this credential therefore do not run on pull requests at all; they
+#   run on push, tag and workflow_dispatch events, whose contents are reviewed
+#   before reaching the release branch. See `check-tests-private-index`.
 #
-#   This replaced the `private-package-index` GitHub Environment, whose required
-#   reviewers released the credential only after a human approved each run. It
-#   worked, but SHARED_PATHS covers the CI files, so it fired on roughly one
-#   commit in six and blocked authors on their own pull requests for no gain the
-#   wheelhouse does not also provide.
+#   Within those runs the credential is still confined to a single step
+#   (STAC-25540): the script writes ~/.netrc, downloads one fixed package set into
+#   a local wheelhouse, deletes the netrc, and points pip at the wheelhouse, so
+#   the suite and its dependency tree install with nothing to authenticate
+#   against. The predecessor left the netrc readable for the rest of the job. That
+#   is defence in depth, not the boundary -- the boundary is the event condition
+#   above.
 #
-#   Residual, and deliberately left alone here: the underlying secrets are still
-#   repo- and org-level, so a pull request that edits this workflow could add a
-#   new reference outside that step. That change is visible in the diff and is
-#   what review and the Zizmor audit are for. Making them environment-only secrets
-#   would remove even that path, but the org-level password is shared with other
-#   repos (stackstate-agent among them), so it needs its own change.
+#   Two earlier answers to the same review finding are recorded here so they are
+#   not re-proposed. A `private-package-index` GitHub Environment with required
+#   reviewers did gate the credential, but SHARED_PATHS covers the CI files, so it
+#   fired on roughly one commit in six and blocked authors on their own pull
+#   requests -- while only ever constraining people who already have write access.
+#   Prefetching the wheelhouse on a trusted event and passing it to pull requests
+#   through the Actions cache also works, but any pull request can read a cache,
+#   and a pull request can only restore one from its base branch.
+#
+#   The durable fix is to stop needing the index: VMware now publishes this SDK to
+#   public PyPI under renamed packages (vmware-vapi-runtime,
+#   vmware-vapi-common-client, pyvmomi) and serves the NSX/VMC wheels from its own
+#   public index, so modernising the pin removes the credential, this job and the
+#   pull-request coverage gap in one change.
 #
 # RUNNERS
 #   Everything runs on GitHub-hosted runners. The suites are pure-Python and need
 #   no Docker daemon, so the self-hosted docker-public pool bought nothing while
 #   costing real isolation: fork PRs had to be excluded from it, which in turn
-#   meant a fork could never produce a CI verdict. On hosted runners forks run the
-#   full credential-free matrix, and only the private-index job keeps a fork guard
-#   -- forks receive no secrets in any case. This also removes the question of
+#   meant a fork could never produce a CI verdict. On hosted runners forks run
+#   exactly the same matrix as any other pull request -- the private-index job is
+#   off the pull-request path entirely, so no fork-specific guard is needed for
+#   it any more. This also removes the question of
 #   pulling upstream images across the self-hosted NAT: the BCI reference is
 #   direct, from a public registry, on infrastructure that is meant to reach it.
 #   The phase-2 Docker suites will need a runner with a daemon; that decision
@@ -156,16 +169,17 @@ env:
 jobs:
   select-checks:
     name: Select check suites to run
-    # Runs for forks too. Every job in this workflow now runs on GitHub-hosted
-    # runners with no secrets in scope, except the private-index suites, which are
-    # isolated behind a protected environment below. There is therefore nothing a
-    # fork branch can reach here, and blocking forks outright would leave them
-    # unable to satisfy branch protection at all (STAC-25463 review).
+    # Runs for forks too. Every job that runs on a pull request does so with no
+    # secrets in scope at all -- the one job that uses a credential does not run
+    # on pull requests (see `check-tests-private-index`). There is therefore
+    # nothing a fork branch can reach here, and blocking forks outright would
+    # leave them unable to satisfy branch protection at all (STAC-25463 review).
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
       checks: ${{ steps.select.outputs.checks }}
       private_checks: ${{ steps.select.outputs.private_checks }}
+      deferred_private_checks: ${{ steps.select.outputs.deferred_private_checks }}
       image: ${{ steps.image.outputs.ref }}
     steps:
       - name: Check out repository
@@ -307,28 +321,33 @@ jobs:
     # credential at all: vsphere pins a package that resolves solely from the
     # private GitLab Package Registry.
     #
-    # The credential is confined to a single step (STAC-25540). It is written,
-    # used for one fixed pip download, and destroyed before any repository code
-    # runs; the suite then installs from the resulting local wheelhouse with
-    # nothing to authenticate against. That replaces the protected GitHub
-    # Environment this job used to sit behind, which answered the same STAC-25463
-    # review finding by requiring a human to release every run -- and, because
-    # SHARED_PATHS covers the CI files, fired on roughly one commit in six and
-    # blocked authors on their own pull requests.
+    # This job does not run on pull requests (STAC-25540, second review pass).
     #
-    # The fork guard stays here, and only here. A fork PR gets no Actions secrets
-    # on a public repository, so it could not fetch the wheel in any case; it
-    # skips this job and still gets a full credential-free verdict from the other
-    # suites, so nothing silently reports green without tests.
+    # An earlier revision ran it on pull requests with the credential confined to
+    # a single step, and claimed that reaching it would require editing this
+    # workflow. That claim was wrong, and the review was right to call it: a
+    # `pull_request` run executes the pull request's own copy of the workflow AND
+    # of every script it calls, so a pull request could rewrite the fetch script,
+    # reorder these steps, or simply add a step of its own. Repository secrets
+    # plus pull-request-controlled code do not make a security boundary, however
+    # carefully the code in between is written.
     #
-    # Residual risk, stated plainly: a pull request that edits this workflow can
-    # still reach the secret, because `pull_request` runs the PR's own copy of the
-    # workflow. That is true of every secret in every repository and is contained
-    # by review and branch protection, not by CI. What changed is that the
-    # credential is no longer readable by ordinary test code and its dependency
-    # tree, which needed no workflow edit at all.
+    # Confining the credential to one step is still worth doing and is still done
+    # -- it keeps the password away from the suite's dependency tree, which needed
+    # no malice at all to read it -- but it is hardening, not a boundary. The
+    # boundary is this condition: the run simply never receives the secret.
+    #
+    # The cost is that vsphere is verified on the release branch rather than on
+    # the pull request that changes it. That is a real gap, accepted knowingly:
+    # the suite's own directory changes a handful of times a year, and the
+    # alternatives all cost more than they return right now. Sharing a prefetched
+    # wheelhouse through the Actions cache would work, but a pull request run can
+    # only restore caches from its base branch, and any pull request can read
+    # them. The durable fix is to stop needing the private index at all: VMware
+    # now publishes this SDK to public PyPI under renamed packages, so modernising
+    # the pin deletes this job, its credential and this trade-off together.
     if: >-
-      ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+      ${{ github.event_name != 'pull_request'
       && needs.select-checks.outputs.private_checks != '[]' }}
     needs: select-checks
     runs-on: ubuntu-latest
@@ -475,7 +494,7 @@ jobs:
           CHECK_TESTS_PRIVATE: ${{ needs.check-tests-private-index.result }}
           SELECTED_CHECKS: ${{ needs.select-checks.outputs.checks }}
           SELECTED_PRIVATE_CHECKS: ${{ needs.select-checks.outputs.private_checks }}
-          IS_FORK: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
+          DEFERRED_PRIVATE_CHECKS: ${{ needs.select-checks.outputs.deferred_private_checks }}
         run: |
           set -euo pipefail
           status=0
@@ -512,15 +531,17 @@ jobs:
               ;;
           esac
 
-          # The private-index matrix has one extra legitimate skip: fork PRs never
-          # receive the credential, by design. They still get a full verdict from
-          # the credential-free suites above, so this cannot hide an empty run.
-          printf '  %-24s %s (selected: %s, fork: %s)\n' \
-            "check-tests-private" "${CHECK_TESTS_PRIVATE}" "${SELECTED_PRIVATE_CHECKS}" "${IS_FORK}"
+          # The private-index matrix legitimately skips whenever the selector
+          # chose nothing for this event. On pull requests that is always: those
+          # suites are deferred rather than selected, because the run holds no
+          # credential to reach the private index with. The deferral is reported
+          # so a green pull request never quietly implies vsphere was covered.
+          printf '  %-24s %s (selected: %s, deferred: %s)\n' \
+            "check-tests-private" "${CHECK_TESTS_PRIVATE}" "${SELECTED_PRIVATE_CHECKS}" "${DEFERRED_PRIVATE_CHECKS}"
           case "${CHECK_TESTS_PRIVATE}" in
             success) ;;
             skipped)
-              if [ "${SELECTED_PRIVATE_CHECKS}" != "[]" ] && [ "${IS_FORK}" != "true" ]; then
+              if [ "${SELECTED_PRIVATE_CHECKS}" != "[]" ]; then
                 echo "::error title=Selected suites never ran::check-tests-private-index was skipped while ${SELECTED_PRIVATE_CHECKS} was selected."
                 status=1
               fi
@@ -530,6 +551,10 @@ jobs:
               status=1
               ;;
           esac
+
+          if [ "${DEFERRED_PRIVATE_CHECKS}" != "[]" ]; then
+            echo "::notice title=Not covered by this run::${DEFERRED_PRIVATE_CHECKS} need the private package registry and do not run on pull requests. They run on the release branch after merge."
+          fi
 
           if [ "${status}" -ne 0 ]; then
             exit 1

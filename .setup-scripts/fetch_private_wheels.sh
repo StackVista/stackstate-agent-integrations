@@ -7,16 +7,30 @@
 # self-host it in the GitLab Package Registry only because that org was private;
 # public PyPI now serves a 0.0.1 placeholder squatting the name.
 #
-# The predecessor, setup_artifact_registry.sh, left a 0600 ~/.netrc in place for
-# the remainder of the job, so every later step -- the tox environment, the
-# suite's own tests, their transitive dependencies -- could read the password.
-# Test code is PR-authored, which made that credential effectively readable by
-# whoever opened the pull request (STAC-25463 review, P1).
+# This script only ever runs on events whose contents have been reviewed -- push,
+# tag and workflow_dispatch. It does NOT run on pull requests, and the guard below
+# enforces that independently of the workflow, because a pull request can edit the
+# workflow as freely as it can edit this file. That is the actual protection for
+# the credential; everything else here is defence in depth (STAC-25540, second
+# review pass).
 #
-# Here the credential exists only for the duration of one pip invocation whose
-# package set is fixed below, and pip is then pointed at the resulting wheelhouse
-# so the rest of the job resolves offline with nothing to authenticate against.
+# The defence in depth still matters. The predecessor, setup_artifact_registry.sh,
+# left a 0600 ~/.netrc in place for the remainder of the job, so every later step
+# -- the tox environment, the suite's own tests, their transitive dependencies --
+# could read the password. That needed no malice from anyone. Here the credential
+# exists only for the duration of one pip invocation whose package set is fixed
+# below, and pip is then pointed at the resulting wheelhouse so the rest of the
+# job resolves offline with nothing to authenticate against.
 set -euo pipefail
+
+# A pull request must never reach the registry password, and must not be able to
+# arrange for this script to fetch it one. The workflow already declines to run
+# the job on pull requests; this is the same rule stated where it cannot be
+# removed by editing a YAML condition.
+if [ "${GITHUB_EVENT_NAME:-}" = "pull_request" ]; then
+  echo "::error title=Refusing to fetch on a pull request::${0##*/} handles the private registry credential and must not run on pull_request events; the private-index suites run on the release branch instead."
+  exit 1
+fi
 
 WHEELHOUSE_ARG="${1:-}"
 if [ -z "${WHEELHOUSE_ARG}" ]; then
