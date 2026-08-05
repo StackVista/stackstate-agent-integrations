@@ -57,19 +57,40 @@ name: Check tests
 #   Dependabot PRs run -- they receive no Actions secrets, so the image pull
 #   could never have succeeded for them.
 #
-#   One credential remains, and only on the step that needs it: the read-only
-#   pull from the private PyPI index, for pins that public PyPI does not serve
-#   (currently vsphere-automation-sdk). That is
-#   vars.GITLAB_PACKAGE_REGISTRY_PYPI_SIMPLE_URL and
+#   One credential remains: the read-only pull from the private PyPI index, for
+#   pins that public PyPI does not serve (currently vsphere-automation-sdk). That
+#   is vars.GITLAB_PACKAGE_REGISTRY_PYPI_SIMPLE_URL and
 #   secrets.GITLAB_PACKAGE_REGISTRY_USER, granted to this repo in pulumi-infra
 #   (StackVista/pulumi-infra#263), alongside the already-org-wide
 #   secrets.GITLAB_PACKAGE_REGISTRY_READONLY_PASSWORD. It is pull-only and
 #   least-privilege by construction; this repo's *publishing* role is still
-#   deferred, per the note above. The step is guarded so its absence degrades to
-#   a warning rather than failing suites that do not use the index.
+#   deferred, per the note above.
 #
-#   Fork PRs are still excluded from the credentialed jobs. Secret exposure is no
-#   longer the reason -- running unreviewed code on self-hosted runners is.
+#   Scoping it to a single step is not enough, because the script writes it to
+#   ~/.netrc and the suite's own test code runs afterwards in the same job and can
+#   read it. So the suites that need it are split into their own job,
+#   `check-tests-private-index`, behind the `private-package-index` GitHub
+#   Environment. Required reviewers there mean the credential is released only
+#   after a human approves that specific run. The remaining suites never see it.
+#
+#   Residual, and deliberately left alone here: the underlying secrets are still
+#   repo- and org-level, so a pull request that edits this workflow could add a
+#   new reference outside the gated job. That change is visible in the diff and is
+#   what review and the Zizmor audit are for. Making them environment-only secrets
+#   would remove even that path, but the org-level password is shared with other
+#   repos (stackstate-agent among them), so it needs its own change.
+#
+# RUNNERS
+#   Everything runs on GitHub-hosted runners. The suites are pure-Python and need
+#   no Docker daemon, so the self-hosted docker-public pool bought nothing while
+#   costing real isolation: fork PRs had to be excluded from it, which in turn
+#   meant a fork could never produce a CI verdict. On hosted runners forks run the
+#   full credential-free matrix, and only the private-index job keeps a fork guard
+#   -- forks receive no secrets in any case. This also removes the question of
+#   pulling upstream images across the self-hosted NAT: the BCI reference is
+#   direct, from a public registry, on infrastructure that is meant to reach it.
+#   The phase-2 Docker suites will need a runner with a daemon; that decision
+#   belongs with them, not here.
 
 on:
   pull_request:
@@ -124,15 +145,16 @@ env:
 jobs:
   select-checks:
     name: Select check suites to run
-    # Fork PRs never run: this is a PUBLIC repository on self-hosted runners, and
-    # a fork branch is unreviewed code. The jobs no longer carry registry
-    # credentials, but running arbitrary PR code on our own runners is a separate
-    # concern from secret exposure, so the boundary stays.
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: docker-public
+    # Runs for forks too. Every job in this workflow now runs on GitHub-hosted
+    # runners with no secrets in scope, except the private-index suites, which are
+    # isolated behind a protected environment below. There is therefore nothing a
+    # fork branch can reach here, and blocking forks outright would leave them
+    # unable to satisfy branch protection at all (STAC-25463 review).
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
       checks: ${{ steps.select.outputs.checks }}
+      private_checks: ${{ steps.select.outputs.private_checks }}
       image: ${{ steps.image.outputs.ref }}
     steps:
       - name: Check out repository
@@ -168,10 +190,10 @@ jobs:
     name: Check metadata validation (checksdev validate)
     # Ported from the `checksdev validate *` commands that opened
     # test_stackstate_checks_base. Cheap, repo-wide, and independent of the
-    # matrix, so it runs on every change rather than per suite.
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    # matrix, so it runs on every change rather than per suite. Credential-free,
+    # so it runs for fork PRs too.
     needs: select-checks
-    runs-on: docker-public
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     container:
       # Digest-pinned at workflow level (BCI_PYTHON_IMAGE); the ignore is only
@@ -214,17 +236,87 @@ jobs:
 
   check-tests:
     name: Check tests (${{ matrix.check }})
-    if: >-
-      ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-      && needs.select-checks.outputs.checks != '[]' }}
+    # No fork guard: these suites carry no credentials and run on GitHub-hosted
+    # runners, so a fork branch has nothing to reach. Skipped only when the
+    # selector legitimately picked no credential-free suite.
+    if: needs.select-checks.outputs.checks != '[]'
     needs: select-checks
-    runs-on: docker-public
+    runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
       # One suite's failure should not mask the state of the others.
       fail-fast: false
       matrix:
         check: ${{ fromJson(needs.select-checks.outputs.checks) }}
+    container:
+      # Digest-pinned at workflow level (BCI_PYTHON_IMAGE); the ignore is only
+      # because Zizmor cannot follow the pin through a job output.
+      image: ${{ needs.select-checks.outputs.image }} # zizmor: ignore[unpinned-images]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install toolchain build dependencies
+        run: |
+          set -eo pipefail
+          zypper --non-interactive --gpg-auto-import-keys refresh
+          # shellcheck disable=SC2086 # deliberately word-split into package args
+          zypper --non-interactive install ${BCI_BUILD_PACKAGES}
+
+      - name: Build the toolchain virtualenv
+        run: |
+          set -eo pipefail
+          git config --global --add safe.directory '*'
+          source .setup-scripts/setup_env.sh
+
+      - name: checksdev test ${{ matrix.check }}
+        env:
+          CHECK: ${{ matrix.check }}
+        run: |
+          set -eo pipefail
+          source venv/bin/activate
+          checksdev test --cov "${CHECK}"
+
+      - name: checksdev benchmarks ${{ matrix.check }}
+        env:
+          CHECK: ${{ matrix.check }}
+        # Non-blocking, matching GitLab's `|| true`: benchmarks are reported for
+        # information and have never gated a merge.
+        continue-on-error: true
+        run: |
+          set -eo pipefail
+          source venv/bin/activate
+          checksdev test "${CHECK}" --bench
+
+  check-tests-private-index:
+    name: Check tests, private index (${{ matrix.check }})
+    # Isolated from `check-tests` because this is the only job that handles a
+    # credential. `setup_artifact_registry.sh` writes the GitLab Package Registry
+    # password into a 0600 ~/.netrc, and everything that runs afterwards -- the
+    # suite's own tests, its tox environment, its transitive dependencies -- can
+    # read that file. Test code is PR-authored, so the credential is effectively
+    # exposed to whoever opens the pull request.
+    #
+    # Two things contain that (STAC-25463 review):
+    #   * `environment:` puts the job behind a protected GitHub Environment with
+    #     required reviewers, so the credential is only released after a human has
+    #     approved this specific run, having seen the diff.
+    #   * The fork guard stays here, and only here. A fork PR skips this job and
+    #     still gets a full credential-free verdict from the other suites, so
+    #     nothing silently reports green without tests.
+    if: >-
+      ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+      && needs.select-checks.outputs.private_checks != '[]' }}
+    needs: select-checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: private-package-index
+    strategy:
+      fail-fast: false
+      matrix:
+        check: ${{ fromJson(needs.select-checks.outputs.private_checks) }}
     container:
       # Digest-pinned at workflow level (BCI_PYTHON_IMAGE); the ignore is only
       # because Zizmor cannot follow the pin through a job output.
@@ -257,10 +349,10 @@ jobs:
         # `checksdev test`. The script writes ~/.pip/pip.conf and a 0600 ~/.netrc,
         # keeping credentials out of the index URL.
         #
-        # `vsphere` is the one phase-1 suite that needs this; the deferred Docker
-        # suites will too. Guarded rather than unconditional so an absent credential
-        # cannot fail the suites that do not use it; when it is missing we say so
-        # loudly rather than failing obscurely later.
+        # Unguarded, unlike the earlier revision: this job only runs for suites
+        # that cannot resolve without the private index, so a missing credential
+        # is a hard configuration error and must fail loudly rather than warn and
+        # let pip fall through to public PyPI.
         #
         # NOTE: writing these under $HOME is only half the job. tox drops every
         # variable absent from a testenv's `passenv`, HOME included, and pip then
@@ -275,8 +367,8 @@ jobs:
           if [ -z "${GITLAB_PACKAGE_REGISTRY_PYPI_SIMPLE_URL}" ] \
             || [ -z "${GITLAB_PACKAGE_REGISTRY_USER}" ] \
             || [ -z "${GITLAB_PACKAGE_REGISTRY_READONLY_PASSWORD}" ]; then
-            echo "::warning title=Private PyPI index not configured::GitLab Package Registry credentials are not available to this job. Any check pinning a wheel that public PyPI does not serve will fail to resolve its requirements."
-            exit 0
+            echo "::error title=Private PyPI index not configured::This suite installs from the GitLab Package Registry, but its credentials are not available to this job."
+            exit 1
           fi
           .setup-scripts/setup_artifact_registry.sh
 
@@ -291,8 +383,7 @@ jobs:
       - name: checksdev benchmarks ${{ matrix.check }}
         env:
           CHECK: ${{ matrix.check }}
-        # Non-blocking, matching GitLab's `|| true`: benchmarks are reported for
-        # information and have never gated a merge.
+        # Non-blocking, matching GitLab's `|| true`.
         continue-on-error: true
         run: |
           set -eo pipefail
@@ -301,12 +392,11 @@ jobs:
 
   workflow-security:
     name: Workflow security scan (Zizmor)
-    # Same fork boundary as the rest: this repository is PUBLIC and the runners are
-    # self-hosted, so unreviewed fork code is not checked out here even for a
-    # read-only audit. Depends on select-checks only to reuse the pinned image.
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    # Credential-free and read-only, and it runs on GitHub-hosted infrastructure,
+    # so fork PRs are audited too. Depends on select-checks only to reuse the
+    # pinned image.
     needs: select-checks
-    runs-on: docker-public
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     container:
       # Digest-pinned at workflow level (BCI_PYTHON_IMAGE); the ignore is only
@@ -343,42 +433,89 @@ jobs:
     name: CI success
     # The single stable status for branch protection. Every other status here is
     # either dynamically named (the matrix legs are `Check tests (<suite>)`) or
-    # conditional (check-tests is skipped entirely when the selector returns an
-    # empty array, and everything is skipped for fork PRs). A required check must
-    # exist on every run, so this job always runs and decides the verdict itself.
-    # That includes fork PRs, where everything upstream is skipped: without a
-    # status here a fork PR could never satisfy branch protection. It checks out
-    # nothing and runs no repository code, so it stays safe to run in that context.
+    # conditional, so this job always runs and decides the verdict itself.
+    #
+    # It must distinguish a legitimate skip from an absent pipeline. An earlier
+    # revision treated every non-failure as success, which meant a run where
+    # everything skipped still reported green and could satisfy branch protection
+    # without executing any CI at all (STAC-25463 review). The rules below are
+    # therefore explicit about which skips are allowed and why.
     if: always()
     needs:
       - select-checks
       - validate
       - check-tests
+      - check-tests-private-index
       - workflow-security
-    runs-on: docker-public
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Evaluate upstream job results
         env:
-          # `skipped` is a legitimate outcome and must not be conflated with
-          # success: check-tests skips when no suite was selected, and the whole
-          # pipeline skips for fork PRs. Only `failure` and `cancelled` fail here.
-          RESULTS: >-
-            select-checks=${{ needs.select-checks.result }}
-            validate=${{ needs.validate.result }}
-            check-tests=${{ needs.check-tests.result }}
-            workflow-security=${{ needs.workflow-security.result }}
+          SELECT_CHECKS: ${{ needs.select-checks.result }}
+          VALIDATE: ${{ needs.validate.result }}
+          WORKFLOW_SECURITY: ${{ needs.workflow-security.result }}
+          CHECK_TESTS: ${{ needs.check-tests.result }}
+          CHECK_TESTS_PRIVATE: ${{ needs.check-tests-private-index.result }}
+          SELECTED_CHECKS: ${{ needs.select-checks.outputs.checks }}
+          SELECTED_PRIVATE_CHECKS: ${{ needs.select-checks.outputs.private_checks }}
+          IS_FORK: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
         run: |
           set -euo pipefail
-          failed=0
-          for entry in ${RESULTS}; do
-            echo "  ${entry}"
-            case "${entry#*=}" in
-              failure | cancelled) failed=1 ;;
-            esac
-          done
-          if [ "${failed}" -ne 0 ]; then
-            echo "::error title=CI failed::One or more required jobs did not succeed (see above)."
+          status=0
+
+          # These three run on every event, including fork PRs. They have no
+          # legitimate skip: if one did not run, the pipeline did not run.
+          require_success() {
+            local name=$1 result=$2
+            printf '  %-24s %s\n' "${name}" "${result}"
+            if [ "${result}" != "success" ]; then
+              echo "::error title=Required job did not succeed::${name} reported '${result}'."
+              status=1
+            fi
+          }
+
+          require_success "select-checks" "${SELECT_CHECKS}"
+          require_success "validate" "${VALIDATE}"
+          require_success "workflow-security" "${WORKFLOW_SECURITY}"
+
+          # The credential-free matrix may only skip when the selector chose
+          # nothing. A skip with suites selected means they never ran.
+          printf '  %-24s %s (selected: %s)\n' "check-tests" "${CHECK_TESTS}" "${SELECTED_CHECKS}"
+          case "${CHECK_TESTS}" in
+            success) ;;
+            skipped)
+              if [ "${SELECTED_CHECKS}" != "[]" ]; then
+                echo "::error title=Selected suites never ran::check-tests was skipped while ${SELECTED_CHECKS} was selected."
+                status=1
+              fi
+              ;;
+            *)
+              echo "::error title=Check tests did not succeed::check-tests reported '${CHECK_TESTS}'."
+              status=1
+              ;;
+          esac
+
+          # The private-index matrix has one extra legitimate skip: fork PRs never
+          # receive the credential, by design. They still get a full verdict from
+          # the credential-free suites above, so this cannot hide an empty run.
+          printf '  %-24s %s (selected: %s, fork: %s)\n' \
+            "check-tests-private" "${CHECK_TESTS_PRIVATE}" "${SELECTED_PRIVATE_CHECKS}" "${IS_FORK}"
+          case "${CHECK_TESTS_PRIVATE}" in
+            success) ;;
+            skipped)
+              if [ "${SELECTED_PRIVATE_CHECKS}" != "[]" ] && [ "${IS_FORK}" != "true" ]; then
+                echo "::error title=Selected suites never ran::check-tests-private-index was skipped while ${SELECTED_PRIVATE_CHECKS} was selected."
+                status=1
+              fi
+              ;;
+            *)
+              echo "::error title=Private-index tests did not succeed::check-tests-private-index reported '${CHECK_TESTS_PRIVATE}'."
+              status=1
+              ;;
+          esac
+
+          if [ "${status}" -ne 0 ]; then
             exit 1
           fi
-          echo "All required jobs succeeded or were legitimately skipped."
+          echo "All required jobs succeeded; every skip was legitimate."

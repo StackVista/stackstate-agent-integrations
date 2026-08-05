@@ -20,7 +20,16 @@
 #   * push / workflow_dispatch run everything (GitLab: `master_branch`,
 #     `release_branch`).
 #
-# Writes `checks=<json array>` to $GITHUB_OUTPUT for `fromJson()` in a matrix.
+# Writes two arrays to $GITHUB_OUTPUT for `fromJson()` in a matrix:
+#   checks         -- suites that need no credentials
+#   private_checks -- suites that install from the private GitLab PyPI index
+#
+# The split is a security boundary, not a convenience. The credential-free suites
+# run on GitHub-hosted runners with no secrets in scope at all, so a fork PR can
+# run them safely. The private-index suites need a registry password written to
+# ~/.netrc, which any test code executing afterwards can read, so they run behind
+# a protected GitHub Environment that requires a human approval first (STAC-25463
+# review). Keeping them in one matrix would hand that credential to every suite.
 
 set -euo pipefail
 
@@ -56,6 +65,18 @@ CHECKS=(
   zabbix
 )
 
+# Suites whose requirements resolve only against the private GitLab PyPI index.
+# `vsphere` pins vsphere-automation-sdk, which VMware never published to public
+# PyPI (the name is squatted there by an unrelated 0.0.1 placeholder), so it is
+# mirrored into the StackVista package registry and needs authentication.
+#
+# Everything not listed here is credential-free and must stay that way: adding a
+# suite to this list moves it behind a manual approval gate, and removing the
+# need for the private index is always the better fix.
+PRIVATE_INDEX_CHECKS=(
+  vsphere
+)
+
 # A change anywhere here invalidates every suite: the base classes and the test
 # helpers are imported by all of them, and the setup scripts build the venv the
 # suites run in.
@@ -68,16 +89,45 @@ SHARED_PATHS=(
   .github/scripts/select-checks.sh
 )
 
+to_json() {
+  if [ "$#" -eq 0 ]; then
+    echo "[]"
+  else
+    printf '%s\n' "$@" | sort -u | jq -R . | jq -c -s .
+  fi
+}
+
+is_private_index() {
+  local candidate=$1 check
+  for check in "${PRIVATE_INDEX_CHECKS[@]}"; do
+    [ "${candidate}" = "${check}" ] && return 0
+  done
+  return 1
+}
+
 emit() {
   local -a selected=("$@")
-  local json
-  if [ "${#selected[@]}" -eq 0 ]; then
-    json="[]"
-  else
-    json=$(printf '%s\n' "${selected[@]}" | sort -u | jq -R . | jq -c -s .)
-  fi
-  echo "checks=${json}" >>"${GITHUB_OUTPUT}"
-  echo "Selected suites: ${json}"
+  local -a public=() private=()
+  local check
+  for check in ${selected[@]+"${selected[@]}"}; do
+    if is_private_index "${check}"; then
+      private+=("${check}")
+    else
+      public+=("${check}")
+    fi
+  done
+
+  local public_json private_json
+  public_json=$(to_json ${public[@]+"${public[@]}"})
+  private_json=$(to_json ${private[@]+"${private[@]}"})
+
+  {
+    echo "checks=${public_json}"
+    echo "private_checks=${private_json}"
+  } >>"${GITHUB_OUTPUT}"
+
+  echo "Selected credential-free suites: ${public_json}"
+  echo "Selected private-index suites:   ${private_json}"
 }
 
 # Anything that is not a pull request is a full run. On the release branch the
