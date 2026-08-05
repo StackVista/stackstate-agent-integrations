@@ -16,7 +16,8 @@
 #   * Otherwise only the suites whose own directory changed run.
 #   * GitLab's `splunk_base_build_rule` -- a change to splunk_base also runs the
 #     other three splunk suites, which import its test helpers -- is not ported
-#     here because no splunk suite runs yet. It lands with them in phase 2.
+#     here because no splunk suite runs yet. It lands with them in phase 2
+#     (STAC-25531).
 #   * push / workflow_dispatch run everything (GitLab: `master_branch`,
 #     `release_branch`).
 #
@@ -36,13 +37,14 @@ set -euo pipefail
 # Suites currently running on GitHub Actions. Phase 1 is the 15 suites that need
 # no Docker daemon.
 #
-# Deliberately NOT here yet (phase 2, needs the DinD story exercised first):
+# Deliberately NOT here yet (phase 2, STAC-25531 -- needs a docker client in the
+# job image):
 #   splunk_base, splunk_health, splunk_metric, splunk_topology
 #       -- each drives a real Splunk container via docker-compose.
 #   stackstate_checks_dev
 #       -- its tests exercise the toolkit's own Docker helpers.
-# Both public ARC runners provide a DinD sidecar, so this is a matter of proving
-# it rather than provisioning anything.
+# ubuntu-latest already provides a working Docker daemon, so this is a matter of
+# giving the job a docker client rather than provisioning a runner.
 #
 # Deliberately dropped, not pending:
 #   postgres -- .gitlab-ci.yml carried a `test_postgres` job for a check that does

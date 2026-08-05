@@ -12,17 +12,19 @@ name: Check tests
 #                                        instead of hiding inside a test job.
 #
 # WHAT IS DELIBERATELY NOT HERE
-#   splunk_{base,health,metric,topology} and stackstate_checks_dev
+#   splunk_{base,health,metric,topology} and stackstate_checks_dev  (STAC-25531)
 #       The only five suites that need a Docker daemon (the four splunk suites
 #       drive a real Splunk container via docker-compose; checks_dev tests the
-#       toolkit's own Docker helpers). Both public ARC runners ship a DinD
-#       sidecar, so this is about exercising that path rather than provisioning
-#       anything -- phase 2. That phase also brings across
+#       toolkit's own Docker helpers). ubuntu-latest ships a working Docker
+#       daemon, so phase 2 does not need to provision anything -- but it does
+#       need a docker client inside the job, which the BCI Python image used
+#       here does not carry: either a BCI image with docker added, or a service
+#       container, rather than a return to the private
+#       python:3.13.14-bookworm runner image. Phase 2 also brings across
 #       .setup-scripts/setup_artifactory_docker.sh (the registry docker login)
-#       and COMPOSE_HTTP_TIMEOUT, which only those suites need. It will also need
-#       a docker client, which the BCI Python image used here does not carry --
-#       either a BCI image with docker added, or a DinD service container, rather
-#       than a return to the private python:3.13.14-bookworm runner image.
+#       and COMPOSE_HTTP_TIMEOUT, which only those suites need, plus GitLab's
+#       splunk_base_build_rule (a splunk_base change must also run the other
+#       three, which import its test helpers).
 #   test_postgres
 #       Dead config: .gitlab-ci.yml tests a `postgres` check that does not exist
 #       in this repository. Dropped, not pending.
@@ -35,16 +37,19 @@ name: Check tests
 #       but no job has ever referenced it, and Windows is not a supported target,
 #       so the orphaned .setup-scripts/conda_env.ps1 + windows_*.cmd helpers can
 #       be retired with the GitLab pipeline (STAC-25464).
-#   publish-checks-dev / the runner-image `docker` job
+#   publish-checks-dev / the runner-image `docker` job  (STAC-25532)
 #       Publishing needs write credentials this repo does not hold; pulumi-infra
-#       schedules integrations' publishing role for its section 7.4. Until then
-#       releases keep running from GitLab, so the GitLab pipeline stays live.
+#       schedules integrations' publishing role for its section 7.4. Note that
+#       the GitLab project was archived on 2026-07-20, so this job can no longer
+#       run there either -- publishing a new stackstate_checks_dev is currently
+#       not possible on any platform, and the target registry needs deciding
+#       (GitLab package registry vs CodeArtifact, cf. STAC-25407).
 #   A Cerberus failure notification
 #       Unlike stackstate-agent, this pipeline has never had one -- there is no
 #       notify job in .gitlab-ci.yml and no .cerberus directory -- so adding it
 #       would be new capability, not a port. It also needs CERBERUS_LAMBDA_URL,
 #       which is a private-visibility org secret and so unreadable from this
-#       PUBLIC repo without a pulumi-infra grant. Tracked as a follow-up.
+#       PUBLIC repo without a pulumi-infra grant. Tracked as STAC-25533.
 #
 # CREDENTIALS
 #   The container image is SUSE BCI from registry.suse.com, which is public, so
