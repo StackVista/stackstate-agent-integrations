@@ -71,16 +71,22 @@ name: Check tests
 #   least-privilege by construction; this repo's *publishing* role is still
 #   deferred, per the note above.
 #
-#   Scoping it to a single step is not enough, because the script writes it to
-#   ~/.netrc and the suite's own test code runs afterwards in the same job and can
-#   read it. So the suites that need it are split into their own job,
-#   `check-tests-private-index`, behind the `private-package-index` GitHub
-#   Environment. Required reviewers there mean the credential is released only
-#   after a human approves that specific run. The remaining suites never see it.
+#   Scoping it to a single step was not enough on its own, because the old setup
+#   script wrote it to ~/.netrc and the suite's own test code runs afterwards in
+#   the same job and could read it. So the suites that need it are split into
+#   their own job, `check-tests-private-index`, and that job now downloads the
+#   private packages into a local wheelhouse and deletes the credential before any
+#   repository code runs (STAC-25540). The remaining suites never see it.
+#
+#   This replaced the `private-package-index` GitHub Environment, whose required
+#   reviewers released the credential only after a human approved each run. It
+#   worked, but SHARED_PATHS covers the CI files, so it fired on roughly one
+#   commit in six and blocked authors on their own pull requests for no gain the
+#   wheelhouse does not also provide.
 #
 #   Residual, and deliberately left alone here: the underlying secrets are still
 #   repo- and org-level, so a pull request that edits this workflow could add a
-#   new reference outside the gated job. That change is visible in the diff and is
+#   new reference outside that step. That change is visible in the diff and is
 #   what review and the Zizmor audit are for. Making them environment-only secrets
 #   would remove even that path, but the org-level password is shared with other
 #   repos (stackstate-agent among them), so it needs its own change.
@@ -298,26 +304,35 @@ jobs:
   check-tests-private-index:
     name: Check tests, private index (${{ matrix.check }})
     # Isolated from `check-tests` because this is the only job that handles a
-    # credential. `setup_artifact_registry.sh` writes the GitLab Package Registry
-    # password into a 0600 ~/.netrc, and everything that runs afterwards -- the
-    # suite's own tests, its tox environment, its transitive dependencies -- can
-    # read that file. Test code is PR-authored, so the credential is effectively
-    # exposed to whoever opens the pull request.
+    # credential at all: vsphere pins a package that resolves solely from the
+    # private GitLab Package Registry.
     #
-    # Two things contain that (STAC-25463 review):
-    #   * `environment:` puts the job behind a protected GitHub Environment with
-    #     required reviewers, so the credential is only released after a human has
-    #     approved this specific run, having seen the diff.
-    #   * The fork guard stays here, and only here. A fork PR skips this job and
-    #     still gets a full credential-free verdict from the other suites, so
-    #     nothing silently reports green without tests.
+    # The credential is confined to a single step (STAC-25540). It is written,
+    # used for one fixed pip download, and destroyed before any repository code
+    # runs; the suite then installs from the resulting local wheelhouse with
+    # nothing to authenticate against. That replaces the protected GitHub
+    # Environment this job used to sit behind, which answered the same STAC-25463
+    # review finding by requiring a human to release every run -- and, because
+    # SHARED_PATHS covers the CI files, fired on roughly one commit in six and
+    # blocked authors on their own pull requests.
+    #
+    # The fork guard stays here, and only here. A fork PR gets no Actions secrets
+    # on a public repository, so it could not fetch the wheel in any case; it
+    # skips this job and still gets a full credential-free verdict from the other
+    # suites, so nothing silently reports green without tests.
+    #
+    # Residual risk, stated plainly: a pull request that edits this workflow can
+    # still reach the secret, because `pull_request` runs the PR's own copy of the
+    # workflow. That is true of every secret in every repository and is contained
+    # by review and branch protection, not by CI. What changed is that the
+    # credential is no longer readable by ordinary test code and its dependency
+    # tree, which needed no workflow edit at all.
     if: >-
       ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
       && needs.select-checks.outputs.private_checks != '[]' }}
     needs: select-checks
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    environment: private-package-index
     strategy:
       fail-fast: false
       matrix:
@@ -345,37 +360,33 @@ jobs:
           git config --global --add safe.directory '*'
           source .setup-scripts/setup_env.sh
 
-      - name: Configure the private PyPI index (GitLab Package Registry)
+      - name: Fetch private-index wheels and revoke the credential
         env:
           GITLAB_PACKAGE_REGISTRY_PYPI_SIMPLE_URL: ${{ vars.GITLAB_PACKAGE_REGISTRY_PYPI_SIMPLE_URL }}
           GITLAB_PACKAGE_REGISTRY_USER: ${{ secrets.GITLAB_PACKAGE_REGISTRY_USER }}
           GITLAB_PACKAGE_REGISTRY_READONLY_PASSWORD: ${{ secrets.GITLAB_PACKAGE_REGISTRY_READONLY_PASSWORD }}
-        # Mirrors what the GitLab `.linux_test` anchor did immediately before
-        # `checksdev test`. The script writes ~/.pip/pip.conf and a 0600 ~/.netrc,
-        # keeping credentials out of the index URL.
+        # The only step in this workflow with a secret in scope. The script writes
+        # ~/.netrc, downloads one fixed package set, deletes the netrc, and leaves
+        # ~/.pip/pip.conf pointing at a local wheelhouse. Everything after it --
+        # checksdev, tox, the suite's tests and their dependency tree -- runs with
+        # no credential on disk and no authenticated index configured.
         #
-        # Unguarded, unlike the earlier revision: this job only runs for suites
-        # that cannot resolve without the private index, so a missing credential
-        # is a hard configuration error and must fail loudly rather than warn and
-        # let pip fall through to public PyPI.
+        # It replaces setup_artifact_registry.sh here, which left the netrc in
+        # place for the rest of the job (STAC-25463 review P1, STAC-25540). That
+        # script is untouched and still serves the GitLab pipeline definitions.
         #
-        # NOTE: writing these under $HOME is only half the job. tox drops every
-        # variable absent from a testenv's `passenv`, HOME included, and pip then
-        # resolves `~` from the passwd database rather than the environment. Because
-        # a container job here runs with HOME=/github/home instead of the account
-        # default, a testenv that installs from this index must list HOME in its
-        # passenv or it will silently read a pip.conf that was never written and fall
-        # back to public PyPI alone -- with no auth error to show for it. See
-        # vsphere/tox.ini.
+        # The wheelhouse lives in RUNNER_TEMP rather than the workspace so it
+        # cannot be mistaken for repository content or swept into a build.
+        #
+        # NOTE: pip.conf is read from $HOME, so tox must still pass HOME into the
+        # testenv. tox drops every variable absent from `passenv`, and pip then
+        # resolves `~` from the passwd database rather than the environment --
+        # which points at the wrong home in a container job, where HOME is
+        # /github/home. Without it the suite silently falls back to public PyPI
+        # and installs the 0.0.1 placeholder. See vsphere/tox.ini.
         run: |
           set -eo pipefail
-          if [ -z "${GITLAB_PACKAGE_REGISTRY_PYPI_SIMPLE_URL}" ] \
-            || [ -z "${GITLAB_PACKAGE_REGISTRY_USER}" ] \
-            || [ -z "${GITLAB_PACKAGE_REGISTRY_READONLY_PASSWORD}" ]; then
-            echo "::error title=Private PyPI index not configured::This suite installs from the GitLab Package Registry, but its credentials are not available to this job."
-            exit 1
-          fi
-          .setup-scripts/setup_artifact_registry.sh
+          .setup-scripts/fetch_private_wheels.sh "${RUNNER_TEMP}/private-wheels"
 
       - name: checksdev test ${{ matrix.check }}
         env:
