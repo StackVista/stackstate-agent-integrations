@@ -2,6 +2,7 @@
 # All rights reserved
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import os
+import shutil
 from contextlib import contextmanager
 
 from six import string_types
@@ -25,6 +26,35 @@ def get_docker_hostname():
     return urlparse(os.getenv('DOCKER_HOST', '')).hostname or 'localhost'
 
 
+_COMPOSE_COMMAND = None
+
+
+def compose_command():
+    """Return the Docker Compose invocation available on this machine.
+
+    Compose v1 (the standalone ``docker-compose`` binary) reached end of life in
+    July 2023 and is absent from current CI runner images, which ship v2 as the
+    ``docker compose`` subcommand instead. Prefer v2 and fall back to v1 so
+    developers still on an older toolchain keep working.
+
+    Set ``DOCKER_COMPOSE_COMMAND`` to override the detection.
+    """
+    global _COMPOSE_COMMAND
+
+    override = os.getenv('DOCKER_COMPOSE_COMMAND', '').strip()
+    if override:
+        return override.split()
+
+    if _COMPOSE_COMMAND is None:
+        _COMPOSE_COMMAND = ['docker-compose']
+        if shutil.which('docker'):
+            result = run_command(['docker', 'compose', 'version'], capture=True)
+            if result.code == 0:
+                _COMPOSE_COMMAND = ['docker', 'compose']
+
+    return list(_COMPOSE_COMMAND)
+
+
 def get_container_ip(container_id_or_name):
     """Get a Docker container's IP address from its id or name."""
     command = [
@@ -39,7 +69,7 @@ def get_container_ip(container_id_or_name):
 
 
 def compose_file_active(compose_file):
-    command = ['docker-compose', '-f', compose_file, 'ps']
+    command = compose_command() + ['-f', compose_file, 'ps']
     lines = run_command(command, capture='out', check=True).stdout.splitlines()
 
     for i, line in enumerate(lines, 1):
@@ -204,7 +234,7 @@ class ComposeFileUp(LazyFunction):
         self.compose_file = compose_file
         self.build = build
         self.service_name = service_name
-        self.command = ['docker-compose', '-f', self.compose_file, 'up', '-d']
+        self.command = compose_command() + ['-f', self.compose_file, 'up', '-d']
 
         if self.build:
             self.command.append('--build')
@@ -220,7 +250,7 @@ class ComposeFileDown(LazyFunction):
     def __init__(self, compose_file, check=True):
         self.compose_file = compose_file
         self.check = check
-        self.command = ['docker-compose', '-f', self.compose_file, 'down']
+        self.command = compose_command() + ['-f', self.compose_file, 'down']
 
     def __call__(self):
         return run_command(self.command, check=self.check)
