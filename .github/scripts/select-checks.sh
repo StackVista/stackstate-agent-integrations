@@ -43,17 +43,7 @@
 
 set -euo pipefail
 
-# Suites currently running on GitHub Actions. Phase 1 is the 15 suites that need
-# no Docker daemon.
-#
-# Deliberately NOT here yet (phase 2, STAC-25531 -- needs a docker client in the
-# job image):
-#   splunk_base, splunk_health, splunk_metric, splunk_topology
-#       -- each drives a real Splunk container via docker-compose.
-#   stackstate_checks_dev
-#       -- its tests exercise the toolkit's own Docker helpers.
-# ubuntu-latest already provides a working Docker daemon, so this is a matter of
-# giving the job a docker client rather than provisioning a runner.
+# Suites currently running on GitHub Actions.
 #
 # Deliberately dropped, not pending:
 #   postgres -- .gitlab-ci.yml carried a `test_postgres` job for a check that does
@@ -69,11 +59,45 @@ CHECKS=(
   kubelet
   openmetrics
   servicenow
+  splunk_base
+  splunk_health
+  splunk_metric
+  splunk_topology
   stackstate_checks_base
+  stackstate_checks_dev
   static_health
   static_topology
   vsphere
   zabbix
+)
+
+# Suites that need a real Docker daemon: the four splunk suites drive a Splunk
+# container through docker-compose, and stackstate_checks_dev tests the toolkit's
+# own Docker helpers (STAC-25531).
+#
+# These run as their own matrix directly on the runner, not inside the BCI
+# container the other suites use. That is not a preference -- the tests resolve
+# their target host through `get_docker_hostname()`, which reads DOCKER_HOST and
+# falls back to `localhost`. Compose publishes its ports on the Docker host, so
+# `localhost` is correct only when the test process shares a network namespace
+# with the daemon. Inside a job container it would resolve to the container
+# itself and every connection would be refused. GitLab avoided this by pointing
+# DOCKER_HOST at a `docker:dind` service, whose hostname then resolved for both.
+DOCKER_CHECKS=(
+  splunk_base
+  splunk_health
+  splunk_metric
+  splunk_topology
+  stackstate_checks_dev
+)
+
+# splunk_health, splunk_metric and splunk_topology all build on splunk_base, so a
+# change there has to run all four. Ported from the `splunk_base_build_rule`
+# anchor in .gitlab-ci.yml, which added the same fan-out to every splunk job.
+SPLUNK_DEPENDENTS=(
+  splunk_health
+  splunk_metric
+  splunk_topology
 )
 
 # Suites whose requirements resolve only against the private GitLab PyPI index.
@@ -120,13 +144,23 @@ is_private_index() {
   return 1
 }
 
+is_docker() {
+  local candidate=$1 check
+  for check in "${DOCKER_CHECKS[@]}"; do
+    [ "${candidate}" = "${check}" ] && return 0
+  done
+  return 1
+}
+
 emit() {
   local -a selected=("$@")
-  local -a public=() private=() deferred=()
+  local -a public=() docker=() private=() deferred=()
   local check
   for check in ${selected[@]+"${selected[@]}"}; do
     if is_private_index "${check}"; then
       private+=("${check}")
+    elif is_docker "${check}"; then
+      docker+=("${check}")
     else
       public+=("${check}")
     fi
@@ -142,18 +176,21 @@ emit() {
     private=()
   fi
 
-  local public_json private_json deferred_json
+  local public_json docker_json private_json deferred_json
   public_json=$(to_json ${public[@]+"${public[@]}"})
+  docker_json=$(to_json ${docker[@]+"${docker[@]}"})
   private_json=$(to_json ${private[@]+"${private[@]}"})
   deferred_json=$(to_json ${deferred[@]+"${deferred[@]}"})
 
   {
     echo "checks=${public_json}"
+    echo "docker_checks=${docker_json}"
     echo "private_checks=${private_json}"
     echo "deferred_private_checks=${deferred_json}"
   } >>"${GITHUB_OUTPUT}"
 
   echo "Selected credential-free suites: ${public_json}"
+  echo "Selected docker-daemon suites:   ${docker_json}"
   echo "Selected private-index suites:   ${private_json}"
   if [ "${deferred_json}" != "[]" ]; then
     echo "Deferred private-index suites:   ${deferred_json}"
@@ -205,6 +242,17 @@ for file in "${CHANGED[@]}"; do
       SELECTED+=("${check}")
     fi
   done
+done
+
+# splunk_base is a library for the other three splunk suites, so pull them in
+# whenever it changes. Ported from `splunk_base_build_rule` in .gitlab-ci.yml.
+# `emit` sorts and de-duplicates, so adding them unconditionally is safe.
+for check in ${SELECTED[@]+"${SELECTED[@]}"}; do
+  if [ "${check}" = "splunk_base" ]; then
+    echo "'splunk_base' changed: also running ${SPLUNK_DEPENDENTS[*]}."
+    SELECTED+=("${SPLUNK_DEPENDENTS[@]}")
+    break
+  fi
 done
 
 emit "${SELECTED[@]+"${SELECTED[@]}"}"

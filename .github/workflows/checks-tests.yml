@@ -1,10 +1,24 @@
 name: Check tests
 
 # Ported from .gitlab-ci.yml as part of the GitLab -> GitHub migration
-# (STAC-25142 / STAC-25463), phase 1: the pure-Python check suites.
+# (STAC-25142), phase 1 (STAC-25463) and phase 2 (STAC-25531).
 #
 # WHAT MOVED
-#   linux_deps + the `test_<check>` job family -> the `check-tests` matrix below.
+#   linux_deps + the `test_<check>` job family -> the `check-tests` matrix below,
+#                                     plus `check-tests-docker` for the five
+#                                     suites needing a Docker daemon (STAC-25531)
+#                                     and `check-tests-private-index` for vsphere.
+#   splunk_base_build_rule            -> SPLUNK_DEPENDENTS in select-checks.sh.
+#   .linux_splunk_test's docker pull + COMPOSE_HTTP_TIMEOUT
+#                                     -> steps on `check-tests-docker`.
+#   setup_artifactory_docker.sh       -> not ported. It logged docker in to the
+#                                        SUSE Private Registry so compose could
+#                                        pull Splunk and Vault through the proxy.
+#                                        Those fixtures now name the public
+#                                        Docker Hub images directly, so there is
+#                                        no login to perform -- and a public
+#                                        repo's PR jobs must not hold registry
+#                                        credentials anyway.
 #   The per-job `changes:` rules      -> .github/scripts/select-checks.sh.
 #   The validate suite that rode along inside `test_stackstate_checks_base`
 #                                     -> its own `validate` job, so a metadata
@@ -12,19 +26,6 @@ name: Check tests
 #                                        instead of hiding inside a test job.
 #
 # WHAT IS DELIBERATELY NOT HERE
-#   splunk_{base,health,metric,topology} and stackstate_checks_dev  (STAC-25531)
-#       The only five suites that need a Docker daemon (the four splunk suites
-#       drive a real Splunk container via docker-compose; checks_dev tests the
-#       toolkit's own Docker helpers). ubuntu-latest ships a working Docker
-#       daemon, so phase 2 does not need to provision anything -- but it does
-#       need a docker client inside the job, which the BCI Python image used
-#       here does not carry: either a BCI image with docker added, or a service
-#       container, rather than a return to the private
-#       python:3.13.14-bookworm runner image. Phase 2 also brings across
-#       .setup-scripts/setup_artifactory_docker.sh (the registry docker login)
-#       and COMPOSE_HTTP_TIMEOUT, which only those suites need, plus GitLab's
-#       splunk_base_build_rule (a splunk_base change must also run the other
-#       three, which import its test helpers).
 #   test_postgres
 #       Dead config: .gitlab-ci.yml tests a `postgres` check that does not exist
 #       in this repository. Dropped, not pending.
@@ -175,6 +176,7 @@ jobs:
     timeout-minutes: 10
     outputs:
       checks: ${{ steps.select.outputs.checks }}
+      docker_checks: ${{ steps.select.outputs.docker_checks }}
       private_checks: ${{ steps.select.outputs.private_checks }}
       deferred_private_checks: ${{ steps.select.outputs.deferred_private_checks }}
       image: ${{ steps.image.outputs.ref }}
@@ -461,6 +463,76 @@ jobs:
             --collect=workflows,actions \
             .
 
+  check-tests-docker:
+    name: Check tests, docker (${{ matrix.check }})
+    # The four splunk suites and stackstate_checks_dev, which need a real Docker
+    # daemon (STAC-25531). Credential-free like check-tests above, so no fork
+    # guard: the test containers now come from public Docker Hub rather than the
+    # authenticated SUSE Private Registry proxy the GitLab pipeline used.
+    #
+    # Runs directly on the runner rather than in the BCI container the other
+    # suites use, and that is forced by the tests, not chosen. They resolve their
+    # target through `get_docker_hostname()`, which reads DOCKER_HOST and falls
+    # back to `localhost`; compose publishes its ports on the Docker host, so
+    # `localhost` only reaches them when the test process shares a network
+    # namespace with the daemon. From inside a job container it would resolve to
+    # the container itself and every connection would be refused. GitLab dodged
+    # this with a `docker:dind` service whose hostname resolved from both sides;
+    # on a GitHub-hosted runner the daemon is simply already there.
+    #
+    # The consequence is that these suites use the runner's Python rather than the
+    # BCI image's. Same 3.13 minor, pinned below.
+    if: needs.select-checks.outputs.docker_checks != '[]'
+    needs: select-checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        check: ${{ fromJson(needs.select-checks.outputs.docker_checks) }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          # Tracks BCI_PYTHON_IMAGE's 3.13 series so both matrices test the same
+          # minor. setup-python resolves the latest available patch.
+          python-version: '3.13'
+
+      - name: Build the toolchain virtualenv
+        run: |
+          set -eo pipefail
+          git config --global --add safe.directory '*'
+          source .setup-scripts/setup_env.sh
+
+      - name: Pre-pull the Splunk image
+        # Ported from .linux_splunk_test in .gitlab-ci.yml, whose comment reads
+        # "Pull splunk to aovid pulling during compose, which breaks in python".
+        # The Splunk image is large and the compose client's HTTP timeout can
+        # expire mid-pull; pulling first leaves compose only having to start it.
+        if: startsWith(matrix.check, 'splunk_')
+        env:
+          SPLUNK_IMAGE: splunk/splunk:latest
+        run: |
+          set -eo pipefail
+          docker pull "${SPLUNK_IMAGE}"
+
+      - name: checksdev test ${{ matrix.check }}
+        env:
+          CHECK: ${{ matrix.check }}
+          # Ported verbatim from .linux_test / .linux_splunk_test in
+          # .gitlab-ci.yml: Splunk is slow to come up and the default 60s
+          # compose timeout expires before it accepts connections.
+          COMPOSE_HTTP_TIMEOUT: '300'
+        run: |
+          set -eo pipefail
+          source venv/bin/activate
+          checksdev test --cov "${CHECK}"
+
   ci-success:
     name: CI success
     # The single stable status for branch protection. Every other status here is
@@ -477,6 +549,7 @@ jobs:
       - select-checks
       - validate
       - check-tests
+      - check-tests-docker
       - check-tests-private-index
       - workflow-security
     runs-on: ubuntu-latest
@@ -488,8 +561,10 @@ jobs:
           VALIDATE: ${{ needs.validate.result }}
           WORKFLOW_SECURITY: ${{ needs.workflow-security.result }}
           CHECK_TESTS: ${{ needs.check-tests.result }}
+          CHECK_TESTS_DOCKER: ${{ needs.check-tests-docker.result }}
           CHECK_TESTS_PRIVATE: ${{ needs.check-tests-private-index.result }}
           SELECTED_CHECKS: ${{ needs.select-checks.outputs.checks }}
+          SELECTED_DOCKER_CHECKS: ${{ needs.select-checks.outputs.docker_checks }}
           SELECTED_PRIVATE_CHECKS: ${{ needs.select-checks.outputs.private_checks }}
           DEFERRED_PRIVATE_CHECKS: ${{ needs.select-checks.outputs.deferred_private_checks }}
         run: |
@@ -524,6 +599,23 @@ jobs:
               ;;
             *)
               echo "::error title=Check tests did not succeed::check-tests reported '${CHECK_TESTS}'."
+              status=1
+              ;;
+          esac
+
+          # Same rule as check-tests: these carry no credentials and run on every
+          # event, so the only legitimate skip is an empty selection.
+          printf '  %-24s %s (selected: %s)\n' "check-tests-docker" "${CHECK_TESTS_DOCKER}" "${SELECTED_DOCKER_CHECKS}"
+          case "${CHECK_TESTS_DOCKER}" in
+            success) ;;
+            skipped)
+              if [ "${SELECTED_DOCKER_CHECKS}" != "[]" ]; then
+                echo "::error title=Selected suites never ran::check-tests-docker was skipped while ${SELECTED_DOCKER_CHECKS} was selected."
+                status=1
+              fi
+              ;;
+            *)
+              echo "::error title=Docker tests did not succeed::check-tests-docker reported '${CHECK_TESTS_DOCKER}'."
               status=1
               ;;
           esac
