@@ -15,31 +15,24 @@
 #     EVERY suite (GitLab: the `base_changes` anchor).
 #   * Otherwise only the suites whose own directory changed run.
 #   * GitLab's `splunk_base_build_rule` -- a change to splunk_base also runs the
-#     other three splunk suites, which import its test helpers -- is not ported
-#     here because no splunk suite runs yet. It lands with them in phase 2
-#     (STAC-25531).
+#     other three splunk suites, which import its test helpers.
 #   * push / workflow_dispatch run everything (GitLab: `master_branch`,
 #     `release_branch`).
 #
-# Writes three arrays to $GITHUB_OUTPUT for `fromJson()` in a matrix:
-#   checks                  -- suites that need no credentials
-#   private_checks          -- suites that install from the private GitLab PyPI
-#                              index, and are cleared to run on this event
-#   deferred_private_checks -- private-index suites withheld from this event
-#                              (always empty outside pull requests)
+# Writes two arrays to $GITHUB_OUTPUT for `fromJson()` in a matrix:
+#   checks        -- suites that run in the shared BCI container
+#   docker_checks -- suites that need a live Docker daemon and so run directly
+#                    on the runner (STAC-25531)
 #
-# The split is a security boundary, not a convenience. The credential-free suites
-# run with no secrets in scope at all. The private-index suites need a registry
-# password, so they are kept in a separate job -- and, on pull requests, are not
-# run at all (STAC-25540, second review pass).
-#
-# That last part is the whole point, so it is worth stating plainly: a
-# `pull_request` run executes the pull request's own copy of the workflow and of
-# every script it calls. Hardening the job cannot keep a determined pull request
-# away from a secret the run is holding -- it can always edit the thing that holds
-# it. The only run that cannot leak the credential is a run that never receives
-# it, so these suites are deferred to push, tag and workflow_dispatch events,
-# whose contents are reviewed before they reach the release branch.
+# Every suite here is credential-free, and that is worth keeping. Until
+# STAC-25544 `vsphere` resolved only against a private package registry, which
+# meant withholding the credential from pull requests and therefore not running
+# the suite on them at all -- a real coverage gap, because a `pull_request` run
+# executes the pull request's own copy of the workflow and of every script it
+# calls, so a run holding a secret cannot be hardened against the pull request
+# that edits it. Modernising the VMware pin onto public PyPI removed the secret
+# and with it the gap. If a suite ever appears to need a registry credential
+# again, removing that need is the fix; splitting the matrix is not.
 
 set -euo pipefail
 
@@ -100,22 +93,6 @@ SPLUNK_DEPENDENTS=(
   splunk_topology
 )
 
-# Suites whose requirements resolve only against the private GitLab PyPI index.
-# `vsphere` pins vsphere-automation-sdk, which VMware never published to public
-# PyPI (the name is squatted there by an unrelated 0.0.1 placeholder), so it is
-# mirrored into the StackVista package registry and needs authentication.
-#
-# Everything not listed here is credential-free and must stay that way: adding a
-# suite to this list stops it running on pull requests altogether, and removing
-# the need for the private index is always the better fix. For vsphere that fix
-# looks reachable -- VMware now publishes the SDK to public PyPI under renamed
-# packages (vmware-vapi-runtime, vmware-vapi-common-client, pyvmomi) and ships
-# the NSX/VMC wheels from its own public index -- so this list should shrink to
-# nothing once the pin is modernised.
-PRIVATE_INDEX_CHECKS=(
-  vsphere
-)
-
 # A change anywhere here invalidates every suite: the base classes and the test
 # helpers are imported by all of them, and the setup scripts build the venv the
 # suites run in.
@@ -136,14 +113,6 @@ to_json() {
   fi
 }
 
-is_private_index() {
-  local candidate=$1 check
-  for check in "${PRIVATE_INDEX_CHECKS[@]}"; do
-    [ "${candidate}" = "${check}" ] && return 0
-  done
-  return 1
-}
-
 is_docker() {
   local candidate=$1 check
   for check in "${DOCKER_CHECKS[@]}"; do
@@ -154,48 +123,27 @@ is_docker() {
 
 emit() {
   local -a selected=("$@")
-  local -a public=() docker=() private=() deferred=()
+  local -a public=() docker=()
   local check
   for check in ${selected[@]+"${selected[@]}"}; do
-    if is_private_index "${check}"; then
-      private+=("${check}")
-    elif is_docker "${check}"; then
+    if is_docker "${check}"; then
       docker+=("${check}")
     else
       public+=("${check}")
     fi
   done
 
-  # Pull requests do not run the private-index suites at all (STAC-25540, second
-  # review pass). See the security-boundary note at the top of this file: a
-  # `pull_request` run executes the pull request's own copy of the workflow and
-  # scripts, so the credential can only be protected by withholding it. These
-  # suites run on the release branch instead, where the code has been reviewed.
-  if [ "${EVENT_NAME}" = "pull_request" ] && [ "${#private[@]}" -gt 0 ]; then
-    deferred=("${private[@]}")
-    private=()
-  fi
-
-  local public_json docker_json private_json deferred_json
+  local public_json docker_json
   public_json=$(to_json ${public[@]+"${public[@]}"})
   docker_json=$(to_json ${docker[@]+"${docker[@]}"})
-  private_json=$(to_json ${private[@]+"${private[@]}"})
-  deferred_json=$(to_json ${deferred[@]+"${deferred[@]}"})
 
   {
     echo "checks=${public_json}"
     echo "docker_checks=${docker_json}"
-    echo "private_checks=${private_json}"
-    echo "deferred_private_checks=${deferred_json}"
   } >>"${GITHUB_OUTPUT}"
 
   echo "Selected credential-free suites: ${public_json}"
   echo "Selected docker-daemon suites:   ${docker_json}"
-  echo "Selected private-index suites:   ${private_json}"
-  if [ "${deferred_json}" != "[]" ]; then
-    echo "Deferred private-index suites:   ${deferred_json}"
-    echo "::notice title=Private-index suites do not run on pull requests::${deferred_json} resolve only against the private package registry. Pull requests are deliberately given no credential to reach it, so these suites run on ${BASE_REF:-the release branch} after merge."
-  fi
 }
 
 # Anything that is not a pull request is a full run. On the release branch the
