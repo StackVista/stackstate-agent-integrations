@@ -3,7 +3,11 @@ version: '3'
 services:
 
   vault:
-    image: registry.tooling.stackstate.io/docker/hashicorp/vault:latest
+    # Docker Hub's official hashicorp/vault. Was pulled through the SUSE
+    # Private Registry proxy-cache, which needs credentials this public repo's
+    # CI must not hold. Override VAULT_IMAGE to use the proxy on a self-hosted
+    # runner.
+    image: ${VAULT_IMAGE:-hashicorp/vault:latest}
     container_name: checksdev_vault
     cap_add:
       - IPC_LOCK
