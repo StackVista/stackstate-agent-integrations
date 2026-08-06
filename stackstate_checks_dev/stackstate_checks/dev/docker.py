@@ -69,14 +69,12 @@ def get_container_ip(container_id_or_name):
 
 
 def compose_file_active(compose_file):
-    command = compose_command() + ['-f', compose_file, 'ps']
-    lines = run_command(command, capture='out', check=True).stdout.splitlines()
-
-    for i, line in enumerate(lines, 1):
-        if set(line.strip()) == {'-'}:
-            return len(lines[i:]) >= 1
-
-    return False
+    # `ps -q` prints one container id per running service and nothing at all when
+    # the project is down. Unlike the human-readable `ps` table -- whose v1 layout
+    # had a `-----` separator row that v2 does not emit -- this output is stable
+    # across both Compose generations.
+    command = compose_command() + ['-f', compose_file, 'ps', '-q']
+    return bool(run_command(command, capture='out', check=True).stdout.strip())
 
 
 @contextmanager
