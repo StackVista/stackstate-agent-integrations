@@ -1,0 +1,562 @@
+name: Check tests
+
+# Ported from .gitlab-ci.yml as part of the GitLab -> GitHub migration
+# (STAC-25142 / STAC-25463), phase 1: the pure-Python check suites.
+#
+# WHAT MOVED
+#   linux_deps + the `test_<check>` job family -> the `check-tests` matrix below.
+#   The per-job `changes:` rules      -> .github/scripts/select-checks.sh.
+#   The validate suite that rode along inside `test_stackstate_checks_base`
+#                                     -> its own `validate` job, so a metadata
+#                                        failure is legible as its own PR check
+#                                        instead of hiding inside a test job.
+#
+# WHAT IS DELIBERATELY NOT HERE
+#   splunk_{base,health,metric,topology} and stackstate_checks_dev  (STAC-25531)
+#       The only five suites that need a Docker daemon (the four splunk suites
+#       drive a real Splunk container via docker-compose; checks_dev tests the
+#       toolkit's own Docker helpers). ubuntu-latest ships a working Docker
+#       daemon, so phase 2 does not need to provision anything -- but it does
+#       need a docker client inside the job, which the BCI Python image used
+#       here does not carry: either a BCI image with docker added, or a service
+#       container, rather than a return to the private
+#       python:3.13.14-bookworm runner image. Phase 2 also brings across
+#       .setup-scripts/setup_artifactory_docker.sh (the registry docker login)
+#       and COMPOSE_HTTP_TIMEOUT, which only those suites need, plus GitLab's
+#       splunk_base_build_rule (a splunk_base change must also run the other
+#       three, which import its test helpers).
+#   test_postgres
+#       Dead config: .gitlab-ci.yml tests a `postgres` check that does not exist
+#       in this repository. Dropped, not pending.
+#   print_env
+#       A bare `printenv`. This repository is PUBLIC, so that job publishes every
+#       CI credential in scope to a world-readable log. Not ported at any phase;
+#       `secrets: inherit` is likewise never used here.
+#   The Windows lane
+#       There is none to port. `.gitlab-ci.yml` defines a `.windows_env` anchor
+#       but no job has ever referenced it, and Windows is not a supported target,
+#       so the orphaned .setup-scripts/conda_env.ps1 + windows_*.cmd helpers can
+#       be retired with the GitLab pipeline (STAC-25464).
+#   publish-checks-dev / the runner-image `docker` job  (STAC-25532)
+#       Publishing needs write credentials this repo does not hold; pulumi-infra
+#       schedules integrations' publishing role for its section 7.4. Note that
+#       the GitLab project was archived on 2026-07-20, so this job can no longer
+#       run there either -- publishing a new stackstate_checks_dev is currently
+#       not possible on any platform, and the target registry needs deciding
+#       (GitLab package registry vs CodeArtifact, cf. STAC-25407).
+#   A Cerberus failure notification
+#       Unlike stackstate-agent, this pipeline has never had one -- there is no
+#       notify job in .gitlab-ci.yml and no .cerberus directory -- so adding it
+#       would be new capability, not a port. It also needs CERBERUS_LAMBDA_URL,
+#       which is a private-visibility org secret and so unreadable from this
+#       PUBLIC repo without a pulumi-infra grant. Tracked as STAC-25533.
+#
+# CREDENTIALS
+#   The container image is SUSE BCI from registry.suse.com, which is public, so
+#   these jobs need no registry credentials at all. That is deliberate: this is a
+#   PUBLIC repository, and every job here executes PR-authored workflow, setup and
+#   test code. Any secret exposed to that code is exposed to whoever can open a
+#   branch. The earlier design pulled a private runner image with
+#   vars.REGISTRY_USER / secrets.REGISTRY_PASSWORD; dropping it removes the
+#   registry password from the PR path entirely and, as a side effect, lets
+#   Dependabot PRs run -- they receive no Actions secrets, so the image pull
+#   could never have succeeded for them.
+#
+#   One credential remains: the read-only pull from the private PyPI index, for
+#   pins that public PyPI does not serve (currently vsphere-automation-sdk). That
+#   is vars.GITLAB_PACKAGE_REGISTRY_PYPI_SIMPLE_URL and
+#   secrets.GITLAB_PACKAGE_REGISTRY_USER, granted to this repo in pulumi-infra
+#   (StackVista/pulumi-infra#263), alongside the already-org-wide
+#   secrets.GITLAB_PACKAGE_REGISTRY_READONLY_PASSWORD. It is pull-only and
+#   least-privilege by construction; this repo's *publishing* role is still
+#   deferred, per the note above.
+#
+#   No pull request ever receives it. `pull_request` runs execute the pull
+#   request's own copy of this workflow and of every script it calls, so a run
+#   that holds a secret can always be made to disclose it -- by editing the
+#   fetching script, reordering steps, or adding one. A repository secret and
+#   pull-request-controlled code cannot be arranged into a boundary. The suites
+#   that need this credential therefore do not run on pull requests at all; they
+#   run on push, tag and workflow_dispatch events, whose contents are reviewed
+#   before reaching the release branch. See `check-tests-private-index`.
+#
+#   Within those runs the credential is still confined to a single step
+#   (STAC-25540): the script writes ~/.netrc, downloads one fixed package set into
+#   a local wheelhouse, deletes the netrc, and points pip at the wheelhouse, so
+#   the suite and its dependency tree install with nothing to authenticate
+#   against. The predecessor left the netrc readable for the rest of the job. That
+#   is defence in depth, not the boundary -- the boundary is the event condition
+#   above.
+#
+#   Two earlier answers to the same review finding are recorded here so they are
+#   not re-proposed. A `private-package-index` GitHub Environment with required
+#   reviewers did gate the credential, but SHARED_PATHS covers the CI files, so it
+#   fired on roughly one commit in six and blocked authors on their own pull
+#   requests -- while only ever constraining people who already have write access.
+#   Prefetching the wheelhouse on a trusted event and passing it to pull requests
+#   through the Actions cache also works, but any pull request can read a cache,
+#   and a pull request can only restore one from its base branch.
+#
+#   The durable fix is to stop needing the index: VMware now publishes this SDK to
+#   public PyPI under renamed packages (vmware-vapi-runtime,
+#   vmware-vapi-common-client, pyvmomi) and serves the NSX/VMC wheels from its own
+#   public index, so modernising the pin removes the credential, this job and the
+#   pull-request coverage gap in one change.
+#
+# RUNNERS
+#   Everything runs on GitHub-hosted runners. The suites are pure-Python and need
+#   no Docker daemon, so the self-hosted docker-public pool bought nothing while
+#   costing real isolation: fork PRs had to be excluded from it, which in turn
+#   meant a fork could never produce a CI verdict. On hosted runners forks run
+#   exactly the same matrix as any other pull request -- the private-index job is
+#   off the pull-request path entirely, so no fork-specific guard is needed for
+#   it any more. This also removes the question of
+#   pulling upstream images across the self-hosted NAT: the BCI reference is
+#   direct, from a public registry, on infrastructure that is meant to reach it.
+#   The phase-2 Docker suites will need a runner with a daemon; that decision
+#   belongs with them, not here.
+
+on:
+  pull_request:
+  # Mirrors GitLab's `master_branch` rule, which hardcoded the release branch the
+  # same way: the full matrix runs there regardless of what a given commit
+  # touched, so the branch always has a complete verdict.
+  push:
+    branches:
+      - stackstate-7.78.2
+    # GitLab's `release_branch` anchor (`if: $CI_COMMIT_TAG`) put every test job
+    # in .base_integration_rules on tag pipelines too, so releases carry the same
+    # verdict as the branch they cut from. Tags here are `<version>-<increment>`
+    # (7.78.2-4), but the rule was any-tag and this stays faithful to it: `**`
+    # matches tag names containing `/`, which a bare `*` would silently skip.
+    tags:
+      - '**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  # SUSE BCI Python, per the mandatory BCI base-image policy. Digest-pinned so a
+  # run is reproducible and so Zizmor's unpinned-images audit passes; the comment
+  # carries the human-readable version the digest resolves to.
+  #
+  # This deliberately replaces the GitLab pipeline's
+  # stackstate-agent-integrations-runner image (FROM python:3.13.14-bookworm).
+  # That image exists mainly to carry Docker CE and docker-compose, which only the
+  # phase-2 Splunk / checks_dev suites use; the phase-1 suites need a Python
+  # toolchain and nothing else. Dropping it also drops the registry credentials
+  # these jobs used to need -- see CREDENTIALS below.
+  #
+  # BCI publishes 3.13.13, one patch behind the 3.13.14 the agent embeds and the
+  # GitLab image pinned. CPython patch releases are bugfix-only, and the full
+  # phase-1 matrix (including vsphere against the private index) was verified
+  # green on 3.13.13 before this switch. Worth realigning when BCI ships .14.
+  BCI_PYTHON_IMAGE: registry.suse.com/bci/python:3.13@sha256:7d36dd3ba6596fb690e31d956952059fd010604ad6309f06462c02c4c9c01461 # 3.13.13
+
+  # Packages the BCI image does not ship but the toolchain build needs: cython and
+  # pyyaml==6.0.1 have no cp313 wheels and are compiled from source.
+  BCI_BUILD_PACKAGES: gcc python313-devel libffi-devel
+
+jobs:
+  select-checks:
+    name: Select check suites to run
+    # Runs for forks too. Every job that runs on a pull request does so with no
+    # secrets in scope at all -- the one job that uses a credential does not run
+    # on pull requests (see `check-tests-private-index`). There is therefore
+    # nothing a fork branch can reach here, and blocking forks outright would
+    # leave them unable to satisfy branch protection at all (STAC-25463 review).
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      checks: ${{ steps.select.outputs.checks }}
+      private_checks: ${{ steps.select.outputs.private_checks }}
+      deferred_private_checks: ${{ steps.select.outputs.deferred_private_checks }}
+      image: ${{ steps.image.outputs.ref }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          # Full history: the selector diffs against the merge base with the base
+          # branch, which a shallow clone cannot resolve.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Resolve the container image reference
+        id: image
+        # `container.image` cannot read the `env` context, so the pin defined once
+        # at workflow level is republished here as an output the container jobs can
+        # reference. Keeps a single source of truth for the digest.
+        run: |
+          set -euo pipefail
+          echo "ref=${BCI_PYTHON_IMAGE}" >>"${GITHUB_OUTPUT}"
+
+      - name: Select check suites
+        id: select
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          # The ARC work volume is owned by the runner uid; mark it safe so the
+          # selector's git calls are not rejected as "dubious ownership".
+          git config --global --add safe.directory '*'
+          bash .github/scripts/select-checks.sh
+
+  validate:
+    name: Check metadata validation (checksdev validate)
+    # Ported from the `checksdev validate *` commands that opened
+    # test_stackstate_checks_base. Cheap, repo-wide, and independent of the
+    # matrix, so it runs on every change rather than per suite. Credential-free,
+    # so it runs for fork PRs too.
+    needs: select-checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container:
+      # Digest-pinned at workflow level (BCI_PYTHON_IMAGE); the ignore is only
+      # because Zizmor cannot follow the pin through a job output.
+      image: ${{ needs.select-checks.outputs.image }} # zizmor: ignore[unpinned-images]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install toolchain build dependencies
+        run: |
+          set -eo pipefail
+          zypper --non-interactive --gpg-auto-import-keys refresh
+          # shellcheck disable=SC2086 # deliberately word-split into package args
+          zypper --non-interactive install ${BCI_BUILD_PACKAGES}
+
+      - name: Build the toolchain virtualenv
+        run: |
+          set -eo pipefail
+          git config --global --add safe.directory '*'
+          # Creates venv/ and installs checksdev; the GitLab `linux_deps` job did
+          # this once and shipped venv/ as an artifact. Here each job builds its
+          # own: the matrix legs run in parallel, so repeating it costs runner
+          # time but no wall-clock, and it avoids relocating a venv through the
+          # artifact store. Worth revisiting with real timings, the way the
+          # agent's cache image was justified (STAC-25429).
+          source .setup-scripts/setup_env.sh
+
+      - name: checksdev validate
+        run: |
+          set -eo pipefail
+          source venv/bin/activate
+          checksdev validate config
+          checksdev validate dep
+          checksdev validate manifest --include-extras
+          checksdev validate metadata
+          checksdev validate service-checks
+
+  check-tests:
+    name: Check tests (${{ matrix.check }})
+    # No fork guard: these suites carry no credentials and run on GitHub-hosted
+    # runners, so a fork branch has nothing to reach. Skipped only when the
+    # selector legitimately picked no credential-free suite.
+    if: needs.select-checks.outputs.checks != '[]'
+    needs: select-checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      # One suite's failure should not mask the state of the others.
+      fail-fast: false
+      matrix:
+        check: ${{ fromJson(needs.select-checks.outputs.checks) }}
+    container:
+      # Digest-pinned at workflow level (BCI_PYTHON_IMAGE); the ignore is only
+      # because Zizmor cannot follow the pin through a job output.
+      image: ${{ needs.select-checks.outputs.image }} # zizmor: ignore[unpinned-images]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install toolchain build dependencies
+        run: |
+          set -eo pipefail
+          zypper --non-interactive --gpg-auto-import-keys refresh
+          # shellcheck disable=SC2086 # deliberately word-split into package args
+          zypper --non-interactive install ${BCI_BUILD_PACKAGES}
+
+      - name: Build the toolchain virtualenv
+        run: |
+          set -eo pipefail
+          git config --global --add safe.directory '*'
+          source .setup-scripts/setup_env.sh
+
+      - name: checksdev test ${{ matrix.check }}
+        env:
+          CHECK: ${{ matrix.check }}
+        run: |
+          set -eo pipefail
+          source venv/bin/activate
+          checksdev test --cov "${CHECK}"
+
+      - name: checksdev benchmarks ${{ matrix.check }}
+        env:
+          CHECK: ${{ matrix.check }}
+        # Non-blocking, matching GitLab's `|| true`: benchmarks are reported for
+        # information and have never gated a merge.
+        continue-on-error: true
+        run: |
+          set -eo pipefail
+          source venv/bin/activate
+          checksdev test "${CHECK}" --bench
+
+  check-tests-private-index:
+    name: Check tests, private index (${{ matrix.check }})
+    # Isolated from `check-tests` because this is the only job that handles a
+    # credential at all: vsphere pins a package that resolves solely from the
+    # private GitLab Package Registry.
+    #
+    # This job does not run on pull requests (STAC-25540, second review pass).
+    #
+    # An earlier revision ran it on pull requests with the credential confined to
+    # a single step, and claimed that reaching it would require editing this
+    # workflow. That claim was wrong, and the review was right to call it: a
+    # `pull_request` run executes the pull request's own copy of the workflow AND
+    # of every script it calls, so a pull request could rewrite the fetch script,
+    # reorder these steps, or simply add a step of its own. Repository secrets
+    # plus pull-request-controlled code do not make a security boundary, however
+    # carefully the code in between is written.
+    #
+    # Confining the credential to one step is still worth doing and is still done
+    # -- it keeps the password away from the suite's dependency tree, which needed
+    # no malice at all to read it -- but it is hardening, not a boundary. The
+    # boundary is this condition: the run simply never receives the secret.
+    #
+    # The cost is that vsphere is verified on the release branch rather than on
+    # the pull request that changes it. That is a real gap, accepted knowingly:
+    # the suite's own directory changes a handful of times a year, and the
+    # alternatives all cost more than they return right now. Sharing a prefetched
+    # wheelhouse through the Actions cache would work, but a pull request run can
+    # only restore caches from its base branch, and any pull request can read
+    # them. The durable fix is to stop needing the private index at all: VMware
+    # now publishes this SDK to public PyPI under renamed packages, so modernising
+    # the pin deletes this job, its credential and this trade-off together.
+    if: >-
+      ${{ github.event_name != 'pull_request'
+      && needs.select-checks.outputs.private_checks != '[]' }}
+    needs: select-checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        check: ${{ fromJson(needs.select-checks.outputs.private_checks) }}
+    container:
+      # Digest-pinned at workflow level (BCI_PYTHON_IMAGE); the ignore is only
+      # because Zizmor cannot follow the pin through a job output.
+      image: ${{ needs.select-checks.outputs.image }} # zizmor: ignore[unpinned-images]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install toolchain build dependencies
+        run: |
+          set -eo pipefail
+          zypper --non-interactive --gpg-auto-import-keys refresh
+          # shellcheck disable=SC2086 # deliberately word-split into package args
+          zypper --non-interactive install ${BCI_BUILD_PACKAGES}
+
+      - name: Build the toolchain virtualenv
+        run: |
+          set -eo pipefail
+          git config --global --add safe.directory '*'
+          source .setup-scripts/setup_env.sh
+
+      - name: Fetch private-index wheels and revoke the credential
+        env:
+          GITLAB_PACKAGE_REGISTRY_PYPI_SIMPLE_URL: ${{ vars.GITLAB_PACKAGE_REGISTRY_PYPI_SIMPLE_URL }}
+          GITLAB_PACKAGE_REGISTRY_USER: ${{ secrets.GITLAB_PACKAGE_REGISTRY_USER }}
+          GITLAB_PACKAGE_REGISTRY_READONLY_PASSWORD: ${{ secrets.GITLAB_PACKAGE_REGISTRY_READONLY_PASSWORD }}
+        # The only step in this workflow with a secret in scope. The script writes
+        # ~/.netrc, downloads one fixed package set, deletes the netrc, and leaves
+        # ~/.pip/pip.conf pointing at a local wheelhouse. Everything after it --
+        # checksdev, tox, the suite's tests and their dependency tree -- runs with
+        # no credential on disk and no authenticated index configured.
+        #
+        # It replaces setup_artifact_registry.sh here, which left the netrc in
+        # place for the rest of the job (STAC-25463 review P1, STAC-25540). That
+        # script is untouched and still serves the GitLab pipeline definitions.
+        #
+        # The wheelhouse lives in RUNNER_TEMP rather than the workspace so it
+        # cannot be mistaken for repository content or swept into a build.
+        #
+        # NOTE: pip.conf is read from $HOME, so tox must still pass HOME into the
+        # testenv. tox drops every variable absent from `passenv`, and pip then
+        # resolves `~` from the passwd database rather than the environment --
+        # which points at the wrong home in a container job, where HOME is
+        # /github/home. Without it the suite silently falls back to public PyPI
+        # and installs the 0.0.1 placeholder. See vsphere/tox.ini.
+        run: |
+          set -eo pipefail
+          .setup-scripts/fetch_private_wheels.sh "${RUNNER_TEMP}/private-wheels"
+
+      - name: checksdev test ${{ matrix.check }}
+        env:
+          CHECK: ${{ matrix.check }}
+        run: |
+          set -eo pipefail
+          source venv/bin/activate
+          checksdev test --cov "${CHECK}"
+
+      - name: checksdev benchmarks ${{ matrix.check }}
+        env:
+          CHECK: ${{ matrix.check }}
+        # Non-blocking, matching GitLab's `|| true`.
+        continue-on-error: true
+        run: |
+          set -eo pipefail
+          source venv/bin/activate
+          checksdev test "${CHECK}" --bench
+
+  workflow-security:
+    name: Workflow security scan (Zizmor)
+    # Credential-free and read-only, and it runs on GitHub-hosted infrastructure,
+    # so fork PRs are audited too. Depends on select-checks only to reuse the
+    # pinned image.
+    needs: select-checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container:
+      # Digest-pinned at workflow level (BCI_PYTHON_IMAGE); the ignore is only
+      # because Zizmor cannot follow the pin through a job output.
+      image: ${{ needs.select-checks.outputs.image }} # zizmor: ignore[unpinned-images]
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install Zizmor
+        env:
+          ZIZMOR_VERSION: 1.28.0
+        run: |
+          set -eo pipefail
+          python3.13 -m venv /tmp/zizmor-venv
+          /tmp/zizmor-venv/bin/pip install --quiet "zizmor==${ZIZMOR_VERSION}"
+
+      - name: Zizmor audit
+        run: |
+          set -eo pipefail
+          # Offline: the online audits need a GitHub token, and handing this job a
+          # token to scan PR-authored workflows is the very shape Zizmor exists to
+          # catch. Persona `regular` keeps it to findings worth blocking on.
+          /tmp/zizmor-venv/bin/zizmor \
+            --persona regular \
+            --collect=workflows,actions \
+            .
+
+  ci-success:
+    name: CI success
+    # The single stable status for branch protection. Every other status here is
+    # either dynamically named (the matrix legs are `Check tests (<suite>)`) or
+    # conditional, so this job always runs and decides the verdict itself.
+    #
+    # It must distinguish a legitimate skip from an absent pipeline. An earlier
+    # revision treated every non-failure as success, which meant a run where
+    # everything skipped still reported green and could satisfy branch protection
+    # without executing any CI at all (STAC-25463 review). The rules below are
+    # therefore explicit about which skips are allowed and why.
+    if: always()
+    needs:
+      - select-checks
+      - validate
+      - check-tests
+      - check-tests-private-index
+      - workflow-security
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Evaluate upstream job results
+        env:
+          SELECT_CHECKS: ${{ needs.select-checks.result }}
+          VALIDATE: ${{ needs.validate.result }}
+          WORKFLOW_SECURITY: ${{ needs.workflow-security.result }}
+          CHECK_TESTS: ${{ needs.check-tests.result }}
+          CHECK_TESTS_PRIVATE: ${{ needs.check-tests-private-index.result }}
+          SELECTED_CHECKS: ${{ needs.select-checks.outputs.checks }}
+          SELECTED_PRIVATE_CHECKS: ${{ needs.select-checks.outputs.private_checks }}
+          DEFERRED_PRIVATE_CHECKS: ${{ needs.select-checks.outputs.deferred_private_checks }}
+        run: |
+          set -euo pipefail
+          status=0
+
+          # These three run on every event, including fork PRs. They have no
+          # legitimate skip: if one did not run, the pipeline did not run.
+          require_success() {
+            local name=$1 result=$2
+            printf '  %-24s %s\n' "${name}" "${result}"
+            if [ "${result}" != "success" ]; then
+              echo "::error title=Required job did not succeed::${name} reported '${result}'."
+              status=1
+            fi
+          }
+
+          require_success "select-checks" "${SELECT_CHECKS}"
+          require_success "validate" "${VALIDATE}"
+          require_success "workflow-security" "${WORKFLOW_SECURITY}"
+
+          # The credential-free matrix may only skip when the selector chose
+          # nothing. A skip with suites selected means they never ran.
+          printf '  %-24s %s (selected: %s)\n' "check-tests" "${CHECK_TESTS}" "${SELECTED_CHECKS}"
+          case "${CHECK_TESTS}" in
+            success) ;;
+            skipped)
+              if [ "${SELECTED_CHECKS}" != "[]" ]; then
+                echo "::error title=Selected suites never ran::check-tests was skipped while ${SELECTED_CHECKS} was selected."
+                status=1
+              fi
+              ;;
+            *)
+              echo "::error title=Check tests did not succeed::check-tests reported '${CHECK_TESTS}'."
+              status=1
+              ;;
+          esac
+
+          # The private-index matrix legitimately skips whenever the selector
+          # chose nothing for this event. On pull requests that is always: those
+          # suites are deferred rather than selected, because the run holds no
+          # credential to reach the private index with. The deferral is reported
+          # so a green pull request never quietly implies vsphere was covered.
+          printf '  %-24s %s (selected: %s, deferred: %s)\n' \
+            "check-tests-private" "${CHECK_TESTS_PRIVATE}" "${SELECTED_PRIVATE_CHECKS}" "${DEFERRED_PRIVATE_CHECKS}"
+          case "${CHECK_TESTS_PRIVATE}" in
+            success) ;;
+            skipped)
+              if [ "${SELECTED_PRIVATE_CHECKS}" != "[]" ]; then
+                echo "::error title=Selected suites never ran::check-tests-private-index was skipped while ${SELECTED_PRIVATE_CHECKS} was selected."
+                status=1
+              fi
+              ;;
+            *)
+              echo "::error title=Private-index tests did not succeed::check-tests-private-index reported '${CHECK_TESTS_PRIVATE}'."
+              status=1
+              ;;
+          esac
+
+          if [ "${DEFERRED_PRIVATE_CHECKS}" != "[]" ]; then
+            echo "::notice title=Not covered by this run::${DEFERRED_PRIVATE_CHECKS} need the private package registry and do not run on pull requests. They run on the release branch after merge."
+          fi
+
+          if [ "${status}" -ne 0 ]; then
+            exit 1
+          fi
+          echo "All required jobs succeeded; every skip was legitimate."
