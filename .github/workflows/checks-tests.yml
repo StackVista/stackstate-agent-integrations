@@ -45,11 +45,8 @@ name: Check tests
 #       not possible on any platform, and the target registry needs deciding
 #       (GitLab package registry vs CodeArtifact, cf. STAC-25407).
 #   A Cerberus failure notification
-#       Unlike stackstate-agent, this pipeline has never had one -- there is no
-#       notify job in .gitlab-ci.yml and no .cerberus directory -- so adding it
-#       would be new capability, not a port. It also needs CERBERUS_LAMBDA_URL,
-#       which is a private-visibility org secret and so unreadable from this
-#       PUBLIC repo without a pulumi-infra grant. Tracked as STAC-25533.
+#       Delivered in STAC-25533; see the `cerberus-notify` job at the end of this
+#       file and .github/workflows/cerberus-notify.yml.
 #
 # CREDENTIALS
 #   The container image is SUSE BCI from registry.suse.com, which is public, so
@@ -560,3 +557,28 @@ jobs:
             exit 1
           fi
           echo "All required jobs succeeded; every skip was legitimate."
+
+  cerberus-notify:
+    name: Report failure to Slack (Cerberus)
+    # Terminal job. ci-success already aggregates every other job, so hanging the
+    # notification off it gives one funnel for all failures rather than a notify
+    # job per pipeline job.
+    #
+    # Push events only, which given the `push:` trigger above means the release
+    # branch and release tags. Deliberately not pull requests: those failures
+    # already have an owner watching them, and a public repo would let anyone
+    # open a PR that fails on purpose to spam the CI channel. Post-merge and tag
+    # failures are the ones with nobody watching -- exactly the gap that let
+    # STAC-25510 sit unnoticed for 12 days.
+    #
+    # Keyed on `github.event_name` rather than a hardcoded ref so the next
+    # release-branch bump only has to update the `push:` trigger above, not two
+    # places that must agree.
+    needs: ci-success
+    if: failure() && github.event_name == 'push'
+    uses: ./.github/workflows/cerberus-notify.yml
+    with:
+      suite: checks
+    secrets:
+      CERBERUS_LAMBDA_URL: ${{ secrets.CERBERUS_LAMBDA_URL }}
+      CERBERUS_API_TOKEN: ${{ secrets.CERBERUS_API_TOKEN }}
