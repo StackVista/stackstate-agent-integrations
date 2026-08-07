@@ -22,9 +22,17 @@ name: Cerberus notify
 # Prerequisites: CERBERUS_LAMBDA_URL and CERBERUS_API_TOKEN must both reach this
 # repo as REPO-level secrets. The org-level copies are visibility=private, which
 # excludes this PUBLIC repo. pulumi-infra provisions the pair together
-# (github/repoVariables/resources.yaml, StackVista/pulumi-infra#277). If either
-# is missing, this workflow warns and exits 0 rather than adding a second red job
-# to an already-failed run -- the annotation is the signal.
+# (github/repoVariables/resources.yaml, StackVista/pulumi-infra#277).
+#
+# If either is missing this job FAILS (STAC-25555). An earlier revision warned
+# and exited 0, reasoning that a broken notification should not add a second red
+# job to an already-failed run. That was the wrong trade: it reported success in
+# exactly the case where no Slack message was sent, and the warning was only ever
+# rendered inside an unattended failed run -- which is to say, seen by nobody.
+# Secrets drift, and a safeguard that disables itself silently is not a
+# safeguard. This job only runs on push failures, so the only run it can redden
+# is one that is already red, and there the red is the point: it says the alarm
+# itself is broken, not just the build.
 #
 # The bearer token is not optional going forward. StackVista/cerberus#4
 # (STAC-24889) adds `Authorization: Bearer <token>` verification to every
@@ -47,10 +55,13 @@ on:
         required: true
         type: string
     secrets:
-      # `required: false`. A caller passing `${{ secrets.X }}` for a secret the
-      # repo does not hold yields an empty string, which GitHub rejects as "not
-      # provided" against a required secret and fails the call before the run
-      # step's guard can warn -- the failure mode this workflow exists to avoid.
+      # `required: false`, deliberately, and it is not in tension with failing
+      # closed below. A caller passing `${{ secrets.X }}` for a secret the repo
+      # does not hold yields an empty string, which GitHub rejects as "not
+      # provided" against a required secret -- failing the call before any step
+      # runs, with an opaque error and no annotation. Accepting the empty value
+      # and checking it in the step below fails just as closed, and says which
+      # secret is missing and who provisions it.
       CERBERUS_LAMBDA_URL:
         required: false
       CERBERUS_API_TOKEN:
@@ -81,9 +92,23 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [ -z "${CERBERUS_LAMBDA_URL}" ] || [ -z "${CERBERUS_API_TOKEN}" ]; then
-            echo "::warning title=Cerberus not configured::CERBERUS_LAMBDA_URL and/or CERBERUS_API_TOKEN is not visible to this repo, so the ${SUITE} failure was not reported to Slack. Both are provisioned as repo-level secrets by pulumi-infra (STAC-25533)."
-            exit 0
+          # Fail closed (STAC-25555). Naming the individual secret matters: the
+          # two are provisioned together, so exactly one missing means drift or a
+          # partial apply rather than a repo that was never wired up.
+          missing=""
+          if [ -z "${CERBERUS_LAMBDA_URL}" ]; then
+            missing="CERBERUS_LAMBDA_URL"
+          fi
+          if [ -z "${CERBERUS_API_TOKEN}" ]; then
+            if [ -n "${missing}" ]; then
+              missing="${missing} and CERBERUS_API_TOKEN"
+            else
+              missing="CERBERUS_API_TOKEN"
+            fi
+          fi
+          if [ -n "${missing}" ]; then
+            echo "::error title=Cerberus not configured::Missing secret(s): ${missing}. Not visible to this repository, so the ${SUITE} failure was NOT reported to Slack. Both are provisioned as repo-level secrets by pulumi-infra (github/repoVariables/resources.yaml, STAC-25533). This job fails rather than passing silently, because a notification path that quietly stops working is worse than a visibly broken one."
+            exit 1
           fi
 
           COMMIT_TITLE=$(printf '%s' "${COMMIT_MESSAGE}" | head -n1)
