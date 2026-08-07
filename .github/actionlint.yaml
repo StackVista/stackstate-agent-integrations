@@ -1,7 +1,3 @@
-# Self-hosted runner labels available to this repository, so actionlint does not
-# report them as unknown. These are ARC scale sets in the `public` runner group
-# (StackVista/argocd-apps, cluster_definitions/tooling-main/apps/github-runner-*);
-# the `-public` tier is the one a PUBLIC repository is allowed to schedule on.
 self-hosted-runner:
   labels:
     - docker-public

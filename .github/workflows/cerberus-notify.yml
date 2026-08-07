@@ -1,44 +1,5 @@
 name: Cerberus notify
 
-# New capability, not a port (STAC-25142 / STAC-25533). Unlike stackstate-agent
-# and stackstate-process-agent, this repo's retired .gitlab-ci.yml had no notify
-# job and no .cerberus directory, so a failed release-branch pipeline has always
-# been silent here. STAC-25510 is what that costs: process-agent's image
-# publishing broke on 2026-07-23 and went unnoticed for 12 days.
-#
-# Structure and calling convention follow
-# stackstate-process-agent/.github/workflows/cerberus-notify.yml, which in turn
-# follows `cerberus-block-on-master-fail` in StackVista/stackstate. Cerberus is
-# the internal notify/block Lambda (source: https://github.com/StackVista/cerberus).
-# `platform: github` makes it build GitHub pipeline/commit URLs rather than
-# GitLab ones.
-#
-# `action: notify`, never `action: block`. Policy for migrated repos is notify by
-# default. Blocking locks the branch (`lock_branch`), additionally requires the
-# Cerberus GitHub App to be installed here, and mutates branch protection that
-# pulumi-infra owns (STAC-25522) out from under it -- a subsequent pulumi apply
-# would silently unlock the branch again.
-#
-# Prerequisites: CERBERUS_LAMBDA_URL and CERBERUS_API_TOKEN must both reach this
-# repo as REPO-level secrets. The org-level copies are visibility=private, which
-# excludes this PUBLIC repo. pulumi-infra provisions the pair together
-# (github/repoVariables/resources.yaml, StackVista/pulumi-infra#277). If either
-# is missing, this workflow warns and exits 0 rather than adding a second red job
-# to an already-failed run -- the annotation is the signal.
-#
-# The bearer token is not optional going forward. StackVista/cerberus#4
-# (STAC-24889) adds `Authorization: Bearer <token>` verification to every
-# non-Slack request; before it, the endpoint was entirely unauthenticated.
-# Sending the header is forward-compatible -- the currently deployed Lambda
-# ignores unknown headers -- so this works either side of that deploy. Without
-# it, the first failure after cerberus#4 ships would get a 401 and no Slack
-# message.
-#
-# The Slack channel is deliberately not sent. Cerberus resolves it as
-# `util.GetOrDefault(req.Context, "channel", s.Channel)`, and GetOrDefault treats
-# an empty or whitespace value as absent, so omitting `channel` falls back to the
-# Lambda's own SLACK_CHANNEL.
-
 on:
   workflow_call:
     inputs:
@@ -47,17 +8,11 @@ on:
         required: true
         type: string
     secrets:
-      # `required: false`. A caller passing `${{ secrets.X }}` for a secret the
-      # repo does not hold yields an empty string, which GitHub rejects as "not
-      # provided" against a required secret and fails the call before the run
-      # step's guard can warn -- the failure mode this workflow exists to avoid.
       CERBERUS_LAMBDA_URL:
         required: false
       CERBERUS_API_TOKEN:
         required: false
 
-# Nothing here reads the repository; the payload is built entirely from the
-# github context.
 permissions: {}
 
 jobs:
@@ -74,8 +29,6 @@ jobs:
           BRANCH: ${{ github.ref_name }}
           PIPELINE: ${{ github.run_id }}
           COMMIT_SHA: ${{ github.sha }}
-          # Empty on tag pushes, which carry no head_commit. COMMIT_TITLE below
-          # falls back to the sha so the Slack message is never blank.
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
           SUITE: ${{ inputs.suite }}
         run: |
