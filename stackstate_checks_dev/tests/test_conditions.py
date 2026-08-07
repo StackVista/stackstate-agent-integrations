@@ -9,6 +9,7 @@ import pytest
 from stackstate_checks.dev.conditions import (
     CheckCommandOutput, CheckDockerLogs, CheckEndpoints, WaitFor
 )
+from stackstate_checks.dev.docker import compose_command
 from stackstate_checks.dev.errors import RetryError
 from stackstate_checks.dev.subprocess import run_command
 
@@ -82,7 +83,7 @@ class TestCheckDockerLogs:
 
     def test_no_matches(self):
         compose_file = os.path.join(DOCKER_DIR, 'test_default.yaml')
-        run_command(['docker-compose', '-f', compose_file, 'down'])
+        run_command(compose_command() + ['-f', compose_file, 'down'])
         check_docker_logs = CheckDockerLogs(compose_file, 'Vault server started', attempts=1)
 
         with pytest.raises(RetryError):
@@ -93,10 +94,10 @@ class TestCheckDockerLogs:
         check_docker_logs = CheckDockerLogs(compose_file, 'Vault server started')
 
         try:
-            run_command(['docker-compose', '-f', compose_file, 'up', '-d'], check=True)
+            run_command(compose_command() + ['-f', compose_file, 'up', '-d'], check=True)
             check_docker_logs()
         finally:
-            run_command(['docker-compose', '-f', compose_file, 'down'], capture=True)
+            run_command(compose_command() + ['-f', compose_file, 'down'], capture=True)
 
 
 class TestCheckEndpoints:

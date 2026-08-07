@@ -1,7 +1,13 @@
 version: '3'
 services:
   splunk:
-    image: "registry.tooling.stackstate.io/docker/splunk/splunk:latest"
+    # Docker Hub's official splunk/splunk. The previous
+    # registry.tooling.stackstate.io/docker/... reference was the SUSE Private
+    # Registry's Docker Hub proxy-cache of this same image; the proxy needs
+    # credentials, which this public repo's CI must not hold, so the default
+    # pulls direct. Override SPLUNK_IMAGE to go back through the proxy on a
+    # self-hosted runner.
+    image: "${SPLUNK_IMAGE:-splunk/splunk:latest}"
     environment:
       SPLUNK_START_ARGS: --accept-license
       SPLUNK_PASSWORD: admin12345

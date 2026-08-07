@@ -15,45 +15,28 @@
 #     EVERY suite (GitLab: the `base_changes` anchor).
 #   * Otherwise only the suites whose own directory changed run.
 #   * GitLab's `splunk_base_build_rule` -- a change to splunk_base also runs the
-#     other three splunk suites, which import its test helpers -- is not ported
-#     here because no splunk suite runs yet. It lands with them in phase 2
-#     (STAC-25531).
+#     other three splunk suites, which import its test helpers.
 #   * push / workflow_dispatch run everything (GitLab: `master_branch`,
 #     `release_branch`).
 #
-# Writes three arrays to $GITHUB_OUTPUT for `fromJson()` in a matrix:
-#   checks                  -- suites that need no credentials
-#   private_checks          -- suites that install from the private GitLab PyPI
-#                              index, and are cleared to run on this event
-#   deferred_private_checks -- private-index suites withheld from this event
-#                              (always empty outside pull requests)
+# Writes two arrays to $GITHUB_OUTPUT for `fromJson()` in a matrix:
+#   checks        -- suites that run in the shared BCI container
+#   docker_checks -- suites that need a live Docker daemon and so run directly
+#                    on the runner (STAC-25531)
 #
-# The split is a security boundary, not a convenience. The credential-free suites
-# run with no secrets in scope at all. The private-index suites need a registry
-# password, so they are kept in a separate job -- and, on pull requests, are not
-# run at all (STAC-25540, second review pass).
-#
-# That last part is the whole point, so it is worth stating plainly: a
-# `pull_request` run executes the pull request's own copy of the workflow and of
-# every script it calls. Hardening the job cannot keep a determined pull request
-# away from a secret the run is holding -- it can always edit the thing that holds
-# it. The only run that cannot leak the credential is a run that never receives
-# it, so these suites are deferred to push, tag and workflow_dispatch events,
-# whose contents are reviewed before they reach the release branch.
+# Every suite here is credential-free, and that is worth keeping. Until
+# STAC-25544 `vsphere` resolved only against a private package registry, which
+# meant withholding the credential from pull requests and therefore not running
+# the suite on them at all -- a real coverage gap, because a `pull_request` run
+# executes the pull request's own copy of the workflow and of every script it
+# calls, so a run holding a secret cannot be hardened against the pull request
+# that edits it. Modernising the VMware pin onto public PyPI removed the secret
+# and with it the gap. If a suite ever appears to need a registry credential
+# again, removing that need is the fix; splitting the matrix is not.
 
 set -euo pipefail
 
-# Suites currently running on GitHub Actions. Phase 1 is the 15 suites that need
-# no Docker daemon.
-#
-# Deliberately NOT here yet (phase 2, STAC-25531 -- needs a docker client in the
-# job image):
-#   splunk_base, splunk_health, splunk_metric, splunk_topology
-#       -- each drives a real Splunk container via docker-compose.
-#   stackstate_checks_dev
-#       -- its tests exercise the toolkit's own Docker helpers.
-# ubuntu-latest already provides a working Docker daemon, so this is a matter of
-# giving the job a docker client rather than provisioning a runner.
+# Suites currently running on GitHub Actions.
 #
 # Deliberately dropped, not pending:
 #   postgres -- .gitlab-ci.yml carried a `test_postgres` job for a check that does
@@ -69,27 +52,45 @@ CHECKS=(
   kubelet
   openmetrics
   servicenow
+  splunk_base
+  splunk_health
+  splunk_metric
+  splunk_topology
   stackstate_checks_base
+  stackstate_checks_dev
   static_health
   static_topology
   vsphere
   zabbix
 )
 
-# Suites whose requirements resolve only against the private GitLab PyPI index.
-# `vsphere` pins vsphere-automation-sdk, which VMware never published to public
-# PyPI (the name is squatted there by an unrelated 0.0.1 placeholder), so it is
-# mirrored into the StackVista package registry and needs authentication.
+# Suites that need a real Docker daemon: the four splunk suites drive a Splunk
+# container through docker-compose, and stackstate_checks_dev tests the toolkit's
+# own Docker helpers (STAC-25531).
 #
-# Everything not listed here is credential-free and must stay that way: adding a
-# suite to this list stops it running on pull requests altogether, and removing
-# the need for the private index is always the better fix. For vsphere that fix
-# looks reachable -- VMware now publishes the SDK to public PyPI under renamed
-# packages (vmware-vapi-runtime, vmware-vapi-common-client, pyvmomi) and ships
-# the NSX/VMC wheels from its own public index -- so this list should shrink to
-# nothing once the pin is modernised.
-PRIVATE_INDEX_CHECKS=(
-  vsphere
+# These run as their own matrix directly on the runner, not inside the BCI
+# container the other suites use. That is not a preference -- the tests resolve
+# their target host through `get_docker_hostname()`, which reads DOCKER_HOST and
+# falls back to `localhost`. Compose publishes its ports on the Docker host, so
+# `localhost` is correct only when the test process shares a network namespace
+# with the daemon. Inside a job container it would resolve to the container
+# itself and every connection would be refused. GitLab avoided this by pointing
+# DOCKER_HOST at a `docker:dind` service, whose hostname then resolved for both.
+DOCKER_CHECKS=(
+  splunk_base
+  splunk_health
+  splunk_metric
+  splunk_topology
+  stackstate_checks_dev
+)
+
+# splunk_health, splunk_metric and splunk_topology all build on splunk_base, so a
+# change there has to run all four. Ported from the `splunk_base_build_rule`
+# anchor in .gitlab-ci.yml, which added the same fan-out to every splunk job.
+SPLUNK_DEPENDENTS=(
+  splunk_health
+  splunk_metric
+  splunk_topology
 )
 
 # A change anywhere here invalidates every suite: the base classes and the test
@@ -112,9 +113,9 @@ to_json() {
   fi
 }
 
-is_private_index() {
+is_docker() {
   local candidate=$1 check
-  for check in "${PRIVATE_INDEX_CHECKS[@]}"; do
+  for check in "${DOCKER_CHECKS[@]}"; do
     [ "${candidate}" = "${check}" ] && return 0
   done
   return 1
@@ -122,43 +123,27 @@ is_private_index() {
 
 emit() {
   local -a selected=("$@")
-  local -a public=() private=() deferred=()
+  local -a public=() docker=()
   local check
   for check in ${selected[@]+"${selected[@]}"}; do
-    if is_private_index "${check}"; then
-      private+=("${check}")
+    if is_docker "${check}"; then
+      docker+=("${check}")
     else
       public+=("${check}")
     fi
   done
 
-  # Pull requests do not run the private-index suites at all (STAC-25540, second
-  # review pass). See the security-boundary note at the top of this file: a
-  # `pull_request` run executes the pull request's own copy of the workflow and
-  # scripts, so the credential can only be protected by withholding it. These
-  # suites run on the release branch instead, where the code has been reviewed.
-  if [ "${EVENT_NAME}" = "pull_request" ] && [ "${#private[@]}" -gt 0 ]; then
-    deferred=("${private[@]}")
-    private=()
-  fi
-
-  local public_json private_json deferred_json
+  local public_json docker_json
   public_json=$(to_json ${public[@]+"${public[@]}"})
-  private_json=$(to_json ${private[@]+"${private[@]}"})
-  deferred_json=$(to_json ${deferred[@]+"${deferred[@]}"})
+  docker_json=$(to_json ${docker[@]+"${docker[@]}"})
 
   {
     echo "checks=${public_json}"
-    echo "private_checks=${private_json}"
-    echo "deferred_private_checks=${deferred_json}"
+    echo "docker_checks=${docker_json}"
   } >>"${GITHUB_OUTPUT}"
 
   echo "Selected credential-free suites: ${public_json}"
-  echo "Selected private-index suites:   ${private_json}"
-  if [ "${deferred_json}" != "[]" ]; then
-    echo "Deferred private-index suites:   ${deferred_json}"
-    echo "::notice title=Private-index suites do not run on pull requests::${deferred_json} resolve only against the private package registry. Pull requests are deliberately given no credential to reach it, so these suites run on ${BASE_REF:-the release branch} after merge."
-  fi
+  echo "Selected docker-daemon suites:   ${docker_json}"
 }
 
 # Anything that is not a pull request is a full run. On the release branch the
@@ -205,6 +190,17 @@ for file in "${CHANGED[@]}"; do
       SELECTED+=("${check}")
     fi
   done
+done
+
+# splunk_base is a library for the other three splunk suites, so pull them in
+# whenever it changes. Ported from `splunk_base_build_rule` in .gitlab-ci.yml.
+# `emit` sorts and de-duplicates, so adding them unconditionally is safe.
+for check in ${SELECTED[@]+"${SELECTED[@]}"}; do
+  if [ "${check}" = "splunk_base" ]; then
+    echo "'splunk_base' changed: also running ${SPLUNK_DEPENDENTS[*]}."
+    SELECTED+=("${SPLUNK_DEPENDENTS[@]}")
+    break
+  fi
 done
 
 emit "${SELECTED[@]+"${SELECTED[@]}"}"

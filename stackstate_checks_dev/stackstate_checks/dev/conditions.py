@@ -165,7 +165,8 @@ class CheckCommandOutput(LazyFunction):
 class CheckDockerLogs(CheckCommandOutput):
     def __init__(self, identifier, patterns, matches=1, stdout=True, stderr=True, attempts=60, wait=1):
         if file_exists(identifier):
-            command = ['docker-compose', '-f', identifier, 'logs']
+            from .docker import compose_command
+            command = compose_command() + ['-f', identifier, 'logs']
         else:
             command = ['docker', 'logs', identifier]
 
