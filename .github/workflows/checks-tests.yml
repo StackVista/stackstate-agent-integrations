@@ -1,124 +1,10 @@
 name: Check tests
 
-# Ported from .gitlab-ci.yml as part of the GitLab -> GitHub migration
-# (STAC-25142), phase 1 (STAC-25463), phase 2 (STAC-25531) and the private-index
-# removal (STAC-25544).
-#
-# WHAT MOVED
-#   linux_deps + the `test_<check>` job family -> the `check-tests` matrix below,
-#                                     plus `check-tests-docker` for the five
-#                                     suites needing a Docker daemon (STAC-25531).
-#   splunk_base_build_rule            -> SPLUNK_DEPENDENTS in select-checks.sh.
-#   .linux_splunk_test's docker pull + COMPOSE_HTTP_TIMEOUT
-#                                     -> steps on `check-tests-docker`.
-#   setup_artifact_registry.sh        -> not ported. It configured pip against the
-#                                        private GitLab PyPI index for vsphere.
-#                                        STAC-25544 moved that pin to the packages
-#                                        VMware publishes on public PyPI, so there
-#                                        is no private index left to configure.
-#   setup_artifactory_docker.sh       -> not ported. It logged docker in to the
-#                                        SUSE Private Registry so compose could
-#                                        pull Splunk and Vault through the proxy.
-#                                        Those fixtures now name the public
-#                                        Docker Hub images directly, so there is
-#                                        no login to perform -- and a public
-#                                        repo's PR jobs must not hold registry
-#                                        credentials anyway.
-#   The per-job `changes:` rules      -> .github/scripts/select-checks.sh.
-#   The validate suite that rode along inside `test_stackstate_checks_base`
-#                                     -> its own `validate` job, so a metadata
-#                                        failure is legible as its own PR check
-#                                        instead of hiding inside a test job.
-#
-# WHAT IS DELIBERATELY NOT HERE
-#   test_postgres
-#       Dead config: .gitlab-ci.yml tests a `postgres` check that does not exist
-#       in this repository. Dropped, not pending.
-#   print_env
-#       A bare `printenv`. This repository is PUBLIC, so that job publishes every
-#       CI credential in scope to a world-readable log. Not ported at any phase;
-#       `secrets: inherit` is likewise never used here.
-#   The Windows lane
-#       There is none to port. `.gitlab-ci.yml` defines a `.windows_env` anchor
-#       but no job has ever referenced it, and Windows is not a supported target,
-#       so the orphaned .setup-scripts/conda_env.ps1 + windows_*.cmd helpers can
-#       be retired with the GitLab pipeline (STAC-25464).
-#   publish-checks-dev / the runner-image `docker` job  (STAC-25532)
-#       Publishing needs write credentials this repo does not hold; pulumi-infra
-#       schedules integrations' publishing role for its section 7.4. Note that
-#       the GitLab project was archived on 2026-07-20, so this job can no longer
-#       run there either -- publishing a new stackstate_checks_dev is currently
-#       not possible on any platform, and the target registry needs deciding
-#       (GitLab package registry vs CodeArtifact, cf. STAC-25407).
-#   A Cerberus failure notification
-#       Delivered in STAC-25533; see the `cerberus-notify` job at the end of this
-#       file and .github/workflows/cerberus-notify.yml.
-#
-# CREDENTIALS
-#   There are none, and that is the design. This is a PUBLIC repository and every
-#   job here executes PR-authored workflow, setup and test code, so any secret in
-#   scope is a secret available to whoever can open a branch. A `pull_request` run
-#   executes the pull request's own copy of this workflow and of every script it
-#   calls, which means a run holding a secret can always be made to disclose it --
-#   by editing the script that fetches it, reordering steps, or adding one. A
-#   repository secret and pull-request-controlled code do not compose into a
-#   security boundary, however carefully the code in between is written. The only
-#   run that cannot leak a credential is a run that never receives one.
-#
-#   Two credentials were removed to get here. The private runner image needed
-#   vars.REGISTRY_USER / secrets.REGISTRY_PASSWORD; switching to public SUSE BCI
-#   dropped it, and as a side effect let Dependabot PRs run at all, since they
-#   receive no Actions secrets and so could never have pulled that image.
-#
-#   The second was the read-only pull from the private GitLab PyPI index, which
-#   existed solely because vsphere pinned `vsphere-automation-sdk` -- a package
-#   VMware never published to public PyPI, where the name is squatted by an
-#   unrelated 0.0.1 placeholder. Withholding that credential from pull requests
-#   was the only sound way to hold it, which meant vsphere was verified after
-#   merge rather than on the pull request that changed it. STAC-25544 removed the
-#   need instead: VMware publishes the same SDK to public PyPI under renamed
-#   packages (pyvmomi, vmware-vcenter, vmware-vapi-runtime,
-#   vmware-vapi-common-client), so the pin, the credential, the separate job and
-#   the coverage gap went together. vsphere is now an ordinary suite in the main
-#   matrix and runs on pull requests like every other one.
-#
-#   Three earlier answers to that same review finding are recorded so they are not
-#   re-proposed. A `private-package-index` GitHub Environment with required
-#   reviewers did gate the credential, but SHARED_PATHS covers the CI files, so it
-#   fired on roughly one commit in six and blocked authors on their own pull
-#   requests -- while only ever constraining people who already have write access.
-#   Prefetching a wheelhouse on a trusted event and handing it to pull requests
-#   through the Actions cache also works, but any pull request can read a cache,
-#   and can only restore one from its base branch. Confining the credential to a
-#   single step was worth doing and was done, but it is hardening, not a boundary.
-#
-#   If a dependency ever appears to need a private index again, removing that need
-#   is the fix. Reintroducing a credential to this workflow is not.
-#
-# RUNNERS
-#   Everything runs on GitHub-hosted runners. The self-hosted docker-public pool
-#   bought nothing while costing real isolation: fork PRs had to be excluded from
-#   it, which in turn meant a fork could never produce a CI verdict. On hosted
-#   runners forks run exactly the same matrix as any other pull request, and no
-#   job holds a secret, so no fork-specific guard is needed anywhere. This also
-#   removes the question of pulling upstream images across the self-hosted NAT:
-#   the BCI reference is direct, from a public registry, on infrastructure meant
-#   to reach it. The Docker suites need a daemon rather than a container, so they
-#   run directly on the hosted runner -- see `check-tests-docker`.
-
 on:
   pull_request:
-  # Mirrors GitLab's `master_branch` rule, which hardcoded the release branch the
-  # same way: the full matrix runs there regardless of what a given commit
-  # touched, so the branch always has a complete verdict.
   push:
     branches:
       - stackstate-7.78.2
-    # GitLab's `release_branch` anchor (`if: $CI_COMMIT_TAG`) put every test job
-    # in .base_integration_rules on tag pipelines too, so releases carry the same
-    # verdict as the branch they cut from. Tags here are `<version>-<increment>`
-    # (7.78.2-4), but the rule was any-tag and this stays faithful to it: `**`
-    # matches tag names containing `/`, which a bare `*` would silently skip.
     tags:
       - '**'
   workflow_dispatch:
@@ -135,33 +21,13 @@ defaults:
     shell: bash
 
 env:
-  # SUSE BCI Python, per the mandatory BCI base-image policy. Digest-pinned so a
-  # run is reproducible and so Zizmor's unpinned-images audit passes; the comment
-  # carries the human-readable version the digest resolves to.
-  #
-  # This deliberately replaces the GitLab pipeline's
-  # stackstate-agent-integrations-runner image (FROM python:3.13.14-bookworm).
-  # That image exists mainly to carry Docker CE and docker-compose, which only the
-  # phase-2 Splunk / checks_dev suites use; the phase-1 suites need a Python
-  # toolchain and nothing else. Dropping it also drops the registry credentials
-  # these jobs used to need -- see CREDENTIALS below.
-  #
-  # BCI publishes 3.13.13, one patch behind the 3.13.14 the agent embeds and the
-  # GitLab image pinned. CPython patch releases are bugfix-only, and the full
-  # phase-1 matrix was verified green on 3.13.13 before this switch. Worth
-  # realigning when BCI ships .14.
   BCI_PYTHON_IMAGE: registry.suse.com/bci/python:3.13@sha256:7d36dd3ba6596fb690e31d956952059fd010604ad6309f06462c02c4c9c01461 # 3.13.13
 
-  # Packages the BCI image does not ship but the toolchain build needs: cython and
-  # pyyaml==6.0.1 have no cp313 wheels and are compiled from source.
   BCI_BUILD_PACKAGES: gcc python313-devel libffi-devel
 
 jobs:
   select-checks:
     name: Select check suites to run
-    # Runs for forks too. No job in this workflow has a secret in scope, so there
-    # is nothing a fork branch can reach here, and blocking forks outright would
-    # leave them unable to satisfy branch protection at all (STAC-25463 review).
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -172,16 +38,11 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          # Full history: the selector diffs against the merge base with the base
-          # branch, which a shallow clone cannot resolve.
           fetch-depth: 0
           persist-credentials: false
 
       - name: Resolve the container image reference
         id: image
-        # `container.image` cannot read the `env` context, so the pin defined once
-        # at workflow level is republished here as an output the container jobs can
-        # reference. Keeps a single source of truth for the digest.
         run: |
           set -euo pipefail
           echo "ref=${BCI_PYTHON_IMAGE}" >>"${GITHUB_OUTPUT}"
@@ -200,16 +61,10 @@ jobs:
 
   validate:
     name: Check metadata validation (checksdev validate)
-    # Ported from the `checksdev validate *` commands that opened
-    # test_stackstate_checks_base. Cheap, repo-wide, and independent of the
-    # matrix, so it runs on every change rather than per suite. Credential-free,
-    # so it runs for fork PRs too.
     needs: select-checks
     runs-on: ubuntu-latest
     timeout-minutes: 30
     container:
-      # Digest-pinned at workflow level (BCI_PYTHON_IMAGE); the ignore is only
-      # because Zizmor cannot follow the pin through a job output.
       image: ${{ needs.select-checks.outputs.image }} # zizmor: ignore[unpinned-images]
     steps:
       - name: Check out repository
@@ -248,21 +103,15 @@ jobs:
 
   check-tests:
     name: Check tests (${{ matrix.check }})
-    # No fork guard: these suites carry no credentials and run on GitHub-hosted
-    # runners, so a fork branch has nothing to reach. Skipped only when the
-    # selector legitimately picked no credential-free suite.
     if: needs.select-checks.outputs.checks != '[]'
     needs: select-checks
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
-      # One suite's failure should not mask the state of the others.
       fail-fast: false
       matrix:
         check: ${{ fromJson(needs.select-checks.outputs.checks) }}
     container:
-      # Digest-pinned at workflow level (BCI_PYTHON_IMAGE); the ignore is only
-      # because Zizmor cannot follow the pin through a job output.
       image: ${{ needs.select-checks.outputs.image }} # zizmor: ignore[unpinned-images]
     steps:
       - name: Check out repository
@@ -294,8 +143,6 @@ jobs:
       - name: checksdev benchmarks ${{ matrix.check }}
         env:
           CHECK: ${{ matrix.check }}
-        # Non-blocking, matching GitLab's `|| true`: benchmarks are reported for
-        # information and have never gated a merge.
         continue-on-error: true
         run: |
           set -eo pipefail
@@ -304,15 +151,10 @@ jobs:
 
   workflow-security:
     name: Workflow security scan (Zizmor)
-    # Credential-free and read-only, and it runs on GitHub-hosted infrastructure,
-    # so fork PRs are audited too. Depends on select-checks only to reuse the
-    # pinned image.
     needs: select-checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
     container:
-      # Digest-pinned at workflow level (BCI_PYTHON_IMAGE); the ignore is only
-      # because Zizmor cannot follow the pin through a job output.
       image: ${{ needs.select-checks.outputs.image }} # zizmor: ignore[unpinned-images]
     permissions:
       contents: read
@@ -343,23 +185,6 @@ jobs:
 
   check-tests-docker:
     name: Check tests, docker (${{ matrix.check }})
-    # The four splunk suites and stackstate_checks_dev, which need a real Docker
-    # daemon (STAC-25531). Credential-free like check-tests above, so no fork
-    # guard: the test containers now come from public Docker Hub rather than the
-    # authenticated SUSE Private Registry proxy the GitLab pipeline used.
-    #
-    # Runs directly on the runner rather than in the BCI container the other
-    # suites use, and that is forced by the tests, not chosen. They resolve their
-    # target through `get_docker_hostname()`, which reads DOCKER_HOST and falls
-    # back to `localhost`; compose publishes its ports on the Docker host, so
-    # `localhost` only reaches them when the test process shares a network
-    # namespace with the daemon. From inside a job container it would resolve to
-    # the container itself and every connection would be refused. GitLab dodged
-    # this with a `docker:dind` service whose hostname resolved from both sides;
-    # on a GitHub-hosted runner the daemon is simply already there.
-    #
-    # The consequence is that these suites use the runner's Python rather than the
-    # BCI image's. Same 3.13 minor, pinned below.
     if: needs.select-checks.outputs.docker_checks != '[]'
     needs: select-checks
     runs-on: ubuntu-latest
@@ -377,8 +202,6 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
-          # Tracks BCI_PYTHON_IMAGE's 3.13 series so both matrices test the same
-          # minor. setup-python resolves the latest available patch.
           python-version: '3.13'
 
       - name: Build the toolchain virtualenv
@@ -388,10 +211,6 @@ jobs:
           source .setup-scripts/setup_env.sh
 
       - name: Pre-pull the Splunk image
-        # Ported from .linux_splunk_test in .gitlab-ci.yml, whose comment reads
-        # "Pull splunk to aovid pulling during compose, which breaks in python".
-        # The Splunk image is large and the compose client's HTTP timeout can
-        # expire mid-pull; pulling first leaves compose only having to start it.
         if: startsWith(matrix.check, 'splunk_')
         env:
           SPLUNK_IMAGE: splunk/splunk:latest
@@ -402,9 +221,6 @@ jobs:
       - name: checksdev test ${{ matrix.check }}
         env:
           CHECK: ${{ matrix.check }}
-          # Ported verbatim from .linux_test / .linux_splunk_test in
-          # .gitlab-ci.yml: Splunk is slow to come up and the default 60s
-          # compose timeout expires before it accepts connections.
           COMPOSE_HTTP_TIMEOUT: '300'
         run: |
           set -eo pipefail
@@ -413,15 +229,6 @@ jobs:
 
   ci-success:
     name: CI success
-    # The single stable status for branch protection. Every other status here is
-    # either dynamically named (the matrix legs are `Check tests (<suite>)`) or
-    # conditional, so this job always runs and decides the verdict itself.
-    #
-    # It must distinguish a legitimate skip from an absent pipeline. An earlier
-    # revision treated every non-failure as success, which meant a run where
-    # everything skipped still reported green and could satisfy branch protection
-    # without executing any CI at all (STAC-25463 review). The rules below are
-    # therefore explicit about which skips are allowed and why.
     if: always()
     needs:
       - select-checks
@@ -501,20 +308,6 @@ jobs:
 
   cerberus-notify:
     name: Report failure to Slack (Cerberus)
-    # Terminal job. ci-success already aggregates every other job, so hanging the
-    # notification off it gives one funnel for all failures rather than a notify
-    # job per pipeline job.
-    #
-    # Push events only, which given the `push:` trigger above means the release
-    # branch and release tags. Deliberately not pull requests: those failures
-    # already have an owner watching them, and a public repo would let anyone
-    # open a PR that fails on purpose to spam the CI channel. Post-merge and tag
-    # failures are the ones with nobody watching -- exactly the gap that let
-    # STAC-25510 sit unnoticed for 12 days.
-    #
-    # Keyed on `github.event_name` rather than a hardcoded ref so the next
-    # release-branch bump only has to update the `push:` trigger above, not two
-    # places that must agree.
     needs: ci-success
     if: failure() && github.event_name == 'push'
     uses: ./.github/workflows/cerberus-notify.yml
