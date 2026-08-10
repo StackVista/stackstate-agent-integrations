@@ -34,9 +34,23 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [ -z "${CERBERUS_LAMBDA_URL}" ] || [ -z "${CERBERUS_API_TOKEN}" ]; then
-            echo "::warning title=Cerberus not configured::CERBERUS_LAMBDA_URL and/or CERBERUS_API_TOKEN is not visible to this repo, so the ${SUITE} failure was not reported to Slack. Both are provisioned as repo-level secrets by pulumi-infra (STAC-25533)."
-            exit 0
+          # Fail closed (STAC-25555). Naming the individual secret matters: the
+          # two are provisioned together, so exactly one missing means drift or a
+          # partial apply rather than a repo that was never wired up.
+          missing=""
+          if [ -z "${CERBERUS_LAMBDA_URL}" ]; then
+            missing="CERBERUS_LAMBDA_URL"
+          fi
+          if [ -z "${CERBERUS_API_TOKEN}" ]; then
+            if [ -n "${missing}" ]; then
+              missing="${missing} and CERBERUS_API_TOKEN"
+            else
+              missing="CERBERUS_API_TOKEN"
+            fi
+          fi
+          if [ -n "${missing}" ]; then
+            echo "::error title=Cerberus not configured::Missing secret(s): ${missing}. Not visible to this repository, so the ${SUITE} failure was NOT reported to Slack. Both are provisioned as repo-level secrets by pulumi-infra (github/repoVariables/resources.yaml, STAC-25533). This job fails rather than passing silently, because a notification path that quietly stops working is worse than a visibly broken one."
+            exit 1
           fi
 
           COMMIT_TITLE=$(printf '%s' "${COMMIT_MESSAGE}" | head -n1)
