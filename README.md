@@ -13,16 +13,7 @@ Prerequisites:
 
 ## Setup
 
-To setup the environment, first export some environment variables:
-
-    $ export GITLAB_PACKAGE_REGISTRY_USER=<your-work-email>
-    $ export GITLAB_PACKAGE_REGISTRY_PYPI_SIMPLE_URL=gitlab.com/api/v4/projects/71271774/packages/pypi/simple
-    $ export GITLAB_PACKAGE_REGISTRY_TOKEN=<your-gitlab-token>
-    $ export GITLAB_PACKAGE_REGISTRY_PYPI_URL=gitlab.com/api/v4/projects/71271774/packages/pypi
-
-In order to have a working setup the email you feed these environment variables should be the one you access our GitLab systems with, and the token should a personal access token with packages reading capabilities.
-
-Then proceed to source the setup scripts to correctly load the dependencies and setup the virtual environment:
+Source the setup scripts to load the dependencies and set up the virtual environment:
 
     $ source .setup-scripts/load_deps.sh
     $ source .setup-scripts/setup_env.sh
@@ -77,12 +68,11 @@ then you can run just once the check as you would do with a real agent:
     
 You can optionally pass a log level parameter, if not passed logging is disabled. 
 
-## CI image
+## CI Python
 
-The CI image is built from `.setup-scripts/image` and published to
-`registry.tooling.stackstate.io` (referenced by `RUNNER_IMAGE_TAG` in
-`.gitlab-ci.yml`). **Do not build or push it locally** except for ad-hoc
-validation — use the GitLab CI `docker` job (build stage, manual).
+CI runs the check suites directly in the SUSE BCI Python image, pinned by digest
+in `BCI_PYTHON_IMAGE` at the top of `.github/workflows/checks-tests.yml`. There is
+no bespoke runner image to build or publish.
 
 Its Python **must match the CPython that the StackState Agent embeds** — the
 agent's `omnibus/config/software/python3.rb` `default_version`, mirrored here in
@@ -90,16 +80,10 @@ agent's `omnibus/config/software/python3.rb` `default_version`, mirrored here in
 not ad-hoc work: see the agent repo's `UPSTREAM_MERGE.md`, section "Integrations
 repo: CI runner image (embedded Python bump)".
 
-After merging Dockerfile / Makefile changes:
+To bump it, update `BCI_PYTHON_IMAGE` to the new digest, and ensure `.python-version`,
+`setup_env.sh` (`python3.13`) and `conda_env.ps1` agree. They must land together.
 
-1. Run the manual **`docker`** job on the pipeline (it builds from
-   `python:3.13.14-bookworm` and pushes `YYYYMMDD-py313` to the registry).
-2. In a follow-up commit, set `RUNNER_IMAGE_TAG` in `.gitlab-ci.yml` to the tag
-   the job prints, and ensure `setup_env.sh` uses `python3.13` and
-   `conda_env.ps1` defaults to `3.13.14` (must land together with the runner switch).
-3. Re-run the pipeline so test jobs use the new runner.
-
-Keeping runner Python in sync ensures CI tests run on the same interpreter the
+Keeping CI Python in sync ensures CI tests run on the same interpreter the
 agent ships, so version-specific bugs (e.g. pydantic validation differences) are
 caught before release rather than in production.
 
