@@ -62,6 +62,54 @@ def test_entity_404_carries_status_code(dynatrace_client, requests_mock, test_in
     assert exc.value.status_code == 404
 
 
+def test_error_body_reported_when_no_error_field(dynatrace_client, requests_mock, test_instance):
+    """
+    Check that a proxy's own error envelope reaches the message.
+    """
+    endpoint = dynatrace_client.get_endpoint(test_instance.get('url'), '/api/v2/entities')
+    requests_mock.get(endpoint, text='{"messageId": "abc-123", "reason": "policy denied"}', status_code=403)
+    with pytest.raises(DynatraceApiError) as exc:
+        dynatrace_client.get_dynatrace_json_response(endpoint)
+    assert 'policy denied' in str(exc.value)
+    assert 'abc-123' in str(exc.value)
+
+
+def test_error_body_reported_when_body_is_not_json(dynatrace_client, requests_mock, test_instance):
+    """
+    Check that a non-JSON error page is reported rather than raising a decode error.
+    """
+    endpoint = dynatrace_client.get_endpoint(test_instance.get('url'), '/api/v2/entities')
+    requests_mock.get(endpoint, text='<html>\n  <body>Gateway policy denied</body>\n</html>', status_code=403)
+    with pytest.raises(DynatraceApiError) as exc:
+        dynatrace_client.get_dynatrace_json_response(endpoint)
+    assert exc.value.status_code == 403
+    assert 'Gateway policy denied' in str(exc.value)
+
+
+def test_error_body_is_truncated(dynatrace_client, requests_mock, test_instance):
+    """
+    Check that a large error page cannot flood the log.
+    """
+    endpoint = dynatrace_client.get_endpoint(test_instance.get('url'), '/api/v2/entities')
+    requests_mock.get(endpoint, text='x' * 5000, status_code=502)
+    with pytest.raises(DynatraceApiError) as exc:
+        dynatrace_client.get_dynatrace_json_response(endpoint)
+    assert '[truncated]' in str(exc.value)
+    assert len(str(exc.value)) < 800
+
+
+def test_error_message_preferred_over_body(dynatrace_client, requests_mock, test_instance):
+    """
+    Check that Dynatrace's own error message still wins when it is present.
+    """
+    endpoint = dynatrace_client.get_endpoint(test_instance.get('url'), '/api/v2/entities')
+    requests_mock.get(endpoint, text='{"error": {"message": "Token is missing required scope"}}', status_code=403)
+    with pytest.raises(DynatraceApiError) as exc:
+        dynatrace_client.get_dynatrace_json_response(endpoint)
+    assert 'Token is missing required scope' in str(exc.value)
+    assert 'response body' not in str(exc.value)
+
+
 def test_entity_404_handling_single_type(dynatrace_client, requests_mock, test_instance, caplog):
     """
     Test that 404 errors for entities are logged at INFO level with counting.

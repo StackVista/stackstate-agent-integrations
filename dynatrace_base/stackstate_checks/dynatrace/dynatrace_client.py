@@ -10,6 +10,8 @@ from requests import Session, Timeout
 
 from stackstate_checks.dynatrace.custom_auth import MsJWTAuth
 
+ERROR_BODY_MAX_CHARS = 500
+
 
 class DynatraceApiError(Exception):
     """
@@ -99,12 +101,23 @@ class _DynatraceClient:
                 retry_headers = {"Authorization": "Bearer %s" % self.token}
                 response = do_request(retry_headers)
 
-            response_json = response.json()
+            try:
+                response_json = response.json()
+            except ValueError:
+                # A proxy in front of Dynatrace can answer with a non-JSON error page
+                if response.status_code == 200:
+                    raise
+                response_json = None
+
             if response.status_code != 200:
-                if "error" in response_json:
+                msg = None
+                if isinstance(response_json, dict) and "error" in response_json:
                     msg = response_json["error"].get("message")
-                else:
+                if not msg:
                     msg = "Got %s when hitting %s" % (response.status_code, endpoint)
+                    body = self._error_body_excerpt(response)
+                    if body:
+                        msg = "%s; response body: %s" % (msg, body)
 
                 # Handle 404s for all entity types with smart logging and counting
                 if (
@@ -139,6 +152,26 @@ class _DynatraceClient:
             msg = "%d seconds timeout" % self.timeout
             self.log.error(msg)
             raise Exception("Timeout exception occurred for endpoint %s with message: %s" % (endpoint, msg))
+
+    @staticmethod
+    def _error_body_excerpt(response):
+        """
+        Returns a length-capped, single-line excerpt of an error response body, or None.
+        Anything proxying Dynatrace answers in its own envelope, where the body is the
+        only statement of who rejected the request.
+        :param response: the non-200 response
+        :return: the excerpt to append to the error message
+        """
+        try:
+            text = response.text or ""
+        except Exception:
+            return None
+        text = " ".join(text.split())
+        if not text:
+            return None
+        if len(text) > ERROR_BODY_MAX_CHARS:
+            return text[:ERROR_BODY_MAX_CHARS] + "... [truncated]"
+        return text
 
     def get_endpoint(self, url, path):
         """
