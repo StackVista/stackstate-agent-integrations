@@ -4,11 +4,30 @@
 
 import logging
 import os
+import re
 from collections import defaultdict
 
 from requests import Session, Timeout
 
 from stackstate_checks.dynatrace.custom_auth import MsJWTAuth
+
+ERROR_BODY_MAX_CHARS = 500
+
+# A gateway can reflect the request headers back in its error body
+AUTH_ECHO_PATTERN = re.compile(r'(?i)\b(authorization|api-token|bearer)\b([\s:=]*)\S+')
+
+
+class DynatraceApiError(Exception):
+    """
+    Raised when a Dynatrace API call returns a non-200 response.
+
+    Carries the status code so callers can branch on it. The message embeds the request
+    URL, so matching text against it reads entity ids as status codes.
+    """
+
+    def __init__(self, message, status_code=None):
+        super(DynatraceApiError, self).__init__(message)
+        self.status_code = status_code
 
 
 class _DynatraceClient:
@@ -86,12 +105,28 @@ class _DynatraceClient:
                 retry_headers = {"Authorization": "Bearer %s" % self.token}
                 response = do_request(retry_headers)
 
-            response_json = response.json()
+            try:
+                response_json = response.json()
+            except ValueError:
+                # A proxy in front of Dynatrace can answer with a non-JSON error page
+                if response.status_code == 200:
+                    raise
+                response_json = None
+
             if response.status_code != 200:
-                if "error" in response_json:
-                    msg = response_json["error"].get("message")
-                else:
+                msg = None
+                if isinstance(response_json, dict):
+                    # A proxy may use the same key for a plain string or a null
+                    error = response_json.get("error")
+                    if isinstance(error, dict):
+                        msg = error.get("message")
+                    elif isinstance(error, str):
+                        msg = error
+                if not msg:
                     msg = "Got %s when hitting %s" % (response.status_code, endpoint)
+                    body = self._error_body_excerpt(response)
+                    if body:
+                        msg = "%s; response body: %s" % (msg, body)
 
                 # Handle 404s for all entity types with smart logging and counting
                 if (
@@ -100,28 +135,55 @@ class _DynatraceClient:
                 ):
                     self._handle_entity_404(endpoint, msg)
                     # Always raise after handling 404 so callers can react and tests assert
-                    raise Exception(
+                    raise DynatraceApiError(
                         'Got an unexpected error with status code %s and message: %s'
-                        % (response.status_code, msg)
+                        % (response.status_code, msg),
+                        response.status_code
                     )
                 elif response.status_code == 401:
                     # Provide clearer guidance for non-JWT (or failed refresh) 401s
-                    raise Exception(
+                    raise DynatraceApiError(
                         (
                             "401 unauthorized for %s. Verify token validity and required API v2 scopes "
                             "(entities.read, events.read, eventTypes.read). Message: %s"
                         )
-                        % (endpoint, msg)
+                        % (endpoint, msg),
+                        response.status_code
                     )
                 else:
                     self.log.error(msg)
-                    raise Exception(
-                        'Got an unexpected error with status code %s and message: %s' % (response.status_code, msg))
+                    raise DynatraceApiError(
+                        'Got an unexpected error with status code %s and message: %s'
+                        % (response.status_code, msg),
+                        response.status_code)
             return response_json
         except Timeout:
             msg = "%d seconds timeout" % self.timeout
             self.log.error(msg)
             raise Exception("Timeout exception occurred for endpoint %s with message: %s" % (endpoint, msg))
+
+    def _error_body_excerpt(self, response):
+        """
+        Returns a length-capped, single-line excerpt of an error response body, or None.
+        Anything proxying Dynatrace answers in its own envelope, where the body is the
+        only statement of who rejected the request. Credentials are redacted before
+        truncation, so a reflected request header cannot reach the log intact.
+        :param response: the non-200 response
+        :return: the excerpt to append to the error message
+        """
+        try:
+            text = response.text or ""
+        except Exception:
+            return None
+        text = " ".join(text.split())
+        if self.token:
+            text = text.replace(self.token, "[redacted]")
+        text = AUTH_ECHO_PATTERN.sub(r'\1\2[redacted]', text)
+        if not text:
+            return None
+        if len(text) > ERROR_BODY_MAX_CHARS:
+            return text[:ERROR_BODY_MAX_CHARS] + "... [truncated]"
+        return text
 
     def get_endpoint(self, url, path):
         """
