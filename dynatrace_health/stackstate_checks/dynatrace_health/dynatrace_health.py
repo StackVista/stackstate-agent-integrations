@@ -319,7 +319,7 @@ class DynatraceHealthCheck(AgentCheck):
         if entity_id in self._entity_cache:
             cached = self._entity_cache[entity_id]
             if isinstance(cached, Exception):
-                raise cached
+                raise cached.with_traceback(None)
             return cached
         endpoint = f"{base_url}/api/v2/entities/{entity_id}"
         try:

@@ -6,6 +6,7 @@
 import json
 import os
 import re
+import traceback
 
 import requests
 from freezegun import freeze_time
@@ -267,6 +268,8 @@ def test_failed_entity_lookup_is_cached_for_the_run(dynatrace_check, test_instan
 
     entity_calls = [r for r in requests_mock.request_history if entity_id.lower() in r.url.lower()]
     assert len(entity_calls) == 1
+    frames = traceback.extract_tb(dynatrace_check._entity_cache[entity_id].__traceback__)
+    assert sum(frame.name == '_get_entity_definition' for frame in frames) == 1
 
 
 @freeze_time('2025-07-22 08:26:24')
