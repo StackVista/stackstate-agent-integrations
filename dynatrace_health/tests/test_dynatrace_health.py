@@ -12,6 +12,7 @@ from freezegun import freeze_time
 
 from stackstate_checks.base import AgentCheck
 from stackstate_checks.base.utils.common import read_file
+from stackstate_checks.dynatrace.dynatrace_client import DynatraceApiError
 from .conftest import set_http_responses
 
 
@@ -188,6 +189,16 @@ def test_custom_info_event(dynatrace_check, test_instance, requests_mock, health
                            start_snapshot={'expiry_interval_s': 0, 'repeat_interval_s': 15}, stop_snapshot={})
     assert len(telemetry._topology_events) == 1
     assert telemetry._topology_events[0]['msg_title'] == "Custom Info on Mobile App"
+
+
+def test_transport_error_is_not_a_missing_entity(dynatrace_check):
+    """
+    Only a 404 from the API means the entity is gone. A transport failure whose message
+    happens to read like one must not suppress later events of the same type.
+    """
+    assert dynatrace_check._is_entity_not_found(DynatraceApiError('gone', 404)) is True
+    assert dynatrace_check._is_entity_not_found(DynatraceApiError('denied', 403)) is False
+    assert dynatrace_check._is_entity_not_found(requests.ConnectionError('host not found')) is False
 
 
 def _pgi_info_event(event_id, entity_id, entity_name):

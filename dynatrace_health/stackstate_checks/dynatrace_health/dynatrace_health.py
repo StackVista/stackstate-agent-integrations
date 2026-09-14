@@ -543,13 +543,14 @@ class DynatraceHealthCheck(AgentCheck):
     @staticmethod
     def _is_entity_not_found(error):
         """
-        Whether an error means the entity is gone rather than that the request was rejected.
+        Whether an error means the entity is gone rather than that the request failed.
+        Only a 404 from the API qualifies. A transport or local failure is no evidence
+        that the entity is missing, and treating it as such suppresses later events of
+        the same type for the rest of the run.
         :param error: the exception raised while resolving an entity
         :return: True if the entity no longer exists
         """
-        if isinstance(error, DynatraceApiError):
-            return error.status_code == 404
-        return 'not found' in str(error).lower()
+        return isinstance(error, DynatraceApiError) and error.status_code == 404
 
     @staticmethod
     def _extract_entity_type(entity_id):

@@ -4,6 +4,7 @@
 
 import logging
 import os
+import re
 from collections import defaultdict
 
 from requests import Session, Timeout
@@ -11,6 +12,9 @@ from requests import Session, Timeout
 from stackstate_checks.dynatrace.custom_auth import MsJWTAuth
 
 ERROR_BODY_MAX_CHARS = 500
+
+# A gateway can reflect the request headers back in its error body
+AUTH_ECHO_PATTERN = re.compile(r'(?i)\b(authorization|api-token|bearer)\b([\s:=]*)\S+')
 
 
 class DynatraceApiError(Exception):
@@ -111,8 +115,13 @@ class _DynatraceClient:
 
             if response.status_code != 200:
                 msg = None
-                if isinstance(response_json, dict) and "error" in response_json:
-                    msg = response_json["error"].get("message")
+                if isinstance(response_json, dict):
+                    # A proxy may use the same key for a plain string or a null
+                    error = response_json.get("error")
+                    if isinstance(error, dict):
+                        msg = error.get("message")
+                    elif isinstance(error, str):
+                        msg = error
                 if not msg:
                     msg = "Got %s when hitting %s" % (response.status_code, endpoint)
                     body = self._error_body_excerpt(response)
@@ -153,12 +162,12 @@ class _DynatraceClient:
             self.log.error(msg)
             raise Exception("Timeout exception occurred for endpoint %s with message: %s" % (endpoint, msg))
 
-    @staticmethod
-    def _error_body_excerpt(response):
+    def _error_body_excerpt(self, response):
         """
         Returns a length-capped, single-line excerpt of an error response body, or None.
         Anything proxying Dynatrace answers in its own envelope, where the body is the
-        only statement of who rejected the request.
+        only statement of who rejected the request. Credentials are redacted before
+        truncation, so a reflected request header cannot reach the log intact.
         :param response: the non-200 response
         :return: the excerpt to append to the error message
         """
@@ -167,6 +176,9 @@ class _DynatraceClient:
         except Exception:
             return None
         text = " ".join(text.split())
+        if self.token:
+            text = text.replace(self.token, "[redacted]")
+        text = AUTH_ECHO_PATTERN.sub(r'\1\2[redacted]', text)
         if not text:
             return None
         if len(text) > ERROR_BODY_MAX_CHARS:

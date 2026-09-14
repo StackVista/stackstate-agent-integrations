@@ -98,6 +98,55 @@ def test_error_body_is_truncated(dynatrace_client, requests_mock, test_instance)
     assert len(str(exc.value)) < 800
 
 
+def test_error_body_redacts_reflected_token(dynatrace_client, requests_mock, test_instance):
+    """
+    Check that a gateway reflecting the request headers cannot put the token in the log.
+    """
+    token = test_instance.get('token')
+    endpoint = dynatrace_client.get_endpoint(test_instance.get('url'), '/api/v2/entities')
+    requests_mock.get(endpoint, status_code=403,
+                      text='{"rejected": {"Authorization": "Api-Token %s"}}' % token)
+    with pytest.raises(DynatraceApiError) as exc:
+        dynatrace_client.get_dynatrace_json_response(endpoint)
+    assert token not in str(exc.value)
+    assert '[redacted]' in str(exc.value)
+
+
+def test_error_body_redacts_bearer_echo(dynatrace_client, requests_mock, test_instance):
+    """
+    Check that an authorization echo is redacted even when the value is not our token.
+    """
+    endpoint = dynatrace_client.get_endpoint(test_instance.get('url'), '/api/v2/entities')
+    requests_mock.get(endpoint, text='sent: Bearer eyJhbGciOi.someoneelsestoken', status_code=403)
+    with pytest.raises(DynatraceApiError) as exc:
+        dynatrace_client.get_dynatrace_json_response(endpoint)
+    assert 'someoneelsestoken' not in str(exc.value)
+
+
+def test_error_field_as_plain_string(dynatrace_client, requests_mock, test_instance):
+    """
+    Check that a non-dict error value is reported instead of raising AttributeError.
+    """
+    endpoint = dynatrace_client.get_endpoint(test_instance.get('url'), '/api/v2/entities')
+    requests_mock.get(endpoint, text='{"error": "Forbidden"}', status_code=403)
+    with pytest.raises(DynatraceApiError) as exc:
+        dynatrace_client.get_dynatrace_json_response(endpoint)
+    assert exc.value.status_code == 403
+    assert 'Forbidden' in str(exc.value)
+
+
+def test_error_field_null_falls_back_to_body(dynatrace_client, requests_mock, test_instance):
+    """
+    Check that a null error value falls through to the body excerpt.
+    """
+    endpoint = dynatrace_client.get_endpoint(test_instance.get('url'), '/api/v2/entities')
+    requests_mock.get(endpoint, text='{"error": null, "reason": "quota exceeded"}', status_code=429)
+    with pytest.raises(DynatraceApiError) as exc:
+        dynatrace_client.get_dynatrace_json_response(endpoint)
+    assert exc.value.status_code == 429
+    assert 'quota exceeded' in str(exc.value)
+
+
 def test_error_message_preferred_over_body(dynatrace_client, requests_mock, test_instance):
     """
     Check that Dynatrace's own error message still wins when it is present.
