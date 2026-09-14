@@ -3,7 +3,7 @@
 # Licensed under a 3-clause BSD style license (see LICENSE)
 import pytest
 
-from stackstate_checks.dynatrace.dynatrace_client import DynatraceClientFactory
+from stackstate_checks.dynatrace.dynatrace_client import DynatraceApiError, DynatraceClientFactory
 
 
 def test_endpoint_generation(dynatrace_client):
@@ -36,6 +36,30 @@ def test_status_200(dynatrace_client, requests_mock, test_instance):
     requests_mock.get(endpoint, text='{"events": [{"eventId": "123"}]}', status_code=200)
     response = dynatrace_client.get_dynatrace_json_response(endpoint)
     assert response["events"][0]['eventId'] == '123'
+
+
+def test_api_error_carries_status_code(dynatrace_client, requests_mock, test_instance):
+    """
+    Check that the status code is available on the exception. The entity id used here
+    contains the hex sequence 404, which callers used to read out of the message text.
+    """
+    endpoint = dynatrace_client.get_endpoint(test_instance.get('url'),
+                                             '/api/v2/entities/PROCESS_GROUP_INSTANCE-7091B9883B404E8E')
+    requests_mock.get(endpoint, text='{"detail": "denied by policy"}', status_code=403)
+    with pytest.raises(DynatraceApiError) as exc:
+        dynatrace_client.get_dynatrace_json_response(endpoint)
+    assert exc.value.status_code == 403
+
+
+def test_entity_404_carries_status_code(dynatrace_client, requests_mock, test_instance):
+    """
+    Check that a genuine missing entity is still reported as 404.
+    """
+    endpoint = dynatrace_client.get_endpoint(test_instance.get('url'), '/api/v2/entities/HOST-123')
+    requests_mock.get(endpoint, text='{"error": {"message": "Entity not found"}}', status_code=404)
+    with pytest.raises(DynatraceApiError) as exc:
+        dynatrace_client.get_dynatrace_json_response(endpoint)
+    assert exc.value.status_code == 404
 
 
 def test_entity_404_handling_single_type(dynatrace_client, requests_mock, test_instance, caplog):

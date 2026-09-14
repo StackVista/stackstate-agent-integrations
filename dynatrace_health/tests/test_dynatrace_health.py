@@ -190,6 +190,51 @@ def test_custom_info_event(dynatrace_check, test_instance, requests_mock, health
     assert telemetry._topology_events[0]['msg_title'] == "Custom Info on Mobile App"
 
 
+def _pgi_info_event(event_id, entity_id, entity_name):
+    """
+    Helper function to build a CUSTOM_INFO event for a PROCESS_GROUP_INSTANCE entity
+    """
+    event = json.loads(json.dumps(_get_varied_event_by_type("CUSTOM_INFO")))
+    event['eventId'] = event_id
+    event['entityId']['entityId']['id'] = entity_id
+    event['entityId']['entityId']['type'] = 'PROCESS_GROUP_INSTANCE'
+    event['entityId']['name'] = entity_name
+    return event
+
+
+@freeze_time('2025-07-22 08:26:24')
+def test_rejected_entity_does_not_suppress_remaining_events(dynatrace_check, test_instance, requests_mock,
+                                                            aggregator, telemetry):
+    """
+    A rejected entity lookup must not be read as a missing entity. The first id below
+    contains the hex sequence 404, which used to mark PROCESS_GROUP_INSTANCE problematic
+    and drop every remaining event of that type for the rest of the run.
+    """
+    os.environ["JWT_AUTH"] = "false"
+    rejected_id = 'PROCESS_GROUP_INSTANCE-7091B9883B404E8E'
+    resolvable_id = 'PROCESS_GROUP_INSTANCE-1234567890ABCDEF'
+    event_response = {
+        "totalCount": 2,
+        "pageSize": 2,
+        "events": [
+            _pgi_info_event('rejected-1', rejected_id, 'checkout-worker'),
+            _pgi_info_event('resolvable-1', resolvable_id, 'billing-worker'),
+        ],
+    }
+    set_http_responses(requests_mock, custom_info_event=read_file('event_type_custom_info.json', 'samples'))
+    requests_mock.get("{}/api/v2/entities/{}".format(test_instance['url'], rejected_id),
+                      text='{"detail": "denied by policy"}', status_code=403)
+    requests_mock.get("{}/api/v2/entities/{}".format(test_instance['url'], resolvable_id),
+                      text=json.dumps({"displayName": "billing-worker"}))
+    _mock_events_endpoint(requests_mock, test_instance, event_response)
+
+    dynatrace_check.run()
+
+    aggregator.assert_service_check(dynatrace_check.SERVICE_CHECK_NAME, count=1, status=AgentCheck.OK)
+    assert len(telemetry._topology_events) == 1
+    assert telemetry._topology_events[0]['msg_title'] == "Custom Info on billing-worker"
+
+
 @freeze_time('2025-07-22 08:26:24')
 def test_marked_for_termination_event(dynatrace_check, test_instance, requests_mock, health, aggregator, telemetry):
     event_type = "MARKED_FOR_TERMINATION"

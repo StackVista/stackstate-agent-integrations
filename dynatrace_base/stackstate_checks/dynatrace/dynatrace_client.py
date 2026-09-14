@@ -11,6 +11,19 @@ from requests import Session, Timeout
 from stackstate_checks.dynatrace.custom_auth import MsJWTAuth
 
 
+class DynatraceApiError(Exception):
+    """
+    Raised when a Dynatrace API call returns a non-200 response.
+
+    Carries the status code so callers can branch on it. The message embeds the request
+    URL, so matching text against it reads entity ids as status codes.
+    """
+
+    def __init__(self, message, status_code=None):
+        super(DynatraceApiError, self).__init__(message)
+        self.status_code = status_code
+
+
 class _DynatraceClient:
 
     def __init__(self, token, verify=False, cert=None, keyfile=None, timeout=None, is_ms_jwt_auth=False):
@@ -100,23 +113,27 @@ class _DynatraceClient:
                 ):
                     self._handle_entity_404(endpoint, msg)
                     # Always raise after handling 404 so callers can react and tests assert
-                    raise Exception(
+                    raise DynatraceApiError(
                         'Got an unexpected error with status code %s and message: %s'
-                        % (response.status_code, msg)
+                        % (response.status_code, msg),
+                        response.status_code
                     )
                 elif response.status_code == 401:
                     # Provide clearer guidance for non-JWT (or failed refresh) 401s
-                    raise Exception(
+                    raise DynatraceApiError(
                         (
                             "401 unauthorized for %s. Verify token validity and required API v2 scopes "
                             "(entities.read, events.read, eventTypes.read). Message: %s"
                         )
-                        % (endpoint, msg)
+                        % (endpoint, msg),
+                        response.status_code
                     )
                 else:
                     self.log.error(msg)
-                    raise Exception(
-                        'Got an unexpected error with status code %s and message: %s' % (response.status_code, msg))
+                    raise DynatraceApiError(
+                        'Got an unexpected error with status code %s and message: %s'
+                        % (response.status_code, msg),
+                        response.status_code)
             return response_json
         except Timeout:
             msg = "%d seconds timeout" % self.timeout

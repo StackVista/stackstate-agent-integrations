@@ -9,7 +9,7 @@ from stackstate_checks.base.utils.validations_utils import ForgivingBaseModel, A
 
 from stackstate_checks.base import StackPackInstance, HealthStream, HealthStreamUrn, Health, Identifiers
 from stackstate_checks.checks import AgentCheck
-from stackstate_checks.dynatrace.dynatrace_client import DynatraceClientFactory
+from stackstate_checks.dynatrace.dynatrace_client import DynatraceApiError, DynatraceClientFactory
 from stackstate_checks.dynatrace.constants import SUPPORTED_ENTITY_TYPES_PARAM_SELECTORS
 from stackstate_checks.dynatrace_health.event_data_types import DynatraceEvent
 
@@ -234,7 +234,7 @@ class DynatraceHealthCheck(AgentCheck):
                                                 display_name)
                 except Exception as e:
                     # Check if this is a 404 error (entity no longer exists)
-                    if "404" in str(e) or "not found" in str(e).lower():
+                    if self._is_entity_not_found(e):
                         # Extract entity type from entity_id if possible
                         entity_type = self._extract_entity_type(entity_id)
                         if entity_type not in entity_404_errors:
@@ -290,7 +290,7 @@ class DynatraceHealthCheck(AgentCheck):
                     entity_id = self._get_entity_id(event)
 
                     # Check if this is a 404 error (entity no longer exists)
-                    if "404" in str(e) or "not found" in str(e).lower():
+                    if self._is_entity_not_found(e):
                         # Extract entity type from entity_id if possible
                         entity_type = self._extract_entity_type(entity_id)
                         if entity_type not in entity_404_errors:
@@ -539,6 +539,17 @@ class DynatraceHealthCheck(AgentCheck):
         if event.entityId and event.entityId.entityId and event.entityId.entityId.id:
             return event.entityId.entityId.id
         return 'unknown'
+
+    @staticmethod
+    def _is_entity_not_found(error):
+        """
+        Whether an error means the entity is gone rather than that the request was rejected.
+        :param error: the exception raised while resolving an entity
+        :return: True if the entity no longer exists
+        """
+        if isinstance(error, DynatraceApiError):
+            return error.status_code == 404
+        return 'not found' in str(error).lower()
 
     @staticmethod
     def _extract_entity_type(entity_id):
