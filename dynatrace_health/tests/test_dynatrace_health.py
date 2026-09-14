@@ -247,6 +247,58 @@ def test_rejected_entity_does_not_suppress_remaining_events(dynatrace_check, tes
 
 
 @freeze_time('2025-07-22 08:26:24')
+def test_failed_entity_lookup_is_cached_for_the_run(dynatrace_check, test_instance, requests_mock, aggregator):
+    """
+    Several events referencing the same unreachable entity must cost one request.
+    """
+    os.environ["JWT_AUTH"] = "false"
+    entity_id = 'PROCESS_GROUP_INSTANCE-ABCDEF0123456789'
+    event_response = {
+        "totalCount": 3,
+        "pageSize": 3,
+        "events": [_pgi_info_event('e-%d' % n, entity_id, 'checkout-worker') for n in (1, 2, 3)],
+    }
+    set_http_responses(requests_mock, custom_info_event=read_file('event_type_custom_info.json', 'samples'))
+    requests_mock.get("{}/api/v2/entities/{}".format(test_instance['url'], entity_id),
+                      text='{"detail": "denied by policy"}', status_code=403)
+    _mock_events_endpoint(requests_mock, test_instance, event_response)
+
+    dynatrace_check.run()
+
+    entity_calls = [r for r in requests_mock.request_history if entity_id.lower() in r.url.lower()]
+    assert len(entity_calls) == 1
+
+
+@freeze_time('2025-07-22 08:26:24')
+def test_missing_entity_does_not_suppress_type(dynatrace_check, test_instance, requests_mock, aggregator, telemetry):
+    """
+    A deleted entity must not blind the run to other entities of the same type.
+    """
+    os.environ["JWT_AUTH"] = "false"
+    missing_id = 'PROCESS_GROUP_INSTANCE-AAAAAAAAAAAAAAAA'
+    present_id = 'PROCESS_GROUP_INSTANCE-BBBBBBBBBBBBBBBB'
+    event_response = {
+        "totalCount": 2,
+        "pageSize": 2,
+        "events": [
+            _pgi_info_event('missing-1', missing_id, 'gone-worker'),
+            _pgi_info_event('present-1', present_id, 'billing-worker'),
+        ],
+    }
+    set_http_responses(requests_mock, custom_info_event=read_file('event_type_custom_info.json', 'samples'))
+    requests_mock.get("{}/api/v2/entities/{}".format(test_instance['url'], missing_id),
+                      text='{"error": {"message": "Entity not found"}}', status_code=404)
+    requests_mock.get("{}/api/v2/entities/{}".format(test_instance['url'], present_id),
+                      text=json.dumps({"displayName": "billing-worker"}))
+    _mock_events_endpoint(requests_mock, test_instance, event_response)
+
+    dynatrace_check.run()
+
+    assert len(telemetry._topology_events) == 1
+    assert telemetry._topology_events[0]['msg_title'] == "Custom Info on billing-worker"
+
+
+@freeze_time('2025-07-22 08:26:24')
 def test_marked_for_termination_event(dynatrace_check, test_instance, requests_mock, health, aggregator, telemetry):
     event_type = "MARKED_FOR_TERMINATION"
     event = _get_varied_event_by_type(event_type)
