@@ -8,6 +8,7 @@ enum34==1.1.10; python_version < "3.0"
 flatten-dict==0.2.0
 iso8601==0.1.14
 kubernetes==35.0.0; python_version > '3.0'
+oauthlib==4.0.0; python_version > '3.0'
 orionsdk==0.3.0
 orjson==3.11.7; python_version > '3.0'
 pg8000==1.31.5
@@ -17,7 +18,7 @@ psutil==6.0.0
 psycopg2-binary==2.9.9; python_version > '3.0'
 pymysql==1.1.2; python_version > '3.0'
 pynag==1.1.2
-PyJWT==2.13.0
+PyJWT==2.15.0
 pytz==2021.1
 pywin32==306; sys_platform == 'win32' and python_version > '3.0'
 pyyaml==6.0.2; python_version > '3.0'
@@ -26,7 +27,7 @@ requests==2.33.0; python_version > '3.0'
 pydantic==2.12.5
 simplejson==3.20.1
 six==1.16.0
-urllib3==2.7.0
+urllib3==2.8.0
 uuid==1.30
 pyvmomi==9.1.0.0
 vmware-vapi-common-client==9.1.0.0

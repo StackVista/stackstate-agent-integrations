@@ -36,6 +36,10 @@ After defining the dependencies which the check needs in `<check_name>/requireme
 
 this will update the `agent_requirements.in` file to be used by the stackstate-agent build.
 
+Review the generated diff before committing: `dep freeze` collects the active
+checks' requirements only. Preserve additional runtime pins already in
+`agent_requirements.in` when they are still required by the packaged agent.
+
 ## Manual testing
 
 Use the `checksdev env` command to do manual testing. Testing always happens in an environment, to list all environments run:
