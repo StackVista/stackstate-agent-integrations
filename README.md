@@ -1,5 +1,13 @@
 # StackState Agent Integrations
 
+> [!IMPORTANT]
+> **`stackstate_checks_base` and the agent-to-receiver protocol are not a supported extension SDK.** Code, protocols and
+> configuration in this repository can change in any release without notice.
+> Only interfaces documented in the
+> [SUSE Observability documentation](https://documentation.suse.com/cloudnative/suse-observability/latest/en/classic.html)
+> are supported. Do not build integrations against anything else here.
+> To send data to SUSE Observability, use [OpenTelemetry](https://documentation.suse.com/cloudnative/suse-observability/latest/en/setup/otel/overview.html) with [OTel component and relation mappings](https://documentation.suse.com/cloudnative/suse-observability/latest/en/setup/custom-integrations/otelmappings/getting-started.html).
+
 This repository contains the Agent Integrations (also known as checks) that StackState officially develops and supports. 
 The [StackState Agent][1] packages are equipped with all the Integrations from this repository.
 
